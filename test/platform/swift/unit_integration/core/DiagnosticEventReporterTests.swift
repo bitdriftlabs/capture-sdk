@@ -84,7 +84,10 @@ final class DiagnosticEventReporterTests: XCTestCase {
 
         XCTAssertNoThrow(try! BitdriftKSCrashHandler.configure(withCrashReportDirectory: parentDir))
 
-        let enhancedReport = BitdriftKSCrashHandler.enhancedMetricKitReport(metrickitReport) as! [String: any Equatable]
+        let enhancedReport = BitdriftKSCrashHandler.enhancedMetricKitReport(
+            metrickitReport,
+            useStackOverlapMatching: true
+        ) as! [String: any Equatable]
         XCTAssertNotNil(enhancedReport)
         XCTAssertFalse(dictsAreEqual(metrickitReport, enhancedReport))
 
@@ -110,7 +113,13 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testSdkAttributes() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: .crash,
+            minimumHangSeconds: 2.5,
+            useStackOverlapMatching: true
+        )
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: nil, exceptionCode: nil, callStacks: [])
         reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
 
@@ -128,7 +137,13 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testDeviceTime() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: .crash,
+            minimumHangSeconds: 2.5,
+            useStackOverlapMatching: true
+        )
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: nil, exceptionCode: nil, callStacks: [])
         let timestamp = dateFormatter.date(from: "1995-03-11")!
         reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash], timestamp: timestamp)])
@@ -146,7 +161,13 @@ final class DiagnosticEventReporterTests: XCTestCase {
     }
 
     func testMachExceptionNameInError() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: .crash,
+            minimumHangSeconds: 2.5,
+            useStackOverlapMatching: true
+        )
         let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
         reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
 
@@ -167,7 +188,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
 
     @available(iOS 17.0, *)
     func testNSExceptionNameInError() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5, useStackOverlapMatching: true)
         let crashReason = MockObjectiveCReason("NSRangeException", message: "index 5 out of range [0..2]")
         let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1, exceptionReason: crashReason)
 
@@ -204,7 +225,13 @@ ThermalInfo: (
 "Thermal State:   critical"
 ) reportType:CrashLog maxTerminationResistance:Interactive>
 """
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: .crash,
+            minimumHangSeconds: 2.5,
+            useStackOverlapMatching: true
+        )
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, exceptionCode: 0, terminationReason: termContext)
         reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
 
@@ -223,7 +250,13 @@ ThermalInfo: (
     }
 
     func testSendAttributedEmptyStack() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: .crash,
+            minimumHangSeconds: 2.5,
+            useStackOverlapMatching: true
+        )
         let imageOffset: UInt64 = 165304
         let imageOffset2: UInt64 = 126721
         let crash = try MockCrashDiagnostic(signal: 9, callStacks: [
@@ -291,7 +324,13 @@ ThermalInfo: (
     }
 
     func testDiscardInvalidFrame() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: .crash, minimumHangSeconds: 2.5)
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: .crash,
+            minimumHangSeconds: 2.5,
+            useStackOverlapMatching: true
+        )
         let imageOffset: UInt64 = 165304
         let imageOffset2: UInt64 = 126721
         let crash = try MockCrashDiagnostic(signal: 6, callStacks: [
@@ -352,7 +391,13 @@ ThermalInfo: (
     }
 
     func testHangUnderThreshold() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: [.hang, .crash], minimumHangSeconds: 1)
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: [.hang, .crash],
+            minimumHangSeconds: 1,
+            useStackOverlapMatching: true
+        )
         let timestamp = dateFormatter.date(from: "2022-04-07")!
         let hang = try MockHangDiagnostic(duration: 0.7, type: "Main Runloop Hang", callStacks: [
             ["threadAttributed": true, "callStackRootFrames": [["binaryUUID":
@@ -371,7 +416,13 @@ ThermalInfo: (
     }
 
     func testHangOverThreshold() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: [.hang, .crash], minimumHangSeconds: 1)
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: [.hang, .crash],
+            minimumHangSeconds: 1,
+            useStackOverlapMatching: true
+        )
         let timestamp = dateFormatter.date(from: "2008-11-25")!
         let imageOffset: UInt64 = 165304
         let imageOffset2: UInt64 = 126721
@@ -448,7 +499,13 @@ ThermalInfo: (
     }
 
     func testManyThreadCrashReport() throws {
-        let reporter = DiagnosticEventReporter(outputDir: reportDir!, sdkVersion: "41.5.67", eventTypes: [.crash], minimumHangSeconds: 1)
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: [.crash],
+            minimumHangSeconds: 1,
+            useStackOverlapMatching: true
+        )
         let timestamp = dateFormatter.date(from: "2008-11-25")!
         let imageOffset: UInt64 = 165304
         let imageOffset2: UInt64 = 126721
