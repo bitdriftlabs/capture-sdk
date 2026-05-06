@@ -60,7 +60,7 @@ sealed class LoggerState {
         /**
          * The initialized logger handle
          */
-        val logger: ILogger
+        val logger: ILogger,
     ) : LoggerState()
 
     /**
@@ -779,7 +779,6 @@ object Capture {
 
             // TODO: Replace with actual signal from shared-core
             _connectionStatusFlow.value = ConnectionState.Connected
-
         } catch (e: Throwable) {
             Log.w(LOG_TAG, "Failed to start Capture", e)
             _sdkStatusFlow.value = LoggerState.StartFailure(throwable = e)
