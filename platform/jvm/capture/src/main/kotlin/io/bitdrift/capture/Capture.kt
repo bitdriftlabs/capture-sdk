@@ -28,36 +28,79 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.utils.BuildTypeChecker
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.HttpUrl
 import java.util.UUID
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 import kotlin.time.TimeSource
 import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
 
-internal sealed class LoggerState {
+/**
+ * Represents the lifecycle state of the Capture SDK.
+ * Observe changes via [Capture.Logger.sdkStatusFlow].
+ */
+sealed class LoggerState {
     /**
      * The logger has not yet been started.
      */
     data object NotStarted : LoggerState()
 
     /**
-     * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
+     * The logger is in the process of being started.
      */
     data object Starting : LoggerState()
 
     /**
-     * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
+     * The logger has been successfully started and is ready for use.
      */
-    class Started(
-        val logger: LoggerImpl,
+    data class Started(
+        /**
+         * The initialized logger handle
+         */
+        val logger: ILogger,
     ) : LoggerState()
 
     /**
-     * An attempt to start the logger was made but failed. Subsequent attempts to start the logger will be ignored.
+     * An attempt to start the logger was made but failed.
      */
-    data object StartFailure : LoggerState()
+    data class StartFailure(
+        /**
+         * The detailed reasons for start sdk failure
+         */
+        val reason: String? = null,
+        /**
+         * The throwable causign SDK start to fail
+         */
+        val throwable: Throwable? = null,
+    ) : LoggerState()
+}
+
+/**
+ * Represents the current connection state between the SDK and the bitdrift backend.
+ * Observe changes via [Capture.Logger.connectionStatusFlow].
+ */
+sealed class ConnectionState {
+    /**
+     * No connection attempt has been made yet. This is the initial state before the SDK starts.
+     */
+    data object Idle : ConnectionState()
+
+    /**
+     * The SDK has successfully established a connection to the bitdrift backend.
+     */
+    data object Connected : ConnectionState()
+
+    /**
+     * The connection to the bitdrift backend failed.
+     *
+     * @param reason Optional description of what caused the failure.
+     */
+    data class Failed(
+        val reason: String?,
+    ) : ConnectionState()
 }
 
 /**
@@ -65,7 +108,11 @@ internal sealed class LoggerState {
  */
 object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
-    private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
+
+    @Suppress("ktlint:standard:backing-property-naming")
+    private val _sdkStatusFlow = MutableStateFlow<LoggerState>(LoggerState.NotStarted)
+    @Suppress("ktlint:standard:backing-property-naming")
+    private val _connectionStatusFlow = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -73,7 +120,7 @@ object Capture {
      * @return ILogger a logger handle
      */
     fun logger(): ILogger? =
-        when (val state = default.get()) {
+        when (val state = _sdkStatusFlow.value) {
             is LoggerState.NotStarted -> null
             is LoggerState.Starting -> null
             is LoggerState.Started -> state.logger
@@ -97,6 +144,7 @@ object Capture {
      *```
      */
     object Logger {
+
         private val defaultCaptureApiUrl =
             HttpUrl
                 .Builder()
@@ -117,6 +165,16 @@ object Capture {
             get() {
                 return BuildConstants.SDK_VERSION
             }
+
+        /**
+         * A flow that emits the SDK lifecycle state changes after a call to Capture.Logger.start()
+         */
+        val sdkStatusFlow: Flow<LoggerState> = _sdkStatusFlow.asStateFlow()
+
+        /**
+         * A flow that emits the different Connection state after a call to Capture.Logger.start()
+         */
+        val connectionStatusFlow: Flow<ConnectionState> = _connectionStatusFlow.asStateFlow()
 
         /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
@@ -173,17 +231,24 @@ object Capture {
             bridge: IBridge,
             context: Context? = null,
         ) {
+            if (apiKey.isEmpty()) {
+                _sdkStatusFlow.value = LoggerState.StartFailure(reason = "Provided API key is empty")
+                return
+            }
+
             // There's nothing we can do if we don't have yet access to the application context.
             if (hasInvalidContext(context)) {
                 Log.w(
                     LOG_TAG,
                     "Attempted to initialize Capture with a null context",
                 )
+
+                _sdkStatusFlow.value = LoggerState.StartFailure(reason = "Attempted to initialize Capture with a null context")
                 return
             }
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
+            if (_sdkStatusFlow.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
                 initSdk(
                     apiKey = apiKey,
                     sessionStrategy = sessionStrategy,
@@ -610,7 +675,8 @@ object Capture {
          * Used for testing purposes.
          */
         internal fun resetShared() {
-            default.set(LoggerState.NotStarted)
+            _sdkStatusFlow.value = LoggerState.NotStarted
+            _connectionStatusFlow.value = ConnectionState.Idle
         }
 
         private fun hasInvalidContext(context: Context? = null) = context == null && !ContextHolder.isInitialized
@@ -692,7 +758,9 @@ object Capture {
                     )
                 }
 
-            default.set(LoggerState.Started(loggerImpl))
+            _sdkStatusFlow.value = LoggerState.Started(loggerImpl)
+            // TODO: Replace with actual signal from shared-core
+            _connectionStatusFlow.value = ConnectionState.Connected
 
             // Must be initialized right after the logger state is set to avoid a null
             // Capture.logger() reference when onBeforeSend callbacks are triggered.
@@ -712,7 +780,7 @@ object Capture {
             )
         } catch (e: Throwable) {
             Log.w(LOG_TAG, "Failed to start Capture", e)
-            default.set(LoggerState.StartFailure)
+            _sdkStatusFlow.value = LoggerState.StartFailure(throwable = e)
         }
     }
 }

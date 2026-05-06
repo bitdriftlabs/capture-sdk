@@ -38,8 +38,8 @@
     <string name="started">Inicializado</string>
     <string name="not_started">No inicializado</string>
     <string name="testing_tools">Nivel de Logs y Fatal Issue Testing</string>
-    <string name="device_code_valid">Device code: Verificado</string>
-    <string name="device_code_invalid">Device code: Error</string>
+    <string name="connection_connected">Conectado</string>
+    <string name="connection_disconnected">No Conectado</string>
     <string name="restart_warning_title">Reiniciar APP para aplicar cambios</string>
     <string name="restart_warning_summary">Haz click aquí para reinciar</string>
     <string name="log_message_toast">Log enviado con nivel: %1$s</string>

@@ -11,7 +11,9 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.ConnectionState
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LoggerState
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
@@ -55,6 +57,42 @@ class MainViewModel(
         viewModelScope.launch {
             initializeSdkConfig()
         }
+        viewModelScope.launch {
+            Logger.sdkStatusFlow.collect { state ->
+                when (state) {
+                    is LoggerState.Started -> _uiState.update {
+                        it.copy(
+                            session = it.session.copy(
+                                isSdkInitialized = true,
+                                sessionId = state.logger.sessionId,
+                                sessionUrl = state.logger.sessionUrl,
+                            ),
+                            error = null,
+                        )
+                    }
+                    is LoggerState.StartFailure -> _uiState.update {
+                        it.copy(
+                            session = it.session.copy(isSdkInitialized = false),
+                            error = state.reason ?: state.throwable?.message,
+                        )
+                    }
+                    else -> _uiState.update {
+                        it.copy(
+                            session = it.session.copy(isSdkInitialized = false),
+                        )
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            Logger.connectionStatusFlow.collect { connectionState ->
+                _uiState.update {
+                    it.copy(
+                        session = it.session.copy(connectionState = connectionState),
+                    )
+                }
+            }
+        }
     }
 
     private suspend fun initializeSdkConfig() {
@@ -73,28 +111,6 @@ class MainViewModel(
         }
         val persistedFields = sdkRepository.restoreGlobalFields()
         _uiState.update { it.copy(globalFields = persistedFields) }
-        updateSdkState()
-        checkAutoInitialization()
-
-        if (sdkRepository.isSdkInitialized()) {
-            runHealthCheck()
-        }
-    }
-
-    private fun checkAutoInitialization() {
-        val state = _uiState.value
-        val config = state.config
-        val session = state.session
-
-        if (!config.isDeferredStart && !session.isSdkInitialized) {
-            if (config.apiKey.isBlank() || config.apiUrl.isBlank()) {
-                _uiState.update {
-                    it.copy(
-                        error = "SDK auto-initialization failed: API key or URL not configured. Please set them in Settings.",
-                    )
-                }
-            }
-        }
     }
 
     fun handleAction(action: AppAction) {
@@ -208,8 +224,6 @@ class MainViewModel(
 
             val success = sdkRepository.initializeSdk(config.apiKey, config.apiUrl)
             if (success) {
-                updateSdkState()
-                runHealthCheck()
                 _uiState.update { it.copy(isLoading = false, error = null) }
             } else {
                 _uiState.update {
@@ -228,32 +242,11 @@ class MainViewModel(
 
             val sessionId = sdkRepository.startNewSession()
             if (sessionId != null) {
-                updateSdkState()
-                runHealthCheck()
                 _uiState.update { it.copy(isLoading = false) }
             } else {
                 _uiState.update {
                     it.copy(isLoading = false, error = "Failed to start new session")
                 }
-            }
-        }
-    }
-
-    private fun runHealthCheck() {
-        viewModelScope.launch {
-            // GenerateDeviceCode is a good proxy to determine connectivity
-            val result = sdkRepository.generateDeviceCode()
-            val isValid = result.isSuccess
-            val errorMessage = result.exceptionOrNull()?.message
-            _uiState.update { state ->
-                state.copy(
-                    session =
-                        state.session.copy(
-                            isDeviceCodeValid = isValid,
-                            deviceCodeError = if (!isValid) errorMessage else null,
-                            deviceCode = if (isValid) result.getOrNull() else state.session.deviceCode,
-                        ),
-                )
             }
         }
     }
@@ -267,12 +260,7 @@ class MainViewModel(
                 val deviceCode = result.getOrNull()
                 _uiState.update {
                     it.copy(
-                        session =
-                            it.session.copy(
-                                deviceCode = deviceCode,
-                                isDeviceCodeValid = true,
-                                deviceCodeError = null,
-                            ),
+                        session = it.session.copy(deviceCode = deviceCode),
                         isLoading = false,
                     )
                 }
@@ -281,11 +269,6 @@ class MainViewModel(
                     result.exceptionOrNull()?.message ?: "Failed to generate device code"
                 _uiState.update {
                     it.copy(
-                        session =
-                            it.session.copy(
-                                isDeviceCodeValid = false,
-                                deviceCodeError = errorMessage,
-                            ),
                         isLoading = false,
                         error = errorMessage,
                     )
@@ -415,28 +398,6 @@ class MainViewModel(
         _uiState.update { it.copy(error = null) }
     }
 
-    private suspend fun updateSdkState() {
-        val sessionState =
-            _uiState.value.session.copy(
-                isSdkInitialized = sdkRepository.isSdkInitialized(),
-                sessionId = sdkRepository.getSessionId(),
-                sessionUrl = sdkRepository.getSessionUrl(),
-                deviceCode = _uiState.value.session.deviceCode,
-            )
-
-        val configState =
-            _uiState.value.config.copy(
-                apiUrl = sdkRepository.getApiUrl(),
-                sessionStrategy = sdkRepository.getSessionStrategy(),
-            )
-
-        _uiState.update {
-            it.copy(
-                session = sessionState,
-                config = configState,
-            )
-        }
-    }
 }
 
 private val NATIVE_CRASH_REASONS =

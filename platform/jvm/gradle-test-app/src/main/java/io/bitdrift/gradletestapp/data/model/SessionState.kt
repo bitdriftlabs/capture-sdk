@@ -7,12 +7,13 @@
 
 package io.bitdrift.gradletestapp.data.model
 
+import io.bitdrift.capture.ConnectionState
+
 /** Session feature state */
 data class SessionState(
     val isSdkInitialized: Boolean = false,
     val sessionId: String? = null,
     val sessionUrl: String? = null,
     val deviceCode: String? = null,
-    val isDeviceCodeValid: Boolean = false,
-    val deviceCodeError: String? = null,
+    val connectionState: ConnectionState = ConnectionState.Idle,
 )

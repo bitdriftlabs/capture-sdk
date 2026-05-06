@@ -62,18 +62,18 @@ fun SdkStatusCard(
                 apiUrl = uiState.config.apiUrl,
             )
 
-            val isValid = uiState.session.isDeviceCodeValid
-            val error = uiState.session.deviceCodeError
-            val deviceStatusText =
-                if (isValid) {
-                    stringResource(id = R.string.device_code_valid)
+            val isConnected = uiState.session.connectionState is io.bitdrift.capture.ConnectionState.Connected
+            val connectionError = (uiState.session.connectionState as? io.bitdrift.capture.ConnectionState.Failed)?.reason
+            val connectionStatusText =
+                if (isConnected) {
+                    stringResource(id = R.string.connection_connected)
                 } else {
-                    error ?: stringResource(id = R.string.device_code_invalid)
+                    connectionError ?: stringResource(id = R.string.connection_disconnected)
                 }
             Text(
-                text = deviceStatusText,
+                text = connectionStatusText,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isValid) BitdriftColors.Primary else BitdriftColors.Error,
+                color = if (isConnected) BitdriftColors.Primary else BitdriftColors.Error,
             )
 
             if (uiState.config.isDeferredStart && !uiState.session.isSdkInitialized) {

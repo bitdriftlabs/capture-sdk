@@ -77,6 +77,7 @@ bitdrift_kt_android_library(
         artifact("com.google.flatbuffers:flatbuffers-java"),
         artifact("com.google.protobuf:protobuf-kotlin-lite"),
         artifact("androidx.metrics:metrics-performance"),
+        artifact("org.jetbrains.kotlinx:kotlinx-coroutines-core"),
         # Compile-only dependency (neverlink wrapper). Not packaged nor appearing in POM.
         ":retrofit_compile_only",
         ":webkit_compile_only",

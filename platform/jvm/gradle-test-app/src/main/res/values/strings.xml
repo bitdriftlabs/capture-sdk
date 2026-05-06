@@ -46,8 +46,8 @@
     <string name="memory_leak" translatable="false">Memory Leak</string>
     <string name="janky_frames" translatable="false">Janky Frames</string>
     <string name="strict_mode" translatable="false">StrictMode Violations</string>
-    <string name="device_code_valid">Device code: Valid</string>
-    <string name="device_code_invalid">Device code: Invalid</string>
+    <string name="connection_connected">Connected</string>
+    <string name="connection_disconnected">Not Connected</string>
     <string name="restart_warning_title">Restart the App to apply changes</string>
     <string name="restart_warning_summary">Click here to restart and apply your configuration changes</string>
     <string name="log_message_toast">Log message sent with level: %1$s</string>
