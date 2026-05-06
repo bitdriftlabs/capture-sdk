@@ -60,11 +60,7 @@ sealed class LoggerState {
         /**
          * The initialized logger handle
          */
-        val logger: ILogger,
-        /**
-         * The total duration for SDK started
-         */
-        val duration: Duration,
+        val logger: ILogger
     ) : LoggerState()
 
     /**
@@ -766,10 +762,9 @@ object Capture {
             // Capture.logger() reference when onBeforeSend callbacks are triggered.
             loggerImpl.initIssueReporter()
 
-            val totalDuration = startSdkTimer.elapsedNow()
             val sdkConfiguredDuration =
                 SdkConfiguredDuration(
-                    wholeStartDuration = totalDuration,
+                    wholeStartDuration = startSdkTimer.elapsedNow(),
                     nativeLoadDuration = nativeLoadDuration,
                     loggerImplBuildDuration = loggerImplBuildDuration,
                 )
@@ -780,10 +775,11 @@ object Capture {
                 captureStartThread = Thread.currentThread().name,
             )
 
-            _sdkStatusFlow.value = LoggerState.Started(loggerImpl, totalDuration)
+            _sdkStatusFlow.value = LoggerState.Started(loggerImpl)
 
             // TODO: Replace with actual signal from shared-core
             _connectionStatusFlow.value = ConnectionState.Connected
+
         } catch (e: Throwable) {
             Log.w(LOG_TAG, "Failed to start Capture", e)
             _sdkStatusFlow.value = LoggerState.StartFailure(throwable = e)
