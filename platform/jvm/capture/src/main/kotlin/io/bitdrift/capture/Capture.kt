@@ -61,6 +61,10 @@ sealed class LoggerState {
          * The initialized logger handle
          */
         val logger: ILogger,
+        /**
+         * The total duration for SDK started
+         */
+        val duration: Duration,
     ) : LoggerState()
 
     /**
@@ -111,6 +115,7 @@ object Capture {
 
     @Suppress("ktlint:standard:backing-property-naming")
     private val _sdkStatusFlow = MutableStateFlow<LoggerState>(LoggerState.NotStarted)
+
     @Suppress("ktlint:standard:backing-property-naming")
     private val _connectionStatusFlow = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
 
@@ -144,7 +149,6 @@ object Capture {
      *```
      */
     object Logger {
-
         private val defaultCaptureApiUrl =
             HttpUrl
                 .Builder()
@@ -758,17 +762,14 @@ object Capture {
                     )
                 }
 
-            _sdkStatusFlow.value = LoggerState.Started(loggerImpl)
-            // TODO: Replace with actual signal from shared-core
-            _connectionStatusFlow.value = ConnectionState.Connected
-
             // Must be initialized right after the logger state is set to avoid a null
             // Capture.logger() reference when onBeforeSend callbacks are triggered.
             loggerImpl.initIssueReporter()
 
+            val totalDuration = startSdkTimer.elapsedNow()
             val sdkConfiguredDuration =
                 SdkConfiguredDuration(
-                    wholeStartDuration = startSdkTimer.elapsedNow(),
+                    wholeStartDuration = totalDuration,
                     nativeLoadDuration = nativeLoadDuration,
                     loggerImplBuildDuration = loggerImplBuildDuration,
                 )
@@ -778,6 +779,11 @@ object Capture {
                 sdkConfiguredDuration = sdkConfiguredDuration,
                 captureStartThread = Thread.currentThread().name,
             )
+
+            _sdkStatusFlow.value = LoggerState.Started(loggerImpl, totalDuration)
+
+            // TODO: Replace with actual signal from shared-core
+            _connectionStatusFlow.value = ConnectionState.Connected
         } catch (e: Throwable) {
             Log.w(LOG_TAG, "Failed to start Capture", e)
             _sdkStatusFlow.value = LoggerState.StartFailure(throwable = e)
