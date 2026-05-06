@@ -30,7 +30,6 @@ import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.ConfigCache
 import java.io.File
-import java.io.FileNotFoundException
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.TimeSource
@@ -129,16 +128,23 @@ internal class IssueReporter(
 
     private fun getRuntimeState(sdkDirectory: String): RuntimeState =
         runCatching {
-            if (isFatalIssueReportingRuntimeEnabled(sdkDirectory)) {
-                RuntimeState.Enabled
-            } else {
-                RuntimeState.Disabled
+            val configFile = File(sdkDirectory, "reports/config.csv")
+
+            // For initial app installation/clear cache.
+            // The configuration wasn't written to disk yet, so we are intentionally enabling crash
+            // reporting to not miss any of those early crashes
+            if (!configFile.exists()) {
+                return RuntimeState.Enabled
             }
-        }.getOrElse { exception ->
-            when (exception) {
-                is FileNotFoundException -> RuntimeState.Unset
-                else -> RuntimeState.Invalid
+
+            val config = ConfigCache.readValues(configFile)
+            return when (config["crash_reporting.enabled"]) {
+                true -> RuntimeState.Enabled
+                false -> RuntimeState.Disabled
+                else -> RuntimeState.MissingFlag
             }
+        }.getOrElse {
+            RuntimeState.Invalid
         }
 
     private fun processPriorReports(completedReportsProcessor: ICompletedReportsProcessor) {
@@ -165,12 +171,6 @@ internal class IssueReporter(
         if (latestAppExitReasonResult is LatestAppExitReasonResult.Valid) {
             issueReporterProcessor?.processAppExitReport(latestAppExitReasonResult.applicationExitInfo)
         }
-    }
-
-    private fun isFatalIssueReportingRuntimeEnabled(sdkDirectory: String): Boolean {
-        val configFile = File(sdkDirectory, "reports/config.csv")
-        val config = ConfigCache.readValues(configFile)
-        return config.get("crash_reporting.enabled") == true
     }
 
     private fun logError(

@@ -156,6 +156,8 @@ public final class Logger {
             return nil
         }
 
+        let isSdkDirectoryFirstCreated = !FileManager.default.fileExists(atPath: directoryURL.path)
+
         let network: URLSessionNetworkClient? = enableNetwork
             ? URLSessionNetworkClient(apiBaseURL: configuration.apiURL)
             : nil
@@ -205,6 +207,7 @@ public final class Logger {
             let fields: Fields = [
                 "_fatal_issue_reporting_state": "\(Logger.issueReporterInitResult.0)",
                 "_fatal_issue_reporting_duration_ms": Logger.issueReporterInitResult.1 * Double(MSEC_PER_SEC),
+                "_is_sdk_directory_first_created": isSdkDirectoryFirstCreated,
                 "_session_replay_enabled": (configuration.sessionReplayConfiguration != nil),
             ]
             self.underlyingLogger.logSDKStart(fields: fields, duration: duration)
@@ -245,14 +248,10 @@ public final class Logger {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
             Logger.issueReporterInitResult = measureTime {
-                guard let contents = Logger.cachedReportConfigData(base: directoryURL) else {
-                    return .initialized(.runtimeNotSet)
-                }
-                guard let runtimeConfig = readCachedValues(contents) else {
-                    return .initialized(.runtimeInvalid)
-                }
-                guard let enabled = runtimeConfig[RuntimeVariable.crashReporting.name] as? Bool, enabled else {
-                    return .initialized(.runtimeNotEnabled)
+                let contents = Logger.cachedReportConfigData(base: directoryURL)
+                let resolution = resolveRuntimeState(from: contents)
+                guard resolution == .monitoring else {
+                    return .initialized(resolution)
                 }
 
                 let kscrashReportDir = Logger.kscrashReportDirectory(base: directoryURL)

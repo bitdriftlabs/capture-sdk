@@ -68,6 +68,7 @@ import io.bitdrift.capture.webview.WebViewConfiguration
 import io.bitdrift.capture.webview.toFields
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import java.io.File
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -126,6 +127,7 @@ internal class LoggerImpl(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
     private val previousRunInfoResolver =
         PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler)
+    private val isSdkDirectoryFirstCreated: Boolean
 
     private val issueReporter: IssueReporter? =
         if (configuration.enableFatalIssueReporting) {
@@ -174,6 +176,8 @@ internal class LoggerImpl(
             )
 
         sdkDirectory = SdkDirectory.getPath(context)
+
+        isSdkDirectoryFirstCreated = !File(sdkDirectory).exists()
 
         val localErrorReporter =
             errorReporter ?: ErrorReporterService(
@@ -670,6 +674,7 @@ internal class LoggerImpl(
                 fieldsOf(
                     "_app_installation_source" to installationSource,
                     "_capture_start_thread" to captureStartThread,
+                    "_is_sdk_directory_first_created" to isSdkDirectoryFirstCreated.toString(),
                     "_native_load_duration_ms" to
                         sdkConfiguredDuration.nativeLoadDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
                     "_logger_build_duration_ms" to
