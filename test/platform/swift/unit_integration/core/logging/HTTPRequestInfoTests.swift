@@ -22,6 +22,7 @@ final class HTTPRequestInfoTests: XCTestCase {
         XCTAssertEqual(
             [
                 "_method": "method",
+                "_span_name": "_http",
                 "_span_type": "start",
                 "key": "value",
             ],
@@ -51,6 +52,7 @@ final class HTTPRequestInfoTests: XCTestCase {
                 "_path": "/path/12345",
                 "_query": "query",
                 "_span_id": "span_id",
+                "_span_name": "_http",
                 "_span_type": "start",
                 "key": "value",
             ],
@@ -78,6 +80,7 @@ final class HTTPRequestInfoTests: XCTestCase {
             "_path": "/test/12345",
             "_path_template": "/test/{explicit_id}",
             "_query": "q=foo",
+            "_span_name": "_http",
             "_span_type": "start",
         ], fields)
     }

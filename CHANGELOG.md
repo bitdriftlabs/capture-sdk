@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed `Span Name` for network request/responses.
 
 ## [0.22.16]
 
