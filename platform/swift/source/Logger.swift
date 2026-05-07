@@ -270,7 +270,27 @@ public final class Logger {
                     sdkVersion: capture_get_sdk_version(),
                     eventTypes: .crash,
                     minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
-                    useStackOverlapMatching: useStackOverlapMatching) { [weak self] in
+                    useStackOverlapMatching: useStackOverlapMatching,
+                    crashEnrichmentSummaryHandler: { [weak self] summary in
+                        let matcherMode = useStackOverlapMatching ? "base" : "exact"
+                        guard let self,
+                              let summary,
+                              let outcome = summary["outcome"],
+                              let reason = summary["reason"]
+                        else {
+                            return
+                        }
+
+                        self.underlyingLogger.logInternal(
+                            level: .debug,
+                            message: "[CrashEnrichment] MetricKit crash enrichment summary",
+                            fields: [
+                                "outcome": outcome,
+                                "reason": reason,
+                                "matcher_mode": matcherMode,
+                            ]
+                        )
+                    }) { [weak self] in
                     self?.underlyingLogger.processIssueReports(reportProcessingSession: .previousRun)
                 }
                 Logger.diagnosticReporter.update { val in

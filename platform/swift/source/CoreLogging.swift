@@ -241,12 +241,14 @@ extension CoreLogging {
     /// - parameter file:     The unique file identifier that has the form module/file.
     /// - parameter line:     The line number on which the log is emitted.
     /// - parameter function: The name of the declaration from within which the log is emitted.
+    /// - parameter fields:   The fields to log.
     func logInternal(
         level: LogLevel,
         message: @autoclosure () -> String,
         file: String? = #file,
         line: Int? = #line,
-        function: String? = #function
+        function: String? = #function,
+        fields: Fields? = nil
     )
     {
         self.log(
@@ -255,7 +257,7 @@ extension CoreLogging {
             file: file,
             line: line,
             function: function,
-            fields: nil,
+            fields: fields,
             error: nil,
             type: .internalsdk,
             blocking: false

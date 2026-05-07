@@ -24,10 +24,16 @@
 }
 
 + (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
-                                      useStackOverlapMatching:(BOOL)useStackOverlapMatching {
+                                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                                                   summaryOut:(NSDictionary<NSString *, NSString *> * _Nullable * _Nullable)summaryOut {
 #ifndef BITDRIFT_OMIT_KSCRASH
-    return [BitdriftKSCrashHandler enhancedMetricKitReport:metricKitReport useStackOverlapMatching:useStackOverlapMatching];
+    return [BitdriftKSCrashHandler enhancedMetricKitReport:metricKitReport
+                                  useStackOverlapMatching:useStackOverlapMatching
+                                               summaryOut:summaryOut];
 #else
+    if (summaryOut != nil) {
+        *summaryOut = nil;
+    }
     return metricKitReport;
 #endif
 }

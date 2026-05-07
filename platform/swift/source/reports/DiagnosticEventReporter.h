@@ -19,6 +19,8 @@ typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
     CAPDiagnosticTypeCPUException = 1 << 3,
 };
 
+typedef void (^CAPCrashEnrichmentSummaryHandler)(NSDictionary<NSString *, NSString *> *summary);
+
 @interface DiagnosticEventReporter : NSObject<MXMetricManagerSubscriber>
 /**
  * Create a new reporter, including the write directory for any detected reports and library metadata to
@@ -29,6 +31,7 @@ typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
  * @param types      event types to report
  * @param seconds    number of seconds required to report `CAPDiagnosticTypeHang` events
  * @param useStackOverlapMatching whether to use the base (prefix-matching) thread matcher for crash enrichment
+ * @param crashEnrichmentSummaryHandler block invoked after crash enrichment with the summary fields to log
  * @param completion block to invoke when report processing is completed
  */
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)path
@@ -36,6 +39,7 @@ typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
                                 eventTypes:(CAPDiagnosticType)types
                         minimumHangSeconds:(NSTimeInterval)seconds
                       useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completion;
 
 - (void)setMinimumHangSeconds:(NSTimeInterval)seconds;
