@@ -37,6 +37,7 @@ class AppExitRepository {
             AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()
             AppExitReason.NATIVE_CAPTURE_DESTROY_CRASH -> FatalIssueGenerator.forceCaptureNativeCrash()
             AppExitReason.NATIVE_SIGSEGV -> FatalIssueGenerator.forceNativeSegmentationFault()
+            AppExitReason.NATIVE_SIGSEGV_BACKGROUND -> FatalIssueGenerator.forceNativeSegmentationFaultInBackground(applicationContext)
             AppExitReason.NATIVE_SIGBUS -> FatalIssueGenerator.forceNativeBusError()
             AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }

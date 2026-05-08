@@ -122,6 +122,18 @@ internal object FatalIssueGenerator {
         triggerOsKill(OsConstants.SIGSEGV)
     }
 
+    fun forceNativeSegmentationFaultInBackground(context: Context) {
+        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(homeIntent)
+        Thread {
+            Thread.sleep(2000)
+            Os.kill(Os.getpid(), OsConstants.SIGSEGV)
+        }.start()
+    }
+
     fun forceNativeBusError() {
         triggerOsKill(OsConstants.SIGBUS)
     }

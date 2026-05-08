@@ -29,7 +29,8 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 fun TestingToolsCard(
     uiState: AppState,
     onLogLevelChange: (LogLevel) -> Unit,
-    onLogMessage: () -> Unit,
+    onLogSingleMessage: () -> Unit,
+    onLogManyMessages: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -62,7 +63,7 @@ fun TestingToolsCard(
             )
 
             Button(
-                onClick = onLogMessage,
+                onClick = onLogSingleMessage,
                 modifier = Modifier.fillMaxWidth(),
                 colors =
                     ButtonDefaults.buttonColors(
@@ -70,7 +71,19 @@ fun TestingToolsCard(
                         contentColor = Color.White,
                     ),
             ) {
-                Text("Log Message")
+                Text("Log Single Message")
+            }
+
+            Button(
+                onClick = onLogManyMessages,
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = BitdriftColors.TextSecondary,
+                        contentColor = Color.Black,
+                    ),
+            ) {
+                Text("Log Many Messages")
             }
         }
     }

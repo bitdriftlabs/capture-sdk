@@ -41,7 +41,8 @@ sealed class SessionAction : AppAction {
 }
 
 sealed class DiagnosticsAction : AppAction {
-    object LogMessage : DiagnosticsAction()
+    object LogSingleMessage : DiagnosticsAction()
+    object LogManyMessages : DiagnosticsAction()
 
     object ForceAppExit : DiagnosticsAction()
 

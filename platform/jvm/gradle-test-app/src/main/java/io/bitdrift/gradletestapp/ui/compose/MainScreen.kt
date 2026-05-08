@@ -301,8 +301,12 @@ private fun SdkApisTabContent(
             TestingToolsCard(
                 uiState = uiState,
                 onLogLevelChange = { onAction(ConfigAction.UpdateLogLevel(it)) },
-                onLogMessage = {
-                    onAction(DiagnosticsAction.LogMessage)
+                onLogSingleMessage = {
+                    onAction(DiagnosticsAction.LogSingleMessage)
+                    Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
+                },
+                onLogManyMessages = {
+                    onAction(DiagnosticsAction.LogManyMessages)
                     Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
                 },
             )
