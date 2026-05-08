@@ -19,7 +19,7 @@ typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
     CAPDiagnosticTypeCPUException = 1 << 3,
 };
 
-typedef void (^CAPCrashEnrichmentSummaryHandler)(NSDictionary<NSString *, NSString *> *summary);
+typedef void (^CAPCrashEnrichmentSummaryHandler)(NSDictionary<NSString *, NSString *> * _Nullable summary);
 
 @interface DiagnosticEventReporter : NSObject<MXMetricManagerSubscriber>
 /**
