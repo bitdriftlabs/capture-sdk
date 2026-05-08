@@ -222,6 +222,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_method": "GET",
                 "_path": "/fe/ping",
                 "_query": "q=test",
+                "_span_name": "_http",
                 "_span_type": "start",
             ],
             requestInfoFields
@@ -687,6 +688,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_method": "GET",
                 "_path": "/fe/ping",
                 "_query": "q=test",
+                "_span_name": "_http",
                 "_span_type": "start",
             ],
             requestInfoFields
@@ -710,6 +712,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_path": "/fe/ping",
                 "_query": "q=test",
                 "_result": "success",
+                "_span_name": "_http",
                 "_span_type": "end",
                 "_status_code": "200",
             ],
@@ -756,6 +759,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_method": "GET",
                 "_path": "/fe/ping",
                 "_query": "q=test",
+                "_span_name": "_http",
                 "_span_type": "start",
             ],
             requestInfoFields
@@ -779,6 +783,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_path": "/fe/ping",
                 "_query": "q=test",
                 "_result": "canceled",
+                "_span_name": "_http",
                 "_span_type": "end",
             ],
             remainingResponseFields
