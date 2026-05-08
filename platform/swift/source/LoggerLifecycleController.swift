@@ -12,10 +12,15 @@ import UIKit
 /// to these events.
 final class LoggerLifecycleController {
     private var tokens = [NSObjectProtocol]()
+    private let notificationCenter: NotificationCenter
     private let logger: CoreLogging
 
-    init(logger: CoreLogging) {
+    init(
+        logger: CoreLogging,
+        notificationCenter: NotificationCenter = .default
+    ) {
         self.logger = logger
+        self.notificationCenter = notificationCenter
     }
 }
 
@@ -25,7 +30,7 @@ extension LoggerLifecycleController: EventListener {
             return
         }
 
-        self.tokens.append(NotificationCenter.default.addObserver(
+        self.tokens.append(notificationCenter.addObserver(
             forName: UIApplication.didEnterBackgroundNotification,
             object: nil,
             queue: nil
@@ -38,7 +43,7 @@ extension LoggerLifecycleController: EventListener {
             }
         })
 
-        self.tokens.append(NotificationCenter.default.addObserver(
+        self.tokens.append(notificationCenter.addObserver(
             forName: UIApplication.willResignActiveNotification,
             object: nil,
             queue: nil,
@@ -51,7 +56,7 @@ extension LoggerLifecycleController: EventListener {
             }
         })
 
-        self.tokens.append(NotificationCenter.default.addObserver(
+        self.tokens.append(notificationCenter.addObserver(
             forName: UIApplication.willTerminateNotification,
             object: nil,
             queue: nil
@@ -70,7 +75,7 @@ extension LoggerLifecycleController: EventListener {
 
     func stop() {
         for token in self.tokens {
-            NotificationCenter.default.removeObserver(token)
+            notificationCenter.removeObserver(token)
         }
         self.tokens.removeAll()
     }
