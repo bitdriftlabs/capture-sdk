@@ -114,9 +114,16 @@ public struct HTTPRequestInfo {
     ///
     /// - returns: Fields to share with response logs.
     func toCommonFields(spanType: HTTPSpanType) -> Fields {
+        let spanName: String = if self.headers?["X-APOLLO-OPERATION-NAME"] != nil {
+            "_graphql"
+        } else {
+            "_http"
+        }
+
         var fields: [String: Encodable] = [
             "_method": self.method,
             "_span_id": self.spanID,
+            "_span_name": spanName,
             "_span_type": spanType.rawValue,
         ]
 
