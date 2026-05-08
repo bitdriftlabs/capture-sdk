@@ -10,7 +10,7 @@ import Foundation
 public class NotificationCenterMock: NotificationCenter, @unchecked Sendable {
     public var observedNames: [NSNotification.Name] = []
 
-    public override func addObserver(
+    override public func addObserver(
         forName name: NSNotification.Name?,
         object: Any?,
         queue: OperationQueue?,
@@ -23,7 +23,7 @@ public class NotificationCenterMock: NotificationCenter, @unchecked Sendable {
     }
 
     public var removedObserversCalledCount: Int = 0
-    public override func removeObserver(_ observer: Any) {
+    override public func removeObserver(_ observer: Any) {
         removedObserversCalledCount += 1
         super.removeObserver(observer)
     }
