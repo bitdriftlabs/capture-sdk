@@ -52,11 +52,23 @@ final class LoggerLifecycleControllerTests: XCTestCase {
     
     func testStopRemovesFromAllNotifications() {
         let notificationCenter = NotificationCenterSpy()
-        let sut = LoggerLifecycleController(logger: MockCoreLogging(), notificationCenter: notificationCenter)
+        let sut = LoggerLifecycleController(logger: getLogger(), notificationCenter: notificationCenter)
         
         sut.start()
         sut.stop()
         
         XCTAssertEqual(3, notificationCenter.removedObserversCalledCount)
+    }
+}
+
+extension LoggerLifecycleControllerTests {
+    func getLogger(
+        flushOnWillResignActiveEnabledFlag: Bool = true,
+        flushOnForceQuitEnabledFlag: Bool = true
+    ) -> CoreLogging {
+        let logger = MockCoreLogging()
+        logger.mockRuntimeVariable(.loggerFlushingOnForceQuit, with: flushOnForceQuitEnabledFlag)
+        logger.mockRuntimeVariable(.loggerFlushingOnWillResignActive, with: flushOnWillResignActiveEnabledFlag)
+        return logger
     }
 }
