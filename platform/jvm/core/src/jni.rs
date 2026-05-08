@@ -1098,7 +1098,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
         attributes_overrides,
         if blocking == JNI_TRUE {
           Block::Yes {
-            timeout: std::time::Duration::from_secs(1),
+            timeout: std::time::Duration::from_millis(500),
             poll_callback: None,
           }
         } else {
@@ -1324,7 +1324,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(
       let logger = unsafe { LoggerId::from_raw(logger_id) };
       let block = if blocking == JNI_TRUE {
         Block::Yes {
-          timeout: std::time::Duration::from_secs(1),
+          timeout: std::time::Duration::from_millis(500),
           poll_callback: None,
         }
       } else {
