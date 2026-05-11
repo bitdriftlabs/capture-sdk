@@ -27,13 +27,13 @@ struct NamedThread {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheResult {
   /// The report was not cached due to an error
-  Failure = 0,
+  Failure            = 0,
   /// The report file does not exist
   ReportDoesNotExist = 1,
   /// Successfully cached a partial document
-  PartialSuccess = 2,
+  PartialSuccess     = 2,
   /// Successfully cached the complete document
-  Success = 3,
+  Success            = 3,
 }
 
 // Global cache for the most recently loaded KSCrash report.
@@ -66,8 +66,8 @@ fn best_contiguous_overlap(call_stack_a: &[u64], call_stack_b: &[u64]) -> StackO
   let reversed_call_stack_a: Vec<_> = call_stack_a.iter().rev().copied().collect();
   let reversed_call_stack_b: Vec<_> = call_stack_b.iter().rev().copied().collect();
 
-  for a_start in 0..reversed_call_stack_a.len() {
-    for b_start in 0..reversed_call_stack_b.len() {
+  for a_start in 0 .. reversed_call_stack_a.len() {
+    for b_start in 0 .. reversed_call_stack_b.len() {
       let mut overlap_len = 0;
 
       while a_start + overlap_len < reversed_call_stack_a.len()
@@ -271,11 +271,13 @@ fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
 
   CACHED_KSCRASH_REPORT.lock().replace(hashmap);
 
-  Ok(if was_partial {
-    CacheResult::PartialSuccess
-  } else {
-    CacheResult::Success
-  })
+  Ok(
+    if was_partial {
+      CacheResult::PartialSuccess
+    } else {
+      CacheResult::Success
+    },
+  )
 }
 
 fn enhance_metrickit_diagnostic_report_impl(
