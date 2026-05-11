@@ -28,7 +28,8 @@ typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
  * @param sdkVersion current version of the Capture SDK
  * @param types      event types to report
  * @param seconds    number of seconds required to report `CAPDiagnosticTypeHang` events
- * @param useStackOverlapMatching whether to use the base (prefix-matching) thread matcher for crash enrichment
+ * @param useStackOverlapMatching whether to use the overlap-based thread matcher (finds the best contiguous matching
+ *        region from the stack base) instead of the exact matcher for crash enrichment
  * @param completion block to invoke when report processing is completed
  */
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)path
