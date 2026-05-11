@@ -93,6 +93,11 @@ extension RuntimeVariable<Bool> {
         defaultValue: true
     )
 
+    static let loggerFlushingOnWillResignActive = RuntimeVariable(
+        name: "client_feature.ios.logger_flushing_on_will_resign_active",
+        defaultValue: true
+    )
+
     static let flushRunLoopPumping = RuntimeVariable(
         name: "client_feature.ios.flush_run_loop_pumping",
         defaultValue: true
