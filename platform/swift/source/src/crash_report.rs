@@ -569,11 +569,7 @@ fn named_threads_from_kscrash_report(
     });
   }
 
-  if named_threads.is_empty() {
-    Ok(None)
-  } else {
-    Ok(Some(named_threads))
-  }
+  Ok((!named_threads.is_empty()).then_some(named_threads))
 }
 
 fn exact_named_threads_from_kscrash_report(
@@ -1331,8 +1327,8 @@ mod tests {
       11,
       123,
       vec![
-        make_kscrash_thread(0, Some("worker-a"), &[0x99, 0x20, 0x30, 0x40], false),
-        make_kscrash_thread(1, Some("worker-b"), &[0x88, 0x20, 0x30, 0x40], false),
+        make_kscrash_thread(0, Some("worker-a"), &[0x99, 0x20, 0x30, 0x40, 0x50], false),
+        make_kscrash_thread(1, Some("worker-b"), &[0x88, 0x20, 0x30, 0x40, 0x50], false),
       ],
     );
     let metrickit_report = make_metrickit_report(

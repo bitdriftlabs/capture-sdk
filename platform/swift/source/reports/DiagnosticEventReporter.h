@@ -8,38 +8,42 @@
 #import <MetricKit/MetricKit.h>
 
 typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
-    CAPDiagnosticTypeNone         = 0,
-    /** Application termination events */
-    CAPDiagnosticTypeCrash        = 1 << 0,
-    /** Non-fatal app hangs */
-    CAPDiagnosticTypeHang         = 1 << 1,
-    /** Non-fatal disk write exceptions */
-    CAPDiagnosticTypeDiskWrite    = 1 << 2,
-    /** Non-fatal CPU usage exceptions */
-    CAPDiagnosticTypeCPUException = 1 << 3,
+  CAPDiagnosticTypeNone = 0,
+  /** Application termination events */
+  CAPDiagnosticTypeCrash = 1 << 0,
+  /** Non-fatal app hangs */
+  CAPDiagnosticTypeHang = 1 << 1,
+  /** Non-fatal disk write exceptions */
+  CAPDiagnosticTypeDiskWrite = 1 << 2,
+  /** Non-fatal CPU usage exceptions */
+  CAPDiagnosticTypeCPUException = 1 << 3,
 };
 
-typedef void (^CAPCrashEnrichmentSummaryHandler)(NSDictionary<NSString *, NSString *> * _Nullable summary);
+typedef void (^CAPCrashEnrichmentSummaryHandler)(
+    NSDictionary<NSString *, NSString *> *_Nullable summary);
 
-@interface DiagnosticEventReporter : NSObject<MXMetricManagerSubscriber>
+@interface DiagnosticEventReporter : NSObject <MXMetricManagerSubscriber>
 /**
- * Create a new reporter, including the write directory for any detected reports and library metadata to
- * include in the generated files
+ * Create a new reporter, including the write directory for any detected reports and library
+ * metadata to include in the generated files
  *
  * @param path       destination directory for generated reports
  * @param sdkVersion current version of the Capture SDK
  * @param types      event types to report
  * @param seconds    number of seconds required to report `CAPDiagnosticTypeHang` events
- * @param useStackOverlapMatching whether to use the base (prefix-matching) thread matcher for crash enrichment
- * @param crashEnrichmentSummaryHandler block invoked after crash enrichment with the summary fields to log
+ * @param useStackOverlapMatching whether to use the overlap-based thread matcher (finds the best
+ * contiguous matching region from the stack base) instead of the exact matcher for crash enrichment
+ * @param crashEnrichmentSummaryHandler block invoked after crash enrichment with the summary fields
+ * to log
  * @param completion block to invoke when report processing is completed
  */
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)path
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
                         minimumHangSeconds:(NSTimeInterval)seconds
-                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
-                crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
+                   useStackOverlapMatching:(BOOL)useStackOverlapMatching
+             crashEnrichmentSummaryHandler:
+                 (CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completion;
 
 - (void)setMinimumHangSeconds:(NSTimeInterval)seconds;
