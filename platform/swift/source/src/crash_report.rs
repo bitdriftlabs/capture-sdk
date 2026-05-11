@@ -437,11 +437,7 @@ fn named_threads_from_kscrash_report(
     });
   }
 
-  if named_threads.is_empty() {
-    Ok(None)
-  } else {
-    Ok(Some(named_threads))
-  }
+  Ok((!named_threads.is_empty()).then_some(named_threads))
 }
 
 fn exact_named_threads_from_kscrash_report(
