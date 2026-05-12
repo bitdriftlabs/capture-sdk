@@ -53,6 +53,7 @@ internal class AppExitLogger(
         private const val APP_EXIT_PSS_KEY = "_app_exit_pss"
         private const val APP_EXIT_RSS_KEY = "_app_exit_rss"
         private const val APP_EXIT_DESCRIPTION_KEY = "_app_exit_description"
+        private const val FOREGROUND_KEY = "foreground"
     }
 
     @SuppressLint("NewApi")
@@ -163,6 +164,8 @@ internal class AppExitLogger(
     @RequiresApi(Build.VERSION_CODES.R)
     private fun ApplicationExitInfo.toFields(): ArrayFields {
         // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
+        val isForeground = this.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND ||
+            this.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE
         return fieldsOf(
             APP_EXIT_SOURCE_KEY to "ApplicationExitInfo",
             APP_EXIT_PROCESS_NAME_KEY to this.processName,
@@ -172,6 +175,7 @@ internal class AppExitLogger(
             APP_EXIT_PSS_KEY to this.pss.toString(),
             APP_EXIT_RSS_KEY to this.rss.toString(),
             APP_EXIT_DESCRIPTION_KEY to this.description.orEmpty(),
+            FOREGROUND_KEY to if (isForeground) "1" else "0",
         )
     }
 
