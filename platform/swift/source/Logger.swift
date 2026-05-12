@@ -106,6 +106,9 @@ public final class Logger {
     ///                                            network requests performed by the logger are no-ops.
     /// - parameter storageProvider:               The storage to use by the logger.
     /// - parameter timeProvider:                  The time source to use by the logger.
+    /// - parameter networkDelegateQueue:          The dispatch queue to use for URLSession delegate
+    ///                                            callbacks. Defaults to the SDK's internal network
+    ///                                            queue.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
     init?(
@@ -118,6 +121,7 @@ public final class Logger {
         enableNetwork: Bool = true,
         storageProvider: StorageProvider,
         timeProvider: TimeProvider,
+        networkDelegateQueue: DispatchQueue = .network,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     )
     {
@@ -159,7 +163,7 @@ public final class Logger {
         let isSdkDirectoryFirstCreated = !FileManager.default.fileExists(atPath: directoryURL.path)
 
         let network: URLSessionNetworkClient? = enableNetwork
-            ? URLSessionNetworkClient(apiBaseURL: configuration.apiURL)
+            ? URLSessionNetworkClient(apiBaseURL: configuration.apiURL, delegateQueue: networkDelegateQueue)
             : nil
         self.network = network
 

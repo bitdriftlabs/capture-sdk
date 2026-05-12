@@ -81,18 +81,19 @@ final class URLSessionNetworkClient: NSObject {
     private(set) var metrics = Metrics()
 
     private let proxyDelegate: ProxyURLSessionDelegate
-    private let delegateQueue = OperationQueue.serial(
-        withLabelSuffix: "URLSessionNetworkClient",
-        target: .network
-    )
+    private let delegateQueue: OperationQueue
     private let session: URLSession
 
     weak var logger: CoreLogging?
 
-    init(apiBaseURL: URL, timeout: TimeInterval = kIdleTimeout) {
+    init(apiBaseURL: URL, timeout: TimeInterval = kIdleTimeout, delegateQueue: DispatchQueue = .network) {
         self.apiBaseURL = apiBaseURL
         self.timeout = timeout
         self.proxyDelegate = ProxyURLSessionDelegate()
+        self.delegateQueue = OperationQueue.serial(
+            withLabelSuffix: "URLSessionNetworkClient",
+            target: delegateQueue
+        )
 
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = self.timeout

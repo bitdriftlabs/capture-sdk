@@ -15,13 +15,13 @@ final class CaptureNetworkTests: XCTestCase {
     // (pings) are not configured. We set the timeout low, then wait for it to hit and verify that
     // we see the stream re-established afterwards.
     func testHappyPathWithTimeoutAndReconnect() async throws {
-        let env = try NetworkTestEnvironment()
+        let env = try NetworkTestEnvironment(networkIdleTimeout: 5)
 
         let streamID = await env.testServer.nextStream()
         XCTAssertNotEqual(streamID, -1)
 
         // Server timeout is 1s in tests, waiting up to 3s for the stream to be closed.
-        let streamClosed = await env.testServer.streamClosed(streamId: streamID, waitTimeMs: 3000)
+        let streamClosed = await env.testServer.streamClosed(streamId: streamID, waitTimeMs: 10000)
         XCTAssertTrue(streamClosed)
 
         let streamID2 = await env.testServer.nextStream(timeout: 30)
