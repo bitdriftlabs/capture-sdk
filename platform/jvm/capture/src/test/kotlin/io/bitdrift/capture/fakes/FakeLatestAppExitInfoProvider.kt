@@ -48,6 +48,11 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
     private var description: String = DEFAULT_DESCRIPTION
 
     /**
+     * The importance of the process at the time of exit
+     */
+    private var importance: Int = RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+
+    /**
      * Specifies any prior process state summary
      */
     private var processStateSummary: ByteArray? = PROCESS_STATE_SUMMARY
@@ -61,6 +66,7 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         hasNoPriorReason = false
         hasErrorResult = false
         description = DEFAULT_DESCRIPTION
+        importance = RunningAppProcessInfo.IMPORTANCE_FOREGROUND
         processStateSummary = PROCESS_STATE_SUMMARY
     }
 
@@ -72,11 +78,13 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         traceInputStream: InputStream? = null,
         description: String = DEFAULT_DESCRIPTION,
         processStateSummary: ByteArray? = PROCESS_STATE_SUMMARY,
+        importance: Int = RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
     ) {
         this.exitReasonType = exitReasonType
         this.traceInputStream = traceInputStream
         this.description = description
         this.processStateSummary = processStateSummary
+        this.importance = importance
     }
 
     /**
@@ -110,7 +118,7 @@ class FakeLatestAppExitInfoProvider : ILatestAppExitInfoProvider {
         whenever(appExitReason.timestamp).thenReturn(TIME_STAMP)
         whenever(appExitReason.processName).thenReturn("test-process-name")
         whenever(appExitReason.reason).thenReturn(exitReasonType)
-        whenever(appExitReason.importance).thenReturn(RunningAppProcessInfo.IMPORTANCE_FOREGROUND)
+        whenever(appExitReason.importance).thenReturn(importance)
         whenever(appExitReason.status).thenReturn(0)
         whenever(appExitReason.pss).thenReturn(1)
         whenever(appExitReason.rss).thenReturn(2)
