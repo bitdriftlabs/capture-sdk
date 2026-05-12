@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.reports.processor
 
+import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
@@ -177,6 +178,7 @@ class IssueReporterProcessorTest {
             eq(FAKE_TIME_STAMP),
             eq("/some/path/foo.cap"),
             eq(attributes),
+            eq("foreground"),
         )
     }
 
@@ -441,7 +443,7 @@ class IssueReporterProcessorTest {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         doThrow(exception)
             .`when`(streamingReportProcessor)
-            .processAndPersistANR(any(), eq(FAKE_TIME_STAMP), eq("/some/path/foo.cap"), eq(attributes))
+            .processAndPersistANR(any(), eq(FAKE_TIME_STAMP), eq("/some/path/foo.cap"), eq(attributes), any())
     }
 
     private fun createApplicationExitInfo(
@@ -450,6 +452,7 @@ class IssueReporterProcessorTest {
         traceInputStream: InputStream? = null,
         status: Int = 0,
         reason: Int = ApplicationExitInfo.REASON_UNKNOWN,
+        importance: Int = RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
     ): ApplicationExitInfo {
         val applicationExitInfo = mock<ApplicationExitInfo>()
         whenever(applicationExitInfo.timestamp).thenReturn(timestamp)
@@ -457,6 +460,7 @@ class IssueReporterProcessorTest {
         whenever(applicationExitInfo.traceInputStream).thenReturn(traceInputStream)
         whenever(applicationExitInfo.status).thenReturn(status)
         whenever(applicationExitInfo.reason).thenReturn(reason)
+        whenever(applicationExitInfo.importance).thenReturn(importance)
         return applicationExitInfo
     }
 

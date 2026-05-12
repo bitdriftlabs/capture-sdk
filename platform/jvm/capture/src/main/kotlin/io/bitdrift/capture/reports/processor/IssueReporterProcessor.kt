@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.reports.processor
 
+import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import android.os.Build
 import android.os.strictmode.Violation
@@ -105,6 +106,7 @@ internal class IssueReporterProcessor(
         val fatalIssueType = applicationExit.mapToFbsReportType()
         val timestamp: Long = applicationExit.timestamp
         val traceInputStream: InputStream? = applicationExit.traceInputStream
+        val runningState = applicationExit.importance.toRunningState()
 
         runCatching {
             if (fatalIssueType == ReportType.AppNotResponding && traceInputStream != null) {
@@ -113,11 +115,12 @@ internal class IssueReporterProcessor(
                     timestamp,
                     reporterIssueStore.generateFatalIssueFilePath(),
                     clientAttributes,
+                    runningState,
                 )
             } else if (fatalIssueType == ReportType.NativeCrash) {
                 val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
                 val sdk = createSDKInfo(builder)
-                val appMetrics = createAppMetrics(builder)
+                val appMetrics = createAppMetrics(builder, runningState)
                 val deviceMetrics = createDeviceMetrics(builder, timestamp)
                 val report =
                     NativeCrashProcessor.process(
@@ -190,7 +193,7 @@ internal class IssueReporterProcessor(
             val timestamp = dateProvider.invoke().time
             val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
             val sdk = createSDKInfo(builder)
-            val appMetrics = createAppMetrics(builder)
+            val appMetrics = createAppMetrics(builder, null)
             val deviceMetrics = createDeviceMetrics(builder, timestamp)
             val report =
                 JvmProcessor.getJvmReport(
@@ -232,11 +235,12 @@ internal class IssueReporterProcessor(
             builder.createString(BuildConstants.SDK_VERSION),
         )
 
-    private fun createAppMetrics(builder: FlatBufferBuilder): Int {
+    private fun createAppMetrics(builder: FlatBufferBuilder, runningState: String?): Int {
         val buildNumber =
             AppBuildNumber.createAppBuildNumber(builder, clientAttributes.appVersionCode, 0)
         val appId = builder.createString(clientAttributes.appId)
         val appVersion = builder.createString(clientAttributes.appVersion)
+        val runningStateOffset = runningState?.let { builder.createString(it) }
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .startAppMetrics(builder)
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
@@ -245,6 +249,10 @@ internal class IssueReporterProcessor(
             .addVersion(builder, appVersion)
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .addBuildNumber(builder, buildNumber)
+        if (runningStateOffset != null) {
+            io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
+                .addRunningState(builder, runningStateOffset)
+        }
         return io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .endAppMetrics(builder)
     }
@@ -300,5 +308,16 @@ internal class IssueReporterProcessor(
             ApplicationExitInfo.REASON_ANR -> ReportType.AppNotResponding
             ApplicationExitInfo.REASON_CRASH_NATIVE -> ReportType.NativeCrash
             else -> ReportType.Unknown
+        }
+
+    private fun Int.toRunningState(): String? =
+        when (this) {
+            RunningAppProcessInfo.IMPORTANCE_FOREGROUND -> "foreground"
+            RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE -> "foreground_service"
+            RunningAppProcessInfo.IMPORTANCE_PERCEPTIBLE -> "perceptible"
+            RunningAppProcessInfo.IMPORTANCE_VISIBLE -> "visible"
+            RunningAppProcessInfo.IMPORTANCE_SERVICE -> "service"
+            RunningAppProcessInfo.IMPORTANCE_CACHED -> "cached"
+            else -> null
         }
 }
