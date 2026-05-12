@@ -122,16 +122,22 @@ internal object FatalIssueGenerator {
         triggerOsKill(OsConstants.SIGSEGV)
     }
 
-    fun forceNativeSegmentationFaultInBackground(context: Context) {
-        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_HOME)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    fun forceAnrInBackground(context: Context) {
+        runActionInBackgroundWithDelay(context) {
+            forceBlockingGetAnr()
         }
-        context.startActivity(homeIntent)
-        Thread {
-            Thread.sleep(2000)
+    }
+
+    fun forceJvmCrashInBackground(context: Context) {
+        runActionInBackgroundWithDelay(context) {
+            forceCoroutinesCrash()
+        }
+    }
+
+    fun forceNativeSegmentationFaultInBackground(context: Context) {
+        runActionInBackgroundWithDelay(context) {
             Os.kill(Os.getpid(), OsConstants.SIGSEGV)
-        }.start()
+        }
     }
 
     fun forceNativeBusError() {
@@ -187,6 +193,18 @@ internal object FatalIssueGenerator {
         Thread {
             Thread.sleep(100)
             Os.kill(Os.getpid(), signal)
+        }.start()
+    }
+
+    private fun runActionInBackgroundWithDelay(context: Context, onAction: () -> Unit) {
+        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(homeIntent)
+        Thread {
+            Thread.sleep(2000)
+            onAction()
         }.start()
     }
 

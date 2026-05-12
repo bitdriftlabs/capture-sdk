@@ -22,6 +22,7 @@ class AppExitRepository {
     ) {
         when (reason) {
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
+            AppExitReason.ANR_IN_BACKGROUND -> FatalIssueGenerator.forceAnrInBackground(applicationContext)
             AppExitReason.ANR_BROADCAST_RECEIVER ->
                 FatalIssueGenerator.forceBroadcastReceiverAnr(
                     applicationContext,
@@ -35,6 +36,7 @@ class AppExitRepository {
             AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
             AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION -> FatalIssueGenerator.forceRxJavaException()
             AppExitReason.APP_CRASH_OUT_OF_MEMORY -> FatalIssueGenerator.forceOutOfMemoryCrash()
+            AppExitReason.APP_CRASH_JVM_IN_BACKGROUND -> FatalIssueGenerator.forceJvmCrashInBackground(applicationContext)
             AppExitReason.NATIVE_CAPTURE_DESTROY_CRASH -> FatalIssueGenerator.forceCaptureNativeCrash()
             AppExitReason.NATIVE_SIGSEGV -> FatalIssueGenerator.forceNativeSegmentationFault()
             AppExitReason.NATIVE_SIGSEGV_BACKGROUND -> FatalIssueGenerator.forceNativeSegmentationFaultInBackground(applicationContext)
