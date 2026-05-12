@@ -79,7 +79,8 @@ final class CaptureE2ENetworkTests: XCTestCase {
                     ),
                 ],
                 storageProvider: self.storage,
-                timeProvider: SystemTimeProvider()
+                timeProvider: SystemTimeProvider(),
+                networkDelegateQueue: .global(qos: .userInteractive)
             )
         )
 

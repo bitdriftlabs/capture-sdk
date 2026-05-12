@@ -47,6 +47,9 @@ public final class MockCoreLogging {
     public private(set) var sessionReplayScreenLogs = [SessionReplayScreenLog]()
     public var logSessionReplayScreenExpectation: XCTestExpectation?
 
+    public private(set) var flushCalls = [Bool]()
+    public var flushExpectation: XCTestExpectation?
+
     public var shouldLogAppUpdateEvent = false
 
     public private(set) var mockedRuntimeVariables = [String: Any]()
@@ -152,7 +155,10 @@ extension MockCoreLogging: CoreLogging {
 
     public func removeField(withKey _: String) {}
 
-    public func flush(blocking _: Bool) {}
+    public func flush(blocking: Bool) {
+        self.flushCalls.append(blocking)
+        self.flushExpectation?.fulfill()
+    }
 
     public func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         if let value = self.mockedRuntimeVariables[variable.name] {

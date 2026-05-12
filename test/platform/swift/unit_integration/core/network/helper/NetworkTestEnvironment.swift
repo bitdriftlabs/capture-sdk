@@ -38,7 +38,8 @@ final class NetworkTestEnvironment {
 
         self.network = URLSessionNetworkClient(
             apiBaseURL: testServer.baseURL,
-            timeout: networkIdleTimeout
+            timeout: networkIdleTimeout,
+            delegateQueue: .global(qos: .userInteractive)
         )
 
         self.loggerBridge = try XCTUnwrap(
