@@ -94,7 +94,7 @@ final class URLSessionNetworkClient: NSObject {
             withLabelSuffix: "URLSessionNetworkClient",
             target: delegateQueue
         )
-        
+
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = self.timeout
         configuration.httpCookieStorage = nil
