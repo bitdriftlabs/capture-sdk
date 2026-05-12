@@ -235,7 +235,10 @@ internal class IssueReporterProcessor(
             builder.createString(BuildConstants.SDK_VERSION),
         )
 
-    private fun createAppMetrics(builder: FlatBufferBuilder, runningState: String?): Int {
+    private fun createAppMetrics(
+        builder: FlatBufferBuilder,
+        runningState: String?,
+    ): Int {
         val buildNumber =
             AppBuildNumber.createAppBuildNumber(builder, clientAttributes.appVersionCode, 0)
         val appId = builder.createString(clientAttributes.appId)

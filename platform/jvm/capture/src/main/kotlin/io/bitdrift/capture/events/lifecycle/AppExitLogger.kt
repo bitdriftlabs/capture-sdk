@@ -164,8 +164,9 @@ internal class AppExitLogger(
     @RequiresApi(Build.VERSION_CODES.R)
     private fun ApplicationExitInfo.toFields(): ArrayFields {
         // https://developer.android.com/reference/kotlin/android/app/ApplicationExitInfo
-        val isForeground = this.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND ||
-            this.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE
+        val isForeground =
+            this.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND ||
+                this.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE
         return fieldsOf(
             APP_EXIT_SOURCE_KEY to "ApplicationExitInfo",
             APP_EXIT_PROCESS_NAME_KEY to this.processName,
