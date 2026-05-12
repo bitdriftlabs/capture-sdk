@@ -193,7 +193,7 @@ internal class IssueReporterProcessor(
             val timestamp = dateProvider.invoke().time
             val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
             val sdk = createSDKInfo(builder)
-            val appMetrics = createAppMetrics(builder, null)
+            val appMetrics = createAppMetrics(builder)
             val deviceMetrics = createDeviceMetrics(builder, timestamp)
             val report =
                 JvmProcessor.getJvmReport(
@@ -237,7 +237,7 @@ internal class IssueReporterProcessor(
 
     private fun createAppMetrics(
         builder: FlatBufferBuilder,
-        runningState: String?,
+        runningState: String? = null,
     ): Int {
         val buildNumber =
             AppBuildNumber.createAppBuildNumber(builder, clientAttributes.appVersionCode, 0)
