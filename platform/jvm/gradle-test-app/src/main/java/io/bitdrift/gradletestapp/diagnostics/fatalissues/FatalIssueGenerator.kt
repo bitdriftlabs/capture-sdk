@@ -123,19 +123,19 @@ internal object FatalIssueGenerator {
     }
 
     fun forceAnrInBackground(context: Context) {
-        runActionInBackgroundWithDelay(context) {
+        runActionWhenAppIsBackgrounded(context) {
             forceBlockingGetAnr()
         }
     }
 
     fun forceJvmCrashInBackground(context: Context) {
-        runActionInBackgroundWithDelay(context) {
+        runActionWhenAppIsBackgrounded(context) {
             forceCoroutinesCrash()
         }
     }
 
     fun forceNativeSegmentationFaultInBackground(context: Context) {
-        runActionInBackgroundWithDelay(context) {
+        runActionWhenAppIsBackgrounded(context) {
             Os.kill(Os.getpid(), OsConstants.SIGSEGV)
         }
     }
@@ -196,16 +196,18 @@ internal object FatalIssueGenerator {
         }.start()
     }
 
-    private fun runActionInBackgroundWithDelay(context: Context, onAction: () -> Unit) {
-        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_HOME)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    private fun runActionWhenAppIsBackgrounded(context: Context, onAction: () -> Unit) {
+        mainThreadHandler.post {
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(homeIntent)
+            Thread {
+                Thread.sleep(2000)
+                onAction()
+            }.start()
         }
-        context.startActivity(homeIntent)
-        Thread {
-            Thread.sleep(2000)
-            onAction()
-        }.start()
     }
 
     private val FIRST_LOCK_RESOURCE: Any = "first_lock"
