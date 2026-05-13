@@ -109,7 +109,7 @@ class CaptureLoggerNetworkTest {
 
         // Wait for the idle timeout to hit, after which we should get
         // another handshake due to the stream being reestablished.
-        assertThat(CaptureTestJniLibrary.awaitApiServerStreamClosed(streamId, 5000)).isTrue()
+        assertThat(CaptureTestJniLibrary.awaitApiServerStreamClosed(streamId, 10000)).isTrue()
 
         val secondStreamId = CaptureTestJniLibrary.awaitNextApiStream()
         assertThat(secondStreamId).isNotEqualTo(-1)

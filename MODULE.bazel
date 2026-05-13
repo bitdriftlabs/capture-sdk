@@ -180,7 +180,7 @@ maven.install(
 
         # Library dependencies
         "com.google.code.gson:gson:2.10.1",
-        "com.squareup.okhttp3:okhttp:{}".format(OKHTTP_VERSION),
+        "com.squareup.okhttp3:okhttp-jvm:{}".format(OKHTTP_VERSION),
         "androidx.startup:startup-runtime:1.2.0",
         "androidx.core:core:1.13.1",
         "com.google.guava:listenablefuture:1.0",  #required by androidx.lifecycle:lifecycle-process below
