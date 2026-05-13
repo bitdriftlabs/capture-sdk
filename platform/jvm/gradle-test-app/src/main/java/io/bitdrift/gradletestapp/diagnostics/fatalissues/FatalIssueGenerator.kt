@@ -21,6 +21,7 @@ import android.os.Looper
 import android.system.Os
 import android.system.OsConstants
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
@@ -203,6 +204,10 @@ internal object FatalIssueGenerator {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             context.startActivity(homeIntent)
+            Toast.makeText(
+                context, "Triggering Fatal Issue. Please wait for $delayInMilli ms before re-opening app",
+                Toast.LENGTH_LONG
+            ).show()
             Thread {
                 Thread.sleep(delayInMilli)
                 onAction()
