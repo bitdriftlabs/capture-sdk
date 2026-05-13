@@ -11,7 +11,7 @@ import okhttp3.OkHttpClient
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
-class OkHttpNetworkTest {
+class OkHttpExtensionsTest {
     @Test
     fun `enableFastFallbackIfAvailable does not throw on OkHttp 4x`() {
         val okHttpBuilder = OkHttpClient.Builder()

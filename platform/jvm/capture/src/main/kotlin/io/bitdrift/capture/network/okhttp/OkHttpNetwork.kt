@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.network.okhttp
 
-import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.ICaptureStream
@@ -99,7 +98,6 @@ internal class OkHttpNetwork(
                 ).writeTimeout(timeoutSeconds, TimeUnit.SECONDS)
                 .readTimeout(timeoutSeconds, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(false) // Retrying messes up the write pipe state management, so disable.
-                .enableFastFallbackIfAvailable()
                 .build()
         }
 
@@ -254,18 +252,4 @@ internal class OkHttpNetwork(
             }
         }
     }
-}
-
-/**
- * If a consumer app is on OkHttp 5.0.* or up make sure fast fallback is enabled.
- */
-@VisibleForTesting
-internal fun OkHttpClient.Builder.enableFastFallbackIfAvailable(): OkHttpClient.Builder {
-    try {
-        val method = OkHttpClient.Builder::class.java.getMethod("fastFallback", Boolean::class.javaPrimitiveType)
-        method.invoke(this, true)
-    } catch (_: Exception) {
-        // OkHttp < 5.x, fast fallback not available
-    }
-    return this
 }
