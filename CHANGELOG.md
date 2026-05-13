@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Fixed incorrect foreground/background state on fatal issue and app termination logs.
+- Fixed incorrect foreground/background state on fatal issues and app termination logs.
 
 ### iOS
 
