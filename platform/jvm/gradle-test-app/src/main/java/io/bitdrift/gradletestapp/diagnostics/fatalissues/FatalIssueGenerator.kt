@@ -124,7 +124,7 @@ internal object FatalIssueGenerator {
 
     fun forceAnrInBackground(context: Context) {
         runActionWithAppInBackgroundState(context) {
-            forceBlockingGetAnr()
+            forceGenericAnr(context)
         }
     }
 
@@ -135,8 +135,8 @@ internal object FatalIssueGenerator {
     }
 
     fun forceNativeSegmentationFaultInBackground(context: Context) {
-        runActionWithAppInBackgroundState(context) {
-            Os.kill(Os.getpid(), OsConstants.SIGSEGV)
+        runActionWithAppInBackgroundState(context, delayInMilli = 4000L) {
+            forceNativeSegmentationFault()
         }
     }
 
@@ -196,7 +196,7 @@ internal object FatalIssueGenerator {
         }.start()
     }
 
-    private fun runActionWithAppInBackgroundState(context: Context, onAction: () -> Unit) {
+    private fun runActionWithAppInBackgroundState(context: Context, delayInMilli: Long = 2000L, onAction: () -> Unit) {
         mainThreadHandler.post {
             val homeIntent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
@@ -204,7 +204,7 @@ internal object FatalIssueGenerator {
             }
             context.startActivity(homeIntent)
             Thread {
-                Thread.sleep(2000)
+                Thread.sleep(delayInMilli)
                 onAction()
             }.start()
         }
