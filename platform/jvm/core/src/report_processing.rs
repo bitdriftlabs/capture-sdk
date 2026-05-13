@@ -151,6 +151,7 @@ pub(crate) fn persist_anr(
   timestamp_millis: jlong,
   destination: &str,
   attributes: &JObject<'_>,
+  running_state: Option<&str>,
 ) -> anyhow::Result<()> {
   let mut builder = FlatBufferBuilder::new();
   let source_file = read_stream_to_file(env, source_stream)?;
@@ -161,7 +162,7 @@ pub(crate) fn persist_anr(
     u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default(),
   );
   let mut device_info = build_device_metrics(env, &mut builder, attributes, &timestamp)?;
-  let mut app_info = build_app_metrics(env, &mut builder, attributes)?;
+  let mut app_info = build_app_metrics(env, &mut builder, attributes, running_state)?;
   let (_, report_offset) = bd_report_parsers::android::build_anr(
     &mut builder,
     &mut app_info,
@@ -288,6 +289,7 @@ fn build_app_metrics<'fbb>(
   env: &mut JNIEnv<'_>,
   builder: &mut FlatBufferBuilder<'fbb>,
   attributes: &JObject<'_>,
+  running_state: Option<&str>,
 ) -> anyhow::Result<AppMetricsArgs<'fbb>> {
   let version_code = CLIENT_ATTRS_VERSIONCODE
     .get()
@@ -309,6 +311,7 @@ fn build_app_metrics<'fbb>(
     app_id: Some(builder.create_string(&app_id)),
     version: Some(builder.create_string(&app_version)),
     build_number,
+    running_state: running_state.map(|s| builder.create_string(s)),
     ..Default::default()
   })
 }

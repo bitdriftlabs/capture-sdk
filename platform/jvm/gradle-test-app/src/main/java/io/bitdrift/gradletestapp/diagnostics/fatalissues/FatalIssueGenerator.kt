@@ -21,6 +21,7 @@ import android.os.Looper
 import android.system.Os
 import android.system.OsConstants
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
@@ -122,6 +123,24 @@ internal object FatalIssueGenerator {
         triggerOsKill(OsConstants.SIGSEGV)
     }
 
+    fun forceAnrInBackground(context: Context) {
+        runActionWithAppInBackgroundState(context) {
+            forceGenericAnr(context)
+        }
+    }
+
+    fun forceJvmCrashInBackground(context: Context) {
+        runActionWithAppInBackgroundState(context) {
+            forceCoroutinesCrash()
+        }
+    }
+
+    fun forceNativeSegmentationFaultInBackground(context: Context) {
+        runActionWithAppInBackgroundState(context, delayInMilli = 4000L) {
+            forceNativeSegmentationFault()
+        }
+    }
+
     fun forceNativeBusError() {
         triggerOsKill(OsConstants.SIGBUS)
     }
@@ -176,6 +195,24 @@ internal object FatalIssueGenerator {
             Thread.sleep(100)
             Os.kill(Os.getpid(), signal)
         }.start()
+    }
+
+    private fun runActionWithAppInBackgroundState(context: Context, delayInMilli: Long = 2000L, onAction: () -> Unit) {
+        mainThreadHandler.post {
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(homeIntent)
+            Toast.makeText(
+                context, "Triggering Fatal Issue. Please wait for $delayInMilli ms before re-opening app",
+                Toast.LENGTH_LONG
+            ).show()
+            Thread {
+                Thread.sleep(delayInMilli)
+                onAction()
+            }.start()
+        }
     }
 
     private val FIRST_LOCK_RESOURCE: Any = "first_lock"

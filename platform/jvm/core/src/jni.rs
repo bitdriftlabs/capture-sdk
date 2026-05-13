@@ -1446,6 +1446,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   timestamp: jlong,
   destination: JString<'_>,
   attributes: JObject<'_>,
+  running_state: JString<'_>,
 ) {
   let destination = match unsafe { env.get_string_unchecked(&destination) } {
     Ok(destination) => destination.to_string_lossy().to_string(),
@@ -1456,7 +1457,22 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
     },
   };
 
-  match report_processing::persist_anr(&mut env, &stream, timestamp, &destination, &attributes) {
+  let running_state_str = if running_state.is_null() {
+    None
+  } else {
+    unsafe { env.get_string_unchecked(&running_state) }
+      .ok()
+      .map(|s| s.to_string_lossy().to_string())
+  };
+
+  match report_processing::persist_anr(
+    &mut env,
+    &stream,
+    timestamp,
+    &destination,
+    &attributes,
+    running_state_str.as_deref(),
+  ) {
     Ok(()) => {},
     Err(e) => {
       let message = format!("jni persist ANR: {e:#}");
