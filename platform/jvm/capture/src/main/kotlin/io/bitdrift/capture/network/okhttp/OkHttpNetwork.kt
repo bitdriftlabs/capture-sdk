@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.network.okhttp
 
+import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.ICaptureStream
@@ -258,7 +259,8 @@ internal class OkHttpNetwork(
 /**
  * If a consumer app is on OkHttp 5.0.* or up make sure fast fallback is enabled.
  */
-private fun OkHttpClient.Builder.enableFastFallbackIfAvailable(): OkHttpClient.Builder {
+@VisibleForTesting
+internal fun OkHttpClient.Builder.enableFastFallbackIfAvailable(): OkHttpClient.Builder {
     try {
         val method = OkHttpClient.Builder::class.java.getMethod("fastFallback", Boolean::class.javaPrimitiveType)
         method.invoke(this, true)
