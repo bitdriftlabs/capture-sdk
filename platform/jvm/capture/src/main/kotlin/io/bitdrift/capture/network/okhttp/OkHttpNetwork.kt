@@ -230,7 +230,7 @@ internal class OkHttpNetwork(
         // a blocking read, and should naturally finish as the stream closes due to source.read
         // throwing an exception indicating the closure reason.
         private fun consumeResponse(response: Response) {
-            val source = response.body!!.source()
+            val source = response.body.source()
             var exception: Exception? = null
             @Suppress("TooGenericExceptionCaught")
             try {

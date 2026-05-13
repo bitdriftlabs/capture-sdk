@@ -69,7 +69,7 @@ internal class OkHttpApiClient(
                     response: Response,
                 ) {
                     response.use {
-                        val responseBody = response.body?.string().orEmpty()
+                        val responseBody = response.body.string()
 
                         if (response.isSuccessful) {
                             try {
