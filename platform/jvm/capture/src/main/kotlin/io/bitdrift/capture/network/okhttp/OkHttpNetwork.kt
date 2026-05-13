@@ -8,7 +8,6 @@
 package io.bitdrift.capture.network.okhttp
 
 import io.bitdrift.capture.CaptureJniLibrary
-import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.ICaptureStream
 import io.bitdrift.capture.network.Jni
