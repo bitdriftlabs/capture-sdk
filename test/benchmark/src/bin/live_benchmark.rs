@@ -8,7 +8,7 @@
 use bd_logger::{log_level, AnnotatedLogField, Block, CaptureSession, InitParams};
 use bd_proto::protos::logging::payload::LogType;
 use bd_session::fixed::UUIDCallbacks;
-use bd_session::{fixed, Strategy};
+use bd_session::Strategy;
 use bd_shutdown::ComponentShutdownTrigger;
 use bd_test_helpers::metadata::EmptyMetadata;
 use bd_test_helpers::metadata_provider::LogMetadata;
@@ -40,10 +40,7 @@ fn test_live_match_performance(c: &mut Criterion) {
     network: Box::new(network),
     static_metadata: Arc::new(EmptyMetadata),
     sdk_directory: ".".into(),
-    session_strategy: Arc::new(Strategy::Fixed(fixed::Strategy::new(
-      store.clone(),
-      Arc::new(UUIDCallbacks),
-    ))),
+    session_strategy: Arc::new(Strategy::fixed(".", Arc::new(UUIDCallbacks))),
     store,
     metadata_provider,
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),

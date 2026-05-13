@@ -749,7 +749,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         &mut env,
         session_strategy
       )?);
-      let session_strategy = session_strategy.create(session_strategy.clone(), store.clone())?;
+      let session_strategy = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
 
       let device = Arc::new(bd_device::Device::new(store.clone()));
       let static_metadata = Arc::new(Mobile {
@@ -895,7 +895,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSessio
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
 ) {
-  logger_id.start_new_session();
+  with_handle_unexpected(|| logger_id.start_new_session(), "jni start new session");
 }
 
 #[no_mangle]
@@ -905,7 +905,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSessionId<'
   logger_id: LoggerId<'_>,
 ) -> JString<'a> {
   with_handle_unexpected_or(
-    || Ok(env.new_string(logger_id.session_id())?),
+    || Ok(env.new_string(logger_id.session_id()?)?),
     JObject::null().into(),
     "jni get_session_id",
   )
@@ -1014,20 +1014,20 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerOpaqueUserId(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerOpaqueEntityId(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
-  opaque_user_id: JString<'_>,
+  opaque_entity_id: JString<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let opaque_user_id = unsafe { env.get_string_unchecked(&opaque_user_id) }?
+      let opaque_entity_id = unsafe { env.get_string_unchecked(&opaque_entity_id) }?
         .to_string_lossy()
         .to_string();
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.register_opaque_user_id(&opaque_user_id);
+      logger.register_opaque_entity_id(Some(&opaque_entity_id));
 
       Ok(())
     },

@@ -441,9 +441,9 @@ extension Logger {
 
     /// Registers an opaque user identifier for backend correlation with device identifier.
     ///
-    /// - parameter opaqueUserID: Opaque user identifier (for example, a hashed user ID)
-    public static func registerOpaqueUserID(_ opaqueUserID: String) {
-        Self.getShared()?.registerOpaqueUserID(opaqueUserID)
+    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID)
+    public static func registerOpaqueEntityID(_ opaqueEntityID: String) {
+        Self.getShared()?.registerOpaqueEntityID(opaqueEntityID)
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

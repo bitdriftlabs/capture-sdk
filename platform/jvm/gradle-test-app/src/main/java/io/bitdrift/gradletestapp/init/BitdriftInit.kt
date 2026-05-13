@@ -68,7 +68,7 @@ object BitdriftInit {
             Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
 
             @OptIn(ExperimentalBitdriftApi::class)
-            Capture.Logger.registerOpaqueUserId(userUuid)
+            Capture.Logger.registerOpaqueEntityId(userUuid)
 
             @OptIn(ExperimentalBitdriftApi::class)
             Capture.Logger.getPreviousRunInfo()?.let { previousRunInfo ->
