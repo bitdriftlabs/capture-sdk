@@ -79,5 +79,13 @@ final class DispatchSourceMemoryMonitor {
             error: nil,
             type: .lifecycle
         )
+        
+        if let snapshot = snapshot as? MemorySnapshot {
+            self.logger.notifyLowMemory(
+                level: state,
+                memoryUsedKB: snapshot.appTotalMemoryUsedKB,
+                timestampUs: UInt64(Date().timeIntervalSince1970 * 1_000_000)
+            )
+        }
     }
 }

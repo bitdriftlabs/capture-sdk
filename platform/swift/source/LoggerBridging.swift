@@ -76,6 +76,8 @@ protocol LoggerBridging {
     /// - parameter variant: The variant of the flag exposure to set
     func setFeatureFlagExposure(withName name: String, variant: String)
 
+    func notifyLowMemory(level: String, memoryUsedKB: UInt64, timestampUs: UInt64)
+
     /// Registers an opaque user identifier for backend correlation with device identifier.
     ///
     /// - parameter opaqueUserID: Opaque user identifier (for example, a hashed user ID).

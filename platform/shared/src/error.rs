@@ -19,7 +19,7 @@ impl SessionProvider {
 }
 
 impl bd_error_reporter::reporter::SessionProvider for SessionProvider {
-  fn session_id(&self) -> String {
-    self.strategy.session_id()
+  fn session_id(&self) -> anyhow::Result<String> {
+    self.strategy.try_current_session_id()
   }
 }

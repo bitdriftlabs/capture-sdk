@@ -256,6 +256,10 @@ final class LoggerBridge: LoggerBridging {
         capture_set_feature_flag_exposure(self.loggerID, flag, variant)
     }
 
+    func notifyLowMemory(level: String, memoryUsedKB: UInt64, timestampUs: UInt64) {
+        capture_notify_low_memory(self.loggerID, level, memoryUsedKB, timestampUs)
+    }
+
     func registerOpaqueUserID(_ opaqueUserID: String) {
         capture_register_opaque_user_id(self.loggerID, opaqueUserID)
     }

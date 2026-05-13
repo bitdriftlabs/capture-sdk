@@ -170,6 +170,10 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
+    func notifyLowMemory(level: String, memoryUsedKB: UInt64, timestampUs: UInt64) {
+        self.underlyingLogger.notifyLowMemory(level: level, memoryUsedKB: memoryUsedKB, timestampUs: timestampUs)
+    }
+
     func registerOpaqueUserID(_ opaqueUserID: String) {
         self.underlyingLogger.registerOpaqueUserID(opaqueUserID)
     }
