@@ -86,8 +86,8 @@ class WebViewCaptureTest {
     }
 
     @Test
-    fun instrument_withValidWebViewConfiguration_shouldEnableJavascriptAndLogSuccess() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+    fun instrument_withJavaScriptBridge_shouldEnableJavascriptAndLogSuccess() {
+        startSdk(webViewConfiguration = WebViewConfiguration.javaScriptBridge())
         val spyLogger = spyLogger()
 
         WebViewCapture.instrument(webView, spyLogger)
@@ -106,8 +106,138 @@ class WebViewCaptureTest {
     }
 
     @Test
+    fun instrument_withJavaScriptBridge_shouldEnableJavascript() {
+        val config =
+            WebViewConfiguration.JavaScriptBridge(
+                capturePageViews = true,
+            )
+        startSdk(webViewConfiguration = config)
+        val logger = requireLogger()
+
+        WebViewCapture.instrument(webView, logger)
+
+        assertThat(webView.settings.javaScriptEnabled).isTrue()
+    }
+
+    @Test
+    fun instrument_withNativeOnlyMode_shouldNotEnableJavascript() {
+        val config = WebViewConfiguration.nativeOnly()
+        startSdk(webViewConfiguration = config)
+        val logger = requireLogger()
+
+        WebViewCapture.instrument(webView, logger)
+
+        assertThat(webView.settings.javaScriptEnabled).isFalse()
+    }
+
+    @Test
+    fun instrument_withNativeOnlyMode_shouldSetNativeWebViewClient() {
+        val config = WebViewConfiguration.nativeOnly()
+        startSdk(webViewConfiguration = config)
+        val logger = requireLogger()
+        val webView = spy(WebView(appContext))
+
+        WebViewCapture.instrument(webView, logger)
+
+        assertThat(webView.settings.javaScriptEnabled).isFalse()
+        verify(webView).webViewClient = any<NativeWebViewClient>()
+    }
+
+    @Config(sdk = [30])
+    @Test
+    fun instrument_withNativeOnlyModeAndConsoleLogsEnabled_shouldNotEnableJavascript() {
+        val config = WebViewConfiguration.NativeOnly(captureConsoleLogs = true)
+        startSdk(webViewConfiguration = config)
+        val webView = WebView(appContext)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.settings.javaScriptEnabled).isFalse()
+    }
+
+    @Config(sdk = [30])
+    @Test
+    fun instrument_withNativeOnlyModeAndConsoleLogsDisabled_shouldNotSetWebChromeClient() {
+        val config = WebViewConfiguration.NativeOnly(captureConsoleLogs = false)
+        startSdk(webViewConfiguration = config)
+        val webView = WebView(appContext)
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.webChromeClient).isNull()
+    }
+
+    @Test
+    fun instrument_calledTwice_shouldOnlyInstrumentOnce() {
+        val config = WebViewConfiguration.javaScriptBridge()
+        startSdk(webViewConfiguration = config)
+        val logger = requireLogger()
+
+        WebViewCapture.instrument(webView, logger)
+        val firstJavaScriptState = webView.settings.javaScriptEnabled
+
+        WebViewCapture.instrument(webView, logger)
+        val secondJavaScriptState = webView.settings.javaScriptEnabled
+
+        assertThat(firstJavaScriptState).isTrue()
+        assertThat(secondJavaScriptState).isTrue()
+    }
+
+    @Test
+    fun instrument_withNativeOnlyMode_whenClientSetupFails_shouldNotMarkAsInstrumented() {
+        val config = WebViewConfiguration.nativeOnly()
+        startSdk(webViewConfiguration = config)
+        val logger = requireLogger()
+        val webView = spy(WebView(appContext))
+
+        com.nhaarman.mockitokotlin2
+            .doThrow(RuntimeException("boom"))
+            .whenever(webView)
+            .webViewClient = any()
+
+        WebViewCapture.instrument(webView, logger)
+        WebViewCapture.instrument(webView, logger)
+
+        verify(webView, com.nhaarman.mockitokotlin2.times(2)).webViewClient = any<NativeWebViewClient>()
+    }
+
+    @Test
+    fun javaScriptBridge_factoryMethod_shouldHaveCorrectDefaults() {
+        val config = WebViewConfiguration.javaScriptBridge()
+
+        assertThat(config).isInstanceOf(WebViewConfiguration.JavaScriptBridge::class.java)
+        assertThat(config.capturePageViews).isTrue()
+        assertThat(config.captureNetworkRequests).isTrue()
+        assertThat(config.captureNavigationEvents).isTrue()
+        assertThat(config.captureWebVitals).isTrue()
+        assertThat(config.captureLongTasks).isTrue()
+        assertThat(config.captureConsoleLogs).isTrue()
+        assertThat(config.captureUserInteractions).isTrue()
+        assertThat(config.captureErrors).isTrue()
+    }
+
+    @Test
+    fun nativeOnly_factoryMethod_shouldHaveCorrectDefaults() {
+        val config = WebViewConfiguration.nativeOnly()
+
+        assertThat(config).isInstanceOf(WebViewConfiguration.NativeOnly::class.java)
+        assertThat(config.capturePageViews).isTrue()
+        assertThat(config.captureErrors).isTrue()
+        assertThat(config.captureNavigationEvents).isTrue()
+        assertThat(config.captureResourceLoads).isFalse()
+        assertThat(config.captureConsoleLogs).isTrue()
+    }
+
+    @Test
+    fun nativeOnly_defaultConstructor_shouldDefaultToNativeOnlyMode() {
+        val config = WebViewConfiguration.NativeOnly()
+
+        assertThat(config).isInstanceOf(WebViewConfiguration.NativeOnly::class.java)
+    }
+
+    @Test
     fun instrument_withRuntimeFeatureDisabled_shouldSkipInstrumentation() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+        startSdk(webViewConfiguration = WebViewConfiguration.javaScriptBridge())
         whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(false)
 
         WebViewCapture.instrument(webView, Capture.logger(), runtimeProvider)
@@ -117,15 +247,16 @@ class WebViewCaptureTest {
 
     @Test
     fun instrument_withRuntimeFeatureEnabled_shouldProceedWithInstrumentation() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+        startSdk(webViewConfiguration = WebViewConfiguration.javaScriptBridge())
         whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
+        val logger = requireLogger()
 
-        WebViewCapture.instrument(webView, Capture.logger(), runtimeProvider)
+        WebViewCapture.instrument(webView, logger, runtimeProvider)
 
         assertThat(webView.settings.javaScriptEnabled).isTrue()
     }
 
-    private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
+    private fun startSdk(webViewConfiguration: WebViewConfiguration? = null) {
         Capture.Logger.start(
             apiKey = "test",
             sessionStrategy = SessionStrategy.Fixed(),
@@ -139,4 +270,6 @@ class WebViewCaptureTest {
         val logger = Capture.logger()
         return spy(logger as LoggerImpl)
     }
+
+    private fun requireLogger(): LoggerImpl = Capture.logger() as LoggerImpl
 }
