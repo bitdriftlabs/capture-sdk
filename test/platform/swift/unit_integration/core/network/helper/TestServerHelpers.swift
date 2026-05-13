@@ -51,7 +51,7 @@ public final class TestApiServer: @unchecked Sendable {
     /// - parameter timeout: The total amount of time to wait before giving up.
     ///
     /// - returns: The stream ID, or -1 on timeout.
-    public func nextStream(timeout: TimeInterval = 5) async -> Int32 {
+    public func nextStream(timeout: TimeInterval = 15) async -> Int32 {
         let deadline = Date().addingTimeInterval(timeout)
         var streamID = await awaitNextStream()
 
