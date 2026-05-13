@@ -23,6 +23,83 @@ struct NamedThread {
   crashed: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EnrichmentOutcome {
+  Enhanced,
+  NoEffect,
+  NotAttempted,
+  Error,
+}
+
+impl EnrichmentOutcome {
+  const fn as_str(self) -> &'static str {
+    match self {
+      Self::Enhanced => "enhanced",
+      Self::NoEffect => "no_effect",
+      Self::NotAttempted => "not_attempted",
+      Self::Error => "error",
+    }
+  }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EnrichmentReason {
+  None,
+  MetadataMismatch,
+  NoNamedKSCrashThreads,
+  NoMatchFound,
+  MissingRequiredData,
+  InternalError,
+}
+
+impl EnrichmentReason {
+  const fn as_str(self) -> &'static str {
+    match self {
+      Self::None => "none",
+      Self::MetadataMismatch => "metadata_mismatch",
+      Self::NoNamedKSCrashThreads => "no_named_kscrash_threads",
+      Self::NoMatchFound => "no_match_found",
+      Self::MissingRequiredData => "missing_required_data",
+      Self::InternalError => "internal_error",
+    }
+  }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct EnrichmentSummary {
+  outcome: EnrichmentOutcome,
+  reason: EnrichmentReason,
+}
+
+impl EnrichmentSummary {
+  const fn new(outcome: EnrichmentOutcome, reason: EnrichmentReason) -> Self {
+    Self { outcome, reason }
+  }
+
+  fn to_value(self) -> Value {
+    Value::Object(AHashMap::from([
+      (
+        "outcome".to_string(),
+        Value::String(self.outcome.as_str().to_string()),
+      ),
+      (
+        "reason".to_string(),
+        Value::String(self.reason.as_str().to_string()),
+      ),
+    ]))
+  }
+}
+
+struct EnhancedReportResult {
+  report: Option<AHashMap<String, Value>>,
+  summary: EnrichmentSummary,
+}
+
+struct EnhancedReportBridgeResult {
+  report_ptr: Option<*const Object>,
+  summary: EnrichmentSummary,
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheResult {
@@ -209,11 +286,18 @@ extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Objec
 extern "C" fn capture_enhance_metrickit_diagnostic_report(
   metrickit_report_ptr: *const Object,
   use_stack_overlap_matching: bool,
+  summary_out: *mut *const Object,
 ) -> *const Object {
-  enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr, use_stack_overlap_matching)
-    .inspect_err(|e| log::error!("Failed to enhance MetricKit report: {e}"))
-    .unwrap_or(Some(metrickit_report_ptr))
-    .unwrap_or(metrickit_report_ptr)
+  let result =
+    enhance_metrickit_diagnostic_report_impl(metrickit_report_ptr, use_stack_overlap_matching)
+      .inspect_err(|e| log::error!("Failed to enhance MetricKit report: {e}"))
+      .unwrap_or_else(|_| EnhancedReportBridgeResult {
+        report_ptr: None,
+        summary: EnrichmentSummary::new(EnrichmentOutcome::Error, EnrichmentReason::InternalError),
+      });
+
+  write_summary_bridge_out(summary_out, result.summary);
+  result.report_ptr.unwrap_or(metrickit_report_ptr)
 }
 
 #[no_mangle]
@@ -283,7 +367,7 @@ fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
 fn enhance_metrickit_diagnostic_report_impl(
   metrickit_report_ptr: *const Object,
   use_stack_overlap_matching: bool,
-) -> anyhow::Result<Option<*const Object>> {
+) -> anyhow::Result<EnhancedReportBridgeResult> {
   let value = unsafe { objc_value_to_rust(metrickit_report_ptr) }
     .map_err(|e| anyhow::anyhow!("Failed to convert metrickit_report_ptr to Rust Value: {e}"))?;
 
@@ -293,27 +377,35 @@ fn enhance_metrickit_diagnostic_report_impl(
     ));
   };
 
-  let kscrash_report = CACHED_KSCRASH_REPORT
-    .lock()
-    .as_ref()
-    .ok_or_else(|| {
-      anyhow::anyhow!("No KSCrash report has been cached. Call capture_cache_kscrash_report first.")
-    })?
-    .clone();
+  let Some(kscrash_report) = CACHED_KSCRASH_REPORT.lock().as_ref().cloned() else {
+    return Ok(EnhancedReportBridgeResult {
+      report_ptr: None,
+      summary: EnrichmentSummary::new(
+        EnrichmentOutcome::NotAttempted,
+        EnrichmentReason::MissingRequiredData,
+      ),
+    });
+  };
 
-  let Some(enhanced_hashmap) = enhance_report(
+  let result = enhance_report_with_summary(
     &metrickit_report,
     &kscrash_report,
     use_stack_overlap_matching,
-  )?
-  else {
-    return Ok(None);
+  )?;
+  let report_ptr = match result.report {
+    Some(enhanced_hashmap) => {
+      let enhanced_report = Value::Object(enhanced_hashmap);
+      let strong_ptr = unsafe { rust_value_to_objc(&enhanced_report) }
+        .map_err(|e| anyhow::anyhow!("Failed to convert enhanced_report to Objective-C: {e}"))?;
+      Some(*strong_ptr as *const Object)
+    },
+    None => None,
   };
-  let enhanced_report = Value::Object(enhanced_hashmap);
 
-  let strong_ptr = unsafe { rust_value_to_objc(&enhanced_report) }
-    .map_err(|e| anyhow::anyhow!("Failed to convert enhanced_report to Objective-C: {e}"))?;
-  Ok(Some(*strong_ptr))
+  Ok(EnhancedReportBridgeResult {
+    report_ptr,
+    summary: result.summary,
+  })
 }
 
 fn cached_kscrash_timestamp_impl() -> anyhow::Result<u64> {
@@ -334,13 +426,19 @@ fn cached_kscrash_timestamp_impl() -> anyhow::Result<u64> {
   Ok(seconds)
 }
 
-fn enhance_report(
+fn enhance_report_with_summary(
   metrickit_report: &AHashMap<String, Value>,
   kscrash_report: &AHashMap<String, Value>,
   use_stack_overlap_matching: bool,
-) -> anyhow::Result<Option<AHashMap<String, Value>>> {
+) -> anyhow::Result<EnhancedReportResult> {
   if !diagnostic_metadata_matches_in_reports(metrickit_report, kscrash_report) {
-    return Ok(None);
+    return Ok(EnhancedReportResult {
+      report: None,
+      summary: EnrichmentSummary::new(
+        EnrichmentOutcome::NoEffect,
+        EnrichmentReason::MetadataMismatch,
+      ),
+    });
   }
 
   if use_stack_overlap_matching {
@@ -353,31 +451,65 @@ fn enhance_report(
 fn enhance_report_with_exact_matching(
   metrickit_report: &AHashMap<String, Value>,
   kscrash_report: &AHashMap<String, Value>,
-) -> anyhow::Result<Option<AHashMap<String, Value>>> {
+) -> anyhow::Result<EnhancedReportResult> {
   let named_threads = exact_named_threads_from_kscrash_report(kscrash_report)?;
 
   let Some(named_threads) = named_threads else {
-    return Ok(None);
+    return Ok(EnhancedReportResult {
+      report: None,
+      summary: EnrichmentSummary::new(
+        EnrichmentOutcome::NoEffect,
+        EnrichmentReason::NoNamedKSCrashThreads,
+      ),
+    });
   };
 
+  let named_before = count_named_metrickit_threads(metrickit_report)?;
   let enhanced_metrickit =
     inject_thread_names_into_metrickit_exact(metrickit_report.clone(), &named_threads)?;
-  Ok(Some(enhanced_metrickit))
+  let named_after = count_named_metrickit_threads(&enhanced_metrickit)?;
+  let (outcome, reason) = if named_after > named_before {
+    (EnrichmentOutcome::Enhanced, EnrichmentReason::None)
+  } else {
+    (EnrichmentOutcome::NoEffect, EnrichmentReason::NoMatchFound)
+  };
+
+  Ok(EnhancedReportResult {
+    report: Some(enhanced_metrickit),
+    summary: EnrichmentSummary::new(outcome, reason),
+  })
 }
 
 fn enhance_report_with_base_matching(
   metrickit_report: &AHashMap<String, Value>,
   kscrash_report: &AHashMap<String, Value>,
-) -> anyhow::Result<Option<AHashMap<String, Value>>> {
+) -> anyhow::Result<EnhancedReportResult> {
   let named_threads = named_threads_from_kscrash_report(kscrash_report)?;
 
   let Some(named_threads) = named_threads else {
-    return Ok(None);
+    return Ok(EnhancedReportResult {
+      report: None,
+      summary: EnrichmentSummary::new(
+        EnrichmentOutcome::NoEffect,
+        EnrichmentReason::NoNamedKSCrashThreads,
+      ),
+    });
   };
 
+  let named_before = count_named_metrickit_threads(metrickit_report)?;
   let enhanced_metrickit =
     inject_thread_names_into_metrickit_from_base(metrickit_report.clone(), &named_threads)?;
-  Ok(Some(enhanced_metrickit))
+  let named_after = count_named_metrickit_threads(&enhanced_metrickit)?;
+  let (outcome, reason) = if named_after > named_before {
+    (EnrichmentOutcome::Enhanced, EnrichmentReason::None)
+  } else {
+    (EnrichmentOutcome::NoEffect, EnrichmentReason::NoMatchFound)
+  };
+
+  Ok(EnhancedReportResult {
+    report: Some(enhanced_metrickit),
+    summary: EnrichmentSummary::new(outcome, reason),
+  })
 }
 
 fn diagnostic_metadata_matches_in_reports(
@@ -629,6 +761,37 @@ fn metrickit_threads_mut(
   Ok(threads)
 }
 
+fn metrickit_threads(metrickit_report: &AHashMap<String, Value>) -> anyhow::Result<&Vec<Value>> {
+  let Some(Value::Object(call_stack_tree)) = metrickit_report.get("callStackTree") else {
+    return Err(anyhow::anyhow!(
+      "MetricKit report missing 'callStackTree' object"
+    ));
+  };
+
+  let Some(Value::Array(threads)) = call_stack_tree.get("callStacks") else {
+    return Err(anyhow::anyhow!("CallStackTree missing 'callStacks' array"));
+  };
+
+  Ok(threads)
+}
+
+fn count_named_metrickit_threads(
+  metrickit_report: &AHashMap<String, Value>,
+) -> anyhow::Result<usize> {
+  Ok(
+    metrickit_threads(metrickit_report)?
+      .iter()
+      .filter(|thread| match thread {
+        Value::Object(thread) => match thread.get("name") {
+          Some(Value::String(name)) => !name.is_empty(),
+          _ => false,
+        },
+        _ => false,
+      })
+      .count(),
+  )
+}
+
 fn get_metrickit_thread(
   thread: &mut Value,
 ) -> anyhow::Result<Option<(&mut AHashMap<String, Value>, Vec<u64>)>> {
@@ -820,6 +983,24 @@ fn value_as_u64(value: &Value) -> Option<u64> {
     Value::Unsigned(value) => Some(*value),
     Value::Signed(value) => (*value >= 0).then_some(*value as u64),
     _ => None,
+  }
+}
+
+fn write_summary_bridge_out(summary_out: *mut *const Object, summary: EnrichmentSummary) {
+  if summary_out.is_null() {
+    return;
+  }
+
+  match unsafe { rust_value_to_objc(&summary.to_value()) } {
+    Ok(summary_ptr) => unsafe {
+      *summary_out = *summary_ptr;
+    },
+    Err(e) => {
+      log::error!("Failed to convert crash enrichment summary to Objective-C: {e}");
+      unsafe {
+        *summary_out = std::ptr::null();
+      };
+    },
   }
 }
 
@@ -1047,11 +1228,14 @@ mod tests {
       )],
     );
 
-    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, false)
-      .unwrap()
-      .expect("expected report");
+    let result = enhance_report_with_summary(&metrickit_report, &kscrash_report, false).unwrap();
+    let enhanced_report = result.report.expect("expected report");
 
     assert_eq!(metrickit_thread_name(&enhanced_report, 0), None);
+    assert_eq!(
+      result.summary,
+      EnrichmentSummary::new(EnrichmentOutcome::NoEffect, EnrichmentReason::NoMatchFound)
+    );
   }
 
   #[test]
@@ -1075,11 +1259,14 @@ mod tests {
       )],
     );
 
-    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
-      .unwrap()
-      .expect("expected report");
+    let result = enhance_report_with_summary(&metrickit_report, &kscrash_report, true).unwrap();
+    let enhanced_report = result.report.expect("expected report");
 
     assert_eq!(metrickit_thread_name(&enhanced_report, 0), Some("worker"));
+    assert_eq!(
+      result.summary,
+      EnrichmentSummary::new(EnrichmentOutcome::Enhanced, EnrichmentReason::None)
+    );
   }
 
   #[test]
@@ -1100,9 +1287,16 @@ mod tests {
       vec![make_metrickit_thread(&[0x10, 0x20, 0x30, 0x40], false)],
     );
 
-    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true).unwrap();
+    let result = enhance_report_with_summary(&metrickit_report, &kscrash_report, true).unwrap();
 
-    assert_eq!(enhanced_report, None);
+    assert_eq!(result.report, None);
+    assert_eq!(
+      result.summary,
+      EnrichmentSummary::new(
+        EnrichmentOutcome::NoEffect,
+        EnrichmentReason::MetadataMismatch
+      )
+    );
   }
 
   #[test]
@@ -1121,9 +1315,8 @@ mod tests {
       vec![make_metrickit_thread(&[0x10, 0x20, 0x30, 0x40], true)],
     );
 
-    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
-      .unwrap()
-      .expect("expected report");
+    let result = enhance_report_with_summary(&metrickit_report, &kscrash_report, true).unwrap();
+    let enhanced_report = result.report.expect("expected report");
 
     assert_eq!(metrickit_thread_name(&enhanced_report, 0), None);
   }
@@ -1144,9 +1337,8 @@ mod tests {
       vec![make_metrickit_thread(&[0x10, 0x20, 0x30, 0x40], false)],
     );
 
-    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
-      .unwrap()
-      .expect("expected report");
+    let result = enhance_report_with_summary(&metrickit_report, &kscrash_report, true).unwrap();
+    let enhanced_report = result.report.expect("expected report");
 
     assert_eq!(metrickit_thread_name(&enhanced_report, 0), None);
   }
@@ -1170,9 +1362,8 @@ mod tests {
       )],
     );
 
-    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
-      .unwrap()
-      .expect("expected report");
+    let result = enhance_report_with_summary(&metrickit_report, &kscrash_report, true).unwrap();
+    let enhanced_report = result.report.expect("expected report");
 
     assert_eq!(metrickit_thread_name(&enhanced_report, 0), Some("worker"));
   }
@@ -1195,9 +1386,8 @@ mod tests {
       vec![make_metrickit_thread(&[0x10, 0x20, 0x30, 0x40], false)],
     );
 
-    let enhanced_report = enhance_report(&metrickit_report, &kscrash_report, true)
-      .unwrap()
-      .expect("expected report");
+    let result = enhance_report_with_summary(&metrickit_report, &kscrash_report, true).unwrap();
+    let enhanced_report = result.report.expect("expected report");
 
     assert_eq!(metrickit_thread_name(&enhanced_report, 0), None);
   }
