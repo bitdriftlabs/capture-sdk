@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.testTag
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureResult
+import io.bitdrift.capture.InitializationState
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
@@ -48,6 +49,9 @@ import java.io.IOException
 import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -88,6 +92,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var client: OkHttpClient
     private lateinit var sessionIdTextView: TextView
     private lateinit var deviceCodeTextView: TextView
+    private lateinit var sdkStatusLabel: TextView
     private lateinit var logLevelSpinner: Spinner
     private lateinit var appExitReasonSpinner: Spinner
 
@@ -102,6 +107,9 @@ class MainActivity : ComponentActivity() {
         sessionIdTextView.text = Logger.sessionId
 
         deviceCodeTextView = findViewById(R.id.device_code)
+
+        sdkStatusLabel = findViewById(R.id.sdk_status)
+        checkSdkStatus()
 
         logLevelSpinner = findViewById(R.id.spinner)
         logLevelSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, LogLevel.values())
@@ -176,6 +184,33 @@ class MainActivity : ComponentActivity() {
     fun startNewSession(@Suppress("UNUSED_PARAMETER") view: View) {
         Logger.startNewSession()
         sessionIdTextView.text = Logger.sessionId
+    }
+
+    fun checkSdkStatus(@Suppress("UNUSED_PARAMETER") view: View? = null) {
+        val status = Logger.getSdkStatus()
+        val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+
+        val state = when (status.initializationState) {
+            InitializationState.NOT_STARTED -> "Not Started"
+            InitializationState.LOADED -> "Loaded"
+            InitializationState.RUNNING -> "Running"
+        }
+
+        val text = buildString {
+            append("State: $state")
+
+            status.lastHandshakeTimeMs?.let {
+                append("\nLast handshake: ${timeFormat.format(Date(it))}")
+            } ?: append("\nNo handshake yet")
+
+            status.lastConfigDeliveryTimeMs?.let {
+                append("\nLast config: ${timeFormat.format(Date(it))}")
+            } ?: append("\nNo config delivery yet")
+
+            append("\nChecked at: ${timeFormat.format(Date())}")
+        }
+
+        sdkStatusLabel.text = text
     }
 
     fun generateTmpDeviceCode(view: View) {

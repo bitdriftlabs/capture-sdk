@@ -334,6 +334,8 @@ internal class LoggerImpl(
     override val isTracingActive: Boolean
         get() = CaptureJniLibrary.isTracingActive(this.loggerId)
 
+    fun getSdkStatus(): SdkStatus = CaptureJniLibrary.getSdkStatus(this.loggerId)
+
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
     }

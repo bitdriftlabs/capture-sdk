@@ -123,6 +123,11 @@ protocol CoreLogging: AnyObject {
     /// - returns: Unique device ID.
     func getDeviceID() -> String
 
+    /// Returns a point-in-time snapshot of the SDK's operational status.
+    ///
+    /// - returns: The current SDK status.
+    func getSdkStatus() -> SdkStatus
+
     /// Adds a field to all logs emitted by the logger from this point forward.
     /// If a field with a given key has already been registered with the logger, its value is
     /// replaced with the new one.

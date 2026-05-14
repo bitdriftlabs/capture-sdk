@@ -74,11 +74,10 @@ class MainViewModel(
         val persistedFields = sdkRepository.restoreGlobalFields()
         _uiState.update { it.copy(globalFields = persistedFields) }
         updateSdkState()
-        checkAutoInitialization()
-
-        if (sdkRepository.isSdkInitialized()) {
-            runHealthCheck()
+        if (_uiState.value.session.isSdkInitialized) {
+            checkConnectivity()
         }
+        checkAutoInitialization()
     }
 
     private fun checkAutoInitialization() {
@@ -108,6 +107,7 @@ class MainViewModel(
             is SessionAction.StartNewSession -> startNewSession()
             is SessionAction.GenerateDeviceCode -> generateDeviceCode()
             is SessionAction.CopySessionUrl -> copySessionUrl()
+            is SessionAction.CheckConnectivity -> checkConnectivity()
 
             is DiagnosticsAction.LogSingleMessage -> logSingleMessage()
             is DiagnosticsAction.LogManyMessages -> logManyMessages()
@@ -210,7 +210,7 @@ class MainViewModel(
             val success = sdkRepository.initializeSdk(config.apiKey, config.apiUrl)
             if (success) {
                 updateSdkState()
-                runHealthCheck()
+                checkConnectivity()
                 _uiState.update { it.copy(isLoading = false, error = null) }
             } else {
                 _uiState.update {
@@ -230,7 +230,6 @@ class MainViewModel(
             val sessionId = sdkRepository.startNewSession()
             if (sessionId != null) {
                 updateSdkState()
-                runHealthCheck()
                 _uiState.update { it.copy(isLoading = false) }
             } else {
                 _uiState.update {
@@ -240,22 +239,16 @@ class MainViewModel(
         }
     }
 
-    private fun runHealthCheck() {
-        viewModelScope.launch {
-            // GenerateDeviceCode is a good proxy to determine connectivity
-            val result = sdkRepository.generateDeviceCode()
-            val isValid = result.isSuccess
-            val errorMessage = result.exceptionOrNull()?.message
-            _uiState.update { state ->
-                state.copy(
-                    session =
-                        state.session.copy(
-                            isDeviceCodeValid = isValid,
-                            deviceCodeError = if (!isValid) errorMessage else null,
-                            deviceCode = if (isValid) result.getOrNull() else state.session.deviceCode,
-                        ),
-                )
-            }
+    private fun checkConnectivity() {
+        val status = Logger.getSdkStatus()
+        val now = System.currentTimeMillis()
+        _uiState.update { state ->
+            state.copy(
+                session = state.session.copy(
+                    sdkStatus = status,
+                    lastConnectivityCheckTimeMs = now,
+                ),
+            )
         }
     }
 

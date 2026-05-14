@@ -44,7 +44,7 @@ use platform_shared::javascript_error::{
   DeviceMetadata,
 };
 use platform_shared::metadata::{self, Mobile};
-use platform_shared::{LoggerHolder, LoggerId};
+use platform_shared::{date_to_unix_milliseconds, LoggerHolder, LoggerId};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
@@ -932,6 +932,25 @@ extern "C" fn capture_get_sdk_version() -> *const Object {
   make_nsstring(&metadata::SDK_VERSION)
     .unwrap_or_else(|_| make_empty_nsstring())
     .autorelease()
+}
+
+/// A C-compatible representation of the SDK status returned to Swift.
+/// Timestamps are epoch milliseconds, or -1 if not yet available.
+#[repr(C)]
+pub struct SdkStatusFFI {
+  pub initialization_state: i32,
+  pub last_handshake_time_ms: i64,
+  pub last_config_delivery_time_ms: i64,
+}
+
+#[no_mangle]
+extern "C" fn capture_get_sdk_status(logger_id: LoggerId<'_>) -> SdkStatusFFI {
+  let status = logger_id.get_sdk_status();
+  SdkStatusFFI {
+    initialization_state: status.initialization_state as i32,
+    last_handshake_time_ms: date_to_unix_milliseconds(status.last_handshake_time),
+    last_config_delivery_time_ms: date_to_unix_milliseconds(status.last_config_delivery_time),
+  }
 }
 
 #[no_mangle]

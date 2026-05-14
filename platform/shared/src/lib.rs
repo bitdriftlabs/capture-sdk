@@ -178,6 +178,11 @@ impl LoggerHolder {
     self.logger.runtime_snapshot()
   }
 
+  /// Returns a point-in-time snapshot of the SDK's operational status.
+  pub fn get_sdk_status(&self) -> bd_client_common::sdk_status::SdkStatus {
+    self.logger.get_sdk_status()
+  }
+
   /// Given a valid logger ID, destroys the logger and frees the memory associated with it.
   ///
   /// # Safety
@@ -251,4 +256,13 @@ impl<'a> From<LoggerId<'a>> for i64 {
   fn from(logger: LoggerId<'a>) -> Self {
     logger.value
   }
+}
+
+/// Converts an optional `OffsetDateTime` to epoch milliseconds.
+/// Returns -1 if the time is `None`.
+#[must_use]
+pub fn date_to_unix_milliseconds(time: Option<time::OffsetDateTime>) -> i64 {
+  time.map_or(-1, |t| {
+    t.unix_timestamp() * 1000 + i64::from(t.millisecond())
+  })
 }

@@ -38,6 +38,8 @@ sealed class SessionAction : AppAction {
     object GenerateDeviceCode : SessionAction()
 
     object CopySessionUrl : SessionAction()
+
+    object CheckConnectivity : SessionAction()
 }
 
 sealed class DiagnosticsAction : AppAction {

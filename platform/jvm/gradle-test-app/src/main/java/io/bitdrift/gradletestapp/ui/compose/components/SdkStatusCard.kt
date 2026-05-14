@@ -16,19 +16,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import io.bitdrift.gradletestapp.R
+import io.bitdrift.capture.InitializationState
+import io.bitdrift.capture.SdkStatus
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.gradletestapp.data.model.AppState
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * SDK Status Card component that displays the current SDK state
  */
+@OptIn(ExperimentalBitdriftApi::class)
 @Composable
 fun SdkStatusCard(
     uiState: AppState,
     onInitializeSdk: () -> Unit,
+    onCheckSdkState: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -51,7 +58,7 @@ fun SdkStatusCard(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "SDK Status",
+                text = "SDK State",
                 style = MaterialTheme.typography.titleMedium,
                 color = BitdriftColors.TextPrimary,
             )
@@ -62,18 +69,9 @@ fun SdkStatusCard(
                 apiUrl = uiState.config.apiUrl,
             )
 
-            val isValid = uiState.session.isDeviceCodeValid
-            val error = uiState.session.deviceCodeError
-            val deviceStatusText =
-                if (isValid) {
-                    stringResource(id = R.string.device_code_valid)
-                } else {
-                    error ?: stringResource(id = R.string.device_code_invalid)
-                }
-            Text(
-                text = deviceStatusText,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isValid) BitdriftColors.Primary else BitdriftColors.Error,
+            SdkStateSection(
+                sdkStatus = uiState.session.sdkStatus,
+                lastCheckTimeMs = uiState.session.lastConnectivityCheckTimeMs,
             )
 
             if (uiState.config.isDeferredStart && !uiState.session.isSdkInitialized) {
@@ -93,6 +91,19 @@ fun SdkStatusCard(
                 }
             }
 
+            Button(
+                onClick = onCheckSdkState,
+                enabled = uiState.session.isSdkInitialized,
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = BitdriftColors.Primary,
+                        contentColor = Color.White,
+                    ),
+            ) {
+                Text("Check SDK State")
+            }
+
             OutlinedButton(
                 onClick = onOpenSettings,
                 modifier = Modifier.fillMaxWidth(),
@@ -103,6 +114,93 @@ fun SdkStatusCard(
             ) {
                 Text("Settings")
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalBitdriftApi::class)
+@Composable
+private fun SdkStateSection(
+    sdkStatus: SdkStatus?,
+    lastCheckTimeMs: Long,
+) {
+    if (lastCheckTimeMs < 0) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = BitdriftColors.BackgroundPaper,
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = BitdriftColors.Border.copy(alpha = 0.2f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (sdkStatus == null) {
+                Text(
+                    text = "Not checked yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = BitdriftColors.TextTertiary,
+                )
+            } else {
+                val stateLabel = when (sdkStatus.initializationState) {
+                    InitializationState.NOT_STARTED -> "Not Started"
+                    InitializationState.LOADED -> "Loaded"
+                    InitializationState.RUNNING -> "Running"
+                }
+
+                Text(
+                    text = stateLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (sdkStatus.initializationState == InitializationState.RUNNING) {
+                        BitdriftColors.Primary
+                    } else {
+                        BitdriftColors.TextTertiary
+                    },
+                )
+
+                sdkStatus.lastHandshakeTimeMs?.let { timeMs ->
+                    Text(
+                        text = "Last handshake: ${formatEpochMs(timeMs)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = BitdriftColors.TextSecondary,
+                    )
+                }
+
+                sdkStatus.lastConfigDeliveryTimeMs?.let { timeMs ->
+                    Text(
+                        text = "Last config delivery: ${formatEpochMs(timeMs)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = BitdriftColors.TextSecondary,
+                    )
+                }
+
+                if (sdkStatus.lastHandshakeTimeMs == null) {
+                    Text(
+                        text = "No handshake yet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = BitdriftColors.TextTertiary,
+                    )
+                }
+
+                if (sdkStatus.lastHandshakeTimeMs == null && sdkStatus.lastConfigDeliveryTimeMs == null) {
+                    Text(
+                        text = "No config delivery yet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = BitdriftColors.TextTertiary,
+                    )
+                }
+            }
+
+            Text(
+                text = "Checked at: ${formatEpochMs(lastCheckTimeMs)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = BitdriftColors.TextTertiary,
+            )
         }
     }
 }
@@ -145,12 +243,12 @@ private fun SdkStatusBadge(
         ) {
             Icon(
                 imageVector = if (isInitialized) Icons.Filled.CheckCircle else Icons.Filled.Close,
-                contentDescription = "SDK Status",
+                contentDescription = "SDK State",
                 modifier = Modifier.size(24.dp),
                 tint = if (isInitialized) BitdriftColors.Primary else MaterialTheme.colorScheme.error,
             )
             Text(
-                text = if (isInitialized) "Started" else "Not Started",
+                text = if (isInitialized) "Initialized" else "Not Initialized",
                 style = MaterialTheme.typography.titleSmall,
                 color = if (isInitialized) BitdriftColors.Primary else MaterialTheme.colorScheme.error,
             )
@@ -169,4 +267,9 @@ private fun SdkStatusBadge(
             )
         }
     }
+}
+
+private fun formatEpochMs(epochMs: Long): String {
+    val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    return sdf.format(Date(epochMs))
 }
