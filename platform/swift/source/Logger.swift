@@ -268,11 +268,33 @@ public final class Logger {
                 }
 
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
+                let useStackOverlapMatching = self.underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
                 let reporter = DiagnosticEventReporter(
                     outputDir: Logger.reportCollectionDirectory(base: directoryURL),
                     sdkVersion: capture_get_sdk_version(),
                     eventTypes: .crash,
-                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC)) { [weak self] in
+                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
+                    useStackOverlapMatching: useStackOverlapMatching,
+                    crashEnrichmentSummaryHandler: { [weak self] summary in
+                        let matcherMode = useStackOverlapMatching ? "base" : "exact"
+                        guard let self,
+                              let summary,
+                              let outcome = summary["outcome"],
+                              let reason = summary["reason"]
+                        else {
+                            return
+                        }
+
+                        self.underlyingLogger.logInternal(
+                            level: .debug,
+                            message: "[CrashEnrichment] MetricKit crash enrichment summary",
+                            fields: [
+                                "outcome": outcome,
+                                "reason": reason,
+                                "matcher_mode": matcherMode,
+                            ]
+                        )
+                    }) { [weak self] in
                     self?.underlyingLogger.processIssueReports(reportProcessingSession: .previousRun)
                 }
                 Logger.diagnosticReporter.update { val in
@@ -557,8 +579,8 @@ extension Logger: Logging {
         self.underlyingLogger.setFeatureFlagExposure(withName: flag, variant: String(variant))
     }
 
-    public func registerOpaqueUserID(_ opaqueUserID: String) {
-        self.underlyingLogger.registerOpaqueUserID(opaqueUserID)
+    public func registerOpaqueEntityID(_ opaqueEntityID: String) {
+        self.underlyingLogger.registerOpaqueEntityID(opaqueEntityID)
     }
 
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {

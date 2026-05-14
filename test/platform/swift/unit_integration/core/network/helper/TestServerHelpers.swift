@@ -51,7 +51,7 @@ public final class TestApiServer: @unchecked Sendable {
     /// - parameter timeout: The total amount of time to wait before giving up.
     ///
     /// - returns: The stream ID, or -1 on timeout.
-    public func nextStream(timeout: TimeInterval = 5) async -> Int32 {
+    public func nextStream(timeout: TimeInterval = 15) async -> Int32 {
         let deadline = Date().addingTimeInterval(timeout)
         var streamID = await awaitNextStream()
 
@@ -64,7 +64,10 @@ public final class TestApiServer: @unchecked Sendable {
 
     private func awaitNextStream() async -> Int32 {
         await withCheckedContinuation { continuation in
-            DispatchQueue.global().async {
+            // Use a dedicated OS thread instead of DispatchQueue.global() to avoid starving the
+            // shared GCD thread pool. Blocking that pool prevents URLSession delegate callbacks
+            // (which complete the TLS handshake) from running while this call is waiting.
+            Thread.detachNewThread {
                 continuation.resume(returning: server_instance_await_next_stream(self.handle))
             }
         }
@@ -77,7 +80,7 @@ public final class TestApiServer: @unchecked Sendable {
     /// - throws: `TestServerError` if the handshake times out.
     public func handshake(streamId: Int32) async throws {
         let errorPtr = await withCheckedContinuation { continuation in
-            DispatchQueue.global().async {
+            Thread.detachNewThread {
                 continuation.resume(returning: server_instance_await_handshake(self.handle, streamId))
             }
         }
@@ -92,7 +95,7 @@ public final class TestApiServer: @unchecked Sendable {
     /// - returns: True if stream closed within the timeout.
     public func streamClosed(streamId: Int32, waitTimeMs: Int64) async -> Bool {
         await withCheckedContinuation { continuation in
-            DispatchQueue.global().async {
+            Thread.detachNewThread {
                 continuation.resume(returning: server_instance_await_stream_closed(self.handle, streamId, waitTimeMs))
             }
         }
@@ -105,7 +108,7 @@ public final class TestApiServer: @unchecked Sendable {
     /// - throws: `TestServerError` if the configuration fails.
     public func configureAggressiveUploads(streamId: Int32) async throws {
         let errorPtr = await withCheckedContinuation { continuation in
-            DispatchQueue.global().async {
+            Thread.detachNewThread {
                 continuation.resume(returning: server_instance_configure_aggressive_uploads(self.handle, streamId))
             }
         }
@@ -119,7 +122,7 @@ public final class TestApiServer: @unchecked Sendable {
     /// - throws: `TestServerError` if the test fails.
     public func runLargeUploadTest(loggerId: Int64) async throws {
         let errorPtr = await withCheckedContinuation { continuation in
-            DispatchQueue.global().async {
+            Thread.detachNewThread {
                 continuation.resume(
                     returning: server_instance_run_large_upload_test(self.handle, loggerId)
                 )
@@ -138,7 +141,7 @@ public final class TestApiServer: @unchecked Sendable {
     /// - returns: The uploaded log, or nil on timeout.
     public func nextUploadedLog() async -> UploadedLog? {
         await withCheckedContinuation { continuation in
-            DispatchQueue.global().async {
+            Thread.detachNewThread {
                 let log = UploadedLog()
                 guard server_instance_next_uploaded_log(self.handle, log) else {
                     continuation.resume(returning: nil)

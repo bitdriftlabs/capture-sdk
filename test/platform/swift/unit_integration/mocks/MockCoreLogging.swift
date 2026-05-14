@@ -179,5 +179,5 @@ extension MockCoreLogging: CoreLogging {
 
     public func setFeatureFlagExposure(withName flag: String, variant: String) {}
 
-    public func registerOpaqueUserID(_: String) {}
+    public func registerOpaqueEntityID(_: String) {}
 }

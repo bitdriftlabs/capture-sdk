@@ -10,7 +10,7 @@ use bd_logger::{log_level, Block, CaptureSession, InitParams, LoggerHandle};
 use bd_noop_network::NoopNetwork;
 use bd_proto::protos::logging::payload::LogType;
 use bd_session::fixed::UUIDCallbacks;
-use bd_session::{fixed, Strategy};
+use bd_session::Strategy;
 use bd_test_helpers::config_helper;
 use bd_test_helpers::metadata::EmptyMetadata;
 use bd_test_helpers::metadata_provider::LogMetadata;
@@ -53,10 +53,7 @@ fn simple_log(c: &mut Criterion) {
   let logger = bd_logger::LoggerBuilder::new(InitParams {
     sdk_directory: ".".into(),
     api_key: "foo".to_string(),
-    session_strategy: Arc::new(Strategy::Fixed(fixed::Strategy::new(
-      store.clone(),
-      Arc::new(UUIDCallbacks),
-    ))),
+    session_strategy: Arc::new(Strategy::fixed(".", Arc::new(UUIDCallbacks))),
     metadata_provider: Arc::new(LogMetadata {
       timestamp: time::OffsetDateTime::now_utc().into(),
       ..Default::default()
@@ -98,10 +95,7 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
   let logger = bd_logger::LoggerBuilder::new(InitParams {
     sdk_directory: ".".into(),
     api_key: "foo-api-key".to_string(),
-    session_strategy: Arc::new(Strategy::Fixed(fixed::Strategy::new(
-      store.clone(),
-      Arc::new(UUIDCallbacks),
-    ))),
+    session_strategy: Arc::new(Strategy::fixed(".", Arc::new(UUIDCallbacks))),
     metadata_provider: Arc::new(LogMetadata {
       timestamp: time::OffsetDateTime::now_utc().into(),
       ..Default::default()

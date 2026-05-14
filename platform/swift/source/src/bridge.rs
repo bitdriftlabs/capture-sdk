@@ -508,11 +508,12 @@ extern "C" fn capture_create_logger(
 
   with_handle_unexpected_or(
     || {
+      let sdk_directory = unsafe { CStr::from_ptr(path) }.to_str()?;
       let storage = Box::<UserDefaultsStorage>::default();
       let store = Arc::new(bd_key_value::Store::new(storage));
 
       let session_strategy =
-        crate::session::SessionStrategy::new(session_strategy).create(store.clone())?;
+        crate::session::SessionStrategy::new(session_strategy).create(sdk_directory.as_ref())?;
 
       let device: Arc<bd_device::Device> = Arc::new(bd_device::Device::new(store.clone()));
 
@@ -897,14 +898,23 @@ extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name
 
 #[no_mangle]
 extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>) {
-  logger_id.start_new_session();
+  with_handle_unexpected(|| logger_id.start_new_session(), "swift start new session");
 }
 
 #[no_mangle]
 extern "C" fn capture_get_session_id(logger_id: LoggerId<'_>) -> *const Object {
-  make_nsstring(&logger_id.session_id())
-    .unwrap_or_else(|_| make_empty_nsstring())
-    .autorelease()
+  with_handle_unexpected_or(
+    || {
+      let session_id = logger_id.session_id()?;
+      Ok(
+        make_nsstring(&session_id)
+          .unwrap_or_else(|_| make_empty_nsstring())
+          .autorelease(),
+      )
+    },
+    make_empty_nsstring().autorelease(),
+    "swift get session id",
+  )
 }
 
 #[no_mangle]
@@ -1023,14 +1033,14 @@ extern "C" fn capture_notify_low_memory(
 }
 
 #[no_mangle]
-extern "C" fn capture_register_opaque_user_id(
+extern "C" fn capture_register_opaque_entity_id(
   logger_id: LoggerId<'_>,
-  opaque_user_id: *const c_char,
+  opaque_entity_id: *const c_char,
 ) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
-      let opaque_user_id = unsafe { CStr::from_ptr(opaque_user_id) }.to_str()?;
-      logger_id.register_opaque_user_id(opaque_user_id);
+      let opaque_entity_id = unsafe { CStr::from_ptr(opaque_entity_id) }.to_str()?;
+      logger_id.register_opaque_entity_id(Some(opaque_entity_id));
       Ok(())
     },
     "swift register opaque user id",

@@ -40,6 +40,7 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpNetwork
+import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
@@ -91,7 +92,7 @@ internal class LoggerImpl(
             ProcessLifecycleOwner.get(),
         ),
     preferences: IPreferences = Preferences(context),
-    sharedOkHttpClient: OkHttpClient = OkHttpClient(),
+    sharedOkHttpClient: OkHttpClient = buildSharedOkHttpClient(),
     private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey, client = sharedOkHttpClient),
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
@@ -437,8 +438,8 @@ internal class LoggerImpl(
         CaptureJniLibrary.setFeatureFlagExposure(this.loggerId, name, variant)
     }
 
-    override fun registerOpaqueUserId(opaqueUserId: String) {
-        CaptureJniLibrary.registerOpaqueUserId(this.loggerId, opaqueUserId)
+    override fun registerOpaqueEntityId(opaqueEntityId: String) {
+        CaptureJniLibrary.registerOpaqueEntityId(this.loggerId, opaqueEntityId)
     }
 
     override fun setFeatureFlagExposure(

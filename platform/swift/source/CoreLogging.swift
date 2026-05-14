@@ -160,8 +160,8 @@ protocol CoreLogging: AnyObject {
 
     /// Registers an opaque user identifier for backend correlation with device identifier.
     ///
-    /// - parameter opaqueUserID: Opaque user identifier (for example, a hashed user ID).
-    func registerOpaqueUserID(_ opaqueUserID: String)
+    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID).
+    func registerOpaqueEntityID(_ opaqueEntityID: String)
 
     /// Retrieves the value of a given runtime variable.
     ///
@@ -248,12 +248,14 @@ extension CoreLogging {
     /// - parameter file:     The unique file identifier that has the form module/file.
     /// - parameter line:     The line number on which the log is emitted.
     /// - parameter function: The name of the declaration from within which the log is emitted.
+    /// - parameter fields:   The fields to log.
     func logInternal(
         level: LogLevel,
         message: @autoclosure () -> String,
         file: String? = #file,
         line: Int? = #line,
-        function: String? = #function
+        function: String? = #function,
+        fields: Fields? = nil
     )
     {
         self.log(
@@ -262,7 +264,7 @@ extension CoreLogging {
             file: file,
             line: line,
             function: function,
-            fields: nil,
+            fields: fields,
             error: nil,
             type: .internalsdk,
             blocking: false

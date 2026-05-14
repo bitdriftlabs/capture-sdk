@@ -324,12 +324,12 @@ object Capture {
         /**
          * Registers an opaque user identifier for backend correlation with device identifier.
          *
-         * @param opaqueUserId opaque user identifier (for example, a hashed user ID)
+         * @param opaqueEntityId opaque user identifier (for example, a hashed user ID)
          */
         @JvmStatic
         @ExperimentalBitdriftApi
-        fun registerOpaqueUserId(opaqueUserId: String) {
-            logger()?.registerOpaqueUserId(opaqueUserId)
+        fun registerOpaqueEntityId(opaqueEntityId: String) {
+            logger()?.registerOpaqueEntityId(opaqueEntityId)
         }
 
         /**

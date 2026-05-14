@@ -46,7 +46,9 @@ uint64_t capture_cached_kscrash_timestamp(void);
 CacheResult capture_cache_kscrash_report(NSString *reportPath);
 
 /** Enhance a MetricKit report using the cached KSCrash report. */
-NSDictionary *_Nullable capture_enhance_metrickit_diagnostic_report(const NSDictionary *_Nullable report);
+NSDictionary *_Nullable capture_enhance_metrickit_diagnostic_report(const NSDictionary *_Nullable report,
+                                                                    BOOL useStackOverlapMatching,
+                                                                    NSDictionary<NSString *, NSString *> * _Nullable * _Nullable summaryOut);
 
 #pragma mark Crash Handling
 
@@ -219,16 +221,25 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     kscm_disableAllMonitors();
 }
 
-+ (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport {
-    return [self.sharedInstance enhancedMetricKitReport:metricKitReport];
++ (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
+                                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                                                   summaryOut:(NSDictionary<NSString *, NSString *> * _Nullable * _Nullable)summaryOut {
+    return [self.sharedInstance enhancedMetricKitReport:metricKitReport
+                               useStackOverlapMatching:useStackOverlapMatching
+                                            summaryOut:summaryOut];
 }
 
-- (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport {
+- (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
+                                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                                                   summaryOut:(NSDictionary<NSString *, NSString *> * _Nullable * _Nullable)summaryOut {
     if (self.kscrashReportFilePath == nil) {
+        if (summaryOut != nil) {
+            *summaryOut = nil;
+        }
         return metricKitReport;
     }
 
-    return capture_enhance_metrickit_diagnostic_report(metricKitReport);
+    return capture_enhance_metrickit_diagnostic_report(metricKitReport, useStackOverlapMatching, summaryOut);
 }
 
 @end
