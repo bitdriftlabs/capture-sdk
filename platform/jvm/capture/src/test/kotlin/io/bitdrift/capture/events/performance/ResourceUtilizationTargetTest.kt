@@ -125,6 +125,39 @@ class ResourceUtilizationTargetTest {
     }
 
     @Test
+    @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+    fun resourceUtilizationWithNullBatteryValueShouldOmitBatteryFields() {
+        whenever(batteryMonitor.batteryValAttribute()).thenReturn(Pair("_battery_val", null))
+        whenever(batteryMonitor.batteryLevelAttribute()).thenReturn(Pair("_battery_level", null))
+        whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
+        whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
+        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
+
+        reporter.tick()
+
+        executor.awaitTermination(1, TimeUnit.SECONDS)
+
+        val expectedMap =
+            mapOf(
+                "_jvm_used_kb" to "50",
+                "_jvm_total_kb" to "100",
+                "_jvm_max_kb" to "100",
+                "_jvm_used_percent" to "50",
+                "_native_used_kb" to "200",
+                "_native_total_kb" to "500",
+                "_memory_class" to "1",
+                "_is_memory_low" to "0",
+                "_state" to "charging",
+                "_low_power_enabled" to "1",
+            )
+
+        verify(logger).logResourceUtilization(
+            argThat<ArrayFields> { toStringMap() == expectedMap },
+            Duration(any<Long>()),
+        )
+    }
+
+    @Test
     fun resourceUtilizationTickSnapshotFails() {
         val exception = IllegalArgumentException()
         memoryMetricsProvider.setException(exception)

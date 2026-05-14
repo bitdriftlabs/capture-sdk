@@ -17,6 +17,7 @@ import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import java.util.concurrent.ExecutorService
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -41,8 +42,8 @@ internal class ResourceUtilizationTarget(
                         memorySnapshot,
                         diskUsageMonitor.getDiskUsage(),
                         fieldsOf(powerMonitor.isPowerSaveModeEnabledAttribute()),
-                        fieldsOf(batteryMonitor.batteryValAttribute()),
-                        fieldsOf(batteryMonitor.batteryLevelAttribute()),
+                        fieldsOfOptional(batteryMonitor.batteryValAttribute()),
+                        fieldsOfOptional(batteryMonitor.batteryLevelAttribute()),
                         fieldsOf(batteryMonitor.isBatteryChargingAttribute()),
                     )
 
