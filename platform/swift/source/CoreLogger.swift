@@ -170,8 +170,8 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
-    func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        self.underlyingLogger.registerOpaqueEntityID(opaqueEntityID)
+    func setEntityID(_ entityID: String) {
+        self.underlyingLogger.setEntityID(entityID)
     }
 
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {

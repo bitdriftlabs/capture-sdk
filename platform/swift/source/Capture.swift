@@ -439,11 +439,12 @@ extension Logger {
         Self.getShared()?.setFeatureFlagExposure(withName: flag, variant: variant)
     }
 
-    /// Registers an opaque user identifier for backend correlation with device identifier.
+    /// Sets an entity identifier for backend correlation with device identifier.
+    /// The value is hashed for storage and the exact value is never persisted.
     ///
-    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID)
-    public static func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        Self.getShared()?.registerOpaqueEntityID(opaqueEntityID)
+    /// - parameter entityID: Entity identifier.
+    public static func setEntityID(_ entityID: String) {
+        Self.getShared()?.setEntityID(entityID)
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

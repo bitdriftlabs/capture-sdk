@@ -265,12 +265,13 @@ void capture_set_feature_flag_exposure(logger_id logger_id, const char *flag,
                                        const char *_Nullable variant);
 
 /*
- * Registers an opaque entity identifier for backend correlation with device identifier.
+ * Sets an entity identifier for backend correlation with device identifier.
+ * The value is hashed for storage and the exact value is never persisted.
  *
- * @param logger_id the logger to register the opaque entity identifier on.
- * @param opaque_entity_id opaque entity identifier (for example, a hashed user ID).
+ * @param logger_id the logger to set the entity identifier on.
+ * @param entity_id entity identifier.
  */
-void capture_register_opaque_entity_id(logger_id logger_id, const char *opaque_entity_id);
+void capture_set_entity_id(logger_id logger_id, const char *entity_id);
 
 /**
  * Signals the specified logger to shut down.

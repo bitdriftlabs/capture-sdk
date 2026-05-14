@@ -438,8 +438,8 @@ internal class LoggerImpl(
         CaptureJniLibrary.setFeatureFlagExposure(this.loggerId, name, variant)
     }
 
-    override fun registerOpaqueEntityId(opaqueEntityId: String) {
-        CaptureJniLibrary.registerOpaqueEntityId(this.loggerId, opaqueEntityId)
+    override fun setEntityId(entityId: String) {
+        CaptureJniLibrary.setEntityId(this.loggerId, entityId)
     }
 
     override fun setFeatureFlagExposure(

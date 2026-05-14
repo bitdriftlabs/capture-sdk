@@ -11,7 +11,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Renamed `registerOpaqueEntityId`/`registerOpaqueEntityID` to `setEntityId`/`setEntityID`. This API is no longer experimental.
 
 **Fixed**
 

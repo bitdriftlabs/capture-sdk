@@ -431,12 +431,13 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
-    /// Registers an opaque user identifier for backend correlation with device identifier.
+    /// Sets an entity identifier for backend correlation with device identifier.
+    /// The value is hashed for storage and the exact value is never persisted.
     ///
-    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID)
+    /// - parameter entityID: Entity identifier.
     @objc
-    public static func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        Capture.Logger.registerOpaqueEntityID(opaqueEntityID)
+    public static func setEntityID(_ entityID: String) {
+        Capture.Logger.setEntityID(entityID)
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a
