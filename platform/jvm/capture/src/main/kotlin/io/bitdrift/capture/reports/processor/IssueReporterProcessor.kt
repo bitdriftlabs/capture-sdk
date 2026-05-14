@@ -116,6 +116,7 @@ internal class IssueReporterProcessor(
                     reporterIssueStore.generateFatalIssueFilePath(),
                     clientAttributes,
                     runningState,
+                    applicationExit.description,
                 )
             } else if (fatalIssueType == ReportType.NativeCrash) {
                 val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
