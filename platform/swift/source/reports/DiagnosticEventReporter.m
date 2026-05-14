@@ -43,7 +43,9 @@ static const char *const SDK_ID = "io.bitdrift.capture-apple";
 static ReportType serialize_diagnostic(BDProcessorHandle handle,
                                        NSString *_Nonnull sdk_version,
                                        MXDiagnostic *_Nonnull event,
-                                       NSTimeInterval timestamp)
+                                       NSTimeInterval timestamp,
+                                       BOOL useStackOverlapMatching,
+                                       CAPCrashEnrichmentSummaryHandler _Nullable crashEnrichmentSummaryHandler)
                                        API_AVAILABLE(ios(14.0), macos(12.0));
 
 static const char *name_for_diagnostic_type(ReportType type);
@@ -53,7 +55,9 @@ static const char *name_for_diagnostic_type(ReportType type);
 @property (nonnull, strong) NSString *sdkVersion;
 @property (nonnull, strong, nonatomic) NSMeasurement <NSUnitDuration *> *minimumHangDuration;
 @property (nullable, strong, nonatomic) void (^completionHandler)();
+@property (nullable, copy, nonatomic) CAPCrashEnrichmentSummaryHandler crashEnrichmentSummaryHandler;
 @property CAPDiagnosticType diagnosticTypes;
+@property BOOL useStackOverlapMatching;
 @end
 
 @implementation DiagnosticEventReporter
@@ -61,12 +65,16 @@ static const char *name_for_diagnostic_type(ReportType type);
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
                         minimumHangSeconds:(NSTimeInterval)seconds
+                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completionHandler {
   if (self = [super init]) {
     self.dir = dir;
     self.sdkVersion = sdkVersion;
     self.diagnosticTypes = types;
     self.completionHandler = completionHandler;
+    self.useStackOverlapMatching = useStackOverlapMatching;
+    self.crashEnrichmentSummaryHandler = crashEnrichmentSummaryHandler;
     [self setMinimumHangSeconds:seconds];
   }
   return self;
@@ -114,7 +122,14 @@ static const char *name_for_diagnostic_type(ReportType type);
 
 - (void)processDiagnostic:(MXDiagnostic *)event atTimestamp:(NSTimeInterval)timestamp {
   const void *handle = 0;
-  ReportType report_type = serialize_diagnostic(&handle, self.sdkVersion, event, timestamp);
+  ReportType report_type = serialize_diagnostic(
+    &handle,
+    self.sdkVersion,
+    event,
+    timestamp,
+    self.useStackOverlapMatching,
+    self.crashEnrichmentSummaryHandler
+  );
   if (report_type != ReportTypeNone && handle != 0) {
     uint64_t length = 0;
     const uint8_t *contents = bdrw_get_completed_buffer(&handle, &length);
@@ -337,7 +352,12 @@ static BOOL crash_is_hang_termination(MXCrashDiagnostic *event) {
       || (event.terminationReason == nil && [event.exceptionCode isEqualToNumber:@0]));
 }
 
-static ReportType serialize_diagnostic(BDProcessorHandle handle, NSString *sdk_version, MXDiagnostic *event, NSTimeInterval timestamp) {
+static ReportType serialize_diagnostic(BDProcessorHandle handle,
+                                       NSString *sdk_version,
+                                       MXDiagnostic *event,
+                                       NSTimeInterval timestamp,
+                                       BOOL useStackOverlapMatching,
+                                       CAPCrashEnrichmentSummaryHandler _Nullable crashEnrichmentSummaryHandler) {
   ReportType report_type = ReportTypeNone;
   if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
     MXCrashDiagnostic *crash = (MXCrashDiagnostic *)event;
@@ -346,7 +366,13 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle, NSString *sdk_v
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
     NSString *name = is_hang ? DEFAULT_HANG_NAME : name_for_crash(crash);
     NSString *reason = reason_for_crash(crash, name);
-    NSDictionary *dictReport = [BitdriftKSCrashWrapper enhancedMetricKitReport:event.dictionaryRepresentation];
+    NSDictionary<NSString *, NSString *> *summary = nil;
+    NSDictionary *dictReport = [BitdriftKSCrashWrapper enhancedMetricKitReport:event.dictionaryRepresentation
+                                                           useStackOverlapMatching:useStackOverlapMatching
+                                                                        summaryOut:&summary];
+    if (summary != nil && crashEnrichmentSummaryHandler != nil) {
+      crashEnrichmentSummaryHandler(summary);
+    }
     serialize_error_threads(handle, dictReport, name, reason, FrameOrderInnerToOuter);
   } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
     report_type = ReportTypeAppNotResponding;

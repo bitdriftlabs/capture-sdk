@@ -44,6 +44,7 @@
 **Fixed**
 
 - Fixed `Span Name` for network request/responses.
+- The mechanism used to name threads in crash reports has been improved
 
 ## [0.22.16]
 

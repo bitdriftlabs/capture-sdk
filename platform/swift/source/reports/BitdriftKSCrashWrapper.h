@@ -32,9 +32,13 @@ NS_ASSUME_NONNULL_BEGIN
  * this function returns the original MetricKit report.
  *
  * @param metricKitReport The result of MXDiagnostic.dictionaryRepresentation
+ * @param useStackOverlapMatching Whether to use the overlap-based thread matcher (finds the best contiguous matching
+ *        region from the stack base) instead of the exact matcher
  * @return The enhanced report (or the original metricKitReport if something went wrong).
  */
-+ (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport;
+ + (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
+                                       useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                                                summaryOut:(NSDictionary<NSString *, NSString *> * _Nullable * _Nullable)summaryOut;
 
 /**
  * Start the in-process crash reporter, which captures supplemental
