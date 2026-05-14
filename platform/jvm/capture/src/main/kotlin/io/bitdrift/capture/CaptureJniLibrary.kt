@@ -396,6 +396,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         destinationPath: String,
         attributes: IClientAttributes,
         runningState: String?,
+        appExitDescription: String?,
     )
 
     /**

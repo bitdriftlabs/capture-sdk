@@ -30,6 +30,7 @@
 **Fixed**
 
 - Fixed incorrect foreground/background state on fatal issues and app termination logs.
+- Fixed ANRs incorrectly classified as undetermined.
 
 ### iOS
 

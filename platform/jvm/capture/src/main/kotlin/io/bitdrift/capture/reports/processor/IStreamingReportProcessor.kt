@@ -22,6 +22,7 @@ interface IStreamingReportProcessor {
         destinationPath: String,
         attributes: IClientAttributes,
         runningState: String?,
+        appExitDescription: String?,
     )
 
     /**

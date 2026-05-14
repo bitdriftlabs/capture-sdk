@@ -15,6 +15,7 @@ import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.doThrow
 import com.nhaarman.mockitokotlin2.eq
+import com.nhaarman.mockitokotlin2.isNull
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
@@ -180,6 +181,7 @@ class IssueReporterProcessorTest {
             eq("/some/path/foo.cap"),
             eq(attributes),
             eq("foreground"),
+            isNull(),
         )
     }
 
@@ -203,6 +205,7 @@ class IssueReporterProcessorTest {
             eq("/some/path/foo.cap"),
             eq(attributes),
             eq("cached"),
+            isNull(),
         )
     }
 
@@ -226,6 +229,7 @@ class IssueReporterProcessorTest {
             eq("/some/path/foo.cap"),
             eq(attributes),
             eq("foreground_service"),
+            isNull(),
         )
     }
 
@@ -244,6 +248,7 @@ class IssueReporterProcessorTest {
                     timestamp = FAKE_TIME_STAMP,
                     traceInputStream = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
                     reason = ApplicationExitInfo.REASON_ANR,
+                    description = "Input dispatching timeout",
                 ),
         )
 
@@ -270,6 +275,7 @@ class IssueReporterProcessorTest {
                     timestamp = FAKE_TIME_STAMP,
                     traceInputStream = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
                     reason = ApplicationExitInfo.REASON_ANR,
+                    description = "Input dispatching timeout",
                 ),
         )
 
@@ -540,7 +546,7 @@ class IssueReporterProcessorTest {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         doThrow(exception)
             .`when`(streamingReportProcessor)
-            .processAndPersistANR(any(), eq(FAKE_TIME_STAMP), eq("/some/path/foo.cap"), eq(attributes), any())
+            .processAndPersistANR(any(), eq(FAKE_TIME_STAMP), eq("/some/path/foo.cap"), eq(attributes), any(), any())
     }
 
     private fun createApplicationExitInfo(
