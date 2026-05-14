@@ -40,6 +40,7 @@ dependencies {
     implementation("com.apollographql.apollo:apollo-runtime:4.1.0")
     implementation("com.jakewharton.timber:timber:5.0.1")
     implementation("com.google.android.material:material:1.8.0")
+    implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("com.squareup.papa:papa:0.26")
     implementation("com.bugsnag:bugsnag-android:6.25.0")
     implementation("io.reactivex.rxjava3:rxandroid:3.0.0")

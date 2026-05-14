@@ -109,7 +109,8 @@ class MainViewModel(
             is SessionAction.GenerateDeviceCode -> generateDeviceCode()
             is SessionAction.CopySessionUrl -> copySessionUrl()
 
-            is DiagnosticsAction.LogMessage -> logMessage()
+            is DiagnosticsAction.LogSingleMessage -> logSingleMessage()
+            is DiagnosticsAction.LogManyMessages -> logManyMessages()
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
             is DiagnosticsAction.TriggerRandomNativeCrash -> triggerRandomNativeCrash()
             is DiagnosticsAction.TriggerRandomJvmCrash -> triggerRandomJvmCrash()
@@ -325,11 +326,21 @@ class MainViewModel(
         Logger.setFeatureFlagExposure("variant_flag", variant)
     }
 
-    private fun logMessage() {
+    private fun logSingleMessage() {
         viewModelScope.launch {
             val level = _uiState.value.config.selectedLogLevel
             val message = "Log message with level: $level"
             sdkRepository.logMessage(level, message)
+        }
+    }
+
+    private fun logManyMessages() {
+        viewModelScope.launch {
+            val level = _uiState.value.config.selectedLogLevel
+            repeat(5000) {
+                val message = "Log message $it with level: $level"
+                sdkRepository.logMessage(level, message)
+            }
         }
     }
 
@@ -443,6 +454,7 @@ private val NATIVE_CRASH_REASONS =
     listOf(
         AppExitReason.NATIVE_CAPTURE_DESTROY_CRASH,
         AppExitReason.NATIVE_SIGSEGV,
+        AppExitReason.NATIVE_SIGSEGV_BACKGROUND,
         AppExitReason.NATIVE_SIGBUS,
     )
 

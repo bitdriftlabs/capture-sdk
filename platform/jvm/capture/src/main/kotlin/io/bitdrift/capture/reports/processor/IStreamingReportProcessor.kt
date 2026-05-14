@@ -21,6 +21,7 @@ interface IStreamingReportProcessor {
         timestampMillis: Long,
         destinationPath: String,
         attributes: IClientAttributes,
+        runningState: String?,
     )
 
     /**

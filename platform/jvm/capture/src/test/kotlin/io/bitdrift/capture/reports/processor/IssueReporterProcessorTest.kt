@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.reports.processor
 
+import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
@@ -160,7 +161,7 @@ class IssueReporterProcessorTest {
     }
 
     @Test
-    fun processAppExitReport_whenAnr() {
+    fun processAppExitReport_whenAnr_withForegroundImportance() {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
         processor.processAppExitReport(
@@ -169,6 +170,7 @@ class IssueReporterProcessorTest {
                     timestamp = FAKE_TIME_STAMP,
                     traceInputStream = trace,
                     reason = ApplicationExitInfo.REASON_ANR,
+                    importance = RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
                 ),
         )
 
@@ -177,6 +179,53 @@ class IssueReporterProcessorTest {
             eq(FAKE_TIME_STAMP),
             eq("/some/path/foo.cap"),
             eq(attributes),
+            eq("foreground"),
+        )
+    }
+
+    @Test
+    fun processAppExitReport_whenAnr_withCachedImportance() {
+        doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
+        val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
+        processor.processAppExitReport(
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    traceInputStream = trace,
+                    reason = ApplicationExitInfo.REASON_ANR,
+                    importance = RunningAppProcessInfo.IMPORTANCE_CACHED,
+                ),
+        )
+
+        verify(streamingReportProcessor).processAndPersistANR(
+            eq(trace),
+            eq(FAKE_TIME_STAMP),
+            eq("/some/path/foo.cap"),
+            eq(attributes),
+            eq("cached"),
+        )
+    }
+
+    @Test
+    fun processAppExitReport_whenAnr_withForegroundServiceImportance() {
+        doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
+        val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")
+        processor.processAppExitReport(
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    traceInputStream = trace,
+                    reason = ApplicationExitInfo.REASON_ANR,
+                    importance = RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE,
+                ),
+        )
+
+        verify(streamingReportProcessor).processAndPersistANR(
+            eq(trace),
+            eq(FAKE_TIME_STAMP),
+            eq("/some/path/foo.cap"),
+            eq(attributes),
+            eq("foreground_service"),
         )
     }
 
@@ -285,6 +334,56 @@ class IssueReporterProcessorTest {
         assertThat(deviceMetrics?.platform).isEqualTo(Platform.Android)
         assertThat(deviceMetrics?.arch).isEqualTo(Architecture.arm32)
         assertThat(deviceMetrics?.cpuAbis(0)).isEqualTo("armeabi-v7a")
+
+        assertThat(report.appMetrics?.runningState).isEqualTo("foreground")
+    }
+
+    @Test
+    fun processAppExitReport_whenNativeCrash_withCachedImportance_shouldSetRunningState() {
+        processor.processAppExitReport(
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    description = "Native crash",
+                    traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin"),
+                    status = 0,
+                    reason = ApplicationExitInfo.REASON_CRASH_NATIVE,
+                    importance = RunningAppProcessInfo.IMPORTANCE_CACHED,
+                ),
+        )
+
+        verify(issueReporterStorage).persistFatalIssue(
+            eq(FAKE_TIME_STAMP),
+            issueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
+        )
+        val buffer = ByteBuffer.wrap(issueReportCaptor.firstValue)
+        val report = Report.getRootAsReport(buffer)
+        assertThat(report.appMetrics?.runningState).isEqualTo("cached")
+    }
+
+    @Test
+    fun processAppExitReport_whenNativeCrash_withPerceptibleImportance_shouldSetRunningState() {
+        processor.processAppExitReport(
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    description = "Native crash",
+                    traceInputStream = buildTraceInputStringFromFile("app_exit_native_crash.bin"),
+                    status = 0,
+                    reason = ApplicationExitInfo.REASON_CRASH_NATIVE,
+                    importance = RunningAppProcessInfo.IMPORTANCE_PERCEPTIBLE,
+                ),
+        )
+
+        verify(issueReporterStorage).persistFatalIssue(
+            eq(FAKE_TIME_STAMP),
+            issueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
+        )
+        val buffer = ByteBuffer.wrap(issueReportCaptor.firstValue)
+        val report = Report.getRootAsReport(buffer)
+        assertThat(report.appMetrics?.runningState).isEqualTo("perceptible")
     }
 
     @Test
@@ -441,7 +540,7 @@ class IssueReporterProcessorTest {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         doThrow(exception)
             .`when`(streamingReportProcessor)
-            .processAndPersistANR(any(), eq(FAKE_TIME_STAMP), eq("/some/path/foo.cap"), eq(attributes))
+            .processAndPersistANR(any(), eq(FAKE_TIME_STAMP), eq("/some/path/foo.cap"), eq(attributes), any())
     }
 
     private fun createApplicationExitInfo(
@@ -450,6 +549,7 @@ class IssueReporterProcessorTest {
         traceInputStream: InputStream? = null,
         status: Int = 0,
         reason: Int = ApplicationExitInfo.REASON_UNKNOWN,
+        importance: Int = RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
     ): ApplicationExitInfo {
         val applicationExitInfo = mock<ApplicationExitInfo>()
         whenever(applicationExitInfo.timestamp).thenReturn(timestamp)
@@ -457,6 +557,7 @@ class IssueReporterProcessorTest {
         whenever(applicationExitInfo.traceInputStream).thenReturn(traceInputStream)
         whenever(applicationExitInfo.status).thenReturn(status)
         whenever(applicationExitInfo.reason).thenReturn(reason)
+        whenever(applicationExitInfo.importance).thenReturn(importance)
         return applicationExitInfo
     }
 

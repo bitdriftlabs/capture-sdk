@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Enabled OkHttp Happy Eyeballs (RFC 8305) fast fallback on the SDK's internal HTTP client for consumers using OkHttp 5.x pre-stable alphas (< 5.0.0) where it was not yet enabled by default.
 
 **Changed**
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed incorrect foreground/background state on fatal issues and app termination logs.
 
 ### iOS
 

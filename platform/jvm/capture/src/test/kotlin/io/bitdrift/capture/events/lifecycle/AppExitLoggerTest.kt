@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.events.lifecycle
 
+import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
@@ -300,6 +301,66 @@ class AppExitLoggerTest {
         verifyLoggedException(illegalArgumentException)
     }
 
+    @Test
+    fun logPreviousExitReason_whenForeground_shouldSetForegroundFieldToOne() {
+        lastExitInfo.setAsValidReason(
+            exitReasonType = ApplicationExitInfo.REASON_ANR,
+            importance = RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+        )
+
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        verify(logger).logInternal(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            argThat<ArrayFields> { fields -> fields["foreground"] == "1" },
+            eq(ArrayFields.EMPTY),
+            eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun logPreviousExitReason_whenBackground_shouldSetForegroundFieldToZero() {
+        lastExitInfo.setAsValidReason(
+            exitReasonType = ApplicationExitInfo.REASON_ANR,
+            importance = RunningAppProcessInfo.IMPORTANCE_CACHED,
+        )
+
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        verify(logger).logInternal(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            argThat<ArrayFields> { fields -> fields["foreground"] == "0" },
+            eq(ArrayFields.EMPTY),
+            eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun logPreviousExitReason_whenForegroundService_shouldSetForegroundFieldToZero() {
+        lastExitInfo.setAsValidReason(
+            exitReasonType = ApplicationExitInfo.REASON_CRASH_NATIVE,
+            importance = RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE,
+        )
+
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        verify(logger).logInternal(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            argThat<ArrayFields> { fields -> fields["foreground"] == "0" },
+            eq(ArrayFields.EMPTY),
+            eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
     private fun verifyLoggedException(expected: Throwable) {
         verify(logger).logInternal(
             eq(LogType.LIFECYCLE),
@@ -347,6 +408,7 @@ class AppExitLoggerTest {
                 "_app_exit_rss",
                 "_app_exit_description",
                 "_memory_class",
+                "foreground",
             )
         return arrayFields.keys.toSet().containsAll(expectedKeys) &&
             arrayFields["_app_exit_source"] == "ApplicationExitInfo" &&
