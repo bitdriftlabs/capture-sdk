@@ -15,7 +15,6 @@
 
 **Fixed**
 
-- Fixed `Span Name` for network request/responses.
 - Improved crash detection on initial app install and after clearing app cache.
  
 ### Android
@@ -44,6 +43,7 @@
 
 **Fixed**
 
+- Fixed `Span Name` for network request/responses.
 - The mechanism used to name threads in crash reports has been improved
 
 ## [0.22.16]
