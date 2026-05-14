@@ -78,8 +78,8 @@ protocol LoggerBridging {
 
     /// Registers an opaque user identifier for backend correlation with device identifier.
     ///
-    /// - parameter opaqueUserID: Opaque user identifier (for example, a hashed user ID).
-    func registerOpaqueUserID(_ opaqueUserID: String)
+    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID).
+    func registerOpaqueEntityID(_ opaqueEntityID: String)
 
     /// Retrieves a given runtime variable.
     ///

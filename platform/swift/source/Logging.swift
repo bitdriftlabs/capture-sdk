@@ -105,8 +105,8 @@ public protocol Logging {
 
     /// Registers an opaque user identifier for backend correlation with device identifier.
     ///
-    /// - parameter opaqueUserID: Opaque user identifier (for example, a hashed user ID).
-    func registerOpaqueUserID(_ opaqueUserID: String)
+    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID).
+    func registerOpaqueEntityID(_ opaqueEntityID: String)
 
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with

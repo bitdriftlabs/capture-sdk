@@ -7,13 +7,11 @@
 
 use crate::ffi::{self, make_nsstring};
 use anyhow::bail;
-use bd_session::activity_based::{
-  Callbacks as ActivityBasedStrategyCallbacks,
-  Strategy as ActivityBasedStrategy,
-};
-use bd_session::fixed::{Callbacks as FixedStrategyCallbacks, Strategy as FixedStrategy};
+use bd_session::activity_based::Callbacks as ActivityBasedStrategyCallbacks;
+use bd_session::fixed::Callbacks as FixedStrategyCallbacks;
 use bd_session::Strategy;
 use objc::runtime::Object;
+use std::path::Path;
 use std::sync::Arc;
 use time::Duration;
 
@@ -33,17 +31,17 @@ impl SessionStrategy {
     }
   }
 
-  pub(crate) fn create(self, store: Arc<bd_session::Store>) -> anyhow::Result<Arc<Strategy>> {
+  pub(crate) fn create(self, sdk_directory: &Path) -> anyhow::Result<Arc<Strategy>> {
     Ok(Arc::new(match self.session_strategy_type() {
-      0 => Strategy::Fixed(FixedStrategy::new(store, Arc::new(self))),
+      0 => Strategy::fixed(sdk_directory, Arc::new(self)),
       1 => {
         let inactivity_threshold_mins = self.inactivity_threshold_mins();
-        Strategy::ActivityBased(ActivityBasedStrategy::new(
+        Strategy::activity_based(
+          sdk_directory,
           Duration::minutes(inactivity_threshold_mins),
-          store,
           Arc::new(self),
           Arc::new(bd_time::SystemTimeProvider {}),
-        ))
+        )
       },
       _ => bail!("Invalid session strategy type"),
     }))

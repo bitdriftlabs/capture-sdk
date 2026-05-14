@@ -19,6 +19,7 @@ use bd_error_reporter::reporter::with_handle_unexpected;
 use bd_session::{activity_based, fixed, Strategy};
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
+use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use time::Duration;
 
@@ -72,7 +73,7 @@ impl SessionStrategyConfigurationHandle {
   pub(crate) fn create(
     &self,
     callbacks: Arc<Self>,
-    store: Arc<bd_key_value::Store>,
+    sdk_directory: &Path,
   ) -> anyhow::Result<Arc<Strategy>> {
     self.execute(|e, session_strategy_configuration| {
       Ok(Arc::new(
@@ -83,7 +84,7 @@ impl SessionStrategyConfigurationHandle {
             .ok_or(InvariantError::Invariant)?
             .class,
         )? {
-          Strategy::Fixed(fixed::Strategy::new(store, callbacks))
+          Strategy::fixed(sdk_directory, callbacks)
         } else {
           let inactivity_threshold_mins = SESSION_STRATEGY_INACTIVITY_THRESHOLD_MINS
             .get()
@@ -97,12 +98,12 @@ impl SessionStrategyConfigurationHandle {
             .map_err(|e| anyhow!(e))?
             .j()?;
 
-          Strategy::ActivityBased(activity_based::Strategy::new(
+          Strategy::activity_based(
+            sdk_directory,
             Duration::minutes(inactivity_threshold_mins),
-            store,
             callbacks,
             Arc::new(bd_time::SystemTimeProvider {}),
-          ))
+          )
         },
       ))
     })
