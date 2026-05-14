@@ -15,6 +15,7 @@
 
 **Fixed**
 
+- Fixed `Span Name` for network request/responses.
 - Improved crash detection on initial app install and after clearing app cache.
  
 ### Android
