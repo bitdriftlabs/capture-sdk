@@ -248,6 +248,7 @@ class IssueReporterProcessorTest {
                     timestamp = FAKE_TIME_STAMP,
                     traceInputStream = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
                     reason = ApplicationExitInfo.REASON_ANR,
+                    description = "Input dispatching timeout",
                 ),
         )
 
@@ -274,6 +275,7 @@ class IssueReporterProcessorTest {
                     timestamp = FAKE_TIME_STAMP,
                     traceInputStream = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt"),
                     reason = ApplicationExitInfo.REASON_ANR,
+                    description = "Input dispatching timeout",
                 ),
         )
 
