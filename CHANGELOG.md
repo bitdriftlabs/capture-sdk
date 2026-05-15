@@ -11,7 +11,7 @@
 
 **Changed**
 
-- Renamed `registerOpaqueEntityId`/`registerOpaqueEntityID` to `setEntityId`/`setEntityID`. This API is no longer experimental.
+- Renamed `registerOpaqueEntityId` (Android) / `registerOpaqueEntityID` (iOS) to `setEntityId` / `setEntityID`. This API is no longer experimental.
 
 **Fixed**
 
