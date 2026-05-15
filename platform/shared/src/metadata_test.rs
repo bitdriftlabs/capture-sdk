@@ -18,7 +18,10 @@ struct TestStorage {
 
 impl Storage for TestStorage {
   fn set_string(&self, key: &str, value: &str) -> anyhow::Result<()> {
-    self.values.lock().insert(key.to_string(), value.to_string());
+    self
+      .values
+      .lock()
+      .insert(key.to_string(), value.to_string());
     Ok(())
   }
 
