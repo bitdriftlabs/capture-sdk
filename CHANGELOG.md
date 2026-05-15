@@ -31,6 +31,7 @@
 
 - Fixed incorrect foreground/background state on fatal issues and app termination logs.
 - Fixed ANRs incorrectly classified as undetermined.
+- Fixed battery level fields emitting invalid values when BatteryManager cannot determine capacity.
 
 ### iOS
 

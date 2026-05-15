@@ -29,6 +29,7 @@ import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicReference
 
@@ -93,8 +94,8 @@ internal class DeviceStateListenerLogger(
                     log(
                         combineFields(
                             fieldOf("_state", "charging"),
-                            fieldsOf(batteryMonitor.batteryValAttribute()),
-                            fieldsOf(batteryMonitor.batteryLevelAttribute()),
+                            fieldsOfOptional(batteryMonitor.batteryValAttribute()),
+                            fieldsOfOptional(batteryMonitor.batteryLevelAttribute()),
                         ),
                         BATTERY_CHANGE,
                     )
@@ -103,8 +104,8 @@ internal class DeviceStateListenerLogger(
                     log(
                         combineFields(
                             fieldOf("_state", "unplugged"),
-                            fieldsOf(batteryMonitor.batteryValAttribute()),
-                            fieldsOf(batteryMonitor.batteryLevelAttribute()),
+                            fieldsOfOptional(batteryMonitor.batteryValAttribute()),
+                            fieldsOfOptional(batteryMonitor.batteryLevelAttribute()),
                         ),
                         BATTERY_CHANGE,
                     )
@@ -119,8 +120,8 @@ internal class DeviceStateListenerLogger(
                     log(
                         combineFields(
                             fieldsOf(powerMonitor.isPowerSaveModeEnabledAttribute()),
-                            fieldsOf(batteryMonitor.batteryValAttribute()),
-                            fieldsOf(batteryMonitor.batteryLevelAttribute()),
+                            fieldsOfOptional(batteryMonitor.batteryValAttribute()),
+                            fieldsOfOptional(batteryMonitor.batteryLevelAttribute()),
                             fieldsOf(batteryMonitor.isBatteryChargingAttribute()),
                         ),
                         BATTERY_LOW,
