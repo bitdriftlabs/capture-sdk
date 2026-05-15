@@ -493,6 +493,7 @@ extern "C" fn capture_create_logger(
   events_listener_target: *mut Object,
   app_id: *const c_char,
   app_version: *const c_char,
+  os_version: *const c_char,
   model: *const c_char,
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
@@ -528,6 +529,8 @@ extern "C" fn capture_create_logger(
         // fields as metadata and only use the fixed fields on logs for matching.
         os: "ios".to_string(),
         device: device.clone(),
+        os_version: Some(unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string()),
+        manufacturer: None,
         model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
       });
 

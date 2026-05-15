@@ -51,6 +51,8 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param eventsListenerTarget responsible for listening to platform events and emitting logs in response to them.
      * @param applicationId the application ID of the current app, used to identify with the backend
      * @param applicationVersion the version of the current app, used to identify with the backend
+     * @param osVersion the operating system version of the current device, used to identify with the backend
+     * @param manufacturer the device manufacturer, used to identify with the backend on Android
      * @param model the host device model, used to identify with the backend
      * @param network the network implementation to use to communicate with the backend
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
@@ -67,6 +69,8 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         eventsListenerTarget: IEventsListenerTarget,
         applicationId: String,
         applicationVersion: String,
+        osVersion: String,
+        manufacturer: String,
         model: String,
         network: ICaptureNetwork,
         preferences: IPreferences,

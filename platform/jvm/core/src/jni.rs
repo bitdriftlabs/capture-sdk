@@ -722,6 +722,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   events_listener_target: JObject<'_>,
   application_id: JString<'_>,
   application_version: JString<'_>,
+  os_version: JString<'_>,
+  manufacturer: JString<'_>,
   model: JString<'_>,
   network: JObject<'_>,
   preferences: JObject<'_>,
@@ -762,6 +764,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         // fields as metadata and only use the fixed fields on logs for matching.
         os: "android".to_string(),
         device: device.clone(),
+        os_version: Some(unsafe { env.get_string_unchecked(&os_version) }?.into()),
+        manufacturer: Some(unsafe { env.get_string_unchecked(&manufacturer) }?.into()),
         model: unsafe { env.get_string_unchecked(&model) }?.into(),
       });
 
