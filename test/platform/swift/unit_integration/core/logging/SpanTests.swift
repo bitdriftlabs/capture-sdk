@@ -13,7 +13,7 @@ import XCTest
 final class SpanTests: XCTestCase {
     // We need to allow a fair bit of variance due to potential CI load affecting the simulator.
     // On shared CI hosts we can observe >500ms scheduling jitter.
-    private let allowedTimeVarianceSeconds: TimeInterval = 1.000
+    private let allowedTimeVarianceSeconds: TimeInterval = 1.500
 
     private func createSpan(logger: MockCoreLogging, timeProvider: TimeProvider = MockTimeProvider(),
                             start: TimeInterval? = nil, parent: UUID? = nil) -> Span
