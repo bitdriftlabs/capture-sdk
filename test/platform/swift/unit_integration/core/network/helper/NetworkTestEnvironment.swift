@@ -53,6 +53,7 @@ final class NetworkTestEnvironment {
                 eventsListenerTarget: MockEventsListenerTarget(),
                 appID: "io.bitdrift.capture.test",
                 releaseVersion: "",
+                osVersion: "",
                 model: "",
                 network: network,
                 errorReporting: MockRemoteErrorReporter(),

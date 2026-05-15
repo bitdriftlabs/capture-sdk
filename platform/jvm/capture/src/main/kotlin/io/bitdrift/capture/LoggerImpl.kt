@@ -231,6 +231,8 @@ internal class LoggerImpl(
                 eventsListenerTarget,
                 clientAttributes.appId,
                 clientAttributes.appVersion,
+                clientAttributes.osVersion,
+                clientAttributes.manufacturer,
                 clientAttributes.model,
                 network,
                 preferences,
