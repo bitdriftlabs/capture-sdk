@@ -579,8 +579,8 @@ extension Logger: Logging {
         self.underlyingLogger.setFeatureFlagExposure(withName: flag, variant: String(variant))
     }
 
-    public func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        self.underlyingLogger.registerOpaqueEntityID(opaqueEntityID)
+    public func setEntityID(_ entityID: String) {
+        self.underlyingLogger.setEntityID(entityID)
     }
 
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {

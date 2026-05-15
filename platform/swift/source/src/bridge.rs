@@ -1016,17 +1016,14 @@ extern "C" fn capture_set_feature_flag_exposure(
 }
 
 #[no_mangle]
-extern "C" fn capture_register_opaque_entity_id(
-  logger_id: LoggerId<'_>,
-  opaque_entity_id: *const c_char,
-) {
+extern "C" fn capture_set_entity_id(logger_id: LoggerId<'_>, entity_id: *const c_char) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
-      let opaque_entity_id = unsafe { CStr::from_ptr(opaque_entity_id) }.to_str()?;
-      logger_id.register_opaque_entity_id(Some(opaque_entity_id));
+      let entity_id = unsafe { CStr::from_ptr(entity_id) }.to_str()?;
+      logger_id.register_opaque_entity_id(Some(entity_id));
       Ok(())
     },
-    "swift register opaque user id",
+    "swift set entity id",
   );
 }
 

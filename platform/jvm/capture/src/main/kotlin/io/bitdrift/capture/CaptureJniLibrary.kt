@@ -159,14 +159,15 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
-     * Registers an opaque user identifier that is persisted and attached to static device metadata.
+     * Sets an entity identifier that is persisted and attached to static device metadata.
+     * The value is hashed for storage and the exact value is never persisted.
      *
-     * @param loggerId the logger to register the opaque user identifier for.
-     * @param opaqueEntityId opaque (for example, hashed) user identifier.
+     * @param loggerId the logger to set the entity identifier for.
+     * @param entityId entity identifier.
      */
-    external fun registerOpaqueEntityId(
+    external fun setEntityId(
         loggerId: Long,
-        opaqueEntityId: String,
+        entityId: String,
     )
 
     /**

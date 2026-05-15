@@ -1014,24 +1014,24 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerOpaqueEntityId(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setEntityId(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
-  opaque_entity_id: JString<'_>,
+  entity_id: JString<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let opaque_entity_id = unsafe { env.get_string_unchecked(&opaque_entity_id) }?
+      let entity_id = unsafe { env.get_string_unchecked(&entity_id) }?
         .to_string_lossy()
         .to_string();
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.register_opaque_entity_id(Some(&opaque_entity_id));
+      logger.register_opaque_entity_id(Some(&entity_id));
 
       Ok(())
     },
-    "jni register opaque user id",
+    "jni set entity id",
   );
 }
 

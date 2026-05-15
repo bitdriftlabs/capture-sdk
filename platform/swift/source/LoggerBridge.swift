@@ -256,8 +256,8 @@ final class LoggerBridge: LoggerBridging {
         capture_set_feature_flag_exposure(self.loggerID, flag, variant)
     }
 
-    func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        capture_register_opaque_entity_id(self.loggerID, opaqueEntityID)
+    func setEntityID(_ entityID: String) {
+        capture_set_entity_id(self.loggerID, entityID)
     }
 
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {

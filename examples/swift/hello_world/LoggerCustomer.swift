@@ -9,7 +9,7 @@ import Capture
 import Foundation
 
 private let kDeviceId = "ios-helloworld"
-private let kOpaqueEntityID = "hello-world-opaque-entity-id"
+private let kEntityID = "hello-world-entity-id"
 
 private struct EncodableExampleStruct: Encodable {
     private struct InternalEncodableExampleStruct: Encodable {
@@ -113,7 +113,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             )
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
-        Logger.registerOpaqueEntityID(kOpaqueEntityID)
+        Logger.setEntityID(kEntityID)
         Logger.logInfo("App launched. Logger configured.")
 
         if let previousRunInfo = Capture.Logger.previousRunInfo {
