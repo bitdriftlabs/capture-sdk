@@ -154,6 +154,10 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.getDeviceID()
     }
 
+    func getSdkStatus() -> SdkStatus {
+        self.underlyingLogger.getSdkStatus()
+    }
+
     func addField(withKey key: String, value: String) {
         self.underlyingLogger.addField(withKey: key, value: value)
     }

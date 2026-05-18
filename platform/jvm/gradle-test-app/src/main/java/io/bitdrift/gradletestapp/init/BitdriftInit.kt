@@ -70,6 +70,7 @@ object BitdriftInit {
 
             Capture.Logger.setEntityId(userUuid)
 
+            Capture.Logger.getSdkStatus()
             @OptIn(ExperimentalBitdriftApi::class)
             Capture.Logger.getPreviousRunInfo()?.let { previousRunInfo ->
                 val hasFatallyTerminated = previousRunInfo.hasFatallyTerminated.toString()

@@ -73,6 +73,11 @@
    public <init>(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.Map);
 }
 
+# Accessed from Rust/JNI — constructor must remain stable.
+-keep class io.bitdrift.capture.SdkStatus {
+   public <init>(int, long, long);
+}
+
 -keep, includedescriptorclasses class io.bitdrift.capture.IEventsListenerTarget {
    public <methods>;
 }

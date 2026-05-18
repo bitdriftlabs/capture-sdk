@@ -240,6 +240,11 @@ final class LoggerBridge: LoggerBridging {
         capture_get_device_id(self.loggerID)
     }
 
+    func getSdkStatus() -> SdkStatus {
+        let ffi = capture_get_sdk_status(self.loggerID)
+        return SdkStatus.from(ffi: ffi)
+    }
+
     func addField(withKey key: String, value: String) {
         capture_add_log_field(self.loggerID, key, value)
     }

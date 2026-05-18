@@ -120,6 +120,15 @@ extension Logger {
         return Self.getShared()?.deviceID
     }
 
+    /// Returns a point-in-time snapshot of the SDK's operational status.
+    /// Returns `InitializationState.notStarted` if the SDK has not been started.
+    ///
+    /// - returns: The current SDK status.
+    public static func getSdkStatus() -> SdkStatus {
+        return Self.getShared()?.getSdkStatus()
+            ?? SdkStatus(initializationState: .notStarted, lastHandshakeTime: nil, lastConfigDeliveryTime: nil)
+    }
+
     /// Reports previous app run status.
     ///
     /// This API is in experimental phase and may change in the future.

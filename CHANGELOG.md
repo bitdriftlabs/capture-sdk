@@ -8,6 +8,7 @@
 **Added**
 
 - Add optional `startResult` callback to `start` method that reports success with the logger instance or failure with error details.
+- Add `getSdkStatus()` API that returns a point-in-time snapshot of the SDK's operational status, including initialization state (`NotStarted`, `Loaded`, `Running`, `Disabled`), last handshake time, and last config delivery time.
 
 **Changed**
 

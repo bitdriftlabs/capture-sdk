@@ -65,6 +65,7 @@ NSString *logLevelToString(LogLevel level) {
 @property (nonatomic, weak) UIButton *pickSessionStrategyButton;
 @property (nonatomic, weak) UITextField *apiKeyTextField;
 @property (nonatomic, weak) UITextField *apiURLTextField;
+@property (nonatomic, weak) UILabel *sdkStatusLabel;
 @property (nonatomic, strong) CAPIssueLogger *issueLogger;
 @property (nonatomic, assign) BOOL watchdogExitArmed;
 @property (nonatomic, assign) CAPSampleSessionStrategy sessionStrategy;
@@ -127,13 +128,14 @@ NSString *logLevelToString(LogLevel level) {
     rootView.backgroundColor = [UIColor whiteColor];
 
     UIView *configurationView = [self createConfigurationView];
+    UIView *sdkStatusView = [self createSdkStatusView];
     UIView *sendLogView = [self createSendLogView];
     UIView *copySessionURLView = [self createCopySessionURLView];
     UIView *crashActionsView = [self createCrashActionsView];
     UIView *copySessionIDView = [self createCopySessionIDView];
 
     UIStackView *contentStack = [[UIStackView alloc]
-                                 initWithArrangedSubviews:@[configurationView, sendLogView, crashActionsView, copySessionURLView, copySessionIDView]];
+                                 initWithArrangedSubviews:@[configurationView, sdkStatusView, sendLogView, crashActionsView, copySessionURLView, copySessionIDView]];
     contentStack.axis = UILayoutConstraintAxisVertical;
     contentStack.spacing = 16;
     contentStack.translatesAutoresizingMaskIntoConstraints = NO;
@@ -171,6 +173,7 @@ NSString *logLevelToString(LogLevel level) {
     [super viewWillAppear:animated];
 
     [self refresh];
+    [self checkSdkStatus];
 }
 
 - (void)setSelectedLogLevel:(LogLevel)selectedLogLevel {
@@ -285,6 +288,32 @@ NSString *logLevelToString(LogLevel level) {
     self.pickSessionStrategyButton = pickSessionStrategyButton;
 
     return configurationView;
+}
+
+- (UIView *)createSdkStatusView {
+    UILabel *titleLabel = [UILabel new];
+    titleLabel.text = @"SDK State";
+    titleLabel.font = [UIFont boldSystemFontOfSize:14];
+
+    UILabel *sdkStatusLabel = [UILabel new];
+    sdkStatusLabel.text = @"Not checked yet";
+    sdkStatusLabel.font = [UIFont monospacedSystemFontOfSize:12 weight:UIFontWeightRegular];
+    sdkStatusLabel.numberOfLines = 0;
+    sdkStatusLabel.textColor = UIColor.darkGrayColor;
+
+    UIButton *checkButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    checkButton.backgroundColor = UIColor.systemTealColor;
+    checkButton.tintColor = UIColor.whiteColor;
+    [checkButton setTitle:@"Check SDK State" forState:UIControlStateNormal];
+    [checkButton addTarget:self action:@selector(checkSdkStatus) forControlEvents:UIControlEventTouchUpInside];
+
+    UIStackView *sdkStatusView = [[UIStackView alloc] initWithArrangedSubviews:@[titleLabel, sdkStatusLabel, checkButton]];
+    sdkStatusView.axis = UILayoutConstraintAxisVertical;
+    sdkStatusView.spacing = 8;
+
+    self.sdkStatusLabel = sdkStatusLabel;
+
+    return sdkStatusView;
 }
 
 - (UIView *)createSendLogView {
@@ -421,6 +450,50 @@ NSString *logLevelToString(LogLevel level) {
 }
 
 // MARK: - Actions
+
+- (void)checkSdkStatus {
+    CAPSdkStatus *status = [CAPLogger getSdkStatus];
+
+    NSString *stateStr;
+    switch (status.initializationState) {
+        case CAPInitializationStateNotStarted:
+            stateStr = @"Not Started";
+            break;
+        case CAPInitializationStateLoaded:
+            stateStr = @"Loaded";
+            break;
+        case CAPInitializationStateRunning:
+            stateStr = @"Running";
+            break;
+        case CAPInitializationStateDisabled:
+            stateStr = @"Disabled";
+            break;
+        default:
+            stateStr = @"Unknown";
+            break;
+    }
+
+    NSDateFormatter *formatter = [NSDateFormatter new];
+    formatter.dateFormat = @"HH:mm:ss";
+
+    NSMutableString *text = [NSMutableString stringWithFormat:@"State: %@", stateStr];
+
+    if (status.lastHandshakeTime) {
+        [text appendFormat:@"\nLast handshake: %@", [formatter stringFromDate:status.lastHandshakeTime]];
+    } else {
+        [text appendString:@"\nNo handshake yet"];
+    }
+
+    if (status.lastConfigDeliveryTime) {
+        [text appendFormat:@"\nLast config: %@", [formatter stringFromDate:status.lastConfigDeliveryTime]];
+    } else {
+        [text appendString:@"\nNo config delivery yet"];
+    }
+
+    [text appendFormat:@"\nChecked at: %@", [formatter stringFromDate:[NSDate date]]];
+
+    self.sdkStatusLabel.text = text;
+}
 
 - (void)sendLog {
     switch (self.selectedLogLevel) {

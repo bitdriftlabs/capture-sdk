@@ -498,6 +498,10 @@ extension Logger: Logging {
         return self.underlyingLogger.getDeviceID()
     }
 
+    public func getSdkStatus() -> SdkStatus {
+        return self.underlyingLogger.getSdkStatus()
+    }
+
     public func log(
         level: LogLevel,
         message: @autoclosure () -> String,

@@ -58,6 +58,8 @@ protocol LoggerBridging {
 
     func getDeviceID() -> String
 
+    func getSdkStatus() -> SdkStatus
+
     func addField(withKey key: String, value: String)
 
     func removeField(withKey key: String)

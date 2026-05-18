@@ -252,6 +252,7 @@ private fun HomeTabContent(
             SdkStatusCard(
                 uiState = uiState,
                 onInitializeSdk = { onAction(ConfigAction.InitializeSdk) },
+                onCheckSdkState = { onAction(SessionAction.CheckConnectivity) },
                 onOpenSettings = onOpenSettings,
             )
         }
