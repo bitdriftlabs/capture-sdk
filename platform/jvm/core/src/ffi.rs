@@ -186,6 +186,20 @@ pub(crate) fn jarray_to_fields(
 /// 2. Multiple JNI method calls per field (getKey, getValueType, getValue)
 ///
 /// The keys and values arrays must have the same length - keys[i] corresponds to values[i].
+/// Returns empty fields if keys is null.
+pub fn nullable_string_arrays_to_annotated_fields(
+  env: &mut JNIEnv<'_>,
+  keys: &JObjectArray<'_>,
+  values: &JObjectArray<'_>,
+  kind: LogFieldKind,
+) -> anyhow::Result<AnnotatedLogFields> {
+  if keys.is_null() {
+    return Ok(AnnotatedLogFields::new());
+  }
+  string_arrays_to_annotated_fields(env, keys, values, kind)
+}
+
+/// The keys and values arrays must have the same length - keys[i] corresponds to values[i].
 pub fn string_arrays_to_annotated_fields(
   env: &mut JNIEnv<'_>,
   keys: &JObjectArray<'_>,
@@ -196,6 +210,8 @@ pub fn string_arrays_to_annotated_fields(
   #[allow(clippy::cast_sign_loss)]
   let mut fields = AnnotatedLogFields::with_capacity(len as usize);
 
+  // We intentionally keep the simpler local-frame approach here. On-device benchmarks showed that
+  // manual local-ref management was only marginally faster and not worth the added complexity.
   for i in 0 .. len {
     env.with_local_frame(4, |env| -> anyhow::Result<()> {
       let key_obj = env.get_object_array_element(keys, i)?;
