@@ -465,6 +465,9 @@ NSString *logLevelToString(LogLevel level) {
         case CAPInitializationStateRunning:
             stateStr = @"Running";
             break;
+        case CAPInitializationStateDisabled:
+            stateStr = @"Disabled";
+            break;
         default:
             stateStr = @"Unknown";
             break;

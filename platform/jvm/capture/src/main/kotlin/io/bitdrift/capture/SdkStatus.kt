@@ -19,6 +19,9 @@ enum class InitializationState {
 
     /** The SDK is fully running and processing logs. */
     RUNNING,
+
+    /** The SDK has been force-disabled by the server (e.g., authentication failure). */
+    DISABLED,
 }
 
 /**

@@ -18,6 +18,8 @@ public enum InitializationState: Int {
     case loaded = 1
     /// The SDK is fully running and processing logs.
     case running = 2
+    /// The SDK has been force-disabled by the server (e.g., authentication failure).
+    case disabled = 3
 }
 
 /// A point-in-time snapshot of the SDK's operational status.

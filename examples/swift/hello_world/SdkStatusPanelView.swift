@@ -108,6 +108,8 @@ struct SdkStatusPanelView: View {
             return "Loaded"
         case .running:
             return "Running"
+        case .disabled:
+            return "Disabled"
         @unknown default:
             return "Unknown"
         }

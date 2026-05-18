@@ -194,6 +194,7 @@ class MainActivity : ComponentActivity() {
             InitializationState.NOT_STARTED -> "Not Started"
             InitializationState.LOADED -> "Loaded"
             InitializationState.RUNNING -> "Running"
+            InitializationState.DISABLED -> "Disabled"
         }
 
         val text = buildString {
