@@ -281,9 +281,6 @@ object Capture {
 
         /**
          * Returns a point-in-time snapshot of the SDK's operational status.
-         *
-         * This is a synchronous polling API that returns the current state of the SDK.
-         * Returns [InitializationState.NOT_STARTED] if the SDK has not been started.
          */
         @JvmStatic
         fun getSdkStatus(): SdkStatus =

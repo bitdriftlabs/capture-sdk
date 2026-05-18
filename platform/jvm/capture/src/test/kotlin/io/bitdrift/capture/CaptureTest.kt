@@ -42,6 +42,7 @@ class CaptureTest {
     @Before
     fun tearDown() {
         latestAppExitInfoProvider.reset()
+        Logger.resetShared()
     }
 
     // This Test needs to run first since the following tests need to initialize
@@ -126,6 +127,9 @@ class CaptureTest {
             capturedResult = result
         }
 
+        val status = Logger.getSdkStatus()
+        assertThat(status.initializationState).isNotEqualTo(InitializationState.NOT_STARTED)
+
         val logger = Capture.logger()
         assertThat(logger).isNotNull()
         assertThat(Logger.deviceId).isNotNull()
@@ -189,5 +193,14 @@ class CaptureTest {
         val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
         assertThat(previousRunInfo).isNull()
+    }
+
+    @Test
+    fun getSdkStatus_beforeStart_returnsNotStarted() {
+        val status = Logger.getSdkStatus()
+
+        assertThat(status.initializationState).isEqualTo(InitializationState.NOT_STARTED)
+        assertThat(status.lastHandshakeTimeMs).isNull()
+        assertThat(status.lastConfigDeliveryTimeMs).isNull()
     }
 }
