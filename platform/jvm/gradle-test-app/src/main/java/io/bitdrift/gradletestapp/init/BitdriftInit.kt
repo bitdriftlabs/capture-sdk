@@ -12,6 +12,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
+import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
@@ -105,7 +106,20 @@ object BitdriftInit {
                     sessionStrategy = settings.sessionStrategy,
                     fieldProviders = settings.fieldProviders,
                     context = context,
-                )
+                ) { result ->
+                    when (result) {
+                        is CaptureResult.Success -> {
+                            val logger = result.value
+                            Log.i("GradleTestApp", "SDK started successfully. " +
+                                "sessionId=${logger.sessionId}, " +
+                                "sessionUrl=${logger.sessionUrl}, " +
+                                "deviceId=${logger.deviceId}")
+                        }
+                        is CaptureResult.Failure -> {
+                            Log.e("GradleTestApp", "SDK failed to start: ${result.error.message}")
+                        }
+                    }
+                }
                 Log.i("GradleTestApp", "Session initialized " + Capture.Logger.sessionUrl)
                 return true
             }

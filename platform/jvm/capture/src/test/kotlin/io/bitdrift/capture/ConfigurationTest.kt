@@ -118,6 +118,52 @@ class ConfigurationTest {
         )
     }
 
+    @Test
+    fun startResult_emitsFailure_whenBridgeReturnsInvalidLogger() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+
+        val bridge: IBridge = mock {}
+        whenever(
+            bridge.createLogger(
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+            ),
+        ).thenReturn(-1L)
+
+        var capturedResult: CaptureResult<ILogger>? = null
+
+        Capture.Logger.start(
+            apiKey = "test1",
+            sessionStrategy = SessionStrategy.Fixed(),
+            dateProvider = null,
+            bridge = bridge,
+        ) { result ->
+            capturedResult = result
+        }
+
+        Assertions.assertThat(capturedResult).isInstanceOf(CaptureResult.Failure::class.java)
+        val failure = capturedResult as CaptureResult.Failure
+        val error = failure.error as SdkStartFailure
+        Assertions.assertThat(error.reason).startsWith("Failed to start Capture:")
+        Assertions.assertThat(error.cause).isNotNull()
+    }
+
     @After
     fun tearDown() {
         Capture.Logger.resetShared()

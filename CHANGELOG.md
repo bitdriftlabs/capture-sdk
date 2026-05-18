@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Add optional `startResult` callback to `start` method that reports success with the logger instance or failure with error details.
 
 **Changed**
 

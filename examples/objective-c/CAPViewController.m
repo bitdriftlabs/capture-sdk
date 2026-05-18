@@ -197,7 +197,14 @@ NSString *logLevelToString(LogLevel level) {
      sessionStrategy:self.sessionStrategy == CAPSampleSessionStrategyActivityBased
          ? [CAPSessionStrategy activityBased]
          : [CAPSessionStrategy fixed]
-      configuration: config
+      configuration:config
+        startResult:^(NSError * _Nullable error) {
+            if (error) {
+                NSLog(@"Capture SDK start failed: %@", error.localizedDescription);
+            } else {
+                NSLog(@"Capture SDK started successfully");
+            }
+        }
     ];
 
     [CAPLogger logInfo:@"An objective-c example app is launching" fields:nil];
