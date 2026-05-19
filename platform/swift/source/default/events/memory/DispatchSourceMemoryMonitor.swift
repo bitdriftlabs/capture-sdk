@@ -25,6 +25,22 @@ final class DispatchSourceMemoryMonitor {
         self.dispatchSource.setEventHandler { [weak self] in
             self?.maybeSnapshot()
         }
+#if DEBUG
+        NotificationCenter.default.addObserver(
+            forName: .captureSimulateMemoryPressure,
+            object: nil,
+            queue: nil
+        ) { [weak self] notification in
+            guard let self else { return }
+            let level = notification.userInfo?["level"] as? String ?? "warning"
+            let memoryUsedKB = notification.userInfo?["memoryUsedKB"] as? UInt64 ?? 0
+            self.logger.notifyLowMemory(
+                level: level,
+                memoryUsedKB: memoryUsedKB,
+                timestampUs: UInt64(Date().timeIntervalSince1970 * 1_000_000)
+            )
+        }
+#endif
     }
 
     deinit {
@@ -89,3 +105,11 @@ final class DispatchSourceMemoryMonitor {
         }
     }
 }
+
+#if DEBUG
+extension Notification.Name {
+    static let captureSimulateMemoryPressure = Notification.Name(
+        "io.bitdrift.capture.simulate_memory_pressure"
+    )
+}
+#endif
