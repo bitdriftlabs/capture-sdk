@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.providers.session
 
+import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.Capture
@@ -19,9 +20,9 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.util.UUID
-import java.util.concurrent.CountDownLatch
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
@@ -67,7 +68,6 @@ class SessionStrategyTest {
 
     @Test
     fun activityBasedSessionStrategy() {
-        val strategyLatch = CountDownLatch(1)
         var observedSessionId: String? = null
 
         val logger =
@@ -80,14 +80,13 @@ class SessionStrategyTest {
                 sessionStrategy =
                     SessionStrategy.ActivityBased {
                         observedSessionId = it
-                        strategyLatch.countDown()
                     },
                 configuration = Configuration(),
                 preferences = mock(),
             )
 
         val sessionId = logger.sessionId
-        strategyLatch.await()
+        shadowOf(Looper.getMainLooper()).idle()
 
         assertThat(sessionId).isEqualTo(observedSessionId)
 
@@ -95,6 +94,55 @@ class SessionStrategyTest {
         val newSessionId = logger.sessionId
 
         assertThat(sessionId).isNotEqualTo(newSessionId)
+    }
+
+    @Test
+    fun activityBasedSessionStrategy_callbackRunsOnMainThread() {
+        var callbackLooper: Looper? = null
+
+        val logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = mock(),
+                context = ContextHolder.APP_CONTEXT,
+                sessionStrategy =
+                    SessionStrategy.ActivityBased {
+                        callbackLooper = Looper.myLooper()
+                    },
+                configuration = Configuration(),
+                preferences = mock(),
+            )
+
+        logger.sessionId
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(callbackLooper).isEqualTo(Looper.getMainLooper())
+    }
+
+    @Test
+    fun activityBasedSessionStrategy_sessionIdChangedEmitsOnMainThread() {
+        var observedSessionId: String? = null
+        var callbackLooper: Looper? = null
+        val newSessionId = "test-session-123"
+        val activityBasedConfig =
+            SessionStrategyConfiguration.ActivityBased(
+                sessionStrategy =
+                    SessionStrategy.ActivityBased { sessionId ->
+                        observedSessionId = sessionId
+                        callbackLooper = Looper.myLooper()
+                    },
+            )
+
+        // Call from a background thread to simulate the bd-tokio/JNI thread invoking the callback.
+        Thread { activityBasedConfig.sessionIdChanged(newSessionId) }.apply {
+            start()
+            join()
+        }
+
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(observedSessionId).isEqualTo(newSessionId)
+        assertThat(callbackLooper).isEqualTo(Looper.getMainLooper())
     }
 
     private fun testServerUrl(): HttpUrl =
