@@ -37,8 +37,8 @@
     <string name="generate_device_code">Generate Device Code</string>
     <string name="network_testing">Network Testing</string>
     <string name="navigation">Navigation to other screens</string>
-    <string name="started">Started</string>
-    <string name="not_started">Not Started</string>
+    <string name="started">Initialized</string>
+    <string name="not_started">Not Initialized</string>
     <string name="testing_tools">Log Level and Fatal Issue Testing</string>
     <string name="stress_test" translatable="false">Stress Test</string>
     <string name="open_stress_test" translatable="false">Open Stress Test</string>

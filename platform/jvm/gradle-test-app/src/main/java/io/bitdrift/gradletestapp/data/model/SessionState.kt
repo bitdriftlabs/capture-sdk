@@ -7,6 +7,8 @@
 
 package io.bitdrift.gradletestapp.data.model
 
+import io.bitdrift.capture.SdkStatus
+
 /** Session feature state */
 data class SessionState(
     val isSdkInitialized: Boolean = false,
@@ -15,4 +17,6 @@ data class SessionState(
     val deviceCode: String? = null,
     val isDeviceCodeValid: Boolean = false,
     val deviceCodeError: String? = null,
+    val sdkStatus: SdkStatus? = null,
+    val lastConnectivityCheckTimeMs: Long = -1,
 )

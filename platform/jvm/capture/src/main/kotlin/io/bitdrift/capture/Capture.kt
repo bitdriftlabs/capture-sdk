@@ -280,6 +280,14 @@ object Capture {
         fun getPreviousRunInfo(): PreviousRunInfo? = (logger() as? LoggerImpl)?.getPreviousRunInfo()
 
         /**
+         * Returns a point-in-time snapshot of the SDK's operational status.
+         */
+        @JvmStatic
+        fun getSdkStatus(): SdkStatus =
+            (logger() as? LoggerImpl)?.getSdkStatus()
+                ?: SdkStatus(InitializationState.NOT_STARTED, null, null)
+
+        /**
          * Adds a field that should be attached to all logs emitted by the logger going forward.
          * If a field with a given key has already been registered with the logger, its value is
          * overridden with the new value.

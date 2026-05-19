@@ -223,6 +223,21 @@ NSString *capture_get_device_id(logger_id logger_id);
  */
 NSString *capture_get_sdk_version();
 
+/**
+ * A C-compatible representation of the SDK status.
+ * Timestamps are epoch milliseconds, or -1 if not yet available.
+ */
+typedef struct {
+    int32_t initialization_state;
+    int64_t last_handshake_time_ms;
+    int64_t last_config_delivery_time_ms;
+} SdkStatusFFI;
+
+/**
+ * Returns a point-in-time snapshot of the SDK's operational status.
+ */
+SdkStatusFFI capture_get_sdk_status(logger_id logger_id);
+
 /*
  * Adds a field that should be attached to all logs emitted by the logger going forward.
  * If a field with a given key has already been registered with the logger, its value is

@@ -24,7 +24,6 @@ import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.capture.webview.WebViewConfiguration
 import io.bitdrift.gradletestapp.BuildConfig
-import java.util.concurrent.Executors
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
@@ -41,6 +40,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 import java.util.UUID
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Starts bitdrift's Captures SDK with the persisted config settings

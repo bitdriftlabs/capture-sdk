@@ -22,6 +22,7 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             PanelScreen {
+                SdkStatusPanelView()
                 SessionPanelView(loggerCustomer: self.loggerCustomer)
                 ManualCapturePanelView(loggerCustomer: self.loggerCustomer)
                 AutomaticCapturePanelView(loggerCustomer: self.loggerCustomer)

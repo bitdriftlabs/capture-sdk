@@ -88,6 +88,14 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     external fun startLogger(loggerId: Long)
 
     /**
+     * Returns a point-in-time snapshot of the SDK's operational status.
+     *
+     * @param loggerId the ID of the logger to query.
+     * @return an [SdkStatus] object with the current SDK state.
+     */
+    external fun getSdkStatus(loggerId: Long): SdkStatus
+
+    /**
      * Destroys the logger associated with the provided logger id. If called more than once for a
      * given logger, subsequent calls will be no-ops.
      *

@@ -276,6 +276,14 @@ public final class LoggerObjc: NSObject {
         return capture_get_sdk_version()
     }
 
+    /// Returns a point-in-time snapshot of the SDK's operational status.
+    ///
+    /// - returns: The current SDK status.
+    @objc
+    public static func getSdkStatus() -> SdkStatus {
+        return Capture.Logger.getSdkStatus()
+    }
+
     /// Defines the initialization of a new session within the current configured logger.
     /// If no logger is configured, this is a no-op.
     @objc

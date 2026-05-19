@@ -25,6 +25,11 @@ public protocol Logging {
     /// the same device.
     var deviceID: String { get }
 
+    /// Returns a point-in-time snapshot of the SDK's operational status.
+    ///
+    /// - returns: The current SDK status.
+    func getSdkStatus() -> SdkStatus
+
     /// Logs a message at a specified level to the default logger instance.
     ///
     /// - parameter level:    The severity of the log.
