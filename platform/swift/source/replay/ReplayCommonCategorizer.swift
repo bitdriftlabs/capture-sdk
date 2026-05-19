@@ -75,22 +75,15 @@ struct ReplayCommonCategorizer {
         return nil
     }
 
-    /// Known CALayer class names for iOS 26+ (liquid glass) layer types that are rendered without a
-    /// UIView backing. Extend this as new layer types are discovered.
-    static var knownLayerTypes: [String: AnnotatedView] = [:]
-
-    /// Categorize a pure CALayer (not backed by a UIView) by class name or visual content.
+    /// Categorize a pure CALayer by class name or visual content.
     ///
     /// - parameter layer: The CALayer to analyze.
     /// - parameter frame: Absolute position and size of the layer on screen.
     ///
-    /// - returns: An annotated view describing how to represent this layer.
+    /// - returns: An annotated view which defines the position and traverse behavior, see
+    ///            `AnnotatedViewType` for more information
     static func categorizeLayer(_ layer: CALayer, frame: CGRect) -> AnnotatedView {
         let className = NSStringFromClass(type(of: layer))
-        if var known = knownLayerTypes[className] {
-            known.frame = frame
-            return known
-        }
 
         // CGDrawingLayer is SwiftUI's text/label rendering layer (equivalent to CGDrawingView for UIViews).
         // The class name is Swift-mangled with a module hash prefix, so match by suffix.
