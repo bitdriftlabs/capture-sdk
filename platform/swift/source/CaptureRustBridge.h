@@ -270,10 +270,8 @@ void capture_set_feature_flag_exposure(logger_id logger_id, const char *flag,
  * @param logger_id the logger to notify.
  * @param level the memory pressure level ("warning", "critical", or "normal").
  * @param memory_used_kb the app's physical memory footprint in kilobytes at the time of the event.
- * @param timestamp_us the Unix timestamp of the event in microseconds.
  */
-void capture_notify_low_memory(logger_id logger_id, const char *level, uint64_t memory_used_kb,
-                               uint64_t timestamp_us);
+void capture_notify_low_memory(logger_id logger_id, const char *level, uint64_t memory_used_kb);
 
 /*
  * Registers an opaque entity identifier for backend correlation with device identifier.

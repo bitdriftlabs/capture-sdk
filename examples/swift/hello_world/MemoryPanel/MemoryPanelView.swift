@@ -116,7 +116,7 @@ struct MemoryLabView: View {
                     PanelRow(
                         title: "Trigger Critical",
                         subtitle: "Records a critical-level low memory event in the state store.",
-                    )
+                        )
                 }
                 .buttonStyle(PressableCardButtonStyle())
 
@@ -138,14 +138,14 @@ struct MemoryLabView: View {
             title: "Force Memory Allocation",
             subtitle: "Allocate physical memory to approach the OS memory limit and trigger real pressure events."
         ) {
-#if targetEnvironment(simulator)
+            #if targetEnvironment(simulator)
             PanelRow(
                 title: "Not available in Simulator",
                 subtitle: "Allocating memory in the simulator does not trigger DispatchSource memory pressure events or Jetsam warnings. Run on a real device to test this.",
                 badge: "⚠️",
                 badgeColor: Theme.warning
             )
-#else
+            #else
             VStack(spacing: 8) {
                 ForEach([50, 70, 85, 90], id: \.self) { percent in
                     Button(action: { self.loggerCustomer.forceMemoryPressure(targetPercent: percent) }) {
@@ -167,7 +167,7 @@ struct MemoryLabView: View {
                 }
                 .buttonStyle(PressableCardButtonStyle())
             }
-#endif
+            #endif
         }
     }
 }

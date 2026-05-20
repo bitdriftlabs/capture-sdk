@@ -1020,12 +1020,11 @@ extern "C" fn capture_notify_low_memory(
   logger_id: LoggerId<'_>,
   level: *const c_char,
   memory_used_kb: u64,
-  timestamp_us: u64,
 ) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
       let level = unsafe { CStr::from_ptr(level) }.to_str()?.to_string();
-      logger_id.notify_low_memory(level, memory_used_kb, timestamp_us);
+      logger_id.notify_low_memory(level, memory_used_kb);
       Ok(())
     },
     "swift notify low memory",

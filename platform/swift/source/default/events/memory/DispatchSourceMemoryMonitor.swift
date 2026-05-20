@@ -25,7 +25,7 @@ final class DispatchSourceMemoryMonitor {
         self.dispatchSource.setEventHandler { [weak self] in
             self?.maybeSnapshot()
         }
-#if DEBUG
+        #if DEBUG
         NotificationCenter.default.addObserver(
             forName: .captureSimulateMemoryPressure,
             object: nil,
@@ -36,11 +36,10 @@ final class DispatchSourceMemoryMonitor {
             let memoryUsedKB = notification.userInfo?["memoryUsedKB"] as? UInt64 ?? 0
             self.logger.notifyLowMemory(
                 level: level,
-                memoryUsedKB: memoryUsedKB,
-                timestampUs: UInt64(Date().timeIntervalSince1970 * 1_000_000)
+                memoryUsedKB: memoryUsedKB
             )
         }
-#endif
+        #endif
     }
 
     deinit {
@@ -95,12 +94,11 @@ final class DispatchSourceMemoryMonitor {
             error: nil,
             type: .lifecycle
         )
-        
+
         if let snapshot = snapshot as? MemorySnapshot {
             self.logger.notifyLowMemory(
                 level: state,
-                memoryUsedKB: snapshot.appTotalMemoryUsedKB,
-                timestampUs: UInt64(Date().timeIntervalSince1970 * 1_000_000)
+                memoryUsedKB: snapshot.appTotalMemoryUsedKB
             )
         }
     }

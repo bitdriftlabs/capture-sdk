@@ -155,8 +155,7 @@ protocol CoreLogging: AnyObject {
     ///
     /// - parameter level:        The memory pressure level ("warning", "critical", or "normal").
     /// - parameter memoryUsedKB: The app's physical memory footprint in KB at the time of the event.
-    /// - parameter timestampUs:  The Unix timestamp of the event in microseconds.
-    func notifyLowMemory(level: String, memoryUsedKB: UInt64, timestampUs: UInt64)
+    func notifyLowMemory(level: String, memoryUsedKB: UInt64)
 
     /// Registers an opaque user identifier for backend correlation with device identifier.
     ///
