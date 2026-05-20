@@ -21,32 +21,34 @@ final class ReplayTests: XCTestCase {
     }
 
     override func tearDown() {
-        self.window.isHidden = true
         self.window = nil
     }
 
-    // MARK: - Orphan CALayer traversal
+    // MARK: - traverse CALayer tree
 
     func testCaptureIncludesVisibleOrphanLayer() {
         let container = UIView(frame: CGRect(x: 0, y: 500, width: 300, height: 200))
         window.addSubview(container)
-        defer { container.removeFromSuperview() }
 
         let orphan = CALayer()
         orphan.frame = CGRect(x: 17, y: 23, width: 80, height: 40)
         orphan.backgroundColor = UIColor.red.cgColor
         container.layer.addSublayer(orphan)
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         // frame = container origin (0, 500) + orphan origin (17, 23)
-        XCTAssertTrue(entries.contains { $0.type == .view && $0.frame == CGRect(x: 17, y: 523, width: 80, height: 40) })
+        XCTAssertTrue(
+            entries.contains {
+                $0.type == .view &&
+                    $0.frame == CGRect(x: 17, y: 523, width: 80, height: 40)
+            }
+        )
     }
 
     func testCaptureExcludesHiddenOrphanLayer() {
         let container = UIView(frame: CGRect(x: 0, y: 500, width: 300, height: 200))
         window.addSubview(container)
-        defer { container.removeFromSuperview() }
 
         let orphan = CALayer()
         orphan.frame = CGRect(x: 17, y: 23, width: 80, height: 40)
@@ -54,15 +56,18 @@ final class ReplayTests: XCTestCase {
         orphan.isHidden = true
         container.layer.addSublayer(orphan)
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
-        XCTAssertFalse(entries.contains { $0.frame == CGRect(x: 17, y: 523, width: 80, height: 40) })
+        XCTAssertFalse(
+            entries.contains {
+                $0.frame == CGRect(x: 17, y: 523, width: 80, height: 40)
+            }
+        )
     }
 
     func testCaptureExcludesLowOpacityOrphanLayer() {
         let container = UIView(frame: CGRect(x: 0, y: 500, width: 300, height: 200))
         window.addSubview(container)
-        defer { container.removeFromSuperview() }
 
         let orphan = CALayer()
         orphan.frame = CGRect(x: 17, y: 23, width: 80, height: 40)
@@ -70,15 +75,18 @@ final class ReplayTests: XCTestCase {
         orphan.opacity = 0.05
         container.layer.addSublayer(orphan)
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
-        XCTAssertFalse(entries.contains { $0.frame == CGRect(x: 17, y: 523, width: 80, height: 40) })
+        XCTAssertFalse(
+            entries.contains {
+                $0.frame == CGRect(x: 17, y: 523, width: 80, height: 40)
+            }
+        )
     }
 
     func testOrphanLayersArePaintedBeforeUIViewSubviews() {
         let container = UIView(frame: CGRect(x: 0, y: 500, width: 300, height: 200))
         window.addSubview(container)
-        defer { container.removeFromSuperview() }
 
         let child = UIView(frame: CGRect(x: 50, y: 60, width: 70, height: 50))
         child.backgroundColor = UIColor.blue
@@ -89,17 +97,17 @@ final class ReplayTests: XCTestCase {
         orphan.backgroundColor = UIColor.red.cgColor
         container.layer.addSublayer(orphan)
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         let orphanIndex = entries.firstIndex { $0.frame == CGRect(x: 10, y: 510, width: 100, height: 100) }
         let childIndex = entries.firstIndex { $0.frame == CGRect(x: 50, y: 560, width: 70, height: 50) }
 
-        guard let oi = orphanIndex, let ci = childIndex else {
+        guard let orphanIndex, let childIndex else {
             XCTFail("Expected both orphan layer and child view in capture output")
             return
         }
 
-        XCTAssertLessThan(oi, ci, "Orphan layer should be painted before UIView subview (z-order)")
+        XCTAssertLessThan(orphanIndex, childIndex, "Orphan layer should be painted before UIView subview (z-order)")
     }
 
     // MARK: - SwiftUI labels
@@ -110,18 +118,16 @@ final class ReplayTests: XCTestCase {
         hosting.view.backgroundColor = .clear
         window.addSubview(hosting.view)
         hosting.view.layoutIfNeeded()
-        defer { hosting.view.removeFromSuperview() }
 
         // Waiting for SwiftUI to render the Text/label
         RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.1))
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         let hostingFrame = CGRect(x: 0, y: 400, width: 200, height: 60)
         XCTAssertTrue(
             entries.contains { $0.type == .label && hostingFrame.contains($0.frame) },
-            "SwiftUI Text should produce .label entries within the hosting view's frame"
-        )
+            )
     }
 
     // MARK: - UITextView
@@ -129,15 +135,15 @@ final class ReplayTests: XCTestCase {
     func testCaptureIncludesTextViewWithClearBackground() {
         let textView = UITextView(frame: CGRect(x: 20, y: 500, width: 300, height: 150))
         textView.backgroundColor = UIColor.clear
-        textView.text = "Some sensitive text"
+        textView.text = "Some text inside a text view"
         window.addSubview(textView)
-        defer { textView.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         XCTAssertTrue(
-            entries.contains { $0.type == .textInput && $0.frame == CGRect(x: 20, y: 500, width: 300, height: 150) },
-            "UITextView with clear background should appear as .textInput regardless of layer visibility"
+            entries.contains {
+                $0.type == .textInput && $0.frame == CGRect(x: 20, y: 500, width: 300, height: 150)
+            }
         )
     }
 
@@ -145,16 +151,16 @@ final class ReplayTests: XCTestCase {
 
     func testUILabelProducesLabelEntry() {
         let label = UILabel(frame: CGRect(x: 20, y: 400, width: 200, height: 40))
-        label.text = "Hello"
+        label.text = "Hello Label"
         window.addSubview(label)
-        defer { label.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         let labelFrame = CGRect(x: 20, y: 400, width: 200, height: 40)
         XCTAssertTrue(
-            entries.contains { $0.type == .label && labelFrame.contains($0.frame) },
-            "UILabel should produce a .label entry within its bounds"
+            entries.contains {
+                $0.type == .label && labelFrame.contains($0.frame)
+            }
         )
     }
 
@@ -164,13 +170,13 @@ final class ReplayTests: XCTestCase {
         let button = UIButton(frame: CGRect(x: 20, y: 400, width: 120, height: 44))
         button.setTitle("Tap", for: .normal)
         window.addSubview(button)
-        defer { button.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         XCTAssertTrue(
-            entries.contains { $0.type == .button && $0.frame == CGRect(x: 20, y: 400, width: 120, height: 44) },
-            "UIButton with title should produce a .button entry"
+            entries.contains {
+                $0.type == .button && $0.frame == CGRect(x: 20, y: 400, width: 120, height: 44)
+            }
         )
     }
 
@@ -180,13 +186,13 @@ final class ReplayTests: XCTestCase {
         let textField = UITextField(frame: CGRect(x: 20, y: 400, width: 200, height: 44))
         textField.backgroundColor = .white
         window.addSubview(textField)
-        defer { textField.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         XCTAssertTrue(
-            entries.contains { $0.type == .textInput && $0.frame == CGRect(x: 20, y: 400, width: 200, height: 44) },
-            "UITextField should produce a .textInput entry"
+            entries.contains {
+                $0.type == .textInput && $0.frame == CGRect(x: 20, y: 400, width: 200, height: 44)
+            }
         )
     }
 
@@ -200,13 +206,13 @@ final class ReplayTests: XCTestCase {
         let imageView = UIImageView(image: image)
         imageView.frame = CGRect(x: 20, y: 400, width: 80, height: 80)
         window.addSubview(imageView)
-        defer { imageView.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         XCTAssertTrue(
-            entries.contains { $0.type == .image && $0.frame == CGRect(x: 20, y: 400, width: 80, height: 80) },
-            "UIImageView should produce an .image entry"
+            entries.contains {
+                $0.type == .image && $0.frame == CGRect(x: 20, y: 400, width: 80, height: 80)
+            }
         )
     }
 
@@ -223,17 +229,12 @@ final class ReplayTests: XCTestCase {
 
         window.addSubview(imageView)
         window.addSubview(overlay)
-        defer {
-            imageView.removeFromSuperview()
-            overlay.removeFromSuperview()
-        }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         XCTAssertTrue(
             entries.contains { $0.type == .backgroundImage },
-            "UIImageView with an overlapping sibling should produce a .backgroundImage entry"
-        )
+            )
     }
 
     // MARK: - UISwitch
@@ -243,11 +244,10 @@ final class ReplayTests: XCTestCase {
         uiSwitch.isOn = true
         uiSwitch.frame.origin = CGPoint(x: 20, y: 400)
         window.addSubview(uiSwitch)
-        defer { uiSwitch.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
-        XCTAssertTrue(entries.contains { $0.type == .switchOn }, "UISwitch with isOn=true should produce .switchOn")
+        XCTAssertTrue(entries.contains { $0.type == .switchOn })
     }
 
     func testUISwitchOffProducesSwitchOffEntry() {
@@ -255,11 +255,10 @@ final class ReplayTests: XCTestCase {
         uiSwitch.isOn = false
         uiSwitch.frame.origin = CGPoint(x: 20, y: 400)
         window.addSubview(uiSwitch)
-        defer { uiSwitch.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
-        XCTAssertTrue(entries.contains { $0.type == .switchOff }, "UISwitch with isOn=false should produce .switchOff")
+        XCTAssertTrue(entries.contains { $0.type == .switchOff })
     }
 
     // MARK: - MKMapView
@@ -267,13 +266,13 @@ final class ReplayTests: XCTestCase {
     func testMKMapViewProducesMapEntry() {
         let mapView = MKMapView(frame: CGRect(x: 20, y: 400, width: 200, height: 150))
         window.addSubview(mapView)
-        defer { mapView.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         XCTAssertTrue(
-            entries.contains { $0.type == .map && $0.frame == CGRect(x: 20, y: 400, width: 200, height: 150) },
-            "MKMapView should produce a .map entry"
+            entries.contains {
+                $0.type == .map && $0.frame == CGRect(x: 20, y: 400, width: 200, height: 150)
+            }
         )
     }
 
@@ -282,13 +281,13 @@ final class ReplayTests: XCTestCase {
     func testWKWebViewProducesWebviewEntry() {
         let webView = WKWebView(frame: CGRect(x: 20, y: 400, width: 200, height: 150))
         window.addSubview(webView)
-        defer { webView.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         XCTAssertTrue(
-            entries.contains { $0.type == .webview && $0.frame == CGRect(x: 20, y: 400, width: 200, height: 150) },
-            "WKWebView should produce a .webview entry"
+            entries.contains {
+                $0.type == .webview && $0.frame == CGRect(x: 20, y: 400, width: 200, height: 150)
+            }
         )
     }
 
@@ -298,27 +297,32 @@ final class ReplayTests: XCTestCase {
         let v = UIView(frame: CGRect(x: 20, y: 400, width: 100, height: 100))
         v.backgroundColor = UIColor.red.withAlphaComponent(0.3)
         window.addSubview(v)
-        defer { v.removeFromSuperview() }
 
-        let entries = decode(Replay().capture(windows: [self.window]))
+        let entries = decode(Replay().capture(windows: [window]))
 
         XCTAssertTrue(
-            entries.contains { $0.type == .transparentView && $0.frame == CGRect(x: 20, y: 400, width: 100, height: 100) },
-            "UIView with semi-transparent background should produce a .transparentView entry"
+            entries.contains {
+                $0.type == .transparentView && $0.frame == CGRect(x: 20, y: 400, width: 100, height: 100)
+            }
         )
     }
+}
 
-    // MARK: - Helpers
-
-    private struct Entry {
+// MARK: - Helpers
+extension ReplayTests {
+    struct SessionReplayEntry {
         let type: ViewType
         let frame: CGRect
     }
 
     /// Decodes the binary buffer produced by `Replay.capture()` into readable entries.
     /// For more information, read the docs of `rectToBytes`
-    private func decode(_ data: Data) -> [Entry] {
-        var entries: [Entry] = []
+    ///
+    /// - parameter data: The raw bytes produced by `Replay.capture()`.
+    ///
+    /// - returns: The decoded list of typed, framed entries.
+    func decode(_ data: Data) -> [SessionReplayEntry] {
+        var entries: [SessionReplayEntry] = []
         var i = data.startIndex
 
         while i < data.endIndex {
@@ -342,7 +346,7 @@ final class ReplayTests: XCTestCase {
                 }
             }
 
-            entries.append(Entry(
+            entries.append(SessionReplayEntry(
                 type: viewType,
                 frame: CGRect(x: values[0], y: values[1], width: values[2], height: values[3])
             ))
