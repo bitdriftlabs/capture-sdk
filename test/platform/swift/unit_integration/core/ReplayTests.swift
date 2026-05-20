@@ -17,7 +17,7 @@ final class ReplayTests: XCTestCase {
 
     override func setUp() {
         self.window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        self.window.makeKeyAndVisible()
+        self.window.isHidden = false
     }
 
     override func tearDown() {
