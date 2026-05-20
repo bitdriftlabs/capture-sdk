@@ -43,10 +43,16 @@ package final class Replay {
     ///            more information about the bytes structure.
     package func capture() -> Data {
         let startTime = CFAbsoluteTimeGetCurrent()
+        let result = self.capture(windows: UIApplication.shared.sessionReplayWindows())
+        self.renderTime = CFAbsoluteTimeGetCurrent() - startTime
+        return result
+    }
+
+    package func capture(windows: [UIWindow]) -> Data {
         var buffer = Data()
         rectToBytes(type: .view, buffer: &buffer, frame: UIScreen.main.bounds)
 
-        for window in UIApplication.shared.sessionReplayWindows() {
+        for window in windows {
             let windowClass = NSStringFromClass(type(of: window))
             if window.isHidden || window.alpha < 0.1 || kIgnoredWindows.contains(windowClass) {
                 continue
@@ -55,7 +61,6 @@ package final class Replay {
             self.traverse(into: &buffer, parent: window, parentPosition: .zero, clipTo: window.frame)
         }
 
-        self.renderTime = CFAbsoluteTimeGetCurrent() - startTime
         return buffer
     }
 
