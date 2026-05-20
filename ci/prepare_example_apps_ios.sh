@@ -17,7 +17,7 @@ output="$(mktemp -d)"
 
 pushd "$(mktemp -d)"
   unzip "$sdk_repo/bazel-bin/examples/swift/hello_world/hello_world_app.ipa"
-  mv "Payload/hello_world_app.app" "$output/ios_hello_world_app.app"
+  mv "Payload/Bitdrift Sample App.app" "$output/ios_hello_world_app.app"
 popd
 
 echo "+++ Building iOS Session Replay Previos Example App"
