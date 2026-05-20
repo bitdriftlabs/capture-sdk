@@ -10,6 +10,7 @@ package io.bitdrift.gradletestapp.init
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import android.widget.Toast
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.CaptureResult
@@ -95,7 +96,7 @@ object BitdriftInit {
         sharedPreferences: SharedPreferences,
         context: Context,
     ): Boolean {
-        val settingsResult = getPersistedCaptureSdkSettings(sharedPreferences)
+        val settingsResult = getPersistedCaptureSdkSettings(context, sharedPreferences)
         when (settingsResult) {
             is SdkConfigResult.Success -> {
                 val settings = settingsResult.captureSdkInitSettings
@@ -131,7 +132,7 @@ object BitdriftInit {
         }
     }
 
-    private fun getPersistedCaptureSdkSettings(sharedPreferences: SharedPreferences): SdkConfigResult {
+    private fun getPersistedCaptureSdkSettings(applicationContext: Context, sharedPreferences: SharedPreferences): SdkConfigResult {
         val apiKey =
             sharedPreferences.getString(
                 BITDRIFT_API_KEY,
@@ -152,7 +153,7 @@ object BitdriftInit {
                 true,
             )
 
-        val sessionStrategy = getSessionStrategy(sharedPreferences)
+        val sessionStrategy = getSessionStrategy(applicationContext, sharedPreferences)
         val webViewConfig = getWebViewConfiguration(sharedPreferences)
 
         @OptIn(ExperimentalBitdriftApi::class)
@@ -188,7 +189,9 @@ object BitdriftInit {
         false
     )
 
-    private fun getSessionStrategy(sharedPreferences: SharedPreferences): SessionStrategy =
+    private fun getSessionStrategy(
+        applicationContext: Context,
+        sharedPreferences: SharedPreferences): SessionStrategy =
         if (sharedPreferences.getString(
                 ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY,
                 ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED.displayName,
@@ -196,10 +199,16 @@ object BitdriftInit {
         ) {
             SessionStrategy.Fixed()
         } else {
+            val thresholdMins = sharedPreferences.getString(
+                ConfigurationSettingsFragment.INACTIVITY_THRESHOLD_PREFS_KEY,
+                "30",
+            )?.toLongOrNull() ?: 30L
             SessionStrategy.ActivityBased(
-                inactivityThresholdMins = 60L,
+                inactivityThresholdMins = thresholdMins,
                 onSessionIdChanged = { sessionId ->
-                    Timber.Forest.i("Bitdrift Logger session id updated: $sessionId")
+                    val message ="Bitdrift Logger session id updated due to inactivity: $sessionId. Callback triggered in ${Thread.currentThread().name} thread"
+                    Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+                    Timber.Forest.i(message)
                 },
             )
         }

@@ -99,6 +99,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         }
         backendCategory.addPreference(apiKeysPreference)
         backendCategory.addPreference(buildSessionStrategyList(context))
+        backendCategory.addPreference(buildInactivityThresholdPreference(context))
         backendCategory.addPreference(buildSwitchPreference(context))
         backendCategory.addPreference(buildSessionReplaySwitch(context))
         backendCategory.addPreference(buildDeferredStartSwitch(context))
@@ -108,13 +109,46 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun buildSessionStrategyList(context: Context): ListPreference {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         val listPreference = ListPreference(context)
         listPreference.key = SESSION_STRATEGY_PREFS_KEY
         listPreference.title = SESSION_STRATEGY_TITLE
         listPreference.entries = SESSION_STRATEGY_ENTRIES
         listPreference.entryValues = SESSION_STRATEGY_ENTRIES
         listPreference.setDefaultValue(SessionStrategyPreferences.FIXED.displayName)
+        listPreference.summary = sharedPreferences.getString(
+            SESSION_STRATEGY_PREFS_KEY,
+            SessionStrategyPreferences.FIXED.displayName,
+        )
+        listPreference.setOnPreferenceChangeListener { _, newValue ->
+            val isActivityBased = newValue == SessionStrategyPreferences.ACTIVITY_BASED.displayName
+            findPreference<EditTextPreference>(INACTIVITY_THRESHOLD_PREFS_KEY)?.isVisible = isActivityBased
+            listPreference.summary = newValue as String
+            true
+        }
         return listPreference
+    }
+
+    private fun buildInactivityThresholdPreference(context: Context): EditTextPreference {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val editTextPreference = EditTextPreference(context)
+        editTextPreference.key = INACTIVITY_THRESHOLD_PREFS_KEY
+        editTextPreference.title = "Inactivity Threshold (minutes)"
+        editTextPreference.setDefaultValue(DEFAULT_INACTIVITY_THRESHOLD_MINS.toString())
+        val currentValue = sharedPreferences.getString(INACTIVITY_THRESHOLD_PREFS_KEY, DEFAULT_INACTIVITY_THRESHOLD_MINS.toString())
+        editTextPreference.summary = "$currentValue minutes"
+        editTextPreference.setOnBindEditTextListener { edit ->
+            edit.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            edit.hint = DEFAULT_INACTIVITY_THRESHOLD_MINS.toString()
+        }
+        editTextPreference.setOnPreferenceChangeListener { _, newValue ->
+            val mins = newValue.toString().toLongOrNull() ?: DEFAULT_INACTIVITY_THRESHOLD_MINS
+            editTextPreference.summary = "$mins minutes"
+            true
+        }
+        val currentStrategy = sharedPreferences.getString(SESSION_STRATEGY_PREFS_KEY, SessionStrategyPreferences.FIXED.displayName)
+        editTextPreference.isVisible = currentStrategy == SessionStrategyPreferences.ACTIVITY_BASED.displayName
+        return editTextPreference
     }
 
     private fun buildSwitchPreference(
@@ -187,8 +221,10 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val SESSION_REPLAY_ENABLED_PREFS_KEY = "sessionReplayEnabled"
         const val WEBVIEW_MONITORING_PREFS_KEY = "webviewMonitoring"
 
+        const val INACTIVITY_THRESHOLD_PREFS_KEY = "inactivityThresholdMins"
         const val PREFS_SLEEP_MODE_ENABLED = "sleep_mode_enabled"
 
+        private const val DEFAULT_INACTIVITY_THRESHOLD_MINS = 30L
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"
