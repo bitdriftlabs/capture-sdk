@@ -1,7 +1,53 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.16...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.0...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+ 
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.23.0]
+
+[0.23.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.0
 
 ### Both
 
@@ -24,10 +70,6 @@
 
 - Enabled OkHttp Happy Eyeballs (RFC 8305) fast fallback on the SDK's internal HTTP client for consumers using OkHttp 5.x pre-stable alphas (< 5.0.0) where it was not yet enabled by default.
 
-**Changed**
-
-- Nothing yet!
-
 **Fixed**
 
 - Fixed incorrect foreground/background state on fatal issues and app termination logs.
@@ -36,18 +78,11 @@
 
 ### iOS
 
-**Added**
-
-- Nothing yet!
-
-**Changed**
-
-- Nothing yet!
-
 **Fixed**
 
 - Fixed `Span Name` for network request/responses.
-- The mechanism used to name threads in crash reports has been improved
+- The mechanism used to name threads in crash reports has been improved.
+
 
 ## [0.22.16]
 
