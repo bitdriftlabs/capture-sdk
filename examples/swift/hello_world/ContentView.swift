@@ -46,11 +46,21 @@ struct ContentView: View {
                             )
                             .clipShape(Capsule())
                     }
-                }
+                }.removeToolBarItemGlassStyle()
             }
         }
         .navigationViewStyle(.stack)
         .accentColor(Theme.primary)
         .onAppear { self.loggerCustomer.logAppLaunchTTI() }
+    }
+}
+
+extension ToolbarContent {
+    func removeToolBarItemGlassStyle() -> some ToolbarContent {
+        if #available(iOS 26.0, *) {
+            return self.sharedBackgroundVisibility(.hidden)
+        } else {
+            return self
+        }
     }
 }
