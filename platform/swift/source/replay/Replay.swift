@@ -89,10 +89,12 @@ package final class Replay {
     {
         // iOS 26+ (liquid glass): orphan CALayers (not backed by a UIView) must be traversed before
         // UIView subviews so that background glass layers are painted beneath the content, not on top.
-        let backedLayerIDs = Set(parent.subviews.map { ObjectIdentifier($0.layer) })
-        if let sublayers = parent.layer.sublayers {
-            for layer in sublayers where !backedLayerIDs.contains(ObjectIdentifier(layer)) {
-                self.traverseLayer(into: &buffer, layer: layer, parentPosition: parentPosition, clipTo: clipTo)
+        if #available(iOS 26, *) {
+            let backedLayerIDs = Set(parent.subviews.map { ObjectIdentifier($0.layer) })
+            if let sublayers = parent.layer.sublayers {
+                for layer in sublayers where !backedLayerIDs.contains(ObjectIdentifier(layer)) {
+                    self.traverseLayer(into: &buffer, layer: layer, parentPosition: parentPosition, clipTo: clipTo)
+                }
             }
         }
 
