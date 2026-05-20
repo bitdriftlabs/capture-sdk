@@ -17,6 +17,10 @@ rustflags = [
   "link-arg=-Wl,--build-id",
   "-C",
   "link-arg=-Wl,--pack-dyn-relocs=android",
+  "-C",
+  "link-arg=-Wl,--gc-sections",
+  "-C",
+  "link-arg=-Wl,--icf=safe",
 ]
 
 #####################################

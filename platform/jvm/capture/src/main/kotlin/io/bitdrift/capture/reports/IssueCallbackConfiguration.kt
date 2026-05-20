@@ -18,8 +18,8 @@ import kotlin.jvm.JvmName
  * Configuration for issue report callbacks.
  *
  * Use this to provide:
- * - the executor where callbacks run
- * - the callback that receives issue report metadata before send
+ * - the executor where callbacks run.
+ * - the callback that receives issue report metadata before send.
  *
  * @param executor Executor used to run callback invocations.
  * @param issueReportCallback Callback invoked before an issue report is sent.
