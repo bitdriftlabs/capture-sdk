@@ -33,9 +33,12 @@ pushd "$(mktemp -d)"
   mv "$sdk_repo/bazel-bin/symbols.tar" "$artifact_name-$version-symbols.tar"
   cp "$sdk_repo/ci/LICENSE" "LICENSE"
 
-  # If using a custom artifact name, update the artifactId in the POM
+  # If using a custom artifact name, update artifact-specific fields in the POM
   if [ "$artifact_name" != "capture" ]; then
-    sed -i "s|<artifactId>capture</artifactId>|<artifactId>$artifact_name</artifactId>|" "$artifact_name-$version.pom"
+    sed -i \
+      -e "s|<artifactId>capture</artifactId>|<artifactId>$artifact_name</artifactId>|" \
+      -e "s|/capture/|/$artifact_name/|g" \
+      "$artifact_name-$version.pom"
   fi
 
   zip -j -r "$sdk_repo/dist/Capture.android.zip" ./*

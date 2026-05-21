@@ -8,10 +8,10 @@ readonly remote_location_root_prefix="s3://bitdrift-public-dl/sdk/android-maven/
 
 readonly version="$1"
 readonly capture_archive="$2"
-readonly capture_timber_archive="$3"
-readonly capture_apollo_archive="$4"
-readonly capture_plugin_archive="$5"
-readonly capture_plugin_marker_archive="$6"
+readonly capture_timber_archive="${3:-}"
+readonly capture_apollo_archive="${4:-}"
+readonly capture_plugin_archive="${5:-}"
+readonly capture_plugin_marker_archive="${6:-}"
 # Optional: custom artifact name (e.g. "capture-no-jank-stats"). Defaults to "capture".
 readonly capture_artifact_name="${7:-capture}"
 

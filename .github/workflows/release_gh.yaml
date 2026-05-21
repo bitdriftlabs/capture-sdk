@@ -18,7 +18,7 @@ on:
         default: all
       capture-suffix:
         type: string
-        description: 'Custom Android capture artifact suffix (e.g. "no-jank-stats"). Ignored if platform is ios. Leave empty for standard "capture".'
+        description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios. Leave empty for standard "capture".'
         required: false
         default: ''
     secrets:
@@ -51,7 +51,7 @@ on:
           - capture-only
       capture-suffix:
         type: string
-        description: 'Custom Android capture artifact suffix (e.g. "no-jank-stats"). Ignored if platform is ios. Leave empty for standard "capture".'
+        description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios. Leave empty for standard "capture".'
         required: false
         default: ''
 jobs:
@@ -115,10 +115,7 @@ jobs:
         run: sudo apt-get install -y clang
       - name: Build AAR + artifacts
         run: |
-          artifact_name="capture"
-          if [ -n "${{ inputs.capture-suffix }}" ]; then
-            artifact_name="capture-${{ inputs.capture-suffix }}"
-          fi
+          artifact_name="capture${{ inputs.capture-suffix }}"
           ./tools/android_release.sh "$VERSION" "$artifact_name"
         env:
           VERSION: ${{ inputs.version }}
@@ -151,7 +148,6 @@ jobs:
       contents: write
     name: GitHub release
     runs-on: ubuntu-latest
-    if: ${{ always() && !failure() && !cancelled() }}
     needs: [
       "ios-release-build",
       "build-ios-example-apps",
@@ -248,8 +244,8 @@ jobs:
       - name: Create release
         run: |
           tag="v$VERSION"
-          if [ -n "${{ inputs.capture-suffix }}" ]; then
-            tag="v$VERSION-${{ inputs.capture-suffix }}"
+          if [ -n "${{ inputs.capture-suffix }}" ] && [ "${{ inputs.platform }}" = "android" ]; then
+            tag="v$VERSION${{ inputs.capture-suffix }}"
           fi
           gh release create "$tag" \
             --target "$GITHUB_REF_NAME" \
