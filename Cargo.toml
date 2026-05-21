@@ -18,7 +18,6 @@ ahash = "0.8.12"
 android_logger = { version = "0.15.1", default-features = false }
 anyhow = "1.0.102"
 assert_matches = "1.5.0"
-
 async-trait = "0.1.89"
 bd-api = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "5c0038db91a08a34a4a8c8c282fa720eb1e7a98a" }
 bd-bonjson = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "5c0038db91a08a34a4a8c8c282fa720eb1e7a98a" }
@@ -49,7 +48,6 @@ bd-test-helpers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev
   "ring",
 ] }
 bd-time = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "5c0038db91a08a34a4a8c8c282fa720eb1e7a98a" }
-
 clap = { version = "4.6.1", features = ["derive", "env"] }
 ctor = "0.10.0"
 env_logger = { version = "0.11.10", default-features = false }
