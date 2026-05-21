@@ -10,6 +10,21 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
+      platform:
+        type: string
+        description: Which platform(s) to release (all, android, ios, react-native)
+        required: false
+        default: all
+      android-artifacts:
+        type: string
+        description: Which Android artifacts to publish (all, capture-only)
+        required: false
+        default: all
+      capture-suffix:
+        type: string
+        description: 'Custom Android capture artifact suffix (e.g. "no-jank-stats"). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
+        required: false
+        default: ''
   workflow_dispatch:
     inputs:
       version:
@@ -20,8 +35,32 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
+      platform:
+        type: choice
+        description: Which platform(s) to release
+        required: true
+        default: all
+        options:
+          - all
+          - android
+          - ios
+          - react-native
+      android-artifacts:
+        type: choice
+        description: Which Android artifacts to publish (ignored if platform is ios or react-native)
+        required: true
+        default: all
+        options:
+          - all
+          - capture-only
+      capture-suffix:
+        type: string
+        description: 'Custom Android capture artifact suffix (e.g. "no-jank-stats"). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
+        required: false
+        default: ''
 jobs:
   release-ios:
+    if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
     name: Upload iOS artifacts to dl.bitdrift.io
     permissions:
       id-token: write # required to use OIDC authentication
@@ -58,7 +97,8 @@ jobs:
       env:
         VERSION: ${{ inputs.version }}
   release-android:
-    name: Upload Android artifacts to bitdrif maven and maven central
+    if: ${{ inputs.platform == 'all' || inputs.platform == 'android' }}
+    name: Upload Android artifacts to bitdrift maven and maven central
     permissions:
       id-token: write # required to use OIDC authentication (set up aws credentials)
       contents: read
@@ -86,10 +126,16 @@ jobs:
         aws-region: us-east-1
     - name: Download GH Release Android artifacts
       run: |
-        gh release download "v$VERSION" -p 'Capture*.android.zip'
-        gh release download "v$VERSION" -p 'capture-timber*.android.zip'
-        gh release download "v$VERSION" -p 'capture-apollo*.android.zip'
-        gh release download "v$VERSION" -p 'capture-plugin*.android.zip'
+        tag="v$VERSION"
+        if [ -n "${{ inputs.capture-suffix }}" ]; then
+          tag="v$VERSION-${{ inputs.capture-suffix }}"
+        fi
+        gh release download "$tag" -p 'Capture*.android.zip'
+        if [ "${{ inputs.android-artifacts }}" = "all" ]; then
+          gh release download "$tag" -p 'capture-timber*.android.zip'
+          gh release download "$tag" -p 'capture-apollo*.android.zip'
+          gh release download "$tag" -p 'capture-plugin*.android.zip'
+        fi
       env:
         VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,7 +144,16 @@ jobs:
         # GPG signing configuration (existing repo/org secrets)
         GPG_PRIVATE_KEY: ${{ secrets.GPG_SIGNING_KEY }}
         GPG_PASSPHRASE: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
-      run: ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "capture-timber-${{ inputs.version }}.android.zip" "capture-apollo-${{ inputs.version }}.android.zip" "capture-plugin-${{ inputs.version }}.android.zip" "capture-plugin-marker-${{ inputs.version }}.android.zip"
+      run: |
+        artifact_name="capture"
+        if [ -n "${{ inputs.capture-suffix }}" ]; then
+          artifact_name="capture-${{ inputs.capture-suffix }}"
+        fi
+        if [ "${{ inputs.android-artifacts }}" = "capture-only" ]; then
+          ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "" "" "" "" "$artifact_name"
+        else
+          ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "capture-timber-${{ inputs.version }}.android.zip" "capture-apollo-${{ inputs.version }}.android.zip" "capture-plugin-${{ inputs.version }}.android.zip" "capture-plugin-marker-${{ inputs.version }}.android.zip" "$artifact_name"
+        fi
     - name: Upload bundles to Maven Central
       env:
         MAVEN_CENTRAL_TOKEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
@@ -182,4 +237,3 @@ jobs:
             exit 1
           fi
         done
-
