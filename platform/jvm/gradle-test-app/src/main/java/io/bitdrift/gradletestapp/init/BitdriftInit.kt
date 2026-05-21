@@ -10,8 +10,10 @@ package io.bitdrift.gradletestapp.init
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import android.widget.Toast
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger.sessionUrl
+import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
@@ -23,7 +25,6 @@ import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.capture.webview.WebViewConfiguration
 import io.bitdrift.gradletestapp.BuildConfig
-import java.util.concurrent.Executors
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
@@ -40,6 +41,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 import java.util.UUID
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Starts bitdrift's Captures SDK with the persisted config settings
@@ -67,8 +69,7 @@ object BitdriftInit {
             Timber.plant(CaptureTree())
             Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
 
-            @OptIn(ExperimentalBitdriftApi::class)
-            Capture.Logger.registerOpaqueEntityId(userUuid)
+            Capture.Logger.setEntityId(userUuid)
 
             @OptIn(ExperimentalBitdriftApi::class)
             Capture.Logger.getPreviousRunInfo()?.let { previousRunInfo ->
@@ -95,7 +96,7 @@ object BitdriftInit {
         sharedPreferences: SharedPreferences,
         context: Context,
     ): Boolean {
-        val settingsResult = getPersistedCaptureSdkSettings(sharedPreferences)
+        val settingsResult = getPersistedCaptureSdkSettings(context, sharedPreferences)
         when (settingsResult) {
             is SdkConfigResult.Success -> {
                 val settings = settingsResult.captureSdkInitSettings
@@ -106,7 +107,20 @@ object BitdriftInit {
                     sessionStrategy = settings.sessionStrategy,
                     fieldProviders = settings.fieldProviders,
                     context = context,
-                )
+                ) { result ->
+                    when (result) {
+                        is CaptureResult.Success -> {
+                            val logger = result.value
+                            Log.i("GradleTestApp", "SDK started successfully. " +
+                                "sessionId=${logger.sessionId}, " +
+                                "sessionUrl=${logger.sessionUrl}, " +
+                                "deviceId=${logger.deviceId}")
+                        }
+                        is CaptureResult.Failure -> {
+                            Log.e("GradleTestApp", "SDK failed to start: ${result.error.message}")
+                        }
+                    }
+                }
                 Log.i("GradleTestApp", "Session initialized " + Capture.Logger.sessionUrl)
                 return true
             }
@@ -118,7 +132,7 @@ object BitdriftInit {
         }
     }
 
-    private fun getPersistedCaptureSdkSettings(sharedPreferences: SharedPreferences): SdkConfigResult {
+    private fun getPersistedCaptureSdkSettings(applicationContext: Context, sharedPreferences: SharedPreferences): SdkConfigResult {
         val apiKey =
             sharedPreferences.getString(
                 BITDRIFT_API_KEY,
@@ -139,7 +153,7 @@ object BitdriftInit {
                 true,
             )
 
-        val sessionStrategy = getSessionStrategy(sharedPreferences)
+        val sessionStrategy = getSessionStrategy(applicationContext, sharedPreferences)
         val webViewConfig = getWebViewConfiguration(sharedPreferences)
 
         @OptIn(ExperimentalBitdriftApi::class)
@@ -175,7 +189,9 @@ object BitdriftInit {
         false
     )
 
-    private fun getSessionStrategy(sharedPreferences: SharedPreferences): SessionStrategy =
+    private fun getSessionStrategy(
+        applicationContext: Context,
+        sharedPreferences: SharedPreferences): SessionStrategy =
         if (sharedPreferences.getString(
                 ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY,
                 ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED.displayName,
@@ -183,10 +199,16 @@ object BitdriftInit {
         ) {
             SessionStrategy.Fixed()
         } else {
+            val thresholdMins = sharedPreferences.getString(
+                ConfigurationSettingsFragment.INACTIVITY_THRESHOLD_PREFS_KEY,
+                "30",
+            )?.toLongOrNull() ?: 30L
             SessionStrategy.ActivityBased(
-                inactivityThresholdMins = 60L,
+                inactivityThresholdMins = thresholdMins,
                 onSessionIdChanged = { sessionId ->
-                    Timber.Forest.i("Bitdrift Logger session id updated: $sessionId")
+                    val message ="Bitdrift Logger session id updated due to inactivity: $sessionId. Callback triggered in ${Thread.currentThread().name} thread"
+                    Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+                    Timber.Forest.i(message)
                 },
             )
         }

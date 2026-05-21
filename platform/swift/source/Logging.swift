@@ -25,6 +25,11 @@ public protocol Logging {
     /// the same device.
     var deviceID: String { get }
 
+    /// Returns a point-in-time snapshot of the SDK's operational status.
+    ///
+    /// - returns: The current SDK status.
+    func getSdkStatus() -> SdkStatus
+
     /// Logs a message at a specified level to the default logger instance.
     ///
     /// - parameter level:    The severity of the log.
@@ -103,10 +108,11 @@ public protocol Logging {
     /// - parameter variant: The boolean variant of the flag being exposed
     func setFeatureFlagExposure(withName name: String, variant: Bool)
 
-    /// Registers an opaque user identifier for backend correlation with device identifier.
+    /// Sets an entity identifier for backend correlation with device identifier.
+    /// The value is hashed for storage and the exact value is never persisted.
     ///
-    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID).
-    func registerOpaqueEntityID(_ opaqueEntityID: String)
+    /// - parameter entityID: Entity identifier.
+    func setEntityID(_ entityID: String)
 
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with

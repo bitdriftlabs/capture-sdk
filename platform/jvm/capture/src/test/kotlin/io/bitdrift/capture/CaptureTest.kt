@@ -42,6 +42,7 @@ class CaptureTest {
     @Before
     fun tearDown() {
         latestAppExitInfoProvider.reset()
+        Logger.resetShared()
     }
 
     // This Test needs to run first since the following tests need to initialize
@@ -57,6 +58,25 @@ class CaptureTest {
         )
 
         assertThat(Capture.logger()).isNull()
+    }
+
+    @Test
+    fun aStart_withNullContext_emitsFailureCallback() {
+        var capturedResult: CaptureResult<ILogger>? = null
+
+        Logger.start(
+            apiKey = "test1",
+            sessionStrategy = SessionStrategy.Fixed(),
+            dateProvider = null,
+            context = null,
+        ) { result ->
+            capturedResult = result
+        }
+
+        assertThat(capturedResult).isInstanceOf(CaptureResult.Failure::class.java)
+        val failure = capturedResult as CaptureResult.Failure
+        assertThat(failure.error).isInstanceOf(SdkStartFailure::class.java)
+        assertThat(failure.error.message).contains("null context")
     }
 
     // Accessing fields prior to the configuration of the logger may lead to crash since it can
@@ -97,15 +117,29 @@ class CaptureTest {
 
         assertThat(Capture.logger()).isNull()
 
+        var capturedResult: CaptureResult<ILogger>? = null
+
         Logger.start(
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,
-        )
+        ) { result ->
+            capturedResult = result
+        }
+
+        val status = Logger.getSdkStatus()
+        assertThat(status.initializationState).isNotEqualTo(InitializationState.NOT_STARTED)
 
         val logger = Capture.logger()
         assertThat(logger).isNotNull()
         assertThat(Logger.deviceId).isNotNull()
+
+        // Verify completion callback emits success with expected properties.
+        assertThat(capturedResult).isInstanceOf(CaptureResult.Success::class.java)
+        val success = capturedResult as CaptureResult.Success
+        assertThat(success.value.sessionId).isNotEmpty()
+        assertThat(success.value.sessionUrl).isNotEmpty()
+        assertThat(success.value.deviceId).isNotEmpty()
 
         Logger.start(
             apiKey = "test2",
@@ -159,5 +193,14 @@ class CaptureTest {
         val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
         assertThat(previousRunInfo).isNull()
+    }
+
+    @Test
+    fun getSdkStatus_beforeStart_returnsNotStarted() {
+        val status = Logger.getSdkStatus()
+
+        assertThat(status.initializationState).isEqualTo(InitializationState.NOT_STARTED)
+        assertThat(status.lastHandshakeTimeMs).isNull()
+        assertThat(status.lastConfigDeliveryTimeMs).isNull()
     }
 }

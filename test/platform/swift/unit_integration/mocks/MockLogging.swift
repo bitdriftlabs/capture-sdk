@@ -70,6 +70,10 @@ extension MockLogging: Logging {
 
     public var deviceID: String { "deviceID" }
 
+    public func getSdkStatus() -> SdkStatus {
+        SdkStatus(initializationState: .notStarted, lastHandshakeTime: nil, lastConfigDeliveryTime: nil)
+    }
+
     public func log(
         level: LogLevel,
         message: @autoclosure () -> String,
@@ -150,5 +154,5 @@ extension MockLogging: Logging {
 
     public func setFeatureFlagExposure(withName flag: String, variant: Bool) {}
 
-    public func registerOpaqueEntityID(_: String) {}
+    public func setEntityID(_: String) {}
 }

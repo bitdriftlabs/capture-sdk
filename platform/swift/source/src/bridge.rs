@@ -44,7 +44,7 @@ use platform_shared::javascript_error::{
   DeviceMetadata,
 };
 use platform_shared::metadata::{self, Mobile};
-use platform_shared::{LoggerHolder, LoggerId};
+use platform_shared::{date_to_unix_milliseconds, LoggerHolder, LoggerId};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
@@ -493,6 +493,7 @@ extern "C" fn capture_create_logger(
   events_listener_target: *mut Object,
   app_id: *const c_char,
   app_version: *const c_char,
+  os_version: *const c_char,
   model: *const c_char,
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
@@ -528,6 +529,8 @@ extern "C" fn capture_create_logger(
         // fields as metadata and only use the fixed fields on logs for matching.
         os: "ios".to_string(),
         device: device.clone(),
+        os_version: Some(unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string()),
+        manufacturer: None,
         model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
       });
 
@@ -931,6 +934,25 @@ extern "C" fn capture_get_sdk_version() -> *const Object {
     .autorelease()
 }
 
+/// A C-compatible representation of the SDK status returned to Swift.
+/// Timestamps are epoch milliseconds, or -1 if not yet available.
+#[repr(C)]
+pub struct SdkStatusFFI {
+  pub initialization_state: i32,
+  pub last_handshake_time_ms: i64,
+  pub last_config_delivery_time_ms: i64,
+}
+
+#[no_mangle]
+extern "C" fn capture_get_sdk_status(logger_id: LoggerId<'_>) -> SdkStatusFFI {
+  let status = logger_id.get_sdk_status();
+  SdkStatusFFI {
+    initialization_state: status.initialization_state as i32,
+    last_handshake_time_ms: date_to_unix_milliseconds(status.last_handshake_time),
+    last_config_delivery_time_ms: date_to_unix_milliseconds(status.last_config_delivery_time),
+  }
+}
+
 #[no_mangle]
 extern "C" fn capture_add_log_field(
   logger_id: LoggerId<'_>,
@@ -1032,17 +1054,14 @@ extern "C" fn capture_notify_low_memory(
 }
 
 #[no_mangle]
-extern "C" fn capture_register_opaque_entity_id(
-  logger_id: LoggerId<'_>,
-  opaque_entity_id: *const c_char,
-) {
+extern "C" fn capture_set_entity_id(logger_id: LoggerId<'_>, entity_id: *const c_char) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
-      let opaque_entity_id = unsafe { CStr::from_ptr(opaque_entity_id) }.to_str()?;
-      logger_id.register_opaque_entity_id(Some(opaque_entity_id));
+      let entity_id = unsafe { CStr::from_ptr(entity_id) }.to_str()?;
+      logger_id.register_opaque_entity_id(Some(entity_id));
       Ok(())
     },
-    "swift register opaque user id",
+    "swift set entity id",
   );
 }
 

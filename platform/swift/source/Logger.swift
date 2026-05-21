@@ -122,8 +122,8 @@ public final class Logger {
         storageProvider: StorageProvider,
         timeProvider: TimeProvider,
         networkDelegateQueue: DispatchQueue = .network,
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
-    )
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory(),
+        )
     {
         self.timeProvider = timeProvider
         let start = timeProvider.uptime()
@@ -193,6 +193,7 @@ public final class Logger {
             eventsListenerTarget: self.eventsListenerTarget,
             appID: clientAttributes.appID,
             releaseVersion: clientAttributes.appVersion,
+            osVersion: clientAttributes.osVersion,
             model: deviceAttributes.hardwareVersion,
             network: network,
             errorReporting: self.remoteErrorReporter,
@@ -357,7 +358,10 @@ public final class Logger {
 
     // MARK: - Static
 
-    static func createOnce(_ createLogger: () -> Logger?) -> LoggerIntegrator? {
+    static func createOnce(
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil,
+        _ createLogger: () -> Logger?
+    ) -> LoggerIntegrator? {
         let state = self.syncedShared.update { state in
             guard case .notStarted = state else {
                 return
@@ -370,11 +374,13 @@ public final class Logger {
             }
         }
 
-        return switch state {
-        case .started(let logger):
-            logger
+        switch state {
+        case .started(let integrator):
+            startResult?(.success(integrator.logger))
+            return integrator
         case .notStarted, .startFailure:
-            nil
+            startResult?(.failure(SDKNotStartedfError()))
+            return nil
         }
     }
 
@@ -492,6 +498,10 @@ extension Logger: Logging {
         return self.underlyingLogger.getDeviceID()
     }
 
+    public func getSdkStatus() -> SdkStatus {
+        return self.underlyingLogger.getSdkStatus()
+    }
+
     public func log(
         level: LogLevel,
         message: @autoclosure () -> String,
@@ -579,8 +589,8 @@ extension Logger: Logging {
         self.underlyingLogger.setFeatureFlagExposure(withName: flag, variant: String(variant))
     }
 
-    public func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        self.underlyingLogger.registerOpaqueEntityID(opaqueEntityID)
+    public func setEntityID(_ entityID: String) {
+        self.underlyingLogger.setEntityID(entityID)
     }
 
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {

@@ -43,6 +43,9 @@ extension Logger {
     /// - parameter fieldProviders:  An optional array of additional FieldProviders to include on the default
     ///                              Logger.
     /// - parameter dateProvider:    An optional date provider to set on the default logger.
+    /// - parameter startResult:     An optional callback invoked with the result of the SDK initialization.
+    ///                              The callback is always called on the calling thread before `start` returns.
+    ///                              On success, it receives a `Logging` instance. On failure, it receives an error.
     ///
     /// - returns: A logger integrator that can be used to enable various SDK integration.
     @discardableResult
@@ -51,7 +54,8 @@ extension Logger {
         sessionStrategy: SessionStrategy,
         configuration: Configuration = .init(),
         fieldProviders: [FieldProvider] = [],
-        dateProvider: DateProvider? = nil
+        dateProvider: DateProvider? = nil,
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator?
     {
         return self.start(
@@ -60,7 +64,8 @@ extension Logger {
             configuration: configuration,
             fieldProviders: fieldProviders,
             dateProvider: dateProvider,
-            loggerBridgingFactoryProvider: LoggerBridgingFactory()
+            loggerBridgingFactoryProvider: LoggerBridgingFactory(),
+            startResult: startResult
         )
     }
 
@@ -71,10 +76,11 @@ extension Logger {
         configuration: Configuration,
         fieldProviders: [FieldProvider],
         dateProvider: DateProvider?,
-        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider,
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator?
     {
-        return self.createOnce {
+        return self.createOnce(startResult: startResult) {
             let logger = Logger(
                 withAPIKey: apiKey,
                 configuration: configuration,
@@ -112,6 +118,15 @@ extension Logger {
     /// the same device. It is equal to `nil` prior to the start of bitdrift Capture SDK.
     public static var deviceID: String? {
         return Self.getShared()?.deviceID
+    }
+
+    /// Returns a point-in-time snapshot of the SDK's operational status.
+    /// Returns `InitializationState.notStarted` if the SDK has not been started.
+    ///
+    /// - returns: The current SDK status.
+    public static func getSdkStatus() -> SdkStatus {
+        return Self.getShared()?.getSdkStatus()
+            ?? SdkStatus(initializationState: .notStarted, lastHandshakeTime: nil, lastConfigDeliveryTime: nil)
     }
 
     /// Reports previous app run status.
@@ -439,11 +454,12 @@ extension Logger {
         Self.getShared()?.setFeatureFlagExposure(withName: flag, variant: variant)
     }
 
-    /// Registers an opaque user identifier for backend correlation with device identifier.
+    /// Sets an entity identifier for backend correlation with device identifier.
+    /// The value is hashed for storage and the exact value is never persisted.
     ///
-    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID)
-    public static func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        Self.getShared()?.registerOpaqueEntityID(opaqueEntityID)
+    /// - parameter entityID: Entity identifier.
+    public static func setEntityID(_ entityID: String) {
+        Self.getShared()?.setEntityID(entityID)
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

@@ -231,6 +231,8 @@ internal class LoggerImpl(
                 eventsListenerTarget,
                 clientAttributes.appId,
                 clientAttributes.appVersion,
+                clientAttributes.osVersion,
+                clientAttributes.manufacturer,
                 clientAttributes.model,
                 network,
                 preferences,
@@ -331,6 +333,8 @@ internal class LoggerImpl(
 
     override val isTracingActive: Boolean
         get() = CaptureJniLibrary.isTracingActive(this.loggerId)
+
+    fun getSdkStatus(): SdkStatus = CaptureJniLibrary.getSdkStatus(this.loggerId)
 
     override fun startNewSession() {
         CaptureJniLibrary.startNewSession(this.loggerId)
@@ -438,8 +442,8 @@ internal class LoggerImpl(
         CaptureJniLibrary.setFeatureFlagExposure(this.loggerId, name, variant)
     }
 
-    override fun registerOpaqueEntityId(opaqueEntityId: String) {
-        CaptureJniLibrary.registerOpaqueEntityId(this.loggerId, opaqueEntityId)
+    override fun setEntityId(entityId: String) {
+        CaptureJniLibrary.setEntityId(this.loggerId, entityId)
     }
 
     override fun setFeatureFlagExposure(

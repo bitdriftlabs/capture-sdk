@@ -23,8 +23,8 @@ internal sealed class SessionStrategyConfiguration {
         fun inactivityThresholdMins(): Long = sessionStrategy.inactivityThresholdMins
 
         fun sessionIdChanged(sessionId: String) {
-            mainThreadHandler.runCatching {
-                sessionStrategy.onSessionIdChanged?.invoke(sessionId)
+            mainThreadHandler.run {
+                runCatching { sessionStrategy.onSessionIdChanged?.invoke(sessionId) }
             }
         }
     }

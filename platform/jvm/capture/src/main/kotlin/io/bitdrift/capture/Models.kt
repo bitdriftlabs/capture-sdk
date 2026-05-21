@@ -77,3 +77,16 @@ sealed class ApiError(
  * Represents a failed operation due to the SDK not being started
  */
 data object SdkNotStartedError : Error("SDK not started")
+
+/**
+ * Represents a failure during SDK initialization.
+ * This error is returned via the [Capture.Logger.start] result callback when the SDK
+ * fails to initialize.
+ *
+ * @param reason A message describing what went wrong during initialization.
+ * @param cause The underlying throwable that caused the failure, if any.
+ */
+data class SdkStartFailure(
+    val reason: String,
+    val cause: Throwable? = null,
+) : Error(reason)

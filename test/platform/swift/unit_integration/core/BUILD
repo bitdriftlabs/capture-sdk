@@ -9,6 +9,7 @@ bitdrift_mobile_swift_test(
     ],
     repository = "@capture",
     tags = ["macos_only"],
+    use_test_host = True,
     visibility = ["//visibility:public"],
     deps = [
         "//platform/swift/source:bitdrift_enhanced_crash_data",

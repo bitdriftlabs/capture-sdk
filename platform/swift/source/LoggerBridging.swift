@@ -58,6 +58,8 @@ protocol LoggerBridging {
 
     func getDeviceID() -> String
 
+    func getSdkStatus() -> SdkStatus
+
     func addField(withKey key: String, value: String)
 
     func removeField(withKey key: String)
@@ -78,10 +80,11 @@ protocol LoggerBridging {
 
     func notifyLowMemory(level: String, memoryUsedKB: UInt64)
 
-    /// Registers an opaque user identifier for backend correlation with device identifier.
+    /// Sets an entity identifier for backend correlation with device identifier.
+    /// The value is hashed for storage and the exact value is never persisted.
     ///
-    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID).
-    func registerOpaqueEntityID(_ opaqueEntityID: String)
+    /// - parameter entityID: Entity identifier.
+    func setEntityID(_ entityID: String)
 
     /// Retrieves a given runtime variable.
     ///

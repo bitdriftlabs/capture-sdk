@@ -152,6 +152,7 @@ pub(crate) fn persist_anr(
   destination: &str,
   attributes: &JObject<'_>,
   running_state: Option<&str>,
+  app_exit_description: Option<&str>,
 ) -> anyhow::Result<()> {
   let mut builder = FlatBufferBuilder::new();
   let source_file = read_stream_to_file(env, source_stream)?;
@@ -168,6 +169,7 @@ pub(crate) fn persist_anr(
     &mut app_info,
     &mut device_info,
     source_view,
+    app_exit_description,
   )
   .map_err(|e| anyhow::anyhow!("failed to parse ANR report: {e}"))?;
 

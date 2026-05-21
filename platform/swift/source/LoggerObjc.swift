@@ -192,6 +192,73 @@ public final class LoggerObjc: NSObject {
         }
     }
 
+    /// Initializes the Capture SDK with the specified API key and session strategy.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
+    ///
+    /// - parameter apiKey:          The API key provided by bitdrift.
+    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
+    /// - parameter startResult:     A callback invoked with the result of the SDK initialization.
+    ///                              Called on the calling thread before `start` returns.
+    ///                              Receives nil on success, or an error on failure.
+    @objc
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategyObjc,
+        startResult: @escaping (Error?) -> Void
+    ) {
+        Capture.Logger
+            .start(
+                withAPIKey: apiKey,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                startResult: { result in
+                    switch result {
+                    case .success:
+                        startResult(nil)
+                    case .failure(let error):
+                        startResult(error)
+                    }
+                }
+            )
+    }
+
+    /// Initializes the Capture SDK with the specified API key and session strategy.
+    /// Calling other SDK methods has no effect unless the logger has been initialized.
+    /// Subsequent calls to this function will have no effect.
+    ///
+    /// - parameter apiKey:          The API key provided by bitdrift.
+    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
+    /// - parameter configuration:   Additional options for the Capture Logger.
+    /// - parameter startResult:     A callback invoked with the result of the SDK initialization.
+    ///                              Called on the calling thread before `start` returns.
+    ///                              Receives nil on success, or an error on failure.
+    @objc
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategyObjc,
+        configuration: CAPConfiguration,
+        startResult: @escaping (Error?) -> Void
+    ) {
+        let logger = Capture.Logger
+            .start(
+                withAPIKey: apiKey,
+                sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+                configuration: configuration.underlyingConfig,
+                startResult: { result in
+                    switch result {
+                    case .success:
+                        startResult(nil)
+                    case .failure(let error):
+                        startResult(error)
+                    }
+                }
+            )
+
+        if let logger, configuration.enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
     /// Sets the operation mode of the logger, where activating sleep mode
     /// reduces activity to a minimal level
     ///
@@ -207,6 +274,14 @@ public final class LoggerObjc: NSObject {
     @objc
     public static func sdkVersion() -> String {
         return capture_get_sdk_version()
+    }
+
+    /// Returns a point-in-time snapshot of the SDK's operational status.
+    ///
+    /// - returns: The current SDK status.
+    @objc
+    public static func getSdkStatus() -> SdkStatus {
+        return Capture.Logger.getSdkStatus()
     }
 
     /// Defines the initialization of a new session within the current configured logger.
@@ -431,12 +506,13 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
-    /// Registers an opaque user identifier for backend correlation with device identifier.
+    /// Sets an entity identifier for backend correlation with device identifier.
+    /// The value is hashed for storage and the exact value is never persisted.
     ///
-    /// - parameter opaqueEntityID: Opaque user identifier (for example, a hashed user ID)
+    /// - parameter entityID: Entity identifier.
     @objc
-    public static func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        Capture.Logger.registerOpaqueEntityID(opaqueEntityID)
+    public static func setEntityID(_ entityID: String) {
+        Capture.Logger.setEntityID(entityID)
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

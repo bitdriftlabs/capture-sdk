@@ -132,7 +132,11 @@ object Capture {
          *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
          *               Compose API base URL.
          * @param context an optional context reference. You should provide the context if called from
-         * a [android.content.ContentProvider]
+         * a [android.content.ContentProvider].
+         * @param startResult an optional callback invoked with the result of the SDK initialization.
+         *                     The callback is always called on the calling thread before [start] returns.
+         *                     On success, it receives a [CaptureResult.Success] containing an [ILogger] instance.
+         *                     On failure, it receives a [CaptureResult.Failure] with a [SdkStartFailure].
          */
         @Synchronized
         @JvmStatic
@@ -145,6 +149,7 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
+            startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         ) {
             start(
                 apiKey,
@@ -155,6 +160,7 @@ object Capture {
                 apiUrl,
                 CaptureJniLibrary,
                 context,
+                startResult,
             )
         }
 
@@ -172,13 +178,13 @@ object Capture {
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
             context: Context? = null,
+            startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         ) {
             // There's nothing we can do if we don't have yet access to the application context.
             if (hasInvalidContext(context)) {
-                Log.w(
-                    LOG_TAG,
-                    "Attempted to initialize Capture with a null context",
-                )
+                val errorMessage = "Attempted to initialize Capture with a null context"
+                Log.w(LOG_TAG, errorMessage)
+                startResult?.invoke(CaptureResult.Failure(SdkStartFailure(errorMessage)))
                 return
             }
 
@@ -193,6 +199,7 @@ object Capture {
                     apiUrl = apiUrl,
                     bridge = bridge,
                     context = context,
+                    startResult = startResult,
                 )
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
@@ -273,6 +280,14 @@ object Capture {
         fun getPreviousRunInfo(): PreviousRunInfo? = (logger() as? LoggerImpl)?.getPreviousRunInfo()
 
         /**
+         * Returns a point-in-time snapshot of the SDK's operational status.
+         */
+        @JvmStatic
+        fun getSdkStatus(): SdkStatus =
+            (logger() as? LoggerImpl)?.getSdkStatus()
+                ?: SdkStatus(InitializationState.NOT_STARTED, null, null)
+
+        /**
          * Adds a field that should be attached to all logs emitted by the logger going forward.
          * If a field with a given key has already been registered with the logger, its value is
          * overridden with the new value.
@@ -322,14 +337,14 @@ object Capture {
         }
 
         /**
-         * Registers an opaque user identifier for backend correlation with device identifier.
+         * Sets an entity identifier for backend correlation with device identifier.
+         * The value is hashed for storage and the exact value is never persisted.
          *
-         * @param opaqueEntityId opaque user identifier (for example, a hashed user ID)
+         * @param entityId entity identifier
          */
         @JvmStatic
-        @ExperimentalBitdriftApi
-        fun registerOpaqueEntityId(opaqueEntityId: String) {
-            logger()?.registerOpaqueEntityId(opaqueEntityId)
+        fun setEntityId(entityId: String) {
+            logger()?.setEntityId(entityId)
         }
 
         /**
@@ -658,6 +673,7 @@ object Capture {
         apiUrl: HttpUrl,
         bridge: IBridge,
         context: Context?,
+        startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
     ) {
         try {
             val startSdkTimer = TimeSource.Monotonic.markNow()
@@ -710,9 +726,13 @@ object Capture {
                 sdkConfiguredDuration = sdkConfiguredDuration,
                 captureStartThread = Thread.currentThread().name,
             )
-        } catch (e: Throwable) {
-            Log.w(LOG_TAG, "Failed to start Capture", e)
+
+            startResult?.invoke(CaptureResult.Success(loggerImpl))
+        } catch (throwable: Throwable) {
+            val errorDetails = "Failed to start Capture: ${throwable.message}"
+            Log.w(LOG_TAG, errorDetails, throwable)
             default.set(LoggerState.StartFailure)
+            startResult?.invoke(CaptureResult.Failure(SdkStartFailure(errorDetails, throwable)))
         }
     }
 }

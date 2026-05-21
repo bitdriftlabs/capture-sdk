@@ -51,6 +51,8 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param eventsListenerTarget responsible for listening to platform events and emitting logs in response to them.
      * @param applicationId the application ID of the current app, used to identify with the backend
      * @param applicationVersion the version of the current app, used to identify with the backend
+     * @param osVersion the operating system version of the current device, used to identify with the backend
+     * @param manufacturer the device manufacturer, used to identify with the backend on Android
      * @param model the host device model, used to identify with the backend
      * @param network the network implementation to use to communicate with the backend
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
@@ -67,6 +69,8 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         eventsListenerTarget: IEventsListenerTarget,
         applicationId: String,
         applicationVersion: String,
+        osVersion: String,
+        manufacturer: String,
         model: String,
         network: ICaptureNetwork,
         preferences: IPreferences,
@@ -82,6 +86,14 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param loggerId the ID of the logger to start.
      */
     external fun startLogger(loggerId: Long)
+
+    /**
+     * Returns a point-in-time snapshot of the SDK's operational status.
+     *
+     * @param loggerId the ID of the logger to query.
+     * @return an [SdkStatus] object with the current SDK state.
+     */
+    external fun getSdkStatus(loggerId: Long): SdkStatus
 
     /**
      * Destroys the logger associated with the provided logger id. If called more than once for a
@@ -159,14 +171,15 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
-     * Registers an opaque user identifier that is persisted and attached to static device metadata.
+     * Sets an entity identifier that is persisted and attached to static device metadata.
+     * The value is hashed for storage and the exact value is never persisted.
      *
-     * @param loggerId the logger to register the opaque user identifier for.
-     * @param opaqueEntityId opaque (for example, hashed) user identifier.
+     * @param loggerId the logger to set the entity identifier for.
+     * @param entityId entity identifier.
      */
-    external fun registerOpaqueEntityId(
+    external fun setEntityId(
         loggerId: Long,
-        opaqueEntityId: String,
+        entityId: String,
     )
 
     /**
@@ -396,6 +409,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         destinationPath: String,
         attributes: IClientAttributes,
         runningState: String?,
+        appExitDescription: String?,
     )
 
     /**

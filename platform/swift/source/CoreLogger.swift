@@ -154,6 +154,10 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.getDeviceID()
     }
 
+    func getSdkStatus() -> SdkStatus {
+        self.underlyingLogger.getSdkStatus()
+    }
+
     func addField(withKey key: String, value: String) {
         self.underlyingLogger.addField(withKey: key, value: value)
     }
@@ -174,8 +178,8 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.notifyLowMemory(level: level, memoryUsedKB: memoryUsedKB)
     }
 
-    func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        self.underlyingLogger.registerOpaqueEntityID(opaqueEntityID)
+    func setEntityID(_ entityID: String) {
+        self.underlyingLogger.setEntityID(entityID)
     }
 
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {

@@ -5,6 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#[cfg(test)]
+#[path = "./metadata_test.rs"]
+mod metadata_test;
+
 use bd_api::Platform;
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock};
@@ -27,6 +31,10 @@ pub struct Mobile {
 
   /// Provides current device installation identifier.
   pub device: Arc<bd_logger::Device>,
+
+  pub os_version: Option<String>,
+
+  pub manufacturer: Option<String>,
 
   pub model: String,
 }
@@ -57,6 +65,16 @@ impl bd_api::Metadata for Mobile {
 
     if let Some(app_version) = self.app_version.as_ref() {
       metadata_map.insert("app_version".to_string(), app_version.clone());
+    }
+
+    if let Some(os_version) = self.os_version.as_ref() {
+      metadata_map.insert("os_version".to_string(), os_version.clone());
+    }
+
+    if self.platform == Platform::Android {
+      if let Some(manufacturer) = self.manufacturer.as_ref() {
+        metadata_map.insert("_manufacturer".to_string(), manufacturer.clone());
+      }
     }
 
     metadata_map.insert("model".to_string(), self.model.clone());

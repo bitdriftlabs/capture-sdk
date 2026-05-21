@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.22.16...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.0...HEAD
 
 ### Both
 
@@ -15,13 +15,13 @@
 
 **Fixed**
 
-- Improved crash detection on initial app install and after clearing app cache.
+- Nothing yet!
  
 ### Android
 
 **Added**
 
-- Enabled OkHttp Happy Eyeballs (RFC 8305) fast fallback on the SDK's internal HTTP client for consumers using OkHttp 5.x pre-stable alphas (< 5.0.0) where it was not yet enabled by default.
+- Nothing yet!
 
 **Changed**
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Fixed incorrect foreground/background state on fatal issues and app termination logs.
+- Nothing yet!
 
 ### iOS
 
@@ -43,8 +43,46 @@
 
 **Fixed**
 
+- Nothing yet!
+
+## [0.23.0]
+
+[0.23.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.0
+
+### Both
+
+**Added**
+
+- Add optional `startResult` callback to `start` method that reports success with the logger instance or failure with error details.
+- Add `getSdkStatus()` API that returns a point-in-time snapshot of the SDK's operational status, including initialization state (`NotStarted`, `Loaded`, `Running`, `Disabled`), last handshake time, and last config delivery time.
+
+**Changed**
+
+- Renamed `registerOpaqueEntityId` (Android) / `registerOpaqueEntityID` (iOS) to `setEntityId` / `setEntityID`. This API is no longer experimental.
+
+**Fixed**
+
+- Improved crash detection on initial app install and after clearing app cache.
+ 
+### Android
+
+**Added**
+
+- Enabled OkHttp Happy Eyeballs (RFC 8305) fast fallback on the SDK's internal HTTP client for consumers using OkHttp 5.x pre-stable alphas (< 5.0.0) where it was not yet enabled by default.
+
+**Fixed**
+
+- Fixed incorrect foreground/background state on fatal issues and app termination logs.
+- Fixed ANRs incorrectly classified as undetermined.
+- Fixed battery level fields emitting invalid values when BatteryManager cannot determine capacity.
+
+### iOS
+
+**Fixed**
+
 - Fixed `Span Name` for network request/responses.
-- The mechanism used to name threads in crash reports has been improved
+- The mechanism used to name threads in crash reports has been improved.
+
 
 ## [0.22.16]
 

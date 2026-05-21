@@ -79,6 +79,7 @@ final class LoggerBridge: LoggerBridging {
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,
+        osVersion: String,
         model: String,
         network: Network?,
         errorReporting: RemoteErrorReporting,
@@ -103,6 +104,7 @@ final class LoggerBridge: LoggerBridging {
             eventsListenerTarget,
             appID,
             releaseVersion,
+            osVersion,
             model,
             network,
             errorReporting,
@@ -135,6 +137,7 @@ final class LoggerBridge: LoggerBridging {
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,
+        osVersion: String,
         model: String,
         network: Network?,
         errorReporting: RemoteErrorReporting,
@@ -151,6 +154,7 @@ final class LoggerBridge: LoggerBridging {
             eventsListenerTarget: eventsListenerTarget,
             appID: appID,
             releaseVersion: releaseVersion,
+            osVersion: osVersion,
             model: model,
             network: network,
             errorReporting: errorReporting,
@@ -236,6 +240,11 @@ final class LoggerBridge: LoggerBridging {
         capture_get_device_id(self.loggerID)
     }
 
+    func getSdkStatus() -> SdkStatus {
+        let ffi = capture_get_sdk_status(self.loggerID)
+        return SdkStatus.from(ffi: ffi)
+    }
+
     func addField(withKey key: String, value: String) {
         capture_add_log_field(self.loggerID, key, value)
     }
@@ -260,8 +269,8 @@ final class LoggerBridge: LoggerBridging {
         capture_notify_low_memory(self.loggerID, level, memoryUsedKB)
     }
 
-    func registerOpaqueEntityID(_ opaqueEntityID: String) {
-        capture_register_opaque_entity_id(self.loggerID, opaqueEntityID)
+    func setEntityID(_ entityID: String) {
+        capture_set_entity_id(self.loggerID, entityID)
     }
 
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {

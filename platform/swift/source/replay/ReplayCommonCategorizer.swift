@@ -74,4 +74,27 @@ struct ReplayCommonCategorizer {
 
         return nil
     }
+
+    /// Categorize a pure CALayer by class name or visual content.
+    ///
+    /// - parameter layer: The CALayer to analyze.
+    /// - parameter frame: Absolute position and size of the layer on screen.
+    ///
+    /// - returns: An annotated view which defines the position and traverse behavior, see
+    ///            `AnnotatedViewType` for more information
+    static func categorizeLayer(_ layer: CALayer, frame: CGRect) -> AnnotatedView {
+        let className = NSStringFromClass(type(of: layer))
+
+        // CGDrawingLayer is SwiftUI's text/label rendering layer (equivalent to CGDrawingView for UIViews).
+        // The class name is Swift-mangled with a module hash prefix, so match by suffix.
+        if className.hasSuffix("CGDrawingLayer") {
+            return AnnotatedView(.label, recurse: false, frame: frame)
+        }
+
+        if let contents = layer.contents, CFGetTypeID(contents as CFTypeRef) == CGImage.typeID {
+            return AnnotatedView(.image, frame: frame)
+        }
+
+        return AnnotatedView(.view, frame: frame)
+    }
 }

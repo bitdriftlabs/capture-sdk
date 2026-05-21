@@ -20,6 +20,25 @@ final class LoggerSharedTests: XCTestCase {
         Logger.resetShared()
     }
 
+    func testGetSdkStatus_beforeStart_returnsNotStarted() {
+        Logger.resetShared()
+
+        let status = Capture.Logger.getSdkStatus()
+
+        XCTAssertEqual(status.initializationState, InitializationState.notStarted)
+        XCTAssertNil(status.lastHandshakeTime)
+        XCTAssertNil(status.lastConfigDeliveryTime)
+    }
+
+    func testGetSdkStatus_afterStart_returnsNonNotStartedState() {
+        Logger.resetShared()
+        self.startLoggerWithIsolatedDirectory(apiKey: "test_api_key")
+
+        let status = Capture.Logger.getSdkStatus()
+
+        XCTAssertNotEqual(status.initializationState, InitializationState.notStarted)
+    }
+
     func testIntegrationsAreEnabledOnlyOnce() throws {
         var integrationStartsCount = 0
         let integration = Integration { _, _, _ in

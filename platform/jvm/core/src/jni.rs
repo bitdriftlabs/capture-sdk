@@ -62,7 +62,7 @@ use jni::sys::{
 };
 use jni::{JNIEnv, JavaVM};
 use platform_shared::metadata::Mobile;
-use platform_shared::{LoggerHolder, LoggerId};
+use platform_shared::{date_to_unix_milliseconds, LoggerHolder, LoggerId};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
@@ -212,6 +212,9 @@ static REPORT_PROCESSING_SESSION_PREVIOUS_RUN: OnceLock<CachedClass> = OnceLock:
 static ISSUE_REPORT_DISPATCHER_DISPATCH: OnceLock<CachedMethod> = OnceLock::new();
 static ISSUE_REPORT_CLASS: OnceLock<CachedClass> = OnceLock::new();
 static ISSUE_REPORT_CONSTRUCTOR: OnceLock<CachedMethod> = OnceLock::new();
+
+static SDK_STATUS_CLASS: OnceLock<CachedClass> = OnceLock::new();
+static SDK_STATUS_CONSTRUCTOR: OnceLock<CachedMethod> = OnceLock::new();
 
 pub(crate) fn initialize_method_handle<
   'local,
@@ -384,6 +387,20 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
     "<init>",
     "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V",
     &ISSUE_REPORT_CONSTRUCTOR,
+  )?;
+
+  let sdk_status_class = initialize_class(
+    &mut env,
+    "io/bitdrift/capture/SdkStatus",
+    Some(&SDK_STATUS_CLASS),
+  )?;
+
+  initialize_method_handle(
+    &mut env,
+    &sdk_status_class.class,
+    "<init>",
+    "(IJJ)V",
+    &SDK_STATUS_CONSTRUCTOR,
   )?;
 
   key_value_storage::initialize(&mut env)?;
@@ -722,6 +739,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   events_listener_target: JObject<'_>,
   application_id: JString<'_>,
   application_version: JString<'_>,
+  os_version: JString<'_>,
+  manufacturer: JString<'_>,
   model: JString<'_>,
   network: JObject<'_>,
   preferences: JObject<'_>,
@@ -762,6 +781,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         // fields as metadata and only use the fixed fields on logs for matching.
         os: "android".to_string(),
         device: device.clone(),
+        os_version: Some(unsafe { env.get_string_unchecked(&os_version) }?.into()),
+        manufacturer: Some(unsafe { env.get_string_unchecked(&manufacturer) }?.into()),
         model: unsafe { env.get_string_unchecked(&model) }?.into(),
       });
 
@@ -878,6 +899,50 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startLogger(
 ) {
   let logger = unsafe { LoggerId::from_raw(logger_id) };
   logger.start();
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSdkStatus(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+) -> jobject {
+  with_handle_unexpected_or(
+    || {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      let status = logger.get_sdk_status();
+
+      let initialization_state = status.initialization_state as i32;
+      let last_handshake_time = date_to_unix_milliseconds(status.last_handshake_time);
+      let last_config_delivery_time = date_to_unix_milliseconds(status.last_config_delivery_time);
+
+      let sdk_status_class = SDK_STATUS_CLASS.get().ok_or(InvariantError::Invariant)?;
+      let obj = unsafe {
+        env.new_object_unchecked(
+          &sdk_status_class.class,
+          SDK_STATUS_CONSTRUCTOR
+            .get()
+            .ok_or(InvariantError::Invariant)?
+            .method_id,
+          &[
+            jvalue {
+              i: initialization_state,
+            },
+            jvalue {
+              j: last_handshake_time,
+            },
+            jvalue {
+              j: last_config_delivery_time,
+            },
+          ],
+        )?
+      };
+
+      Ok(obj.as_raw())
+    },
+    JObject::null().as_raw(),
+    "jni get_sdk_status",
+  )
 }
 
 #[no_mangle]
@@ -1014,24 +1079,24 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
 }
 
 #[no_mangle]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerOpaqueEntityId(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setEntityId(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
-  opaque_entity_id: JString<'_>,
+  entity_id: JString<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let opaque_entity_id = unsafe { env.get_string_unchecked(&opaque_entity_id) }?
+      let entity_id = unsafe { env.get_string_unchecked(&entity_id) }?
         .to_string_lossy()
         .to_string();
 
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.register_opaque_entity_id(Some(&opaque_entity_id));
+      logger.register_opaque_entity_id(Some(&entity_id));
 
       Ok(())
     },
-    "jni register opaque user id",
+    "jni set entity id",
   );
 }
 
@@ -1447,6 +1512,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   destination: JString<'_>,
   attributes: JObject<'_>,
   running_state: JString<'_>,
+  app_exit_description: JString<'_>,
 ) {
   let destination = match unsafe { env.get_string_unchecked(&destination) } {
     Ok(destination) => destination.to_string_lossy().to_string(),
@@ -1465,6 +1531,15 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
       .map(|s| s.to_string_lossy().to_string())
   };
 
+  let app_exit_description_str = if app_exit_description.is_null() {
+    None
+  } else {
+    unsafe { env.get_string_unchecked(&app_exit_description) }
+      .ok()
+      .map(|s| s.to_string_lossy().to_string())
+      .filter(|s| !s.is_empty())
+  };
+
   match report_processing::persist_anr(
     &mut env,
     &stream,
@@ -1472,6 +1547,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
     &destination,
     &attributes,
     running_state_str.as_deref(),
+    app_exit_description_str.as_deref(),
   ) {
     Ok(()) => {},
     Err(e) => {

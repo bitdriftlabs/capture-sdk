@@ -10,7 +10,7 @@ import Darwin
 import Foundation
 
 private let kDeviceId = "ios-helloworld"
-private let kOpaqueEntityID = "hello-world-opaque-entity-id"
+private let kEntityID = "hello-world-entity-id"
 
 private struct EncodableExampleStruct: Encodable {
     private struct InternalEncodableExampleStruct: Encodable {
@@ -103,7 +103,18 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                     apiURL: apiURL,
                     issueCallbackConfiguration: issueCallbackConfiguration
                 ),
-                fieldProviders: [CustomFieldProvider()]
+                fieldProviders: [CustomFieldProvider()],
+                startResult: { result in
+                    switch result {
+                    case .success(let logger):
+                        print("SDK started successfully. " +
+                                "sessionID=\(logger.sessionID), " +
+                                "sessionURL=\(logger.sessionURL), " +
+                                "deviceID=\(logger.deviceID)")
+                    case .failure(let error):
+                        print("SDK failed to start: \(error)")
+                    }
+                }
             )?
             .enableIntegrations(
                 [.urlSession(
@@ -114,7 +125,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             )
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
-        Logger.registerOpaqueEntityID(kOpaqueEntityID)
+        Logger.setEntityID(kEntityID)
         Logger.logInfo("App launched. Logger configured.")
 
         if let previousRunInfo = Capture.Logger.previousRunInfo {

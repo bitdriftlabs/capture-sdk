@@ -95,12 +95,12 @@ interface ILogger {
     )
 
     /**
-     * Registers an opaque user identifier for correlation with device identifier in backend debug
-     * tooling. Typical inputs are hashed user IDs.
+     * Sets an entity identifier for correlation with device identifier in backend debug
+     * tooling. The value is hashed for storage and the exact value is never persisted.
      *
-     * @param opaqueEntityId opaque user identifier.
+     * @param entityId entity identifier.
      */
-    fun registerOpaqueEntityId(opaqueEntityId: String)
+    fun setEntityId(entityId: String)
 
     /**
      * Records a feature flag exposure with a boolean variant. Use this method to track when

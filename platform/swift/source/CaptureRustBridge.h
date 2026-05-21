@@ -31,6 +31,7 @@ void capture_report_error(const char *message);
  * @param events_listener_target responsible for listening to platform events and emitting logs in response to them.
  * @param app_id the app id to identify the client as a null terminated C string.
  * @param app_version the app version to identify the client as a null terminated C string.
+ * @param os_version the operating system version to identify the client as a null terminated C string.
  * @param model the model of the device to identify the client as a null terminated C string.
  * @param network the Capture Network protocol to use for performing network requests.
  * @param error_reporter the error reported protocol to use for reporting errors.
@@ -47,6 +48,7 @@ logger_id capture_create_logger(
     id<EventsListenerTarget> events_listener_target,
     const char *app_id,
     const char *app_version,
+    const char *os_version,
     const char *model,
     _Nullable id<Network> network,
     _Nullable id<RemoteErrorReporting> error_reporter,
@@ -221,6 +223,21 @@ NSString *capture_get_device_id(logger_id logger_id);
  */
 NSString *capture_get_sdk_version();
 
+/**
+ * A C-compatible representation of the SDK status.
+ * Timestamps are epoch milliseconds, or -1 if not yet available.
+ */
+typedef struct {
+    int32_t initialization_state;
+    int64_t last_handshake_time_ms;
+    int64_t last_config_delivery_time_ms;
+} SdkStatusFFI;
+
+/**
+ * Returns a point-in-time snapshot of the SDK's operational status.
+ */
+SdkStatusFFI capture_get_sdk_status(logger_id logger_id);
+
 /*
  * Adds a field that should be attached to all logs emitted by the logger going forward.
  * If a field with a given key has already been registered with the logger, its value is
@@ -274,12 +291,13 @@ void capture_set_feature_flag_exposure(logger_id logger_id, const char *flag,
 void capture_notify_low_memory(logger_id logger_id, const char *level, uint64_t memory_used_kb);
 
 /*
- * Registers an opaque entity identifier for backend correlation with device identifier.
+ * Sets an entity identifier for backend correlation with device identifier.
+ * The value is hashed for storage and the exact value is never persisted.
  *
- * @param logger_id the logger to register the opaque entity identifier on.
- * @param opaque_entity_id opaque entity identifier (for example, a hashed user ID).
+ * @param logger_id the logger to set the entity identifier on.
+ * @param entity_id entity identifier.
  */
-void capture_register_opaque_entity_id(logger_id logger_id, const char *opaque_entity_id);
+void capture_set_entity_id(logger_id logger_id, const char *entity_id);
 
 /**
  * Signals the specified logger to shut down.
