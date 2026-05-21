@@ -23,15 +23,6 @@ struct AutomaticCapturePanelView: View {
             }
             .buttonStyle(PressableCardButtonStyle())
 
-            NavigationLink(destination: ReplayPreviewView()) {
-                PanelRow(
-                    title: "Replay preview",
-                    subtitle: "Browse all ViewType elements to validate session replay rendering.",
-                    showsChevron: true
-                )
-            }
-            .buttonStyle(PressableCardButtonStyle())
-
             PanelCard {
                 Text("App launch TTI is logged automatically on startup. Relaunch the app if you want to generate that signal again.")
                     .font(.footnote)

@@ -43,16 +43,10 @@ package final class Replay {
     ///            more information about the bytes structure.
     package func capture() -> Data {
         let startTime = CFAbsoluteTimeGetCurrent()
-        let result = self.capture(windows: UIApplication.shared.sessionReplayWindows())
-        self.renderTime = CFAbsoluteTimeGetCurrent() - startTime
-        return result
-    }
-
-    package func capture(windows: [UIWindow]) -> Data {
         var buffer = Data()
         rectToBytes(type: .view, buffer: &buffer, frame: UIScreen.main.bounds)
 
-        for window in windows {
+        for window in UIApplication.shared.sessionReplayWindows() {
             let windowClass = NSStringFromClass(type(of: window))
             if window.isHidden || window.alpha < 0.1 || kIgnoredWindows.contains(windowClass) {
                 continue
@@ -61,6 +55,7 @@ package final class Replay {
             self.traverse(into: &buffer, parent: window, parentPosition: .zero, clipTo: window.frame)
         }
 
+        self.renderTime = CFAbsoluteTimeGetCurrent() - startTime
         return buffer
     }
 
@@ -87,17 +82,6 @@ package final class Replay {
     private func traverse(into buffer: inout Data, parent: UIView, parentPosition: CGPoint, clipTo: CGRect,
                           ignoreViewType: Bool = false)
     {
-        // iOS 26+ (liquid glass): orphan CALayers (not backed by a UIView) must be traversed before
-        // UIView subviews so that background glass layers are painted beneath the content, not on top.
-        if #available(iOS 26, *) {
-            let backedLayerIDs = Set(parent.subviews.map { ObjectIdentifier($0.layer) })
-            if let sublayers = parent.layer.sublayers {
-                for layer in sublayers where !backedLayerIDs.contains(ObjectIdentifier(layer)) {
-                    self.traverseLayer(into: &buffer, layer: layer, parentPosition: parentPosition, clipTo: clipTo)
-                }
-            }
-        }
-
         for view in parent.subviews {
             if view.isHidden || view.alpha < 0.1 {
                 continue
@@ -151,48 +135,6 @@ package final class Replay {
                 frame.origin.y -= view.bounds.minY
                 self.traverse(into: &buffer, parent: view, parentPosition: frame.origin, clipTo: childClipTo,
                               ignoreViewType: ignoreViewType || aType.ignoreChildrenViews)
-            }
-        }
-    }
-
-    private func traverseLayer(
-        into buffer: inout Data,
-        layer: CALayer,
-        parentPosition: CGPoint,
-        clipTo: CGRect)
-    {
-        guard !layer.isHidden, layer.opacity > 0.1 else { return }
-
-        var frame = layer.frame
-        frame.origin.x += parentPosition.x
-        frame.origin.y += parentPosition.y
-
-        let childClipTo = layer.masksToBounds ? frame.intersection(clipTo) : clipTo
-
-        guard self.layerHasVisibleContent(layer) else { return }
-
-        let aType = ReplayCommonCategorizer.categorizeLayer(layer, frame: frame)
-        guard aType.type != .ignore else { return }
-
-        let clippedFrame = aType.frame.intersection(clipTo)
-        if !clippedFrame.isEmpty, clippedFrame.intersects(clipTo) {
-            rectToBytes(type: aType.type, buffer: &buffer, frame: clippedFrame)
-            for fragment in aType.fragments where fragment.frame.intersects(clipTo) {
-                rectToBytes(type: fragment.type, buffer: &buffer, frame: fragment.frame.intersection(clipTo))
-            }
-        }
-
-        if aType.recurse, let sublayers = layer.sublayers {
-            var nextPosition = frame.origin
-            nextPosition.x -= layer.bounds.minX
-            nextPosition.y -= layer.bounds.minY
-            for sublayer in sublayers {
-                self.traverseLayer(
-                    into: &buffer,
-                    layer: sublayer,
-                    parentPosition: nextPosition,
-                    clipTo: childClipTo
-                )
             }
         }
     }

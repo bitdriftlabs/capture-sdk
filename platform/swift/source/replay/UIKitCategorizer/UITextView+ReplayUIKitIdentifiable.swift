@@ -9,6 +9,6 @@ import UIKit
 
 extension UITextView: ReplayUIKitIdentifiable {
     final func identifyUIKit(frame: CGRect) -> AnnotatedView? {
-        return AnnotatedView(.textInput, frame: frame, ignoreWhenEmpty: false)
+        return AnnotatedView(.textInput, frame: frame)
     }
 }
