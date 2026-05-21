@@ -11,6 +11,10 @@ if [ $# -eq 0 ]
     readonly version="$1"
 fi
 
+# Optional second argument: custom artifact name (e.g. "capture-no-jank-stats")
+# Defaults to "capture" if not provided.
+readonly artifact_name="${2:-capture}"
+
 ./bazelw build \
   --announce_rc \
   --config=ci \
@@ -22,12 +26,17 @@ mkdir -p dist/
 
 sdk_repo="$(pwd)"
 pushd "$(mktemp -d)"
-  mv "$sdk_repo/bazel-bin/capture.aar" "capture-$version.aar"
-  mv "$sdk_repo/bazel-bin/capture.pom" "capture-$version.pom"
-  mv "$sdk_repo/bazel-bin/capture-sources.jar" "capture-$version-sources.jar"
-  mv "$sdk_repo/bazel-bin/capture-javadoc.jar" "capture-$version-javadoc.jar"
-  mv "$sdk_repo/bazel-bin/symbols.tar" "capture-$version-symbols.tar"
+  mv "$sdk_repo/bazel-bin/capture.aar" "$artifact_name-$version.aar"
+  mv "$sdk_repo/bazel-bin/capture.pom" "$artifact_name-$version.pom"
+  mv "$sdk_repo/bazel-bin/capture-sources.jar" "$artifact_name-$version-sources.jar"
+  mv "$sdk_repo/bazel-bin/capture-javadoc.jar" "$artifact_name-$version-javadoc.jar"
+  mv "$sdk_repo/bazel-bin/symbols.tar" "$artifact_name-$version-symbols.tar"
   cp "$sdk_repo/ci/LICENSE" "LICENSE"
+
+  # If using a custom artifact name, update the artifactId in the POM
+  if [ "$artifact_name" != "capture" ]; then
+    sed -i "s|<artifactId>capture</artifactId>|<artifactId>$artifact_name</artifactId>|" "$artifact_name-$version.pom"
+  fi
 
   zip -j -r "$sdk_repo/dist/Capture.android.zip" ./*
 popd
