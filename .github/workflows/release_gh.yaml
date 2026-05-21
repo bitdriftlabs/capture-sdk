@@ -63,8 +63,14 @@ jobs:
         run: |
           echo "$VERSION"
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+(\.[0-9]+)?)?$ ]]; then exit 1; fi
+          if [ -n "$CAPTURE_SUFFIX" ] && [ "$PLATFORM" != "android" ]; then
+            echo "capture-suffix can only be used with platform=android" >&2
+            exit 1
+          fi
     env:
       VERSION: ${{ inputs.version }}
+      CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
+      PLATFORM: ${{ inputs.platform }}
 
   # The iOS release build builds the xcframework in release mode and uploads it to the artifact store for later use.
   ios-release-build:
@@ -115,10 +121,11 @@ jobs:
         run: sudo apt-get install -y clang
       - name: Build AAR + artifacts
         run: |
-          artifact_name="capture${{ inputs.capture-suffix }}"
+          artifact_name="capture$CAPTURE_SUFFIX"
           ./tools/android_release.sh "$VERSION" "$artifact_name"
         env:
           VERSION: ${{ inputs.version }}
+          CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
       - uses: actions/upload-artifact@v4
         with:
           name: Capture.android.zip
@@ -148,6 +155,10 @@ jobs:
       contents: write
     name: GitHub release
     runs-on: ubuntu-latest
+    # always() is needed because some dependencies may be conditionally skipped
+    # (e.g. iOS jobs when platform=android, integrations when capture-only).
+    # Without it, a skipped dependency would also skip this job.
+    if: ${{ always() && !failure() && !cancelled() }}
     needs: [
       "ios-release-build",
       "build-ios-example-apps",
@@ -226,26 +237,28 @@ jobs:
         id: assets
         run: |
           assets=""
-          if [ "${{ inputs.platform }}" = "all" ] || [ "${{ inputs.platform }}" = "ios" ]; then
+          if [ "$PLATFORM" = "all" ] || [ "$PLATFORM" = "ios" ]; then
             assets="$assets Capture-$VERSION.ios.zip Capture-$VERSION.doccarchive.ios.zip example-apps.ios.zip"
           fi
-          if [ "${{ inputs.platform }}" = "all" ] || [ "${{ inputs.platform }}" = "android" ]; then
+          if [ "$PLATFORM" = "all" ] || [ "$PLATFORM" = "android" ]; then
             assets="$assets Capture-$VERSION.android.zip example-apps.android.zip"
-            if [ "${{ inputs.android-artifacts }}" = "all" ]; then
+            if [ "$ANDROID_ARTIFACTS" = "all" ]; then
               assets="$assets capture-timber-$VERSION.android.zip capture-apollo-$VERSION.android.zip capture-plugin-$VERSION.android.zip capture-plugin-marker-$VERSION.android.zip"
             fi
           fi
           echo "files=$assets" >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ inputs.version }}
+          PLATFORM: ${{ inputs.platform }}
+          ANDROID_ARTIFACTS: ${{ inputs.android-artifacts }}
 
         # Upload artifacts to the newly created release.
         # Prefix release version with "v". If capture-suffix is set, append it to the tag.
       - name: Create release
         run: |
           tag="v$VERSION"
-          if [ -n "${{ inputs.capture-suffix }}" ] && [ "${{ inputs.platform }}" = "android" ]; then
-            tag="v$VERSION${{ inputs.capture-suffix }}"
+          if [ -n "$CAPTURE_SUFFIX" ] && [ "$PLATFORM" = "android" ]; then
+            tag="v$VERSION$CAPTURE_SUFFIX"
           fi
           gh release create "$tag" \
             --target "$GITHUB_REF_NAME" \
@@ -254,3 +267,5 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
+          PLATFORM: ${{ inputs.platform }}

@@ -127,11 +127,11 @@ jobs:
     - name: Download GH Release Android artifacts
       run: |
         tag="v$VERSION"
-        if [ -n "${{ inputs.capture-suffix }}" ] && [ "${{ inputs.platform }}" = "android" ]; then
-          tag="v$VERSION${{ inputs.capture-suffix }}"
+        if [ -n "$CAPTURE_SUFFIX" ] && [ "$PLATFORM" = "android" ]; then
+          tag="v$VERSION$CAPTURE_SUFFIX"
         fi
         gh release download "$tag" -p 'Capture*.android.zip'
-        if [ "${{ inputs.android-artifacts }}" = "all" ]; then
+        if [ "$ANDROID_ARTIFACTS" = "all" ]; then
           gh release download "$tag" -p 'capture-timber*.android.zip'
           gh release download "$tag" -p 'capture-apollo*.android.zip'
           gh release download "$tag" -p 'capture-plugin*.android.zip'
@@ -139,14 +139,19 @@ jobs:
       env:
         VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
+        PLATFORM: ${{ inputs.platform }}
+        ANDROID_ARTIFACTS: ${{ inputs.android-artifacts }}
     - name: Upload Android Artifacts to aws bucket and prepare Maven Central bundles
       env:
         # GPG signing configuration (existing repo/org secrets)
         GPG_PRIVATE_KEY: ${{ secrets.GPG_SIGNING_KEY }}
         GPG_PASSPHRASE: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
+        CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
+        ANDROID_ARTIFACTS: ${{ inputs.android-artifacts }}
       run: |
-        artifact_name="capture${{ inputs.capture-suffix }}"
-        if [ "${{ inputs.android-artifacts }}" = "capture-only" ]; then
+        artifact_name="capture$CAPTURE_SUFFIX"
+        if [ "$ANDROID_ARTIFACTS" = "capture-only" ]; then
           ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "" "" "" "" "$artifact_name"
         else
           ./ci/capture_android_release.sh ${{ inputs.version }} "Capture-${{ inputs.version }}.android.zip" "capture-timber-${{ inputs.version }}.android.zip" "capture-apollo-${{ inputs.version }}.android.zip" "capture-plugin-${{ inputs.version }}.android.zip" "capture-plugin-marker-${{ inputs.version }}.android.zip" "$artifact_name"

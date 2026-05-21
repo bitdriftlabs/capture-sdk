@@ -15,6 +15,11 @@ readonly capture_plugin_marker_archive="${6:-}"
 # Optional: custom artifact name (e.g. "capture-no-jank-stats"). Defaults to "capture".
 readonly capture_artifact_name="${7:-capture}"
 
+if [[ ! "$capture_artifact_name" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+  echo "Invalid capture artifact name: '$capture_artifact_name'. Expected regex: [a-z0-9][a-z0-9-]*" >&2
+  exit 1
+fi
+
 #############################################
 # Helpers for Maven Central bundle creation #
 #############################################
