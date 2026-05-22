@@ -28,6 +28,8 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.utils.BuildTypeChecker
+import io.bitdrift.capture.utils.DebugCustomerCallbackException
+import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -184,7 +186,7 @@ object Capture {
             if (hasInvalidContext(context)) {
                 val errorMessage = "Attempted to initialize Capture with a null context"
                 Log.w(LOG_TAG, errorMessage)
-                startResult?.invoke(CaptureResult.Failure(SdkStartFailure(errorMessage)))
+                startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorMessage)))
                 return
             }
 
@@ -727,12 +729,15 @@ object Capture {
                 captureStartThread = Thread.currentThread().name,
             )
 
-            startResult?.invoke(CaptureResult.Success(loggerImpl))
+            startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Success(loggerImpl))
         } catch (throwable: Throwable) {
+            if (throwable.shouldReThrowOnDebugBuild()) throw throwable
             val errorDetails = "Failed to start Capture: ${throwable.message}"
             Log.w(LOG_TAG, errorDetails, throwable)
             default.set(LoggerState.StartFailure)
-            startResult?.invoke(CaptureResult.Failure(SdkStartFailure(errorDetails, throwable)))
+            startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorDetails, throwable)))
         }
     }
+
+    private fun Throwable.shouldReThrowOnDebugBuild(): Boolean = this is DebugCustomerCallbackException
 }
