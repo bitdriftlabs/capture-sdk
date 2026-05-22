@@ -8,6 +8,7 @@
 package io.bitdrift.capture.providers.session
 
 import io.bitdrift.capture.common.MainThreadHandler
+import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
 
 internal sealed class SessionStrategyConfiguration {
     data class Fixed(
@@ -24,7 +25,7 @@ internal sealed class SessionStrategyConfiguration {
 
         fun sessionIdChanged(sessionId: String) {
             mainThreadHandler.run {
-                runCatching { sessionStrategy.onSessionIdChanged?.invoke(sessionId) }
+                sessionStrategy.onSessionIdChanged.invokeCatchingOrThrowOnDebug(sessionId)
             }
         }
     }
