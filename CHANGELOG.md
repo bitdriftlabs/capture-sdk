@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Prevent SDK from entering failed state when customer throws in `startResult` callback.
 
 ### iOS
 

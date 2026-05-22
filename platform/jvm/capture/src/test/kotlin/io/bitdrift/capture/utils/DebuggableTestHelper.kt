@@ -10,7 +10,10 @@ package io.bitdrift.capture.utils
 import android.content.pm.ApplicationInfo
 import androidx.test.core.app.ApplicationProvider
 
-internal fun setIsDebuggable(debuggable: Boolean) {
+/**
+ * Sets if the app is debuggable or not
+ */
+fun setIsDebuggable(debuggable: Boolean) {
     val appInfo = ApplicationProvider.getApplicationContext<android.app.Application>().applicationInfo
     if (debuggable) {
         appInfo.flags = appInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
