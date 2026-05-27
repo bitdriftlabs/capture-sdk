@@ -19,6 +19,8 @@ import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.events.performance.MemoryMetricsProvider
+import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
@@ -52,6 +54,7 @@ class IssueReporterTest {
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = mock()
 
     private val internalLogger: IInternalLogger = mock()
+    private val memoryMetricsProvider: MemoryMetricsProvider = mock()
     private val appContext = ApplicationProvider.getApplicationContext<Context>()
     private val clientAttributes = ClientAttributes(appContext, lifecycleOwner)
 
@@ -205,10 +208,6 @@ class IssueReporterTest {
         verify(completedReportsProcessor).processIssueReports(ReportProcessingSession.PreviousRun)
     }
 
-    private fun IssueReporterState.assert(expectedType: Class<*>) {
-        assertThat(this).isInstanceOf(expectedType)
-    }
-
     @Test
     fun init_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
         val exception = RuntimeException("test error")
@@ -247,6 +246,25 @@ class IssueReporterTest {
         assertThat(processor).isInstanceOf(IssueReporterProcessor::class.java)
     }
 
+    @Test
+    fun onJvmCrash_whenInitialized_shouldUpdateMemoryLevelState() {
+        whenever(memoryMetricsProvider.getJvmMemoryPressureLevel()).thenReturn(MemoryPressureLevel.Critical)
+        issueReporter.init(
+            sdkDirectory,
+            clientAttributes,
+            completedReportsProcessor,
+        )
+
+        issueReporter.onJvmCrash(Thread(), IllegalStateException())
+
+        verify(memoryMetricsProvider).getJvmMemoryPressureLevel()
+        verify(internalLogger).notifyMemoryPressureLevel(MemoryPressureLevel.Critical)
+    }
+
+    private fun IssueReporterState.assert(expectedType: Class<*>) {
+        assertThat(this).isInstanceOf(expectedType)
+    }
+
     private fun buildReporter(): IssueReporter =
         IssueReporter(
             internalLogger = internalLogger,
@@ -254,5 +272,6 @@ class IssueReporterTest {
             latestAppExitInfoProvider = latestAppExitInfoProvider,
             captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
             dateProvider = FakeDateProvider,
+            memoryMetricsProvider = memoryMetricsProvider,
         )
 }

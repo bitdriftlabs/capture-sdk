@@ -33,6 +33,7 @@ import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
+import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
@@ -110,7 +111,7 @@ internal class LoggerImpl(
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
-    private val memoryMetricsProvider: MemoryMetricsProvider
+    private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
     private var jankStatsMonitor: JankStatsMonitor? = null
@@ -137,6 +138,7 @@ internal class LoggerImpl(
                 dateProvider = dateProvider,
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
                 captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
+                memoryMetricsProvider = memoryMetricsProvider,
             )
         } else {
             null
@@ -191,7 +193,6 @@ internal class LoggerImpl(
                 preferences,
                 context,
             )
-        memoryMetricsProvider = MemoryMetricsProvider(activityManager)
 
         resourceUtilizationTarget =
             ResourceUtilizationTarget(
@@ -591,6 +592,10 @@ internal class LoggerImpl(
             arrayFields.toLegacyJniFields(),
             duration.toDouble(DurationUnit.SECONDS),
         )
+    }
+
+    override fun notifyMemoryPressureLevel(level: MemoryPressureLevel) {
+        CaptureJniLibrary.writeMemoryPressureLevel(this.loggerId, level.nativeValue)
     }
 
     override fun flush(blocking: Boolean) {

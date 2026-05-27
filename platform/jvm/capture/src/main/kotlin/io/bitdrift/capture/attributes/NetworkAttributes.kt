@@ -159,7 +159,6 @@ internal class NetworkAttributes(
         permission: String,
     ): String {
         // We'll only attempt to get this value if permission has been granted
-        // TODO: Use androidx.core.content.ContextCompat - fix adding dep to "androidx.core:core-ktx:1.8.0"
         return if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
             "forbidden"
         } else {

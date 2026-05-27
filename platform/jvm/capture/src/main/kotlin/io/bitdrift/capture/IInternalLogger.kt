@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture
 
+import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.Field
 import kotlin.time.Duration
@@ -61,4 +62,6 @@ internal interface IInternalLogger : ILogger {
         fields: Array<Field>,
         duration: Duration,
     )
+
+    fun notifyMemoryPressureLevel(level: MemoryPressureLevel)
 }

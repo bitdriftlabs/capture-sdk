@@ -36,14 +36,15 @@ class MemoryMetricsProviderTest {
         memoryMetricsProvider =
             MemoryMetricsProvider(activityManager, jvmMemoryProvider = jvmMemoryProvider)
         memoryMetricsProvider.runtime = runtime
-        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_WARNING_MEMORY_PERCENT_THRESHOLD)).thenReturn(75)
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)).thenReturn(
             90,
         )
     }
 
     @Test
     fun getMemoryAttributes_includesAllFields() {
-        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)).thenReturn(
             90,
         )
 
@@ -74,7 +75,7 @@ class MemoryMetricsProviderTest {
 
     @Test
     fun isMemoryLow_withMinHighThreshold_shouldReturnFalse() {
-        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)).thenReturn(
             49,
         )
 
@@ -85,7 +86,7 @@ class MemoryMetricsProviderTest {
 
     @Test
     fun isMemoryLow_withFakeHighThreshold_shouldReturnFalse() {
-        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)).thenReturn(
             200,
         )
 
@@ -96,7 +97,7 @@ class MemoryMetricsProviderTest {
 
     @Test
     fun isMemoryLow_withThresholdBelowMinimum_shouldReturnFalse() {
-        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)).thenReturn(
             0,
         )
 
@@ -119,12 +120,78 @@ class MemoryMetricsProviderTest {
     fun isMemoryLow_whenUsageBelowThreshold_shouldReturnsFalse() {
         whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(89_000L)
         whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
-        whenever(runtime.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD)).thenReturn(
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)).thenReturn(
             90,
         )
 
         val result = memoryMetricsProvider.isMemoryLow()
 
         assertThat(result).isFalse
+    }
+
+    @Test
+    fun getJvmMemoryPressureLevel_whenRuntimeIsNull_shouldReturnUnknown() {
+        memoryMetricsProvider.runtime = null
+
+        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+
+        assertThat(result).isEqualTo(MemoryPressureLevel.Unknown)
+    }
+
+    @Test
+    fun getJvmMemoryPressureLevel_whenBelowWarningThreshold_shouldReturnNormal() {
+        memoryMetricsProvider.runtime = runtime
+        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(50_000L)
+        whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
+
+        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+
+        assertThat(result).isEqualTo(MemoryPressureLevel.Normal)
+    }
+
+    @Test
+    fun getJvmMemoryPressureLevel_whenAtWarningThreshold_shouldReturnWarning() {
+        memoryMetricsProvider.runtime = runtime
+        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(75_000L)
+        whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
+
+        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+
+        assertThat(result).isEqualTo(MemoryPressureLevel.Warning)
+    }
+
+    @Test
+    fun getJvmMemoryPressureLevel_whenBetweenWarningAndCritical_shouldReturnWarning() {
+        memoryMetricsProvider.runtime = runtime
+        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(85_000L)
+        whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
+
+        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+
+        assertThat(result).isEqualTo(MemoryPressureLevel.Warning)
+    }
+
+    @Test
+    fun getJvmMemoryPressureLevel_whenAtCriticalThreshold_shouldReturnCritical() {
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_WARNING_MEMORY_PERCENT_THRESHOLD)).thenReturn(70)
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)).thenReturn(90)
+        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(90_000L)
+        whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
+
+        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+
+        assertThat(result).isEqualTo(MemoryPressureLevel.Critical)
+    }
+
+    @Test
+    fun getJvmMemoryPressureLevel_whenAboveCriticalThreshold_shouldReturnCritical() {
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_WARNING_MEMORY_PERCENT_THRESHOLD)).thenReturn(70)
+        whenever(runtime.getConfigValue(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)).thenReturn(90)
+        whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(95_000L)
+        whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
+
+        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+
+        assertThat(result).isEqualTo(MemoryPressureLevel.Critical)
     }
 }
