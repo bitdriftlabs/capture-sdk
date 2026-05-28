@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.1...HEAD
 
 ### Both
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Prevent SDK from entering failed state when customer throws in `startResult` callback.
+- Nothing yet!
 
 ### iOS
 
@@ -44,6 +44,23 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.1]
+
+[0.23.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.1
+
+### Both
+
+**Added**
+
+- Report the current memory pressure level state (Critical, Warning, Normal, Unknown) for fatal issues
+ 
+### Android
+
+**Fixed**
+
+- Prevent SDK from entering failed state when customer throws in `startResult` callback.
+
 
 ## [0.23.0]
 
