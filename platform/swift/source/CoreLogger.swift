@@ -174,11 +174,11 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
-    func notifyMemoryPressure(level: Int8) {
+    func notifyMemoryPressure(level: MemoryPressureLevel) {
         self.underlyingLogger.notifyMemoryPressure(level: level)
     }
 
-    func previousMemoryPressureLevel() -> Int8 {
+    func previousMemoryPressureLevel() -> MemoryPressureLevel {
         self.underlyingLogger.previousMemoryPressureLevel()
     }
 

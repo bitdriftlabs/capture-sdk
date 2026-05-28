@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import Foundation
+internal import CaptureLoggerBridge
 
 final class DispatchSourceMemoryMonitor {
     // Monitor all state changes.
@@ -33,7 +34,7 @@ final class DispatchSourceMemoryMonitor {
         ) { [weak self] notification in
             guard let self else { return }
             let level = notification.userInfo?["level"] as? Int8 ?? 0
-            self.logger.notifyMemoryPressure(level: level)
+            self.logger.notifyMemoryPressure(level: MemoryPressureLevel(rawValue: level) ?? .unknown)
         }
         #endif
     }
@@ -97,16 +98,16 @@ final class DispatchSourceMemoryMonitor {
 
 // MARK: - MemoryPressureEvent Extension
 private extension DispatchSource.MemoryPressureEvent {
-    var memoryPressureLevel: Int8 {
+    var memoryPressureLevel: MemoryPressureLevel {
         switch self {
         case .normal:
-            return 1
+            return .normal
         case .warning:
-            return 2
+            return .warning
         case .critical:
-            return 3
+            return .critical
         default:
-            return 0  // Unknown
+            return .unknown
         }
     }
 }

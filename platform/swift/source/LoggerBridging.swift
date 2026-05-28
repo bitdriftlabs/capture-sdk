@@ -78,9 +78,14 @@ protocol LoggerBridging {
     /// - parameter variant: The variant of the flag exposure to set
     func setFeatureFlagExposure(withName name: String, variant: String)
 
-    func notifyMemoryPressure(level: Int8)
+    /// Notifies the logger of a memory pressure event for crash report enrichment.
+    ///
+    /// - parameter level: The memory pressure level.
+    func notifyMemoryPressure(level: MemoryPressureLevel)
 
-    func previousMemoryPressureLevel() -> Int8
+    /// Returns the memory pressure level recorded during the previous session.
+    /// Returns `.unknown` if no memory pressure event was recorded.
+    func previousMemoryPressureLevel() -> MemoryPressureLevel
 
     /// Sets an entity identifier for backend correlation with device identifier.
     /// The value is hashed for storage and the exact value is never persisted.

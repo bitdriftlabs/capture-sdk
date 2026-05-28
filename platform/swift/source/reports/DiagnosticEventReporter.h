@@ -12,7 +12,7 @@ typedef NS_ENUM(int8_t, CAPMemoryPressureLevel) {
     CAPMemoryPressureLevelNormal = 1,
     CAPMemoryPressureLevelWarning = 2,
     CAPMemoryPressureLevelCritical = 3,
-};
+} NS_SWIFT_NAME(MemoryPressureLevel);
 
 typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
   CAPDiagnosticTypeNone = 0,

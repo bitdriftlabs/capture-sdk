@@ -6,7 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import Capture
-import Darwin
 import Foundation
 
 private let kDeviceId = "ios-helloworld"
@@ -271,22 +270,12 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     }
 
     func simulateLowMemoryWarning(level: Int8) {
-        var taskInfo = task_vm_info_data_t()
-        var count = mach_msg_type_number_t(
-            MemoryLayout<task_vm_info>.stride / MemoryLayout<integer_t>.stride
-        )
-        let result: kern_return_t = withUnsafeMutablePointer(to: &taskInfo) { pointer in
-            pointer.withMemoryRebound(to: integer_t.self, capacity: 1) { taskInfoOut in
-                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), taskInfoOut, &count)
-            }
-        }
-        let usedKB = result == KERN_SUCCESS ? taskInfo.phys_footprint / 1_024 : 0
         NotificationCenter.default.post(
             name: Notification.Name("io.bitdrift.capture.simulate_memory_pressure"),
             object: nil,
-            userInfo: ["level": level, "memoryUsedKB": usedKB]
+            userInfo: ["level": level]
         )
-        Logger.logInfo("Simulated memory pressure: level=\(level), usedKB=\(usedKB)")
+        Logger.logInfo("Simulated memory pressure: level=\(level)")
     }
 }
 

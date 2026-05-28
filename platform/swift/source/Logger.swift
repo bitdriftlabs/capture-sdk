@@ -276,7 +276,7 @@ public final class Logger {
                     sdkVersion: capture_get_sdk_version(),
                     eventTypes: .crash,
                     minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
-                    memoryPressureLevel: CAPMemoryPressureLevel(rawValue: memoryPressureLevel) ?? .unknown,
+                    memoryPressureLevel: memoryPressureLevel,
                     useStackOverlapMatching: useStackOverlapMatching,
                     crashEnrichmentSummaryHandler: { [weak self] summary in
                         let matcherMode = useStackOverlapMatching ? "base" : "exact"
