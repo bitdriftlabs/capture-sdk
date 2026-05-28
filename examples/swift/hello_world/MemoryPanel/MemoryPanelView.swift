@@ -111,7 +111,7 @@ struct MemoryLabView: View {
                     )
                 }
                 .buttonStyle(PressableCardButtonStyle())
-                
+
                 Button(action: { self.loggerCustomer.simulateLowMemoryWarning(level: 2) }) {
                     PanelRow(
                         title: "Trigger Warning",
