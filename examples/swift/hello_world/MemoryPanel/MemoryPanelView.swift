@@ -104,7 +104,15 @@ struct MemoryLabView: View {
             subtitle: "Force the DispatchSource memory pressure handler to fire with a synthetic event."
         ) {
             VStack(spacing: 8) {
-                Button(action: { self.loggerCustomer.simulateLowMemoryWarning(level: "warning") }) {
+                Button(action: { self.loggerCustomer.simulateLowMemoryWarning(level: 1) }) {
+                    PanelRow(
+                        title: "Reset to Normal",
+                        subtitle: "Clears the stored low memory state (normal level is filtered out of crash reports)."
+                    )
+                }
+                .buttonStyle(PressableCardButtonStyle())
+                
+                Button(action: { self.loggerCustomer.simulateLowMemoryWarning(level: 2) }) {
                     PanelRow(
                         title: "Trigger Warning",
                         subtitle: "Records a warning-level low memory event in the state store."
@@ -112,19 +120,11 @@ struct MemoryLabView: View {
                 }
                 .buttonStyle(PressableCardButtonStyle())
 
-                Button(action: { self.loggerCustomer.simulateLowMemoryWarning(level: "critical") }) {
+                Button(action: { self.loggerCustomer.simulateLowMemoryWarning(level: 3) }) {
                     PanelRow(
                         title: "Trigger Critical",
                         subtitle: "Records a critical-level low memory event in the state store.",
                         )
-                }
-                .buttonStyle(PressableCardButtonStyle())
-
-                Button(action: { self.loggerCustomer.simulateLowMemoryWarning(level: "normal") }) {
-                    PanelRow(
-                        title: "Reset to Normal",
-                        subtitle: "Clears the stored low memory state (normal level is filtered out of crash reports)."
-                    )
                 }
                 .buttonStyle(PressableCardButtonStyle())
             }

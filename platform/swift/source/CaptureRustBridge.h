@@ -282,13 +282,20 @@ void capture_set_feature_flag_exposure(logger_id logger_id, const char *flag,
                                        const char *_Nullable variant);
 
 /*
- * Notifies the logger of a low memory pressure event for crash report enrichment.
+ * Notifies the logger of a memory pressure event for crash report enrichment.
  *
  * @param logger_id the logger to notify.
- * @param level the memory pressure level ("warning", "critical", or "normal").
- * @param memory_used_kb the app's physical memory footprint in kilobytes at the time of the event.
+ * @param level the memory pressure level (0=Unknown, 1=Normal, 2=Warning, 3=Critical).
  */
-void capture_notify_low_memory(logger_id logger_id, const char *level, uint64_t memory_used_kb);
+void capture_notify_memory_pressure(logger_id logger_id, int8_t level);
+
+/*
+ * Retrieves the previous run's memory pressure level from KV storage.
+ *
+ * @param logger_id the logger to query.
+ * @return the memory pressure level (0=Unknown, 1=Normal, 2=Warning, 3=Critical).
+ */
+int8_t capture_get_previous_memory_pressure_level(logger_id logger_id);
 
 /*
  * Sets an entity identifier for backend correlation with device identifier.

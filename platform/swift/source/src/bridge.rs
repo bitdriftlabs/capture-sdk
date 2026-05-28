@@ -1038,19 +1038,23 @@ extern "C" fn capture_set_feature_flag_exposure(
 }
 
 #[no_mangle]
-extern "C" fn capture_notify_low_memory(
-  logger_id: LoggerId<'_>,
-  level: *const c_char,
-  memory_used_kb: u64,
-) {
+extern "C" fn capture_notify_memory_pressure(logger_id: LoggerId<'_>, level: i8) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
-      let level = unsafe { CStr::from_ptr(level) }.to_str()?.to_string();
-      logger_id.notify_low_memory(level, memory_used_kb);
+      logger_id.notify_memory_pressure(v_1::MemoryPressureLevel(level));
       Ok(())
     },
-    "swift notify low memory",
+    "swift notify memory pressure",
   );
+}
+
+#[no_mangle]
+extern "C" fn capture_get_previous_memory_pressure_level(logger_id: LoggerId<'_>) -> i8 {
+  with_handle_unexpected_or(
+    move || -> anyhow::Result<i8> { Ok(logger_id.previous_memory_pressure_level().0) },
+    0,
+    "swift get previous memory pressure level",
+  )
 }
 
 #[no_mangle]

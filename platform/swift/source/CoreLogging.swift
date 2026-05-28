@@ -156,11 +156,12 @@ protocol CoreLogging: AnyObject {
     /// - parameter variant: The variant of the flag exposure to set
     func setFeatureFlagExposure(withName flag: String, variant: String)
 
-    /// Persists a low memory pressure event for crash report enrichment.
+    /// Notifies the logger of a memory pressure event for crash report enrichment.
     ///
-    /// - parameter level:        The memory pressure level ("warning", "critical", or "normal").
-    /// - parameter memoryUsedKB: The app's physical memory footprint in KB at the time of the event.
-    func notifyLowMemory(level: String, memoryUsedKB: UInt64)
+    /// - parameter level: The memory pressure level (0=Unknown, 1=Normal, 2=Warning, 3=Critical).
+    func notifyMemoryPressure(level: Int8)
+
+    func previousMemoryPressureLevel() -> Int8
 
     /// Sets an entity identifier for backend correlation with device identifier.
     /// The value is hashed for storage and the exact value is never persisted.

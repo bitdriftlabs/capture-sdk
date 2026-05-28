@@ -32,12 +32,8 @@ final class DispatchSourceMemoryMonitor {
             queue: nil
         ) { [weak self] notification in
             guard let self else { return }
-            let level = notification.userInfo?["level"] as? String ?? "warning"
-            let memoryUsedKB = notification.userInfo?["memoryUsedKB"] as? UInt64 ?? 0
-            self.logger.notifyLowMemory(
-                level: level,
-                memoryUsedKB: memoryUsedKB
-            )
+            let level = notification.userInfo?["level"] as? Int8 ?? 0
+            self.logger.notifyMemoryPressure(level: level)
         }
         #endif
     }
@@ -95,11 +91,22 @@ final class DispatchSourceMemoryMonitor {
             type: .lifecycle
         )
 
-        if let snapshot = snapshot as? MemorySnapshot {
-            self.logger.notifyLowMemory(
-                level: state,
-                memoryUsedKB: snapshot.appTotalMemoryUsedKB
-            )
+        self.logger.notifyMemoryPressure(level: event.memoryPressureLevel)
+    }
+}
+
+// MARK: - MemoryPressureEvent Extension
+private extension DispatchSource.MemoryPressureEvent {
+    var memoryPressureLevel: Int8 {
+        switch self {
+        case .normal:
+            return 1
+        case .warning:
+            return 2
+        case .critical:
+            return 3
+        default:
+            return 0  // Unknown
         }
     }
 }

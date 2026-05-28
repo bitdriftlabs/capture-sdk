@@ -78,7 +78,9 @@ protocol LoggerBridging {
     /// - parameter variant: The variant of the flag exposure to set
     func setFeatureFlagExposure(withName name: String, variant: String)
 
-    func notifyLowMemory(level: String, memoryUsedKB: UInt64)
+    func notifyMemoryPressure(level: Int8)
+
+    func previousMemoryPressureLevel() -> Int8
 
     /// Sets an entity identifier for backend correlation with device identifier.
     /// The value is hashed for storage and the exact value is never persisted.

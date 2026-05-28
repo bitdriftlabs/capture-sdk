@@ -270,11 +270,13 @@ public final class Logger {
 
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
                 let useStackOverlapMatching = self.underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
+                let memoryPressureLevel = self.underlyingLogger.previousMemoryPressureLevel()
                 let reporter = DiagnosticEventReporter(
                     outputDir: Logger.reportCollectionDirectory(base: directoryURL),
                     sdkVersion: capture_get_sdk_version(),
                     eventTypes: .crash,
                     minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
+                    memoryPressureLevel: CAPMemoryPressureLevel(rawValue: memoryPressureLevel) ?? .unknown,
                     useStackOverlapMatching: useStackOverlapMatching,
                     crashEnrichmentSummaryHandler: { [weak self] summary in
                         let matcherMode = useStackOverlapMatching ? "base" : "exact"

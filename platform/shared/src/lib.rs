@@ -232,6 +232,10 @@ impl LoggerHolder {
     }
   }
 
+  pub fn previous_memory_pressure_level(&self) -> bd_logger::MemoryPressureLevel {
+    self.logger.previous_memory_pressure_level()
+  }
+
   pub fn log_screen_view(&self, screen_name: String) {
     let fields = [(
       "_screen_name".into(),

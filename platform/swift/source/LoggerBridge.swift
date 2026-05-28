@@ -265,8 +265,12 @@ final class LoggerBridge: LoggerBridging {
         capture_set_feature_flag_exposure(self.loggerID, flag, variant)
     }
 
-    func notifyLowMemory(level: String, memoryUsedKB: UInt64) {
-        capture_notify_low_memory(self.loggerID, level, memoryUsedKB)
+    func notifyMemoryPressure(level: Int8) {
+        capture_notify_memory_pressure(self.loggerID, level)
+    }
+
+    func previousMemoryPressureLevel() -> Int8 {
+        capture_get_previous_memory_pressure_level(self.loggerID)
     }
 
     func setEntityID(_ entityID: String) {

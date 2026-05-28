@@ -84,6 +84,7 @@ typedef struct BDAppMetrics {
   uint64_t memory_used;
   uint64_t memory_free;
   uint64_t memory_total;
+  int8_t memory_pressure_level;
 } BDAppMetrics;
 
 /**
