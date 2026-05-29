@@ -119,6 +119,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             sdkVersion: "41.5.67",
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -144,6 +145,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             sdkVersion: "41.5.67",
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -169,6 +171,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             sdkVersion: "41.5.67",
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -197,6 +200,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             sdkVersion: "41.5.67",
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -241,6 +245,7 @@ ThermalInfo: (
             sdkVersion: "41.5.67",
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -267,6 +272,7 @@ ThermalInfo: (
             sdkVersion: "41.5.67",
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -342,6 +348,7 @@ ThermalInfo: (
             sdkVersion: "41.5.67",
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -410,6 +417,7 @@ ThermalInfo: (
             sdkVersion: "41.5.67",
             eventTypes: [.hang, .crash],
             minimumHangSeconds: 1,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -436,6 +444,7 @@ ThermalInfo: (
             sdkVersion: "41.5.67",
             eventTypes: [.hang, .crash],
             minimumHangSeconds: 1,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -520,6 +529,7 @@ ThermalInfo: (
             sdkVersion: "41.5.67",
             eventTypes: [.crash],
             minimumHangSeconds: 1,
+            memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )

@@ -174,6 +174,14 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.setFeatureFlagExposure(withName: name, variant: variant)
     }
 
+    func notifyMemoryPressure(level: MemoryPressureLevel) {
+        self.underlyingLogger.notifyMemoryPressure(level: level)
+    }
+
+    func previousMemoryPressureLevel() -> MemoryPressureLevel {
+        self.underlyingLogger.previousMemoryPressureLevel()
+    }
+
     func setEntityID(_ entityID: String) {
         self.underlyingLogger.setEntityID(entityID)
     }

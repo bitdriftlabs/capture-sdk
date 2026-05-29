@@ -7,6 +7,13 @@
 
 #import <MetricKit/MetricKit.h>
 
+typedef NS_ENUM(int8_t, CAPMemoryPressureLevel) {
+    CAPMemoryPressureLevelUnknown = 0,
+    CAPMemoryPressureLevelNormal = 1,
+    CAPMemoryPressureLevelWarning = 2,
+    CAPMemoryPressureLevelCritical = 3,
+} NS_SWIFT_NAME(MemoryPressureLevel);
+
 typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
   CAPDiagnosticTypeNone = 0,
   /** Application termination events */
@@ -31,6 +38,7 @@ typedef void (^CAPCrashEnrichmentSummaryHandler)(
  * @param sdkVersion current version of the Capture SDK
  * @param types      event types to report
  * @param seconds    number of seconds required to report `CAPDiagnosticTypeHang` events
+ * @param memoryPressureLevel previous run's memory pressure level (CAPMemoryPressureLevel)
  * @param useStackOverlapMatching whether to use the overlap-based thread matcher (finds the best
  * contiguous matching region from the stack base) instead of the exact matcher for crash enrichment
  * @param crashEnrichmentSummaryHandler block invoked after crash enrichment with the summary fields
@@ -41,6 +49,7 @@ typedef void (^CAPCrashEnrichmentSummaryHandler)(
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
                         minimumHangSeconds:(NSTimeInterval)seconds
+                     memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
                    useStackOverlapMatching:(BOOL)useStackOverlapMatching
              crashEnrichmentSummaryHandler:
                  (CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler

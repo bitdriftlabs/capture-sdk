@@ -5,26 +5,46 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CaptureLoggerBridge
 import Foundation
 
 final class DispatchSourceMemoryMonitor {
-    // Monitor all state changes.
-    private let dispatchSource = DispatchSource.makeMemoryPressureSource(
-        eventMask: .all,
-        queue: .serial(withLabelSuffix: "DispatchSourceMemoryMonitor", target: .default)
-    )
-
-    private let memorySnapshotProvider = MemorySnapshotProvider()
-
     private let logger: CoreLogging
+    private let memorySnapshotProvider: MemorySnapshotProvider
+    private let dispatchSource: MemoryPressureSourceProvider
 
-    init(logger: CoreLogging) {
+    convenience init(logger: CoreLogging) {
+        self.init(
+            logger: logger,
+            dispatchSource: DispatchMemoryPressureSourceAdapter(),
+            snapshotProvider: MemorySnapshotProvider()
+        )
+    }
+
+    init(
+        logger: CoreLogging,
+        dispatchSource: MemoryPressureSourceProvider,
+        snapshotProvider: MemorySnapshotProvider
+    ) {
         self.logger = logger
+        self.memorySnapshotProvider = snapshotProvider
         self.memorySnapshotProvider.logger = logger
+        self.dispatchSource = dispatchSource
         // Set the event handler, but don't enable until `start()` is called.
         self.dispatchSource.setEventHandler { [weak self] in
             self?.maybeSnapshot()
         }
+        #if DEBUG
+        NotificationCenter.default.addObserver(
+            forName: .captureSimulateMemoryPressure,
+            object: nil,
+            queue: nil
+        ) { [weak self] notification in
+            guard let self else { return }
+            let level = notification.userInfo?["level"] as? Int8 ?? 0
+            self.logger.notifyMemoryPressure(level: MemoryPressureLevel(rawValue: level) ?? .unknown)
+        }
+        #endif
     }
 
     deinit {
@@ -53,7 +73,7 @@ final class DispatchSourceMemoryMonitor {
             return
         }
 
-        let event = DispatchSource.MemoryPressureEvent(rawValue: self.dispatchSource.data)
+        let event = self.dispatchSource.data
 
         let state: String
         switch event {
@@ -79,5 +99,28 @@ final class DispatchSourceMemoryMonitor {
             error: nil,
             type: .lifecycle
         )
+
+        self.logger.notifyMemoryPressure(level: MemoryPressureLevel.from(event))
     }
 }
+
+extension MemoryPressureLevel {
+    static func from(
+        _ memoryPressureEvent: DispatchSource.MemoryPressureEvent
+    ) -> MemoryPressureLevel {
+        switch memoryPressureEvent {
+        case .normal: return .normal
+        case .warning: return .warning
+        case .critical: return .critical
+        default: return .unknown
+        }
+    }
+}
+
+#if DEBUG
+extension Notification.Name {
+    static let captureSimulateMemoryPressure = Notification.Name(
+        "io.bitdrift.capture.simulate_memory_pressure"
+    )
+}
+#endif

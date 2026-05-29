@@ -230,9 +230,20 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         let availableMemory = os_proc_available_memory()
         guard availableMemory > 0 else { return }
 
-        let totalLimit = ProcessInfo.processInfo.physicalMemory
-        let currentUsed = totalLimit - UInt64(availableMemory)
-        let targetUsed = UInt64(Double(totalLimit) * Double(targetPercent) / 100.0)
+        var taskInfo = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout<task_vm_info>.stride / MemoryLayout<integer_t>.stride
+        )
+        let result: kern_return_t = withUnsafeMutablePointer(to: &taskInfo) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: 1) { taskInfoOut in
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), taskInfoOut, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return }
+
+        let currentUsed = taskInfo.phys_footprint
+        let appLimit = currentUsed + UInt64(availableMemory)
+        let targetUsed = UInt64(Double(appLimit) * Double(targetPercent) / 100.0)
 
         guard targetUsed > currentUsed else {
             Logger.logInfo("Already at or above \(targetPercent)% memory usage")
@@ -256,6 +267,15 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     func clearMemoryPressure() {
         memoryPressureAllocations.removeAll()
         Logger.logInfo("Memory pressure cleared")
+    }
+
+    func simulateLowMemoryWarning(level: Int8) {
+        NotificationCenter.default.post(
+            name: Notification.Name("io.bitdrift.capture.simulate_memory_pressure"),
+            object: nil,
+            userInfo: ["level": level]
+        )
+        Logger.logInfo("Simulated memory pressure: level=\(level)")
     }
 }
 

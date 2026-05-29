@@ -26,28 +26,6 @@ struct DiagnosticsPanelView: View {
                         background: Theme.warning.opacity(0.08)
                     )
                 )
-
-                Button(action: { self.loggerCustomer.forceMemoryPressure(targetPercent: 90) }) {
-                    Text("Memory 90%")
-                }
-                .buttonStyle(
-                    OutlineButtonStyle(
-                        stroke: Theme.secondary.opacity(0.7),
-                        foreground: Theme.textPrimary,
-                        background: Theme.secondary.opacity(0.12)
-                    )
-                )
-
-                Button(action: { self.loggerCustomer.clearMemoryPressure() }) {
-                    Text("Clear pressure")
-                }
-                .buttonStyle(
-                    OutlineButtonStyle(
-                        stroke: Theme.textSecondary.opacity(0.7),
-                        foreground: Theme.textPrimary,
-                        background: Color.white.opacity(0.05)
-                    )
-                )
             }
         }
     }

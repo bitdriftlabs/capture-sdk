@@ -45,6 +45,7 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle,
                                        MXDiagnostic *_Nonnull event,
                                        NSTimeInterval timestamp,
                                        BOOL useStackOverlapMatching,
+                                       CAPMemoryPressureLevel memoryPressureLevel,
                                        CAPCrashEnrichmentSummaryHandler _Nullable crashEnrichmentSummaryHandler)
                                        API_AVAILABLE(ios(14.0), macos(12.0));
 
@@ -58,6 +59,7 @@ static const char *name_for_diagnostic_type(ReportType type);
 @property (nullable, copy, nonatomic) CAPCrashEnrichmentSummaryHandler crashEnrichmentSummaryHandler;
 @property CAPDiagnosticType diagnosticTypes;
 @property BOOL useStackOverlapMatching;
+@property CAPMemoryPressureLevel memoryPressureLevel;
 @end
 
 @implementation DiagnosticEventReporter
@@ -65,6 +67,7 @@ static const char *name_for_diagnostic_type(ReportType type);
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
                         minimumHangSeconds:(NSTimeInterval)seconds
+                     memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
                       useStackOverlapMatching:(BOOL)useStackOverlapMatching
                 crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completionHandler {
@@ -75,6 +78,7 @@ static const char *name_for_diagnostic_type(ReportType type);
     self.completionHandler = completionHandler;
     self.useStackOverlapMatching = useStackOverlapMatching;
     self.crashEnrichmentSummaryHandler = crashEnrichmentSummaryHandler;
+    self.memoryPressureLevel = memoryPressureLevel;
     [self setMinimumHangSeconds:seconds];
   }
   return self;
@@ -128,6 +132,7 @@ static const char *name_for_diagnostic_type(ReportType type);
     event,
     timestamp,
     self.useStackOverlapMatching,
+    self.memoryPressureLevel,
     self.crashEnrichmentSummaryHandler
   );
   if (report_type != ReportTypeNone && handle != 0) {
@@ -333,12 +338,13 @@ static void serialize_device_metrics(BDProcessorHandle handle, NSDictionary *met
   bdrw_add_device(handle, &device);
 }
 
-static void serialize_app_metrics(BDProcessorHandle handle, NSString *app_version, NSDictionary *metadata) {
+static void serialize_app_metrics(BDProcessorHandle handle, NSString *app_version, NSDictionary *metadata, CAPMemoryPressureLevel memory_pressure_level) {
   NSString *bundle_version = [NSString stringWithFormat:@"%@.%@", app_version, string_for_key(metadata, @"appBuildVersion")];
   BDAppMetrics app = {
     .app_id = cstring_from(string_for_key(metadata, @"bundleIdentifier")),
     .version = cstring_from(app_version),
     .cf_bundle_version = cstring_from(bundle_version),
+    .memory_pressure_level = memory_pressure_level,
   };
   bdrw_add_app(handle, &app);
 }
@@ -357,6 +363,7 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle,
                                        MXDiagnostic *event,
                                        NSTimeInterval timestamp,
                                        BOOL useStackOverlapMatching,
+                                       CAPMemoryPressureLevel memoryPressureLevel,
                                        CAPCrashEnrichmentSummaryHandler _Nullable crashEnrichmentSummaryHandler) {
   ReportType report_type = ReportTypeNone;
   if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
@@ -388,7 +395,7 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle,
     return report_type;
   }
   NSDictionary *metadata = event.metaData.dictionaryRepresentation;
-  serialize_app_metrics(handle, event.applicationVersion, metadata);
+  serialize_app_metrics(handle, event.applicationVersion, metadata, memoryPressureLevel);
   serialize_device_metrics(handle, metadata, timestamp);
   return report_type;
 }

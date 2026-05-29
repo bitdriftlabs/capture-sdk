@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CaptureLoggerBridge
 internal import CapturePassable
 import Foundation
 
@@ -155,6 +156,17 @@ protocol CoreLogging: AnyObject {
     /// - parameter flag:    The name of the flag exposure to set
     /// - parameter variant: The variant of the flag exposure to set
     func setFeatureFlagExposure(withName flag: String, variant: String)
+
+    /// Notifies the logger of a memory pressure event for crash report enrichment.
+    ///
+    /// - parameter level: The memory pressure level.
+    func notifyMemoryPressure(level: MemoryPressureLevel)
+
+    /// Fetches the memory pressure level recorded during the previous session,
+    /// or `.unknown` if no memory pressure event was recorded.
+    ///
+    /// - returns: The memory pressure level from the previous session.
+    func previousMemoryPressureLevel() -> MemoryPressureLevel
 
     /// Sets an entity identifier for backend correlation with device identifier.
     /// The value is hashed for storage and the exact value is never persisted.

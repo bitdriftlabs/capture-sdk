@@ -27,6 +27,7 @@ struct ContentView: View {
                 ManualCapturePanelView(loggerCustomer: self.loggerCustomer)
                 AutomaticCapturePanelView(loggerCustomer: self.loggerCustomer)
                 CrashPanelView(viewModel: self.crashPanelViewModel)
+                MemoryPanelView(loggerCustomer: self.loggerCustomer)
                 DiagnosticsPanelView(loggerCustomer: self.loggerCustomer)
             }
             .navigationTitle("Debug Panel")
