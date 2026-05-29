@@ -149,4 +149,8 @@ extension MockLoggerBridging: LoggerBridging {
     public func setFeatureFlagExposure(withName flag: String, variant: String) {}
 
     public func setEntityID(_: String) {}
+    
+    public func notifyMemoryPressure(level: MemoryPressureLevel) {}
+    
+    public func previousMemoryPressureLevel() -> MemoryPressureLevel { .unknown }
 }

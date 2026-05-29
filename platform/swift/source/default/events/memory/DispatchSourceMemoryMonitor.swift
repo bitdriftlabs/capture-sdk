@@ -9,19 +9,27 @@ import Foundation
 internal import CaptureLoggerBridge
 
 final class DispatchSourceMemoryMonitor {
-    // Monitor all state changes.
-    private let dispatchSource = DispatchSource.makeMemoryPressureSource(
-        eventMask: .all,
-        queue: .serial(withLabelSuffix: "DispatchSourceMemoryMonitor", target: .default)
-    )
-
-    private let memorySnapshotProvider = MemorySnapshotProvider()
-
     private let logger: CoreLogging
+    private let memorySnapshotProvider: MemorySnapshotProvider
+    private let dispatchSource: MemoryPressureSourceProvider
+    
+    convenience init(logger: CoreLogging) {
+        self.init(
+            logger: logger,
+            dispatchSource: DispatchMemoryPressureSourceAdapter(),
+            snapshotProvider: MemorySnapshotProvider()
+        )
+    }
 
-    init(logger: CoreLogging) {
+    init(
+        logger: CoreLogging,
+        dispatchSource: MemoryPressureSourceProvider,
+        snapshotProvider: MemorySnapshotProvider
+    ) {
         self.logger = logger
+        self.memorySnapshotProvider = snapshotProvider
         self.memorySnapshotProvider.logger = logger
+        self.dispatchSource = dispatchSource
         // Set the event handler, but don't enable until `start()` is called.
         self.dispatchSource.setEventHandler { [weak self] in
             self?.maybeSnapshot()
@@ -65,7 +73,7 @@ final class DispatchSourceMemoryMonitor {
             return
         }
 
-        let event = DispatchSource.MemoryPressureEvent(rawValue: self.dispatchSource.data)
+        let event = self.dispatchSource.data
 
         let state: String
         switch event {
@@ -92,22 +100,19 @@ final class DispatchSourceMemoryMonitor {
             type: .lifecycle
         )
 
-        self.logger.notifyMemoryPressure(level: event.memoryPressureLevel)
+        self.logger.notifyMemoryPressure(level: MemoryPressureLevel.from(event))
     }
 }
 
-// MARK: - MemoryPressureEvent Extension
-private extension DispatchSource.MemoryPressureEvent {
-    var memoryPressureLevel: MemoryPressureLevel {
-        switch self {
-        case .normal:
-            return .normal
-        case .warning:
-            return .warning
-        case .critical:
-            return .critical
-        default:
-            return .unknown
+extension MemoryPressureLevel {
+    static func from(
+        _ memoryPressureEvent: DispatchSource.MemoryPressureEvent
+    ) -> MemoryPressureLevel {
+        switch memoryPressureEvent {
+        case .normal: return .normal
+        case .warning: return .warning
+        case .critical: return .critical
+        default: return .unknown
         }
     }
 }

@@ -53,6 +53,11 @@ public final class MockCoreLogging {
     public var shouldLogAppUpdateEvent = false
 
     public private(set) var mockedRuntimeVariables = [String: Any]()
+    
+    public private(set) var didNotifyMemoryPressure = false
+    public private(set) var notifyMemoryPressureValue: MemoryPressureLevel?
+    
+    public var mockedPreviousMemoryPressureLevel: MemoryPressureLevel?
 
     public init() {}
 
@@ -171,6 +176,15 @@ extension MockCoreLogging: CoreLogging {
         } else {
             variable.defaultValue
         }
+    }
+    
+    public func notifyMemoryPressure(level: MemoryPressureLevel) {
+        didNotifyMemoryPressure = true
+        notifyMemoryPressureValue = level
+    }
+    
+    public func previousMemoryPressureLevel() -> MemoryPressureLevel {
+        return mockedPreviousMemoryPressureLevel ?? .unknown
     }
 
     public func handleError(context _: String, error _: Error) {}
