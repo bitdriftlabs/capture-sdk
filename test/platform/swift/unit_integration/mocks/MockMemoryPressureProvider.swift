@@ -10,26 +10,26 @@ import Foundation
 
 public class MockMemoryPressureProvider: MemoryPressureSourceProvider {
     public var didCallSetEventHandler = false
-    
+
     public var eventHandler: (() -> Void)?
     public func setEventHandler(handler: @escaping () -> Void) {
         didCallSetEventHandler = true
         eventHandler = handler
     }
-    
+
     public var didActivate = false
     public func activate() {
         didActivate = true
     }
-    
+
     public var didCancel = false
     public func cancel() {
         didCancel = true
     }
-    
+
     public var isCancelled: Bool = false
     public var data: DispatchSource.MemoryPressureEvent = .all
-    
+
     public func simulatePressureEvent(_ event: DispatchSource.MemoryPressureEvent) {
         self.data = event
         self.eventHandler?()

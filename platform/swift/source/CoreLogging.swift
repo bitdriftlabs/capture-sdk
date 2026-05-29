@@ -5,8 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-internal import CapturePassable
 internal import CaptureLoggerBridge
+internal import CapturePassable
 import Foundation
 
 private enum Keys {
@@ -162,8 +162,10 @@ protocol CoreLogging: AnyObject {
     /// - parameter level: The memory pressure level.
     func notifyMemoryPressure(level: MemoryPressureLevel)
 
-    /// Returns the memory pressure level recorded during the previous session.
-    /// Returns `.unknown` if no memory pressure event was recorded.
+    /// Fetches the memory pressure level recorded during the previous session,
+    /// or `.unknown` if no memory pressure event was recorded.
+    ///
+    /// - returns: The memory pressure level from the previous session.
     func previousMemoryPressureLevel() -> MemoryPressureLevel
 
     /// Sets an entity identifier for backend correlation with device identifier.

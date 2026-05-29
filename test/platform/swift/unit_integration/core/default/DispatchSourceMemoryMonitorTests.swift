@@ -5,63 +5,63 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import XCTest
-@testable import CaptureMocks
 @testable import Capture
 @testable import CaptureLoggerBridge
+@testable import CaptureMocks
+import XCTest
 
 class DispatchSourceMemoryMonitorTests: XCTestCase {
-    var memoryPressureProvider: MockMemoryPressureProvider!
-    let logger: MockCoreLogging = MockCoreLogging()
+    private var memoryPressureProvider: MockMemoryPressureProvider!
+    private let logger: MockCoreLogging = MockCoreLogging()
 
-    var sut: DispatchSourceMemoryMonitor!
-    
+    private var sut: DispatchSourceMemoryMonitor!
+
     override func setUp() {
         memoryPressureProvider = MockMemoryPressureProvider()
     }
-    
+
     func testOnInitSetsEventHandler() {
         givenDispatchSourceMemoryMonitor()
         thenEventHandlerIsSet()
     }
-    
+
     func testOnStartActivatesMemoryPressureProvider() {
         givenDispatchSourceMemoryMonitor()
         whenInvokingStart()
         thenMemoryPressureProviderIsActivated()
     }
-    
+
     func testOnStopCancelsMemoryPressureProvider() {
         givenDispatchSourceMemoryMonitor()
         whenInvokingStop()
         thenMemoryPressureProviderIsCanceled()
     }
-    
+
     func testOnReceivingMemoryPressureEventLogsMemoryPresureEvent() throws {
         givenDispatchSourceMemoryMonitor()
         whenHandlerReceivesMemoryPressureEvent()
         try thenLoggerLogsAppMemPressureEvent()
     }
-    
+
     func testOnReceivingMemoryPressureEventNotifiesMemoryPressure() {
         givenDispatchSourceMemoryMonitor()
         let randomEvent: DispatchSource.MemoryPressureEvent = [
             .critical,
             .warning,
             .normal,
-            .all
+            .all,
         ].randomElement()!
         whenHandlerReceivesMemoryPressureEvent(randomEvent)
         thenLoggerInvokesNotifyMemoryPressure(MemoryPressureLevel.from(randomEvent))
     }
-    
+
     func testRuntimeOffDisablesMemoryPressureLogging() {
         givenDispatchSourceMemoryMonitor(enabled: false)
         whenHandlerReceivesMemoryPressureEvent()
         thenLoggerDoesntLogsAppMemPressureEvent()
         thenLoggerDoesntInvokeNotifyMemoryPressure()
     }
-    
+
     func testMemoryPressureProviderIsCanceledDisablesMemoryPressureLogging() {
         givenDispatchSourceMemoryMonitor()
         givenMemoryPressureProviderIsCanceled()
@@ -82,23 +82,23 @@ private extension DispatchSourceMemoryMonitorTests {
             snapshotProvider: .init()
         )
     }
-    
+
     func givenMemoryPressureProviderIsCanceled() {
         memoryPressureProvider.isCancelled = true
     }
-    
+
     func whenInvokingStart() {
         sut.start()
     }
-    
+
     func whenInvokingStop() {
         sut.stop()
     }
-    
+
     func whenHandlerReceivesMemoryPressureEvent(_ memoryPressureEvent: DispatchSource.MemoryPressureEvent = .warning) {
         memoryPressureProvider.simulatePressureEvent(memoryPressureEvent)
     }
-    
+
     func thenLoggerLogsAppMemPressureEvent() throws {
         let log = try XCTUnwrap(logger.logs.first {
             $0.message == "AppMemPressure"
@@ -108,20 +108,20 @@ private extension DispatchSourceMemoryMonitorTests {
         XCTAssertNil(log.error)
         XCTAssertNotNil(log.fields!["_mem_level"])
     }
-    
+
     func thenLoggerDoesntLogsAppMemPressureEvent() {
         XCTAssertFalse(logger.logs.contains { $0.message == "AppMemPressure" })
     }
-    
+
     func thenLoggerDoesntInvokeNotifyMemoryPressure() {
         XCTAssertFalse(logger.didNotifyMemoryPressure)
     }
-    
+
     func thenLoggerInvokesNotifyMemoryPressure(_ memoryLevel: MemoryPressureLevel) {
         XCTAssertTrue(logger.didNotifyMemoryPressure)
         XCTAssertEqual(logger.notifyMemoryPressureValue, memoryLevel)
     }
-    
+
     func thenMemoryPressureProviderIsCanceled() {
         XCTAssertTrue(memoryPressureProvider.didCancel)
     }
@@ -129,7 +129,7 @@ private extension DispatchSourceMemoryMonitorTests {
     func thenMemoryPressureProviderIsActivated() {
         XCTAssertTrue(memoryPressureProvider.didActivate)
     }
-    
+
     func thenEventHandlerIsSet() {
         XCTAssertTrue(memoryPressureProvider.didCallSetEventHandler)
     }

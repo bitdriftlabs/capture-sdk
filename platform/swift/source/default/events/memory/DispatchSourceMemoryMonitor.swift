@@ -5,14 +5,14 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import Foundation
 internal import CaptureLoggerBridge
+import Foundation
 
 final class DispatchSourceMemoryMonitor {
     private let logger: CoreLogging
     private let memorySnapshotProvider: MemorySnapshotProvider
     private let dispatchSource: MemoryPressureSourceProvider
-    
+
     convenience init(logger: CoreLogging) {
         self.init(
             logger: logger,
