@@ -48,13 +48,13 @@
 ## [0.23.1]
 
 [0.23.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.1
-
-### Both
-
-**Added**
-
-- Report the current memory pressure level state (Critical, Warning, Normal, Unknown) for fatal issues
  
+### iOS
+
+**Fixed**
+
+- Session Replay now correctly captures SwiftUI views on iOS 26.
+
 ### Android
 
 **Fixed**
