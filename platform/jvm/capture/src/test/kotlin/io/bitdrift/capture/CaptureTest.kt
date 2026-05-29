@@ -21,7 +21,10 @@ import io.bitdrift.capture.reports.exitinfo.ExitReason
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.utils.DebugCustomerCallbackException
+import io.bitdrift.capture.utils.setIsDebuggable
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Test
@@ -202,5 +205,44 @@ class CaptureTest {
         assertThat(status.initializationState).isEqualTo(InitializationState.NOT_STARTED)
         assertThat(status.lastHandshakeTimeMs).isNull()
         assertThat(status.lastConfigDeliveryTimeMs).isNull()
+    }
+
+    @Test
+    fun startResultCallback_throwingException_onDebugBuild_throwsDebugCustomerCallbackException() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+        setIsDebuggable(debuggable = true)
+
+        assertThatThrownBy {
+            Logger.start(
+                apiKey = "test1",
+                sessionStrategy = SessionStrategy.Fixed(),
+                dateProvider = null,
+            ) { _ ->
+                throw IllegalStateException("customer callback error")
+            }
+        }.isInstanceOf(DebugCustomerCallbackException::class.java)
+            .hasCauseInstanceOf(IllegalStateException::class.java)
+
+        assertThat(Capture.logger()).isNotNull()
+    }
+
+    @Test
+    fun startResultCallback_throwingException_onReleaseBuild_swallowsAndSdkRemainsStarted() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+        setIsDebuggable(debuggable = false)
+
+        Logger.start(
+            apiKey = "test1",
+            sessionStrategy = SessionStrategy.Fixed(),
+            dateProvider = null,
+        ) { _ ->
+            throw IllegalStateException("customer callback error")
+        }
+
+        assertThat(Capture.logger()).isNotNull()
+        val status = Logger.getSdkStatus()
+        assertThat(status.initializationState).isNotEqualTo(InitializationState.NOT_STARTED)
     }
 }

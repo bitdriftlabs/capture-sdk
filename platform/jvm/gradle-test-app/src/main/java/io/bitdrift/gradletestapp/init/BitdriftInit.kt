@@ -118,6 +118,9 @@ object BitdriftInit {
                         }
                         is CaptureResult.Failure -> {
                             Log.e("GradleTestApp", "SDK failed to start: ${result.error.message}")
+                            // Re-throwing on debug builds so we can get immediate signal of
+                            // any issues at Capture.Logger.start internals during the development phase.
+                            throw IllegalStateException(result.error.message)
                         }
                     }
                 }
