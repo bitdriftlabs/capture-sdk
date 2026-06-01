@@ -15,6 +15,7 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
+import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.IssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.IssueReporterState.RuntimeState
@@ -49,6 +50,7 @@ internal class IssueReporter(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
     private val dateProvider: DateProvider,
+    private val memoryMetricsProvider: IMemoryMetricsProvider,
 ) : IIssueReporter,
     IJvmCrashListener {
     @VisibleForTesting
@@ -111,6 +113,8 @@ internal class IssueReporter(
         thread: Thread,
         throwable: Throwable,
     ) {
+        internalLogger.notifyMemoryPressureLevel(memoryMetricsProvider.getJvmMemoryPressureLevel())
+
         issueReporterProcessor?.processJvmCrash(
             callerThread = thread,
             throwable = throwable,

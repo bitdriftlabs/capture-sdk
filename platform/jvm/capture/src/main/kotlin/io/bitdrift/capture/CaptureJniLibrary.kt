@@ -386,6 +386,16 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
+     * Sets the current memory pressure level
+     *
+     * @param level e.g. normal, warning, critical
+     */
+    external fun writeMemoryPressureLevel(
+        loggerId: Long,
+        level: Int,
+    )
+
+    /**
      * Sends a signal to the native layer to process issue reports
      * @param loggerId The logger ID
      * @param reportProcessingSession The report processing session type

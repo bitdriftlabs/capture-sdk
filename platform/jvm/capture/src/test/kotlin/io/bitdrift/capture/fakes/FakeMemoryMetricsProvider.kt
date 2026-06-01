@@ -8,6 +8,7 @@
 package io.bitdrift.capture.fakes
 
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
+import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
@@ -15,6 +16,7 @@ import io.bitdrift.capture.providers.fieldsOf
 class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
     private var exception: Exception? = null
     private var isMemoryLow: Boolean = false
+    private var memoryPressureLevel: MemoryPressureLevel = MemoryPressureLevel.Normal
 
     override fun getMemoryAttributes(): ArrayFields {
         exception?.let {
@@ -34,6 +36,8 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
 
     override fun isMemoryLow() = isMemoryLow
 
+    override fun getJvmMemoryPressureLevel(): MemoryPressureLevel = memoryPressureLevel
+
     override fun getMemoryClass(): ArrayFields = fieldOf("_memory_class", "1")
 
     fun clear() {
@@ -46,6 +50,10 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
 
     fun setIsMemoryLow(isMemoryLow: Boolean) {
         this.isMemoryLow = isMemoryLow
+    }
+
+    fun setMemoryPressureLevel(level: MemoryPressureLevel) {
+        this.memoryPressureLevel = level
     }
 
     companion object {

@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Add memory pressure level state to fatal issues
 
 **Changed**
 

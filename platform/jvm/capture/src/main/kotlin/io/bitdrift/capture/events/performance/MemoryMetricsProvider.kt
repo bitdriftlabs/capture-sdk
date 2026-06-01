@@ -24,8 +24,11 @@ internal class MemoryMetricsProvider(
 ) : IMemoryMetricsProvider {
     var runtime: io.bitdrift.capture.common.Runtime? = null
 
-    private val appLowMemoryConfigThreshold by lazy {
-        getConfiguredLowMemoryPercentThreshold()
+    private val appWarningMemoryConfigThreshold: Int? by lazy {
+        getConfiguredPercentThreshold(RuntimeConfig.APP_WARNING_MEMORY_PERCENT_THRESHOLD)
+    }
+    private val appCriticalMemoryConfigThreshold: Int? by lazy {
+        getConfiguredPercentThreshold(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)
     }
 
     override fun getMemoryAttributes(): ArrayFields =
@@ -40,20 +43,36 @@ internal class MemoryMetricsProvider(
                 "_jvm_used_percent" to "%.3f".format(jvmUsedPercent()),
             ),
             fieldsOfOptional(
-                "_is_memory_low" to appLowMemoryConfigThreshold?.let { if (isMemoryLow()) "1" else "0" },
+                "_is_memory_low" to appCriticalMemoryConfigThreshold?.let { if (isMemoryLow()) "1" else "0" },
             ),
         )
 
     override fun getMemoryClass(): ArrayFields = fieldOf("_memory_class", memoryClassMB().toString())
 
     override fun isMemoryLow(): Boolean {
-        val thresholdPercent = appLowMemoryConfigThreshold ?: return false
+        val thresholdPercent = appCriticalMemoryConfigThreshold ?: return false
         return jvmUsedPercent() >= thresholdPercent
     }
 
-    private fun getConfiguredLowMemoryPercentThreshold(): Int? {
+    override fun getJvmMemoryPressureLevel(): MemoryPressureLevel {
+        val currentPercent = jvmUsedPercent()
+        val warningThreshold = appWarningMemoryConfigThreshold
+        val criticalThreshold = appCriticalMemoryConfigThreshold
+
+        return if (warningThreshold == null || criticalThreshold == null) {
+            MemoryPressureLevel.Unknown
+        } else if (currentPercent < warningThreshold) {
+            MemoryPressureLevel.Normal
+        } else if (currentPercent < criticalThreshold) {
+            MemoryPressureLevel.Warning
+        } else {
+            MemoryPressureLevel.Critical
+        }
+    }
+
+    private fun getConfiguredPercentThreshold(configThreshold: RuntimeConfig): Int? {
         val threshold =
-            runtime?.getConfigValue(RuntimeConfig.APP_LOW_MEMORY_PERCENT_THRESHOLD) ?: return null
+            runtime?.getConfigValue(configThreshold) ?: return null
         // Guarding in case of miss configuration
         if (threshold < MIN_LOW_MEMORY_PERCENT_THRESHOLD || threshold > 100) return null
         return threshold
@@ -72,6 +91,36 @@ internal class MemoryMetricsProvider(
     private companion object {
         private const val MIN_LOW_MEMORY_PERCENT_THRESHOLD = 50
     }
+}
+
+/**
+ * The current MemoryPressure Level
+ */
+enum class MemoryPressureLevel(
+    /**
+     * The equivalent fbs model
+     */
+    val nativeValue: Int,
+) {
+    /**
+     * Memory pressure level is unknown.
+     */
+    Unknown(0),
+
+    /**
+     * Memory usage is below the warning threshold.
+     */
+    Normal(1),
+
+    /**
+     * Memory usage is at or above the warning threshold but still below the critical threshold.
+     */
+    Warning(2),
+
+    /**
+     * Memory usage is at or above the critical threshold.
+     */
+    Critical(3),
 }
 
 internal interface JvmMemoryProvider {

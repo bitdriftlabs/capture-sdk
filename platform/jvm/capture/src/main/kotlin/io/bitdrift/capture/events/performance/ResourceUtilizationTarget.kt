@@ -31,6 +31,8 @@ internal class ResourceUtilizationTarget(
     private val executor: ExecutorService,
     private val clock: IClock = DefaultClock.getInstance(),
 ) : IResourceUtilizationTarget {
+    private var lastMemoryPressureLevel: MemoryPressureLevel? = null
+
     override fun tick() {
         executor.execute {
             try {
@@ -57,10 +59,21 @@ internal class ResourceUtilizationTarget(
                 if (memoryMetricsProvider.isMemoryLow()) {
                     logMemoryPressure(memorySnapshot)
                 }
+
+                updateJvmMemoryPressureLevelGlobalState()
             } catch (e: Throwable) {
                 logger.handleInternalError("resource utilization tick", e)
             }
         }
+    }
+
+    private fun updateJvmMemoryPressureLevelGlobalState() {
+        val currentMemoryLevel = memoryMetricsProvider.getJvmMemoryPressureLevel()
+        if (currentMemoryLevel == lastMemoryPressureLevel) {
+            return
+        }
+        lastMemoryPressureLevel = currentMemoryLevel
+        logger.notifyMemoryPressureLevel(currentMemoryLevel)
     }
 
     private fun logMemoryPressure(memAttributes: ArrayFields) {

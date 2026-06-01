@@ -33,6 +33,7 @@ use bd_error_reporter::reporter::{
   UnexpectedErrorHandler,
 };
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
+use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::MemoryPressureLevel;
 use bd_proto::protos::logging::payload::LogType;
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
@@ -1463,6 +1464,26 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEn
       Ok(())
     },
     "jni transition sleep mode",
+  );
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeMemoryPressureLevel(
+  _env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  level: jint,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let level = MemoryPressureLevel(i8::try_from(level).unwrap_or(0));
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.notify_memory_pressure(level);
+
+      Ok(())
+    },
+    "jni notify memory pressure level",
   );
 }
 

@@ -14,6 +14,7 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.refEq
+import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.CaptureJniLibrary
@@ -168,8 +169,44 @@ class ResourceUtilizationTargetTest {
         verify(logger).handleInternalError(eq("resource utilization tick"), refEq(exception))
     }
 
+    @Test
+    fun resourceUtilizationTick_whenUpdatedMemoryLevel_shouldLogPressureLevelTwice() {
+        setFakeResourceState()
+
+        memoryMetricsProvider.setMemoryPressureLevel(MemoryPressureLevel.Normal)
+        reporter.tick()
+        memoryMetricsProvider.setMemoryPressureLevel(MemoryPressureLevel.Warning)
+        reporter.tick()
+
+        executor.awaitTermination(1, TimeUnit.SECONDS)
+
+        verify(logger, times(2)).notifyMemoryPressureLevel(any())
+    }
+
+    @Test
+    fun resourceUtilizationTick_whenSameMemoryLevel_shouldOnlyLogMemoryPressureLevelOnce() {
+        setFakeResourceState()
+
+        memoryMetricsProvider.setMemoryPressureLevel(MemoryPressureLevel.Normal)
+        reporter.tick()
+        memoryMetricsProvider.setMemoryPressureLevel(MemoryPressureLevel.Normal)
+        reporter.tick()
+
+        executor.awaitTermination(1, TimeUnit.SECONDS)
+
+        verify(logger).notifyMemoryPressureLevel(any())
+    }
+
     @After
     fun tearDown() {
         memoryMetricsProvider.clear()
+    }
+
+    private fun setFakeResourceState() {
+        whenever(batteryMonitor.batteryValAttribute()).thenReturn(Pair("_battery_val", "0.75"))
+        whenever(batteryMonitor.batteryLevelAttribute()).thenReturn(Pair("_battery_level", "75"))
+        whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
+        whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
+        whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
     }
 }
