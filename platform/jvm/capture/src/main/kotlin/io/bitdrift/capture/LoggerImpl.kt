@@ -598,6 +598,12 @@ internal class LoggerImpl(
         CaptureJniLibrary.writeMemoryPressureLevel(this.loggerId, level.nativeValue)
     }
 
+    override fun getPreviousRunMemoryPressureLevel(): MemoryPressureLevel {
+        val level = CaptureJniLibrary.previousMemoryPressureLevel(this.loggerId)
+        return MemoryPressureLevel.entries.firstOrNull { it.nativeValue == level }
+            ?: MemoryPressureLevel.Unknown
+    }
+
     override fun flush(blocking: Boolean) {
         CaptureJniLibrary.flush(this.loggerId, blocking)
     }

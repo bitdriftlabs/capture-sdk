@@ -63,5 +63,14 @@ internal interface IInternalLogger : ILogger {
         duration: Duration,
     )
 
+    /**
+     * Persists the current memory pressure level to the native KV state store.
+     */
     fun notifyMemoryPressureLevel(level: MemoryPressureLevel)
+
+    /**
+     * Returns the memory pressure level from the previous app run,
+     * as persisted in the native KV state store.
+     */
+    fun getPreviousRunMemoryPressureLevel(): MemoryPressureLevel
 }

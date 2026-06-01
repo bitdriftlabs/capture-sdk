@@ -26,6 +26,9 @@ interface IMemoryMetricsProvider {
     /** Reports whether the device is currently experiencing a low memory condition */
     fun isMemoryLow(): Boolean
 
-    /** Reports JVM memory pressure level based on configured thresholds. Returns Unknown when configured thresholds are invalid */
-    fun getJvmMemoryPressureLevel(): MemoryPressureLevel
+    /**
+     * Reports the current JVM memory pressure level based on configured thresholds.
+     * Returns Unknown when configured thresholds are invalid
+     */
+    fun getCurrentJvmMemoryPressureLevel(): MemoryPressureLevel
 }

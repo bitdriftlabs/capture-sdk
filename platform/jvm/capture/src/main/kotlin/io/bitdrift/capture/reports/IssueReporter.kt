@@ -85,7 +85,8 @@ internal class IssueReporter(
             }
 
         runCatching {
-            issueReporterProcessor = buildDefaultIssueReporterProcessor(sdkDirectory, clientAttributes, dateProvider, internalLogger)
+            issueReporterProcessor =
+                buildDefaultIssueReporterProcessor(sdkDirectory, clientAttributes, dateProvider, internalLogger, memoryMetricsProvider)
             captureUncaughtExceptionHandler.install(this)
             processPriorReports(completedReportsProcessor)
         }.getOrElse {
@@ -113,7 +114,7 @@ internal class IssueReporter(
         thread: Thread,
         throwable: Throwable,
     ) {
-        internalLogger.notifyMemoryPressureLevel(memoryMetricsProvider.getJvmMemoryPressureLevel())
+        internalLogger.notifyMemoryPressureLevel(memoryMetricsProvider.getCurrentJvmMemoryPressureLevel())
 
         issueReporterProcessor?.processJvmCrash(
             callerThread = thread,
@@ -201,6 +202,7 @@ internal class IssueReporter(
             clientAttributes: IClientAttributes,
             dateProvider: DateProvider,
             internalLogger: IInternalLogger,
+            memoryMetricsProvider: IMemoryMetricsProvider,
         ): IIssueReporterProcessor =
             IssueReporterProcessor(
                 IssueReporterStore(sdkDirectory),
@@ -208,6 +210,7 @@ internal class IssueReporter(
                 CaptureJniLibrary,
                 dateProvider,
                 internalLogger,
+                memoryMetricsProvider,
             )
     }
 }

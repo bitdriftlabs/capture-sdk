@@ -13,6 +13,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.ContextHolder
@@ -248,7 +249,7 @@ class IssueReporterTest {
 
     @Test
     fun onJvmCrash_whenInitialized_shouldUpdateMemoryLevelState() {
-        whenever(memoryMetricsProvider.getJvmMemoryPressureLevel()).thenReturn(MemoryPressureLevel.Critical)
+        whenever(memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()).thenReturn(MemoryPressureLevel.Critical)
         issueReporter.init(
             sdkDirectory,
             clientAttributes,
@@ -257,7 +258,7 @@ class IssueReporterTest {
 
         issueReporter.onJvmCrash(Thread(), IllegalStateException())
 
-        verify(memoryMetricsProvider).getJvmMemoryPressureLevel()
+        verify(memoryMetricsProvider, times(2)).getCurrentJvmMemoryPressureLevel()
         verify(internalLogger).notifyMemoryPressureLevel(MemoryPressureLevel.Critical)
     }
 

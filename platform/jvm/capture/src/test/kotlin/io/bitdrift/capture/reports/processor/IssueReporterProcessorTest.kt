@@ -24,6 +24,8 @@ import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.ContextHolder.Companion.APP_CONTEXT
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
+import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.fakes.FakeDateProvider.DEFAULT_TEST_TIMESTAMP
 import io.bitdrift.capture.fakes.FakeJvmException
@@ -49,7 +51,14 @@ class IssueReporterProcessorTest {
     private lateinit var attributes: ClientAttributes
     private val issueReporterStorage: IIssueReporterStore = mock()
     private val streamingReportProcessor: IStreamingReportProcessor = mock()
-    private val internalLogger: IInternalLogger = mock()
+    private val internalLogger: IInternalLogger =
+        mock {
+            on { getPreviousRunMemoryPressureLevel() } doReturn MemoryPressureLevel.Warning
+        }
+    private val memoryMetricsProvider: IMemoryMetricsProvider =
+        mock {
+            on { getCurrentJvmMemoryPressureLevel() } doReturn MemoryPressureLevel.Critical
+        }
     private val lifecycleOwner: LifecycleOwner = mock()
     private val issueReportCaptor = argumentCaptor<ByteArray>()
     private val reportTypeCaptor = argumentCaptor<Byte>()
@@ -70,6 +79,7 @@ class IssueReporterProcessorTest {
                 streamingReportProcessor,
                 FakeDateProvider,
                 internalLogger,
+                memoryMetricsProvider,
             )
     }
 
@@ -107,6 +117,9 @@ class IssueReporterProcessorTest {
         assertThat(error.stackTrace(0)!!.sourceFile!!.path).isEqualTo("IssueReporterProcessorTest.kt")
         assertThat(error.stackTrace(0)!!.sourceFile!!.line).isEqualTo(fakeException.stackTrace[0].lineNumber.toLong())
         assertThat(error.stackTrace(0)!!.sourceFile!!.column).isEqualTo(0)
+        assertThat(report.appMetrics?.memoryPressureLevel).isEqualTo(
+            io.bitdrift.capture.reports.binformat.v1.issue_reporting.MemoryPressureLevel.Critical,
+        )
     }
 
     @Test
@@ -182,6 +195,7 @@ class IssueReporterProcessorTest {
             eq(attributes),
             eq("foreground"),
             isNull(),
+            any(),
         )
     }
 
@@ -206,6 +220,7 @@ class IssueReporterProcessorTest {
             eq(attributes),
             eq("cached"),
             isNull(),
+            any(),
         )
     }
 
@@ -230,6 +245,7 @@ class IssueReporterProcessorTest {
             eq(attributes),
             eq("foreground_service"),
             isNull(),
+            any(),
         )
     }
 
@@ -342,6 +358,9 @@ class IssueReporterProcessorTest {
         assertThat(deviceMetrics?.cpuAbis(0)).isEqualTo("armeabi-v7a")
 
         assertThat(report.appMetrics?.runningState).isEqualTo("foreground")
+        assertThat(report.appMetrics?.memoryPressureLevel).isEqualTo(
+            io.bitdrift.capture.reports.binformat.v1.issue_reporting.MemoryPressureLevel.Warning,
+        )
     }
 
     @Test
@@ -546,7 +565,15 @@ class IssueReporterProcessorTest {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         doThrow(exception)
             .`when`(streamingReportProcessor)
-            .processAndPersistANR(any(), eq(FAKE_TIME_STAMP), eq("/some/path/foo.cap"), eq(attributes), any(), any())
+            .processAndPersistANR(
+                any(),
+                eq(FAKE_TIME_STAMP),
+                eq("/some/path/foo.cap"),
+                eq(attributes),
+                any(),
+                any(),
+                any(),
+            )
     }
 
     private fun createApplicationExitInfo(

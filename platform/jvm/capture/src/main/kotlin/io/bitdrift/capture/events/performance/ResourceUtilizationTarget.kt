@@ -68,7 +68,7 @@ internal class ResourceUtilizationTarget(
     }
 
     private fun updateJvmMemoryPressureLevelGlobalState() {
-        val currentMemoryLevel = memoryMetricsProvider.getJvmMemoryPressureLevel()
+        val currentMemoryLevel = memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()
         if (currentMemoryLevel == lastMemoryPressureLevel) {
             return
         }

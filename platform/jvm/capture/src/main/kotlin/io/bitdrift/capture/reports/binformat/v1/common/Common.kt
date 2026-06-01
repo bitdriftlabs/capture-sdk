@@ -23,25 +23,17 @@ class Data private constructor() {
         const val binary_data: UByte = 2u
     }
 }
-
 @Suppress("unused")
 class StringData : Table() {
-    fun __init(
-        _i: Int,
-        _bb: ByteBuffer,
-    ) {
+
+    fun __init(_i: Int, _bb: ByteBuffer)  {
         __reset(_i, _bb)
     }
-
-    fun __assign(
-        _i: Int,
-        _bb: ByteBuffer,
-    ): StringData {
+    fun __assign(_i: Int, _bb: ByteBuffer) : StringData {
         __init(_i, _bb)
         return this
     }
-
-    val data: String
+    val data : String
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -50,65 +42,40 @@ class StringData : Table() {
                 throw AssertionError("No value for (required) field data")
             }
         }
-    val dataAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-
-    fun dataInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-
+    val dataAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+    fun dataInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
-
         fun getRootAsStringData(_bb: ByteBuffer): StringData = getRootAsStringData(_bb, StringData())
-
-        fun getRootAsStringData(
-            _bb: ByteBuffer,
-            obj: StringData,
-        ): StringData {
+        fun getRootAsStringData(_bb: ByteBuffer, obj: StringData): StringData {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-
-        fun createStringData(
-            builder: FlatBufferBuilder,
-            dataOffset: Int,
-        ): Int {
+        fun createStringData(builder: FlatBufferBuilder, dataOffset: Int) : Int {
             builder.startTable(1)
             addData(builder, dataOffset)
             return endStringData(builder)
         }
-
         fun startStringData(builder: FlatBufferBuilder) = builder.startTable(1)
-
-        fun addData(
-            builder: FlatBufferBuilder,
-            data: Int,
-        ) = builder.addOffset(0, data, 0)
-
-        fun endStringData(builder: FlatBufferBuilder): Int {
+        fun addData(builder: FlatBufferBuilder, data: Int) = builder.addOffset(0, data, 0)
+        fun endStringData(builder: FlatBufferBuilder) : Int {
             val o = builder.endTable()
             builder.required(o, 4)
             return o
         }
     }
 }
-
 @Suppress("unused")
 class BinaryData : Table() {
-    fun __init(
-        _i: Int,
-        _bb: ByteBuffer,
-    ) {
+
+    fun __init(_i: Int, _bb: ByteBuffer)  {
         __reset(_i, _bb)
     }
-
-    fun __assign(
-        _i: Int,
-        _bb: ByteBuffer,
-    ): BinaryData {
+    fun __assign(_i: Int, _bb: ByteBuffer) : BinaryData {
         __init(_i, _bb)
         return this
     }
-
-    val dataType: String?
+    val dataType : String?
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -117,11 +84,9 @@ class BinaryData : Table() {
                 null
             }
         }
-    val dataTypeAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-
-    fun dataTypeInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-
-    fun data(j: Int): UByte {
+    val dataTypeAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+    fun dataTypeInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+    fun data(j: Int) : UByte {
         val o = __offset(6)
         return if (o != 0) {
             bb.get(__vector(o) + j * 1).toUByte()
@@ -129,95 +94,55 @@ class BinaryData : Table() {
             throw IndexOutOfBoundsException("Index out of range: $j, vector data is empty")
         }
     }
-
-    val dataLength: Int
+    val dataLength : Int
         get() {
-            val o = __offset(6)
-            return if (o != 0) __vector_len(o) else 0
+            val o = __offset(6); return if (o != 0) __vector_len(o) else 0
         }
-    val dataAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(6, 1)
-
-    fun dataInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
-
+    val dataAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(6, 1)
+    fun dataInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 6, 1)
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
-
         fun getRootAsBinaryData(_bb: ByteBuffer): BinaryData = getRootAsBinaryData(_bb, BinaryData())
-
-        fun getRootAsBinaryData(
-            _bb: ByteBuffer,
-            obj: BinaryData,
-        ): BinaryData {
+        fun getRootAsBinaryData(_bb: ByteBuffer, obj: BinaryData): BinaryData {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-
-        fun createBinaryData(
-            builder: FlatBufferBuilder,
-            dataTypeOffset: Int,
-            dataOffset: Int,
-        ): Int {
+        fun createBinaryData(builder: FlatBufferBuilder, dataTypeOffset: Int, dataOffset: Int) : Int {
             builder.startTable(2)
             addData(builder, dataOffset)
             addDataType(builder, dataTypeOffset)
             return endBinaryData(builder)
         }
-
         fun startBinaryData(builder: FlatBufferBuilder) = builder.startTable(2)
-
-        fun addDataType(
-            builder: FlatBufferBuilder,
-            dataType: Int,
-        ) = builder.addOffset(0, dataType, 0)
-
-        fun addData(
-            builder: FlatBufferBuilder,
-            data: Int,
-        ) = builder.addOffset(1, data, 0)
-
+        fun addDataType(builder: FlatBufferBuilder, dataType: Int) = builder.addOffset(0, dataType, 0)
+        fun addData(builder: FlatBufferBuilder, data: Int) = builder.addOffset(1, data, 0)
         @kotlin.ExperimentalUnsignedTypes
-        fun createDataVector(
-            builder: FlatBufferBuilder,
-            data: UByteArray,
-        ): Int {
+        fun createDataVector(builder: FlatBufferBuilder, data: UByteArray) : Int {
             builder.startVector(1, data.size, 1)
             for (i in data.size - 1 downTo 0) {
                 builder.addByte(data[i].toByte())
             }
             return builder.endVector()
         }
-
-        fun startDataVector(
-            builder: FlatBufferBuilder,
-            numElems: Int,
-        ) = builder.startVector(1, numElems, 1)
-
-        fun endBinaryData(builder: FlatBufferBuilder): Int {
+        fun startDataVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(1, numElems, 1)
+        fun endBinaryData(builder: FlatBufferBuilder) : Int {
             val o = builder.endTable()
             builder.required(o, 6)
             return o
         }
     }
 }
-
 @Suppress("unused")
 class Field : Table() {
-    fun __init(
-        _i: Int,
-        _bb: ByteBuffer,
-    ) {
+
+    fun __init(_i: Int, _bb: ByteBuffer)  {
         __reset(_i, _bb)
     }
-
-    fun __assign(
-        _i: Int,
-        _bb: ByteBuffer,
-    ): Field {
+    fun __assign(_i: Int, _bb: ByteBuffer) : Field {
         __init(_i, _bb)
         return this
     }
-
-    val key: String
+    val key : String
         get() {
             val o = __offset(4)
             return if (o != 0) {
@@ -226,65 +151,35 @@ class Field : Table() {
                 throw AssertionError("No value for (required) field key")
             }
         }
-    val keyAsByteBuffer: ByteBuffer get() = __vector_as_bytebuffer(4, 1)
-
-    fun keyInByteBuffer(_bb: ByteBuffer): ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
-
-    val valueType: UByte
+    val keyAsByteBuffer : ByteBuffer get() = __vector_as_bytebuffer(4, 1)
+    fun keyInByteBuffer(_bb: ByteBuffer) : ByteBuffer = __vector_in_bytebuffer(_bb, 4, 1)
+    val valueType : UByte
         get() {
             val o = __offset(6)
-            return if (o != 0) bb.get(o + bb_pos).toUByte() else 0u
+            return if(o != 0) bb.get(o + bb_pos).toUByte() else 0u
         }
-
-    fun value(obj: Table): Table? {
-        val o = __offset(8)
-        return if (o != 0) __union(obj, o + bb_pos) else null
+    fun value(obj: Table) : Table? {
+        val o = __offset(8); return if (o != 0) __union(obj, o + bb_pos) else null
     }
-
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
-
         fun getRootAsField(_bb: ByteBuffer): Field = getRootAsField(_bb, Field())
-
-        fun getRootAsField(
-            _bb: ByteBuffer,
-            obj: Field,
-        ): Field {
+        fun getRootAsField(_bb: ByteBuffer, obj: Field): Field {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-
-        fun createField(
-            builder: FlatBufferBuilder,
-            keyOffset: Int,
-            valueType: UByte,
-            valueOffset: Int,
-        ): Int {
+        fun createField(builder: FlatBufferBuilder, keyOffset: Int, valueType: UByte, valueOffset: Int) : Int {
             builder.startTable(3)
             addValue(builder, valueOffset)
             addKey(builder, keyOffset)
             addValueType(builder, valueType)
             return endField(builder)
         }
-
         fun startField(builder: FlatBufferBuilder) = builder.startTable(3)
-
-        fun addKey(
-            builder: FlatBufferBuilder,
-            key: Int,
-        ) = builder.addOffset(0, key, 0)
-
-        fun addValueType(
-            builder: FlatBufferBuilder,
-            valueType: UByte,
-        ) = builder.addByte(1, valueType.toByte(), 0)
-
-        fun addValue(
-            builder: FlatBufferBuilder,
-            value: Int,
-        ) = builder.addOffset(2, value, 0)
-
-        fun endField(builder: FlatBufferBuilder): Int {
+        fun addKey(builder: FlatBufferBuilder, key: Int) = builder.addOffset(0, key, 0)
+        fun addValueType(builder: FlatBufferBuilder, valueType: UByte) = builder.addByte(1, valueType.toByte(), 0)
+        fun addValue(builder: FlatBufferBuilder, value: Int) = builder.addOffset(2, value, 0)
+        fun endField(builder: FlatBufferBuilder) : Int {
             val o = builder.endTable()
             builder.required(o, 4)
             builder.required(o, 8)
@@ -292,72 +187,43 @@ class Field : Table() {
         }
     }
 }
-
 @Suppress("unused")
 class Timestamp : Table() {
-    fun __init(
-        _i: Int,
-        _bb: ByteBuffer,
-    ) {
+
+    fun __init(_i: Int, _bb: ByteBuffer)  {
         __reset(_i, _bb)
     }
-
-    fun __assign(
-        _i: Int,
-        _bb: ByteBuffer,
-    ): Timestamp {
+    fun __assign(_i: Int, _bb: ByteBuffer) : Timestamp {
         __init(_i, _bb)
         return this
     }
-
-    val seconds: Long
+    val seconds : Long
         get() {
             val o = __offset(4)
-            return if (o != 0) bb.getLong(o + bb_pos) else 0L
+            return if(o != 0) bb.getLong(o + bb_pos) else 0L
         }
-    val nanos: Int
+    val nanos : Int
         get() {
             val o = __offset(6)
-            return if (o != 0) bb.getInt(o + bb_pos) else 0
+            return if(o != 0) bb.getInt(o + bb_pos) else 0
         }
-
     companion object {
         fun validateVersion() = Constants.FLATBUFFERS_25_2_10()
-
         fun getRootAsTimestamp(_bb: ByteBuffer): Timestamp = getRootAsTimestamp(_bb, Timestamp())
-
-        fun getRootAsTimestamp(
-            _bb: ByteBuffer,
-            obj: Timestamp,
-        ): Timestamp {
+        fun getRootAsTimestamp(_bb: ByteBuffer, obj: Timestamp): Timestamp {
             _bb.order(ByteOrder.LITTLE_ENDIAN)
             return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb))
         }
-
-        fun createTimestamp(
-            builder: FlatBufferBuilder,
-            seconds: Long,
-            nanos: Int,
-        ): Int {
+        fun createTimestamp(builder: FlatBufferBuilder, seconds: Long, nanos: Int) : Int {
             builder.startTable(2)
             addSeconds(builder, seconds)
             addNanos(builder, nanos)
             return endTimestamp(builder)
         }
-
         fun startTimestamp(builder: FlatBufferBuilder) = builder.startTable(2)
-
-        fun addSeconds(
-            builder: FlatBufferBuilder,
-            seconds: Long,
-        ) = builder.addLong(0, seconds, 0L)
-
-        fun addNanos(
-            builder: FlatBufferBuilder,
-            nanos: Int,
-        ) = builder.addInt(1, nanos, 0)
-
-        fun endTimestamp(builder: FlatBufferBuilder): Int {
+        fun addSeconds(builder: FlatBufferBuilder, seconds: Long) = builder.addLong(0, seconds, 0L)
+        fun addNanos(builder: FlatBufferBuilder, nanos: Int) = builder.addInt(1, nanos, 0)
+        fun endTimestamp(builder: FlatBufferBuilder) : Int {
             val o = builder.endTable()
             return o
         }

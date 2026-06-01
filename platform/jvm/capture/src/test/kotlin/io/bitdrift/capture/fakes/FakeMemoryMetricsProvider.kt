@@ -36,7 +36,7 @@ class FakeMemoryMetricsProvider : IMemoryMetricsProvider {
 
     override fun isMemoryLow() = isMemoryLow
 
-    override fun getJvmMemoryPressureLevel(): MemoryPressureLevel = memoryPressureLevel
+    override fun getCurrentJvmMemoryPressureLevel(): MemoryPressureLevel = memoryPressureLevel
 
     override fun getMemoryClass(): ArrayFields = fieldOf("_memory_class", "1")
 

@@ -133,7 +133,7 @@ class MemoryMetricsProviderTest {
     fun getJvmMemoryPressureLevel_whenRuntimeIsNull_shouldReturnUnknown() {
         memoryMetricsProvider.runtime = null
 
-        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+        val result = memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()
 
         assertThat(result).isEqualTo(MemoryPressureLevel.Unknown)
     }
@@ -144,7 +144,7 @@ class MemoryMetricsProviderTest {
         whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(50_000L)
         whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
 
-        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+        val result = memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()
 
         assertThat(result).isEqualTo(MemoryPressureLevel.Normal)
     }
@@ -155,7 +155,7 @@ class MemoryMetricsProviderTest {
         whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(75_000L)
         whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
 
-        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+        val result = memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()
 
         assertThat(result).isEqualTo(MemoryPressureLevel.Warning)
     }
@@ -166,7 +166,7 @@ class MemoryMetricsProviderTest {
         whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(85_000L)
         whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
 
-        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+        val result = memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()
 
         assertThat(result).isEqualTo(MemoryPressureLevel.Warning)
     }
@@ -178,7 +178,7 @@ class MemoryMetricsProviderTest {
         whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(90_000L)
         whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
 
-        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+        val result = memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()
 
         assertThat(result).isEqualTo(MemoryPressureLevel.Critical)
     }
@@ -190,7 +190,7 @@ class MemoryMetricsProviderTest {
         whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(95_000L)
         whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
 
-        val result = memoryMetricsProvider.getJvmMemoryPressureLevel()
+        val result = memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()
 
         assertThat(result).isEqualTo(MemoryPressureLevel.Critical)
     }

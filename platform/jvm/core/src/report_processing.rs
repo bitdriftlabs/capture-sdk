@@ -13,6 +13,7 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   AppMetricsArgs,
   Architecture,
   DeviceMetricsArgs,
+  MemoryPressureLevel,
   OSBuild,
   OSBuildArgs,
   Platform,
@@ -21,7 +22,7 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
 use flatbuffers::FlatBufferBuilder;
 use jni::objects::JObject;
 use jni::signature::{Primitive, ReturnType};
-use jni::sys::jlong;
+use jni::sys::{jint, jlong};
 use jni::JNIEnv;
 use platform_shared::javascript_error::{
   persist_javascript_error_report,
@@ -153,6 +154,7 @@ pub(crate) fn persist_anr(
   attributes: &JObject<'_>,
   running_state: Option<&str>,
   app_exit_description: Option<&str>,
+  memory_pressure_level: jint,
 ) -> anyhow::Result<()> {
   let mut builder = FlatBufferBuilder::new();
   let source_file = read_stream_to_file(env, source_stream)?;
@@ -163,7 +165,13 @@ pub(crate) fn persist_anr(
     u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default(),
   );
   let mut device_info = build_device_metrics(env, &mut builder, attributes, &timestamp)?;
-  let mut app_info = build_app_metrics(env, &mut builder, attributes, running_state)?;
+  let mut app_info = build_app_metrics(
+    env,
+    &mut builder,
+    attributes,
+    running_state,
+    memory_pressure_level,
+  )?;
   let (_, report_offset) = bd_report_parsers::android::build_anr(
     &mut builder,
     &mut app_info,
@@ -292,6 +300,7 @@ fn build_app_metrics<'fbb>(
   builder: &mut FlatBufferBuilder<'fbb>,
   attributes: &JObject<'_>,
   running_state: Option<&str>,
+  memory_pressure_level: jint,
 ) -> anyhow::Result<AppMetricsArgs<'fbb>> {
   let version_code = CLIENT_ATTRS_VERSIONCODE
     .get()
@@ -314,6 +323,7 @@ fn build_app_metrics<'fbb>(
     version: Some(builder.create_string(&app_version)),
     build_number,
     running_state: running_state.map(|s| builder.create_string(s)),
+    memory_pressure_level: MemoryPressureLevel(i8::try_from(memory_pressure_level).unwrap_or(0)),
     ..Default::default()
   })
 }

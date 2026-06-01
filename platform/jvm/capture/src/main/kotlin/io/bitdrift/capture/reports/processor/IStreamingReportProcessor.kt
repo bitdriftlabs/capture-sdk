@@ -23,6 +23,7 @@ interface IStreamingReportProcessor {
         attributes: IClientAttributes,
         runningState: String?,
         appExitDescription: String?,
+        memoryPressureLevel: Int,
     )
 
     /**
