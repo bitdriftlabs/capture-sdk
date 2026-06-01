@@ -1,13 +1,13 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.1...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.2...HEAD
 
 ### Both
 
 **Added**
 
-- Add memory pressure level state to fatal issues
+- Nothing yet!
 
 **Changed**
 
@@ -44,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.2]
+
+[0.23.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.2
+
+### Both
+
+**Added**
+
+- Add memory pressure level state to fatal issues
 
 ## [0.23.1]
 
