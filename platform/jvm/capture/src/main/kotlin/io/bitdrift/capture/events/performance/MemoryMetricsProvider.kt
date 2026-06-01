@@ -54,7 +54,7 @@ internal class MemoryMetricsProvider(
         return jvmUsedPercent() >= thresholdPercent
     }
 
-    override fun getJvmMemoryPressureLevel(): MemoryPressureLevel {
+    override fun getCurrentJvmMemoryPressureLevel(): MemoryPressureLevel {
         val currentPercent = jvmUsedPercent()
         val warningThreshold = appWarningMemoryConfigThreshold
         val criticalThreshold = appCriticalMemoryConfigThreshold

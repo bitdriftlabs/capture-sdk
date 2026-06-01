@@ -395,6 +395,8 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         level: Int,
     )
 
+    external fun previousMemoryPressureLevel(loggerId: Long): Int
+
     /**
      * Sends a signal to the native layer to process issue reports
      * @param loggerId The logger ID
@@ -420,6 +422,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         attributes: IClientAttributes,
         runningState: String?,
         appExitDescription: String?,
+        memoryPressureLevel: Int,
     )
 
     /**

@@ -1488,6 +1488,22 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeMemoryPre
 }
 
 #[no_mangle]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_previousMemoryPressureLevel(
+  _env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+) -> jint {
+  with_handle_unexpected_or(
+    || {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      Ok(logger.previous_memory_pressure_level().0.into())
+    },
+    0,
+    "jni previous memory pressure level",
+  )
+}
+
+#[no_mangle]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueReports(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1534,6 +1550,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   attributes: JObject<'_>,
   running_state: JString<'_>,
   app_exit_description: JString<'_>,
+  memory_pressure_level: jint,
 ) {
   let destination = match unsafe { env.get_string_unchecked(&destination) } {
     Ok(destination) => destination.to_string_lossy().to_string(),
@@ -1569,6 +1586,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
     &attributes,
     running_state_str.as_deref(),
     app_exit_description_str.as_deref(),
+    memory_pressure_level,
   ) {
     Ok(()) => {},
     Err(e) => {

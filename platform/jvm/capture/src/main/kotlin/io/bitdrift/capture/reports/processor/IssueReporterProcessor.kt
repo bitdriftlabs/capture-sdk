@@ -17,6 +17,7 @@ import io.bitdrift.capture.BuildConstants
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IClientAttributes
+import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppBuildNumber
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
@@ -41,6 +42,7 @@ internal class IssueReporterProcessor(
     private val streamingReportsProcessor: IStreamingReportProcessor,
     private val dateProvider: DateProvider,
     private val internalLogger: IInternalLogger,
+    private val memoryMetricsProvider: IMemoryMetricsProvider,
 ) : IIssueReporterProcessor {
     companion object {
         // Initial size for file builder buffer
@@ -117,11 +119,12 @@ internal class IssueReporterProcessor(
                     clientAttributes,
                     runningState,
                     applicationExit.description,
+                    internalLogger.getPreviousRunMemoryPressureLevel().nativeValue,
                 )
             } else if (fatalIssueType == ReportType.NativeCrash) {
                 val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
                 val sdk = createSDKInfo(builder)
-                val appMetrics = createAppMetrics(builder, runningState)
+                val appMetrics = createAppMetrics(builder, internalLogger.getPreviousRunMemoryPressureLevel(), runningState)
                 val deviceMetrics = createDeviceMetrics(builder, timestamp)
                 val report =
                     NativeCrashProcessor.process(
@@ -194,7 +197,7 @@ internal class IssueReporterProcessor(
             val timestamp = dateProvider.invoke().time
             val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
             val sdk = createSDKInfo(builder)
-            val appMetrics = createAppMetrics(builder)
+            val appMetrics = createAppMetrics(builder, memoryMetricsProvider.getCurrentJvmMemoryPressureLevel())
             val deviceMetrics = createDeviceMetrics(builder, timestamp)
             val report =
                 JvmProcessor.getJvmReport(
@@ -238,6 +241,7 @@ internal class IssueReporterProcessor(
 
     private fun createAppMetrics(
         builder: FlatBufferBuilder,
+        memoryPressureLevel: io.bitdrift.capture.events.performance.MemoryPressureLevel,
         runningState: String? = null,
     ): Int {
         val buildNumber =
@@ -253,6 +257,8 @@ internal class IssueReporterProcessor(
             .addVersion(builder, appVersion)
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .addBuildNumber(builder, buildNumber)
+        io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
+            .addMemoryPressureLevel(builder, memoryPressureLevel.nativeValue.toByte())
         if (runningStateOffset != null) {
             io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
                 .addRunningState(builder, runningStateOffset)
