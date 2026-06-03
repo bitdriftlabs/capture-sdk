@@ -104,7 +104,6 @@ jobs:
         MAVEN_CENTRAL_TOKEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
         MAVEN_CENTRAL_TOKEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
       run: |
-        # Avoid echoing commands to logs; keep credentials out of output
         set -euo pipefail
         set +x
         if [[ -z "${MAVEN_CENTRAL_TOKEN_USERNAME:-}" || -z "${MAVEN_CENTRAL_TOKEN_PASSWORD:-}" ]]; then
@@ -123,22 +122,31 @@ jobs:
           echo "No bundle zips found to upload."
           exit 0
         fi
+        # Build Bearer token per Sonatype Central Portal API docs
+        BEARER_TOKEN=$(printf '%s:%s' "${MAVEN_CENTRAL_TOKEN_USERNAME}" "${MAVEN_CENTRAL_TOKEN_PASSWORD}" | base64 | tr -d '\n')
         : > deployment_ids.txt
         for b in "${bundles[@]}"; do
           [[ -f "$b" ]] || continue
           echo "Uploading $b to Sonatype Central Portal..."
-          resp=$(curl -sS -u "${MAVEN_CENTRAL_TOKEN_USERNAME}:${MAVEN_CENTRAL_TOKEN_PASSWORD}" \
+          http_code=$(curl -sS -o response.txt -w '%{http_code}' \
+            -H "Authorization: Bearer ${BEARER_TOKEN}" \
             -F "bundle=@${b}" \
-            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC" || true)
-          # Echo server response for visibility
-          printf '%s\n' "$resp" | tee /dev/stderr
-          # Try to extract a UUID-like deployment id and save for the polling step
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC")
+          resp=$(cat response.txt)
+          printf '%s\n' "$resp"
+          if [[ "$http_code" -lt 200 || "$http_code" -ge 300 ]]; then
+            echo "ERROR: Upload of $b failed with HTTP $http_code" >&2
+            exit 1
+          fi
           dep_id=$(printf '%s' "$resp" | grep -Eo '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}' | head -n1 || true)
           if [[ -n "$dep_id" ]]; then
             echo "$dep_id" >> deployment_ids.txt
+          else
+            echo "ERROR: No deployment ID returned for $b" >&2
+            exit 1
           fi
         done
-        echo "Saved deployment IDs (if any) to dist/maven-central/deployment_ids.txt"
+        echo "Saved deployment IDs to dist/maven-central/deployment_ids.txt"
 
     - name: Poll Maven Central deployment status
       env:
@@ -157,11 +165,13 @@ jobs:
           echo "No deployment IDs captured; nothing to poll."
           exit 0
         fi
+        BEARER_TOKEN=$(printf '%s:%s' "${MAVEN_CENTRAL_TOKEN_USERNAME}" "${MAVEN_CENTRAL_TOKEN_PASSWORD}" | base64 | tr -d '\n')
         for id in "${ids[@]}"; do
           echo "Polling deployment status for $id..."
           deadline=$((SECONDS + 300)) # 5 minutes per artifact
           while (( SECONDS < deadline )); do
-            resp=$(curl -sS -X POST -u "${MAVEN_CENTRAL_TOKEN_USERNAME}:${MAVEN_CENTRAL_TOKEN_PASSWORD}" \
+            resp=$(curl -sS -X POST \
+              -H "Authorization: Bearer ${BEARER_TOKEN}" \
               "https://central.sonatype.com/api/v1/publisher/status?id=$id" || true)
             state=$(printf '%s' "$resp" | sed -n 's/.*"deploymentState"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
             if [[ -z "$state" ]]; then
