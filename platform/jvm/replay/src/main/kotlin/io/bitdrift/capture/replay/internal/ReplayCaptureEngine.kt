@@ -35,10 +35,12 @@ internal class ReplayCaptureEngine(
             windowManager,
             displayManager,
         ),
-    private val captureFilter: ReplayFilter = ReplayFilter(),
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
 ) {
+
+    private var previousCapture: List<ReplayRect>? = null
+
     fun captureScreen(skipReplayComposeViews: Boolean) {
         mainThreadHandler.run {
             captureScreen(skipReplayComposeViews) { byteArray, screen, metrics ->
@@ -60,7 +62,7 @@ internal class ReplayCaptureEngine(
             }
 
         executor.execute {
-            captureFilter.filter(timedValue.value)?.let { filteredCapture ->
+            filter(timedValue.value)?.let { filteredCapture ->
                 replayCaptureMetrics.parseDuration = timedValue.duration
                 replayCaptureMetrics.viewCountAfterFilter = filteredCapture.size
                 val encodedScreen = replayEncoder.encode(filteredCapture)
@@ -71,4 +73,15 @@ internal class ReplayCaptureEngine(
             }
         }
     }
+
+    private fun filter(capture: List<ReplayRect>): List<ReplayRect>? {
+        // This capture is identical to the previous one, filter it out
+        return if (capture == previousCapture) {
+            null
+        } else {
+            previousCapture = capture
+            capture
+        }
+    }
+
 }
