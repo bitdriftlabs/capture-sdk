@@ -7,8 +7,6 @@
 
 package io.bitdrift.capture.replay.internal
 
-import io.bitdrift.capture.replay.ReplayType
-
 /**
  * The list of captured elements after filtering
  */
@@ -17,24 +15,16 @@ typealias FilteredCapture = List<ReplayRect>
 internal class ReplayFilter {
     private var previousCapture: FilteredCapture? = null
 
-    fun filter(capture: Capture): FilteredCapture? {
-        val filteredCapture = mutableListOf<ReplayRect>()
-        for (window in capture) {
-            for (view in window) {
-                if (view.type != ReplayType.Ignore) {
-                    // TODO(murki): Collapse this redundant functionality with ViewMapper
-                    filteredCapture.add(view)
-                }
-            }
-        }
-
+    fun filter(capture: FilteredCapture): FilteredCapture? {
         // This capture is identical to the previous one, or is empty, filter it out
         // One interesting case when capture is empty is when the application is backgrounded.
-        return if (filteredCapture == previousCapture || filteredCapture.isEmpty()) {
+        // Note: With the new ReplayParser, capture will always contain at least the screen bounds
+        // if correctly parsed, but we keep the isEmpty check for robustness.
+        return if (capture == previousCapture || capture.isEmpty()) {
             null
         } else {
-            previousCapture = filteredCapture
-            filteredCapture
+            previousCapture = capture
+            capture
         }
     }
 }

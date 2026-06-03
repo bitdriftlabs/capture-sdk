@@ -28,9 +28,14 @@ internal class ReplayCaptureEngine(
     windowManager: IWindowManager,
     displayManager: DisplayManagers,
     private val executor: ExecutorService,
-    private val captureParser: ReplayParser = ReplayParser(sessionReplayConfiguration, errorHandler, windowManager),
+    private val captureParser: ReplayParser =
+        ReplayParser(
+            sessionReplayConfiguration,
+            errorHandler,
+            windowManager,
+            displayManager,
+        ),
     private val captureFilter: ReplayFilter = ReplayFilter(),
-    private val captureDecorations: ReplayDecorations = ReplayDecorations(displayManager, windowManager),
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
 ) {
@@ -58,12 +63,11 @@ internal class ReplayCaptureEngine(
             captureFilter.filter(timedValue.value)?.let { filteredCapture ->
                 replayCaptureMetrics.parseDuration = timedValue.duration
                 replayCaptureMetrics.viewCountAfterFilter = filteredCapture.size
-                val screen = captureDecorations.addDecorations(filteredCapture)
-                val encodedScreen = replayEncoder.encode(screen)
+                val encodedScreen = replayEncoder.encode(filteredCapture)
                 replayCaptureMetrics.encodingTimeMs =
                     clock.elapsedRealtime() - startTime - replayCaptureMetrics.parseDuration.inWholeMilliseconds
                 SessionReplayController.L.d("Screen Captured: $replayCaptureMetrics")
-                completion(encodedScreen, screen, replayCaptureMetrics)
+                completion(encodedScreen, filteredCapture, replayCaptureMetrics)
             }
         }
     }
