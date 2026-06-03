@@ -38,7 +38,7 @@ import io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
-import io.bitdrift.capture.replay.internal.FilteredCapture
+import io.bitdrift.capture.replay.internal.ReplayRect
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl
@@ -65,8 +65,8 @@ class MainActivity : ComponentActivity() {
             object: IReplayLogger {
                 override fun onScreenCaptured(
                     encodedScreen: ByteArray,
-                    screen: FilteredCapture,
-                    metrics: ReplayCaptureMetrics
+                    screen: List<ReplayRect>,
+                    metrics: ReplayCaptureMetrics,
                 ) {
                     Log.i("HelloWorldApp", "Replay onScreenCaptured: took=${metrics.parseDuration.inWholeMilliseconds}ms")
                     Log.i("HelloWorldApp", "Replay onScreenCaptured: screen=${screen}")
