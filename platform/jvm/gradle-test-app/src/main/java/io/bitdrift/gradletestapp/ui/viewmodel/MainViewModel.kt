@@ -183,7 +183,7 @@ class MainViewModel(
             is StressTestAction.TriggerMemoryPressureAnr -> stressTestRepository.triggerMemoryPressureAnr()
             is StressTestAction.TriggerJankyFrames -> stressTestRepository.triggerJankyFrames(action.type.durationMs)
             is StressTestAction.TriggerStrictModeViolation -> stressTestRepository.triggerStrictModeViolation(action.type)
-
+            is StressTestAction.TriggerScreenReplayCapture -> stressTestRepository.triggerScreenReplayCapture(action.activity)
             is ClearError -> clearError()
 
             // For now, navigation actions are handled at the Fragment level

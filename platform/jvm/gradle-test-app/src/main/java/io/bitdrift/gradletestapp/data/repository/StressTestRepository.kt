@@ -7,10 +7,22 @@
 
 package io.bitdrift.gradletestapp.data.repository
 
+import android.app.Activity
+import android.app.Dialog
 import android.content.Context
+import android.graphics.PixelFormat
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
 import android.os.StrictMode
+import android.view.Gravity
+import android.view.View
+import android.view.Window
+import android.view.WindowInsets
+import android.view.WindowManager
+import android.widget.PopupWindow
+import android.widget.TextView
+import android.widget.Toast
 import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import timber.log.Timber
@@ -19,6 +31,8 @@ import java.io.FileInputStream
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class StressTestRepository(
     private val context: Context,
@@ -127,6 +141,182 @@ class StressTestRepository(
         } catch (e: Exception) {
             Timber.d("Expected exception during StrictMode test: ${e.message}")
         }
+    }
+
+    /**
+     * Before fix for BIT-8521, it reproduces the ConcurrentModificationException in ReplayDecorations.addDecorations on
+     * API < 29 by racing screen replay captures against rapid main-thread mutations of
+     * WindowManagerGlobal.mViews (dialogs, popups, toasts, and an injected trigger view).
+     */
+    fun triggerScreenReplayCapture(activity: Activity) {
+        val deadline = System.currentTimeMillis() + REPLAY_RACE_DURATION_MS
+        val mainHandler = Handler(Looper.getMainLooper())
+        val activityToken = activity.window.decorView.windowToken
+        val triggerView = RootMutationTriggerView(activity, mainHandler, activityToken)
+
+        triggerView.attachTo(activity.windowManager)
+        repeat(CONCURRENT_CHURN_RUNNERS) {
+            mainHandler.post(WindowChurnRunnable(activity, mainHandler, deadline, triggerView))
+        }
+        startReplayCaptureDriver(deadline)
+    }
+
+    private fun startReplayCaptureDriver(deadline: Long) {
+        Thread({
+            while (System.currentTimeMillis() < deadline) {
+                Capture.Logger.logScreenView("Stress ${System.nanoTime()}")
+                Thread.sleep(REPLAY_CAPTURE_INTERVAL_MS)
+            }
+        }, "replay-race-driver").start()
+    }
+
+    /**
+     * Repeatedly creates and dismisses dialogs/popups/toasts on the main thread, growing the
+     * set of attached windows seen by WindowManagerGlobal until the deadline is reached.
+     */
+    private class WindowChurnRunnable(
+        private val activity: Activity,
+        private val mainHandler: Handler,
+        private val deadline: Long,
+        private val triggerView: RootMutationTriggerView,
+    ) : Runnable {
+        private val dialogs = ArrayDeque<Dialog>()
+        private val popups = ArrayDeque<PopupWindow>()
+        private var counter = 0
+
+        override fun run() {
+            repeat(CHURN_STEPS_PER_TICK) {
+                dialogs.removeFirstOrNull()?.dismiss()
+                popups.removeFirstOrNull()?.dismiss()
+
+                val size = MIN_WINDOW_SIZE_PX + (counter % WINDOW_SIZE_RANGE_PX)
+                dialogs.addLast(createStressDialog(activity, counter, size))
+                popups.addLast(createStressPopup(activity, counter, size))
+                counter++
+            }
+
+            Toast.makeText(activity, "stress $counter", Toast.LENGTH_SHORT).show()
+
+            if (System.currentTimeMillis() < deadline) {
+                mainHandler.postDelayed(this, CHURN_INTERVAL_MS)
+            } else {
+                dialogs.forEach { it.dismiss() }
+                popups.forEach { it.dismiss() }
+                triggerView.detach()
+            }
+        }
+    }
+
+    /**
+     * A no-op overlay View whose getRootWindowInsets() forces a synchronous main-thread
+     * addView/removeView when called off the main thread, mutating WindowManagerGlobal.mViews
+     * exactly while ReplayDecorations is iterating it on the background executor.
+     */
+    private class RootMutationTriggerView(
+        context: Context,
+        private val mainHandler: Handler,
+        private val activityToken: IBinder,
+    ) : View(context) {
+        private var windowManager: WindowManager? = null
+
+        fun attachTo(windowManager: WindowManager) {
+            runCatching {
+                windowManager.addView(this, overlayLayoutParams(activityToken))
+                this.windowManager = windowManager
+            }
+        }
+
+        fun detach() {
+            val wm = windowManager ?: return
+            windowManager = null
+            removeViewIfAttached(wm, this)
+        }
+
+        override fun getRootWindowInsets(): WindowInsets? {
+            val wm = windowManager
+            if (wm == null || Looper.myLooper() == Looper.getMainLooper()) {
+                return super.getRootWindowInsets()
+            }
+            mutateWindowsOnMainThread(wm)
+            return super.getRootWindowInsets()
+        }
+
+        private fun mutateWindowsOnMainThread(wm: WindowManager) {
+            val latch = CountDownLatch(1)
+            mainHandler.post {
+                runCatching {
+                    val transient = View(context)
+                    wm.addView(transient, overlayLayoutParams(activityToken))
+                    removeViewIfAttached(wm, transient)
+                }
+                latch.countDown()
+            }
+            latch.await(MAIN_THREAD_MUTATION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        }
+    }
+
+    companion object {
+        private const val REPLAY_RACE_DURATION_MS = 10_000L
+        private const val REPLAY_CAPTURE_INTERVAL_MS = 20L
+        private const val CHURN_INTERVAL_MS = 16L
+        private const val CHURN_STEPS_PER_TICK = 2
+        private const val CONCURRENT_CHURN_RUNNERS = 12
+        private const val MAIN_THREAD_MUTATION_TIMEOUT_MS = 200L
+        private const val MIN_WINDOW_SIZE_PX = 80
+        private const val WINDOW_SIZE_RANGE_PX = 160
+
+        private fun overlayLayoutParams(token: IBinder): WindowManager.LayoutParams =
+            WindowManager.LayoutParams(
+                1,
+                1,
+                WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                PixelFormat.TRANSLUCENT,
+            ).apply { this.token = token }
+
+        private fun removeViewIfAttached(windowManager: WindowManager, view: View) {
+            runCatching {
+                if (view.isAttachedToWindow) {
+                    windowManager.removeViewImmediate(view)
+                }
+            }
+        }
+
+        private fun createStressDialog(activity: Activity, counter: Int, size: Int): Dialog =
+            Dialog(activity).apply {
+                requestWindowFeature(Window.FEATURE_NO_TITLE)
+                setContentView(
+                    TextView(activity).apply {
+                        text = "Dialog $counter"
+                        minimumWidth = size
+                        minimumHeight = size
+                    },
+                )
+                window?.setDimAmount(0f)
+                show()
+                window?.setLayout(size, size)
+            }
+
+        private fun createStressPopup(activity: Activity, counter: Int, size: Int): PopupWindow =
+            PopupWindow(
+                TextView(activity).apply {
+                    text = "Popup $counter"
+                    minimumWidth = size
+                    minimumHeight = size
+                },
+                size,
+                size,
+                false,
+            ).apply {
+                isClippingEnabled = false
+                showAtLocation(
+                    activity.window.decorView,
+                    Gravity.TOP or Gravity.START,
+                    counter % 200,
+                    counter % 300,
+                )
+            }
     }
 
     private fun triggerNetworkViolation() {

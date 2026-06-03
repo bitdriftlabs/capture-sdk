@@ -111,6 +111,8 @@ sealed class StressTestAction : AppAction {
     data class TriggerJankyFrames(val type: JankType) : StressTestAction()
 
     data class TriggerStrictModeViolation(val type: StrictModeViolationType) : StressTestAction()
+
+    data class TriggerScreenReplayCapture(val activity: android.app.Activity) : StressTestAction()
 }
 
 enum class StrictModeViolationType(val displayName: String) {

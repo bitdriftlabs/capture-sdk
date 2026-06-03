@@ -55,7 +55,10 @@ class WindowManager(
         }
         try {
             @Suppress("UNCHECKED_CAST")
-            return getWindowViews.get(windowManagerGlobal) as List<View>
+            // Match WindowInspector.getGlobalWindowViews(), which returns a defensive copy.
+            // This reflection fallback reads WindowManagerGlobal.mViews directly, so returning it
+            // can cause ConcurrentModificationException for consumers if windows change later.
+            return ArrayList(getWindowViews.get(windowManagerGlobal) as List<View>)
         } catch (e: Throwable) {
             errorHandler.handleError("Failed to retrieve windows", e)
             return emptyList()
