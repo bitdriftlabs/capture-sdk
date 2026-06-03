@@ -15,9 +15,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import android.app.Activity
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
@@ -48,6 +51,9 @@ fun StressTestScreen(
         }
         item {
             StrictModeCard(onAction = onAction)
+        }
+        item {
+            ScreenReplayCard(onAction = onAction)
         }
     }
 }
@@ -254,6 +260,34 @@ private fun StrictModeCard(onAction: (AppAction) -> Unit) {
     }
 }
 
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ScreenReplayCard(onAction: (AppAction) -> Unit) {
+    @Suppress("ContextCastToActivity")
+    val activity = LocalContext.current as Activity
+    StressTestCard(title = stringResource(id = R.string.screen_capture)) {
+        Text(
+            text = "Stress replay with window mutations",
+            style = MaterialTheme.typography.bodySmall,
+            color = BitdriftColors.TextSecondary,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = { onAction(StressTestAction.TriggerScreenReplayCapture(activity)) },
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
+            ) {
+                Text("Trigger", maxLines = 1)
+            }
+        }
+    }
+}
+
 @Composable
 private fun StressTestCard(
     title: String,
@@ -285,4 +319,10 @@ private fun StressTestCard(
             content()
         }
     }
+}
+
+@Preview
+@Composable
+fun StressTestScreenPreview(){
+    StressTestScreen({},{})
 }

@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Session replay: fix a rare `ConcurrentModificationException` on API < 29 when windows change while screen capture is in progress.
 
 ### iOS
 
