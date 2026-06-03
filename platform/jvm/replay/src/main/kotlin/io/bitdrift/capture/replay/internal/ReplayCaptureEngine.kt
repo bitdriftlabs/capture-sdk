@@ -49,7 +49,7 @@ internal class ReplayCaptureEngine(
 
     private fun captureScreen(
         skipReplayComposeViews: Boolean,
-        completion: (encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics) -> Unit,
+        completion: (encodedScreen: ByteArray, screen: List<ReplayRect>, metrics: ReplayCaptureMetrics) -> Unit,
     ) {
         val startTime = clock.elapsedRealtime()
 

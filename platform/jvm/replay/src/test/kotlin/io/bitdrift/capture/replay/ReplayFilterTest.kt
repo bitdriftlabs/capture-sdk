@@ -24,9 +24,9 @@ class ReplayFilterTest {
 
         val replayFilter = ReplayFilter()
 
-        val filteredCapture = replayFilter.filter(capture)
-        Assert.assertNotNull(filteredCapture)
-        Assert.assertEquals(3, filteredCapture!!.size)
+        val List<ReplayRect> = replayFilter.filter(capture)
+        Assert.assertNotNull(List<ReplayRect>)
+        Assert.assertEquals(3, List<ReplayRect>!!.size)
     }
 
     // Sending twice the same list of replay rect through the filter will filter the last one
@@ -41,9 +41,9 @@ class ReplayFilterTest {
 
         val replayFilter = ReplayFilter()
 
-        val filteredCapture = replayFilter.filter(capture)
-        Assert.assertNotNull(filteredCapture)
-        Assert.assertEquals(3, filteredCapture!!.size)
+        val List<ReplayRect> = replayFilter.filter(capture)
+        Assert.assertNotNull(List<ReplayRect>)
+        Assert.assertEquals(3, List<ReplayRect>!!.size)
 
         val nextCapture = replayFilter.filter(capture)
         Assert.assertNull(nextCapture)
@@ -54,7 +54,7 @@ class ReplayFilterTest {
         val capture = emptyList<ReplayRect>()
         val replayFilter = ReplayFilter()
 
-        val filteredCapture = replayFilter.filter(capture)
-        Assert.assertNull(filteredCapture)
+        val List<ReplayRect> = replayFilter.filter(capture)
+        Assert.assertNull(List<ReplayRect>)
     }
 }

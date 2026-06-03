@@ -14,7 +14,7 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.WindowManager
 import io.bitdrift.capture.replay.internal.DisplayManagers
-import io.bitdrift.capture.replay.internal.FilteredCapture
+import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -96,7 +96,7 @@ class ReplayPreviewClient(
 
     override fun onScreenCaptured(
         encodedScreen: ByteArray,
-        screen: FilteredCapture,
+        screen: List<ReplayRect>,
         metrics: ReplayCaptureMetrics,
     ) {
         lastEncodedScreen = encodedScreen

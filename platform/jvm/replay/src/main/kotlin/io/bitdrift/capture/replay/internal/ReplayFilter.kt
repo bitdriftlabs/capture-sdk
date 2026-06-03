@@ -10,12 +10,10 @@ package io.bitdrift.capture.replay.internal
 /**
  * The list of captured elements after filtering
  */
-typealias FilteredCapture = List<ReplayRect>
-
 internal class ReplayFilter {
-    private var previousCapture: FilteredCapture? = null
+    private var previousCapture: List<ReplayRect>? = null
 
-    fun filter(capture: FilteredCapture): FilteredCapture? {
+    fun filter(capture: List<ReplayRect>): List<ReplayRect>? {
         // This capture is identical to the previous one, or is empty, filter it out
         // One interesting case when capture is empty is when the application is backgrounded.
         // Note: With the new ReplayParser, capture will always contain at least the screen bounds

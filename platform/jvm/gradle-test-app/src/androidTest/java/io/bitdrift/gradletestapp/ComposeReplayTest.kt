@@ -49,7 +49,6 @@ import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.compose.CaptureModifier.captureIgnore
-import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayRect
 import org.junit.Before
 import org.junit.Rule
@@ -73,7 +72,7 @@ class ComposeReplayTest {
     @get:Rule
     val composeRule = createComposeRule()
     private lateinit var replayClient: ReplayPreviewClient
-    private val replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?> = AtomicReference(null)
+    private val replay: AtomicReference<Pair<List<ReplayRect>, ReplayCaptureMetrics>?> = AtomicReference(null)
     private lateinit var latch: CountDownLatch
 
     @Before
@@ -83,7 +82,7 @@ class ComposeReplayTest {
         replayClient = TestUtils.createReplayPreviewClient(replay, latch, InstrumentationRegistry.getInstrumentation().targetContext)
     }
 
-    private fun verifyReplayScreen(viewCount: Int = 3): FilteredCapture {
+    private fun verifyReplayScreen(viewCount: Int = 3): List<ReplayRect> {
         replayClient.captureScreen()
 
         // If we do an unconditional wait on the latch we may end up preventing the replay invocation

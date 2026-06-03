@@ -14,13 +14,13 @@ import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.replay.IReplayLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayPreviewClient
-import io.bitdrift.capture.replay.internal.FilteredCapture
+import io.bitdrift.capture.replay.internal.ReplayRect
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
 
 object TestUtils {
     fun createReplayPreviewClient(
-        replay: AtomicReference<Pair<FilteredCapture, ReplayCaptureMetrics>?>,
+        replay: AtomicReference<Pair<List<ReplayRect>, ReplayCaptureMetrics>?>,
         latch: CountDownLatch,
         context: Context,
     ): ReplayPreviewClient =
@@ -36,7 +36,7 @@ object TestUtils {
             object : IReplayLogger {
                 override fun onScreenCaptured(
                     encodedScreen: ByteArray,
-                    screen: FilteredCapture,
+                    screen: List<ReplayRect>,
                     metrics: ReplayCaptureMetrics,
                 ) {
                     Log.d("Replay Tests", "took ${metrics.parseDuration.inWholeMilliseconds}ms")

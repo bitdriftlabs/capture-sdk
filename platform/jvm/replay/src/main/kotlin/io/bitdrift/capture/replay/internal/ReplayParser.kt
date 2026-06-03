@@ -30,7 +30,7 @@ internal class ReplayParser(
     fun parse(
         replayCaptureMetrics: ReplayCaptureMetrics,
         skipReplayComposeViews: Boolean,
-    ): FilteredCapture {
+    ): List<ReplayRect> {
         val result = mutableListOf<ReplayRect>()
 
         // 1. Add screen size as the first element
