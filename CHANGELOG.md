@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.2...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.3...HEAD
 
 ### Both
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Session replay: fix a rare `ConcurrentModificationException` on API < 29 when windows change while screen capture is in progress.
+- Nothing yet!
 
 ### iOS
 
@@ -44,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.3]
+
+[0.23.3]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.3
+
+### Android
+
+**Fixed**
+
+- Session replay: fix a rare `ConcurrentModificationException` on API < 29 when windows change while screen capture is in progress.
 
 ## [0.23.2]
 
