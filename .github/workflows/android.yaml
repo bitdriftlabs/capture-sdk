@@ -353,7 +353,7 @@ jobs:
           ~/.android/avd/*
           ~/.android/adb*
         key: ${{ runner.os }}-avd-api-23-2
-    - name: kill adb server to ensure cached keys are used
+    - name: Kill ADB server to ensure cached keys are used
       run: adb kill-server || true
     - name: Create AVD and generate snapshot for caching
       if: steps.avd-cache.outputs.cache-hit != 'true'
@@ -424,7 +424,7 @@ jobs:
             ~/.android/avd/*
             ~/.android/adb*
           key: ${{ runner.os }}-avd-api31-benchmark
-      - name: kill adb server to ensure cached keys are used
+      - name: Kill ADB server to ensure cached keys are used
         run: adb kill-server || true
 
       - name: Create AVD and generate snapshot for caching
@@ -635,7 +635,7 @@ jobs:
             ~/.android/avd/*
             ~/.android/adb*
           key: ${{ runner.os }}-avd-api${{ matrix.api-level }}-1
-      - name: kill adb server to ensure cached keys are used
+      - name: Kill ADB server to ensure cached keys are used
         run: adb kill-server || true
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
