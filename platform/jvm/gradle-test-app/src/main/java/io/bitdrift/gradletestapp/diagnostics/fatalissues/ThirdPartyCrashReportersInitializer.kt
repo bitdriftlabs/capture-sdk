@@ -17,7 +17,6 @@ import com.bugsnag.android.Severity
 import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment.Companion.SENTRY_SDK_DSN_KEY
-import io.sentry.Hint
 import io.sentry.SentryEvent
 import io.sentry.android.core.SentryAndroid
 import io.sentry.android.core.SentryAndroidOptions
@@ -25,7 +24,7 @@ import org.json.JSONObject
 import timber.log.Timber
 import kotlin.time.measureTime
 
-object CrashSdkInitializer {
+object ThirdPartyCrashReportersInitializer {
     fun init(application: Application) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(application)
         val bugSnagApiKey = sharedPreferences.getString(BUG_SNAG_SDK_API_KEY, "")

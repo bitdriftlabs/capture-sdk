@@ -9,12 +9,11 @@ package io.bitdrift.gradletestapp.init
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import android.widget.Toast
 import io.bitdrift.capture.Capture
-import io.bitdrift.capture.Capture.Logger.sessionUrl
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.InitializationState
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -22,9 +21,7 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
 import io.bitdrift.capture.reports.Report
-import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.capture.webview.WebViewConfiguration
-import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
@@ -46,104 +43,82 @@ import java.util.concurrent.Executors
 /**
  * Starts bitdrift's Captures SDK with the persisted config settings
  */
-object BitdriftInit {
+object CaptureSdkInitializer {
     private val userUuid = UUID.randomUUID().toString()
 
     /**
      * Init sdk with the persisted settings
      */
-    fun init(
+    @OptIn(ExperimentalBitdriftApi::class)
+    fun initFromPreferences(
         applicationContext: Context,
         sharedPreferences: SharedPreferences,
     ): Boolean {
-        val apiKey =
-            sharedPreferences.getString(BITDRIFT_API_KEY, null)
-        val apiUrl = sharedPreferences.getString("apiUrl", null)
-        if (apiKey.isNullOrBlank() || apiUrl.isNullOrBlank()) {
-            Timber.w("SDK initialization skipped - API key or URL not configured. Please set them in Settings.")
-            return false
-        }
 
-        if (initFromPreferences(sharedPreferences, applicationContext)) {
-            if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
-            Timber.plant(CaptureTree())
-            Timber.i("Bitdrift Logger initialized with session_url=$sessionUrl")
+        val persistedSdkConfigResult = getPersistedCaptureSdkSettings(
+            applicationContext,
+            sharedPreferences,
+        )
 
-            Capture.Logger.setEntityId(userUuid)
-
-            @OptIn(ExperimentalBitdriftApi::class)
-            Capture.Logger.getPreviousRunInfo()?.let { previousRunInfo ->
-                val hasFatallyTerminated = previousRunInfo.hasFatallyTerminated.toString()
-                val reason = previousRunInfo.terminationReason?.toString() ?: ""
-                Capture.Logger.logInfo(
-                    mapOf(
-                        "hasFatallyTerminated" to hasFatallyTerminated,
-                        "reason" to reason
-                    )
-                ) {
-                    "Bitdrift PreviousRunInfo"
-                }
+        return when (persistedSdkConfigResult) {
+            
+            is PersistedSdkConfigResult.Success -> {
+                startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext)
+                logPreviousRunInfoToBitdrift()
+                return Capture.Logger.getSdkStatus().initializationState != InitializationState.NOT_STARTED
             }
 
-            return true
-        } else {
-            Timber.e("Failed to initialize Bitdrift SDK - check your API key and URL configuration")
-            return false
+            is PersistedSdkConfigResult.Failed -> {
+                Timber.i(persistedSdkConfigResult.message)
+                false
+            }
         }
     }
 
-    private fun initFromPreferences(
-        sharedPreferences: SharedPreferences,
+    @ExperimentalBitdriftApi
+    private fun startCaptureSdk(
+        settings: CaptureSdkInitSettings,
         context: Context,
-    ): Boolean {
-        val settingsResult = getPersistedCaptureSdkSettings(context, sharedPreferences)
-        when (settingsResult) {
-            is SdkConfigResult.Success -> {
-                val settings = settingsResult.captureSdkInitSettings
-                Capture.Logger.start(
-                    apiKey = settings.apiKey,
-                    apiUrl = settings.apiUrl,
-                    configuration = settings.configuration,
-                    sessionStrategy = settings.sessionStrategy,
-                    fieldProviders = settings.fieldProviders,
-                    context = context,
-                ) { result ->
-                    when (result) {
-                        is CaptureResult.Success -> {
-                            val logger = result.value
-                            Log.i("GradleTestApp", "SDK started successfully. " +
-                                "sessionId=${logger.sessionId}, " +
-                                "sessionUrl=${logger.sessionUrl}, " +
-                                "deviceId=${logger.deviceId}")
-                        }
-                        is CaptureResult.Failure -> {
-                            Log.e("GradleTestApp", "SDK failed to start: ${result.error.message}")
-                            // Re-throwing on debug builds so we can get immediate signal of
-                            // any issues at Capture.Logger.start internals during the development phase.
-                            throw IllegalStateException(result.error.message)
-                        }
-                    }
-                }
-                Log.i("GradleTestApp", "Session initialized " + Capture.Logger.sessionUrl)
-                return true
-            }
+    ) {
 
-            is SdkConfigResult.Failed -> {
-                Log.e("GradleTestApp", settingsResult.message)
-                return false
+        Capture.Logger.start(
+            apiKey = settings.apiKey,
+            apiUrl = settings.apiUrl,
+            configuration = settings.configuration,
+            sessionStrategy = settings.sessionStrategy,
+            fieldProviders = settings.fieldProviders,
+            context = context,
+        ) { startResult ->
+            when (startResult) {
+                is CaptureResult.Success -> {
+                    val logger = startResult.value
+                    Timber.i("SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}")
+                }
+
+                is CaptureResult.Failure -> {
+                    Timber.i("SDK failed to start: ${startResult.error.message}")
+                    // Re-throwing on debug builds so we can get immediate signal of
+                    // any issues at Capture.Logger.start internals during the development phase.
+                    throw IllegalStateException(startResult.error.message)
+                }
             }
         }
     }
 
-    private fun getPersistedCaptureSdkSettings(applicationContext: Context, sharedPreferences: SharedPreferences): SdkConfigResult {
+    private fun getPersistedCaptureSdkSettings(
+        applicationContext: Context,
+        sharedPreferences: SharedPreferences,
+    ): PersistedSdkConfigResult {
         val apiKey =
             sharedPreferences.getString(
                 BITDRIFT_API_KEY,
                 null,
             )
         val apiUrl = sharedPreferences.getString("apiUrl", null)?.toHttpUrlOrNull()
-        if (apiUrl == null || apiKey == null) {
-            return SdkConfigResult.Failed("Invalid settings. apiUrl: $apiUrl . apiKey: $apiKey")
+        if (apiUrl == null || apiKey.isNullOrBlank()) {
+            return PersistedSdkConfigResult.Failed(
+                "Invalid settings. apiUrl: $apiUrl. apiKey configured: ${!apiKey.isNullOrBlank()}",
+            )
         }
         val fatalIssueReporterEnabled =
             sharedPreferences.getBoolean(
@@ -184,7 +159,7 @@ object BitdriftInit {
                 configuration = configuration,
                 fieldProviders = fieldProviders,
             )
-        return SdkConfigResult.Success(captureSdkInitSettings)
+        return PersistedSdkConfigResult.Success(captureSdkInitSettings)
     }
 
     private fun SharedPreferences.getPersistedFlag(keyName: String): Boolean = getBoolean(
@@ -194,7 +169,8 @@ object BitdriftInit {
 
     private fun getSessionStrategy(
         applicationContext: Context,
-        sharedPreferences: SharedPreferences): SessionStrategy =
+        sharedPreferences: SharedPreferences
+    ): SessionStrategy =
         if (sharedPreferences.getString(
                 ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY,
                 ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED.displayName,
@@ -209,7 +185,8 @@ object BitdriftInit {
             SessionStrategy.ActivityBased(
                 inactivityThresholdMins = thresholdMins,
                 onSessionIdChanged = { sessionId ->
-                    val message ="Bitdrift Logger session id updated due to inactivity: $sessionId. Callback triggered in ${Thread.currentThread().name} thread"
+                    val message =
+                        "Bitdrift Logger session id updated due to inactivity: $sessionId. Callback triggered in ${Thread.currentThread().name} thread"
                     Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
                     Timber.Forest.i(message)
                 },
@@ -246,6 +223,20 @@ object BitdriftInit {
             Thread(runnable, "customer-issue-report-callback")
         }
 
+    @ExperimentalBitdriftApi
+    private fun logPreviousRunInfoToBitdrift() {
+        Capture.Logger.getPreviousRunInfo()?.let { previousRunInfo ->
+            val terminationReason = previousRunInfo.terminationReason?.toString() ?: ""
+            val fields = mapOf(
+                "hasFatallyTerminated" to previousRunInfo.hasFatallyTerminated.toString(),
+                "terminationReason" to terminationReason,
+            )
+            Capture.Logger.logInfo(fields) {
+                "Capture.Logger.getPreviousRunInfo"
+            }
+        }
+    }
+
     private class CustomerIssueReportCallback : IssueReportCallback {
         override fun onBeforeReportSend(report: Report) {
             Capture.Logger.logInfo(
@@ -257,19 +248,19 @@ object BitdriftInit {
                     "fields" to report.fields.toString(),
                 )
             ) {
-                "Callback issue Report occurred ${report.details}: ${report.reason}"
+                "IssueReportCallback.onBeforeReportSend"
             }
         }
     }
 
-    private sealed class SdkConfigResult {
+    private sealed class PersistedSdkConfigResult {
         data class Failed(
             val message: String,
-        ) : SdkConfigResult()
+        ) : PersistedSdkConfigResult()
 
         data class Success(
             val captureSdkInitSettings: CaptureSdkInitSettings,
-        ) : SdkConfigResult()
+        ) : PersistedSdkConfigResult()
     }
 
     private data class CaptureSdkInitSettings(

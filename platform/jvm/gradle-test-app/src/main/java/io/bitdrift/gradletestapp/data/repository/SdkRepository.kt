@@ -15,7 +15,7 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.SleepMode
-import io.bitdrift.gradletestapp.init.BitdriftInit
+import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.data.model.GlobalFieldEntry
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_URL_KEY
@@ -51,7 +51,7 @@ class SdkRepository(
             }
         }
         return withContext(Dispatchers.Main.immediate) {
-            BitdriftInit.init(applicationContext, sharedPreferences)
+            CaptureSdkInitializer.initFromPreferences(applicationContext, sharedPreferences)
         }
     }
 

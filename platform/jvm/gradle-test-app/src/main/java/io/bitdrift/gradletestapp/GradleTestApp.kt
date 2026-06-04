@@ -10,14 +10,14 @@ package io.bitdrift.gradletestapp
 import android.app.Application
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import io.bitdrift.capture.Capture
-import io.bitdrift.gradletestapp.diagnostics.fatalissues.CrashSdkInitializer
+import io.bitdrift.gradletestapp.diagnostics.fatalissues.ThirdPartyCrashReportersInitializer
 import io.bitdrift.gradletestapp.diagnostics.lifecycle.ActivitySpanCallbacks
 import io.bitdrift.gradletestapp.diagnostics.papa.PapaTelemetry
 import io.bitdrift.gradletestapp.diagnostics.startup.AppStartInfoLogger
 import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
-import io.bitdrift.gradletestapp.init.BitdriftInit
+import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DIAGNOSTICS_ENABLED_KEY
 import timber.log.Timber
 
 /**
@@ -29,21 +29,27 @@ class GradleTestApp : Application() {
 
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
 
+        if (areAdditionalDiagnosticToolsEnabled(sharedPreferences)) {
+            attachDiagnosticTools()
+        }
+
         if (hasDeferredSdkStartConfigured(sharedPreferences)) {
             Timber.i("Deferred start enabled - SDK initialization skipped")
         } else {
-            BitdriftInit.init(this, sharedPreferences)
+            CaptureSdkInitializer.initFromPreferences(this, sharedPreferences)
         }
 
-        attachAdditionalMonitoringTools()
+        ThirdPartyCrashReportersInitializer.init(this)
     }
+
+    private fun areAdditionalDiagnosticToolsEnabled(sharedPreferences: SharedPreferences): Boolean =
+        sharedPreferences.getBoolean(DIAGNOSTICS_ENABLED_KEY, false)
 
     private fun hasDeferredSdkStartConfigured(sharedPreferences: SharedPreferences): Boolean =
         sharedPreferences.getBoolean(DEFERRED_START_PREFS_KEY, false)
 
-    private fun attachAdditionalMonitoringTools() {
+    private fun attachDiagnosticTools() {
         StrictModeConfigurator.install()
-        CrashSdkInitializer.init(this)
         ActivitySpanCallbacks.create()
         AppStartInfoLogger.register(this)
         PapaTelemetry.install()
