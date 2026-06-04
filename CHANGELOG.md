@@ -45,6 +45,15 @@
 
 - Nothing yet!
 
+## [0.23.4]
+[0.23.4]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/0.23.4
+
+### Both
+
+**Added**
+
+- Ability to scrub all fields and log message
+
 ## [0.23.3]
 
 [0.23.3]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.3
