@@ -48,7 +48,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_startTestApiSer
   start_test_api_server(false, ping_interval)
 }
 
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn setup() {
   bd_test_helpers::test_global_init();
 }

@@ -23,7 +23,7 @@ use swift_bridge::key_value_storage::UserDefaultsStorage;
 #[path = "./conversion_tests.rs"]
 mod conversion_tests;
 
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn setup() {
   bd_test_helpers::test_global_init();
 }

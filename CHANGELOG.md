@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Ability to scrub all fields and log message
 
 **Changed**
 
@@ -16,7 +16,7 @@
 **Fixed**
 
 - Nothing yet!
- 
+
 ### Android
 
 **Added**
@@ -68,7 +68,7 @@
 ## [0.23.1]
 
 [0.23.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.1
- 
+
 ### iOS
 
 **Fixed**
@@ -100,7 +100,7 @@
 **Fixed**
 
 - Improved crash detection on initial app install and after clearing app cache.
- 
+
 ### Android
 
 **Added**
@@ -178,7 +178,7 @@
 
 **Fixed**
 
-- Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc artifacts. Also updated the style of `capture-timber` and `capture-apollo` javadocs to match. 
+- Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc artifacts. Also updated the style of `capture-timber` and `capture-apollo` javadocs to match.
 
 ## [0.22.13]
 
@@ -317,7 +317,7 @@
 **Fixed**
 
 - Fixes an issue causing certain workflows to not work accross process restart.
- 
+
 ### Android
 
 **Added**
@@ -410,7 +410,7 @@
 **Fixed**
 
 - Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the `Logger.log()` methods directly.
-- Fix NPE crash when using automatic OkHttp instrumentation via capture-plugin 
+- Fix NPE crash when using automatic OkHttp instrumentation via capture-plugin
 
 ## [0.21.0]
 [0.21.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.0
@@ -420,7 +420,7 @@
 **Changed**
 
 - The experimental feature flag APIs have been redone and now only expose a single `setFeatureFlagExposure` function instead of generic setters.
- 
+
 ### Android
 
 **Added**
@@ -451,7 +451,7 @@
 **Fixed**
 
 - Fixed an issue where the session ID on AppExit logs would not match the previous process run session ID as expected.
- 
+
 ### Android
 
 **Changed**
