@@ -38,7 +38,6 @@ internal class ReplayCaptureEngine(
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
 ) {
-
     private var previousCapture: List<ReplayRect>? = null
 
     fun captureScreen(skipReplayComposeViews: Boolean) {
@@ -83,5 +82,4 @@ internal class ReplayCaptureEngine(
             capture
         }
     }
-
 }
