@@ -104,6 +104,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         backendCategory.addPreference(buildSessionReplaySwitch(context))
         backendCategory.addPreference(buildDeferredStartSwitch(context))
         backendCategory.addPreference(buildWebViewMonitoringPreference(context))
+        backendCategory.addPreference(buildDiagnosticsSwitch(context))
 
         preferenceScreen = screen
     }
@@ -178,6 +179,9 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     private fun buildSessionReplaySwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, SESSION_REPLAY_ENABLED_PREFS_KEY, SESSION_REPLAY_TITLE, true)
 
+    private fun buildDiagnosticsSwitch(context: Context): SwitchPreference =
+        buildSwitchPreference(context, DIAGNOSTICS_ENABLED_KEY, DIAGNOSTICS_TITLE, false)
+
     private fun showApiKeysDialog(context: Context) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         SettingsApiKeysDialogFragment(sharedPreferences).show(parentFragmentManager, "")
@@ -219,6 +223,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
         const val SESSION_REPLAY_ENABLED_PREFS_KEY = "sessionReplayEnabled"
+        const val DIAGNOSTICS_ENABLED_KEY = "diagnosticsEnabled"
         const val WEBVIEW_MONITORING_PREFS_KEY = "webviewMonitoring"
 
         const val INACTIVITY_THRESHOLD_PREFS_KEY = "inactivityThresholdMins"
@@ -229,6 +234,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"
         private const val SESSION_REPLAY_TITLE = "Session Replay"
+        private const val DIAGNOSTICS_TITLE = "Diagnostics Tools"
         private const val WEBVIEW_MONITORING_TITLE = "WebView Monitoring"
 
         private val SESSION_STRATEGY_ENTRIES =

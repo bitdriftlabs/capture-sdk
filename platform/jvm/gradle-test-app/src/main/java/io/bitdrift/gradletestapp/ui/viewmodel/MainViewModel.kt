@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.data.model.AppState
@@ -291,16 +292,12 @@ class MainViewModel(
     private fun copySessionUrl() {
         val sessionUrl = sdkRepository.getSessionUrl()
         if (sessionUrl != null) {
-            Timber.i("Session URL copied: $sessionUrl")
+            Logger.logInfo(mapOf("session_url" to sessionUrl)) {
+                "Session URL copied"
+            }
         } else {
             _uiState.update { it.copy(error = "No session URL available") }
         }
-    }
-
-    @OptIn(ExperimentalBitdriftApi::class)
-    private fun addOneFeatureFlag() {
-        Timber.i("Adding one feature flag exposure")
-        Logger.setFeatureFlagExposure("myflag", "myvariant")
     }
 
     @OptIn(ExperimentalBitdriftApi::class)
