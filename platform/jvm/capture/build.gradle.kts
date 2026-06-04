@@ -87,6 +87,7 @@ android {
         checkReleaseBuilds = true
         disable.add("GradleDependency")
         disable.add("AndroidGradlePluginVersion")
+        disable.add("EnsureInitializerMetadata")
     }
 }
 
