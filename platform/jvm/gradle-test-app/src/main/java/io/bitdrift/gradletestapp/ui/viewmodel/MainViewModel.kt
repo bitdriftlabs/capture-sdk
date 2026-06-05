@@ -13,7 +13,6 @@ import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
-import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.data.model.AppState
@@ -453,7 +452,7 @@ private val JVM_CRASH_REASONS =
         AppExitReason.APP_CRASH_COROUTINE_EXCEPTION,
         AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION,
         AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION,
-        AppExitReason.APP_CRASH_OUT_OF_MEMORY,
+        AppExitReason.APP_CRASH_TOO_MANY_THREADS_OOM,
     )
 
 private val ANR_CRASH_REASONS =
