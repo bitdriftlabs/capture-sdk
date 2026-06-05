@@ -35,12 +35,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.UUID
 
+
 /**
  * Artificially creates different types of Fatal issues (ANR, JVM Crash, Native Crash,etc)
  */
 internal object FatalIssueGenerator {
     private val uuidSubject: BehaviorSubject<String> = BehaviorSubject.create()
     private val oomList = mutableListOf<ByteArray>()
+    private val threadsListForOom: MutableList<Thread> = ArrayList<Thread>()
     private val mainThreadHandler = Handler(Looper.getMainLooper())
 
     fun forceDeadlockAnr() {
@@ -145,7 +147,7 @@ internal object FatalIssueGenerator {
         triggerOsKill(OsConstants.SIGBUS)
     }
 
-    fun forceOutOfMemoryCrash() {
+    fun forceJvmOutOfMemoryCrash() {
         if (oomList.isNotEmpty()) {
             return
         }
@@ -155,6 +157,18 @@ internal object FatalIssueGenerator {
                 Thread.sleep(50)
             }
         }.start()
+    }
+
+    fun forceTooManyThreadsOutOfMemory() {
+        while (true) {
+            val thread = Thread(Runnable {
+                runCatching {
+                    Thread.sleep(Long.Companion.MAX_VALUE)
+                }
+            })
+            thread.start()
+            threadsListForOom.add(thread)
+        }
     }
 
     private fun initializeInBackground() {
