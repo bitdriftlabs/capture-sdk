@@ -160,14 +160,19 @@ internal object FatalIssueGenerator {
     }
 
     fun forceTooManyThreadsOutOfMemory() {
+        var threadIndex = 0
         while (true) {
-            val thread = Thread(Runnable {
-                runCatching {
-                    Thread.sleep(Long.Companion.MAX_VALUE)
-                }
-            })
+            val thread = Thread(
+                {
+                    runCatching {
+                        Thread.sleep(Long.MAX_VALUE)
+                    }
+                },
+                "oom-thread-$threadIndex",
+            )
             thread.start()
             threadsListForOom.add(thread)
+            threadIndex++
         }
     }
 
