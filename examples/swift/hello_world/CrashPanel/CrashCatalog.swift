@@ -65,7 +65,9 @@ final class CrashRegistry {
         DeadlockCrash(),
         AsyncSafeThreadCrash(),
         ObjCExceptionCrash(),
+        ObjCExceptionBackgroundCrash(),
         CXXExceptionCrash(),
+        SwiftForceTryCrash(),
         ObjCMsgSendCrash(),
         UnrecognizedSelectorCrash(),
         KVOCrash(),
@@ -320,6 +322,33 @@ final class ObjCExceptionCrash: Crash {
     func trigger() -> Never {
         hello_world_crash_objc_exception()
         fatalError("unreachable")
+    }
+}
+
+final class ObjCExceptionBackgroundCrash: Crash {
+    let category: CrashCategory = .exception
+    let title = "ObjC exception on background thread"
+    let crashDescription = "Throws an uncaught NSException from a background thread. The main thread blocks; the exception kills the process, producing a callstack rooted in a non-main thread."
+
+    func trigger() -> Never {
+        hello_world_crash_objc_exception_background()
+        fatalError("unreachable")
+    }
+}
+
+final class SwiftForceTryCrash: Crash {
+    let category: CrashCategory = .exception
+    let title = "Swift try! failure"
+    let crashDescription = "Uses try! on a function that always throws. Swift calls _swift_unexpectedError, producing a callstack distinct from NSException and fatalError."
+
+    func trigger() -> Never {
+        _ = try! Self.alwaysThrows()
+        fatalError("unreachable")
+    }
+
+    private static func alwaysThrows() throws -> Int {
+        struct E: Error {}
+        throw E()
     }
 }
 

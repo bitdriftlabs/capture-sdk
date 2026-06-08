@@ -62,6 +62,17 @@ void hello_world_crash_objc_exception(void) {
                                  userInfo:@{NSLocalizedDescriptionKey: @"Triggered by hello_world"}];
 }
 
+void hello_world_crash_objc_exception_background(void) {
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+        @throw [NSException exceptionWithName:NSGenericException
+                                       reason:@"Uncaught ObjC exception on background thread"
+                                     userInfo:@{NSLocalizedDescriptionKey: @"Triggered by hello_world"}];
+    });
+    // Block forever; the background exception terminates the process via the uncaught handler.
+    dispatch_semaphore_wait(dispatch_semaphore_create(0), DISPATCH_TIME_FOREVER);
+    __builtin_trap();
+}
+
 void hello_world_crash_cxx_exception(void) {
     throw std::runtime_error("Uncaught C++ exception from hello_world");
 }

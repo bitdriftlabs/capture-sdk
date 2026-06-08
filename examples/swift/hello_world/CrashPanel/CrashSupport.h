@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 FOUNDATION_EXPORT void hello_world_crash_objc_exception(void);
+FOUNDATION_EXPORT void hello_world_crash_objc_exception_background(void);
 FOUNDATION_EXPORT void hello_world_crash_cxx_exception(void);
 FOUNDATION_EXPORT void hello_world_crash_objc_msg_send(void);
 FOUNDATION_EXPORT void hello_world_crash_released_object(void);
