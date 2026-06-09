@@ -95,8 +95,7 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             : .fixed()
 
         let configuration = Configuration(
-            // Disable native session replay — Flutter provides its own
-            // wireframe data via logSessionReplayScreen.
+            // Flutter provides its own wireframe data via logSessionReplayScreen.
             sessionReplayConfiguration: nil,
             apiURL: URL(string: apiUrl)!
         )

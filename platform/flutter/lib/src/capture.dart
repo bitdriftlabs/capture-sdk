@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -25,6 +23,7 @@ class Capture {
 
   static bool _started = false;
   static bool _replayActive = false;
+  static bool _replayCallbackRegistered = false;
   static DateTime _lastReplayCapture = DateTime(0);
   static const _replayInterval = Duration(milliseconds: 500);
 
@@ -38,13 +37,20 @@ class Capture {
     required String apiKey,
     SessionStrategy sessionStrategy = SessionStrategy.fixed,
     String apiUrl = 'https://api.bitdrift.io',
+    bool enableSessionReplay = false,
   }) async {
     final result = await _channel.invokeMethod<bool>('start', {
       'apiKey': apiKey,
       'sessionStrategy': sessionStrategy.name,
       'apiUrl': apiUrl,
+      'enableSessionReplay': enableSessionReplay,
     });
     _started = result ?? false;
+    if (_started && enableSessionReplay) {
+      startSessionReplay();
+    } else {
+      stopSessionReplay();
+    }
     return _started;
   }
 
@@ -138,16 +144,15 @@ class Capture {
 
   /// End an active span.
   static Future<void> endSpan(Span span, {bool success = true}) =>
-      _channel.invokeMethod('endSpan', {
-        'spanId': span.id,
-        'success': success,
-      });
+      _channel.invokeMethod('endSpan', {'spanId': span.id, 'success': success});
 
   // -- Session Replay --
 
   /// Send a session replay screen capture (wireframe binary data).
-  static Future<void> logReplayScreen(Uint8List encodedScreen,
-      {double durationSeconds = 0.0}) =>
+  static Future<void> logReplayScreen(
+    Uint8List encodedScreen, {
+    double durationSeconds = 0.0,
+  }) =>
       _channel.invokeMethod('logReplayScreen', {
         'screen': encodedScreen,
         'duration': durationSeconds,
@@ -160,6 +165,8 @@ class Capture {
   static void startSessionReplay() {
     if (_replayActive) return;
     _replayActive = true;
+    if (_replayCallbackRegistered) return;
+    _replayCallbackRegistered = true;
     WidgetsBinding.instance.addPersistentFrameCallback((_) {
       if (!_replayActive) return;
       final now = DateTime.now();
