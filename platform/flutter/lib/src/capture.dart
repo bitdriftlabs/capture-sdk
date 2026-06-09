@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'log_level.dart';
@@ -46,7 +47,9 @@ class Capture {
       'enableSessionReplay': enableSessionReplay,
     });
     _started = result ?? false;
-    if (_started && enableSessionReplay) {
+    if (_started &&
+        enableSessionReplay &&
+        defaultTargetPlatform != TargetPlatform.iOS) {
       startSessionReplay();
     } else {
       stopSessionReplay();
@@ -167,6 +170,8 @@ class Capture {
   /// This registers a persistent frame callback that captures the widget
   /// tree as wireframe rects at ~2Hz and sends them to the Capture backend.
   static void startSessionReplay() {
+    // TODO: Wire iOS once the native session replay screen API is public/bridged.
+    if (defaultTargetPlatform == TargetPlatform.iOS) return;
     if (_replayActive) return;
     _replayActive = true;
     if (_replayCallbackRegistered) return;
