@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   capture_flutter:
-    path: ../../platform/flutter
+    path: ../../platform/capture_flutter
   shared_preferences: ^2.2.0
 
 dev_dependencies:

@@ -20,7 +20,7 @@ packages:
   capture_flutter:
     dependency: "direct main"
     description:
-      path: "../../platform/flutter"
+      path: "../../platform/capture_flutter"
       relative: true
     source: path
     version: "0.22.16"
