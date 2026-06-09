@@ -35,6 +35,8 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             result(Logger.sessionURL)
         case "getDeviceId":
             result(Logger.deviceID)
+        case "createTemporaryDeviceCode":
+            handleCreateTemporaryDeviceCode(result: result)
         case "startNewSession":
             Logger.startNewSession()
             result(nil)
@@ -125,6 +127,17 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
         default: Logger.logInfo(message, fields: fields)
         }
         result(nil)
+    }
+
+    private func handleCreateTemporaryDeviceCode(result: @escaping FlutterResult) {
+        Logger.createTemporaryDeviceCode { deviceCodeResult in
+            switch deviceCodeResult {
+            case .success(let deviceCode):
+                result(deviceCode)
+            case .failure(let error):
+                result(FlutterError(code: "DEVICE_CODE_ERROR", message: error.localizedDescription, details: nil))
+            }
+        }
     }
 
     private func handleLogScreenView(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
