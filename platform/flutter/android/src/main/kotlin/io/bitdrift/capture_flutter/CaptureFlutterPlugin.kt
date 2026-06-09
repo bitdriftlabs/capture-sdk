@@ -92,8 +92,7 @@ class CaptureFlutterPlugin : FlutterPlugin, MethodCallHandler {
                 apiKey = apiKey,
                 sessionStrategy = sessionStrategy,
                 configuration = Configuration(
-                    // Disable native session replay — Flutter provides its own
-                    // wireframe data via logSessionReplayScreen.
+                    // Flutter provides its own wireframe data via logSessionReplayScreen.
                     sessionReplayConfiguration = null,
                 ),
                 apiUrl = apiUrl.toHttpUrl(),
