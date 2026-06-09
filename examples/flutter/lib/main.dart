@@ -45,7 +45,9 @@ class _HomePageState extends State<HomePage> {
     _apiUrl = prefs.getString('capture_api_url') ?? 'https://api.bitdrift.io';
 
     if (_apiKey == null || _apiKey!.isEmpty) {
-      setState(() => _status = 'Not configured — tap settings to enter API key');
+      setState(
+        () => _status = 'Not configured — tap settings to enter API key',
+      );
       return;
     }
 
@@ -57,15 +59,13 @@ class _HomePageState extends State<HomePage> {
       final success = await Capture.start(
         apiKey: _apiKey!,
         apiUrl: _apiUrl,
+        enableSessionReplay: true,
       );
       final sessionId = await Capture.sessionId;
       setState(() {
         _status = success ? 'Started successfully' : 'Start failed';
         _sessionId = sessionId;
       });
-      if (success) {
-        Capture.startSessionReplay();
-      }
     } catch (e) {
       setState(() => _status = 'Error: $e');
     }
@@ -103,8 +103,8 @@ class _HomePageState extends State<HomePage> {
             if (_sessionId != null) Text('Session ID: $_sessionId'),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () => Capture.logInfo('Button tapped',
-                  fields: {'screen': 'home'}),
+              onPressed: () =>
+                  Capture.logInfo('Button tapped', fields: {'screen': 'home'}),
               child: const Text('Log Info'),
             ),
             const SizedBox(height: 8),
