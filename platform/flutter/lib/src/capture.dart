@@ -105,6 +105,10 @@ class Capture {
   static Future<String?> get deviceId =>
       _channel.invokeMethod<String>('getDeviceId');
 
+  /// Create a temporary device code for streaming logs from this device.
+  static Future<String?> createTemporaryDeviceCode() =>
+      _channel.invokeMethod<String>('createTemporaryDeviceCode');
+
   /// Start a new session.
   static Future<void> startNewSession() =>
       _channel.invokeMethod('startNewSession');

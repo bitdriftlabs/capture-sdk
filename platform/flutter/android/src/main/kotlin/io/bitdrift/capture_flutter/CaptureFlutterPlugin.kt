@@ -12,6 +12,7 @@ package io.bitdrift.capture_flutter
 import android.content.Context
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
@@ -49,6 +50,7 @@ class CaptureFlutterPlugin : FlutterPlugin, MethodCallHandler {
             "getSessionId" -> result.success(Logger.sessionId)
             "getSessionUrl" -> result.success(Logger.sessionUrl)
             "getDeviceId" -> result.success(Logger.deviceId)
+            "createTemporaryDeviceCode" -> handleCreateTemporaryDeviceCode(result)
             "startNewSession" -> {
                 Logger.startNewSession()
                 result.success(null)
@@ -117,6 +119,19 @@ class CaptureFlutterPlugin : FlutterPlugin, MethodCallHandler {
         val fields = call.argument<Map<String, String>>("fields") ?: emptyMap()
         Logger.log(level, fields) { message }
         result.success(null)
+    }
+
+    private fun handleCreateTemporaryDeviceCode(result: MethodChannel.Result) {
+        Logger.createTemporaryDeviceCode { captureResult ->
+            when (captureResult) {
+                is CaptureResult.Success -> result.success(captureResult.value)
+                is CaptureResult.Failure -> result.error(
+                    "DEVICE_CODE_ERROR",
+                    captureResult.error.message,
+                    null,
+                )
+            }
+        }
     }
 
     private fun handleLogScreenView(call: MethodCall, result: MethodChannel.Result) {
