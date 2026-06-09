@@ -19,8 +19,10 @@ import 'package:capture_flutter/capture_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Capture.start(apiKey: 'YOUR_API_KEY');
-  Capture.startSessionReplay();
+  await Capture.start(
+    apiKey: 'YOUR_API_KEY',
+    enableSessionReplay: true,
+  );
 
   runApp(MyApp());
 }
@@ -67,8 +69,10 @@ try {
 Session replay captures a wireframe representation of your Flutter UI (no screenshots, no PII) and sends it to the Capture backend.
 
 ```dart
-// Start after SDK initialization
-Capture.startSessionReplay();
+await Capture.start(
+  apiKey: 'YOUR_API_KEY',
+  enableSessionReplay: true,
+);
 
 // Stop when no longer needed
 Capture.stopSessionReplay();
