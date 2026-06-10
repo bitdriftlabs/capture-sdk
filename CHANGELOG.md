@@ -7,7 +7,7 @@
 
 **Added**
 
-- Ability to scrub all fields and log message
+- Nothing yet!
 
 **Changed**
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Ensure the Gradle plugin adds the OkHttp tracing interceptor last during automatic instrumentation.
 
 ### iOS
 
