@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
-    id("io.bitdrift.capture-plugin") version "0.22.14"
+    id("io.bitdrift.capture-plugin") version "0.23.4" // To verify new changes at capture-plugin use your maven local published version
 }
 
 dependencies {

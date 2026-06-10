@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Ensure the Gradle plugin adds the OkHttp tracing interceptor last during automatic instrumentation.
 
 ### iOS
 

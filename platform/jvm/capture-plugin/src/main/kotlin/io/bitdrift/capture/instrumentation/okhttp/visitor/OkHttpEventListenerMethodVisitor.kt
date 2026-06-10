@@ -66,8 +66,6 @@ class OkHttpEventListenerMethodVisitor(
     }
 
     private fun addOverwritingEventListener() {
-        addTracingInterceptor()
-
         // Add the following call at the beginning of the constructor with the Builder parameter:
         // builder.eventListenerFactory(new CaptureOkHttpEventListenerFactory());
 
@@ -100,11 +98,11 @@ class OkHttpEventListenerMethodVisitor(
             false,
         )
         visitInsn(Opcodes.POP)
+
+        addTracingInterceptor()
     }
 
     private fun addProxyingEventListener() {
-        addTracingInterceptor()
-
         // Add the following call at the beginning of the constructor with the Builder parameter:
         // builder.eventListenerFactory(new CaptureOkHttpEventListenerFactory(builder.eventListenerFactory));
 
@@ -149,6 +147,8 @@ class OkHttpEventListenerMethodVisitor(
             false,
         )
         visitInsn(Opcodes.POP)
+
+        addTracingInterceptor()
     }
 
     private fun addTracingInterceptor() {
