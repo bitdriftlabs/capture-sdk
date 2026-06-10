@@ -7,7 +7,7 @@
 
 **Added**
 
-- Ability to scrub all fields and log message
+- Nothing yet!
 
 **Changed**
 
