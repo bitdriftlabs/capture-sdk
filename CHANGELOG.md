@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.3...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.4...HEAD
 
 ### Both
 
@@ -29,8 +29,7 @@
 
 **Fixed**
 
-- Ensure the Gradle plugin adds the OkHttp tracing interceptor last during automatic instrumentation.
-- Match Android `WebView` subclass `loadUrl(...)` callsites during automatic WebView instrumentation.
+- Nothing yet!
 
 ### iOS
 
@@ -45,6 +44,16 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.5]
+[0.23.5]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/0.23.5
+
+### Android
+
+**Fixed**
+
+- Ensure the Gradle plugin adds the OkHttp tracing interceptor last during automatic instrumentation.
+- Fix automatic WebView instrumentation for WebView subclasses.
 
 ## [0.23.4]
 [0.23.4]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/0.23.4
