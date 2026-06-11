@@ -9,6 +9,9 @@ import Capture
 import Flutter
 import UIKit
 
+@_silgen_name("capture_log_session_replay_screen_for_active_logger")
+private func capture_log_session_replay_screen_for_active_logger(_ data: NSData, _ duration: Double)
+
 public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(
@@ -198,10 +201,8 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             result(FlutterError(code: "INVALID_ARGS", message: "Missing screen data", details: nil))
             return
         }
-        // logSessionReplayScreen is internal on the iOS SDK (requires @testable import).
-        // No public API exists for this yet — placeholder logs replay size as info.
-        // Track: expose logSessionReplayScreen on Logger public API.
-        Logger.logInfo("_session_replay", fields: ["_replay_size": "\(screenData.data.count)"])
+        let duration = (args["duration"] as? Double) ?? 0.0
+        capture_log_session_replay_screen_for_active_logger(screenData.data as NSData, duration)
         result(nil)
     }
 }
