@@ -32,7 +32,7 @@ class WebViewLoadUrlInstrumentable : ClassInstrumentable {
         WebViewClassVisitor(
             apiVersion = apiVersion,
             classVisitor = originalVisitor,
-            className = instrumentableContext.currentClassData.className,
+            classContext = instrumentableContext,
         )
 }
 
@@ -42,7 +42,7 @@ class WebViewLoadUrlInstrumentable : ClassInstrumentable {
 class WebViewClassVisitor(
     apiVersion: Int,
     classVisitor: ClassVisitor,
-    private val className: String,
+    private val classContext: ClassContext,
 ) : ClassVisitor(apiVersion, classVisitor) {
 
     override fun visitMethod(
@@ -53,6 +53,6 @@ class WebViewClassVisitor(
         exceptions: Array<out String>?,
     ): MethodVisitor {
         val methodVisitor = super.visitMethod(access, name, descriptor, signature, exceptions)
-        return WebViewMethodVisitor(api, methodVisitor)
+        return WebViewMethodVisitor(api, methodVisitor, classContext)
     }
 }

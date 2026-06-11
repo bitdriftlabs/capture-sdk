@@ -30,6 +30,7 @@
 **Fixed**
 
 - Ensure the Gradle plugin adds the OkHttp tracing interceptor last during automatic instrumentation.
+- Match Android `WebView` subclass `loadUrl(...)` callsites during automatic WebView instrumentation.
 
 ### iOS
 

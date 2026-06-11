@@ -12,10 +12,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.fragment.app.Fragment
 import io.bitdrift.gradletestapp.R
+import io.bitdrift.gradletestapp.ui.webview.CustomWebView
 
 /**
  * A basic WebView that can be used to test multi process.
@@ -30,7 +30,7 @@ class WebViewFragment : Fragment() {
         savedInstanceState: Bundle?,
     ): View {
         val view = inflater.inflate(R.layout.fragment_web_view, container, false)
-        val webView = view.findViewById<WebView>(R.id.webView)
+        val webView = view.findViewById<CustomWebView>(R.id.webView)
         webView.webViewClient = WebViewClient()
         webView.settings.javaScriptEnabled = true
         val url = arguments?.getString(ARG_URL) ?: WEBVIEW_URLS.first().second

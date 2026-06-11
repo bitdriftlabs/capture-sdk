@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.instrumentation.webview
 
+import com.android.build.api.instrumentation.ClassContext
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 
@@ -31,10 +32,12 @@ import org.objectweb.asm.Opcodes
 class WebViewMethodVisitor(
     apiVersion: Int,
     methodVisitor: MethodVisitor,
+    private val classContext: ClassContext,
 ) : MethodVisitor(apiVersion, methodVisitor) {
 
     companion object {
-        private const val WEBVIEW_CLASS = "android/webkit/WebView"
+        private const val WEBVIEW_CLASS_INTERNAL_NAME = "android/webkit/WebView"
+        private const val WEBVIEW_CLASS = "android.webkit.WebView"
         private const val LOAD_URL_METHOD = "loadUrl"
         private const val LOAD_URL_DESCRIPTOR = "(Ljava/lang/String;)V"
         private const val LOAD_URL_WITH_HEADERS_DESCRIPTOR = "(Ljava/lang/String;Ljava/util/Map;)V"
@@ -52,7 +55,7 @@ class WebViewMethodVisitor(
         isInterface: Boolean,
     ) {
         val isWebViewLoadUrl = opcode == Opcodes.INVOKEVIRTUAL &&
-            owner == WEBVIEW_CLASS &&
+            owner.isWebViewClassOwner(classContext) &&
             name == LOAD_URL_METHOD &&
             (descriptor == LOAD_URL_DESCRIPTOR || descriptor == LOAD_URL_WITH_HEADERS_DESCRIPTOR)
 
@@ -106,5 +109,22 @@ class WebViewMethodVisitor(
             }
         }
         super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
+    }
+
+    private fun String?.isWebViewClassOwner(classContext: ClassContext): Boolean {
+        if (this == null) {
+            return false
+        }
+
+        if (this == WEBVIEW_CLASS_INTERNAL_NAME) {
+            return true
+        }
+
+        val ownerFullyQualifyClassName = replace('/', '.')
+        val classData = runCatching {
+            classContext.loadClassData(ownerFullyQualifyClassName)
+        }.getOrNull() ?: return false
+
+        return WEBVIEW_CLASS in classData.superClasses
     }
 }
