@@ -24,6 +24,9 @@ static void hello_world_startup_dispatch(const char *identifier) {
     else if (strcmp(identifier, "CorruptMallocCrash") == 0) { hello_world_crash_corrupt_malloc(); }
     else if (strcmp(identifier, "UnrecognizedSelectorCrash") == 0) { hello_world_crash_unrecognized_selector(); }
     else if (strcmp(identifier, "KVOCrash") == 0) { hello_world_crash_kvo(); }
+    else if (strcmp(identifier, "NSRangeExceptionCrash") == 0) { hello_world_crash_nsa_range_exception(); }
+    else if (strcmp(identifier, "NSInvalidArgumentExceptionCrash") == 0) { hello_world_crash_nil_argument(); }
+    else if (strcmp(identifier, "ObjCThroughCPPCrash") == 0) { hello_world_crash_objc_through_cpp(); }
     else if (strcmp(identifier, "StackOverflowCrash") == 0) { hello_world_crash_stack_overflow(); }
     else if (strcmp(identifier, "StackSmashCrash") == 0) { hello_world_crash_stack_smash(); }
     else if (strcmp(identifier, "AbortCrash") == 0) { abort(); }
@@ -130,6 +133,27 @@ void hello_world_crash_stack_smash(void) {
     volatile char buf[8];
     for (int i = 0; i < 256; i++) {
         ((volatile char *)buf)[i] = (char)0xAA;
+    }
+}
+
+void hello_world_crash_nsa_range_exception(void) {
+    NSArray *array = @[@1, @2, @3];
+    [array objectAtIndex:10];
+}
+
+void hello_world_crash_nil_argument(void) {
+    NSMutableArray *array = [NSMutableArray array];
+    [array addObject:(id _Nonnull)nil];
+}
+
+void hello_world_crash_objc_through_cpp(void) {
+    try {
+        @throw [NSException exceptionWithName:NSRangeException
+                                       reason:@"ObjC exception propagating through C++ frame"
+                                     userInfo:@{@"source": @"hello_world"}];
+    } catch (const std::exception&) {
+        // Only catches C++ exceptions; ObjC exception propagates past this
+        // and triggers the C++ terminate path (_objc_terminate → std::terminate → abort)
     }
 }
 

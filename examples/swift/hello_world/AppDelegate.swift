@@ -6,35 +6,40 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import Capture
-import SwiftUI
 import UIKit
 
 @UIApplicationMain
 final class AppDelegate: UIResponder, UIApplicationDelegate {
-    var window: UIWindow?
-
     func application(
         _: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        Self.backupKSCrashReport()
         Theme.applyNavigationAppearance()
-        let window = UIWindow(frame: UIScreen.main.bounds)
-        window.rootViewController = UIHostingController(rootView: createContentView())
-        window.makeKeyAndVisible()
-        self.window = window
-
         return true
     }
 
-    private func createContentView() -> some View {
-        let startupCrashStorage = StartupCrashStorage()
-        let crashRegistry = CrashRegistry(startupStorage: startupCrashStorage)
-        let loggerCustomer = LoggerCustomer()
-        let crashPanelViewModel = CrashPanelViewModel(crashRegistry: crashRegistry)
-        crashPanelViewModel.refreshEnvironment()
-        return ContentView(
-            loggerCustomer: loggerCustomer,
-            crashPanelViewModel: crashPanelViewModel
-        )
+    // Must run before SceneDelegate initializes the SDK, which processes and deletes lastCrash.bjn.
+    private static func backupKSCrashReport() {
+        let fm = FileManager.default
+        guard
+            let appSupport = try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false),
+            let documents = fm.urls(for: .documentDirectory, in: .userDomainMask).first
+        else { return }
+
+        let source = appSupport.appendingPathComponent("bitdrift_capture/reports/kscrash/lastCrash.bjn")
+        guard fm.fileExists(atPath: source.path) else { return }
+
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let dest = documents.appendingPathComponent("kscrash_\(timestamp).bjn")
+        try? fm.copyItem(at: source, to: dest)
+    }
+
+    func application(
+        _: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options _: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
     }
 }

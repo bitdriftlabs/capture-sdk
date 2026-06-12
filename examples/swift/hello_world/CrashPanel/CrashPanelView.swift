@@ -45,6 +45,7 @@ struct CrashesView: View {
     @ObservedObject var viewModel: CrashPanelViewModel
 
     @State private var selectedCrashAction: CrashActionSelection?
+    @State private var gestureTriggerCrash: (any Crash)?
 
     var body: some View {
         PanelScreen {
@@ -98,7 +99,11 @@ struct CrashesView: View {
         ) {
             if let selectedCrashAction {
                 Button("Trigger now", role: .destructive) {
-                    selectedCrashAction.crash.trigger()
+                    if selectedCrashAction.crash.supportsGestureTrigger {
+                        self.gestureTriggerCrash = selectedCrashAction.crash
+                    } else {
+                        selectedCrashAction.crash.trigger()
+                    }
                 }
 
                 if selectedCrashAction.crash.supportsStartupTrigger {
@@ -119,6 +124,14 @@ struct CrashesView: View {
                     ? "Choose whether to trigger this crash now or before Capture SDK initializes on the next launch."
                     : "This crash only reproduces faithfully after app startup, so next-launch scheduling is unavailable."
             )
+        }
+        .sheet(isPresented: Binding(
+            get: { self.gestureTriggerCrash != nil },
+            set: { if !$0 { self.gestureTriggerCrash = nil } }
+        )) {
+            if let crash = self.gestureTriggerCrash {
+                LongPressTriggerView(crash: crash)
+            }
         }
     }
 
@@ -597,6 +610,68 @@ private struct CrashDiagnosticFieldView: View {
                 .font(.system(.footnote, design: .monospaced))
                 .foregroundColor(Theme.textPrimary)
                 .textSelection(.enabled)
+        }
+    }
+}
+
+private struct LongPressTriggerView: View {
+    let crash: any Crash
+
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            VStack(spacing: 24) {
+                Text("Long press to crash")
+                    .font(.title2.weight(.semibold))
+                    .foregroundColor(Theme.textPrimary)
+                Text(crash.crashDescription)
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                LongPressGestureArea(crash: crash)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 200)
+                    .background(Theme.primary.opacity(0.15))
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Theme.primary.opacity(0.4), lineWidth: 1)
+                    )
+            }
+            .padding(32)
+        }
+    }
+}
+
+private struct LongPressGestureArea: UIViewRepresentable {
+    let crash: any Crash
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        let gesture = UILongPressGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleLongPress(_:))
+        )
+        view.addGestureRecognizer(gesture)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(crash: crash)
+    }
+
+    final class Coordinator: NSObject {
+        let crash: any Crash
+
+        init(crash: any Crash) { self.crash = crash }
+
+        @MainActor
+        @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+            guard gesture.state == .began else { return }
+            let doCrash = { @MainActor in self.crash.trigger() }
+            doCrash()
         }
     }
 }

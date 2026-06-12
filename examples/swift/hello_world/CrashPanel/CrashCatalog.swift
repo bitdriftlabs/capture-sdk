@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import Foundation
+import UIKit
 @_implementationOnly import HelloWorldCrashSupport
 
 enum CrashCategory: String, CaseIterable {
@@ -36,12 +37,14 @@ protocol Crash: AnyObject {
     var title: String { get }
     var crashDescription: String { get }
     var supportsStartupTrigger: Bool { get }
+    var supportsGestureTrigger: Bool { get }
     func trigger() -> Never
 }
 
 extension Crash {
     var identifier: String { String(describing: type(of: self)) }
     var supportsStartupTrigger: Bool { false }
+    var supportsGestureTrigger: Bool { false }
 }
 
 final class CrashRegistry {
@@ -65,6 +68,12 @@ final class CrashRegistry {
         DeadlockCrash(),
         AsyncSafeThreadCrash(),
         ObjCExceptionCrash(),
+        NSRangeExceptionCrash(),
+        NSInvalidArgumentExceptionCrash(),
+        ObjCThroughCPPCrash(),
+        ObjCGestureCrash(),
+        DispatchQueueCrash(),
+        NotificationCrash(),
         CXXExceptionCrash(),
         ObjCMsgSendCrash(),
         UnrecognizedSelectorCrash(),
@@ -313,12 +322,94 @@ final class AsyncSafeThreadCrash: Crash {
 
 final class ObjCExceptionCrash: Crash {
     let category: CrashCategory = .exception
-    let title = "Objective-C exception"
-    let crashDescription = "Throw an uncaught NSException."
+    let title = "Objective-C exception (NSGenericException)"
+    let crashDescription = "Throw an uncaught NSGenericException."
     let supportsStartupTrigger = true
 
     func trigger() -> Never {
         hello_world_crash_objc_exception()
+        fatalError("unreachable")
+    }
+}
+
+final class NSRangeExceptionCrash: Crash {
+    let category: CrashCategory = .exception
+    let title = "NSRangeException (ObjC array out of bounds)"
+    let crashDescription = "Access index 10 on a 3-element NSArray via ObjC API. Produces NSRangeException — useful for verifying exception class capture."
+    let supportsStartupTrigger = true
+
+    func trigger() -> Never {
+        hello_world_crash_nsa_range_exception()
+        fatalError("unreachable")
+    }
+}
+
+final class NSInvalidArgumentExceptionCrash: Crash {
+    let category: CrashCategory = .exception
+    let title = "NSInvalidArgumentException (nil argument)"
+    let crashDescription = "Add nil to an NSMutableArray. Produces NSInvalidArgumentException."
+    let supportsStartupTrigger = true
+
+    func trigger() -> Never {
+        hello_world_crash_nil_argument()
+        fatalError("unreachable")
+    }
+}
+
+final class ObjCThroughCPPCrash: Crash {
+    let category: CrashCategory = .exception
+    let title = "ObjC exception through C++ frame (via closure)"
+    let crashDescription = "Throw NSRangeException inside a C++ try/catch via a closure, producing the CPPExceptionTerminate stack pattern with a compiler-generated closure frame."
+    let supportsStartupTrigger = true
+
+    func trigger() -> Never {
+        let doCrash = { @MainActor in
+            hello_world_crash_objc_through_cpp()
+        }
+        Task { @MainActor in doCrash() }
+        fatalError("unreachable")
+    }
+}
+
+final class ObjCGestureCrash: Crash {
+    let category: CrashCategory = .exception
+    let title = "ObjC through C++ (UIKit long press)"
+    let crashDescription = "Long press to crash. Fires from the gesture recognizer's dispatch source — produces _dispatch_source_latch_and_call in the stack, matching the real-world CPPExceptionTerminate pattern."
+    let supportsGestureTrigger = true
+
+    func trigger() -> Never {
+        hello_world_crash_objc_through_cpp()
+        fatalError("unreachable")
+    }
+}
+
+final class DispatchQueueCrash: Crash {
+    let category: CrashCategory = .exception
+    let title = "ObjC through C++ (DispatchQueue.global)"
+    let crashDescription = "Fires the ObjC exception from DispatchQueue.global().async — produces _dispatch_call_block_and_release in the stack with no compiler-generated frames, unlike the @MainActor Task variant."
+
+    func trigger() -> Never {
+        let sem = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            hello_world_crash_objc_through_cpp()
+            sem.signal()
+        }
+        sem.wait()
+        fatalError("unreachable")
+    }
+}
+
+final class NotificationCrash: Crash {
+    let category: CrashCategory = .exception
+    let title = "ObjC through C++ (NotificationCenter)"
+    let crashDescription = "Fires the ObjC exception from a NotificationCenter observer — produces _CFXNotificationPost in the stack. Observer is delivered synchronously on the posting thread (queue: nil)."
+
+    func trigger() -> Never {
+        let name = Notification.Name("hw.crash")
+        NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { _ in
+            hello_world_crash_objc_through_cpp()
+        }
+        NotificationCenter.default.post(name: name, object: nil)
         fatalError("unreachable")
     }
 }
