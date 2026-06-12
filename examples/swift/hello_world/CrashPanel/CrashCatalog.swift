@@ -55,6 +55,7 @@ final class CrashRegistry {
         StackOverflowCrash(),
         FatalErrorCrash(),
         AssertionCrash(),
+        AssertCrash(),
         PreconditionCrash(),
         IntegerOverflowCrash(),
         DivisionByZeroCrash(),
@@ -192,6 +193,17 @@ final class IntegerOverflowCrash: Crash {
         }
         _ = result
         fatalError("unreachable")
+    }
+}
+
+final class AssertCrash: Crash {
+    let category: CrashCategory = .swiftRuntime
+    let title = "Assert"
+    let crashDescription = "Execute an assert; shouldn't crash in release mode"
+    
+    func trigger() -> Never {
+        assert(false)
+        fatalError("Assert executed without crashing")
     }
 }
 
