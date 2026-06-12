@@ -316,6 +316,34 @@ extension Logger {
         )
     }
 
+    /// Logs a critical level message to the default logger instance.
+    ///
+    /// - parameter message:  The message to log.
+    /// - parameter file:     The unique file identifier that has the form module/file.
+    /// - parameter line:     The line number where the log is emitted.
+    /// - parameter function: The name of the function from which the log is emitted.
+    /// - parameter fields:   The extra fields to send with the log.
+    /// - parameter error:    The error to log.
+    public static func logCritical(
+        _ message: @autoclosure () -> String,
+        file: String? = #file,
+        line: Int? = #line,
+        function: String? = #function,
+        fields: Fields? = nil,
+        error: Error? = nil
+    )
+    {
+        Self.getShared()?.log(
+            level: .critical,
+            message: message(),
+            file: file,
+            line: line,
+            function: function,
+            fields: fields,
+            error: error
+        )
+    }
+
     // MARK: - Predefined Logs
 
     /// Writes an app launch TTI log event. This event should be logged only once per Logger start.

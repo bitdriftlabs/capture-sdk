@@ -111,6 +111,8 @@ extension LoggerCustomer.LogLevel {
 
     var description: String {
         switch self {
+        case .critical:
+            return "Unrecoverable failure that needs immediate attention."
         case .error:
             return "Use for failures that should stand out immediately."
         case .warning:
@@ -126,6 +128,8 @@ extension LoggerCustomer.LogLevel {
 
     var tint: Color {
         switch self {
+        case .critical:
+            return Theme.danger
         case .error:
             return Theme.danger
         case .warning:

@@ -32,6 +32,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
     }
 
     enum LogLevel: String, CaseIterable, Identifiable {
+        case critical
         case error
         case warning
         case info
@@ -205,6 +206,8 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             : "Sending log with level [\(level.rawValue.capitalized)]"
 
         switch level {
+        case .critical:
+            Logger.logCritical(resolvedMessage, fields: fields)
         case .error:
             Logger.logError(resolvedMessage, fields: fields)
         case .warning:

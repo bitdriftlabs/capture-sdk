@@ -10,6 +10,11 @@ import Foundation
 /// Levels associated with a log message.
 @objc
 public enum LogLevel: Int32, CaseIterable {
+    /// CRITICAL mode is for unrecoverable failures that require immediate attention. This is the
+    /// most severe log level and indicates that the app is in a state from which it cannot reliably
+    /// continue.
+    case critical = 5
+
     /// ERROR mode is for when the app is in distress, and needs to be fixed as soon as possible,
     case error = 4
 

@@ -8,6 +8,9 @@
 **Added**
 
 - Ability to scrub all fields and log message
+- New `CRITICAL` log level (value 5) on iOS (`LogLevel.critical`, `Logger.logCritical`),
+  Android (`LogLevel.CRITICAL`, `Capture.logCritical`), and the Rust core. `CRITICAL` is the
+  most severe level and indicates that the application is in an unrecoverable state.
 
 **Changed**
 

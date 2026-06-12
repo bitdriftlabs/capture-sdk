@@ -452,6 +452,23 @@ object Capture {
         }
 
         /**
+         * Logs a message at critical level.
+         *
+         * @param fields an optional map of additional data to include with the log.
+         * @param throwable an optional throwable to include with the log.
+         * @param message the message to log.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun logCritical(
+            fields: Map<String, String>? = null,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
+            logger()?.log(level = LogLevel.CRITICAL, fields = fields, throwable = throwable, message = message)
+        }
+
+        /**
          * Logs a message at a specified level.
          *
          *  @param level the severity of the log.
