@@ -8,10 +8,12 @@ RCT_EXPORT_MODULE()
 // Must match src/index.tsx ISSUE_REPORT_EVENT and Android equivalent.
 static NSString *const kIssueReportEventName = @"BdReactNative.onBeforeReportSend";
 static NSNotificationName const kIssueReportNotificationName = @"BdReactNative.onBeforeReportSend";
+static NSString *const kStartResultEventName = @"BdReactNative.onStartResult";
+static NSNotificationName const kStartResultNotificationName = @"BdReactNative.onStartResult";
 
 - (NSArray<NSString *> *)supportedEvents
 {
-  return @[kIssueReportEventName];
+  return @[kIssueReportEventName, kStartResultEventName];
 }
 
 - (void)startObserving
@@ -19,6 +21,10 @@ static NSNotificationName const kIssueReportNotificationName = @"BdReactNative.o
   [[NSNotificationCenter defaultCenter] addObserver:self
                                            selector:@selector(handleIssueReportNotification:)
                                                name:kIssueReportNotificationName
+                                              object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(handleStartResultNotification:)
+                                               name:kStartResultNotificationName
                                              object:nil];
 }
 
@@ -26,6 +32,9 @@ static NSNotificationName const kIssueReportNotificationName = @"BdReactNative.o
 {
   [[NSNotificationCenter defaultCenter] removeObserver:self
                                                   name:kIssueReportNotificationName
+                                                 object:nil];
+  [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                  name:kStartResultNotificationName
                                                 object:nil];
 }
 
@@ -34,6 +43,14 @@ static NSNotificationName const kIssueReportNotificationName = @"BdReactNative.o
   NSDictionary *payload = notification.userInfo ?: @{};
   dispatch_async(dispatch_get_main_queue(), ^{
     [self sendEventWithName:kIssueReportEventName body:payload];
+  });
+}
+
+- (void)handleStartResultNotification:(NSNotification *)notification
+{
+  NSDictionary *payload = notification.userInfo ?: @{};
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [self sendEventWithName:kStartResultEventName body:payload];
   });
 }
 
@@ -69,6 +86,10 @@ RCT_EXPORT_METHOD(getSessionURL:(RCTPromiseResolveBlock)resolve reject:(RCTPromi
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(getPreviousRunInfo) {
     return [CAPRNLogger getPreviousRunInfo];
+}
+
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(getSdkStatus) {
+    return [CAPRNLogger getSdkStatus];
 }
 
 RCT_EXPORT_METHOD(logScreenView:(NSString *)screenName)
@@ -118,6 +139,8 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   BOOL enableJsErrors = [crashReportingOptions[@"UNSTABLE_enableJsErrors"] boolValue];
   NSNumber* enableIssueCallbackBridgeValue = crashReportingOptions[@"enableIssueCallbackBridge"];
   BOOL enableIssueCallbackBridge = enableIssueCallbackBridgeValue != nil ? [enableIssueCallbackBridgeValue boolValue] : NO;
+  NSNumber* enableStartResultBridgeValue = options[@"enableStartResultBridge"];
+  BOOL enableStartResultBridge = enableStartResultBridgeValue != nil ? [enableStartResultBridgeValue boolValue] : NO;
 
   [CAPRNLogger
     startWithKey:apiKey
@@ -127,6 +150,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
     enableNativeFatalIssues:enableNativeFatalIssues
     enableJsErrors:enableJsErrors
     enableIssueCallbackBridge:enableIssueCallbackBridge
+    enableStartResultBridge:enableStartResultBridge
   ];
 }
 
@@ -141,6 +165,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   BOOL enableNativeFatalIssues = true;
   BOOL enableJsErrors = false;
   BOOL enableIssueCallbackBridge = false;
+  BOOL enableStartResultBridge = options.enableStartResultBridge().has_value() ? options.enableStartResultBridge().value() : false;
   if (options.crashReporting().has_value()) {
     auto crashReporting = options.crashReporting().value();
     enableNativeFatalIssues = crashReporting.enableNativeFatalIssues().has_value() ? crashReporting.enableNativeFatalIssues().value() : true;
@@ -156,6 +181,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
     enableNativeFatalIssues:enableNativeFatalIssues
     enableJsErrors:enableJsErrors
     enableIssueCallbackBridge:enableIssueCallbackBridge
+    enableStartResultBridge:enableStartResultBridge
   ];
 }
 

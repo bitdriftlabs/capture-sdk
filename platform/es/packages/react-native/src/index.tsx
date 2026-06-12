@@ -15,6 +15,7 @@ import {
 import {
   InitOptions as NativeInitOptions,
   CrashReportingOptions as NativeCrashReportingOptions,
+  SdkStatus as NativeSdkStatus,
   PreviousRunInfo as PreviousRunInfoModel,
   SessionStrategy,
 } from './NativeBdReactNative';
@@ -27,6 +28,7 @@ export { SessionStrategy } from './NativeBdReactNative';
 // - ios/BdReactNative.mm
 // - ios/Logger.swift
 const ISSUE_REPORT_EVENT = 'BdReactNative.onBeforeReportSend';
+const START_RESULT_EVENT = 'BdReactNative.onStartResult';
 const DEFAULT_API_URL = 'https://api.bitdrift.io';
 
 export type IssueReport = {
@@ -44,7 +46,16 @@ export type CrashReportingOptions = Omit<
   UNSTABLE_onBeforeReportSend?: (report: IssueReport) => void;
 };
 
+export type SdkStatus = NativeSdkStatus;
+
+export type StartResult = {
+  success: boolean;
+  error?: string;
+};
+
 export type InitOptions = Omit<NativeInitOptions, 'crashReporting'> & {
+  UNSTABLE_webView?: NativeInitOptions['webView'];
+  startResult?: (result: StartResult) => void;
   crashReporting?: CrashReportingOptions;
 };
 
@@ -53,6 +64,7 @@ type EventSubscription = { remove: () => void };
 let api_url = DEFAULT_API_URL;
 let api_key = '';
 let issueReportSubscription: EventSubscription | undefined;
+let startResultSubscription: EventSubscription | undefined;
 
 const LINKING_ERROR =
   `The package '@bitdrift/react-native' doesn't seem to be linked. Make sure: \n\n` +
@@ -92,6 +104,11 @@ function resetIssueReportSubscription() {
   issueReportSubscription = undefined;
 }
 
+function resetStartResultSubscription() {
+  startResultSubscription?.remove();
+  startResultSubscription = undefined;
+}
+
 function maybeRegisterIssueReportCallback(options?: InitOptions) {
   resetIssueReportSubscription();
 
@@ -108,6 +125,23 @@ function maybeRegisterIssueReportCallback(options?: InitOptions) {
   );
 }
 
+function maybeRegisterStartResultCallback(options?: InitOptions) {
+  resetStartResultSubscription();
+
+  const callback = options?.startResult;
+  if (!callback) {
+    return;
+  }
+
+  startResultSubscription = createIssueReportEmitter().addListener(
+    START_RESULT_EVENT,
+    (result: StartResult) => {
+      callback(result);
+      resetStartResultSubscription();
+    },
+  );
+}
+
 function toNativeInitOptions(apiUrl: string, options?: InitOptions): NativeInitOptions {
   const enableIssueCallbackBridge = Boolean(
     options?.crashReporting?.UNSTABLE_onBeforeReportSend,
@@ -116,6 +150,8 @@ function toNativeInitOptions(apiUrl: string, options?: InitOptions): NativeInitO
   return {
     ...options,
     url: apiUrl,
+    enableStartResultBridge: Boolean(options?.startResult),
+    webView: options?.UNSTABLE_webView,
     crashReporting: options?.crashReporting
       ? {
           enableNativeFatalIssues: options.crashReporting.enableNativeFatalIssues,
@@ -150,6 +186,7 @@ export function init(
   }
 
   maybeRegisterIssueReportCallback(options);
+  maybeRegisterStartResultCallback(options);
 
   const nativeOptions = toNativeInitOptions(api_url, options);
   return BdReactNative.init(key, sessionStrategy, nativeOptions);
@@ -226,6 +263,10 @@ export async function getSessionID(): Promise<string> {
 
 export async function getSessionURL(): Promise<string> {
   return NativeBdReactNative.getSessionURL();
+}
+
+export function getSdkStatus(): NativeSdkStatus {
+  return NativeBdReactNative.getSdkStatus();
 }
 
 export type { PreviousRunInfo } from './NativeBdReactNative';

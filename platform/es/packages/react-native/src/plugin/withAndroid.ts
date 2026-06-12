@@ -8,50 +8,86 @@
 import { withPlugins } from '@expo/config-plugins';
 import { withAppBuildGradle, withSettingsGradle } from '@expo/config-plugins';
 import type { ConfigPlugin } from '@expo/config-plugins';
-import PluginProps from './config';
+import type PluginProps from './config';
 
 const CAPTURE_PLUGIN_ID = "id 'io.bitdrift.capture-plugin'";
 const BITDRIFT_MAVEN_HOST = 'dl.bitdrift.io';
 
-const withBitdriftAppBuildGradle: ConfigPlugin<PluginProps | void> = (
-  config,
-  props,
-) => {
-  return withAppBuildGradle(config, (config) => {
-    const shouldEnableNetworkInstrumentation = props?.networkInstrumentation === true;
-    const okHttpInstrumentationType =
-      props?.okHttpInstrumentationType === 'OVERWRITE' ? 'OVERWRITE' : 'PROXY';
-
-    if (
-      shouldEnableNetworkInstrumentation &&
-      !config.modResults.contents.includes(CAPTURE_PLUGIN_ID)
-    ) {
-      config.modResults.contents =
-        `plugins {
-    id 'io.bitdrift.capture-plugin' version '0.23.5'
+function insertIntoInstrumentationBlock(contents: string, lines: string[]): string {
+  return contents.replace(
+    '    instrumentation {',
+    ['    instrumentation {', ...lines.map((line) => `        ${line}`)].join('\n'),
+  );
 }
 
-` + config.modResults.contents;
-    }
-
-    if (
-      shouldEnableNetworkInstrumentation &&
-      !config.modResults.contents.includes('automaticOkHttpInstrumentation')
-    ) {
-      config.modResults.contents += `
+function appendBitdriftInstrumentationBlock(contents: string, lines: string[]): string {
+  return `${contents}
 
 bitdrift {
     instrumentation {
-        automaticOkHttpInstrumentation = true
-        okHttpInstrumentationType = ${okHttpInstrumentationType}
+${lines.map((line) => `        ${line}`).join('\n')}
     }
 }
 `;
+}
+
+function ensureOkHttpInstrumentation(
+  contents: string,
+  okHttpInstrumentationType: 'PROXY' | 'OVERWRITE',
+): string {
+  if (!contents.includes('automaticOkHttpInstrumentation')) {
+    if (contents.includes('bitdrift {')) {
+      return insertIntoInstrumentationBlock(contents, [
+        'automaticOkHttpInstrumentation = true',
+        `okHttpInstrumentationType = ${okHttpInstrumentationType}`,
+      ]);
     }
 
-    if (!config.modResults.contents.includes(BITDRIFT_MAVEN_HOST)) {
-      // Define the bitdrift maven repository at the end. This is necessary to resolve the SDK dependency specified by the plugin.
-      config.modResults.contents += `
+    return appendBitdriftInstrumentationBlock(contents, [
+      'automaticOkHttpInstrumentation = true',
+      `okHttpInstrumentationType = ${okHttpInstrumentationType}`,
+    ]);
+  }
+
+  if (!contents.includes('okHttpInstrumentationType')) {
+    return contents.replace(
+      '        automaticOkHttpInstrumentation = true',
+      [
+        '        automaticOkHttpInstrumentation = true',
+        `        okHttpInstrumentationType = ${okHttpInstrumentationType}`,
+      ].join('\n'),
+    );
+  }
+
+  return contents;
+}
+
+function ensureWebViewInstrumentation(contents: string): string {
+  if (contents.includes('automaticWebViewInstrumentation')) {
+    return contents;
+  }
+
+  if (contents.includes('bitdrift {')) {
+    return insertIntoInstrumentationBlock(contents, [
+      'automaticWebViewInstrumentation = true',
+    ]);
+  }
+
+  return appendBitdriftInstrumentationBlock(contents, [
+    'automaticWebViewInstrumentation = true',
+  ]);
+}
+
+function prependCapturePlugin(contents: string): string {
+  return `plugins {
+    id 'io.bitdrift.capture-plugin' version '0.23.5'
+}
+
+${contents}`;
+}
+
+function appendBitdriftRepository(contents: string): string {
+  return `${contents}
 
 repositories {
     maven {
@@ -62,6 +98,45 @@ repositories {
     }
 }
 `;
+}
+
+const withBitdriftAppBuildGradle: ConfigPlugin<PluginProps | void> = (
+  config,
+  props,
+) => {
+  return withAppBuildGradle(config, (config) => {
+    const shouldEnableNetworkInstrumentation = props?.networkInstrumentation === true;
+    const shouldEnableWebViewInstrumentation =
+      props?.UNSTABLE_webViewInstrumentation === true;
+    const shouldEnablePluginInstrumentation =
+      shouldEnableNetworkInstrumentation || shouldEnableWebViewInstrumentation;
+    const okHttpInstrumentationType =
+      props?.okHttpInstrumentationType === 'OVERWRITE' ? 'OVERWRITE' : 'PROXY';
+
+    if (
+      shouldEnablePluginInstrumentation &&
+      !config.modResults.contents.includes(CAPTURE_PLUGIN_ID)
+    ) {
+      config.modResults.contents = prependCapturePlugin(config.modResults.contents);
+    }
+
+    if (shouldEnableNetworkInstrumentation) {
+      config.modResults.contents = ensureOkHttpInstrumentation(
+        config.modResults.contents,
+        okHttpInstrumentationType,
+      );
+    }
+
+    if (shouldEnableWebViewInstrumentation) {
+      config.modResults.contents = ensureWebViewInstrumentation(
+        config.modResults.contents,
+      );
+    }
+
+    if (!config.modResults.contents.includes(BITDRIFT_MAVEN_HOST)) {
+      config.modResults.contents = appendBitdriftRepository(
+        config.modResults.contents,
+      );
     }
 
     return config;

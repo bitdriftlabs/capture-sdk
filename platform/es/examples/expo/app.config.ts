@@ -38,6 +38,7 @@ export default {
         '../../dist/react-native/app.plugin.js', // In a real project, this would be '@bitdrift/react-native'
         {
           networkInstrumentation: true,
+          UNSTABLE_webViewInstrumentation: true,
         },
       ],
       [

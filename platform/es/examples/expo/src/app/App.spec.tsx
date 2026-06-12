@@ -5,5 +5,6 @@ import App from './App';
 
 test('renders correctly', () => {
   const { getByTestId } = render(<App />);
-  expect(getByTestId('heading')).toHaveTextContent('Welcome');
+  expect(getByTestId('sdk-status')).toBeTruthy();
+  expect(getByTestId('sdk-initialization-state')).toBeTruthy();
 });

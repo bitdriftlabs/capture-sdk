@@ -22,9 +22,34 @@ export type CrashReportingOptions = {
   enableIssueCallbackBridge?: boolean;
 };
 
+export type InitializationState =
+  | 'notStarted'
+  | 'loaded'
+  | 'running'
+  | 'disabled';
+
+export type SdkStatus = {
+  initializationState: InitializationState;
+  lastHandshakeTimeMs?: number;
+  lastConfigDeliveryTimeMs?: number;
+};
+
+export type WebViewOptions = {
+  capturePageViews?: boolean;
+  captureNetworkRequests?: boolean;
+  captureNavigationEvents?: boolean;
+  captureWebVitals?: boolean;
+  captureLongTasks?: boolean;
+  captureConsoleLogs?: boolean;
+  captureUserInteractions?: boolean;
+  captureErrors?: boolean;
+};
+
 export type InitOptions = {
   url?: string;
   enableNetworkInstrumentation?: boolean;
+  enableStartResultBridge?: boolean;
+  webView?: WebViewOptions;
   crashReporting?: CrashReportingOptions;
 };
 
@@ -51,6 +76,8 @@ export interface Spec extends TurboModule {
   getSessionID(): Promise<string>;
 
   getSessionURL(): Promise<string>;
+
+  getSdkStatus(): SdkStatus;
 
   getPreviousRunInfo(): PreviousRunInfo;
 

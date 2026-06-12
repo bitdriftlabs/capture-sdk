@@ -9,4 +9,5 @@ export default interface PluginProps {
   networkInstrumentation?: boolean;
   // Android-only. Only used when networkInstrumentation is true.
   okHttpInstrumentationType?: 'PROXY' | 'OVERWRITE';
+  UNSTABLE_webViewInstrumentation?: boolean;
 }

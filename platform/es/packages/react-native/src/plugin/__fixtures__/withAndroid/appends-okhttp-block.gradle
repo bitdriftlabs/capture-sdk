@@ -1,0 +1,25 @@
+plugins {
+    id 'io.bitdrift.capture-plugin' version '__CAPTURE_PLUGIN_VERSION__'
+}
+
+plugins {
+    id 'com.android.application'
+}
+
+
+bitdrift {
+    instrumentation {
+        automaticOkHttpInstrumentation = true
+        okHttpInstrumentationType = PROXY
+    }
+}
+
+
+repositories {
+    maven {
+        url 'https://dl.bitdrift.io/sdk/android-maven'
+        content {
+          includeGroup 'io.bitdrift'
+        }
+    }
+}

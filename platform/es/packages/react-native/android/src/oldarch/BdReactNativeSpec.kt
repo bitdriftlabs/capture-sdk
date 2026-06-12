@@ -24,6 +24,8 @@ abstract class BdReactNativeSpec internal constructor(context: ReactApplicationC
 
   abstract fun getSessionURL(promise: Promise)
 
+  abstract fun getSdkStatus(): WritableMap
+
   abstract fun getPreviousRunInfo(): WritableMap?
 
   abstract fun log(level: Double, message: String, jsFields: ReadableMap?)

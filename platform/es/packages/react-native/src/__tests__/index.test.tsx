@@ -11,6 +11,7 @@ type TestSetup = {
   sdk: typeof import('../index');
   nativeModule: {
     init: jest.Mock;
+    getSdkStatus: jest.Mock;
   };
   nativeEventEmitterCtor: jest.Mock;
   nativeAddListener: jest.Mock;
@@ -36,6 +37,7 @@ function loadSdk(platform: PlatformName): TestSetup {
     getDeviceID: jest.fn(),
     getSessionID: jest.fn(),
     getSessionURL: jest.fn(),
+    getSdkStatus: jest.fn(),
     logScreenView: jest.fn(),
     logAppLaunchTTI: jest.fn(),
     reportJsError: jest.fn(),
@@ -219,6 +221,39 @@ describe('init crash reporting callback wiring', () => {
       expect.any(Function),
     );
   });
+
+  test('enables native start result bridge when callback is provided', () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+
+    sdk.init('test-key', sdk.SessionStrategy.Fixed, {
+      startResult: jest.fn(),
+    });
+
+    expect(nativeModule.init).toHaveBeenCalledWith(
+      'test-key',
+      sdk.SessionStrategy.Fixed,
+      expect.objectContaining({
+        enableStartResultBridge: true,
+      }),
+    );
+  });
+
+  test('routes emitted start result payload to the registered callback once', () => {
+    const { sdk, nativeAddListener, removeListener } = loadSdk('ios');
+    const callback = jest.fn();
+
+    sdk.init('test-key', sdk.SessionStrategy.Fixed, {
+      startResult: callback,
+    });
+
+    const listener = nativeAddListener.mock.calls[0][1] as (result: unknown) => void;
+    const result = { success: false, error: 'failed' };
+
+    listener(result);
+
+    expect(callback).toHaveBeenCalledWith(result);
+    expect(removeListener).toHaveBeenCalled();
+  });
 });
 
 describe('generateDeviceCode URL handling', () => {
@@ -299,5 +334,22 @@ describe('generateDeviceCode URL handling', () => {
         method: 'POST',
       }),
     );
+  });
+});
+
+describe('getSdkStatus', () => {
+  test('returns native sdk status synchronously', () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+    nativeModule.getSdkStatus.mockReturnValue({
+      initializationState: 'running',
+      lastHandshakeTimeMs: 123,
+      lastConfigDeliveryTimeMs: 456,
+    });
+
+    expect(sdk.getSdkStatus()).toEqual({
+      initializationState: 'running',
+      lastHandshakeTimeMs: 123,
+      lastConfigDeliveryTimeMs: 456,
+    });
   });
 });
