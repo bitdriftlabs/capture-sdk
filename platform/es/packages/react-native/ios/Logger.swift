@@ -10,6 +10,7 @@ import Foundation
 
 // Must match src/index.tsx ISSUE_REPORT_EVENT and Android/iOS bridge constants.
 let CAPRNIssueReportDidEmitNotification = Notification.Name("BdReactNative.onBeforeReportSend")
+let CAPRNStartResultDidEmitNotification = Notification.Name("BdReactNative.onStartResult")
 
 @objc public class CAPRNLogger: NSObject {
     
@@ -24,7 +25,8 @@ let CAPRNIssueReportDidEmitNotification = Notification.Name("BdReactNative.onBef
         enableNetworkInstrumentation: Bool,
         enableNativeFatalIssues: Bool,
         enableJsErrors: Bool,
-        enableIssueCallbackBridge: Bool
+        enableIssueCallbackBridge: Bool,
+        enableStartResultBridge: Bool
     ) {
         ReportDirectory.setupWatcherDirectory(enableJsErrors: enableJsErrors)
         
@@ -57,7 +59,30 @@ let CAPRNIssueReportDidEmitNotification = Notification.Name("BdReactNative.onBef
         let integrator = Capture.Logger.start(
             withAPIKey: key,
             sessionStrategy: strategy,
-            configuration: configuration
+            configuration: configuration,
+            startResult: { result in
+                guard enableStartResultBridge else {
+                    return
+                }
+
+                switch result {
+                case .success:
+                    NotificationCenter.default.post(
+                        name: CAPRNStartResultDidEmitNotification,
+                        object: nil,
+                        userInfo: ["success": true]
+                    )
+                case .failure(let error):
+                    NotificationCenter.default.post(
+                        name: CAPRNStartResultDidEmitNotification,
+                        object: nil,
+                        userInfo: [
+                            "success": false,
+                            "error": error.localizedDescription,
+                        ]
+                    )
+                }
+            }
         )
         
 
@@ -142,6 +167,24 @@ let CAPRNIssueReportDidEmitNotification = Notification.Name("BdReactNative.onBef
     }
 
     @objc
+    public static func getSdkStatus() -> [String: Any] {
+        let status = Capture.Logger.getSdkStatus()
+        var payload: [String: Any] = [
+            "initializationState": status.initializationState.jsValue,
+        ]
+
+        if let lastHandshakeTime = status.lastHandshakeTime {
+            payload["lastHandshakeTimeMs"] = Int64(lastHandshakeTime.timeIntervalSince1970 * 1000)
+        }
+
+        if let lastConfigDeliveryTime = status.lastConfigDeliveryTime {
+            payload["lastConfigDeliveryTimeMs"] = Int64(lastConfigDeliveryTime.timeIntervalSince1970 * 1000)
+        }
+
+        return payload
+    }
+
+    @objc
     public static func logScreenView(screenName: String) {
         Capture.Logger.logScreenView(screenName: screenName)
     }
@@ -213,5 +256,20 @@ private final class CAPRNIssueReportCallback: NSObject, IssueReportCallback {
                 "fields": report.fields,
             ]
         )
+    }
+}
+
+private extension InitializationState {
+    var jsValue: String {
+        switch self {
+        case .notStarted:
+            return "notStarted"
+        case .loaded:
+            return "loaded"
+        case .running:
+            return "running"
+        case .disabled:
+            return "disabled"
+        }
     }
 }

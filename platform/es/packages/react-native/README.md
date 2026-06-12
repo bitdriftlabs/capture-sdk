@@ -20,6 +20,9 @@ Capture library and log messages at different log levels. Note that this initial
 import { init, trace, debug, info, warn, error, SessionStrategy } from '@bitdrift/react-native';
 
 init('<api key>', SessionStrategy.Activity, {
+  startResult: (result) => {
+    console.log('Capture start result', result);
+  },
   crashReporting: {
     enableNativeFatalIssues: true, // Enable native crash reporting (crashes, ANRs, etc.)
     UNSTABLE_enableJsErrors: true, // Enable JavaScript error reporting (fatal and non-fatal)
@@ -44,6 +47,14 @@ For all Expo usages, make sure to add `@bitdrift/react-native` to the `plugins` 
   }
 }
 ```
+
+Android-only WebView instrumentation note:
+
+- `UNSTABLE_webViewInstrumentation` currently only affects Android app builds.
+- In this package, automatic setup is only provided through the Expo config plugin / generated Android Gradle setup.
+- Non-Expo Android apps can still enable the same instrumentation manually by applying the Gradle plugin and configuring the `bitdrift` instrumentation block.
+- It does not affect iOS builds.
+- It does not automatically configure non-Expo / vanilla React Native Android projects.
 
 #### Expo Go
 
@@ -138,6 +149,63 @@ type PreviousRunInfo = {
 - Android: available on API 30+ (Android 11+); returns `null` on older versions.
 - iOS simulator: returns `null` by design; use a physical device to validate.
 - `terminationReason` is currently populated on Android. iOS currently provides `hasFatallyTerminated`.
+
+### SDK Status
+
+Use `getSdkStatus()` to inspect the SDK's current initialization state and recent backend activity.
+
+```ts
+import { getSdkStatus, init, SessionStrategy, type SdkStatus } from '@bitdrift/react-native';
+
+init('<api key>', SessionStrategy.Activity);
+
+const sdkStatus: SdkStatus = getSdkStatus();
+console.log(sdkStatus.initializationState);
+```
+
+`SdkStatus` shape:
+
+```ts
+type SdkStatus = {
+  initializationState: 'notStarted' | 'loaded' | 'running' | 'disabled';
+  lastHandshakeTimeMs?: number;
+  lastConfigDeliveryTimeMs?: number;
+};
+```
+
+- This API is synchronous.
+- It can be called before or after `init(...)`.
+- When Capture has not started yet, `initializationState` is `notStarted`.
+
+### Start Result Callback
+
+Use `startResult` to observe whether native SDK startup succeeded.
+
+```ts
+import { init, SessionStrategy } from '@bitdrift/react-native';
+
+init('<api key>', SessionStrategy.Activity, {
+  startResult: (result) => {
+    if (result.success) {
+      console.log('Capture started successfully');
+    } else {
+      console.log('Capture failed to start', result.error);
+    }
+  },
+});
+```
+
+`StartResult` shape:
+
+```ts
+type StartResult = {
+  success: boolean;
+  error?: string;
+};
+```
+
+- The callback is invoked at most once per `init(...)` call.
+- This callback is experimental and may change.
 
 ```js
 import { trace, debug, info, warn, error } from '@bitdrift/react-native';
@@ -259,6 +327,53 @@ When using Expo to generate the project, this can be achieved by setting the `ne
 ```
 
 When using the Expo plugin with `networkInstrumentation: true`, the Android Gradle plugin and `bitdrift { instrumentation { ... } }` block are generated automatically.
+
+### WebView Integration
+
+`UNSTABLE_webViewInstrumentation` is currently Android-only and is intended for Android app builds.
+
+Runtime capture is enabled separately with `UNSTABLE_webView` in `init(...)`:
+
+```ts
+import { init, SessionStrategy } from '@bitdrift/react-native';
+
+init('<api key>', SessionStrategy.Activity, {
+  UNSTABLE_webView: {
+    capturePageViews: true,
+    captureNetworkRequests: true,
+    captureNavigationEvents: true,
+    captureWebVitals: true,
+    captureLongTasks: true,
+    captureConsoleLogs: true,
+    captureUserInteractions: true,
+    captureErrors: true,
+  },
+});
+```
+
+For Expo-generated Android apps, enable build-time WebView bytecode instrumentation with:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "@bitdrift/react-native",
+        {
+          "UNSTABLE_webViewInstrumentation": true
+        }
+      ]
+    ]
+  }
+}
+```
+
+Notes:
+
+- `UNSTABLE_webViewInstrumentation` currently only affects Android app builds.
+- It is not used by iOS.
+- It is not automatically applied to vanilla React Native Android builds outside the Expo config plugin flow.
+- For non-Expo Android apps, apply the Gradle plugin and `bitdrift { instrumentation { automaticWebViewInstrumentation = true } }` manually.
 
 The Android plugin mode can be configured with `okHttpInstrumentationType`:
 

@@ -15,6 +15,9 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.CaptureResult
+import io.bitdrift.capture.InitializationState
+import io.bitdrift.capture.SdkStatus
 import io.bitdrift.capture.providers.session.SessionStrategy
 import com.facebook.react.bridge.Promise
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -24,6 +27,7 @@ import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
+import io.bitdrift.capture.webview.WebViewConfiguration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -46,9 +50,11 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   override fun init(key: String, sessionStrategy: String, options: ReadableMap?) {
     val apiUrl = options?.getString("url") ?: "https://api.bitdrift.io"
     val crashReportingOptions = options.getMapOrNull("crashReporting")
+    val webViewOptions = options.getMapOrNull("webView")
     val enableNativeFatalIssues = crashReportingOptions.getBooleanOrDefault("enableNativeFatalIssues", true)
     val enableJsErrors = crashReportingOptions.getBooleanOrDefault("UNSTABLE_enableJsErrors", false)
     val enableIssueCallbackBridge = crashReportingOptions.getBooleanOrDefault("enableIssueCallbackBridge", false)
+    val enableStartResultBridge = options.getBooleanOrDefault("enableStartResultBridge", false)
 
     ReportDirectory.setupWatcherDirectory(reactApplicationContext, enableJsErrors)
 
@@ -61,10 +67,22 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
 
     val configuration = Configuration(
       enableFatalIssueReporting = enableNativeFatalIssues,
+      webViewConfiguration = buildWebViewConfiguration(webViewOptions),
       issueCallbackConfiguration = buildIssueCallbackConfiguration(enableIssueCallbackBridge),
     )
 
-    Capture.Logger.start(apiKey = key, apiUrl = apiUrl.toHttpUrl(), sessionStrategy = strategy, configuration = configuration)
+    Capture.Logger.start(
+      apiKey = key,
+      apiUrl = apiUrl.toHttpUrl(),
+      sessionStrategy = strategy,
+      configuration = configuration,
+      context = reactApplicationContext,
+      startResult = if (enableStartResultBridge) {
+        { result -> emitStartResult(result) }
+      } else {
+        null
+      },
+    )
   }
 
   private fun buildCallbackExecutor(): ExecutorService {
@@ -85,6 +103,24 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     } else {
       null
     }
+  }
+
+  @OptIn(ExperimentalBitdriftApi::class)
+  private fun buildWebViewConfiguration(webViewOptions: ReadableMap?): WebViewConfiguration? {
+    if (webViewOptions == null) {
+      return null
+    }
+
+    return WebViewConfiguration(
+      capturePageViews = webViewOptions.getBooleanOrDefault("capturePageViews", false),
+      captureNetworkRequests = webViewOptions.getBooleanOrDefault("captureNetworkRequests", false),
+      captureNavigationEvents = webViewOptions.getBooleanOrDefault("captureNavigationEvents", false),
+      captureWebVitals = webViewOptions.getBooleanOrDefault("captureWebVitals", false),
+      captureLongTasks = webViewOptions.getBooleanOrDefault("captureLongTasks", false),
+      captureConsoleLogs = webViewOptions.getBooleanOrDefault("captureConsoleLogs", false),
+      captureUserInteractions = webViewOptions.getBooleanOrDefault("captureUserInteractions", false),
+      captureErrors = webViewOptions.getBooleanOrDefault("captureErrors", false),
+    )
   }
   
   private fun emitIssueReport(report: io.bitdrift.capture.reports.Report) {
@@ -109,6 +145,22 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
       .emit(ISSUE_REPORT_EVENT, payload)
   }
 
+  private fun emitStartResult(result: CaptureResult<io.bitdrift.capture.ILogger>) {
+    if (!reactApplicationContext.hasActiveCatalystInstance()) {
+      return
+    }
+
+    reactApplicationContext.runOnUiQueueThread {
+      if (!reactApplicationContext.hasActiveCatalystInstance()) {
+        return@runOnUiQueueThread
+      }
+
+      reactApplicationContext
+        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+        .emit(START_RESULT_EVENT, toWritableStartResult(result))
+    }
+  }
+
   private fun toWritableIssueReport(report: io.bitdrift.capture.reports.Report): WritableMap {
     val payload = Arguments.createMap()
     payload.putString("reportType", report.reportType)
@@ -121,6 +173,21 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
       fieldsMap.putString(key, value)
     }
     payload.putMap("fields", fieldsMap)
+
+    return payload
+  }
+
+  private fun toWritableStartResult(result: CaptureResult<io.bitdrift.capture.ILogger>): WritableMap {
+    val payload = Arguments.createMap()
+    when (result) {
+      is CaptureResult.Success -> {
+        payload.putBoolean("success", true)
+      }
+      is CaptureResult.Failure -> {
+        payload.putBoolean("success", false)
+        payload.putString("error", result.error.message)
+      }
+    }
 
     return payload
   }
@@ -153,6 +220,11 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     } else {
       promise.reject("session_url_undefined", "Session URL is undefined")
     }
+  }
+
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  override fun getSdkStatus(): WritableMap {
+    return toWritableSdkStatus(Capture.Logger.getSdkStatus())
   }
 
   @OptIn(ExperimentalBitdriftApi::class)
@@ -244,7 +316,24 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     const val NAME = "BdReactNative"
     // Must match src/index.tsx ISSUE_REPORT_EVENT and iOS equivalents.
     private const val ISSUE_REPORT_EVENT = "BdReactNative.onBeforeReportSend"
+    private const val START_RESULT_EVENT = "BdReactNative.onStartResult"
     private const val ISSUE_CALLBACK_THREAD_NAME = "io.bitdrift.capture.reactnative.issue-callback"
+
+    private fun toWritableSdkStatus(status: SdkStatus): WritableMap {
+      val map = Arguments.createMap()
+      map.putString("initializationState", status.initializationState.toJsValue())
+      status.lastHandshakeTimeMs?.let { map.putDouble("lastHandshakeTimeMs", it.toDouble()) }
+      status.lastConfigDeliveryTimeMs?.let { map.putDouble("lastConfigDeliveryTimeMs", it.toDouble()) }
+      return map
+    }
+
+    private fun InitializationState.toJsValue(): String =
+      when (this) {
+        InitializationState.NOT_STARTED -> "notStarted"
+        InitializationState.LOADED -> "loaded"
+        InitializationState.RUNNING -> "running"
+        InitializationState.DISABLED -> "disabled"
+      }
 
     private fun ReadableMap?.getMapOrNull(key: String): ReadableMap? =
       this

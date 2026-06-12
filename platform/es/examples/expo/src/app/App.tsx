@@ -13,10 +13,13 @@ import {
   Alert,
   Modal,
   Platform,
+  ScrollView,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import {
   generateDeviceCode,
   getPreviousRunInfo,
+  getSdkStatus,
   getSessionURL,
   info,
   debug,
@@ -26,6 +29,7 @@ import {
   logScreenView,
   logAppLaunchTTI,
   type PreviousRunInfo,
+  type SdkStatus,
   setFeatureFlagExposure,
 } from '@bitdrift/react-native';
 import axios from 'axios';
@@ -110,17 +114,25 @@ const HomeScreen = () => {
     null,
   );
   const [sessionURL, setSessionURL] = useState<string | null>(null);
+  const [sdkStatus, setSdkStatus] = useState<SdkStatus | null>(null);
   const [previousRunInfo, setPreviousRunInfo] = useState<PreviousRunInfo>(null);
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [showErrorPickerModal, setShowErrorPickerModal] = useState(false);
+  const [showWebViewModal, setShowWebViewModal] = useState(false);
 
   useEffect(() => {
     setPreviousRunInfo(getPreviousRunInfo());
+    setSdkStatus(getSdkStatus());
 
     getSessionURL()
       .then(setSessionURL)
       .catch(() => {});
   }, []);
+
+  const refreshSdkStatus = () => {
+    setSdkStatus(getSdkStatus());
+    showToast(`SDK state: ${getSdkStatus().initializationState}`);
+  };
 
   const logMessageHandler = () => {
     if (selectedLogLevel) {
@@ -131,6 +143,7 @@ const HomeScreen = () => {
 
       logScreenView('HomeScreen');
       logAppLaunchTTI(1.0);
+      setSdkStatus(getSdkStatus());
       showToast(`Logged: [${selectedLogLevel.toUpperCase()}]: Log emitted`);
     }
   };
@@ -160,13 +173,19 @@ const HomeScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>
         @bitdrift/react-native Expo Integration Example
       </Text>
 
       <Text testID="sdk-status">
         {sessionURL ? 'SDK Ready' : 'SDK Not Ready'}
+      </Text>
+      <Text testID="sdk-initialization-state" style={styles.previousRunInfoText}>
+        SDK initialization state: {sdkStatus?.initializationState ?? 'unknown'}
+      </Text>
+      <Text style={styles.previousRunInfoText}>
+        SDK status: {JSON.stringify(sdkStatus)}
       </Text>
       <Text testID="previous-run-info" style={styles.previousRunInfoText}>
         Previous run info: {JSON.stringify(previousRunInfo)}
@@ -203,6 +222,16 @@ const HomeScreen = () => {
           styles.button,
           pressed && styles.buttonActive,
         ]}
+        onPress={refreshSdkStatus}
+      >
+        <Text style={styles.buttonText}>Refresh SDK Status</Text>
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonActive,
+        ]}
         onPress={handleCopySessionURL}
       >
         <Text style={styles.buttonText}>Copy Session URL</Text>
@@ -214,6 +243,18 @@ const HomeScreen = () => {
       >
         <Text style={styles.buttonText}>Send Random REST Request</Text>
       </Pressable>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={() => setShowWebViewModal(true)}
+        >
+          <Text style={styles.buttonText}>Open bitdrift.io WebView</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.pickerContainer}>
         <Text style={styles.pickerLabel}>Log Level:</Text>
@@ -405,7 +446,30 @@ const HomeScreen = () => {
         </Pressable>
       </View>
 
-    </View>
+      <Modal
+        visible={showWebViewModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowWebViewModal(false)}
+      >
+        <SafeAreaView style={styles.webViewContainer}>
+          <View style={styles.webViewHeader}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.button,
+                styles.webViewCloseButton,
+                pressed && styles.buttonActive,
+              ]}
+              onPress={() => setShowWebViewModal(false)}
+            >
+              <Text style={styles.buttonText}>Close WebView</Text>
+            </Pressable>
+          </View>
+          <WebView source={{ uri: 'https://bitdrift.io/' }} style={styles.webView} />
+        </SafeAreaView>
+      </Modal>
+
+    </ScrollView>
   );
 };
 
@@ -426,10 +490,9 @@ export const App = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 20,
-    justifyContent: 'center',
     alignItems: 'flex-start',
+    paddingBottom: 40,
   },
   inlineContainer: {
     flexDirection: 'row',
@@ -548,6 +611,20 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     width: '80%',
     marginVertical: 10,
+  },
+  webViewContainer: {
+    flex: 1,
+  },
+  webViewHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  webViewCloseButton: {
+    alignSelf: 'flex-start',
+  },
+  webView: {
+    flex: 1,
   },
 });
 
