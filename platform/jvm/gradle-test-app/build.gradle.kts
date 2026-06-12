@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    id("com.google.firebase.crashlytics") version "3.0.6"
     id("io.bitdrift.capture-plugin") version "0.23.4" // To verify new changes at capture-plugin use your maven local published version
 }
 
@@ -40,6 +41,9 @@ dependencies {
     implementation("com.apollographql.apollo:apollo-runtime:4.1.0")
     implementation("com.jakewharton.timber:timber:5.0.1")
     implementation("com.google.android.material:material:1.8.0")
+    implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
+    implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-crashlytics-ndk")
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("com.squareup.papa:papa:0.26")
     implementation("com.bugsnag:bugsnag-android:6.25.0")

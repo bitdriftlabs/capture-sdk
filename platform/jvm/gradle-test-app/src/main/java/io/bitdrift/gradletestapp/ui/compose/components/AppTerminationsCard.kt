@@ -120,7 +120,7 @@ fun FatalIssuesCard(
             )
 
             TerminationButton(
-                text = "ANR crash",
+                text = "ANR",
                 onClick = { onAction(DiagnosticsAction.TriggerRandomAnrCrash) },
                 containerColor = BitdriftColors.CrashAnr,
             )

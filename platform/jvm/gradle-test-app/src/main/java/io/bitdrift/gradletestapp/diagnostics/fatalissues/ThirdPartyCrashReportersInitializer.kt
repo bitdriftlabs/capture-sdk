@@ -14,14 +14,22 @@ import com.bugsnag.android.Configuration
 import com.bugsnag.android.Event
 import com.bugsnag.android.OnErrorCallback
 import com.bugsnag.android.Severity
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment.Companion.BUG_SNAG_SDK_API_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment.Companion.FIREBASE_APP_ID
+import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment.Companion.FIREBASE_API_KEY
+import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment.Companion.FIREBASE_PROJECT_ID
+import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment.Companion.FIREBASE_SENDER_ID
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment.Companion.SENTRY_SDK_DSN_KEY
 import io.sentry.SentryEvent
 import io.sentry.android.core.SentryAndroid
 import io.sentry.android.core.SentryAndroidOptions
 import org.json.JSONObject
 import timber.log.Timber
+import java.util.concurrent.Executors
 import kotlin.time.measureTime
 
 object ThirdPartyCrashReportersInitializer {
@@ -75,6 +83,64 @@ object ThirdPartyCrashReportersInitializer {
                 }
             Timber.i("SentryAndroid.init() took ${sentryStartTime.inWholeMilliseconds} ms")
         }
+
+        val firebaseApiKey = sharedPreferences.getString(FIREBASE_API_KEY, "")
+        val firebaseAppId = sharedPreferences.getString(FIREBASE_APP_ID, "")
+        val firebaseProjectId = sharedPreferences.getString(FIREBASE_PROJECT_ID, "")
+        val firebaseSenderId = sharedPreferences.getString(FIREBASE_SENDER_ID, "")
+        if (!firebaseApiKey.isNullOrEmpty()) {
+            firebaseExecutor.execute {
+                runCatching {
+                    val firebaseStartTime =
+                        measureTime {
+                            initializeCrashlytics(
+                                application = application,
+                                firebaseApiKey = firebaseApiKey,
+                                firebaseAppId = firebaseAppId.orEmpty(),
+                                firebaseProjectId = firebaseProjectId.orEmpty(),
+                                firebaseSenderId = firebaseSenderId.orEmpty(),
+                            )
+                        }
+                    val firebaseDurationMs = firebaseStartTime.inWholeMilliseconds.toString()
+                    Capture.Logger.logInfo(mapOf("firebase_crashlytics_start_duration_ms" to firebaseDurationMs)) {
+                        "Firebase Crashlytics init took $firebaseDurationMs ms"
+                    }
+                }.onFailure { error ->
+                    Timber.e(error, "Firebase Crashlytics initialization failed")
+                }
+            }
+        }
+    }
+
+    private fun initializeCrashlytics(
+        application: Application,
+        firebaseApiKey: String,
+        firebaseAppId: String,
+        firebaseProjectId: String,
+        firebaseSenderId: String,
+    ) {
+        if (firebaseAppId.isBlank() || firebaseProjectId.isBlank() || firebaseSenderId.isBlank()) {
+            Capture.Logger.logWarning {
+                "Firebase Crashlytics not initialized. Configure Firebase API key, Firebase App ID, Firebase Project ID, and Firebase Sender ID in Other API Keys."
+            }
+            return
+        }
+
+        val existingApp = FirebaseApp.getApps(application).firstOrNull { it.name == FirebaseApp.DEFAULT_APP_NAME }
+        existingApp ?: FirebaseApp.initializeApp(
+            application,
+            FirebaseOptions.Builder()
+                .setApiKey(firebaseApiKey)
+                .setApplicationId(firebaseAppId)
+                .setProjectId(firebaseProjectId)
+                .setGcmSenderId(firebaseSenderId)
+                .build(),
+        )
+
+        val crashlytics = FirebaseCrashlytics.getInstance()
+        crashlytics.setCrashlyticsCollectionEnabled(true)
+        crashlytics.setCustomKey("bitdrift_session_url", Capture.Logger.sessionUrl ?: "")
+        crashlytics.log("Firebase Crashlytics initialized from runtime settings")
     }
 
     private fun reportNonFatalIssue() {
@@ -169,4 +235,6 @@ object ThirdPartyCrashReportersInitializer {
         val message = "Sentry beforeSend triggered. See fields details"
         Capture.Logger.logInfo(fields = fields) { message }
     }
+
+    private val firebaseExecutor = Executors.newSingleThreadExecutor()
 }
