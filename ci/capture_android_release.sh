@@ -8,10 +8,17 @@ readonly remote_location_root_prefix="s3://bitdrift-public-dl/sdk/android-maven/
 
 readonly version="$1"
 readonly capture_archive="$2"
-readonly capture_timber_archive="$3"
-readonly capture_apollo_archive="$4"
-readonly capture_plugin_archive="$5"
-readonly capture_plugin_marker_archive="$6"
+readonly capture_timber_archive="${3:-}"
+readonly capture_apollo_archive="${4:-}"
+readonly capture_plugin_archive="${5:-}"
+readonly capture_plugin_marker_archive="${6:-}"
+# Optional: custom artifact name (e.g. "capture-no-jank-stats"). Defaults to "capture".
+readonly capture_artifact_name="${7:-capture}"
+
+if [[ ! "$capture_artifact_name" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+  echo "Invalid capture artifact name: '$capture_artifact_name'. Expected regex: [a-z0-9][a-z0-9-]*" >&2
+  exit 1
+fi
 
 #############################################
 # Helpers for Maven Central bundle creation #
@@ -211,8 +218,8 @@ function release_capture_sdk() {
 
   echo "+++ Uploading artifacts to s3 bucket"
 
-  local -r remote_location_prefix="$remote_location_root_prefix/capture"
-  local -r name="capture-$version"
+  local -r remote_location_prefix="$remote_location_root_prefix/$capture_artifact_name"
+  local -r name="$capture_artifact_name-$version"
 
   files=(
     "$sdk_repo/ci/LICENSE"
@@ -227,10 +234,10 @@ function release_capture_sdk() {
     upload_file "$remote_location_prefix/$version" "$file"
   done
 
-  generate_maven_file "$remote_location_prefix" "capture"
+  generate_maven_file "$remote_location_prefix" "$capture_artifact_name"
 
-  # Prepare Maven Central bundle (group: io/bitdrift, artifact: capture)
-  package_maven_central_bundle "io/bitdrift" "capture" "$version" \
+  # Prepare Maven Central bundle (group: io/bitdrift, artifact: $capture_artifact_name)
+  package_maven_central_bundle "io/bitdrift" "$capture_artifact_name" "$version" \
     "$name.pom" "$name-javadoc.jar" "$name-sources.jar" "$name.aar"
   popd
 }
@@ -318,7 +325,17 @@ function release_gradle_plugin() {
 import_gpg_key_if_available
 
 release_capture_sdk
-release_gradle_library "capture-timber" "$capture_timber_archive"
-release_gradle_library "capture-apollo" "$capture_apollo_archive"
-release_gradle_library "capture-plugin" "$capture_plugin_archive"
-release_gradle_plugin "capture-plugin" "io.bitdrift.capture-plugin.gradle.plugin" "$capture_plugin_marker_archive"
+
+# Release integration libraries only if their archives are provided
+if [[ -n "$capture_timber_archive" ]]; then
+  release_gradle_library "capture-timber" "$capture_timber_archive"
+fi
+if [[ -n "$capture_apollo_archive" ]]; then
+  release_gradle_library "capture-apollo" "$capture_apollo_archive"
+fi
+if [[ -n "$capture_plugin_archive" ]]; then
+  release_gradle_library "capture-plugin" "$capture_plugin_archive"
+fi
+if [[ -n "$capture_plugin_marker_archive" ]]; then
+  release_gradle_plugin "capture-plugin" "io.bitdrift.capture-plugin.gradle.plugin" "$capture_plugin_marker_archive"
+fi

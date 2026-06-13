@@ -11,6 +11,29 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)
         required: true
+      platform:
+        type: choice
+        description: Which platform(s) to release
+        required: true
+        default: all
+        options:
+          - all
+          - android
+          - ios
+          - react-native
+      android-artifacts:
+        type: choice
+        description: Which Android artifacts to publish (ignored if platform is ios or react-native)
+        required: true
+        default: all
+        options:
+          - all
+          - capture-only
+      capture-suffix:
+        type: string
+        description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
+        required: false
+        default: ''
   workflow_call:
     inputs:
       version:
@@ -21,6 +44,21 @@ on:
         type: boolean
         description: Ignore main branch requirement (SOC2 compliance)'
         required: true
+      platform:
+        type: string
+        description: Which platform(s) to release (all, android, ios, react-native)
+        required: false
+        default: all
+      android-artifacts:
+        type: string
+        description: Which Android artifacts to publish (all, capture-only)
+        required: false
+        default: all
+      capture-suffix:
+        type: string
+        description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
+        required: false
+        default: ''
     secrets: 
       OPEN_CAPTURE_SDK_PRS_APP_ID:
         required: true
@@ -29,13 +67,18 @@ on:
         
 jobs:
   gh-release:
+    if: ${{ inputs.platform != 'react-native' }}
     permissions:
       contents: write
     uses: ./.github/workflows/release_gh.yaml
     with:
       version: ${{ inputs.version }}
+      platform: ${{ inputs.platform }}
+      android-artifacts: ${{ inputs.android-artifacts }}
+      capture-suffix: ${{ inputs.capture-suffix }}
     secrets: inherit
   public-release:
+    if: ${{ inputs.platform != 'react-native' }}
     permissions:
       id-token: write # required to use OIDC authentication
       contents: read
@@ -43,15 +86,20 @@ jobs:
     with:
       version: ${{ inputs.version }}
       emergency: ${{ inputs.emergency }}
+      platform: ${{ inputs.platform }}
+      android-artifacts: ${{ inputs.android-artifacts }}
+      capture-suffix: ${{ inputs.capture-suffix }}
     secrets: inherit
     needs: gh-release
   capture-ios-release:
+    if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
     uses: ./.github/workflows/release_capture_ios.yaml
     with:
       version: ${{ inputs.version }}
     needs: public-release
     secrets: inherit
   capture-react-release:
+    if: ${{ always() && !failure() && !cancelled() && (inputs.platform == 'all' || inputs.platform == 'react-native') }}
     uses: ./.github/workflows/release_capture_react.yaml
     with:
       version: ${{ inputs.version }}
