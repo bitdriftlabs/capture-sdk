@@ -27,6 +27,7 @@ class GradleTestApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        Capture.Logger.logScreenView()
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
 
         if (areAdditionalDiagnosticToolsEnabled(sharedPreferences)) {
