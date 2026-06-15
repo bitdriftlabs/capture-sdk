@@ -162,27 +162,7 @@ class LogBenchmarkTest {
             handler.log(message)
         }
     }
-
-    @Test
-    fun webViewBridgeWebVitalCLS() {
-        val handler = WebViewBridgeMessageHandler(getInternalLogger())
-        val message = """{"v":1,"type":"webVital","timestamp":1234567890,"metric":{"name":"CLS","value":0.15,"rating":"needs-improvement","delta":0.05,"id":"v3-1234567890","navigationType":"navigate","entries":[{"value":0.1,"startTime":1000.0},{"value":0.05,"startTime":2000.0}]}}"""
-
-        benchmarkRule.measureRepeated {
-            handler.log(message)
-        }
-    }
-
-    @Test
-    fun webViewBridgeCustomLog() {
-        val handler = WebViewBridgeMessageHandler(getInternalLogger())
-        val message = """{"v":1,"type":"customLog","timestamp":1234567890,"level":"info","message":"User logged in","fields":{"userId":"12345","userName":"john.doe","sessionId":"abc-123"}}"""
-
-        benchmarkRule.measureRepeated {
-            handler.log(message)
-        }
-    }
-
+    
     private fun getInternalLogger(): IInternalLogger {
         startLogger()
         return Capture.logger() as IInternalLogger
