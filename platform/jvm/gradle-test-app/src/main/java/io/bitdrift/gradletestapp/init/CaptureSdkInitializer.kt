@@ -7,9 +7,13 @@
 
 package io.bitdrift.gradletestapp.init
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import android.widget.Toast
+import com.bugsnag.android.Bugsnag
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
@@ -33,6 +37,7 @@ import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Com
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
+import io.sentry.Sentry
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
@@ -45,6 +50,7 @@ import java.util.concurrent.Executors
  */
 object CaptureSdkInitializer {
     private val userUuid = UUID.randomUUID().toString()
+    private val bitdriftSessionUrlKey = "bitdrift_session_url"
 
     /**
      * Init sdk with the persisted settings
@@ -75,6 +81,7 @@ object CaptureSdkInitializer {
         }
     }
 
+    @SuppressLint("LogNotTimber")
     @ExperimentalBitdriftApi
     private fun startCaptureSdk(
         settings: CaptureSdkInitSettings,
@@ -92,11 +99,14 @@ object CaptureSdkInitializer {
             when (startResult) {
                 is CaptureResult.Success -> {
                     val logger = startResult.value
-                    Timber.i("SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}")
+                    Log.d("bitdrift","SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}")
+                    Sentry.setExtra(bitdriftSessionUrlKey, logger.sessionUrl)
+                    Bugsnag.addMetadata("bitdrift_session_url", bitdriftSessionUrlKey,  logger.sessionUrl )
+                    FirebaseCrashlytics.getInstance().setCustomKey(bitdriftSessionUrlKey, Capture.Logger.sessionUrl ?: "")
                 }
 
                 is CaptureResult.Failure -> {
-                    Timber.i("SDK failed to start: ${startResult.error.message}")
+                    Log.d("bitdrift","SDK failed to start: ${startResult.error.message}")
                     // Re-throwing on debug builds so we can get immediate signal of
                     // any issues at Capture.Logger.start internals during the development phase.
                     throw IllegalStateException(startResult.error.message)
@@ -250,6 +260,7 @@ object CaptureSdkInitializer {
             ) {
                 "IssueReportCallback.onBeforeReportSend"
             }
+            FirebaseCrashlytics.getInstance().setCustomKey("bitdrift_session_id_on_before_send", report.sessionId)
         }
     }
 
