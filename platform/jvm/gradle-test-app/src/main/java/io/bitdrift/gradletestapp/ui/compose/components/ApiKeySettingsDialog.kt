@@ -39,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.input.ImeAction
 
@@ -75,17 +74,27 @@ class SettingsApiKeysDialogFragment(
 
         var bugSnagSdkApiKey by remember { getCurrentApiKeyValue(BUG_SNAG_SDK_API_KEY) }
         var sentrySdkDsnKey by remember { getCurrentApiKeyValue(SENTRY_SDK_DSN_KEY) }
-        val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
+        var firebaseApiKey by remember { getCurrentApiKeyValue(FIREBASE_API_KEY) }
+        var firebaseAppId by remember { getCurrentApiKeyValue(FIREBASE_APP_ID) }
+        var firebaseProjectId by remember { getCurrentApiKeyValue(FIREBASE_PROJECT_ID) }
+        var firebaseSenderId by remember { getCurrentApiKeyValue(FIREBASE_SENDER_ID) }
 
         fun persistApiKeysAndDismiss() {
             val bugSnagSdkApiKeyTrimmed = bugSnagSdkApiKey.text.trim()
             val sentrySdkApiKeyTrimmed = sentrySdkDsnKey.text.trim()
+            val firebaseApiKeyTrimmed = firebaseApiKey.text.trim()
+            val firebaseAppIdTrimmed = firebaseAppId.text.trim()
+            val firebaseProjectIdTrimmed = firebaseProjectId.text.trim()
+            val firebaseSenderIdTrimmed = firebaseSenderId.text.trim()
             with(sharedPreferences.edit()) {
                 putString(BUG_SNAG_SDK_API_KEY, bugSnagSdkApiKeyTrimmed)
                 putString(SENTRY_SDK_DSN_KEY, sentrySdkApiKeyTrimmed)
+                putString(FIREBASE_API_KEY, firebaseApiKeyTrimmed)
+                putString(FIREBASE_APP_ID, firebaseAppIdTrimmed)
+                putString(FIREBASE_PROJECT_ID, firebaseProjectIdTrimmed)
+                putString(FIREBASE_SENDER_ID, firebaseSenderIdTrimmed)
                 apply()
             }
-            localSoftwareKeyboardController?.hide()
             onDismiss()
         }
 
@@ -113,13 +122,42 @@ class SettingsApiKeysDialogFragment(
                         value = bugSnagSdkApiKey,
                         onValueChange = { bugSnagSdkApiKey = it },
                         label = "Bugsnag API key",
-                        onDoneAction = { persistApiKeysAndDismiss() },
+                        imeAction = ImeAction.Next,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     ApiKeyTextField(
                         value = sentrySdkDsnKey,
                         onValueChange = { sentrySdkDsnKey = it },
                         label = "Sentry DSN API key",
+                        imeAction = ImeAction.Next,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ApiKeyTextField(
+                        value = firebaseApiKey,
+                        onValueChange = { firebaseApiKey = it },
+                        label = "Firebase API key",
+                        imeAction = ImeAction.Next,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ApiKeyTextField(
+                        value = firebaseAppId,
+                        onValueChange = { firebaseAppId = it },
+                        label = "Firebase App ID",
+                        imeAction = ImeAction.Next,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ApiKeyTextField(
+                        value = firebaseProjectId,
+                        onValueChange = { firebaseProjectId = it },
+                        label = "Firebase Project ID",
+                        imeAction = ImeAction.Next,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ApiKeyTextField(
+                        value = firebaseSenderId,
+                        onValueChange = { firebaseSenderId = it },
+                        label = "Firebase Sender ID",
+                        imeAction = ImeAction.Done,
                         onDoneAction = { persistApiKeysAndDismiss() },
                     )
                 }
@@ -143,7 +181,8 @@ class SettingsApiKeysDialogFragment(
         value: TextFieldValue,
         onValueChange: (TextFieldValue) -> Unit,
         label: String,
-        onDoneAction: () -> Unit,
+        imeAction: ImeAction,
+        onDoneAction: (() -> Unit)? = null,
     ) {
         TextField(
             value = value,
@@ -156,12 +195,12 @@ class SettingsApiKeysDialogFragment(
                     .wrapContentHeight(),
             keyboardOptions =
                 KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Done,
+                    imeAction = imeAction,
                 ),
             keyboardActions =
                 KeyboardActions(
                     onDone = {
-                        onDoneAction()
+                        onDoneAction?.invoke()
                     },
                 ),
         )
@@ -170,5 +209,9 @@ class SettingsApiKeysDialogFragment(
     companion object {
         const val BUG_SNAG_SDK_API_KEY = "bugsnag_sdk_api_key"
         const val SENTRY_SDK_DSN_KEY = "sentry_sdk_dsn_key"
+        const val FIREBASE_API_KEY = "firebase_api_key"
+        const val FIREBASE_APP_ID = "firebase_app_id"
+        const val FIREBASE_PROJECT_ID = "firebase_project_id"
+        const val FIREBASE_SENDER_ID = "firebase_sender_id"
     }
 }
