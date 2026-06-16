@@ -261,6 +261,11 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   }
 
   @ReactMethod
+  override fun setEntityId(entityId: String) {
+    Capture.Logger.setEntityId(entityId)
+  }
+
+  @ReactMethod
   override fun logScreenView(screenView: String) {
     Capture.Logger.logScreenView(screenView)
   }

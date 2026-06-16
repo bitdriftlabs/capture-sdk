@@ -17,7 +17,16 @@ Capture library and log messages at different log levels. Note that this initial
 
 
 ```js
-import { init, trace, debug, info, warn, error, SessionStrategy } from '@bitdrift/react-native';
+import {
+  init,
+  trace,
+  debug,
+  info,
+  warn,
+  error,
+  setEntityId,
+  SessionStrategy,
+} from '@bitdrift/react-native';
 
 init('<api key>', SessionStrategy.Activity, {
   startResult: (result) => {
@@ -34,6 +43,7 @@ init('<api key>', SessionStrategy.Activity, {
 });
 
 info('Hello, World!');
+setEntityId('user-123');
 ```
 
 For all Expo usages, make sure to add `@bitdrift/react-native` to the `plugins` field in your `app.json` file. This helps ensure setting up the native modules correctly.
@@ -247,6 +257,17 @@ setFeatureFlagExposure('new_ui', 'variant_b');
 // Track boolean variant
 setFeatureFlagExposure('experimental_feature', true);
 setFeatureFlagExposure('beta_mode', false);
+```
+
+### Entity Identification
+
+Sets an entity identifier for backend correlation with device identifier. The value is hashed for storage and the exact value is never persisted.
+
+```js
+import { setEntityId } from '@bitdrift/react-native';
+
+setEntityId('user-123');
+setEntityId('account-456');
 ```
 
 ### Network Integration

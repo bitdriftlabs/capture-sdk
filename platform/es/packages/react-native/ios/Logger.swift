@@ -133,6 +133,11 @@ let CAPRNStartResultDidEmitNotification = Notification.Name("BdReactNative.onSta
     }
 
     @objc
+    public static func setEntityId(_ entityId: String) {
+        Capture.Logger.setEntityID(entityId)
+    }
+
+    @objc
     public static func getSessionID(
         _ resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock

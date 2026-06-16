@@ -34,6 +34,7 @@ function loadSdk(platform: PlatformName): TestSetup {
     log: jest.fn(),
     addField: jest.fn(),
     removeField: jest.fn(),
+    setEntityId: jest.fn(),
     getDeviceID: jest.fn(),
     getSessionID: jest.fn(),
     getSessionURL: jest.fn(),
@@ -351,5 +352,15 @@ describe('getSdkStatus', () => {
       lastHandshakeTimeMs: 123,
       lastConfigDeliveryTimeMs: 456,
     });
+  });
+});
+
+describe('setEntityId', () => {
+  test('forwards the entity id to the native module', () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+
+    sdk.setEntityId('expo-sample-entity');
+
+    expect(nativeModule.setEntityId).toHaveBeenCalledWith('expo-sample-entity');
   });
 });
