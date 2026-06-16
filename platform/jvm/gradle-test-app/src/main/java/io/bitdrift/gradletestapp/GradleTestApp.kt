@@ -29,6 +29,8 @@ class GradleTestApp : Application() {
 
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
 
+        ThirdPartyCrashReportersInitializer.init(this)
+
         if (areAdditionalDiagnosticToolsEnabled(sharedPreferences)) {
             attachDiagnosticTools()
         }
@@ -38,8 +40,6 @@ class GradleTestApp : Application() {
         } else {
             CaptureSdkInitializer.initFromPreferences(this, sharedPreferences)
         }
-
-        ThirdPartyCrashReportersInitializer.init(this)
     }
 
     private fun areAdditionalDiagnosticToolsEnabled(sharedPreferences: SharedPreferences): Boolean =

@@ -136,11 +136,7 @@ object ThirdPartyCrashReportersInitializer {
                 .setGcmSenderId(firebaseSenderId)
                 .build(),
         )
-
-        val crashlytics = FirebaseCrashlytics.getInstance()
-        crashlytics.setCrashlyticsCollectionEnabled(true)
-        crashlytics.setCustomKey("bitdrift_session_url", Capture.Logger.sessionUrl ?: "")
-        crashlytics.log("Firebase Crashlytics initialized from runtime settings")
+        FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = true
     }
 
     private fun reportNonFatalIssue() {
