@@ -34,6 +34,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
         required: false
         default: ''
+      release-ref:
+        type: string
+        description: Branch or tag to release from. Defaults to main.
+        required: false
+        default: main
   workflow_call:
     inputs:
       version:
@@ -59,6 +64,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
         required: false
         default: ''
+      release-ref:
+        type: string
+        description: Branch or tag to release from. Defaults to main.
+        required: false
+        default: main
     secrets: 
       OPEN_CAPTURE_SDK_PRS_APP_ID:
         required: true
@@ -76,6 +86,7 @@ jobs:
       platform: ${{ inputs.platform }}
       android-artifacts: ${{ inputs.android-artifacts }}
       capture-suffix: ${{ inputs.capture-suffix }}
+      release-ref: ${{ inputs.release-ref }}
     secrets: inherit
   public-release:
     if: ${{ inputs.platform != 'react-native' }}
@@ -89,6 +100,7 @@ jobs:
       platform: ${{ inputs.platform }}
       android-artifacts: ${{ inputs.android-artifacts }}
       capture-suffix: ${{ inputs.capture-suffix }}
+      release-ref: ${{ inputs.release-ref }}
     secrets: inherit
     needs: gh-release
   capture-ios-release:

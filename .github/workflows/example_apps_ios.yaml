@@ -1,7 +1,19 @@
 name: Build iOS example apps
 on:
   workflow_dispatch:
+    inputs:
+      release-ref:
+        type: string
+        description: Branch or tag to build from. Defaults to main.
+        required: false
+        default: main
   workflow_call:
+    inputs:
+      release-ref:
+        type: string
+        description: Branch or tag to build from. Defaults to main.
+        required: false
+        default: main
 
 jobs:
   build:
@@ -14,6 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.release-ref || github.ref_name }}
           fetch-depth: 0
 
       - name: Install dependencies
