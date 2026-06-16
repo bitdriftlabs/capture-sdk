@@ -246,6 +246,16 @@ function release_gradle_library() {
   local -r library_name="$1"
   local -r archive="$2"
 
+  if [[ -z "$archive" ]]; then
+    echo "+++ Skipping $library_name release: no archive provided"
+    return 0
+  fi
+
+  if [[ ! -f "$sdk_repo/$archive" ]]; then
+    echo "Expected archive '$sdk_repo/$archive' for $library_name was not found." >&2
+    exit 1
+  fi
+
   echo "+++ dl.bitdrift.io Android Integration $library_name artifacts upload"
 
   local -r remote_location_prefix="$remote_location_root_prefix/$library_name"
@@ -293,6 +303,16 @@ function release_gradle_plugin() {
   local -r plugin_name="$1"
   local -r plugin_marker="$2"
   local -r archive="$3"
+
+  if [[ -z "$archive" ]]; then
+    echo "+++ Skipping $plugin_name/$plugin_marker release: no archive provided"
+    return 0
+  fi
+
+  if [[ ! -f "$sdk_repo/$archive" ]]; then
+    echo "Expected archive '$sdk_repo/$archive' for $plugin_name/$plugin_marker was not found." >&2
+    exit 1
+  fi
 
   echo "+++ dl.bitdrift.io Android Integration plugin $plugin_name / $plugin_marker artifacts upload"
 
