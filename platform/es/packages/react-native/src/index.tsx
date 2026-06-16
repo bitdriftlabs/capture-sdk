@@ -253,6 +253,16 @@ export function removeField(key: string): void {
   return NativeBdReactNative.removeField(key);
 }
 
+/**
+ * Sets an entity identifier for backend correlation with device identifier.
+ * The value is hashed for storage and the exact value is never persisted.
+ *
+ * @param entityId entity identifier
+ */
+export function setEntityId(entityId: string): void {
+  return NativeBdReactNative.setEntityId(entityId);
+}
+
 export async function getDeviceID(): Promise<string> {
   return NativeBdReactNative.getDeviceID();
 }

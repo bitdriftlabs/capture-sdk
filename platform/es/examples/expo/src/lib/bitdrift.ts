@@ -4,6 +4,7 @@ import {
   removeField,
   debug,
   info,
+  setEntityId,
   SessionStrategy,
   getSessionID,
   getSessionURL,
@@ -63,5 +64,6 @@ if (BITDRIFT_API_KEY) {
   addField('environment', 'expo');
   removeField('environment');
   addField('environment', 'expo');
+  setEntityId('react-native-entity-id');
   debug('expo example initialized');
 }
