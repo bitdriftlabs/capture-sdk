@@ -21,6 +21,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios. Leave empty for standard "capture".'
         required: false
         default: ''
+      release-ref:
+        type: string
+        description: Branch or tag to build/release from. Defaults to main.
+        required: false
+        default: main
     secrets:
       OPEN_CAPTURE_SDK_PRS_APP_ID:
         required: true
@@ -54,6 +59,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios. Leave empty for standard "capture".'
         required: false
         default: ''
+      release-ref:
+        type: string
+        description: Branch or tag to build/release from. Defaults to main.
+        required: false
+        default: main
 jobs:
   verify-version:
     name: Verify arguments
@@ -80,6 +90,8 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release-ref || github.ref_name }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: 'Install dependencies'
@@ -104,6 +116,8 @@ jobs:
     permissions:
       contents: write
     uses: ./.github/workflows/example_apps_ios.yaml
+    with:
+      release-ref: ${{ inputs.release-ref }}
     secrets: inherit
 
   # The Android release build builds capture.aar and accompanying artifacts, like the .pom xml and the symbols corresponding to the .so.
@@ -115,6 +129,8 @@ jobs:
     steps:
       # Checkout repo to Github Actions runner
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release-ref || github.ref_name }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: Install Clang
@@ -137,6 +153,8 @@ jobs:
     permissions:
       contents: write
     uses: ./.github/workflows/example_apps_android.yaml
+    with:
+      release-ref: ${{ inputs.release-ref }}
     secrets: inherit
 
   build-android-integrations:
@@ -148,6 +166,7 @@ jobs:
     uses: ./.github/workflows/integrations_android.yaml
     with:
       version: ${{ inputs.version }}
+      release-ref: ${{ inputs.release-ref }}
     secrets: inherit
 
   create-release:
@@ -168,6 +187,8 @@ jobs:
     ]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release-ref || github.ref_name }}
       # Download all artifacts to current working directory
       - name: Download All artifacts
         uses: actions/download-artifact@v4
@@ -189,7 +210,7 @@ jobs:
           VERSION: ${{ inputs.version }}
 
       - name: 'Create Github Token'
-        if: ${{ github.ref_name == 'main' }}
+        if: ${{ (inputs.release-ref || github.ref_name) == 'main' }}
         id: org-pr-create-token
         uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
         with:
@@ -197,7 +218,7 @@ jobs:
           private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
 
       - name: 'Commit & push to main only'
-        if: ${{ github.ref_name == 'main' }}
+        if: ${{ (inputs.release-ref || github.ref_name) == 'main' }}
         env:
           GH_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
           VERSION: ${{ inputs.version }}
@@ -256,12 +277,13 @@ jobs:
         # Prefix release version with "v". If capture-suffix is set, append it to the tag.
       - name: Create release
         run: |
+          target_ref="${RELEASE_REF:-$GITHUB_REF_NAME}"
           tag="v$VERSION"
           if [ -n "$CAPTURE_SUFFIX" ] && [ "$PLATFORM" = "android" ]; then
             tag="v$VERSION$CAPTURE_SUFFIX"
           fi
           gh release create "$tag" \
-            --target "$GITHUB_REF_NAME" \
+            --target "$target_ref" \
             --notes-file tmp_notes.md \
             ${{ steps.assets.outputs.files }}
         env:
@@ -269,3 +291,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
           PLATFORM: ${{ inputs.platform }}
+          RELEASE_REF: ${{ inputs.release-ref }}

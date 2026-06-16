@@ -63,6 +63,7 @@ jobs:
     with:
       version: ${{ needs.prepare-release.outputs.version }}
       emergency: false
+      release-ref: main
     secrets: inherit
 
   no-release:
