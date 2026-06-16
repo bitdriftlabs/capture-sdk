@@ -6,6 +6,21 @@ on:
         description: 'The new version to tag, ex: 0.9.102'
         required: true
         type: string
+      platform:
+        type: string
+        description: Which platform(s) to release (all, android, ios)
+        required: false
+        default: all
+      android-artifacts:
+        type: string
+        description: Which Android artifacts to publish (all, capture-only)
+        required: false
+        default: all
+      capture-suffix:
+        type: string
+        description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios. Leave empty for standard "capture".'
+        required: false
+        default: ''
     secrets:
       OPEN_CAPTURE_SDK_PRS_APP_ID:
         required: true
@@ -17,6 +32,28 @@ on:
         description: 'The new version to tag, ex: 0.9.102'
         required: true
         type: string
+      platform:
+        type: choice
+        description: Which platform(s) to release
+        required: true
+        default: all
+        options:
+          - all
+          - android
+          - ios
+      android-artifacts:
+        type: choice
+        description: Which Android artifacts to publish
+        required: true
+        default: all
+        options:
+          - all
+          - capture-only
+      capture-suffix:
+        type: string
+        description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios. Leave empty for standard "capture".'
+        required: false
+        default: ''
 jobs:
   verify-version:
     name: Verify arguments
@@ -26,10 +63,18 @@ jobs:
         run: |
           echo "$VERSION"
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+(\.[0-9]+)?)?$ ]]; then exit 1; fi
+          if [ -n "$CAPTURE_SUFFIX" ] && [ "$PLATFORM" != "android" ]; then
+            echo "capture-suffix can only be used with platform=android" >&2
+            exit 1
+          fi
     env:
       VERSION: ${{ inputs.version }}
+      CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
+      PLATFORM: ${{ inputs.platform }}
+
   # The iOS release build builds the xcframework in release mode and uploads it to the artifact store for later use.
   ios-release-build:
+    if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
     name: Capture.xcframework with artifacts
     needs: ["verify-version"]
     runs-on: macos-26
@@ -52,7 +97,9 @@ jobs:
         with:
           name: Capture.doccarchive.ios.zip
           path: ./Capture.doccarchive.ios.zip
+
   build-ios-example-apps:
+    if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
     needs: ["verify-version"]
     permissions:
       contents: write
@@ -61,6 +108,7 @@ jobs:
 
   # The Android release build builds capture.aar and accompanying artifacts, like the .pom xml and the symbols corresponding to the .so.
   android-release-build:
+    if: ${{ inputs.platform == 'all' || inputs.platform == 'android' }}
     name: Capture.aar with artifacts
     needs: ["verify-version"]
     runs-on: ubuntu-latest
@@ -72,20 +120,27 @@ jobs:
       - name: Install Clang
         run: sudo apt-get install -y clang
       - name: Build AAR + artifacts
-        run: ./tools/android_release.sh "$VERSION"
+        run: |
+          artifact_name="capture$CAPTURE_SUFFIX"
+          ./tools/android_release.sh "$VERSION" "$artifact_name"
         env:
           VERSION: ${{ inputs.version }}
+          CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
       - uses: actions/upload-artifact@v4
         with:
           name: Capture.android.zip
           path: ./dist/Capture.android.zip
+
   build-android-example-apps:
+    if: ${{ inputs.platform == 'all' || inputs.platform == 'android' }}
     needs: ["verify-version"]
     permissions:
       contents: write
     uses: ./.github/workflows/example_apps_android.yaml
     secrets: inherit
+
   build-android-integrations:
+    if: ${{ (inputs.platform == 'all' || inputs.platform == 'android') && inputs.android-artifacts == 'all' }}
     name: Build Android Integrations
     needs: ["verify-version"]
     permissions:
@@ -100,6 +155,10 @@ jobs:
       contents: write
     name: GitHub release
     runs-on: ubuntu-latest
+    # always() is needed because some dependencies may be conditionally skipped
+    # (e.g. iOS jobs when platform=android, integrations when capture-only).
+    # Without it, a skipped dependency would also skip this job.
+    if: ${{ always() && !failure() && !cancelled() }}
     needs: [
       "ios-release-build",
       "build-ios-example-apps",
@@ -114,16 +173,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
+
       - name: Prepare Android artifacts
+        if: ${{ inputs.platform == 'all' || inputs.platform == 'android' }}
         run: ./ci/gh_prepare_android_artifacts.sh "$VERSION"
         env:
           VERSION: ${{ inputs.version }}
+
       - name: Prepare iOS artifacts
+        if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
         run: |
           mv Capture.ios.zip Capture-$VERSION.ios.zip
           mv Capture.doccarchive.ios.zip Capture-$VERSION.doccarchive.ios.zip
         env:
           VERSION: ${{ inputs.version }}
+
       - name: 'Create Github Token'
         if: ${{ github.ref_name == 'main' }}
         id: org-pr-create-token
@@ -168,22 +232,40 @@ jobs:
             echo "Extract release notes step succeeded"
           fi
 
+      # Collect release assets based on platform and android-artifacts selection
+      - name: Collect release assets
+        id: assets
+        run: |
+          assets=""
+          if [ "$PLATFORM" = "all" ] || [ "$PLATFORM" = "ios" ]; then
+            assets="$assets Capture-$VERSION.ios.zip Capture-$VERSION.doccarchive.ios.zip example-apps.ios.zip"
+          fi
+          if [ "$PLATFORM" = "all" ] || [ "$PLATFORM" = "android" ]; then
+            assets="$assets Capture-$VERSION.android.zip example-apps.android.zip"
+            if [ "$ANDROID_ARTIFACTS" = "all" ]; then
+              assets="$assets capture-timber-$VERSION.android.zip capture-apollo-$VERSION.android.zip capture-plugin-$VERSION.android.zip capture-plugin-marker-$VERSION.android.zip"
+            fi
+          fi
+          echo "files=$assets" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ inputs.version }}
+          PLATFORM: ${{ inputs.platform }}
+          ANDROID_ARTIFACTS: ${{ inputs.android-artifacts }}
+
         # Upload artifacts to the newly created release.
-        # Prefix release version with "v".
+        # Prefix release version with "v". If capture-suffix is set, append it to the tag.
       - name: Create release
         run: |
-          gh release create "v$VERSION" \
+          tag="v$VERSION"
+          if [ -n "$CAPTURE_SUFFIX" ] && [ "$PLATFORM" = "android" ]; then
+            tag="v$VERSION$CAPTURE_SUFFIX"
+          fi
+          gh release create "$tag" \
             --target "$GITHUB_REF_NAME" \
             --notes-file tmp_notes.md \
-            "Capture-$VERSION.ios.zip" \
-            "Capture-$VERSION.doccarchive.ios.zip" \
-            "Capture-$VERSION.android.zip" \
-            "example-apps.ios.zip" \
-            "example-apps.android.zip" \
-            "capture-timber-$VERSION.android.zip" \
-            "capture-apollo-$VERSION.android.zip" \
-            "capture-plugin-$VERSION.android.zip" \
-            "capture-plugin-marker-$VERSION.android.zip"
+            ${{ steps.assets.outputs.files }}
         env:
           VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
+          PLATFORM: ${{ inputs.platform }}
