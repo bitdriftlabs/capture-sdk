@@ -357,6 +357,7 @@ crate.from_cargo(
     lockfile = "//:Cargo.Bazel.lock",
     manifests = [
         "//:Cargo.toml",
+        "//platform/crash:Cargo.toml",
         "//proto:Cargo.toml",
         "//platform/jvm:Cargo.toml",
         "//platform/jvm/core:Cargo.toml",

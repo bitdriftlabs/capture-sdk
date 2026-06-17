@@ -1,0 +1,19 @@
+[package]
+edition      = "2021"
+license-file = "LICENSE"
+name         = "bd-crash-reporter"
+publish      = false
+version      = "1.0.0"
+
+[dependencies]
+anyhow.workspace            = true
+memmap2.workspace           = true
+objc2.workspace             = true
+objc2-foundation.workspace  = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+name       = "bd_crash_reporter"
