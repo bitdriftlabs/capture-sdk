@@ -7,7 +7,7 @@
 
 import Darwin
 import Foundation
-@_implementationOnly import HelloWorldCrashSupport
+import HelloWorldCrashSupport
 import SwiftUI
 
 struct CrashEnvironmentSnapshot {

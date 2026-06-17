@@ -8,6 +8,7 @@ swift_library(
     features = [
         "swift.enable_library_evolution",
     ],
+    copts = ["-language-mode", "5"],
     visibility = ["//visibility:public"],
     deps = [":swift_argument_parser_tool_info"],
 )
@@ -18,4 +19,5 @@ swift_library(
     tags = ["manual"],
     library_evolution = True,
     module_name = "ArgumentParserToolInfo",
+    copts = ["-language-mode", "5"],
 )

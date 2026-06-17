@@ -9,30 +9,18 @@ import UIKit
 
 @UIApplicationMain
 private final class AppDelegate: UIResponder, UIApplicationDelegate {
-    var window: UIWindow?
-
     func application(
         _: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        self.window = UIWindow(frame: UIScreen.main.bounds)
-        self.window?.rootViewController = HostViewController()
-        self.window?.makeKeyAndVisible()
-        return true
+        true
     }
 
-    private final class HostViewController: UIViewController {
-        override func viewDidLoad() {
-            super.viewDidLoad()
-
-            self.view.backgroundColor = .white
-
-            let label = UILabel()
-            self.view.addSubview(label)
-            label.text = "Test Host"
-            label.font = .boldSystemFont(ofSize: 50)
-            label.sizeToFit()
-            label.center = self.view.center
-        }
+    func application(
+        _: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options _: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
     }
 }
