@@ -5,7 +5,9 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::state::{self, CrashState, PreviousCrashState};
+use crate::previous::{self, PreviousCrashState};
+use crate::schema::CrashRecord;
+use crate::writer;
 use anyhow::{anyhow, Result};
 use memmap2::{MmapMut, MmapOptions};
 use std::ffi::CStr;
@@ -30,6 +32,7 @@ struct MmapCrashStateStore {
 impl MmapCrashStateStore {
   fn open(path: &CStr) -> Result<Self> {
     let path = Path::new(std::ffi::OsStr::from_bytes(path.to_bytes()));
+
     if let Some(parent) = path.parent() {
       std::fs::create_dir_all(parent)?;
     }
@@ -40,15 +43,15 @@ impl MmapCrashStateStore {
       .write(true)
       .truncate(false)
       .open(path)?;
-    file.set_len(std::mem::size_of::<CrashState>() as u64)?;
+    file.set_len(std::mem::size_of::<CrashRecord>() as u64)?;
 
     let mapping = unsafe {
       MmapOptions::new()
-        .len(std::mem::size_of::<CrashState>())
+        .len(std::mem::size_of::<CrashRecord>())
         .map_mut(&file)?
     };
-    let previous_crash_state =
-      state::previous_crash_state(unsafe { &*mapping.as_ptr().cast::<CrashState>() });
+    let previous_crash_state = previous::read_previous_state_from_bytes(mapping.as_ref());
+    log::debug!("opened crash state store at {}", path.display());
 
     Ok(Self {
       mapping,
@@ -63,13 +66,13 @@ impl CrashStateStore for MmapCrashStateStore {
   }
 
   fn prepare_current_run(&mut self) -> Result<()> {
-    let state_ptr = self.mapping.as_mut_ptr().cast::<CrashState>();
-    if state_ptr.is_null() {
+    let record_ptr = self.mapping.as_mut_ptr().cast::<CrashRecord>();
+    if record_ptr.is_null() {
       return Err(anyhow!("crash state mapping returned a null pointer"));
     }
 
     unsafe {
-      state::prime_shared_state(state_ptr);
+      writer::prime_shared_record(record_ptr);
     }
 
     Ok(())
@@ -79,15 +82,10 @@ impl CrashStateStore for MmapCrashStateStore {
 #[cfg(test)]
 mod tests {
   use super::open;
-  use crate::state::{
-    self,
-    CrashState,
-    CrashStateHeader,
-    CrashStateKind,
-    NSExceptionCrashInfo,
-    NSExceptionCallStack,
-    PreviousCrashDetails,
+  use crate::previous::{
+    CrashKind, NSExceptionCallStack, NSExceptionCrashInfo, PreviousCrashDetails, PreviousCrashState,
   };
+  use crate::schema::{self, CrashRecord, CrashRecordHeader};
   use std::ffi::CString;
 
   #[test]
@@ -104,10 +102,7 @@ mod tests {
 
     let store = open(&path).unwrap();
 
-    assert_eq!(
-      store.previous_crash_state(),
-      state::PreviousCrashState::default()
-    );
+    assert_eq!(store.previous_crash_state(), PreviousCrashState::default());
   }
 
   #[test]
@@ -116,22 +111,23 @@ mod tests {
     let path = tempdir.path().join("state.bin");
 
     {
-      let mut state = CrashState::default();
-      state.header = CrashStateHeader {
-        magic: state::MAGIC,
-        version: state::VERSION,
-        state: state::STATE_CRASHED,
-        kind: CrashStateKind::NSException,
+      let mut record = CrashRecord::default();
+      record.header = CrashRecordHeader {
+        magic: schema::MAGIC,
+        version: schema::VERSION,
+        record_state: schema::RECORD_STATE_COMMITTED,
+        crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
+        reserved: [0; 2],
       };
-      state.timestamp_secs = 123;
-      state.nsexception.name[.. 12].copy_from_slice(b"NSException\0");
-      state.nsexception.reason[.. 12].copy_from_slice(b"bad reason!\0");
-      state.nsexception.call_stack.frame_count = 2;
-      state.nsexception.call_stack.return_addresses[..2].copy_from_slice(&[21, 34]);
+      record.timestamp_secs = 123;
+      record.nsexception.name[..12].copy_from_slice(b"NSException\0");
+      record.nsexception.reason[..12].copy_from_slice(b"bad reason!\0");
+      record.nsexception.call_stack.frame_count = 2;
+      record.nsexception.call_stack.return_addresses[..2].copy_from_slice(&[21, 34]);
       std::fs::write(&path, unsafe {
         std::slice::from_raw_parts(
-          (&state as *const CrashState).cast::<u8>(),
-          std::mem::size_of::<CrashState>(),
+          (&record as *const CrashRecord).cast::<u8>(),
+          std::mem::size_of::<CrashRecord>(),
         )
       })
       .unwrap();
@@ -141,27 +137,33 @@ mod tests {
     let store = open(&path).unwrap();
 
     assert_eq!(
-      store.previous_crash_state().details,
-      PreviousCrashDetails::NSException(NSExceptionCrashInfo {
-        name: {
-          let mut name = [0; state::NS_EXCEPTION_NAME_CAPACITY];
-          name[.. 12].copy_from_slice(b"NSException\0");
-          name
-        },
-        reason: {
-          let mut reason = [0; state::NS_EXCEPTION_REASON_CAPACITY];
-          reason[.. 12].copy_from_slice(b"bad reason!\0");
-          reason
-        },
-        call_stack: NSExceptionCallStack {
-          frame_count: 2,
-          return_addresses: {
-            let mut return_addresses = [0; state::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
-            return_addresses[..2].copy_from_slice(&[21, 34]);
-            return_addresses
+      store.previous_crash_state(),
+      PreviousCrashState {
+        did_crash: true,
+        timestamp_secs: 123,
+        pid: 0,
+        kind: CrashKind::NSException,
+        details: PreviousCrashDetails::NSException(NSExceptionCrashInfo {
+          name: {
+            let mut name = [0; schema::NS_EXCEPTION_NAME_CAPACITY];
+            name[..12].copy_from_slice(b"NSException\0");
+            name
           },
-        },
-      })
+          reason: {
+            let mut reason = [0; schema::NS_EXCEPTION_REASON_CAPACITY];
+            reason[..12].copy_from_slice(b"bad reason!\0");
+            reason
+          },
+          call_stack: NSExceptionCallStack {
+            frame_count: 2,
+            return_addresses: {
+              let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
+              return_addresses[..2].copy_from_slice(&[21, 34]);
+              return_addresses
+            },
+          },
+        }),
+      }
     );
   }
 }

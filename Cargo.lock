@@ -536,6 +536,7 @@ name = "bd-crash-reporter"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "log",
  "memmap2",
  "objc2",
  "objc2-foundation",

@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::monitors;
-use crate::state::PreviousCrashState;
+use crate::previous::PreviousCrashState;
 use crate::store::{self, CrashStateStore};
 use anyhow::Result;
 use std::ffi::CStr;
@@ -22,6 +22,13 @@ impl Coordinator {
   pub(crate) fn new(path: &CStr) -> Result<Self> {
     let mut store = store::open(path)?;
     let previous_crash_state = store.previous_crash_state();
+
+    log::debug!(
+      "loaded previous crash state: did_crash={} timestamp_secs={}",
+      previous_crash_state.did_crash,
+      previous_crash_state.timestamp_secs
+    );
+
     store.prepare_current_run()?;
 
     Ok(Self {
@@ -34,18 +41,23 @@ impl Coordinator {
   pub(crate) fn start(&self) -> bool {
     let was_started = self.started.swap(true, Ordering::AcqRel);
     if was_started {
+      log::debug!("bitdrift crash coordinator start requested while already started");
       return true;
     }
 
     let installed = monitors::install();
     if !installed {
+      log::warn!("failed to install bitdrift crash monitors");
       self.started.store(false, Ordering::Release);
+    } else {
+      log::debug!("installed bitdrift crash monitors");
     }
     installed
   }
 
   pub(crate) fn stop(&self) {
     if self.started.swap(false, Ordering::AcqRel) {
+      log::debug!("uninstalling bitdrift crash monitors");
       monitors::uninstall();
     }
   }
@@ -58,7 +70,7 @@ impl Coordinator {
 #[cfg(test)]
 mod tests {
   use super::Coordinator;
-  use crate::state::{PreviousCrashDetails, PreviousCrashState};
+  use crate::previous::{PreviousCrashDetails, PreviousCrashState};
   use std::ffi::CString;
 
   #[test]

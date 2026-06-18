@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::monitors::Monitor;
-use crate::state;
+use crate::writer;
 use objc2_foundation::{NSArray, NSException, NSNumber};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
@@ -65,7 +65,7 @@ unsafe extern "C" fn handle_exception(exception: *mut NSException) {
     let return_addresses = (0..return_addresses.count())
       .map(|index| return_addresses.objectAtIndex(index).as_u64())
       .collect::<Vec<_>>();
-    state::record_nsexception(name.as_str(), reason.as_deref(), &return_addresses);
+    writer::record_nsexception(name.as_str(), reason.as_deref(), &return_addresses);
   }
 
   let previous = PREVIOUS_HANDLER.load(Ordering::Acquire);
@@ -79,36 +79,34 @@ unsafe extern "C" fn handle_exception(exception: *mut NSException) {
 
 #[cfg(test)]
 mod tests {
-  use crate::state::{prime_shared_state, record_nsexception, CrashState, CRASH_STATE};
+  use crate::schema::CrashRecord;
+  use crate::writer::{prime_shared_record, record_nsexception, CRASH_RECORD};
   use std::sync::atomic::Ordering;
 
   #[test]
   fn record_nsexception_truncates_and_null_terminates() {
-    let mut state = CrashState::default();
+    let mut state = CrashRecord::default();
     unsafe {
-      prime_shared_state(&mut state);
+      prime_shared_record(&mut state);
     }
 
     let long_name = "a".repeat(200);
     record_nsexception(long_name.as_str(), None, &[]);
 
-    let state = unsafe { &*CRASH_STATE.load(Ordering::Acquire) };
-    assert_eq!(
-      state.nsexception.name[state.nsexception.name.len() - 1],
-      0
-    );
+    let state = unsafe { &*CRASH_RECORD.load(Ordering::Acquire) };
+    assert_eq!(state.nsexception.name[state.nsexception.name.len() - 1], 0);
   }
 
   #[test]
   fn record_nsexception_copies_return_addresses() {
-    let mut state = CrashState::default();
+    let mut state = CrashRecord::default();
     unsafe {
-      prime_shared_state(&mut state);
+      prime_shared_record(&mut state);
     }
 
     record_nsexception("NSException", None, &[0x1234, 0x5678]);
 
-    let state = unsafe { &*CRASH_STATE.load(Ordering::Acquire) };
+    let state = unsafe { &*CRASH_RECORD.load(Ordering::Acquire) };
     assert_eq!(state.nsexception.call_stack.frame_count, 2);
     assert_eq!(
       &state.nsexception.call_stack.return_addresses[..2],

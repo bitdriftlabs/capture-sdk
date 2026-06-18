@@ -1,5 +1,5 @@
 {
-  "checksum": "c437aca4c8d2a323f7c25e87303c5b43d3c962355b47beee4f1afff65998e38b",
+  "checksum": "51cf3103dd7189eaeef93f64a6d21ad71933a071a4bb15dbd51772a11d657de5",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -2954,6 +2954,10 @@
             {
               "id": "anyhow 1.0.102",
               "target": "anyhow"
+            },
+            {
+              "id": "log 0.4.32",
+              "target": "log"
             },
             {
               "id": "memmap2 0.9.10",
