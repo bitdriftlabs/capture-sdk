@@ -133,7 +133,7 @@ final class ReplayTests: XCTestCase {
         let hostingFrame = CGRect(x: 0, y: 400, width: 200, height: 60)
         XCTAssertTrue(
             entries.contains { $0.type == .label && hostingFrame.contains($0.frame) },
-        )
+            )
     }
 
     // MARK: - UITextView
