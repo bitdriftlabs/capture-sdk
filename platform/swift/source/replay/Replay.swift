@@ -68,7 +68,14 @@ package final class Replay {
 
     private func layerHasVisibleContent(_ layer: CALayer) -> Bool {
         let layerIsVisible = !layer.isHidden && layer.opacity > 0.1
-        return layerIsVisible && (
+        guard layerIsVisible else { return false }
+
+        // iOS 27: CGDrawingLayer renders text/content via display callback without setting layer.contents.
+        if #available(iOS 27, *), NSStringFromClass(type(of: layer)).hasSuffix("CGDrawingLayer") {
+            return true
+        }
+
+        return (
             // Layer contents might hold to bitmaps so lets just assume is visible
             layer.contents != nil ||
 

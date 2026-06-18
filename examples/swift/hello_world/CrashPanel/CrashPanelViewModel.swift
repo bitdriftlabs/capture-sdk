@@ -7,7 +7,7 @@
 
 import Capture
 import Foundation
-@_implementationOnly import HelloWorldCrashSupport
+internal import HelloWorldCrashSupport
 import MetricKit
 import SwiftUI
 

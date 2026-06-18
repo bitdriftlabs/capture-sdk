@@ -11,30 +11,19 @@ import UIKit
 
 @UIApplicationMain
 final class AppDelegate: UIResponder, UIApplicationDelegate {
-    var window: UIWindow?
-
     func application(
         _: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         Theme.applyNavigationAppearance()
-        let window = UIWindow(frame: UIScreen.main.bounds)
-        window.rootViewController = UIHostingController(rootView: createContentView())
-        window.makeKeyAndVisible()
-        self.window = window
-
         return true
     }
 
-    private func createContentView() -> some View {
-        let startupCrashStorage = StartupCrashStorage()
-        let crashRegistry = CrashRegistry(startupStorage: startupCrashStorage)
-        let loggerCustomer = LoggerCustomer()
-        let crashPanelViewModel = CrashPanelViewModel(crashRegistry: crashRegistry)
-        crashPanelViewModel.refreshEnvironment()
-        return ContentView(
-            loggerCustomer: loggerCustomer,
-            crashPanelViewModel: crashPanelViewModel
-        )
+    func application(
+        _: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options _: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
     }
 }
