@@ -30,6 +30,7 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.SDKInfo
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Timestamp
 import io.bitdrift.capture.reports.persistence.IIssueReporterStore
 import java.io.InputStream
+import java.util.Locale
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -43,6 +44,10 @@ internal class IssueReporterProcessor(
     private val dateProvider: DateProvider,
     private val internalLogger: IInternalLogger,
     private val memoryMetricsProvider: IMemoryMetricsProvider,
+    private val localeProvider: ILocaleProvider =
+        object : ILocaleProvider {
+            override fun getLocaleCode(): String = Locale.getDefault().country
+        },
 ) : IIssueReporterProcessor {
     companion object {
         // Initial size for file builder buffer
@@ -249,6 +254,7 @@ internal class IssueReporterProcessor(
         val appId = builder.createString(clientAttributes.appId)
         val appVersion = builder.createString(clientAttributes.appVersion)
         val runningStateOffset = runningState?.let { builder.createString(it) }
+        val regionFormatOffset = builder.createString(localeProvider.getLocaleCode())
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .startAppMetrics(builder)
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
@@ -257,6 +263,8 @@ internal class IssueReporterProcessor(
             .addVersion(builder, appVersion)
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .addBuildNumber(builder, buildNumber)
+        io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
+            .addRegionFormat(builder, regionFormatOffset)
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .addMemoryPressureLevel(builder, memoryPressureLevel.nativeValue.toByte())
         if (runningStateOffset != null) {
