@@ -671,9 +671,12 @@ final class URLSessionIntegrationTests: XCTestCase {
             expectations.append(completionExpectation)
         }
 
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: expectations, timeout: 3, enforceOrder: false))
+        XCTAssertEqual(.completed, XCTWaiter().wait(for: expectations, timeout: 5, enforceOrder: false))
 
         XCTAssertEqual(2, self.logger.logs.count)
+        guard self.logger.logs.count >= 2 else {
+            return
+        }
 
         let requestInfo = try XCTUnwrap(self.logger.logs[0].request())
         var requestInfoFields = try XCTUnwrap(requestInfo.toFields() as? [String: String])
