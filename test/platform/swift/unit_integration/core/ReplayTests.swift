@@ -16,7 +16,13 @@ final class ReplayTests: XCTestCase {
     private var window: UIWindow!
 
     override func setUp() {
-        self.window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            self.window = UIWindow(windowScene: windowScene)
+            self.window.frame = frame
+        } else {
+            self.window = UIWindow(frame: frame)
+        }
         self.window.isHidden = false
     }
 
@@ -127,7 +133,7 @@ final class ReplayTests: XCTestCase {
         let hostingFrame = CGRect(x: 0, y: 400, width: 200, height: 60)
         XCTAssertTrue(
             entries.contains { $0.type == .label && hostingFrame.contains($0.frame) },
-            )
+        )
     }
 
     // MARK: - UITextView
