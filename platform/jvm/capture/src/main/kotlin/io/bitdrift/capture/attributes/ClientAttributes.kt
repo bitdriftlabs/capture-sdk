@@ -20,6 +20,7 @@ import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.utils.BuildTypeChecker
+import java.util.Locale
 
 internal class ClientAttributes(
     context: Context,
@@ -59,7 +60,9 @@ internal class ClientAttributes(
 
     override val model: String = Build.MODEL
 
-    override val locale: String by lazy { getCurrentLocale() }
+    override val locale: String by lazy { getCurrentLocale()?.toString() ?: UNKNOWN_FIELD_VALUE }
+
+    override val localeCountryCode: String by lazy { getCurrentLocale()?.country ?: UNKNOWN_FIELD_VALUE }
 
     override val manufacturer: String = Build.MANUFACTURER
 
@@ -117,7 +120,7 @@ internal class ClientAttributes(
         val configDiff = currentConfig.diff(cachedConfiguration)
 
         if (cachedLocale == null || (configDiff and ActivityInfo.CONFIG_LOCALE == ActivityInfo.CONFIG_LOCALE)) {
-            val updatedLocale = getCurrentLocale()
+            val updatedLocale = getCurrentLocale()?.toString() ?: UNKNOWN_FIELD_VALUE
 
             if (cachedLocale != updatedLocale) {
                 cachedLocale = updatedLocale
@@ -150,16 +153,9 @@ internal class ClientAttributes(
         }
 
     /**
-     * Gets the current locale string.
+     * Gets the current locale.
      */
-    private fun getCurrentLocale(): String {
-        val locales = ConfigurationCompat.getLocales(resources.configuration)
-        return if (!locales.isEmpty) {
-            locales[0].toString()
-        } else {
-            UNKNOWN_FIELD_VALUE
-        }
-    }
+    private fun getCurrentLocale(): Locale? = ConfigurationCompat.getLocales(resources.configuration).get(0)
 
     /**
      * Returns the installation source (e.g. `com.android.vending` will be shown when

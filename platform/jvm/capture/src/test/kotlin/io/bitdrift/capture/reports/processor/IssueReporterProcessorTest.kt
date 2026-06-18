@@ -59,10 +59,6 @@ class IssueReporterProcessorTest {
         mock {
             on { getCurrentJvmMemoryPressureLevel() } doReturn MemoryPressureLevel.Critical
         }
-    private val localeProvider: ILocaleProvider =
-        mock {
-            on { getLocaleCode() } doReturn "MQ"
-        }
     private val lifecycleOwner: LifecycleOwner = mock()
     private val issueReportCaptor = argumentCaptor<ByteArray>()
     private val reportTypeCaptor = argumentCaptor<Byte>()
@@ -84,7 +80,6 @@ class IssueReporterProcessorTest {
                 FakeDateProvider,
                 internalLogger,
                 memoryMetricsProvider,
-                localeProvider,
             )
     }
 
@@ -363,7 +358,7 @@ class IssueReporterProcessorTest {
         assertThat(deviceMetrics?.cpuAbis(0)).isEqualTo("armeabi-v7a")
 
         assertThat(report.appMetrics?.runningState).isEqualTo("foreground")
-        assertThat(report.appMetrics?.regionFormat).isEqualTo("MQ")
+        assertThat(report.appMetrics?.regionFormat).isEqualTo("US")
         assertThat(report.appMetrics?.memoryPressureLevel).isEqualTo(
             io.bitdrift.capture.reports.binformat.v1.issue_reporting.MemoryPressureLevel.Warning,
         )
