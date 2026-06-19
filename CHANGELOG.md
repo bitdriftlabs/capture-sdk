@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Increased reliability of log uploads in the face of failures and SDK restarts.
 
 ### Android
 
