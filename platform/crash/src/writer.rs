@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::schema::{self, CrashKind, CrashRecord, RecordState};
-use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::atomic::{fence, AtomicPtr, Ordering};
 
 pub(crate) static CRASH_RECORD: AtomicPtr<CrashRecord> = AtomicPtr::new(std::ptr::null_mut());
 
@@ -81,7 +81,17 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
   record.nsexception.call_stack.return_addresses[.. copy_len]
     .copy_from_slice(&return_addresses[.. copy_len]);
   record.header.crash_kind = CrashKind::NSException.into();
-  record.header.record_state = RecordState::Committed.into();
+  commit_record(record);
+}
+
+// Publish the record only after all payload bytes are visible so the next launch
+// never treats a partially-written mmap record as committed.
+fn commit_record(record: &mut CrashRecord) {
+  fence(Ordering::Release);
+  unsafe {
+    std::ptr::addr_of_mut!(record.header.record_state)
+      .write_volatile(RecordState::Committed.into());
+  }
 }
 
 fn current_timestamp_secs() -> u64 {

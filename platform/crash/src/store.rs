@@ -43,7 +43,11 @@ impl MmapCrashStateStore {
       .write(true)
       .truncate(false)
       .open(path)?;
-    file.set_len(std::mem::size_of::<CrashRecord>() as u64)?;
+    let desired_len = std::mem::size_of::<CrashRecord>() as u64;
+    let current_len = file.metadata()?.len();
+    if current_len < desired_len {
+      file.set_len(desired_len)?;
+    }
 
     let mapping = unsafe {
       MmapOptions::new()
