@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.4...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.5...HEAD
 
 ### Both
 
@@ -44,6 +44,13 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.6]
+[0.23.6]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/0.23.6
+
+### Both
+
+- Increased reliability of log uploads in the face of failures and SDK restarts.
 
 ## [0.23.5]
 [0.23.5]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/0.23.5

@@ -43,8 +43,8 @@ format: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml
 # Use repin when you get Error: Digests do not match
 .PHONY: repin
 repin:
-    # This technically fails because there are no tests to find, but the repin still happens and it's fast.
-	CARGO_BAZEL_REPIN=true ./bazelw test --build_tests_only //platform/shared:platform-shared  >/dev/null 2>&1 || true
+	# crate_universe repins during Bazel analysis, so --nobuild keeps this faster while still surfacing real errors.
+	CARGO_BAZEL_REPIN=true ./bazelw build --nobuild //platform/shared:platform-shared
 
 .PHONY: push-additional-images
 push-additional-images:

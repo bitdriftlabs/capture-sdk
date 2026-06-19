@@ -75,6 +75,7 @@ object ThirdPartyCrashReportersInitializer {
                     SentryAndroid.init(application) { options: SentryAndroidOptions ->
                         options.dsn = sentryKey
                         options.isEnabled = true
+                        options.isAttachThreads = true
                         options.setBeforeSend { event, _ ->
                             event.emitSentryErrorBeforeSend()
                             event

@@ -71,7 +71,7 @@ package final class Replay {
         guard layerIsVisible else { return false }
 
         // iOS 27: CGDrawingLayer renders text/content via display callback without setting layer.contents.
-        if NSStringFromClass(type(of: layer)).hasSuffix("CGDrawingLayer") {
+        if #available(iOS 27, *), NSStringFromClass(type(of: layer)).hasSuffix("CGDrawingLayer") {
             return true
         }
 
