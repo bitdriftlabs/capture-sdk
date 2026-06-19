@@ -60,7 +60,7 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
   }
 
   let record = unsafe { &mut *record_ptr };
-  record.header.record_state = RecordState::Writing.into();
+  mark_record_writing(record);
   record.timestamp_secs = current_timestamp_secs();
   record.pid = std::process::id();
 
@@ -82,6 +82,13 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
     .copy_from_slice(&return_addresses[.. copy_len]);
   record.header.crash_kind = CrashKind::NSException.into();
   commit_record(record);
+}
+
+fn mark_record_writing(record: &mut CrashRecord) {
+  unsafe {
+    std::ptr::addr_of_mut!(record.header.record_state)
+      .write_volatile(RecordState::Writing.into());
+  }
 }
 
 // Publish the record only after all payload bytes are visible so the next launch

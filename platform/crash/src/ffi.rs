@@ -28,9 +28,12 @@ pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_c
   }
 
   let path = unsafe { CStr::from_ptr(state_path) };
-  let Ok(coordinator) = Coordinator::new(path) else {
-    log::warn!("failed to configure bitdrift crash coordinator");
-    return false;
+  let coordinator = match Coordinator::new(path) {
+    Ok(coordinator) => coordinator,
+    Err(error) => {
+      log::warn!("failed to configure bitdrift crash coordinator: {error:#}");
+      return false;
+    }
   };
 
   COORDINATOR.set(coordinator).is_ok()
