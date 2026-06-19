@@ -1,5 +1,5 @@
 {
-  "checksum": "2e306d2fd7bc4d2f877692542dd3b6524bbfcd46754446b6802b7fb8282eb0f3",
+  "checksum": "f2aaa5259631c7d26921a15c66181efdefd147fbcd0bcf06daa226bf05010cbc",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -2966,17 +2966,20 @@
             {
               "id": "memmap2 0.9.10",
               "target": "memmap2"
-            },
-            {
-              "id": "objc2 0.6.4",
-              "target": "objc2"
-            },
-            {
-              "id": "objc2-foundation 0.3.2",
-              "target": "objc2_foundation"
             }
           ],
-          "selects": {}
+          "selects": {
+            "cfg(target_vendor = \"apple\")": [
+              {
+                "id": "objc2 0.6.4",
+                "target": "objc2"
+              },
+              {
+                "id": "objc2-foundation 0.3.2",
+                "target": "objc2_foundation"
+              }
+            ]
+          }
         },
         "deps_dev": {
           "common": [
@@ -31471,6 +31474,12 @@
     "cfg(target_os = \"solaris\")": [],
     "cfg(target_os = \"vxworks\")": [],
     "cfg(target_os = \"wasi\")": [],
+    "cfg(target_vendor = \"apple\")": [
+      "aarch64-apple-darwin",
+      "aarch64-apple-ios",
+      "aarch64-apple-ios-sim",
+      "x86_64-apple-ios"
+    ],
     "cfg(unix)": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",

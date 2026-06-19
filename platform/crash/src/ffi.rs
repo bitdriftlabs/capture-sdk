@@ -20,7 +20,7 @@ fn previous_crash_state() -> Option<&'static PreviousCrashState> {
 /// # Safety
 ///
 /// `state_path` must point to a valid, null-terminated C string for the duration of the call.
-#[unsafe(no_mangle)]
+#[no_mangle]
 pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_char) -> bool {
   if state_path.is_null() {
     log::debug!("capture_bitdrift_crash_configure called with null state path");
@@ -36,19 +36,19 @@ pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_c
   COORDINATOR.set(coordinator).is_ok()
 }
 
-#[unsafe(no_mangle)]
+#[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_start() -> bool {
   COORDINATOR.get().is_some_and(Coordinator::start)
 }
 
-#[unsafe(no_mangle)]
+#[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_stop() {
   if let Some(coordinator) = COORDINATOR.get() {
     coordinator.stop();
   }
 }
 
-#[unsafe(no_mangle)]
+#[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_did_crash_last_launch() -> i8 {
   if COORDINATOR.get().is_none() {
     return -1;
@@ -57,17 +57,17 @@ pub extern "C" fn capture_bitdrift_crash_did_crash_last_launch() -> i8 {
   i8::from(previous_crash_state().is_some_and(|state| state.did_crash))
 }
 
-#[unsafe(no_mangle)]
+#[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_cached_timestamp() -> u64 {
   previous_crash_state().map_or(0, |state| state.timestamp_secs)
 }
 
-#[unsafe(no_mangle)]
+#[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_cached_kind() -> u8 {
   previous_crash_state().map_or(0, |state| state.kind as u8)
 }
 
-#[unsafe(no_mangle)]
+#[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {
     return std::ptr::null();
@@ -84,7 +84,7 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char 
   exception.name.as_ptr().cast::<c_char>()
 }
 
-#[unsafe(no_mangle)]
+#[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_last_exception_reason() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {
     return std::ptr::null();

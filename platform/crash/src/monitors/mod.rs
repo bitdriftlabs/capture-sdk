@@ -8,6 +8,8 @@
 #[cfg(target_vendor = "apple")]
 mod nsexception;
 
+// Apple-only for now; widen this cfg when non-Apple monitors are introduced.
+#[cfg(target_vendor = "apple")]
 trait Monitor {
   fn install(&self) -> bool;
   fn uninstall(&self);

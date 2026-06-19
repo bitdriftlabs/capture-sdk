@@ -99,10 +99,21 @@ pub(crate) fn read_previous_state_from_bytes(bytes: &[u8]) -> PreviousCrashState
 }
 
 fn parse_nsexception(raw: &RawNSExceptionPayload) -> NSExceptionCrashInfo {
+  let mut name = raw.name;
+  let mut reason = raw.reason;
+  sanitize_c_string_bytes(&mut name);
+  sanitize_c_string_bytes(&mut reason);
+
   NSExceptionCrashInfo {
-    name: raw.name,
-    reason: raw.reason,
+    name,
+    reason,
     call_stack: parse_nsexception_call_stack(&raw.call_stack),
+  }
+}
+
+fn sanitize_c_string_bytes<const N: usize>(bytes: &mut [u8; N]) {
+  if !bytes.contains(&0) {
+    bytes.fill(0);
   }
 }
 
@@ -291,5 +302,25 @@ mod tests {
       exception.call_stack.frame_count,
       u16::try_from(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES).unwrap_or(u16::MAX)
     );
+  }
+
+  #[test]
+  fn clears_unterminated_nsexception_strings() {
+    let mut raw = committed_nsexception_record();
+    raw.nsexception.name.fill(b'A');
+    raw.nsexception.reason.fill(b'B');
+
+    let previous = read_previous_state_from_bytes(crash_record_bytes(&raw));
+
+    assert!(matches!(
+      &previous.details,
+      PreviousCrashDetails::NSException(_)
+    ));
+    let exception = match previous.details {
+      PreviousCrashDetails::NSException(exception) => exception,
+      PreviousCrashDetails::None => return,
+    };
+    assert_eq!(exception.name[0], 0);
+    assert_eq!(exception.reason[0], 0);
   }
 }
