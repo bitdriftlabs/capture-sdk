@@ -11,12 +11,46 @@ pub(crate) const NS_EXCEPTION_NAME_CAPACITY: usize = 128;
 pub(crate) const NS_EXCEPTION_REASON_CAPACITY: usize = 512;
 pub(crate) const MAX_NS_EXCEPTION_CALL_STACK_FRAMES: usize = 64;
 
-pub(crate) const RECORD_STATE_EMPTY: u8 = 0;
-pub(crate) const RECORD_STATE_WRITING: u8 = 1;
-pub(crate) const RECORD_STATE_COMMITTED: u8 = 2;
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum RecordState {
+  #[default]
+  Empty = 0,
+  Writing = 1,
+  Committed = 2,
+}
 
-pub(crate) const CRASH_KIND_NONE: u8 = 0;
-pub(crate) const CRASH_KIND_NS_EXCEPTION: u8 = 1;
+impl From<RecordState> for u8 {
+  fn from(s: RecordState) -> Self {
+    s as Self
+  }
+}
+
+impl PartialEq<RecordState> for u8 {
+  fn eq(&self, other: &RecordState) -> bool {
+    *self == *other as Self
+  }
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum CrashKind {
+  #[default]
+  None = 0,
+  NSException = 1,
+}
+
+impl From<CrashKind> for u8 {
+  fn from(k: CrashKind) -> Self {
+    k as Self
+  }
+}
+
+impl PartialEq<CrashKind> for u8 {
+  fn eq(&self, other: &CrashKind) -> bool {
+    *self == *other as Self
+  }
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

@@ -102,4 +102,53 @@ mod tests {
 
     assert!(matches!(previous_state.details, PreviousCrashDetails::None));
   }
+
+  fn make_coordinator() -> Result<(Coordinator, tempfile::TempDir)> {
+    let tempdir = tempfile::tempdir()?;
+    let path = CString::new(
+      tempdir
+        .path()
+        .join("state.bin")
+        .to_string_lossy()
+        .as_bytes(),
+    )?;
+    let coordinator = Coordinator::new(&path)?;
+    Ok((coordinator, tempdir))
+  }
+
+  #[test]
+  fn stop_without_start_is_safe() -> Result<()> {
+    let _guard = test_crash_record_guard();
+    let (coordinator, _dir) = make_coordinator()?;
+
+    coordinator.stop();
+
+    Ok(())
+  }
+
+  #[test]
+  fn second_start_is_idempotent() -> Result<()> {
+    let _guard = test_crash_record_guard();
+    let (coordinator, _dir) = make_coordinator()?;
+
+    coordinator.start();
+    let result = coordinator.start();
+    coordinator.stop();
+
+    assert!(result);
+    Ok(())
+  }
+
+  #[test]
+  fn start_stop_start_succeeds() -> Result<()> {
+    let _guard = test_crash_record_guard();
+    let (coordinator, _dir) = make_coordinator()?;
+
+    coordinator.start();
+    coordinator.stop();
+    coordinator.start();
+    coordinator.stop();
+
+    Ok(())
+  }
 }

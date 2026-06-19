@@ -93,7 +93,7 @@ mod tests {
   use crate::previous::{
     CrashKind, NSExceptionCallStack, NSExceptionCrashInfo, PreviousCrashDetails, PreviousCrashState,
   };
-  use crate::schema::{self, CrashRecord, CrashRecordHeader};
+  use crate::schema::{self, CrashRecord, CrashRecordHeader, RecordState};
   use crate::writer::{test_crash_record_guard, CRASH_RECORD};
   use std::ffi::CString;
   use std::sync::atomic::Ordering;
@@ -136,8 +136,8 @@ mod tests {
         header: CrashRecordHeader {
           magic: schema::MAGIC,
           version: schema::VERSION,
-          record_state: schema::RECORD_STATE_COMMITTED,
-          crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
+          record_state: RecordState::Committed.into(),
+          crash_kind: CrashKind::NSException.into(),
           reserved: [0; 2],
         },
         timestamp_secs: 123,
@@ -194,8 +194,8 @@ mod tests {
       header: CrashRecordHeader {
         magic: schema::MAGIC,
         version: schema::VERSION,
-        record_state: schema::RECORD_STATE_COMMITTED,
-        crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
+        record_state: RecordState::Committed.into(),
+        crash_kind: CrashKind::NSException.into(),
         reserved: [0; 2],
       },
       timestamp_secs: 456,
@@ -214,11 +214,8 @@ mod tests {
     let record_ptr = CRASH_RECORD.load(Ordering::Acquire);
     let current_record = unsafe { &*record_ptr };
     assert_eq!(current_record.header.magic, schema::MAGIC);
-    assert_eq!(
-      current_record.header.record_state,
-      schema::RECORD_STATE_EMPTY
-    );
-    assert_eq!(current_record.header.crash_kind, schema::CRASH_KIND_NONE);
+    assert_eq!(current_record.header.record_state, RecordState::Empty);
+    assert_eq!(current_record.header.crash_kind, CrashKind::None);
     assert_eq!(current_record.timestamp_secs, 0);
     assert_eq!(current_record.pid, std::process::id());
     Ok(())

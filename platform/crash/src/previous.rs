@@ -7,13 +7,7 @@
 
 use crate::schema::{self, CrashRecord, RawNSExceptionCallStack, RawNSExceptionPayload};
 
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) enum CrashKind {
-  #[default]
-  None = schema::CRASH_KIND_NONE,
-  NSException = schema::CRASH_KIND_NS_EXCEPTION,
-}
+pub(crate) use schema::CrashKind;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct NSExceptionCallStack {
@@ -82,7 +76,7 @@ pub(crate) fn read_previous_state_from_bytes(bytes: &[u8]) -> PreviousCrashState
     return PreviousCrashState::default();
   }
 
-  if raw.header.record_state != schema::RECORD_STATE_COMMITTED {
+  if raw.header.record_state != schema::RecordState::Committed {
     log::debug!(
       "ignoring crash record because record_state={} is not committed",
       raw.header.record_state
@@ -91,7 +85,7 @@ pub(crate) fn read_previous_state_from_bytes(bytes: &[u8]) -> PreviousCrashState
   }
 
   match raw.header.crash_kind {
-    schema::CRASH_KIND_NS_EXCEPTION => PreviousCrashState {
+    kind if kind == CrashKind::NSException => PreviousCrashState {
       did_crash: true,
       timestamp_secs: raw.timestamp_secs,
       pid: raw.pid,
@@ -129,7 +123,7 @@ mod tests {
     read_previous_state_from_bytes, CrashKind, NSExceptionCallStack, PreviousCrashDetails,
     PreviousCrashState,
   };
-  use crate::schema::{self, CrashRecord, CrashRecordHeader};
+  use crate::schema::{self, CrashRecord, CrashRecordHeader, RecordState};
 
   fn crash_record_bytes(record: &CrashRecord) -> &[u8] {
     unsafe {
@@ -145,8 +139,8 @@ mod tests {
       header: CrashRecordHeader {
         magic: schema::MAGIC,
         version: schema::VERSION,
-        record_state: schema::RECORD_STATE_COMMITTED,
-        crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
+        record_state: RecordState::Committed.into(),
+        crash_kind: CrashKind::NSException.into(),
         reserved: [0; 2],
       },
       timestamp_secs: 99,
@@ -169,8 +163,8 @@ mod tests {
       header: CrashRecordHeader {
         magic: 0,
         version: schema::VERSION,
-        record_state: schema::RECORD_STATE_COMMITTED,
-        crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
+        record_state: RecordState::Committed.into(),
+        crash_kind: CrashKind::NSException.into(),
         reserved: [0; 2],
       },
       ..CrashRecord::default()
@@ -188,8 +182,8 @@ mod tests {
       header: CrashRecordHeader {
         magic: schema::MAGIC,
         version: schema::VERSION + 1,
-        record_state: schema::RECORD_STATE_COMMITTED,
-        crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
+        record_state: RecordState::Committed.into(),
+        crash_kind: CrashKind::NSException.into(),
         reserved: [0; 2],
       },
       ..CrashRecord::default()
@@ -207,8 +201,8 @@ mod tests {
       header: CrashRecordHeader {
         magic: schema::MAGIC,
         version: schema::VERSION,
-        record_state: schema::RECORD_STATE_WRITING,
-        crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
+        record_state: RecordState::Writing.into(),
+        crash_kind: CrashKind::NSException.into(),
         reserved: [0; 2],
       },
       ..CrashRecord::default()
@@ -226,7 +220,7 @@ mod tests {
       header: CrashRecordHeader {
         magic: schema::MAGIC,
         version: schema::VERSION,
-        record_state: schema::RECORD_STATE_COMMITTED,
+        record_state: RecordState::Committed.into(),
         crash_kind: 255,
         reserved: [0; 2],
       },

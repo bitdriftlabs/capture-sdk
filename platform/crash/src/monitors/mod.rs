@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 #[cfg(target_vendor = "apple")]
-mod ios;
+mod nsexception;
 
 trait Monitor {
   fn install(&self) -> bool;
@@ -15,7 +15,7 @@ trait Monitor {
 
 #[cfg(target_vendor = "apple")]
 pub(crate) fn install() -> bool {
-  ios::NSExceptionMonitor.install()
+  nsexception::NSExceptionMonitor.install()
 }
 
 #[cfg(not(target_vendor = "apple"))]
@@ -25,7 +25,7 @@ pub(crate) fn install() -> bool {
 
 #[cfg(target_vendor = "apple")]
 pub(crate) fn uninstall() {
-  ios::NSExceptionMonitor.uninstall();
+  nsexception::NSExceptionMonitor.uninstall();
 }
 
 #[cfg(not(target_vendor = "apple"))]

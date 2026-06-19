@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::schema::{self, CrashRecord};
+use crate::schema::{self, CrashKind, CrashRecord, RecordState};
 use std::sync::atomic::{AtomicPtr, Ordering};
 
 pub(crate) static CRASH_RECORD: AtomicPtr<CrashRecord> = AtomicPtr::new(std::ptr::null_mut());
@@ -43,8 +43,8 @@ pub(crate) unsafe fn prime_shared_record(record_ptr: *mut CrashRecord) {
     header: schema::CrashRecordHeader {
       magic: schema::MAGIC,
       version: schema::VERSION,
-      record_state: schema::RECORD_STATE_EMPTY,
-      crash_kind: schema::CRASH_KIND_NONE,
+      record_state: RecordState::Empty.into(),
+      crash_kind: CrashKind::None.into(),
       reserved: [0; 2],
     },
     timestamp_secs: 0,
@@ -62,7 +62,7 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
   }
 
   let record = unsafe { &mut *record_ptr };
-  record.header.record_state = schema::RECORD_STATE_WRITING;
+  record.header.record_state = RecordState::Writing.into();
   record.timestamp_secs = current_timestamp_secs();
   record.pid = std::process::id();
 
@@ -82,8 +82,8 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
   let copy_len = usize::from(record.nsexception.call_stack.frame_count);
   record.nsexception.call_stack.return_addresses[..copy_len]
     .copy_from_slice(&return_addresses[..copy_len]);
-  record.header.crash_kind = schema::CRASH_KIND_NS_EXCEPTION;
-  record.header.record_state = schema::RECORD_STATE_COMMITTED;
+  record.header.crash_kind = CrashKind::NSException.into();
+  record.header.record_state = RecordState::Committed.into();
 }
 
 fn current_timestamp_secs() -> u64 {
@@ -102,7 +102,7 @@ fn write_string<const N: usize>(value: &str, target: &mut [u8; N]) {
 #[cfg(test)]
 mod tests {
   use super::{prime_shared_record, record_nsexception, test_crash_record_guard, CRASH_RECORD};
-  use crate::schema;
+  use crate::schema::{self, CrashKind, RecordState};
   use std::sync::atomic::Ordering;
 
   #[test]
@@ -114,8 +114,8 @@ mod tests {
     }
 
     assert_eq!(record.header.magic, schema::MAGIC);
-    assert_eq!(record.header.record_state, schema::RECORD_STATE_EMPTY);
-    assert_eq!(record.header.crash_kind, schema::CRASH_KIND_NONE);
+    assert_eq!(record.header.record_state, RecordState::Empty);
+    assert_eq!(record.header.crash_kind, CrashKind::None);
   }
 
   #[test]
@@ -130,9 +130,10 @@ mod tests {
 
     let record_ptr = CRASH_RECORD.load(Ordering::Acquire);
     let record = unsafe { &*record_ptr };
-    assert_eq!(record.header.crash_kind, schema::CRASH_KIND_NS_EXCEPTION);
-    assert_eq!(record.header.record_state, schema::RECORD_STATE_COMMITTED);
+    assert_eq!(record.header.crash_kind, CrashKind::NSException);
+    assert_eq!(record.header.record_state, RecordState::Committed);
     assert_eq!(&record.nsexception.name[..12], b"NSException\0");
+    assert_eq!(&record.nsexception.reason[..11], b"bad reason\0");
     assert_eq!(record.nsexception.call_stack.frame_count, 3);
   }
 
