@@ -15,8 +15,8 @@ pub(crate) const MAX_NS_EXCEPTION_CALL_STACK_FRAMES: usize = 64;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum RecordState {
   #[default]
-  Empty = 0,
-  Writing = 1,
+  Empty     = 0,
+  Writing   = 1,
   Committed = 2,
 }
 
@@ -36,7 +36,7 @@ impl PartialEq<RecordState> for u8 {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum CrashKind {
   #[default]
-  None = 0,
+  None        = 0,
   NSException = 1,
 }
 

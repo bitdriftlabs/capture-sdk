@@ -71,7 +71,7 @@ fn handle_exception_snapshot(exception: *mut NSException, snapshot: Option<Excep
 fn extract_exception_snapshot(exception: &NSException) -> ExceptionSnapshot {
   let return_addresses = exception.callStackReturnAddresses();
   let return_addresses: &NSArray<NSNumber> = return_addresses.as_ref();
-  let return_addresses = (0..return_addresses.count())
+  let return_addresses = (0 .. return_addresses.count())
     .map(|index| return_addresses.objectAtIndex(index).as_u64())
     .collect::<Vec<_>>();
 
@@ -103,7 +103,10 @@ fn chain_previous(exception: *mut NSException) {
 }
 
 fn store_previous_handler(handler: Option<ExceptionHandler>) {
-  PREVIOUS_HANDLER.store(handler.map_or(0, |handler| handler as usize), Ordering::Release);
+  PREVIOUS_HANDLER.store(
+    handler.map_or(0, |handler| handler as usize),
+    Ordering::Release,
+  );
 }
 
 fn previous_handler() -> Option<ExceptionHandler> {
@@ -160,9 +163,7 @@ mod tests {
     PREVIOUS_HANDLER.store(0, Ordering::Release);
     PREVIOUS_CALL_COUNT.store(0, Ordering::Release);
     PREVIOUS_LAST_EXCEPTION.store(std::ptr::null_mut(), Ordering::Release);
-    TestMonitorStateGuard {
-      _guard: guard,
-    }
+    TestMonitorStateGuard { _guard: guard }
   }
 
   unsafe extern "C" fn fake_previous_handler(exception: *mut NSException) {
@@ -231,11 +232,11 @@ mod tests {
     let record = current_record();
     assert_eq!(record.header.record_state, RecordState::Committed);
     assert_eq!(record.header.crash_kind, CrashKind::NSException);
-    assert_eq!(&record.nsexception.name[..12], b"NSException\0");
-    assert_eq!(&record.nsexception.reason[..11], b"bad reason\0");
+    assert_eq!(&record.nsexception.name[.. 12], b"NSException\0");
+    assert_eq!(&record.nsexception.reason[.. 11], b"bad reason\0");
     assert_eq!(record.nsexception.call_stack.frame_count, 2);
     assert_eq!(
-      &record.nsexception.call_stack.return_addresses[..2],
+      &record.nsexception.call_stack.return_addresses[.. 2],
       &[0x1234, 0x5678]
     );
     assert_eq!(PREVIOUS_CALL_COUNT.load(Ordering::Acquire), 1);

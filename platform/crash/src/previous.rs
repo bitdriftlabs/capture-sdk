@@ -6,7 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::schema::{self, CrashRecord, RawNSExceptionCallStack, RawNSExceptionPayload};
-
 pub(crate) use schema::CrashKind;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -120,7 +119,10 @@ fn parse_nsexception_call_stack(raw: &RawNSExceptionCallStack) -> NSExceptionCal
 #[cfg(test)]
 mod tests {
   use super::{
-    read_previous_state_from_bytes, CrashKind, NSExceptionCallStack, PreviousCrashDetails,
+    read_previous_state_from_bytes,
+    CrashKind,
+    NSExceptionCallStack,
+    PreviousCrashDetails,
     PreviousCrashState,
   };
   use crate::schema::{self, CrashRecord, CrashRecordHeader, RecordState};
@@ -236,10 +238,10 @@ mod tests {
   #[test]
   fn reads_committed_nsexception() {
     let mut raw = committed_nsexception_record();
-    raw.nsexception.name[..12].copy_from_slice(b"NSException\0");
-    raw.nsexception.reason[..12].copy_from_slice(b"bad reason!\0");
+    raw.nsexception.name[.. 12].copy_from_slice(b"NSException\0");
+    raw.nsexception.reason[.. 12].copy_from_slice(b"bad reason!\0");
     raw.nsexception.call_stack.frame_count = 2;
-    raw.nsexception.call_stack.return_addresses[..2].copy_from_slice(&[10, 11]);
+    raw.nsexception.call_stack.return_addresses[.. 2].copy_from_slice(&[10, 11]);
 
     let previous = read_previous_state_from_bytes(crash_record_bytes(&raw));
 
@@ -255,15 +257,15 @@ mod tests {
       PreviousCrashDetails::NSException(exception) => exception,
       PreviousCrashDetails::None => return,
     };
-    assert_eq!(&exception.name[..12], b"NSException\0");
-    assert_eq!(&exception.reason[..12], b"bad reason!\0");
+    assert_eq!(&exception.name[.. 12], b"NSException\0");
+    assert_eq!(&exception.reason[.. 12], b"bad reason!\0");
     assert_eq!(
       exception.call_stack,
       NSExceptionCallStack {
         frame_count: 2,
         return_addresses: {
           let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
-          return_addresses[..2].copy_from_slice(&[10, 11]);
+          return_addresses[.. 2].copy_from_slice(&[10, 11]);
           return_addresses
         },
       }

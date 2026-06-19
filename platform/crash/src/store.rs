@@ -89,12 +89,16 @@ impl CrashStateStore for MmapCrashStateStore {
 #[cfg(test)]
 mod tests {
   use super::open;
-  use anyhow::Result;
   use crate::previous::{
-    CrashKind, NSExceptionCallStack, NSExceptionCrashInfo, PreviousCrashDetails, PreviousCrashState,
+    CrashKind,
+    NSExceptionCallStack,
+    NSExceptionCrashInfo,
+    PreviousCrashDetails,
+    PreviousCrashState,
   };
   use crate::schema::{self, CrashRecord, CrashRecordHeader, RecordState};
   use crate::writer::{test_crash_record_guard, CRASH_RECORD};
+  use anyhow::Result;
   use std::ffi::CString;
   use std::sync::atomic::Ordering;
 
@@ -143,10 +147,10 @@ mod tests {
         timestamp_secs: 123,
         ..CrashRecord::default()
       };
-      record.nsexception.name[..12].copy_from_slice(b"NSException\0");
-      record.nsexception.reason[..12].copy_from_slice(b"bad reason!\0");
+      record.nsexception.name[.. 12].copy_from_slice(b"NSException\0");
+      record.nsexception.reason[.. 12].copy_from_slice(b"bad reason!\0");
       record.nsexception.call_stack.frame_count = 2;
-      record.nsexception.call_stack.return_addresses[..2].copy_from_slice(&[21, 34]);
+      record.nsexception.call_stack.return_addresses[.. 2].copy_from_slice(&[21, 34]);
       std::fs::write(&path, crash_record_bytes(&record))?;
     }
 
@@ -163,19 +167,19 @@ mod tests {
         details: PreviousCrashDetails::NSException(Box::new(NSExceptionCrashInfo {
           name: {
             let mut name = [0; schema::NS_EXCEPTION_NAME_CAPACITY];
-            name[..12].copy_from_slice(b"NSException\0");
+            name[.. 12].copy_from_slice(b"NSException\0");
             name
           },
           reason: {
             let mut reason = [0; schema::NS_EXCEPTION_REASON_CAPACITY];
-            reason[..12].copy_from_slice(b"bad reason!\0");
+            reason[.. 12].copy_from_slice(b"bad reason!\0");
             reason
           },
           call_stack: NSExceptionCallStack {
             frame_count: 2,
             return_addresses: {
               let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
-              return_addresses[..2].copy_from_slice(&[21, 34]);
+              return_addresses[.. 2].copy_from_slice(&[21, 34]);
               return_addresses
             },
           },

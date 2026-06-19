@@ -32,9 +32,7 @@ pub(crate) fn test_crash_record_guard() -> TestCrashRecordGuard {
     Err(poisoned) => poisoned.into_inner(),
   };
   CRASH_RECORD.store(std::ptr::null_mut(), Ordering::Release);
-  TestCrashRecordGuard {
-    _guard: guard,
-  }
+  TestCrashRecordGuard { _guard: guard }
 }
 
 pub(crate) unsafe fn prime_shared_record(record_ptr: *mut CrashRecord) {
@@ -80,8 +78,8 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
     .unwrap_or(u16::MAX);
   record.nsexception.call_stack.return_addresses.fill(0);
   let copy_len = usize::from(record.nsexception.call_stack.frame_count);
-  record.nsexception.call_stack.return_addresses[..copy_len]
-    .copy_from_slice(&return_addresses[..copy_len]);
+  record.nsexception.call_stack.return_addresses[.. copy_len]
+    .copy_from_slice(&return_addresses[.. copy_len]);
   record.header.crash_kind = CrashKind::NSException.into();
   record.header.record_state = RecordState::Committed.into();
 }
@@ -96,7 +94,7 @@ fn write_string<const N: usize>(value: &str, target: &mut [u8; N]) {
   target.fill(0);
   let bytes = value.as_bytes();
   let copy_len = bytes.len().min(target.len().saturating_sub(1));
-  target[..copy_len].copy_from_slice(&bytes[..copy_len]);
+  target[.. copy_len].copy_from_slice(&bytes[.. copy_len]);
 }
 
 #[cfg(test)]
@@ -132,8 +130,8 @@ mod tests {
     let record = unsafe { &*record_ptr };
     assert_eq!(record.header.crash_kind, CrashKind::NSException);
     assert_eq!(record.header.record_state, RecordState::Committed);
-    assert_eq!(&record.nsexception.name[..12], b"NSException\0");
-    assert_eq!(&record.nsexception.reason[..11], b"bad reason\0");
+    assert_eq!(&record.nsexception.name[.. 12], b"NSException\0");
+    assert_eq!(&record.nsexception.reason[.. 11], b"bad reason\0");
     assert_eq!(record.nsexception.call_stack.frame_count, 3);
   }
 
@@ -176,11 +174,11 @@ mod tests {
       0
     );
     assert_eq!(
-      &record.nsexception.name[..schema::NS_EXCEPTION_NAME_CAPACITY - 1],
+      &record.nsexception.name[.. schema::NS_EXCEPTION_NAME_CAPACITY - 1],
       vec![b'a'; schema::NS_EXCEPTION_NAME_CAPACITY - 1].as_slice()
     );
     assert_eq!(
-      &record.nsexception.reason[..schema::NS_EXCEPTION_REASON_CAPACITY - 1],
+      &record.nsexception.reason[.. schema::NS_EXCEPTION_REASON_CAPACITY - 1],
       vec![b'b'; schema::NS_EXCEPTION_REASON_CAPACITY - 1].as_slice()
     );
   }
@@ -206,7 +204,7 @@ mod tests {
     );
     assert_eq!(
       &record.nsexception.call_stack.return_addresses[..],
-      &return_addresses[..schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES]
+      &return_addresses[.. schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES]
     );
   }
 
@@ -217,7 +215,11 @@ mod tests {
     unsafe {
       prime_shared_record(&raw mut record);
     }
-    record.nsexception.call_stack.return_addresses.fill(u64::MAX);
+    record
+      .nsexception
+      .call_stack
+      .return_addresses
+      .fill(u64::MAX);
 
     record_nsexception("NSException", None, &[0x1234, 0x5678]);
 
@@ -225,7 +227,7 @@ mod tests {
     let record = unsafe { &*record_ptr };
     assert_eq!(record.nsexception.call_stack.frame_count, 2);
     assert_eq!(
-      &record.nsexception.call_stack.return_addresses[..2],
+      &record.nsexception.call_stack.return_addresses[.. 2],
       &[0x1234, 0x5678]
     );
     assert_eq!(record.nsexception.call_stack.return_addresses[2], 0);
