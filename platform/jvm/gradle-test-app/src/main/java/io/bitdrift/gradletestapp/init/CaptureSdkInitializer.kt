@@ -101,9 +101,7 @@ object CaptureSdkInitializer {
                 is CaptureResult.Success -> {
                     val logger = startResult.value
                     Log.d("bitdrift","SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}")
-                    Sentry.setExtra(bitdriftSessionUrlKey, logger.sessionUrl)
-                    Bugsnag.addMetadata("bitdrift_session_url", bitdriftSessionUrlKey,  logger.sessionUrl )
-                    setBitdriftSessionUrlForCrashlytics(context, logger.sessionUrl)
+                    addSessionUrlToThirdPartySdks(context, logger.sessionUrl)
                 }
 
                 is CaptureResult.Failure -> {
@@ -248,15 +246,22 @@ object CaptureSdkInitializer {
         }
     }
 
-    private fun setBitdriftSessionUrlForCrashlytics(
-        applicationContext: Context,
-        sessionUrl: String
-    ) {
-        val firebaseApp = FirebaseApp.getApps(applicationContext)
-            .firstOrNull { it.name == FirebaseApp.DEFAULT_APP_NAME }
-        if (firebaseApp != null) {
-            FirebaseCrashlytics.getInstance().setCustomKey(bitdriftSessionUrlKey, sessionUrl)
+    private fun addSessionUrlToThirdPartySdks(applicationContext: Context, sessionUrl: String) {
+        if (Sentry.isEnabled()) {
+            Sentry.setExtra(bitdriftSessionUrlKey, sessionUrl)
         }
+
+        if (Bugsnag.isStarted()) {
+            val frontendTabName = "bitdrift_session_url"
+            Bugsnag.addMetadata(frontendTabName, bitdriftSessionUrlKey, sessionUrl)
+        }
+
+        FirebaseApp.getApps(applicationContext)
+            .firstOrNull { it.name == FirebaseApp.DEFAULT_APP_NAME }
+            ?.let {
+                FirebaseCrashlytics.getInstance()
+                    .setCustomKey(bitdriftSessionUrlKey, sessionUrl)
+            }
     }
 
     private class CustomerIssueReportCallback : IssueReportCallback {
