@@ -84,15 +84,23 @@ def bitdrift_rust_library_only(name, srcs, deps = []):
         edition = "2021",
     )
 
-def bitdrift_rust_library(name, srcs = None, deps = [], test_deps = [], tags = [], data = [], extra_aliases = {}, **args):
-    crate_aliases = aliases()
-    test_crate_aliases = aliases(
-        normal_dev = True,
-        proc_macro_dev = True,
-    )
-    if extra_aliases:
-        crate_aliases = dict(extra_aliases.items() + crate_aliases.items())
-        test_crate_aliases = dict(extra_aliases.items() + test_crate_aliases.items())
+def bitdrift_rust_library(
+        name,
+        srcs = None,
+        deps = [],
+        test_deps = [],
+        tags = [],
+        data = [],
+        crate_aliases = None,
+        test_crate_aliases = None,
+        **args):
+    if crate_aliases == None:
+        crate_aliases = aliases()
+    if test_crate_aliases == None:
+        test_crate_aliases = aliases(
+            normal_dev = True,
+            proc_macro_dev = True,
+        )
 
     rust_library(
         name = name,
