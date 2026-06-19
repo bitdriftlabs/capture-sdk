@@ -62,14 +62,21 @@ impl MmapCrashStateStore {
 
 impl CrashStateStore for MmapCrashStateStore {
   fn previous_crash_state(&self) -> PreviousCrashState {
-    self.previous_crash_state
+    self.previous_crash_state.clone()
   }
 
+  #[allow(clippy::cast_ptr_alignment)]
   fn prepare_current_run(&mut self) -> Result<()> {
+    // `mmap` returns page-aligned memory, and this mapping starts at file offset 0,
+    // so the start of the mapping is sufficiently aligned for `CrashRecord`.
     let record_ptr = self.mapping.as_mut_ptr().cast::<CrashRecord>();
     if record_ptr.is_null() {
       return Err(anyhow!("crash state mapping returned a null pointer"));
     }
+    debug_assert_eq!(
+      (record_ptr as usize) % std::mem::align_of::<CrashRecord>(),
+      0
+    );
 
     unsafe {
       writer::prime_shared_record(record_ptr);
@@ -82,59 +89,69 @@ impl CrashStateStore for MmapCrashStateStore {
 #[cfg(test)]
 mod tests {
   use super::open;
+  use anyhow::Result;
   use crate::previous::{
     CrashKind, NSExceptionCallStack, NSExceptionCrashInfo, PreviousCrashDetails, PreviousCrashState,
   };
   use crate::schema::{self, CrashRecord, CrashRecordHeader};
+  use crate::writer::{test_crash_record_guard, CRASH_RECORD};
   use std::ffi::CString;
+  use std::sync::atomic::Ordering;
+
+  fn crash_record_bytes(record: &CrashRecord) -> &[u8] {
+    unsafe {
+      std::slice::from_raw_parts(
+        (&raw const *record).cast::<u8>(),
+        std::mem::size_of::<CrashRecord>(),
+      )
+    }
+  }
 
   #[test]
-  fn open_creates_store_for_empty_file() {
-    let tempdir = tempfile::tempdir().unwrap();
+  fn open_creates_store_for_empty_file() -> Result<()> {
+    let _guard = test_crash_record_guard();
+    let tempdir = tempfile::tempdir()?;
     let path = CString::new(
       tempdir
         .path()
         .join("state.bin")
         .to_string_lossy()
         .as_bytes(),
-    )
-    .unwrap();
+    )?;
 
-    let store = open(&path).unwrap();
+    let store = open(&path)?;
 
     assert_eq!(store.previous_crash_state(), PreviousCrashState::default());
+    Ok(())
   }
 
   #[test]
-  fn open_reads_previous_nsexception_state() {
-    let tempdir = tempfile::tempdir().unwrap();
+  fn open_reads_previous_nsexception_state() -> Result<()> {
+    let _guard = test_crash_record_guard();
+    let tempdir = tempfile::tempdir()?;
     let path = tempdir.path().join("state.bin");
 
     {
-      let mut record = CrashRecord::default();
-      record.header = CrashRecordHeader {
-        magic: schema::MAGIC,
-        version: schema::VERSION,
-        record_state: schema::RECORD_STATE_COMMITTED,
-        crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
-        reserved: [0; 2],
+      let mut record = CrashRecord {
+        header: CrashRecordHeader {
+          magic: schema::MAGIC,
+          version: schema::VERSION,
+          record_state: schema::RECORD_STATE_COMMITTED,
+          crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
+          reserved: [0; 2],
+        },
+        timestamp_secs: 123,
+        ..CrashRecord::default()
       };
-      record.timestamp_secs = 123;
       record.nsexception.name[..12].copy_from_slice(b"NSException\0");
       record.nsexception.reason[..12].copy_from_slice(b"bad reason!\0");
       record.nsexception.call_stack.frame_count = 2;
       record.nsexception.call_stack.return_addresses[..2].copy_from_slice(&[21, 34]);
-      std::fs::write(&path, unsafe {
-        std::slice::from_raw_parts(
-          (&record as *const CrashRecord).cast::<u8>(),
-          std::mem::size_of::<CrashRecord>(),
-        )
-      })
-      .unwrap();
+      std::fs::write(&path, crash_record_bytes(&record))?;
     }
 
-    let path = CString::new(path.to_string_lossy().as_bytes()).unwrap();
-    let store = open(&path).unwrap();
+    let path = CString::new(path.to_string_lossy().as_bytes())?;
+    let store = open(&path)?;
 
     assert_eq!(
       store.previous_crash_state(),
@@ -143,7 +160,7 @@ mod tests {
         timestamp_secs: 123,
         pid: 0,
         kind: CrashKind::NSException,
-        details: PreviousCrashDetails::NSException(NSExceptionCrashInfo {
+        details: PreviousCrashDetails::NSException(Box::new(NSExceptionCrashInfo {
           name: {
             let mut name = [0; schema::NS_EXCEPTION_NAME_CAPACITY];
             name[..12].copy_from_slice(b"NSException\0");
@@ -162,8 +179,48 @@ mod tests {
               return_addresses
             },
           },
-        }),
+        })),
       }
     );
+    Ok(())
+  }
+
+  #[test]
+  fn open_prepares_empty_record_for_current_run_after_reading_previous_state() -> Result<()> {
+    let _guard = test_crash_record_guard();
+    let tempdir = tempfile::tempdir()?;
+    let path = tempdir.path().join("state.bin");
+    let record = CrashRecord {
+      header: CrashRecordHeader {
+        magic: schema::MAGIC,
+        version: schema::VERSION,
+        record_state: schema::RECORD_STATE_COMMITTED,
+        crash_kind: schema::CRASH_KIND_NS_EXCEPTION,
+        reserved: [0; 2],
+      },
+      timestamp_secs: 456,
+      ..CrashRecord::default()
+    };
+    std::fs::write(&path, crash_record_bytes(&record))?;
+
+    let path = CString::new(path.to_string_lossy().as_bytes())?;
+    let mut store = open(&path)?;
+
+    assert!(store.previous_crash_state().did_crash);
+    assert_eq!(store.previous_crash_state().timestamp_secs, 456);
+
+    store.prepare_current_run()?;
+
+    let record_ptr = CRASH_RECORD.load(Ordering::Acquire);
+    let current_record = unsafe { &*record_ptr };
+    assert_eq!(current_record.header.magic, schema::MAGIC);
+    assert_eq!(
+      current_record.header.record_state,
+      schema::RECORD_STATE_EMPTY
+    );
+    assert_eq!(current_record.header.crash_kind, schema::CRASH_KIND_NONE);
+    assert_eq!(current_record.timestamp_secs, 0);
+    assert_eq!(current_record.pid, std::process::id());
+    Ok(())
   }
 }

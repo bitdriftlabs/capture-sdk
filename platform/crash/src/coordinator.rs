@@ -46,11 +46,11 @@ impl Coordinator {
     }
 
     let installed = monitors::install();
-    if !installed {
+    if installed {
+      log::debug!("installed bitdrift crash monitors");
+    } else {
       log::warn!("failed to install bitdrift crash monitors");
       self.started.store(false, Ordering::Release);
-    } else {
-      log::debug!("installed bitdrift crash monitors");
     }
     installed
   }
@@ -62,7 +62,7 @@ impl Coordinator {
     }
   }
 
-  pub(crate) fn previous_crash_state(&self) -> &PreviousCrashState {
+  pub(crate) const fn previous_crash_state(&self) -> &PreviousCrashState {
     &self.previous_crash_state
   }
 }
@@ -71,30 +71,33 @@ impl Coordinator {
 mod tests {
   use super::Coordinator;
   use crate::previous::{PreviousCrashDetails, PreviousCrashState};
+  use crate::writer::test_crash_record_guard;
+  use anyhow::Result;
   use std::ffi::CString;
 
   #[test]
-  fn coordinator_defaults_to_no_previous_crash() {
-    let tempdir = tempfile::tempdir().unwrap();
+  fn coordinator_defaults_to_no_previous_crash() -> Result<()> {
+    let _guard = test_crash_record_guard();
+    let tempdir = tempfile::tempdir()?;
     let path = CString::new(
       tempdir
         .path()
         .join("state.bin")
         .to_string_lossy()
         .as_bytes(),
-    )
-    .unwrap();
+    )?;
 
-    let coordinator = Coordinator::new(&path).unwrap();
+    let coordinator = Coordinator::new(&path)?;
 
     assert_eq!(
       *coordinator.previous_crash_state(),
       PreviousCrashState::default()
     );
+    Ok(())
   }
 
   #[test]
-  fn previous_crash_state_is_copyable_domain_object() {
+  fn default_previous_crash_state_has_no_details() {
     let previous_state = PreviousCrashState::default();
 
     assert!(matches!(previous_state.details, PreviousCrashDetails::None));

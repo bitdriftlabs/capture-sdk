@@ -63,6 +63,11 @@ pub extern "C" fn capture_bitdrift_crash_cached_timestamp() -> u64 {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn capture_bitdrift_crash_cached_kind() -> u8 {
+  previous_crash_state().map_or(0, |state| state.kind as u8)
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {
     return std::ptr::null();
