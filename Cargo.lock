@@ -533,6 +533,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bd-crash-reporter"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "memmap2",
+ "objc2",
+ "objc2-foundation",
+ "tempfile",
+]
+
+[[package]]
 name = "bd-device"
 version = "1.0.0"
 source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=61e83af61f5fb7b0cd6021e5a3b16580d363fc51#61e83af61f5fb7b0cd6021e5a3b16580d363fc51"
@@ -2654,6 +2666,31 @@ dependencies = [
  "block",
  "objc",
  "objc_id",
+]
+
+[[package]]
+name = "objc2"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a12a8ed07aefc768292f076dc3ac8c48f3781c8f2d5851dd3d98950e8c5a89f"
+dependencies = [
+ "objc2-encode",
+]
+
+[[package]]
+name = "objc2-encode"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef25abbcd74fb2609453eb695bd2f860d389e457f67dc17cafc8b8cbc89d0c33"
+
+[[package]]
+name = "objc2-foundation"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272"
+dependencies = [
+ "bitflags",
+ "objc2",
 ]
 
 [[package]]
