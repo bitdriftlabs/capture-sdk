@@ -9,12 +9,20 @@ use crate::coordinator::Coordinator;
 use crate::previous::{PreviousCrashDetails, PreviousCrashState};
 use std::ffi::CStr;
 use std::os::raw::c_char;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 static COORDINATOR: OnceLock<Coordinator> = OnceLock::new();
+static CONFIGURE_LOCK: Mutex<()> = Mutex::new(());
 
 fn previous_crash_state() -> Option<&'static PreviousCrashState> {
   COORDINATOR.get().map(Coordinator::previous_crash_state)
+}
+
+fn configure_lock() -> std::sync::MutexGuard<'static, ()> {
+  match CONFIGURE_LOCK.lock() {
+    Ok(guard) => guard,
+    Err(poisoned) => poisoned.into_inner(),
+  }
 }
 
 /// # Safety
@@ -25,6 +33,11 @@ pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_c
   if state_path.is_null() {
     log::debug!("capture_bitdrift_crash_configure called with null state path");
     return false;
+  }
+
+  let _guard = configure_lock();
+  if COORDINATOR.get().is_some() {
+    return true;
   }
 
   let path = unsafe { CStr::from_ptr(state_path) };
