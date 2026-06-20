@@ -46,7 +46,7 @@ pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_c
     Err(error) => {
       log::warn!("failed to configure bitdrift crash coordinator: {error:#}");
       return false;
-    }
+    },
   };
 
   COORDINATOR.set(coordinator).is_ok()

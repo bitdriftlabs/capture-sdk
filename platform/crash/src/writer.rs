@@ -86,8 +86,7 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
 
 fn mark_record_writing(record: &mut CrashRecord) {
   unsafe {
-    std::ptr::addr_of_mut!(record.header.record_state)
-      .write_volatile(RecordState::Writing.into());
+    std::ptr::addr_of_mut!(record.header.record_state).write_volatile(RecordState::Writing.into());
   }
 }
 
