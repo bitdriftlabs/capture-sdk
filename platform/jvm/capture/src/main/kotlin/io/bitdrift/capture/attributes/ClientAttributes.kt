@@ -60,9 +60,11 @@ internal class ClientAttributes(
 
     override val model: String = Build.MODEL
 
-    override val locale: String by lazy { getCurrentLocale()?.toString() ?: UNKNOWN_FIELD_VALUE }
+    override val locale: String
+        get() = getCurrentLocale()?.toString() ?: UNKNOWN_FIELD_VALUE
 
-    override val localeCountryCode: String by lazy { getCurrentLocale()?.country ?: UNKNOWN_FIELD_VALUE }
+    override val localeCountryCode: String?
+        get() = getCurrentLocale()?.country?.takeIf { it.isNotEmpty() }
 
     override val manufacturer: String = Build.MANUFACTURER
 
@@ -120,7 +122,7 @@ internal class ClientAttributes(
         val configDiff = currentConfig.diff(cachedConfiguration)
 
         if (cachedLocale == null || (configDiff and ActivityInfo.CONFIG_LOCALE == ActivityInfo.CONFIG_LOCALE)) {
-            val updatedLocale = getCurrentLocale()?.toString() ?: UNKNOWN_FIELD_VALUE
+            val updatedLocale = locale
 
             if (cachedLocale != updatedLocale) {
                 cachedLocale = updatedLocale

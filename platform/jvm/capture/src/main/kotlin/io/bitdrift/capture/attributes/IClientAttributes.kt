@@ -53,5 +53,5 @@ interface IClientAttributes {
     val locale: String
 
     /** Current locale 2-character country code (e.g. US) or 3-character region code (e.g. 026) */
-    val localeCountryCode: String
+    val localeCountryCode: String?
 }
