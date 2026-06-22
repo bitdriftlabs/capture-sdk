@@ -714,6 +714,23 @@ final class MockDiagnosticPayload: MXDiagnosticPayload {
     }
 }
 
+final class MockMetadata: MXMetaData {
+    let mockData: [String: Any]
+    init(data: [String: Any]) {
+        self.mockData = data
+        super.init()
+    }
+
+    required init?(coder: NSCoder) {
+        self.mockData = [:]
+        super.init()
+    }
+
+    override func dictionaryRepresentation() -> [AnyHashable: Any] {
+        return self.mockData
+    }
+}
+
 final class MockCrashDiagnostic: MXCrashDiagnostic {
     let mockCallStackTree: MockCallStackTree?
     let mockSignal: NSNumber?
@@ -728,6 +745,13 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
     override var exceptionType: NSNumber? { get { return mockExceptionType  } }
     override var exceptionCode: NSNumber? { get { return mockExceptionCode } }
     override var terminationReason: String? { get { return mockTerminationReason } }
+    override var metaData: MXMetaData {
+        get {
+            return (self.mockDiagnosticMetaData != nil)
+                ? MockMetadata(data: self.mockDiagnosticMetaData!)
+                : MockMetadata(data: [:])
+        }
+    }
 
     @available(iOS 17.0, *)
     override var exceptionReason: MXCrashDiagnosticObjectiveCExceptionReason? {
