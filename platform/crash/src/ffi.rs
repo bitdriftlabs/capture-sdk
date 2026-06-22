@@ -5,6 +5,9 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+//! C ABI entrypoints for configuring crash reporting, toggling monitor installation, and reading
+//! cached previous-launch crash state from non-Rust callers.
+
 use crate::coordinator::Coordinator;
 use crate::previous::{PreviousCrashDetails, PreviousCrashState};
 use std::ffi::CStr;
@@ -29,6 +32,10 @@ fn configure_lock() -> MutexGuard<'static, ()> {
 /// # Safety
 ///
 /// `state_path` must point to a valid, null-terminated C string for the duration of the call.
+///
+/// This function is idempotent for the process: it initializes the persisted crash state store,
+/// snapshots the previous launch's crash state, and prepares the current run's shared record, but
+/// it does not install crash monitors yet.
 #[no_mangle]
 pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_char) -> bool {
   if state_path.is_null() {
@@ -55,11 +62,15 @@ pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_c
   COORDINATOR.set(coordinator).is_ok()
 }
 
+/// Activate crash monitor installation for the current process. Returns `false` if the
+/// coordinator has not been configured yet or monitor installation fails.
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_start() -> bool {
   COORDINATOR.get().is_some_and(Coordinator::start)
 }
 
+/// Uninstall previously-registered crash monitors for the current process. This does not destroy
+/// the coordinator or clear persisted crash state.
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_stop() {
   if let Some(coordinator) = COORDINATOR.get() {
@@ -67,6 +78,8 @@ pub extern "C" fn capture_bitdrift_crash_stop() {
   }
 }
 
+/// Return whether the cached previous-launch state indicates a crash. Returns `-1` when the
+/// coordinator has not been configured yet.
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_did_crash_last_launch() -> i8 {
   if COORDINATOR.get().is_none() {
@@ -76,16 +89,20 @@ pub extern "C" fn capture_bitdrift_crash_did_crash_last_launch() -> i8 {
   i8::from(previous_crash_state().is_some_and(|state| state.did_crash))
 }
 
+/// Return the cached previous-launch crash timestamp, or `0` when no crash state is available.
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_cached_timestamp() -> u64 {
   previous_crash_state().map_or(0, |state| state.timestamp_secs)
 }
 
+/// Return the cached previous-launch crash kind, or `0` when no crash state is available.
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_cached_kind() -> u8 {
   previous_crash_state().map_or(0, |state| state.kind as u8)
 }
 
+/// Return the cached previous-launch exception name as a pointer into process-owned storage, or
+/// null when no NSException name is available.
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {
@@ -103,6 +120,8 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char 
   exception.name.as_ptr().cast::<c_char>()
 }
 
+/// Return the cached previous-launch exception reason as a pointer into process-owned storage, or
+/// null when no NSException reason is available.
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_last_exception_reason() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {

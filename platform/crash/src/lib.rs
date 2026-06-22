@@ -9,7 +9,6 @@
 //!
 //! The crate persists a small crash record into an `mmap`-backed file so the next launch can
 //! inspect whether the previous run terminated while an installed crash monitor was active.
-//! Today the only supported crash kind is uncaught `NSException` on Apple platforms.
 
 #![deny(
   clippy::expect_used,

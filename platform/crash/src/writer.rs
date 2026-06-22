@@ -22,6 +22,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub(crate) static CRASH_RECORD: AtomicPtr<CrashRecord> = AtomicPtr::new(null_mut());
 
 pub(crate) unsafe fn prime_shared_record(record_ptr: *mut CrashRecord) {
+  // Initialize the backed record for the current run before any monitor can publish crash data into
+  // it. This binds the shared pointer to live storage and resets the record to a known empty state.
   let record = unsafe { &mut *record_ptr };
   *record = CrashRecord {
     header: schema::CrashRecordHeader {
@@ -67,6 +69,8 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
   record.nsexception.call_stack.return_addresses[.. copy_len]
     .copy_from_slice(&return_addresses[.. copy_len]);
   record.header.crash_kind = CrashKind::NSException.into();
+  // Always mark as "Committed" after every other field is updated, so the next 
+  // launch never treats a partial write as a valid crash record
   commit_record(record);
 }
 
@@ -78,9 +82,9 @@ fn mark_record_writing(record: &mut CrashRecord) {
   }
 }
 
-// Publish the record only after all payload bytes are visible so the next launch never treats a
-// partially-written mmap record as committed.
 fn commit_record(record: &mut CrashRecord) {
+  // Publish the record only after all payload bytes are visible so the next launch never treats a
+  // partially-written mmap record as committed.
   fence(Ordering::Release);
   unsafe {
     addr_of_mut!(record.header.record_state).write_volatile(RecordState::Committed.into());
@@ -94,6 +98,8 @@ fn current_timestamp_secs() -> u64 {
 }
 
 fn write_string<const N: usize>(value: &str, target: &mut [u8; N]) {
+  // Leave one byte for the null terminator so persisted strings always remain safe for later
+  // C-string readers, even when the input has to be truncated
   target.fill(0);
   let bytes = value.as_bytes();
   let copy_len = bytes.len().min(target.len().saturating_sub(1));

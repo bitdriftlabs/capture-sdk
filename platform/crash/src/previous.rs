@@ -83,8 +83,9 @@ pub(crate) fn read_previous_state_from_bytes(bytes: &[u8]) -> PreviousCrashState
     return PreviousCrashState::default();
   }
 
-  // The persisted record is mmap-backed, so reads on a later launch must tolerate truncated or
-  // partially-corrupt contents instead of assuming the bytes were produced by a clean shutdown.
+  // This function defines the acceptance policy for a persisted crash record. The record is
+  // mmap-backed, so reads on a later launch must tolerate truncated or partially-corrupt contents
+  // instead of assuming the bytes were produced by a clean shutdown.
   let raw: CrashRecord = unsafe { read_unaligned(bytes.as_ptr().cast::<CrashRecord>()) };
   if raw.header.magic != schema::MAGIC {
     log::debug!("ignoring crash record with unexpected magic");
@@ -123,6 +124,9 @@ pub(crate) fn read_previous_state_from_bytes(bytes: &[u8]) -> PreviousCrashState
 }
 
 fn parse_nsexception(raw: &RawNSExceptionPayload) -> NSExceptionCrashInfo {
+  // Convert the persisted payload into a safer in-memory representation before exposing it to the
+  // rest of the crate. In particular, sanitize stored C strings so malformed persisted bytes are
+  // treated as absent data instead of being forwarded as unterminated strings.
   let mut name = raw.name;
   let mut reason = raw.reason;
   sanitize_c_string_bytes(&mut name);
@@ -136,6 +140,8 @@ fn parse_nsexception(raw: &RawNSExceptionPayload) -> NSExceptionCrashInfo {
 }
 
 fn sanitize_c_string_bytes<const N: usize>(bytes: &mut [u8; N]) {
+  // Persisted strings are expected to be null-terminated. If a terminator is missing, treat the
+  // full field as invalid rather than guessing where a truncated or corrupt string should end.
   if !bytes.contains(&0) {
     bytes.fill(0);
   }
