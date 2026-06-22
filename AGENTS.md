@@ -71,6 +71,7 @@ Key Bazel configs: `--config ios`, `--config android`, `--config release-ios`, `
 platform/swift/source/   # iOS SDK (Swift + Rust FFI)
 platform/jvm/capture/    # Android SDK (Kotlin)
 platform/jvm/core/       # JNI bindings
+platform/crash/          # Crash reporter Rust crate; see local AGENTS.md
 core/                    # Core Rust libraries
 test/                    # Integration tests
 ```
