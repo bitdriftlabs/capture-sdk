@@ -24,6 +24,7 @@ import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 import io.bitdrift.capture.Capture
+import io.bitdrift.gradletestapp.diagnostics.fatalissues.FatalIssueGenerator
 import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import timber.log.Timber
 import java.io.File
@@ -98,6 +99,14 @@ class StressTestRepository(
                 Capture.Logger.logError { "ANR test completed after ${System.currentTimeMillis() - startTime}ms" }
             }
         }.start()
+    }
+
+    fun createThreads(count: Int) {
+        require(count > 0) { "Thread count must be positive" }
+        Capture.Logger.logWarning(mapOf("thread_count" to count.toString())) {
+            "Started creating $count sleeping threads"
+        }
+        FatalIssueGenerator.forceThreadCount(count)
     }
 
     private fun stopAllThreads() {
