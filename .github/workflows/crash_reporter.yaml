@@ -65,11 +65,16 @@ jobs:
           rustup toolchain install "$RUST_VERSION" --profile minimal --component clippy
           rustup default "$RUST_VERSION"
 
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2.7.8
 
       - name: Run crash reporter tests
-        run: cargo test -p bd-crash-reporter --quiet
+        run: cargo nextest run -p bd-crash-reporter
 
       - name: Run crash reporter clippy
         run: cargo clippy -p bd-crash-reporter --tests --quiet

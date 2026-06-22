@@ -9,7 +9,8 @@ use crate::coordinator::Coordinator;
 use crate::previous::{PreviousCrashDetails, PreviousCrashState};
 use std::ffi::CStr;
 use std::os::raw::c_char;
-use std::sync::{Mutex, OnceLock};
+use std::ptr::null;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
 static COORDINATOR: OnceLock<Coordinator> = OnceLock::new();
 static CONFIGURE_LOCK: Mutex<()> = Mutex::new(());
@@ -18,7 +19,7 @@ fn previous_crash_state() -> Option<&'static PreviousCrashState> {
   COORDINATOR.get().map(Coordinator::previous_crash_state)
 }
 
-fn configure_lock() -> std::sync::MutexGuard<'static, ()> {
+fn configure_lock() -> MutexGuard<'static, ()> {
   match CONFIGURE_LOCK.lock() {
     Ok(guard) => guard,
     Err(poisoned) => poisoned.into_inner(),
@@ -40,6 +41,8 @@ pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_c
     return true;
   }
 
+  // Serialize first-time initialization so a second caller cannot construct and immediately drop a
+  // new coordinator while the shared mmap-backed crash record still points into the original one.
   let path = unsafe { CStr::from_ptr(state_path) };
   let coordinator = match Coordinator::new(path) {
     Ok(coordinator) => coordinator,
@@ -86,15 +89,15 @@ pub extern "C" fn capture_bitdrift_crash_cached_kind() -> u8 {
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {
-    return std::ptr::null();
+    return null();
   };
 
   let PreviousCrashDetails::NSException(exception) = &previous_state.details else {
-    return std::ptr::null();
+    return null();
   };
 
   if exception.name[0] == 0 {
-    return std::ptr::null();
+    return null();
   }
 
   exception.name.as_ptr().cast::<c_char>()
@@ -103,15 +106,15 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char 
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_last_exception_reason() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {
-    return std::ptr::null();
+    return null();
   };
 
   let PreviousCrashDetails::NSException(exception) = &previous_state.details else {
-    return std::ptr::null();
+    return null();
   };
 
   if exception.reason[0] == 0 {
-    return std::ptr::null();
+    return null();
   }
 
   exception.reason.as_ptr().cast::<c_char>()

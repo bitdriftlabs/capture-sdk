@@ -5,6 +5,12 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+//! Crash reporter support for capture-sdk.
+//!
+//! The crate persists a small crash record into an `mmap`-backed file so the next launch can
+//! inspect whether the previous run terminated while an installed crash monitor was active.
+//! Today the only supported crash kind is uncaught `NSException` on Apple platforms.
+
 #![deny(
   clippy::expect_used,
   clippy::panic,
@@ -20,4 +26,6 @@ mod monitors;
 mod previous;
 mod schema;
 mod store;
+#[cfg(test)]
+mod test_support;
 mod writer;
