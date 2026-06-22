@@ -102,7 +102,7 @@ pub extern "C" fn capture_bitdrift_crash_cached_kind() -> u8 {
 }
 
 /// Return the cached previous-launch exception name as a pointer into process-owned storage, or
-/// null when no NSException name is available.
+/// null when no `NSException`` name is available.
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {
@@ -121,7 +121,7 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char 
 }
 
 /// Return the cached previous-launch exception reason as a pointer into process-owned storage, or
-/// null when no NSException reason is available.
+/// null when no `NSException` reason is available.
 #[no_mangle]
 pub extern "C" fn capture_bitdrift_crash_last_exception_reason() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {

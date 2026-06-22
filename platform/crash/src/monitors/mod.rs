@@ -17,7 +17,7 @@ trait Monitor {
   fn uninstall(&self);
 }
 
-// Install every crash monitor supported on the current platform. 
+// Install every crash monitor supported on the current platform.
 #[cfg(target_vendor = "apple")]
 pub(crate) fn install() -> bool {
   nsexception::NSExceptionMonitor.install()

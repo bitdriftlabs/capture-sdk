@@ -69,7 +69,7 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
   record.nsexception.call_stack.return_addresses[.. copy_len]
     .copy_from_slice(&return_addresses[.. copy_len]);
   record.header.crash_kind = CrashKind::NSException.into();
-  // Always mark as "Committed" after every other field is updated, so the next 
+  // Always mark as "Committed" after every other field is updated, so the next
   // launch never treats a partial write as a valid crash record
   commit_record(record);
 }
