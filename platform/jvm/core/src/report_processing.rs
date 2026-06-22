@@ -45,6 +45,7 @@ static CLIENT_ATTRS_OS_API_LEVEL: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_SUPPORTED_ABIS: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_ARCHITECTURE: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_LOCALE: OnceLock<CachedMethod> = OnceLock::new();
+static CLIENT_ATTRS_LOCALE_COUNTRY_CODE: OnceLock<CachedMethod> = OnceLock::new();
 
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   initialize_method_handle(
@@ -141,6 +142,14 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
     "getLocale",
     "()Ljava/lang/String;",
     &CLIENT_ATTRS_LOCALE,
+  )?;
+
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    "getLocaleCountryCode",
+    "()Ljava/lang/String;",
+    &CLIENT_ATTRS_LOCALE_COUNTRY_CODE,
   )?;
 
   Ok(())
@@ -318,10 +327,13 @@ fn build_app_metrics<'fbb>(
     .map_err(|e| anyhow::anyhow!("failed to parse app_id: {e}"))?;
   let app_version = read_string(env, attributes, &CLIENT_ATTRS_APP_VERSION)
     .map_err(|e| anyhow::anyhow!("failed to parse app_version: {e}"))?;
+  // failable/optional value
+  let region_format = read_string(env, attributes, &CLIENT_ATTRS_LOCALE_COUNTRY_CODE).ok();
   Ok(AppMetricsArgs {
     app_id: Some(builder.create_string(&app_id)),
     version: Some(builder.create_string(&app_version)),
     build_number,
+    region_format: region_format.map(|s| builder.create_string(&s)),
     running_state: running_state.map(|s| builder.create_string(s)),
     memory_pressure_level: MemoryPressureLevel(i8::try_from(memory_pressure_level).unwrap_or(0)),
     ..Default::default()
