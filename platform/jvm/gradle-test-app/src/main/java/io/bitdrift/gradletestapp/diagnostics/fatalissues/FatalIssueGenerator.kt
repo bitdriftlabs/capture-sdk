@@ -34,6 +34,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 
 
@@ -45,6 +46,7 @@ internal object FatalIssueGenerator {
     private val oomList = mutableListOf<ByteArray>()
     private val threadsListForOom: MutableList<Thread> = ArrayList<Thread>()
     private val mainThreadHandler = Handler(Looper.getMainLooper())
+    private val threadBlocker = CountDownLatch(1)
 
     fun forceDeadlockAnr() {
         callOnMainThread {
@@ -173,7 +175,7 @@ internal object FatalIssueGenerator {
                 val thread = Thread(
                     {
                         runCatching {
-                            Thread.sleep(Long.MAX_VALUE)
+                            threadBlocker.await()
                         }
                     },
                     "oom-thread-$threadIndex",

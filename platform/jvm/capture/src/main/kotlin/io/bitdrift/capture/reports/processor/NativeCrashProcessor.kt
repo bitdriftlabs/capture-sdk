@@ -63,6 +63,7 @@ internal object NativeCrashProcessor {
         val binaryImageOffsets = mutableListOf<Int>()
 
         val referencedMappings = mutableSetOf<TombstoneProtos.MemoryMapping>()
+        val stackTraceOffsetsByFrames = mutableMapOf<List<Int>, Int>()
 
         tombstone.threadsMap.forEach { (tid, thread) ->
             val frameOffsets =
@@ -89,36 +90,44 @@ internal object NativeCrashProcessor {
                                 frame.fileName
                             }
 
-                        val frameData =
-                            FrameData(
+                        val frameKey =
+                            NativeFrameKey(
                                 symbolName = frame.functionName,
-                                fileName = null,
                                 imageId = imageId,
                                 frameAddress = frame.pc.toULong(),
                             )
                         ReportFrameBuilder.build(
                             FrameType.AndroidNative,
                             builder,
-                            frameData,
+                            FrameData(
+                                symbolName = frameKey.symbolName,
+                                fileName = null,
+                                imageId = frameKey.imageId,
+                                frameAddress = frameKey.frameAddress,
+                            ),
                         )
                     }.toIntArray()
+            val stackTraceOffset =
+                stackTraceOffsetsByFrames.getOrPut(frameOffsets.toList()) {
+                    Thread.createStackTraceVector(builder, frameOffsets)
+                }
 
             val threadOffset =
                 Thread.createThread(
                     builder,
-                    builder.createString(thread.name.ifEmpty { "native-thread-${thread.id}" }),
+                    builder.createSharedString(thread.name.ifEmpty { "native-thread-${thread.id}" }),
                     isCrashingThread(tid, tombstone),
                     thread.id.toUInt(),
                     0,
                     0f,
                     0,
-                    Thread.createStackTraceVector(builder, frameOffsets),
+                    stackTraceOffset,
                     summaryOffset = 0,
                 )
             threadOffsets.add(threadOffset)
 
             if (isCrashingThread(tid, tombstone)) {
-                nativeErrors.add(createErrorOffset(builder, description, tombstone, frameOffsets))
+                nativeErrors.add(createErrorOffset(builder, description, tombstone, stackTraceOffset))
             }
         }
 
@@ -133,8 +142,8 @@ internal object NativeCrashProcessor {
             binaryImageOffsets.add(
                 BinaryImage.createBinaryImage(
                     builder,
-                    builder.createString(it.imageId()),
-                    builder.createString(it.path()),
+                    builder.createSharedString(it.imageId()),
+                    builder.createSharedString(it.path()),
                     it.beginAddress.toULong(),
                 ),
             )
@@ -172,8 +181,8 @@ internal object NativeCrashProcessor {
     ): Int {
         val defaultReason = "Native crash"
         val signalInfo = signalsByNumber[terminatingSignalNumber]
-        val name = builder.createString(signalInfo?.name ?: description ?: defaultReason)
-        val reason = builder.createString(signalInfo?.description ?: defaultReason)
+        val name = builder.createSharedString(signalInfo?.name ?: description ?: defaultReason)
+        val reason = builder.createSharedString(signalInfo?.description ?: defaultReason)
         val errorOffset =
             Error.createError(
                 builder,
@@ -206,7 +215,7 @@ internal object NativeCrashProcessor {
         builder: FlatBufferBuilder,
         description: String?,
         tombstone: Tombstone,
-        frameOffsets: IntArray,
+        stackTraceOffset: Int,
     ): Int {
         val signalName = tombstone.signalInfo.name
         val errorName = signalName.ifEmpty { description ?: "Native crash" }
@@ -220,7 +229,7 @@ internal object NativeCrashProcessor {
             builder,
             reason,
             cause,
-            Error.createStackTraceVector(builder, frameOffsets),
+            stackTraceOffset,
             ErrorRelation.CausedBy,
         )
     }
@@ -233,6 +242,12 @@ internal object NativeCrashProcessor {
     private data class SignalInfo(
         val name: String,
         val description: String,
+    )
+
+    private data class NativeFrameKey(
+        val symbolName: String,
+        val imageId: String,
+        val frameAddress: ULong,
     )
 }
 

@@ -24,10 +24,10 @@ internal object ReportFrameBuilder {
         builder: FlatBufferBuilder,
         frameData: FrameData,
     ): Int {
-        val classNameOffset = frameData.className?.let { builder.createString(it) } ?: 0
-        val symbolNameOffset = frameData.symbolName?.let { builder.createString(it) } ?: 0
+        val classNameOffset = builder.toOffset(frameData.className)
+        val symbolNameOffset = builder.toOffset(frameData.symbolName)
         val sourceFileOffset = buildSourceFile(builder, frameData.fileName, frameData.lineNumber)
-        val imageIdOffset = frameData.imageId?.let { builder.createString(it) } ?: 0
+        val imageIdOffset = builder.toOffset(frameData.imageId)
         return Frame.createFrame(
             builder,
             type = frameType,
@@ -52,7 +52,7 @@ internal object ReportFrameBuilder {
      *
      * NOTE: Defaults to 0 if nullable string
      */
-    fun FlatBufferBuilder.toOffset(originalValue: String?): Int = originalValue?.let { createString(it) } ?: 0
+    fun FlatBufferBuilder.toOffset(originalValue: String?): Int = originalValue?.let { createSharedString(it) } ?: 0
 
     private fun buildSourceFile(
         builder: FlatBufferBuilder,
@@ -60,7 +60,7 @@ internal object ReportFrameBuilder {
         lineNumber: Long?,
     ): Int =
         if (fileName != null) {
-            val path = builder.createString(fileName)
+            val path = builder.createSharedString(fileName)
             SourceFile.createSourceFile(
                 builder,
                 path,

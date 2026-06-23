@@ -34,6 +34,7 @@ internal object JvmProcessor {
         allThreads: Map<Thread, Array<StackTraceElement>>?,
         reportType: Byte,
     ): Int {
+        val stackTraceOffsetsByFrames = mutableMapOf<List<StackTraceElement>, Int>()
         val errors = buildErrors(builder, throwable)
         val threadList =
             allThreads?.map { (thread, frames) ->
@@ -44,17 +45,24 @@ internal object JvmProcessor {
                         @Suppress("deprecation")
                         thread.id
                     }
-                val threadStack = frames.map { e -> getFrameDetails(builder, e) }.toIntArray()
+                val threadStack =
+                    stackTraceOffsetsByFrames.getOrPut(frames.asList()) {
+                        val frameOffsets =
+                            frames
+                                .map { frame -> getFrameDetails(builder, frame) }
+                                .toIntArray()
+                        io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread
+                            .createStackTraceVector(builder, frameOffsets)
+                    }
                 io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread.createThread(
                     builder,
-                    builder.createString(thread.name),
+                    builder.createSharedString(thread.name),
                     thread == callerThread,
                     threadId.toUInt(),
-                    builder.createString(thread.state.name),
+                    builder.createSharedString(thread.state.name),
                     thread.priority.toFloat(),
                     -1, // default value for quality of service (unused on Android)
-                    io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread
-                        .createStackTraceVector(builder, threadStack),
+                    threadStack,
                     summaryOffset = 0,
                 )
             } ?: listOf()
@@ -84,8 +92,8 @@ internal object JvmProcessor {
         generateSequence(throwable) { it.cause }
             .map { error ->
                 val frames = error.stackTrace.map { getFrameDetails(builder, it) }.toIntArray()
-                val className = builder.createString(error.javaClass.name)
-                val message = error.getReason()?.let { builder.createString(it) } ?: 0
+                val className = builder.createSharedString(error.javaClass.name)
+                val message = error.getReason()?.let { builder.createSharedString(it) } ?: 0
                 Error.createError(
                     builder,
                     className,
