@@ -39,6 +39,7 @@ public final class Logger {
     private(set) var eventsListenerTarget: EventSubscriber
 
     private let sessionURLBase: URL
+    private var crashReporterService: CrashReporterService?
 
     static var issueReporterInitResult: IssueReporterInitResult = (.notInitialized, 0)
     static var hasFatallyTerminatedOnPreviousRun: Bool?
@@ -244,70 +245,13 @@ public final class Logger {
 
         self.deviceCodeController = DeviceCodeController(client: client)
 
-        #if targetEnvironment(simulator)
-        Logger.hasFatallyTerminatedOnPreviousRun = nil
-        Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
-        #else
         if !configuration.enableFatalIssueReporting {
             Logger.hasFatallyTerminatedOnPreviousRun = nil
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
-            Logger.issueReporterInitResult = measureTime {
-                let contents = Logger.cachedReportConfigData(base: directoryURL)
-                let resolution = resolveRuntimeState(from: contents)
-                guard resolution == .monitoring else {
-                    return .initialized(resolution)
-                }
-
-                let kscrashReportDir = Logger.kscrashReportDirectory(base: directoryURL)
-                do {
-                    try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
-                    Logger.hasFatallyTerminatedOnPreviousRun = BitdriftKSCrashWrapper.didCrashLastLaunch()?.boolValue
-                    try BitdriftKSCrashWrapper.startCrashReporter()
-                } catch {
-                    // hasFatallyTerminatedOnPreviousRun may already be set if configure() succeeded
-                }
-
-                let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
-                let useStackOverlapMatching = self.underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
-                let memoryPressureLevel = self.underlyingLogger.previousMemoryPressureLevel()
-                let reporter = DiagnosticEventReporter(
-                    outputDir: Logger.reportCollectionDirectory(base: directoryURL),
-                    sdkVersion: capture_get_sdk_version(),
-                    eventTypes: .crash,
-                    minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
-                    memoryPressureLevel: memoryPressureLevel,
-                    useStackOverlapMatching: useStackOverlapMatching,
-                    crashEnrichmentSummaryHandler: { [weak self] summary in
-                        let matcherMode = useStackOverlapMatching ? "base" : "exact"
-                        guard let self,
-                              let summary,
-                              let outcome = summary["outcome"],
-                              let reason = summary["reason"]
-                        else {
-                            return
-                        }
-
-                        self.underlyingLogger.logInternal(
-                            level: .debug,
-                            message: "[CrashEnrichment] MetricKit crash enrichment summary",
-                            fields: [
-                                "outcome": outcome,
-                                "reason": reason,
-                                "matcher_mode": matcherMode,
-                            ]
-                        )
-                    }) { [weak self] in
-                    self?.underlyingLogger.processIssueReports(reportProcessingSession: .previousRun)
-                }
-                Logger.diagnosticReporter.update { val in
-                    val = reporter
-                }
-                MXMetricManager.shared.add(reporter)
-                return .initialized(.monitoring)
-            }
+            self.crashReporterService = CrashReporterService()
+            self.crashReporterService?.setup(sdkBaseURL: directoryURL, underlyingLogger: self.underlyingLogger)
         }
-        #endif
     }
 
     // swiftlint:enable function_body_length
@@ -426,30 +370,6 @@ public final class Logger {
             .appendingPathComponent("bitdrift_capture")
     }
 
-    static func reportConfigPath(base: URL) -> URL {
-        return base.appendingPathComponent("reports/config.csv", isDirectory: false)
-    }
-
-    static func kscrashReportDirectory(base: URL) -> URL {
-        return base.appendingPathComponent("reports/kscrash", isDirectory: true)
-    }
-
-    static func reportCollectionDirectory(base: URL) -> URL {
-        return base.appendingPathComponent("reports/new", isDirectory: true)
-    }
-
-    // MARK: - Private
-
-    private static func cachedReportConfigData(base: URL) -> String? {
-        let configPath = Logger.reportConfigPath(base: base)
-        guard let data = FileManager.default.contents(atPath: configPath.path),
-              let contents = String(data: data, encoding: .utf8)
-        else {
-            return nil
-        }
-        return contents
-    }
-
     private static func normalizedAPIURL(apiURL: URL) -> URL {
         // We can assume a properly formatted api url is being used, so we can follow the same pattern
         // making sure we only replace the first occurrence
@@ -473,10 +393,8 @@ public final class Logger {
 
     private func stop() {
         self.dispatchSourceMemoryMonitor?.stop()
-
         self.dispatchSourceMemoryMonitor = nil
-
-        BitdriftKSCrashWrapper.stopCrashReporter()
+        self.crashReporterService?.stop()
     }
 }
 

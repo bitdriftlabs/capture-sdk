@@ -7,6 +7,27 @@
 
 #import <MetricKit/MetricKit.h>
 
+@class BitdriftPreviousCrash;
+
+/// Abstracts the crash handler layer (KSCrash + BitdriftCrash) so that `DiagnosticEventReporter`
+/// can enrich MetricKit reports without coupling to either handler directly.
+/// `CrashReporterService` is the canonical conformer in production.
+///
+/// Adding, replacing, or removing a crash reporter (e.g. dropping KSCrash) requires changes
+/// only in `CrashReporterService`; consumers like `DiagnosticEventReporter` and `Logger`
+/// remain unaffected.
+@protocol CrashReporting <NSObject>
+/// Returns the date of the most recent crash captured by KSCrash, or nil if none is available.
+- (NSDate *_Nullable)cachedCrashDate;
+/// Returns structured data about the previous crash (kind, NSException info, date), or nil if none.
+- (BitdriftPreviousCrash *_Nullable)cachedPreviousCrash;
+/// Enriches a raw MetricKit report with supplemental data from a matching KSCrash report
+/// (e.g. thread names). Returns the original report unchanged if no matching report is found.
+- (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
+                                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                                                   summaryOut:(NSDictionary<NSString *, NSString *> *_Nullable *_Nullable)summaryOut;
+@end
+
 typedef NS_ENUM(int8_t, CAPMemoryPressureLevel) {
     CAPMemoryPressureLevelUnknown = 0,
     CAPMemoryPressureLevelNormal = 1,
@@ -49,10 +70,10 @@ typedef void (^CAPCrashEnrichmentSummaryHandler)(
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
                         minimumHangSeconds:(NSTimeInterval)seconds
-                     memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
+                       memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
                    useStackOverlapMatching:(BOOL)useStackOverlapMatching
-             crashEnrichmentSummaryHandler:
-                 (CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
+                            crashReporting:(id<CrashReporting> _Nonnull)crashReporting
+             crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completion;
 
 - (void)setMinimumHangSeconds:(NSTimeInterval)seconds;

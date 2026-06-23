@@ -82,12 +82,14 @@ objc_library(
     name = "objc_bridge",
     srcs = [
         "ObjCWrapper.mm",
+        "reports/BitdriftCrashHandler.m",
         "reports/BitdriftKSCrashWrapper.m",
         "reports/DiagnosticEventReporter.m",
     ],
     hdrs = [
         "CaptureRustBridge.h",
         "ObjCWrapper.h",
+        "reports/BitdriftCrashHandler.h",
         "reports/BitdriftKSCrashWrapper.h",
         "reports/DiagnosticEventReporter.h",
         "reports/bd-report-writer/ffi.h",
@@ -99,6 +101,7 @@ objc_library(
         ":CapturePassable",
         ":bitdrift_enhanced_crash_data",
         ":swift_bridge",
+        "//platform/crash:bd_crash_reporter",
     ],
 )
 

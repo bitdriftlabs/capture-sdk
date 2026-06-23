@@ -6,8 +6,8 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 #import "DiagnosticEventReporter.h"
+#import "BitdriftCrashHandler.h"
 #import "bd-report-writer/ffi.h"
-#import "BitdriftKSCrashWrapper.h"
 
 #import <mach/exception_types.h>
 #include <stdlib.h>
@@ -30,26 +30,76 @@ static NSString *const DEFAULT_HANG_NAME = @"App Hang";
 // SDK identifier used in generated files
 static const char *const SDK_ID = "io.bitdrift.capture-apple";
 
-/**
- * Create a buffer containing a serialized diagnostic
- *
- * @param handle a ptr to create and populate the buffer
- * @param sdk_version containing library version which will serialize the payload
- * @param event the diagnostic payload to write
- * @param timestamp time at which the event occurred
- *
- * @return true if the buffer was populated
- */
-static ReportType serialize_diagnostic(BDProcessorHandle handle,
-                                       NSString *_Nonnull sdk_version,
-                                       MXDiagnostic *_Nonnull event,
-                                       NSTimeInterval timestamp,
-                                       BOOL useStackOverlapMatching,
-                                       CAPMemoryPressureLevel memoryPressureLevel,
-                                       CAPCrashEnrichmentSummaryHandler _Nullable crashEnrichmentSummaryHandler)
-                                       API_AVAILABLE(ios(14.0), macos(12.0));
+typedef enum : NSUInteger {
+  /// The root frame is the "top"/outermost frame of the call stack tree
+  FrameOrderOuterToInner,
+  /// The root frame is the "bottom"/innermost frame of the call stack tree
+  FrameOrderInnerToOuter,
+} FrameOrder;
 
-static const char *name_for_diagnostic_type(ReportType type);
+// MARK: - Static helpers (pure utilities, no instance state)
+
+static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
+  if ([dict isKindOfClass:[NSDictionary class]]) {
+    id value = dict[key];
+    return [value isKindOfClass:klass] ? value : nil;
+  }
+  return nil;
+}
+
+#define string_for_key(dict, key) object_for_key(dict, key, [NSString class])
+#define number_for_key(dict, key) object_for_key(dict, key, [NSNumber class])
+#define array_for_key(dict, key) object_for_key(dict, key, [NSArray class])
+#define dict_for_key(dict, key) object_for_key(dict, key, [NSDictionary class])
+
+static inline const char * cstring_from(NSString *str) {
+  return [str cStringUsingEncoding:NSUTF8StringEncoding];
+}
+
+static const char *name_for_diagnostic_type(ReportType type) {
+  switch (type) {
+    case ReportTypeNativeCrash:
+      return "crash";
+    case ReportTypeAppNotResponding:
+      return "anr";
+    case ReportTypeNone:
+    default:
+      return "unknown";
+  }
+}
+
+// MARK: - BDOSBuild
+
+@interface BDOSBuild : NSObject
+@property (strong, nonatomic) NSString *name;
+@property (strong, nonatomic) NSString *version;
+@property (strong, nonatomic) NSString *kernversion;
+@end
+
+@implementation BDOSBuild
+- (instancetype)initWithVersion:(NSString *)version {
+  if (!version) {
+    return nil;
+  }
+  NSRegularExpression *matcher = [NSRegularExpression regularExpressionWithPattern:OS_VERSION_MATCHER options:0 error:nil];
+  NSTextCheckingResult *match = [[matcher matchesInString:version options:0 range:NSMakeRange(0, version.length)] firstObject];
+  NSRange nameRange = [match rangeWithName:@"osName"];
+  NSRange versionRange = [match rangeWithName:@"osVersion"];
+  NSRange buildRange = [match rangeWithName:@"buildNumber"];
+  if (self = [super init]) {
+    if (!nameRange.length || !versionRange.length || !buildRange.length) {
+      self.version = version; // pathological case where there's a match but the captures don't hit
+    } else {
+      self.name = [version substringWithRange:nameRange];
+      self.version = [version substringWithRange:versionRange];
+      self.kernversion = [version substringWithRange:buildRange];
+    }
+  }
+  return self;
+}
+@end
+
+// MARK: - DiagnosticEventReporter
 
 @interface DiagnosticEventReporter ()
 @property (nonnull, strong) NSURL *dir;
@@ -60,16 +110,19 @@ static const char *name_for_diagnostic_type(ReportType type);
 @property CAPDiagnosticType diagnosticTypes;
 @property BOOL useStackOverlapMatching;
 @property CAPMemoryPressureLevel memoryPressureLevel;
+@property (nonnull, strong, nonatomic) id<CrashReporting> crashReporting;
 @end
 
 @implementation DiagnosticEventReporter
+
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)dir
                                 sdkVersion:(NSString *_Nonnull)sdkVersion
                                 eventTypes:(CAPDiagnosticType)types
                         minimumHangSeconds:(NSTimeInterval)seconds
-                     memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
-                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
-                crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
+                       memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
+                   useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                            crashReporting:(id<CrashReporting> _Nonnull)crashReporting
+             crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completionHandler {
   if (self = [super init]) {
     self.dir = dir;
@@ -77,6 +130,7 @@ static const char *name_for_diagnostic_type(ReportType type);
     self.diagnosticTypes = types;
     self.completionHandler = completionHandler;
     self.useStackOverlapMatching = useStackOverlapMatching;
+    self.crashReporting = crashReporting;
     self.crashEnrichmentSummaryHandler = crashEnrichmentSummaryHandler;
     self.memoryPressureLevel = memoryPressureLevel;
     [self setMinimumHangSeconds:seconds];
@@ -98,13 +152,9 @@ static const char *name_for_diagnostic_type(ReportType type);
   for (MXDiagnosticPayload *payload in payloads) {
     NSTimeInterval timestamp = [payload.timeStampEnd timeIntervalSince1970];
     if ((self.diagnosticTypes & CAPDiagnosticTypeCrash) > 0) {
-      NSDate *ksCrashDate = payload.crashDiagnostics.count == 1
-        ? [BitdriftKSCrashWrapper cachedCrashDate]
-        : nil;
+      NSDate *crashDate = payload.crashDiagnostics.count == 1 ? [self.crashReporting cachedCrashDate] : nil;
       for (MXCrashDiagnostic *event in payload.crashDiagnostics) {
-        NSTimeInterval eventTimestamp = ksCrashDate != nil
-          ? ksCrashDate.timeIntervalSince1970
-          : timestamp;
+        NSTimeInterval eventTimestamp = crashDate ? crashDate.timeIntervalSince1970 : timestamp;
         [self processDiagnostic:event atTimestamp:eventTimestamp];
       }
     }
@@ -126,15 +176,7 @@ static const char *name_for_diagnostic_type(ReportType type);
 
 - (void)processDiagnostic:(MXDiagnostic *)event atTimestamp:(NSTimeInterval)timestamp {
   const void *handle = 0;
-  ReportType report_type = serialize_diagnostic(
-    &handle,
-    self.sdkVersion,
-    event,
-    timestamp,
-    self.useStackOverlapMatching,
-    self.memoryPressureLevel,
-    self.crashEnrichmentSummaryHandler
-  );
+  ReportType report_type = [self serializeDiagnostic:event atTimestamp:timestamp intoHandle:&handle];
   if (report_type != ReportTypeNone && handle != 0) {
     uint64_t length = 0;
     const uint8_t *contents = bdrw_get_completed_buffer(&handle, &length);
@@ -146,92 +188,72 @@ static const char *name_for_diagnostic_type(ReportType type);
     bdrw_dispose_buffer_handle(&handle);
   }
 }
-@end
 
-static NSString *name_for_signal(NSNumber *signal);
-static NSString *name_for_crash(MXCrashDiagnostic *event) API_AVAILABLE(ios(14.0), macos(12.0));
-static NSString *reason_for_crash(MXCrashDiagnostic *event, NSString *name) API_AVAILABLE(ios(14.0), macos(12.0));
+// MARK: - Serialization
 
-static const char *name_for_diagnostic_type(ReportType type) {
-  switch (type) {
-    case ReportTypeNativeCrash:
-      return "crash";
-    case ReportTypeAppNotResponding:
-      return "anr";
-    case ReportTypeNone:
-    default:
-      return "unknown";
-  }
-}
 
-static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
-  if ([dict isKindOfClass:[NSDictionary class]]) {
-    id value = dict[key];
-    return [value isKindOfClass:klass] ? value : nil;
-  }
-  return nil;
-}
-
-#define string_for_key(dict, key) object_for_key(dict, key, [NSString class])
-#define number_for_key(dict, key) object_for_key(dict, key, [NSNumber class])
-#define array_for_key(dict, key) object_for_key(dict, key, [NSArray class])
-#define dict_for_key(dict, key) object_for_key(dict, key, [NSDictionary class])
-
-static inline const char * cstring_from(NSString *str) {
-  return [str cStringUsingEncoding:NSUTF8StringEncoding];
-}
-
-static NSDictionary *thread_root_frame(NSDictionary *thread) {
-  return [array_for_key(thread, @"callStackRootFrames") firstObject];
-}
-
-static uint64_t count_frames(NSDictionary *rootFrame) {
-  uint64_t count = 0;
-  NSDictionary *frame = rootFrame;
-  while ([frame isKindOfClass:[NSDictionary class]]) {
-    count++;
-    frame = [array_for_key(frame, @"subFrames") firstObject];
-  }
-  return count;
-}
-
-static uint32_t crashed_thread_index(NSArray *stacks) {
-  for (uint32_t index = 0; index < stacks.count; index++) {
-    if ([number_for_key(stacks[index], @"threadAttributed") boolValue]) {
-      if (count_frames(thread_root_frame(stacks[index])) > 0) {
-        // match only if thread contains frames (FB18302500)
-        return index;
-      }
-      break;
+- (ReportType)serializeDiagnostic:(MXDiagnostic *)event
+                      atTimestamp:(NSTimeInterval)timestamp
+                       intoHandle:(BDProcessorHandle)handle API_AVAILABLE(ios(14.0), macos(12.0)) {
+  ReportType report_type = ReportTypeNone;
+  if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
+    MXCrashDiagnostic *crash = (MXCrashDiagnostic *)event;
+    // Watchdog terminations arrive as MXCrashDiagnostic but should be reported as ANRs.
+    BOOL is_hang = [self crashIsHangTermination:crash];
+    report_type = is_hang ? ReportTypeAppNotResponding : ReportTypeNativeCrash;
+    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion));
+    NSString *name = is_hang ? DEFAULT_HANG_NAME : [self nameForCrash:crash];
+    NSString *reason = [self reasonForCrash:crash name:name];
+    NSDictionary<NSString *, NSString *> *summary = nil;
+    NSDictionary *dictReport = [self.crashReporting enhancedMetricKitReport:event.dictionaryRepresentation
+                                                        useStackOverlapMatching:self.useStackOverlapMatching
+                                                                     summaryOut:&summary];
+    if (summary != nil && self.crashEnrichmentSummaryHandler != nil) {
+      self.crashEnrichmentSummaryHandler(summary);
     }
+    [self serializeErrorThreads:handle crash:dictReport name:name reason:reason order:FrameOrderInnerToOuter];
+  } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
+    report_type = ReportTypeAppNotResponding;
+    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion));
+    MXHangDiagnostic *hang = (MXHangDiagnostic *)event;
+    NSMeasurementFormatter *formatter = [NSMeasurementFormatter new];
+    NSString *duration = [formatter stringFromMeasurement:hang.hangDuration];
+    NSString *reason = [NSString stringWithFormat:@"app was unresponsive for %@", duration];
+    NSDictionary *representation = event.dictionaryRepresentation;
+    NSString *name = representation[@"hangType"] ?: DEFAULT_HANG_NAME;
+    [self serializeErrorThreads:handle crash:representation name:name reason:reason order:FrameOrderOuterToInner];
+  } else {
+    return report_type;
   }
-  for (uint32_t index = 0; index < stacks.count; index++) {
-    if (count_frames(thread_root_frame(stacks[index])) > 0) {
-      // grab first thread with frames if none attributed or attributed to empty
-      return index;
-    }
-  }
-
-  return 0; // first thread is crashed thread if none contain frames
+  NSDictionary *metadata = event.metaData.dictionaryRepresentation;
+  [self serializeAppMetrics:handle appVersion:event.applicationVersion metadata:metadata];
+  [self serializeDeviceMetrics:handle metadata:metadata timestamp:timestamp];
+  return report_type;
 }
 
-typedef enum : NSUInteger {
-  /// The root frame is the "top"/outermost frame of the call stack tree
-  FrameOrderOuterToInner,
-  /// The root frame is the "bottom"/innermost frame of the call stack tree
-  FrameOrderInnerToOuter,
-} FrameOrder;
+- (BOOL)crashIsHangTermination:(MXCrashDiagnostic *)event API_AVAILABLE(ios(14.0), macos(12.0)) {
+  // if its a watchdog termination
+  return [event.exceptionType isEqualToNumber:@EXC_CRASH] && [event.signal isEqualToNumber:@SIGKILL]
+  // and the termination context indicates ate bad food or
+  && ([[event.terminationReason lowercaseString] containsString:@"0x8badf00d"]
+      // no context is provided
+      || (event.terminationReason == nil && [event.exceptionCode isEqualToNumber:@0]));
+}
 
-static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *crash, NSString *name, NSString *reason, FrameOrder order) {
+- (void)serializeErrorThreads:(BDProcessorHandle)handle
+                        crash:(NSDictionary *)crash
+                         name:(NSString *)name
+                       reason:(NSString *)reason
+                        order:(FrameOrder)order API_AVAILABLE(ios(14.0), macos(12.0)) {
   NSMutableSet <NSString *>* images = [NSMutableSet new];
   NSArray *call_stacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
-  uint32_t crashed_index = crashed_thread_index(call_stacks);
+  uint32_t crashed_index = [self crashedThreadIndex:call_stacks];
 
   for (uint32_t thread_index = 0; thread_index < call_stacks.count; thread_index++) {
     NSDictionary *thread = call_stacks[thread_index];
     NSString *threadName = string_for_key(thread, @"name");
-    NSDictionary *frame = thread_root_frame(thread);
-    uint64_t frame_count = count_frames(frame);
+    NSDictionary *frame = [self threadRootFrame:thread];
+    uint64_t frame_count = [self countFrames:frame];
     if (frame_count == 0 && thread_index != crashed_index) {
       continue;
     }
@@ -285,50 +307,49 @@ static void serialize_error_threads(BDProcessorHandle handle, NSDictionary *cras
   }
 }
 
-static int8_t architecture_constant(NSString *arch) {
-  if (!arch) {
-    return /* Architecture.Unknown */ 0;
-  }
-  return [arch containsString:@"arm64"] ? /* Architecture.arm64 */ 2 : /* Architecture.x86_64 */ 4;
+- (NSDictionary *)threadRootFrame:(NSDictionary *)thread {
+  return [array_for_key(thread, @"callStackRootFrames") firstObject];
 }
 
-@interface BDOSBuild : NSObject
-@property (strong, nonatomic) NSString *name;
-@property (strong, nonatomic) NSString *version;
-@property (strong, nonatomic) NSString *kernversion;
-@end
-
-@implementation BDOSBuild
-- (instancetype)initWithVersion:(NSString *)version {
-  if (!version) {
-    return nil;
+- (uint64_t)countFrames:(NSDictionary *)rootFrame {
+  uint64_t count = 0;
+  NSDictionary *frame = rootFrame;
+  while ([frame isKindOfClass:[NSDictionary class]]) {
+    count++;
+    frame = [array_for_key(frame, @"subFrames") firstObject];
   }
-  NSRegularExpression *matcher = [NSRegularExpression regularExpressionWithPattern:OS_VERSION_MATCHER options:0 error:nil];
-  NSTextCheckingResult *match = [[matcher matchesInString:version options:0 range:NSMakeRange(0, version.length)] firstObject];
-  NSRange nameRange = [match rangeWithName:@"osName"];
-  NSRange versionRange = [match rangeWithName:@"osVersion"];
-  NSRange buildRange = [match rangeWithName:@"buildNumber"];
-  if (self = [super init]) {
-    if (!nameRange.length || !versionRange.length || !buildRange.length) {
-      self.version = version; // pathological case where there's a match but the captures don't hit
-    } else {
-      self.name = [version substringWithRange:nameRange];
-      self.version = [version substringWithRange:versionRange];
-      self.kernversion = [version substringWithRange:buildRange];
+  return count;
+}
+
+- (uint32_t)crashedThreadIndex:(NSArray *)stacks {
+  for (uint32_t index = 0; index < stacks.count; index++) {
+    if ([number_for_key(stacks[index], @"threadAttributed") boolValue]) {
+      if ([self countFrames:[self threadRootFrame:stacks[index]]] > 0) {
+        // match only if thread contains frames (FB18302500)
+        return index;
+      }
+      break;
     }
   }
-  return self;
+  for (uint32_t index = 0; index < stacks.count; index++) {
+    if ([self countFrames:[self threadRootFrame:stacks[index]]] > 0) {
+      // grab first thread with frames if none attributed or attributed to empty
+      return index;
+    }
+  }
+  return 0; // first thread is crashed thread if none contain frames
 }
-@end
 
-static void serialize_device_metrics(BDProcessorHandle handle, NSDictionary *metadata, NSTimeInterval timestamp) {
+- (void)serializeDeviceMetrics:(BDProcessorHandle)handle
+                      metadata:(NSDictionary *)metadata
+                     timestamp:(NSTimeInterval)timestamp API_AVAILABLE(ios(14.0), macos(12.0)) {
   BDOSBuild *os_build_info = [[BDOSBuild alloc] initWithVersion:string_for_key(metadata, @"osVersion")];
   long double seconds = truncl(timestamp);
   long double nanoseconds = (timestamp - seconds) * NSEC_PER_SEC;
 
   BDDeviceMetrics device = {
     .model = cstring_from(string_for_key(metadata, @"deviceType")),
-    .architecture = architecture_constant(string_for_key(metadata, @"platformArchitecture")),
+    .architecture = [self architectureConstant:string_for_key(metadata, @"platformArchitecture")],
     .os_kernversion = cstring_from(os_build_info.kernversion),
     .os_version = cstring_from(os_build_info.version),
     .os_brand = cstring_from(os_build_info.name),
@@ -338,70 +359,30 @@ static void serialize_device_metrics(BDProcessorHandle handle, NSDictionary *met
   bdrw_add_device(handle, &device);
 }
 
-static void serialize_app_metrics(BDProcessorHandle handle, NSString *app_version, NSDictionary *metadata, CAPMemoryPressureLevel memory_pressure_level) {
+- (void)serializeAppMetrics:(BDProcessorHandle)handle
+                 appVersion:(NSString *)app_version
+                   metadata:(NSDictionary *)metadata API_AVAILABLE(ios(14.0), macos(12.0)) {
   NSString *bundle_version = [NSString stringWithFormat:@"%@.%@", app_version, string_for_key(metadata, @"appBuildVersion")];
   BDAppMetrics app = {
     .app_id = cstring_from(string_for_key(metadata, @"bundleIdentifier")),
     .version = cstring_from(app_version),
     .cf_bundle_version = cstring_from(bundle_version),
-    .memory_pressure_level = memory_pressure_level,
+    .memory_pressure_level = self.memoryPressureLevel,
   };
   bdrw_add_app(handle, &app);
 }
 
-static BOOL crash_is_hang_termination(MXCrashDiagnostic *event) {
-  // if its a watchdog termination
-  return [event.exceptionType isEqualToNumber:@EXC_CRASH] && [event.signal isEqualToNumber:@SIGKILL]
-  // and the termination context indicates ate bad food or
-  && ([[event.terminationReason lowercaseString] containsString:@"0x8badf00d"]
-      // no context is provided
-      || (event.terminationReason == nil && [event.exceptionCode isEqualToNumber:@0]));
+- (int8_t)architectureConstant:(NSString *)arch {
+  if (!arch) {
+    return /* Architecture.Unknown */ 0;
+  }
+  return [arch containsString:@"arm64"] ? /* Architecture.arm64 */ 2 : /* Architecture.x86_64 */ 4;
 }
 
-static ReportType serialize_diagnostic(BDProcessorHandle handle,
-                                       NSString *sdk_version,
-                                       MXDiagnostic *event,
-                                       NSTimeInterval timestamp,
-                                       BOOL useStackOverlapMatching,
-                                       CAPMemoryPressureLevel memoryPressureLevel,
-                                       CAPCrashEnrichmentSummaryHandler _Nullable crashEnrichmentSummaryHandler) {
-  ReportType report_type = ReportTypeNone;
-  if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
-    MXCrashDiagnostic *crash = (MXCrashDiagnostic *)event;
-    BOOL is_hang = crash_is_hang_termination(crash);
-    report_type = is_hang ? ReportTypeAppNotResponding : ReportTypeNativeCrash;
-    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
-    NSString *name = is_hang ? DEFAULT_HANG_NAME : name_for_crash(crash);
-    NSString *reason = reason_for_crash(crash, name);
-    NSDictionary<NSString *, NSString *> *summary = nil;
-    NSDictionary *dictReport = [BitdriftKSCrashWrapper enhancedMetricKitReport:event.dictionaryRepresentation
-                                                           useStackOverlapMatching:useStackOverlapMatching
-                                                                        summaryOut:&summary];
-    if (summary != nil && crashEnrichmentSummaryHandler != nil) {
-      crashEnrichmentSummaryHandler(summary);
-    }
-    serialize_error_threads(handle, dictReport, name, reason, FrameOrderInnerToOuter);
-  } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
-    report_type = ReportTypeAppNotResponding;
-    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
-    MXHangDiagnostic *hang = (MXHangDiagnostic *)event;
-    NSMeasurementFormatter *formatter = [NSMeasurementFormatter new];
-    NSString *duration = [formatter stringFromMeasurement:hang.hangDuration];
-    NSString *reason = [NSString stringWithFormat:@"app was unresponsive for %@", duration];
-    NSDictionary *representation = event.dictionaryRepresentation;
-    NSString *name = representation[@"hangType"] ?: DEFAULT_HANG_NAME;
-    serialize_error_threads(handle, representation, name, reason, FrameOrderOuterToInner);
-  } else {
-    return report_type;
-  }
-  NSDictionary *metadata = event.metaData.dictionaryRepresentation;
-  serialize_app_metrics(handle, event.applicationVersion, metadata, memoryPressureLevel);
-  serialize_device_metrics(handle, metadata, timestamp);
-  return report_type;
-}
+// MARK: - Crash type helpers
 
 #define print_case(name) case name: return @#name
-static NSString *name_for_signal(NSNumber *signal) {
+- (NSString *)nameForSignal:(NSNumber *)signal {
   switch (signal.intValue) {
     print_case(SIGHUP);
     print_case(SIGINT);
@@ -437,7 +418,13 @@ static NSString *name_for_signal(NSNumber *signal) {
   }
 }
 
-static NSString *name_for_crash(MXCrashDiagnostic *event) {
+- (NSString *)nameForCrash:(MXCrashDiagnostic *)event API_AVAILABLE(ios(14.0), macos(12.0)) {
+  // NSException data is captured in-process and carries the original name; MetricKit only provides
+  // a Mach exception type, which loses that detail
+  BitdriftPreviousCrash *bitdriftCrash = [self.crashReporting cachedPreviousCrash];
+  if (bitdriftCrash.kind == BitdriftPreviousCrashKindNSException && bitdriftCrash.nsexception.name != nil) {
+    return bitdriftCrash.nsexception.name;
+  }
   switch (event.exceptionType.intValue) {
       print_case(EXC_BAD_ACCESS);
       print_case(EXC_BAD_INSTRUCTION);
@@ -452,12 +439,17 @@ static NSString *name_for_crash(MXCrashDiagnostic *event) {
       print_case(EXC_SOFTWARE);
       print_case(EXC_BREAKPOINT);
     default:
-      return name_for_signal(event.signal);
+      return [self nameForSignal:event.signal];
   }
 }
 #undef print_case
 
-static NSString *reason_for_crash(MXCrashDiagnostic *event, NSString *name) {
+- (NSString *)reasonForCrash:(MXCrashDiagnostic *)event
+                        name:(NSString *)name API_AVAILABLE(ios(14.0), macos(12.0)) {
+  BitdriftPreviousCrash *bitdriftCrash = [self.crashReporting cachedPreviousCrash];
+  if (bitdriftCrash.kind == BitdriftPreviousCrashKindNSException && bitdriftCrash.nsexception.reason != nil) {
+    return bitdriftCrash.nsexception.reason;
+  }
   NSMutableArray <NSString *> *components = [NSMutableArray new];
   if (@available(iOS 17, macOS 14, *)) {
     if (event.exceptionReason) {
@@ -481,9 +473,11 @@ static NSString *reason_for_crash(MXCrashDiagnostic *event, NSString *name) {
   if (event.exceptionCode) {
     return [NSString stringWithFormat:@"code: %ld, signal: %@",
             event.exceptionCode.longValue,
-            name_for_signal(event.signal)];
+            [self nameForSignal:event.signal]];
   }
 
-  NSString *reason = [NSString stringWithFormat:@"%@", name_for_signal(event.signal)];
+  NSString *reason = [NSString stringWithFormat:@"%@", [self nameForSignal:event.signal]];
   return [reason isEqualToString:name] ? nil : reason;
 }
+
+@end

@@ -121,6 +121,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: nil, exceptionCode: nil, callStacks: [])
@@ -147,6 +148,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: nil, exceptionCode: nil, callStacks: [])
@@ -173,6 +175,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
@@ -202,6 +205,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let crashReason = MockObjectiveCReason("NSRangeException", message: "index 5 out of range [0..2]")
@@ -247,6 +251,7 @@ ThermalInfo: (
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, exceptionCode: 0, terminationReason: termContext)
@@ -274,6 +279,7 @@ ThermalInfo: (
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let imageOffset: UInt64 = 165304
@@ -350,6 +356,7 @@ ThermalInfo: (
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let imageOffset: UInt64 = 165304
@@ -419,6 +426,7 @@ ThermalInfo: (
             minimumHangSeconds: 1,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let timestamp = dateFormatter.date(from: "2022-04-07")!
@@ -446,6 +454,7 @@ ThermalInfo: (
             minimumHangSeconds: 1,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let timestamp = dateFormatter.date(from: "2008-11-25")!
@@ -531,6 +540,7 @@ ThermalInfo: (
             minimumHangSeconds: 1,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let timestamp = dateFormatter.date(from: "2008-11-25")!
@@ -648,6 +658,16 @@ func createTempDir() throws -> URL {
 }
 
 // MARK: - mock classes
+
+final class MockCrashReporting: NSObject, CrashReporting {
+    func cachedCrashDate() -> Date? { nil }
+    func cachedPreviousCrash() -> BitdriftPreviousCrash? { nil }
+    func enhancedMetricKitReport(
+        _ metricKitReport: [String: Any],
+        useStackOverlapMatching: Bool,
+        summaryOut: AutoreleasingUnsafeMutablePointer<NSDictionary?>?
+    ) -> [String: Any] { metricKitReport }
+}
 
 final class MockDiagnosticPayload: MXDiagnosticPayload {
     let mockCrashDiagnostics: [MXCrashDiagnostic]?
