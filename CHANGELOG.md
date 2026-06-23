@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added the device's region format to crash reports
 
 **Changed**
 
@@ -35,7 +35,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added whether low power mode was enabled to crash reports
 
 **Changed**
 
