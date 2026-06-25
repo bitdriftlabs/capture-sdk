@@ -350,6 +350,15 @@ object Capture {
         }
 
         /**
+         * Clears the current entity identifier used for backend correlation with the device
+         * identifier.
+         */
+        @JvmStatic
+        fun clearEntityId() {
+            logger()?.clearEntityId()
+        }
+
+        /**
          * Records a feature flag exposure with a boolean variant. Use this method to track when
          * a user is exposed to a specific feature flag variant in your application. The exposure
          * is recorded with a timestamp and tracked for the duration of the process.

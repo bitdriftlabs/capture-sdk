@@ -120,6 +120,12 @@ extension Logger {
         return Self.getShared()?.deviceID
     }
 
+    /// Whether workflow-controlled tracing is currently active for this session.
+    /// Returns `false` prior to SDK start.
+    public static var isTracingActive: Bool {
+        Self.getShared()?.isTracingActive == true
+    }
+
     /// Returns a point-in-time snapshot of the SDK's operational status.
     /// Returns `InitializationState.notStarted` if the SDK has not been started.
     ///
@@ -460,6 +466,11 @@ extension Logger {
     /// - parameter entityID: Entity identifier.
     public static func setEntityID(_ entityID: String) {
         Self.getShared()?.setEntityID(entityID)
+    }
+
+    /// Clears the current entity identifier used for backend correlation with device identifier.
+    public static func clearEntityID() {
+        Self.getShared()?.clearEntityID()
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

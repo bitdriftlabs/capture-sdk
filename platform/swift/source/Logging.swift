@@ -25,6 +25,9 @@ public protocol Logging {
     /// the same device.
     var deviceID: String { get }
 
+    /// Whether workflow-controlled tracing is currently active for this session.
+    var isTracingActive: Bool { get }
+
     /// Returns a point-in-time snapshot of the SDK's operational status.
     ///
     /// - returns: The current SDK status.
@@ -113,6 +116,9 @@ public protocol Logging {
     ///
     /// - parameter entityID: Entity identifier.
     func setEntityID(_ entityID: String)
+
+    /// Clears the current entity identifier used for backend correlation with device identifier.
+    func clearEntityID()
 
     /// Creates a temporary device code that can be fed into bitdrift `bd` CLI tools to stream logs from a
     /// given device in real-time fashion. The creation of the device code requires communication with

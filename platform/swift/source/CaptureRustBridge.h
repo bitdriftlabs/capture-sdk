@@ -306,6 +306,13 @@ int8_t capture_get_previous_memory_pressure_level(logger_id logger_id);
  */
 void capture_set_entity_id(logger_id logger_id, const char *entity_id);
 
+/*
+ * Clears the current entity identifier used for backend correlation with device identifier.
+ *
+ * @param logger_id the logger to clear the entity identifier on.
+ */
+void capture_clear_entity_id(logger_id logger_id);
+
 /**
  * Signals the specified logger to shut down.
  *

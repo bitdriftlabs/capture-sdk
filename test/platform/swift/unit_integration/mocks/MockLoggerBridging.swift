@@ -39,6 +39,10 @@ public final class MockLoggerBridging {
 
     public private(set) var sleepMode: SleepMode = .disabled
 
+    public private(set) var setEntityIDs = [String]()
+
+    public private(set) var clearEntityIDCallCount = 0
+
     public var shouldLogAppUpdateEvent = false
 
     public var tracingActive = true
@@ -148,7 +152,13 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func setFeatureFlagExposure(withName flag: String, variant: String) {}
 
-    public func setEntityID(_: String) {}
+    public func setEntityID(_ entityID: String) {
+        self.setEntityIDs.append(entityID)
+    }
+
+    public func clearEntityID() {
+        self.clearEntityIDCallCount += 1
+    }
 
     public func notifyMemoryPressure(level: MemoryPressureLevel) {}
 

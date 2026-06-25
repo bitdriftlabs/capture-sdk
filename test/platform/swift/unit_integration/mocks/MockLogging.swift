@@ -60,11 +60,16 @@ public final class MockLogging {
     public var onLog: (_ log: Log) -> Void = { _ in }
     /// The sleep mode state
     public private(set) var sleepMode: SleepMode = .disabled
+
+    public private(set) var setEntityIDs = [String]()
+
+    public private(set) var clearEntityIDCallCount = 0
 }
 
 extension MockLogging: Logging {
     public var sessionID: String { "fooID" }
     public var sessionURL: String { "fooURL" }
+    public var isTracingActive: Bool { false }
 
     public func startNewSession() {}
 
@@ -154,5 +159,11 @@ extension MockLogging: Logging {
 
     public func setFeatureFlagExposure(withName flag: String, variant: Bool) {}
 
-    public func setEntityID(_: String) {}
+    public func setEntityID(_ entityID: String) {
+        self.setEntityIDs.append(entityID)
+    }
+
+    public func clearEntityID() {
+        self.clearEntityIDCallCount += 1
+    }
 }

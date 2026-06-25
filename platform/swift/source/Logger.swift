@@ -492,6 +492,10 @@ extension Logger: Logging {
             .absoluteString
     }
 
+    public var isTracingActive: Bool {
+        (self.underlyingLogger as? CoreLogger)?.isTracingActive == true
+    }
+
     public func startNewSession() {
         self.underlyingLogger.startNewSession()
     }
@@ -595,6 +599,10 @@ extension Logger: Logging {
         self.underlyingLogger.setEntityID(entityID)
     }
 
+    public func clearEntityID() {
+        self.underlyingLogger.clearEntityID()
+    }
+
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {
         // Access the `deviceID` when it is needed for creating the device code, rather than
         // at Logger's initialization time. Accessing it later almost guarantees that the
@@ -650,10 +658,6 @@ extension Logger: Logging {
 // MARK: - Features
 
 extension Logger {
-    internal var isTracingActive: Bool {
-        (self.underlyingLogger as? CoreLogger)?.isTracingActive == true
-    }
-
     internal func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         self.underlyingLogger.runtimeValue(variable)
     }

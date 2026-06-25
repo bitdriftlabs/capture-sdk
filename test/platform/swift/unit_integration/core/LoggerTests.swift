@@ -136,6 +136,18 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(bridge.sleepMode, .enabled)
     }
 
+    func testClearEntityIDFiresOverBridge() throws {
+        let bridge = MockLoggerBridging()
+        let logger = try Logger.testLogger(
+            withAPIKey: "some_key",
+            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
+        )
+
+        logger.clearEntityID()
+
+        XCTAssertEqual(1, bridge.clearEntityIDCallCount)
+    }
+
     func testErrorLogging() throws {
         struct Error: Swift.Error {}
 

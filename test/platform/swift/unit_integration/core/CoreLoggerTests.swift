@@ -104,4 +104,13 @@ final class CoreLoggerTests: XCTestCase {
             log.matchingFields
         )
     }
+
+    func testClearEntityIDDelegatesToBridge() {
+        let bridge = MockLoggerBridging()
+        let logger = CoreLogger(logger: bridge)
+
+        logger.clearEntityID()
+
+        XCTAssertEqual(1, bridge.clearEntityIDCallCount)
+    }
 }
