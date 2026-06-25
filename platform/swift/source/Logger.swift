@@ -249,8 +249,8 @@ public final class Logger {
             Logger.hasFatallyTerminatedOnPreviousRun = nil
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
-            self.crashReporterService = CrashReporterService(underlyingLogger: self.underlyingLogger)
-            self.crashReporterService?.setup(sdkBaseURL: directoryURL)
+            self.crashReporterService = CrashReporterService()
+            self.crashReporterService?.setup(sdkBaseURL: directoryURL, underlyingLogger: self.underlyingLogger)
         }
     }
 

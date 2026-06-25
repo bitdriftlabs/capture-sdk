@@ -22,23 +22,21 @@ import Foundation
     private let bitdriftCrashHandler: any BitdriftCrashHandling
     private let metricManager: MXMetricManager
     private let fileManager: FileManager
-    private let underlyingLogger: CoreLogging
+    private var isBitdriftCrashHandlerEnabled = false
 
     init(
-        underlyingLogger: CoreLogging,
         ksCrashHandler: any KSCrashHandling = BitdriftKSCrashWrapper(),
         bitdriftCrashHandler: any BitdriftCrashHandling = BitdriftCrashHandler(),
         metricManager: MXMetricManager = .shared,
         fileManager: FileManager = .default
     ) {
-        self.underlyingLogger = underlyingLogger
         self.ksCrashHandler = ksCrashHandler
         self.bitdriftCrashHandler = bitdriftCrashHandler
         self.metricManager = metricManager
         self.fileManager = fileManager
     }
 
-    func setup(sdkBaseURL: URL) {
+    func setup(sdkBaseURL: URL, underlyingLogger: CoreLogging) {
         #if targetEnvironment(simulator)
         Logger.hasFatallyTerminatedOnPreviousRun = nil
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
@@ -49,8 +47,9 @@ import Foundation
                 return .initialized(runtimeState)
             }
             _ = initializeKSCrash(atURL: sdkBaseURL)
-            
-            if isBitdriftCrashReporterEnabled() {
+
+            isBitdriftCrashHandlerEnabled = underlyingLogger.runtimeValue(.bdCrashReporter)
+            if isBitdriftCrashHandlerEnabled {
                 _ = initializeBitdriftCrashReporter(atURL: sdkBaseURL)
             }
             
@@ -66,7 +65,7 @@ import Foundation
 
     func stop() {
         self.ksCrashHandler.stopCrashReporter()
-        if isBitdriftCrashReporterEnabled() {
+        if isBitdriftCrashHandlerEnabled {
             self.bitdriftCrashHandler.stopCrashReporter()
         }
     }
@@ -81,7 +80,7 @@ extension CrashReporterService: CrashReporting  {
     }
 
     func cachedPreviousCrash() -> BitdriftPreviousCrash? {
-        isBitdriftCrashReporterEnabled() ? self.bitdriftCrashHandler.cachedPreviousCrash() : nil
+        isBitdriftCrashHandlerEnabled ? self.bitdriftCrashHandler.cachedPreviousCrash() : nil
     }
 
     func enhancedMetricKitReport(
@@ -134,11 +133,11 @@ private extension CrashReporterService {
         if let crashed = self.ksCrashHandler.didCrashLastLaunch() {
             return crashed.boolValue
         }
-        
-        if isBitdriftCrashReporterEnabled() {
+
+        if isBitdriftCrashHandlerEnabled {
             return self.bitdriftCrashHandler.didCrashLastLaunch()?.boolValue
         }
-        
+
         return nil
     }
 
@@ -199,9 +198,5 @@ private extension CrashReporterService {
         default:
             return .runtimeInvalid
         }
-    }
-    
-    func isBitdriftCrashReporterEnabled() -> Bool {
-        self.underlyingLogger.runtimeValue(.bdCrashReporter)
     }
 }
