@@ -95,6 +95,9 @@ protocol LoggerBridging {
     /// - parameter entityID: Entity identifier.
     func setEntityID(_ entityID: String)
 
+    /// Clears the current entity identifier used for backend correlation with device identifier.
+    func clearEntityID()
+
     /// Retrieves a given runtime variable.
     ///
     /// - parameter feature: The runtime variable.

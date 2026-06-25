@@ -186,6 +186,10 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.setEntityID(entityID)
     }
 
+    func clearEntityID() {
+        self.underlyingLogger.clearEntityID()
+    }
+
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         self.underlyingLogger.runtimeValue(variable)
     }

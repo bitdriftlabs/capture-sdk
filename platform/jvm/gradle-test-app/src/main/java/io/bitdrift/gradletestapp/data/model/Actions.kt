@@ -30,6 +30,8 @@ sealed class ConfigAction : AppAction {
     data class SetSleepModeEnabled(
         val enabled: Boolean,
     ) : ConfigAction()
+
+    object ClearEntityId : ConfigAction()
 }
 
 sealed class SessionAction : AppAction {

@@ -39,6 +39,14 @@ final class LoggerSharedTests: XCTestCase {
         XCTAssertNotEqual(status.initializationState, InitializationState.notStarted)
     }
 
+    func testClearEntityID_usesSharedLogger() throws {
+        let logger = try XCTUnwrap(Capture.Logger.getShared() as? MockLogging)
+
+        Capture.Logger.clearEntityID()
+
+        XCTAssertEqual(1, logger.clearEntityIDCallCount)
+    }
+
     func testIntegrationsAreEnabledOnlyOnce() throws {
         var integrationStartsCount = 0
         let integration = Integration { _, _, _ in

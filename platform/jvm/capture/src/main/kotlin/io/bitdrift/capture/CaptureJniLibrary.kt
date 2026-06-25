@@ -183,6 +183,13 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     )
 
     /**
+     * Clears the current entity identifier.
+     *
+     * @param loggerId the logger to clear the entity identifier for.
+     */
+    external fun clearEntityId(loggerId: Long)
+
+    /**
      * Sets a feature flag exposure with a boolean variant.
      *
      * @param name the name of the flag exposure to set

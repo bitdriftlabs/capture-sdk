@@ -27,6 +27,7 @@ import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
 import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.webview.WebViewConfiguration
+import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
@@ -52,6 +53,9 @@ import java.util.concurrent.Executors
 object CaptureSdkInitializer {
     private val userUuid = UUID.randomUUID().toString()
     private val bitdriftSessionUrlKey = "bitdrift_session_url"
+
+    val currentUserUuid: String
+        get() = userUuid
 
     /**
      * Init sdk with the persisted settings

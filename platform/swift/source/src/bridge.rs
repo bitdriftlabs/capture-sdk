@@ -1070,6 +1070,17 @@ extern "C" fn capture_set_entity_id(logger_id: LoggerId<'_>, entity_id: *const c
 }
 
 #[no_mangle]
+extern "C" fn capture_clear_entity_id(logger_id: LoggerId<'_>) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      logger_id.register_opaque_entity_id(None);
+      Ok(())
+    },
+    "swift clear entity id",
+  );
+}
+
+#[no_mangle]
 extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {

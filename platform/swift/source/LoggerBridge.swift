@@ -277,6 +277,10 @@ final class LoggerBridge: LoggerBridging {
         capture_set_entity_id(self.loggerID, entityID)
     }
 
+    func clearEntityID() {
+        capture_clear_entity_id(self.loggerID)
+    }
+
     func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         return variable.load(loggerID: self.loggerID)
     }

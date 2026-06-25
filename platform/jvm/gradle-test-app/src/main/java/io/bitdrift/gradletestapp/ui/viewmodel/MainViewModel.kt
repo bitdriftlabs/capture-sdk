@@ -30,6 +30,7 @@ import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
+import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,6 +69,7 @@ class MainViewModel(
                         sessionStrategy = cfg.sessionStrategy,
                         isDeferredStart = cfg.isDeferredStart,
                         isSleepModeEnabled = cfg.isSleepModeEnabled,
+                        entityId = CaptureSdkInitializer.currentUserUuid,
                     ),
             )
         }
@@ -103,6 +105,7 @@ class MainViewModel(
             is ConfigAction.UpdateApiUrl -> updateApiUrl(action.apiUrl)
             is ConfigAction.UpdateLogLevel -> updateLogLevel(action.logLevel)
             is ConfigAction.SetSleepModeEnabled -> setSleepModeEnabled(action.enabled)
+            is ConfigAction.ClearEntityId -> clearEntityId()
 
             is SessionAction.StartNewSession -> startNewSession()
             is SessionAction.GenerateDeviceCode -> generateDeviceCode()
@@ -397,6 +400,15 @@ class MainViewModel(
     private fun updateApiUrl(apiUrl: String) {
         _uiState.update {
             it.copy(config = it.config.copy(apiUrl = apiUrl))
+        }
+    }
+
+    fun currentEntityId(): String = _uiState.value.config.entityId
+
+    private fun clearEntityId() {
+        Logger.clearEntityId()
+        _uiState.update { state ->
+            state.copy(config = state.config.copy(entityId = ""))
         }
     }
 

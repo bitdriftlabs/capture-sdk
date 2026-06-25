@@ -174,6 +174,9 @@ protocol CoreLogging: AnyObject {
     /// - parameter entityID: Entity identifier.
     func setEntityID(_ entityID: String)
 
+    /// Clears the current entity identifier used for backend correlation with device identifier.
+    func clearEntityID()
+
     /// Retrieves the value of a given runtime variable.
     ///
     /// - parameter variable: The runtime variable.

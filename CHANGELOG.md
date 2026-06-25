@@ -8,6 +8,7 @@
 **Added**
 
 - Added the device's region format to crash reports
+- Added public `clearEntityId` / `clearEntityID` APIs to unset the current entity identifier
 
 **Changed**
 
@@ -15,7 +16,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Exposed `isTracingActive` through the public iOS Swift and Objective-C APIs.
 
 ### Android
 
