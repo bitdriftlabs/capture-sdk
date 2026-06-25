@@ -22,20 +22,23 @@ import Foundation
     private let bitdriftCrashHandler: any BitdriftCrashHandling
     private let metricManager: MXMetricManager
     private let fileManager: FileManager
+    private let underlyingLogger: CoreLogging
 
     init(
+        underlyingLogger: CoreLogging,
         ksCrashHandler: any KSCrashHandling = BitdriftKSCrashWrapper(),
         bitdriftCrashHandler: any BitdriftCrashHandling = BitdriftCrashHandler(),
         metricManager: MXMetricManager = .shared,
         fileManager: FileManager = .default
     ) {
+        self.underlyingLogger = underlyingLogger
         self.ksCrashHandler = ksCrashHandler
         self.bitdriftCrashHandler = bitdriftCrashHandler
         self.metricManager = metricManager
         self.fileManager = fileManager
     }
 
-    func setup(sdkBaseURL: URL, underlyingLogger: CoreLogging) {
+    func setup(sdkBaseURL: URL) {
         #if targetEnvironment(simulator)
         Logger.hasFatallyTerminatedOnPreviousRun = nil
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
@@ -46,7 +49,11 @@ import Foundation
                 return .initialized(runtimeState)
             }
             _ = initializeKSCrash(atURL: sdkBaseURL)
-            _ = initializeBitdriftCrashReporter(atURL: sdkBaseURL)
+            
+            if isBitdriftCrashReporterEnabled() {
+                _ = initializeBitdriftCrashReporter(atURL: sdkBaseURL)
+            }
+            
             Logger.hasFatallyTerminatedOnPreviousRun = didCrashLastLaunch()
 
             let reporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
@@ -59,7 +66,9 @@ import Foundation
 
     func stop() {
         self.ksCrashHandler.stopCrashReporter()
-        self.bitdriftCrashHandler.stopCrashReporter()
+        if isBitdriftCrashReporterEnabled() {
+            self.bitdriftCrashHandler.stopCrashReporter()
+        }
     }
 }
 
@@ -68,11 +77,11 @@ import Foundation
 extension CrashReporterService: CrashReporting  {
     // bd-crash-reporter captures the exact crash time; fall back to KSCrash if unavailable.
     func cachedCrashDate() -> Date? {
-        self.bitdriftCrashHandler.cachedPreviousCrash()?.crashDate ?? self.ksCrashHandler.cachedCrashDate()
+        self.cachedPreviousCrash()?.crashDate ?? self.ksCrashHandler.cachedCrashDate()
     }
 
     func cachedPreviousCrash() -> BitdriftPreviousCrash? {
-        self.bitdriftCrashHandler.cachedPreviousCrash()
+        isBitdriftCrashReporterEnabled() ? self.bitdriftCrashHandler.cachedPreviousCrash() : nil
     }
 
     func enhancedMetricKitReport(
@@ -125,7 +134,12 @@ private extension CrashReporterService {
         if let crashed = self.ksCrashHandler.didCrashLastLaunch() {
             return crashed.boolValue
         }
-        return self.bitdriftCrashHandler.didCrashLastLaunch()?.boolValue
+        
+        if isBitdriftCrashReporterEnabled() {
+            return self.bitdriftCrashHandler.didCrashLastLaunch()?.boolValue
+        }
+        
+        return nil
     }
 
     func makeDiagnosticReporter(sdkBaseURL: URL, underlyingLogger: CoreLogging) -> DiagnosticEventReporter {
@@ -185,5 +199,9 @@ private extension CrashReporterService {
         default:
             return .runtimeInvalid
         }
+    }
+    
+    func isBitdriftCrashReporterEnabled() -> Bool {
+        self.underlyingLogger.runtimeValue(.bdCrashReporter)
     }
 }
