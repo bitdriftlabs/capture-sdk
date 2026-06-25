@@ -52,7 +52,7 @@
 
 **Added**
 
-- Added the device's region format to crash reports
+- Added the device's region format (`region_format`) to app metrics to crash reports in [ISO_3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 - Added public `clearEntityId` / `clearEntityID` APIs to unset the current entity identifier
 
 **Fixed**
@@ -63,7 +63,7 @@
 
 **Added**
 
-- Added whether low power mode was enabled to crash reports
+- Added whether low power mode (`low_power_mode_enabled`) was enabled to app metrics in crash reports
 - Exposed `isTracingActive`
 
 ## [0.23.6]
