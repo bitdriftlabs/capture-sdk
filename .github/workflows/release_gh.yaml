@@ -23,7 +23,7 @@ on:
         default: ''
       include-sdk-verification-file:
         type: boolean
-        description: Include Google Play SDK verification file from GOOGLE_PLAY_SDK_VERIFICATION_PROPERTIES secret in the Android AAR.
+        description: Include Google Play SDK verification file from GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS secret in the Android AAR.
         required: false
         default: true
       release-ref:
@@ -36,7 +36,7 @@ on:
         required: true
       OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY:
         required: true
-      GOOGLE_PLAY_SDK_VERIFICATION_PROPERTIES:
+      GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS:
         required: false
   workflow_dispatch:
     inputs:
@@ -68,7 +68,7 @@ on:
         default: ''
       include-sdk-verification-file:
         type: boolean
-        description: Include Google Play SDK verification file from GOOGLE_PLAY_SDK_VERIFICATION_PROPERTIES secret in the Android AAR.
+        description: Include Google Play SDK verification file from GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS secret in the Android AAR.
         required: false
         default: true
       release-ref:
@@ -149,18 +149,18 @@ jobs:
       - name: Add Google Play SDK verification file
         if: ${{ inputs.include-sdk-verification-file }}
         env:
-          GOOGLE_PLAY_SDK_VERIFICATION_PROPERTIES: ${{ secrets.GOOGLE_PLAY_SDK_VERIFICATION_PROPERTIES }}
+          GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS: ${{ secrets.GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS }}
         run: |
           set -euo pipefail
-          if [[ -z "${GOOGLE_PLAY_SDK_VERIFICATION_PROPERTIES:-}" ]]; then
-            echo "GOOGLE_PLAY_SDK_VERIFICATION_PROPERTIES secret is required when include-sdk-verification-file is true" >&2
+          if [[ -z "${GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS:-}" ]]; then
+            echo "GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS secret is required when include-sdk-verification-file is true" >&2
             exit 1
           fi
           verification_dir="platform/jvm/capture/src/main/resources/META-INF/io/bitdrift/capture"
           mkdir -p "$verification_dir"
-          printf '%s' "$GOOGLE_PLAY_SDK_VERIFICATION_PROPERTIES" > "$verification_dir/verification.properties"
+          printf '%s' "$GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS" > "$verification_dir/verification.properties"
           if ! grep -q '^token=' "$verification_dir/verification.properties"; then
-            echo "GOOGLE_PLAY_SDK_VERIFICATION_PROPERTIES must contain the full verification.properties contents, including token=..." >&2
+            echo "GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS must contain the full verification.properties contents, including token=..." >&2
             exit 1
           fi
       - name: Install Clang
