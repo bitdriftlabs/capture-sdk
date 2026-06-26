@@ -143,7 +143,7 @@ final class LifecycleEventListener {
             ],
             error: nil,
             type: .lifecycle,
-            blocking: true
+            blocking: self.logger.runtimeValue(.blockingWillTerminateLog)
         )
     }
 }

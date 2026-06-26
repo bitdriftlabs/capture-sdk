@@ -77,6 +77,11 @@ extension RuntimeVariable<Bool> {
         name: "client_feature.ios.application_exit_reporting",
         defaultValue: true
     )
+    
+    static let blockingWillTerminateLog = RuntimeVariable(
+        name: "client_feature.ios.blocking_will_terminate_log",
+        defaultValue: true
+    )
 
     static let diskUsageReporting = RuntimeVariable(
         name: "client_feature.ios.disk_usage_reporting",
