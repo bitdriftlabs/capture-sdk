@@ -31,7 +31,7 @@ load("//bazel/android:dokka.bzl", "sources_javadocs")
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-def android_artifacts(name, android_library, manifest, archive_name, native_deps = [], proguard_rules = "", visibility = [], excluded_artifacts = []):
+def android_artifacts(name, android_library, manifest, archive_name, native_deps = [], proguard_rules = "", visibility = [], excluded_artifacts = [], sdk_verification_file = []):
     """Create an aar including a native library
 
     NOTE: The bazel android_library's implicit aar output doesn't flatten its transitive
@@ -55,10 +55,11 @@ def android_artifacts(name, android_library, manifest, archive_name, native_deps
         proguard_rules: The proguard rules used for the aar.
         visibility: The visibility of the underlying gen rule.
         excluded_artifacts: The dependencies to avoid adding to the .pom xml even if they appear as a transitive dependency.
+        sdk_verification_file: Optional Google Play SDK verification.properties file to include in classes.jar.
     """
 
     # Create the aar
-    classes_jar = _create_classes_jar(name, manifest, android_library)
+    classes_jar = _create_classes_jar(name, manifest, android_library, sdk_verification_file)
     jni_archive = _create_jni_library(name, native_deps)
     aar_output = _create_aar(name, classes_jar, jni_archive, proguard_rules, manifest, visibility)
 
@@ -212,13 +213,14 @@ def _create_jni_library(name, native_deps = []):
 
     return jni_archive_name + "_unsigned.apk"
 
-def _create_classes_jar(name, manifest, android_library):
+def _create_classes_jar(name, manifest, android_library, sdk_verification_file):
     """Creates the classes.jar which contains all the kotlin/java classes
 
     Args:
         name: The name of the top level macro
         manifest: The manifest file used to create the initial apk
         android_library: The android library target
+        sdk_verification_file: Optional Google Play SDK verification.properties file to include in classes.jar.
     """
     android_binary_name = name + "_bin"
 
@@ -235,18 +237,27 @@ def _create_classes_jar(name, manifest, android_library):
     # - .class files coming from this project, with no third party dependencies included
     # - .kotlin_modules pertaining to the project. We filter in only them by looking for
     #   files that look like META-INF/core_platform_jvm-capture_network_lib.kotlin_module.
+    # - optional Google Play SDK verification file for SDK ownership verification.
     native.genrule(
         name = name + "_classes_jar",
         outs = [name + "_classes.jar"],
-        srcs = [android_binary_name + "_deploy.jar"],
+        srcs = [android_binary_name + "_deploy.jar"] + sdk_verification_file,
         tools = ["//bazel:zipper"],
         cmd = """
+        set -- $(SRCS)
+        deploy_jar=$$1
+        shift
+
         ZIPPER="$$PWD/$(execpath //bazel:zipper)"
         original_directory=$$PWD
         classes_dir=$$(mktemp -d)
         echo "Creating classes.jar from $(SRCS)"
         pushd $$classes_dir
-          unzip $$original_directory/$(SRCS) "META-INF/platform*" io/bitdrift/capture/* > /dev/null
+          unzip $$original_directory/$$deploy_jar "META-INF/platform*" io/bitdrift/capture/* > /dev/null
+          for sdk_verification_file in "$$@"; do
+            mkdir -p META-INF/io/bitdrift/capture
+            cp $$original_directory/$$sdk_verification_file META-INF/io/bitdrift/capture/verification.properties
+          done
           "$$ZIPPER" Cc classes.jar $$(find . -type f -print | sed 's#^\\./##' | sort)
         popd
         cp $$classes_dir/classes.jar $@

@@ -30,6 +30,9 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 private const val LOG_MESSAGE = "50 characters long test message - 0123456789012345"
 
@@ -163,6 +166,42 @@ class LogBenchmarkTest {
         }
     }
     
+    @Test
+    fun startNewSession() = benchmarkCaptureOperation{
+        Capture.Logger.startNewSession()
+    }
+
+    @Test
+    fun getSdkStatus() = benchmarkCaptureOperation{
+        Capture.Logger.getSdkStatus()
+    }
+
+    @Test
+    fun logScreenView() = benchmarkCaptureOperation{
+        Capture.Logger.logScreenView("fake_screen")
+    }
+
+    @Test
+    fun logAppLaunchTTI() = benchmarkCaptureOperation{
+        Capture.Logger.logAppLaunchTTI(1.toDuration(DurationUnit.SECONDS))
+    }
+
+    @Test
+    fun setEntityId() = benchmarkCaptureOperation{
+        Capture.Logger.setEntityId("fake_id")
+    }
+
+    @Test
+    fun clearEntityId() = benchmarkCaptureOperation{
+        Capture.Logger.clearEntityId()
+    }
+
+    private fun benchmarkCaptureOperation(captureSdkOperation: () -> Unit) {
+        startLogger(createFieldProviders())
+
+        benchmarkRule.measureRepeated { captureSdkOperation() }
+    }
+
     private fun getInternalLogger(): IInternalLogger {
         startLogger()
         return Capture.logger() as IInternalLogger
