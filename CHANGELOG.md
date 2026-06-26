@@ -1,14 +1,13 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.5...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.7...HEAD
 
 ### Both
 
 **Added**
 
-- Added the device's region format to crash reports
-- Added public `clearEntityId` / `clearEntityID` APIs to unset the current entity identifier
+- Nothing yet!
 
 **Changed**
 
@@ -16,8 +15,7 @@
 
 **Fixed**
 
-- Improved session strategy callback execution to avoid threading issues.
-- Exposed `isTracingActive` through the public iOS Swift and Objective-C APIs.
+- Nothing yet!
 
 ### Android
 
@@ -37,7 +35,7 @@
 
 **Added**
 
-- Added whether low power mode was enabled to crash reports
+- Nothing yet!
 
 **Changed**
 
@@ -46,6 +44,33 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.7]
+[0.23.7]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/0.23.7
+
+### Both
+
+**Added**
+
+- Added the device's region format (`region_format`) to app metrics to crash reports in [ISO_3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
+- Added public `clearEntityId` / `clearEntityID` APIs to unset the current entity identifier
+
+**Fixed**
+
+- Improved session strategy callback execution to avoid threading issues.
+
+### iOS
+
+**Added**
+
+- Added whether low power mode (`low_power_mode_enabled`) was enabled to app metrics in crash reports
+- Exposed `isTracingActive`
+
+### Android
+
+**Added**
+
+- Added support for Google Play SDK verification in Android releases.
 
 ## [0.23.6]
 [0.23.6]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/0.23.6
