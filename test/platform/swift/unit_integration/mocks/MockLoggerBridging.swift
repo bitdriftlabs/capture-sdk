@@ -22,7 +22,7 @@ public final class MockLoggerBridging {
         public let fields: InternalFields?
         public let matchingFields: InternalFields?
         public let type: Capture.Logger.LogType
-        public let blocking: Bool
+        public let blockingBehavior: LogBlockingBehavior
         public let occurredAtOverride: Date?
     }
 
@@ -78,7 +78,7 @@ extension MockLoggerBridging: LoggerBridging {
         fields: InternalFields?,
         matchingFields: InternalFields?,
         type: Capture.Logger.LogType,
-        blocking: Bool,
+        blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     ) {
         self.underlyingLogs.update {
@@ -89,7 +89,7 @@ extension MockLoggerBridging: LoggerBridging {
                     fields: fields,
                     matchingFields: matchingFields,
                     type: type,
-                    blocking: blocking,
+                    blockingBehavior: blockingBehavior,
                     occurredAtOverride: occurredAtOverride
                 )
             )

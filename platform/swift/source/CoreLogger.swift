@@ -43,7 +43,7 @@ extension CoreLogger: CoreLogging {
         matchingFields: Fields? = nil,
         error: Error? = nil,
         type: Capture.Logger.LogType,
-        blocking: Bool = false,
+        blockingBehavior: LogBlockingBehavior = .nonBlocking,
         occurredAtOverride: Date? = nil
     )
     {
@@ -81,7 +81,7 @@ extension CoreLogger: CoreLogging {
             fields: fieldsOrNil,
             matchingFields: matchingFields.flatMap(self.convertFields),
             type: type,
-            blocking: blocking,
+            blockingBehavior: blockingBehavior,
             occurredAtOverride: occurredAtOverride
         )
     }

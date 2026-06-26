@@ -15,6 +15,11 @@ private enum Keys {
     static let line = "_line"
 }
 
+enum LogBlockingBehavior: Equatable {
+    case nonBlocking
+    case blocking(timeoutMs: UInt32)
+}
+
 /// Provides a logging interface. This interface separates the creation of a logger into two distinct
 /// phases: initialization and activation.
 protocol CoreLogging: AnyObject {
@@ -34,7 +39,8 @@ protocol CoreLogging: AnyObject {
     ///                                 read when processing a given log but are not a part of the log itself.
     /// - parameter error:              The error to log.
     /// - parameter type:               The type of the log message (i.e., `normal` or `internalsdk`).
-    /// - parameter blocking:           Whether the call should block until the log is processed.
+    /// - parameter blockingBehavior:   Whether the call should block until the log is processed and which
+    ///                                 timeout to use when it does.
     /// - parameter occurredAtOverride: An override for the time the log occurred. If `nil`, current date is
     ///                                 used.
     func log(
@@ -47,7 +53,7 @@ protocol CoreLogging: AnyObject {
         matchingFields: Fields?,
         error: Error?,
         type: Capture.Logger.LogType,
-        blocking: Bool,
+        blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     )
 
@@ -222,7 +228,8 @@ extension CoreLogging {
     ///                                 of the log itself.
     /// - parameter error:              The error to log.
     /// - parameter type:               The type of the log message (i.e., `normal` or `internalsdk`).
-    /// - parameter blocking:           Whether the call should block until the log is processed.
+    /// - parameter blockingBehavior:   Whether the call should block until the log is processed and which
+    ///                                 timeout to use when it does.
     /// - parameter occurredAtOverride: An override for the time the log occurred. If `nil`, current date is
     ///                                 used.
     func log(
@@ -235,7 +242,7 @@ extension CoreLogging {
         matchingFields: Fields? = nil,
         error: Error? = nil,
         type: Capture.Logger.LogType,
-        blocking: Bool = false,
+        blockingBehavior: LogBlockingBehavior = .nonBlocking,
         occurredAtOverride: Date? = nil
     )
     {
@@ -249,7 +256,7 @@ extension CoreLogging {
             matchingFields: matchingFields,
             error: error,
             type: type,
-            blocking: blocking,
+            blockingBehavior: blockingBehavior,
             occurredAtOverride: occurredAtOverride
         )
     }
@@ -281,7 +288,7 @@ extension CoreLogging {
             fields: fields,
             error: nil,
             type: .internalsdk,
-            blocking: false
+            blockingBehavior: .nonBlocking
         )
     }
 }

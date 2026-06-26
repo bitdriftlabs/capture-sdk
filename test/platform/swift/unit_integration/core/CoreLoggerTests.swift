@@ -26,7 +26,7 @@ final class CoreLoggerTests: XCTestCase {
         XCTAssertNil(log.fields)
         XCTAssertEqual(.debug, log.level)
         XCTAssertEqual(.normal, log.type)
-        XCTAssertFalse(log.blocking)
+        XCTAssertEqual(log.blockingBehavior, .nonBlocking)
     }
 
     func testLogWithError() throws {
@@ -52,7 +52,7 @@ final class CoreLoggerTests: XCTestCase {
         )
         XCTAssertEqual(.debug, log.level)
         XCTAssertEqual(.normal, log.type)
-        XCTAssertFalse(log.blocking)
+        XCTAssertEqual(log.blockingBehavior, .nonBlocking)
     }
 
     func testLogInternal() {
@@ -76,7 +76,7 @@ final class CoreLoggerTests: XCTestCase {
         XCTAssertEqual(3, log.fields?.count)
         XCTAssertEqual(.debug, log.level)
         XCTAssertEqual(.internalsdk, log.type)
-        XCTAssertFalse(log.blocking)
+        XCTAssertEqual(log.blockingBehavior, .nonBlocking)
     }
 
     func testPassingFields() {

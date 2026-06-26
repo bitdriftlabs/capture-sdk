@@ -120,6 +120,11 @@ extension RuntimeVariable<UInt32> {
         defaultValue: 2_000
     )
 
+    static let applicationExitLogBlockingTimeoutMs = RuntimeVariable(
+        name: "client_feature.ios.application_exit_reporting.blocking_timeout_ms",
+        defaultValue: 500
+    )
+
     static let appLowMemoryPercentThreshold = RuntimeVariable(
         name: "client_feature.ios.app_low_memory_percent_threshold",
         defaultValue: 90

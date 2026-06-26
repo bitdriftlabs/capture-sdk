@@ -21,7 +21,7 @@ public final class MockCoreLogging {
         public let matchingFields: Fields?
         public let error: Error?
         public let type: Capture.Logger.LogType
-        public let blocking: Bool
+        public let blockingBehavior: LogBlockingBehavior
         public let occurredAtOverride: Date?
     }
 
@@ -109,7 +109,7 @@ extension MockCoreLogging: CoreLogging {
         matchingFields: Fields?,
         error: Error?,
         type: Capture.Logger.LogType,
-        blocking: Bool,
+        blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     ) {
         self.logs.append(
@@ -123,7 +123,7 @@ extension MockCoreLogging: CoreLogging {
                 matchingFields: matchingFields,
                 error: error,
                 type: type,
-                blocking: blocking,
+                blockingBehavior: blockingBehavior,
                 occurredAtOverride: occurredAtOverride
             )
         )

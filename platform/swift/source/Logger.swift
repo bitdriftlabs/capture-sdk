@@ -342,7 +342,7 @@ public final class Logger {
         matchingFields: Fields? = nil,
         error: Error? = nil,
         type: LogType,
-        blocking: Bool = false
+        blockingBehavior: LogBlockingBehavior = .nonBlocking
     ) {
         self.underlyingLogger.log(
             level: level,
@@ -354,7 +354,7 @@ public final class Logger {
             matchingFields: matchingFields,
             error: error,
             type: type,
-            blocking: blocking
+            blockingBehavior: blockingBehavior
         )
     }
 
@@ -526,7 +526,7 @@ extension Logger: Logging {
             fields: fields,
             error: error,
             type: .normal,
-            blocking: false
+            blockingBehavior: .nonBlocking
         )
     }
 
@@ -546,7 +546,7 @@ extension Logger: Logging {
             matchingFields: request.toMatchingFields(),
             error: nil,
             type: .span,
-            blocking: false
+            blockingBehavior: .nonBlocking
         )
     }
 
@@ -566,7 +566,7 @@ extension Logger: Logging {
             matchingFields: response.toMatchingFields(),
             error: nil,
             type: .span,
-            blocking: false
+            blockingBehavior: .nonBlocking
         )
     }
 
