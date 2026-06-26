@@ -66,6 +66,12 @@
 - Added whether low power mode (`low_power_mode_enabled`) was enabled to app metrics in crash reports
 - Exposed `isTracingActive`
 
+### Android
+
+**Added**
+
+- Added support for Google Play SDK verification in Android releases.
+
 ## [0.23.6]
 [0.23.6]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/0.23.6
 
