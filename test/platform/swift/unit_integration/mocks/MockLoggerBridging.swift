@@ -71,7 +71,7 @@ extension MockLoggerBridging: LoggerBridging {
     public func getSdkStatus() -> SdkStatus {
         SdkStatus(initializationState: .notStarted, lastHandshakeTime: nil, lastConfigDeliveryTime: nil)
     }
-    
+
     public func log(
         level: LogLevel,
         message: @autoclosure () -> String,
