@@ -746,7 +746,7 @@ extern "C" fn capture_write_log(
         attributes_overrides,
         if blocking {
           Block::Yes {
-            timeout: std::time::Duration::from_secs(1),
+            timeout: std::time::Duration::from_millis(500),
             poll_callback: None,
           }
         } else {
