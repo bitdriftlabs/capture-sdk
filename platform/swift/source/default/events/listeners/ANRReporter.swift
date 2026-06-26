@@ -105,7 +105,7 @@ final class ANRReporter {
                 matchingFields: nil,
                 error: nil,
                 type: .lifecycle,
-                blocking: false
+                blockingBehavior: .nonBlocking
             )
         }
 
@@ -136,7 +136,7 @@ final class ANRReporter {
             matchingFields: nil,
             error: nil,
             type: .lifecycle,
-            blocking: false
+            blockingBehavior: .nonBlocking
         )
     }
 }

@@ -173,9 +173,16 @@ final class LoggerBridge: LoggerBridging {
         fields: [CapturePassable.Field]?,
         matchingFields: [CapturePassable.Field]?,
         type: Capture.Logger.LogType,
-        blocking: Bool,
+        blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     ) {
+        let (blocking, blockingTimeoutMs): (Bool, UInt32) = switch blockingBehavior {
+        case .nonBlocking:
+            (false, 500)
+        case .blocking(let timeoutMs):
+            (true, timeoutMs)
+        }
+
         capture_write_log(
             self.loggerID,
             level.rawValue,
@@ -184,6 +191,7 @@ final class LoggerBridge: LoggerBridging {
             fields,
             matchingFields,
             blocking,
+            blockingTimeoutMs,
             occurredAtOverride.map { Int64($0.timeIntervalSince1970 * 1_000) } ?? 0
         )
     }

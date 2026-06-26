@@ -22,7 +22,7 @@ protocol LoggerBridging {
         fields: InternalFields?,
         matchingFields: InternalFields?,
         type: Capture.Logger.LogType,
-        blocking: Bool,
+        blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     )
 

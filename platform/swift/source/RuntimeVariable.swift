@@ -78,11 +78,6 @@ extension RuntimeVariable<Bool> {
         defaultValue: true
     )
 
-    static let blockingWillTerminateLog = RuntimeVariable(
-        name: "client_feature.ios.blocking_will_terminate_log",
-        defaultValue: false
-    )
-
     static let diskUsageReporting = RuntimeVariable(
         name: "client_feature.ios.disk_usage_reporting",
         defaultValue: true
@@ -123,6 +118,11 @@ extension RuntimeVariable<UInt32> {
     static let applicationANRReporterThresholdMs = RuntimeVariable(
         name: "client_feature.ios.application_anr_reporting.threshold_ms",
         defaultValue: 2_000
+    )
+
+    static let applicationExitLogBlockingTimeoutMs = RuntimeVariable(
+        name: "client_feature.ios.application_exit_reporting.blocking_timeout_ms",
+        defaultValue: 500
     )
 
     static let appLowMemoryPercentThreshold = RuntimeVariable(
