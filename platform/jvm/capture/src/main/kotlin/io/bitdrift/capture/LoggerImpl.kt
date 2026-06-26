@@ -338,8 +338,10 @@ internal class LoggerImpl(
     fun getSdkStatus(): SdkStatus = CaptureJniLibrary.getSdkStatus(this.loggerId)
 
     override fun startNewSession() {
-        CaptureJniLibrary.startNewSession(this.loggerId)
-    }
+        eventListenerDispatcher.executorService.submit {
+            CaptureJniLibrary.startNewSession(this.loggerId)
+        }
+     }
 
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
         CaptureJniLibrary.getDeviceId(this.loggerId)?.let { deviceId ->
