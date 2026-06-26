@@ -41,7 +41,7 @@
 
 **Changed**
 
-- Added a change to reduce the chances of SDK work running while the app is being terminated
+- Reduced the chances of SDK work delaying app termination when the app is closing
 
 **Fixed**
 
