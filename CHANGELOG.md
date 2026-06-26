@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.7...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.8...HEAD
 
 ### Both
 
@@ -39,11 +39,20 @@
 
 **Changed**
 
-- Reduced the chances of SDK work delaying app termination when the app is closing
+- Nothing yet!
 
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.8]
+[0.23.8]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.8
+
+### iOS
+
+**Changed**
+
+- Reduced the chances of SDK work delaying app termination when the app is closing
 
 ## [0.23.7]
 [0.23.7]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/0.23.7
