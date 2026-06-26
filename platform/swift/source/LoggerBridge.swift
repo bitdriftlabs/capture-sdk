@@ -178,7 +178,7 @@ final class LoggerBridge: LoggerBridging {
     ) {
         let (blocking, blockingTimeoutMs): (Bool, UInt32) = switch blockingBehavior {
         case .nonBlocking:
-            (false, 500)
+            (false, 0)
         case .blocking(let timeoutMs):
             (true, timeoutMs)
         }
