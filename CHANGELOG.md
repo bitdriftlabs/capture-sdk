@@ -41,7 +41,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced the default wait time for the AppExit log during app termination from 1s to 500ms
 
 **Fixed**
 
