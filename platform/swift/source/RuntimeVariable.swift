@@ -80,7 +80,7 @@ extension RuntimeVariable<Bool> {
 
     static let blockingWillTerminateLog = RuntimeVariable(
         name: "client_feature.ios.blocking_will_terminate_log",
-        defaultValue: true
+        defaultValue: false
     )
 
     static let diskUsageReporting = RuntimeVariable(
