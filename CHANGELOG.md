@@ -16,6 +16,7 @@
 
 **Fixed**
 
+- Improved session strategy callback execution to avoid threading issues.
 - Exposed `isTracingActive` through the public iOS Swift and Objective-C APIs.
 
 ### Android
