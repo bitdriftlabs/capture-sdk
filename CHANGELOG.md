@@ -41,7 +41,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced the chances of SDK work delaying app termination when the app is closing
 
 **Fixed**
 
