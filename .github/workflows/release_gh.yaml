@@ -21,6 +21,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios. Leave empty for standard "capture".'
         required: false
         default: ''
+      include-sdk-verification-file:
+        type: boolean
+        description: Include Google Play SDK verification file from ANDROID_SDK_VERIFICATION_PROPERTIES secret in the Android AAR.
+        required: false
+        default: true
       release-ref:
         type: string
         description: Branch or tag to build/release from. Defaults to main.
@@ -31,6 +36,8 @@ on:
         required: true
       OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY:
         required: true
+      ANDROID_SDK_VERIFICATION_PROPERTIES:
+        required: false
   workflow_dispatch:
     inputs:
       version:
@@ -59,6 +66,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios. Leave empty for standard "capture".'
         required: false
         default: ''
+      include-sdk-verification-file:
+        type: boolean
+        description: Include Google Play SDK verification file from ANDROID_SDK_VERIFICATION_PROPERTIES secret in the Android AAR.
+        required: false
+        default: true
       release-ref:
         type: string
         description: Branch or tag to build/release from. Defaults to main.
@@ -81,6 +93,7 @@ jobs:
       VERSION: ${{ inputs.version }}
       CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
       PLATFORM: ${{ inputs.platform }}
+      INCLUDE_SDK_VERIFICATION_FILE: ${{ inputs.include-sdk-verification-file }}
 
   # The iOS release build builds the xcframework in release mode and uploads it to the artifact store for later use.
   ios-release-build:
@@ -133,15 +146,33 @@ jobs:
           ref: ${{ inputs.release-ref || github.ref_name }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
+      - name: Add Google Play SDK verification file
+        if: ${{ inputs.include-sdk-verification-file }}
+        env:
+          ANDROID_SDK_VERIFICATION_PROPERTIES: ${{ secrets.ANDROID_SDK_VERIFICATION_PROPERTIES }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${ANDROID_SDK_VERIFICATION_PROPERTIES:-}" ]]; then
+            echo "ANDROID_SDK_VERIFICATION_PROPERTIES secret is required when include-sdk-verification-file is true" >&2
+            exit 1
+          fi
+          verification_dir="platform/jvm/capture/src/main/resources/META-INF/io/bitdrift/capture"
+          mkdir -p "$verification_dir"
+          printf '%s' "$ANDROID_SDK_VERIFICATION_PROPERTIES" > "$verification_dir/verification.properties"
+          if ! grep -q '^token=' "$verification_dir/verification.properties"; then
+            echo "ANDROID_SDK_VERIFICATION_PROPERTIES must contain the full verification.properties contents, including token=..." >&2
+            exit 1
+          fi
       - name: Install Clang
         run: sudo apt-get install -y clang
       - name: Build AAR + artifacts
         run: |
           artifact_name="capture$CAPTURE_SUFFIX"
-          ./tools/android_release.sh "$VERSION" "$artifact_name"
+          ./tools/android_release.sh "$VERSION" "$artifact_name" "$INCLUDE_SDK_VERIFICATION_FILE"
         env:
           VERSION: ${{ inputs.version }}
           CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
+          INCLUDE_SDK_VERIFICATION_FILE: ${{ inputs.include-sdk-verification-file }}
       - uses: actions/upload-artifact@v4
         with:
           name: Capture.android.zip

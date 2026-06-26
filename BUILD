@@ -87,6 +87,10 @@ android_artifacts(
     name = "capture_aar",
     android_library = "//platform/jvm/capture:capture_logger_lib",
     archive_name = "capture",
+    sdk_verification_file = select({
+        "//bazel/android:android_sdk_verification_file": ["//platform/jvm/capture:sdk_verification_file"],
+        "//conditions:default": [],
+    }),
     excluded_artifacts = [
         "com.google.code.findbugs:jsr305",
         "com.squareup.retrofit2:retrofit",

@@ -34,6 +34,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
         required: false
         default: ''
+      include-sdk-verification-file:
+        type: boolean
+        description: Include Google Play SDK verification file from ANDROID_SDK_VERIFICATION_PROPERTIES secret in the Android AAR.
+        required: false
+        default: true
       release-ref:
         type: string
         description: Branch or tag to release from. Defaults to main.
@@ -64,6 +69,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
         required: false
         default: ''
+      include-sdk-verification-file:
+        type: boolean
+        description: Include Google Play SDK verification file from ANDROID_SDK_VERIFICATION_PROPERTIES secret in the Android AAR.
+        required: false
+        default: true
       release-ref:
         type: string
         description: Branch or tag to release from. Defaults to main.
@@ -74,7 +84,9 @@ on:
         required: true
       OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY:
         required: true
-        
+      ANDROID_SDK_VERIFICATION_PROPERTIES:
+        required: false
+         
 jobs:
   gh-release:
     if: ${{ inputs.platform != 'react-native' }}
@@ -86,6 +98,7 @@ jobs:
       platform: ${{ inputs.platform }}
       android-artifacts: ${{ inputs.android-artifacts }}
       capture-suffix: ${{ inputs.capture-suffix }}
+      include-sdk-verification-file: ${{ inputs.include-sdk-verification-file }}
       release-ref: ${{ inputs.release-ref }}
     secrets: inherit
   public-release:
