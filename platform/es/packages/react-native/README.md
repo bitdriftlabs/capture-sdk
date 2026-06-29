@@ -24,7 +24,9 @@ import {
   info,
   warn,
   error,
+  isTracingActive,
   setEntityId,
+  clearEntityId,
   SessionStrategy,
 } from '@bitdrift/react-native';
 
@@ -44,6 +46,8 @@ init('<api key>', SessionStrategy.Activity, {
 
 info('Hello, World!');
 setEntityId('user-123');
+console.log('Tracing active?', isTracingActive());
+clearEntityId();
 ```
 
 For all Expo usages, make sure to add `@bitdrift/react-native` to the `plugins` field in your `app.json` file. This helps ensure setting up the native modules correctly.
@@ -264,11 +268,27 @@ setFeatureFlagExposure('beta_mode', false);
 Sets an entity identifier for backend correlation with device identifier. The value is hashed for storage and the exact value is never persisted.
 
 ```js
-import { setEntityId } from '@bitdrift/react-native';
+import { clearEntityId, setEntityId } from '@bitdrift/react-native';
 
 setEntityId('user-123');
 setEntityId('account-456');
+clearEntityId();
 ```
+
+### Tracing State
+
+Use `isTracingActive()` to synchronously check whether trace propagation is currently active.
+
+```ts
+import { init, isTracingActive, SessionStrategy } from '@bitdrift/react-native';
+
+init('<api key>', SessionStrategy.Activity);
+
+const tracingActive = isTracingActive();
+console.log('Tracing active?', tracingActive);
+```
+
+- It returns `false` when tracing is not active or the SDK is not running.
 
 ### Network Integration
 

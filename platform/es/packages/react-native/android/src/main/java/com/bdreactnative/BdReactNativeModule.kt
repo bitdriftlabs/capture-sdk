@@ -260,9 +260,19 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     Capture.Logger.removeField(key)
   }
 
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  override fun isTracingActive(): Boolean {
+    return Capture.Logger.isTracingActive ?: false
+  }
+
   @ReactMethod
   override fun setEntityId(entityId: String) {
     Capture.Logger.setEntityId(entityId)
+  }
+
+  @ReactMethod
+  override fun clearEntityId() {
+    Capture.Logger.clearEntityId()
   }
 
   @ReactMethod

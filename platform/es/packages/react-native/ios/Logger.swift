@@ -133,8 +133,18 @@ let CAPRNStartResultDidEmitNotification = Notification.Name("BdReactNative.onSta
     }
 
     @objc
+    public static func isTracingActive() -> Bool {
+        Capture.Logger.isTracingActive
+    }
+
+    @objc
     public static func setEntityId(_ entityId: String) {
         Capture.Logger.setEntityID(entityId)
+    }
+
+    @objc
+    public static func clearEntityId() {
+        Capture.Logger.clearEntityID()
     }
 
     @objc

@@ -71,7 +71,11 @@ export interface Spec extends TurboModule {
 
   removeField(key: string): void;
 
+  isTracingActive(): boolean;
+
   setEntityId(entityId: string): void;
+
+  clearEntityId(): void;
 
   getDeviceID(): Promise<string>;
 

@@ -34,7 +34,9 @@ function loadSdk(platform: PlatformName): TestSetup {
     log: jest.fn(),
     addField: jest.fn(),
     removeField: jest.fn(),
+    isTracingActive: jest.fn(),
     setEntityId: jest.fn(),
+    clearEntityId: jest.fn(),
     getDeviceID: jest.fn(),
     getSessionID: jest.fn(),
     getSessionURL: jest.fn(),
@@ -362,5 +364,24 @@ describe('setEntityId', () => {
     sdk.setEntityId('expo-sample-entity');
 
     expect(nativeModule.setEntityId).toHaveBeenCalledWith('expo-sample-entity');
+  });
+});
+
+describe('isTracingActive', () => {
+  test('returns the native tracing state synchronously', () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+    nativeModule.isTracingActive.mockReturnValue(true);
+
+    expect(sdk.isTracingActive()).toBe(true);
+  });
+});
+
+describe('clearEntityId', () => {
+  test('forwards to the native module', () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+
+    sdk.clearEntityId();
+
+    expect(nativeModule.clearEntityId).toHaveBeenCalled();
   });
 });
