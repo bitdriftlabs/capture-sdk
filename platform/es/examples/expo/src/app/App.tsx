@@ -17,17 +17,20 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import {
+  clearEntityId,
   generateDeviceCode,
   getPreviousRunInfo,
   getSdkStatus,
   getSessionURL,
   info,
+  isTracingActive,
   debug,
   trace,
   error,
   warn,
   logScreenView,
   logAppLaunchTTI,
+  setEntityId,
   type PreviousRunInfo,
   type SdkStatus,
   setFeatureFlagExposure,
@@ -115,6 +118,7 @@ const HomeScreen = () => {
   );
   const [sessionURL, setSessionURL] = useState<string | null>(null);
   const [sdkStatus, setSdkStatus] = useState<SdkStatus | null>(null);
+  const [tracingActive, setTracingActive] = useState(false);
   const [previousRunInfo, setPreviousRunInfo] = useState<PreviousRunInfo>(null);
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [showErrorPickerModal, setShowErrorPickerModal] = useState(false);
@@ -123,6 +127,7 @@ const HomeScreen = () => {
   useEffect(() => {
     setPreviousRunInfo(getPreviousRunInfo());
     setSdkStatus(getSdkStatus());
+    setTracingActive(isTracingActive());
 
     getSessionURL()
       .then(setSessionURL)
@@ -131,6 +136,7 @@ const HomeScreen = () => {
 
   const refreshSdkStatus = () => {
     setSdkStatus(getSdkStatus());
+    setTracingActive(isTracingActive());
     showToast(`SDK state: ${getSdkStatus().initializationState}`);
   };
 
@@ -144,6 +150,7 @@ const HomeScreen = () => {
       logScreenView('HomeScreen');
       logAppLaunchTTI(1.0);
       setSdkStatus(getSdkStatus());
+      setTracingActive(isTracingActive());
       showToast(`Logged: [${selectedLogLevel.toUpperCase()}]: Log emitted`);
     }
   };
@@ -172,6 +179,16 @@ const HomeScreen = () => {
     showToast('Feature flag set: experimental_feature = true');
   };
 
+  const handleSetEntityId = () => {
+    setEntityId('expo-sample-entity');
+    showToast('Entity ID set: expo-sample-entity');
+  };
+
+  const handleClearEntityId = () => {
+    clearEntityId();
+    showToast('Entity ID cleared');
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>
@@ -186,6 +203,9 @@ const HomeScreen = () => {
       </Text>
       <Text style={styles.previousRunInfoText}>
         SDK status: {JSON.stringify(sdkStatus)}
+      </Text>
+      <Text style={styles.previousRunInfoText}>
+        Tracing active: {tracingActive ? 'true' : 'false'}
       </Text>
       <Text testID="previous-run-info" style={styles.previousRunInfoText}>
         Previous run info: {JSON.stringify(previousRunInfo)}
@@ -253,6 +273,27 @@ const HomeScreen = () => {
           onPress={() => setShowWebViewModal(true)}
         >
           <Text style={styles.buttonText}>Open bitdrift.io WebView</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleSetEntityId}
+        >
+          <Text style={styles.buttonText}>Set Entity ID</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleClearEntityId}
+        >
+          <Text style={styles.buttonText}>Clear Entity ID</Text>
         </Pressable>
       </View>
 

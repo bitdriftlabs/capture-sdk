@@ -34,7 +34,11 @@ abstract class BdReactNativeSpec internal constructor(context: ReactApplicationC
 
   abstract fun removeField(key: String)
 
+  abstract fun isTracingActive(): Boolean
+
   abstract fun setEntityId(entityId: String)
+
+  abstract fun clearEntityId()
 
   abstract fun logScreenView(screenView: String)
 

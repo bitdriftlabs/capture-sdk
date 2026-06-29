@@ -4,6 +4,7 @@ import {
   removeField,
   debug,
   info,
+  isTracingActive,
   setEntityId,
   SessionStrategy,
   getSessionID,
@@ -65,5 +66,6 @@ if (BITDRIFT_API_KEY) {
   removeField('environment');
   addField('environment', 'expo');
   setEntityId('react-native-entity-id');
+  console.log('Tracing active after init:', isTracingActive());
   debug('expo example initialized');
 }
