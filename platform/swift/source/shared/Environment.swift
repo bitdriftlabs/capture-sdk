@@ -36,3 +36,17 @@ enum Environment {
         Self.mockedIsRunningTests
         ?? (ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)
 }
+
+protocol AppEnvironment {
+    var isSimulator: Bool { get }
+}
+
+class LiveEnvironment: AppEnvironment {
+    lazy var isSimulator: Bool = {
+        #if targetEnvironment(simulator)
+        true
+        #else
+        false
+        #endif
+    }()
+}

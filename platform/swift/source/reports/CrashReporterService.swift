@@ -22,25 +22,31 @@ import Foundation
     private let bitdriftCrashHandler: any BitdriftCrashHandling
     private let metricManager: MXMetricManager
     private let fileManager: FileManager
+    private let environment: AppEnvironment
     private var isBitdriftCrashHandlerEnabled = false
 
     init(
         ksCrashHandler: any KSCrashHandling = BitdriftKSCrashWrapper(),
         bitdriftCrashHandler: any BitdriftCrashHandling = BitdriftCrashHandler(),
         metricManager: MXMetricManager = .shared,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        environment: AppEnvironment = LiveEnvironment()
     ) {
         self.ksCrashHandler = ksCrashHandler
         self.bitdriftCrashHandler = bitdriftCrashHandler
         self.metricManager = metricManager
         self.fileManager = fileManager
+        self.environment = environment
     }
 
     func setup(sdkBaseURL: URL, underlyingLogger: CoreLogging) {
-        #if targetEnvironment(simulator)
-        Logger.hasFatallyTerminatedOnPreviousRun = nil
-        Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
-        #else
+        guard !environment.isSimulator else {
+            Logger.hasFatallyTerminatedOnPreviousRun = nil
+            Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
+            return
+        }
+        
+        isBitdriftCrashHandlerEnabled = underlyingLogger.runtimeValue(.bdCrashReporter)
         Logger.issueReporterInitResult = measureTime {
             let runtimeState = resolveRuntimeState(from: sdkBaseURL)
             if runtimeState != .monitoring {
@@ -48,7 +54,6 @@ import Foundation
             }
             _ = initializeKSCrash(atURL: sdkBaseURL)
 
-            isBitdriftCrashHandlerEnabled = underlyingLogger.runtimeValue(.bdCrashReporter)
             if isBitdriftCrashHandlerEnabled {
                 _ = initializeBitdriftCrashReporter(atURL: sdkBaseURL)
             }
@@ -60,7 +65,6 @@ import Foundation
             self.metricManager.add(reporter)
             return .initialized(.monitoring)
         }
-        #endif
     }
 
     func stop() {
@@ -76,7 +80,10 @@ import Foundation
 extension CrashReporterService: CrashReporting  {
     // bd-crash-reporter captures the exact crash time; fall back to KSCrash if unavailable.
     func cachedCrashDate() -> Date? {
-        self.cachedPreviousCrash()?.crashDate ?? self.ksCrashHandler.cachedCrashDate()
+        guard isBitdriftCrashHandlerEnabled else {
+            return self.ksCrashHandler.cachedCrashDate()
+        }
+        return self.bitdriftCrashHandler.cachedCrashDate() ?? self.ksCrashHandler.cachedCrashDate()
     }
 
     func cachedPreviousCrash() -> BitdriftPreviousCrash? {
