@@ -178,7 +178,6 @@ public final class Logger {
             appVersion: clientAttributes.appVersion,
             osVersion: clientAttributes.osVersion
         )
-        Logger.previousRunInfoValue = self.previousRunInfoController?.resolve(didCrashLastLaunch: false) ?? .unknown
 
         self.sessionReplayController = configuration.sessionReplayConfiguration.map {
             SessionReplayController(configuration: $0)
@@ -251,13 +250,14 @@ public final class Logger {
 
         self.deviceCodeController = DeviceCodeController(client: client)
 
+        var didCrashLastLaunch = false
+
         #if targetEnvironment(simulator)
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
         #else
         if !configuration.enableFatalIssueReporting {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
-            var didCrashLastLaunch = false
             Logger.issueReporterInitResult = measureTime {
                 let contents = Logger.cachedReportConfigData(base: directoryURL)
                 let resolution = resolveRuntimeState(from: contents)
@@ -312,9 +312,11 @@ public final class Logger {
                 MXMetricManager.shared.add(reporter)
                 return .initialized(.monitoring)
             }
-            Logger.previousRunInfoValue = self.previousRunInfoController?.resolve(didCrashLastLaunch: didCrashLastLaunch) ?? .unknown
         }
         #endif
+
+        self.previousRunInfoController?.resolve(didCrashLastLaunch: didCrashLastLaunch)
+        Logger.previousRunInfoValue = self.previousRunInfoController?.previousRunInfo
     }
 
     // swiftlint:enable function_body_length

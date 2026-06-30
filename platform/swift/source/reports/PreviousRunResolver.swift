@@ -123,6 +123,9 @@ final class PreviousRunInfoController {
     private let stateCapture: PreviousRunStateCapture
     private let resolver = PreviousRunResolver()
 
+    private let previousRunInfoStorage = Atomic<PreviousRunInfo?>(nil)
+    var previousRunInfo: PreviousRunInfo { self.previousRunInfoStorage.load() ?? .unknown }
+
     init?(baseDirectory: URL, appVersion: String, osVersion: String) {
         let storeDirectory = baseDirectory.appendingPathComponent("reports/previous_run", isDirectory: true)
         guard let store = try? BDPreviousRunInfoRepository(directory: storeDirectory) else {
@@ -148,16 +151,26 @@ final class PreviousRunInfoController {
         self.stateCapture.start()
     }
 
-    func resolve(didCrashLastLaunch: Bool) -> PreviousRunInfo {
-        return self.resolver.resolve(
-            previousState: self.previousState,
-            currentState: self.currentState,
-            didCrashLastLaunch: didCrashLastLaunch
-        )
+    /// Resolves the previous-run status using `didCrashLastLaunch`. It's only the first call has
+    /// an effect, since the previous/current launch state this is computed from never changes after
+    /// `init`. Later calls (e.g. once crash-reporter initialization determines the final value) are
+    /// no-ops if a resolution is already stored.
+    func resolve(didCrashLastLaunch: Bool) {
+        self.previousRunInfoStorage.update { stored in
+            guard stored == nil else {
+                return
+            }
+
+            stored = self.resolver.resolve(
+                previousState: self.previousState,
+                currentState: self.currentState,
+                didCrashLastLaunch: didCrashLastLaunch
+            )
+        }
     }
 }
 
-private final class PreviousRunStateCapture {
+final class PreviousRunStateCapture {
     private let store: BDPreviousRunInfoRepository
     private let notificationCenter: NotificationCenter
     private var token: NSObjectProtocol?
