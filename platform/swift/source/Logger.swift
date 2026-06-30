@@ -39,9 +39,10 @@ public final class Logger {
     private(set) var eventsListenerTarget: EventSubscriber
 
     private let sessionURLBase: URL
+    private let previousRunInfoController: PreviousRunInfoController?
 
     static var issueReporterInitResult: IssueReporterInitResult = (.notInitialized, 0)
-    static var hasFatallyTerminatedOnPreviousRun: Bool?
+    static var previousRunInfoValue: PreviousRunInfo?
     static var diagnosticReporter = Atomic<DiagnosticEventReporter?>(nil)
 
     private static let syncedShared = Atomic<State>(.notStarted)
@@ -172,6 +173,12 @@ public final class Logger {
             timeProvider: timeProvider
         )
         self.eventsListenerTarget = EventSubscriber()
+        self.previousRunInfoController = PreviousRunInfoController(
+            baseDirectory: directoryURL,
+            appVersion: clientAttributes.appVersion,
+            osVersion: clientAttributes.osVersion
+        )
+        Logger.previousRunInfoValue = self.previousRunInfoController?.resolve(didCrashLastLaunch: false) ?? .unknown
 
         self.sessionReplayController = configuration.sessionReplayConfiguration.map {
             SessionReplayController(configuration: $0)
@@ -245,13 +252,12 @@ public final class Logger {
         self.deviceCodeController = DeviceCodeController(client: client)
 
         #if targetEnvironment(simulator)
-        Logger.hasFatallyTerminatedOnPreviousRun = nil
         Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
         #else
         if !configuration.enableFatalIssueReporting {
-            Logger.hasFatallyTerminatedOnPreviousRun = nil
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
+            var didCrashLastLaunch = false
             Logger.issueReporterInitResult = measureTime {
                 let contents = Logger.cachedReportConfigData(base: directoryURL)
                 let resolution = resolveRuntimeState(from: contents)
@@ -262,10 +268,10 @@ public final class Logger {
                 let kscrashReportDir = Logger.kscrashReportDirectory(base: directoryURL)
                 do {
                     try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
-                    Logger.hasFatallyTerminatedOnPreviousRun = BitdriftKSCrashWrapper.didCrashLastLaunch()?.boolValue
+                    didCrashLastLaunch = BitdriftKSCrashWrapper.didCrashLastLaunch()?.boolValue == true
                     try BitdriftKSCrashWrapper.startCrashReporter()
                 } catch {
-                    // hasFatallyTerminatedOnPreviousRun may already be set if configure() succeeded
+                    // The previous-run result has already been computed without crash evidence.
                 }
 
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
@@ -306,6 +312,7 @@ public final class Logger {
                 MXMetricManager.shared.add(reporter)
                 return .initialized(.monitoring)
             }
+            Logger.previousRunInfoValue = self.previousRunInfoController?.resolve(didCrashLastLaunch: didCrashLastLaunch) ?? .unknown
         }
         #endif
     }

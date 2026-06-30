@@ -7,7 +7,6 @@
 
 internal import CaptureLoggerBridge
 import Foundation
-import UIKit
 
 /// A map of log fields.
 public typealias Fields = [String: FieldValue]
@@ -139,12 +138,9 @@ extension Logger {
     ///
     /// This API is in experimental phase and may change in the future.
     ///
-    /// Returns `nil` when previous run status is not available.
+    /// Returns `nil` before the SDK is started.
     public static var previousRunInfo: PreviousRunInfo? {
-        guard let hasFatallyTerminatedOnPreviousRun = Logger.hasFatallyTerminatedOnPreviousRun else {
-            return nil
-        }
-        return PreviousRunInfo(hasFatallyTerminated: hasFatallyTerminatedOnPreviousRun)
+        return Logger.previousRunInfoValue
     }
 
     public static func setSleepMode(_ mode: SleepMode) {

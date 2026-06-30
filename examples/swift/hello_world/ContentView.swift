@@ -23,6 +23,7 @@ struct ContentView: View {
         NavigationView {
             PanelScreen {
                 SdkStatusPanelView()
+                PreviousRunInfoPanelView()
                 SessionPanelView(loggerCustomer: self.loggerCustomer)
                 ManualCapturePanelView(loggerCustomer: self.loggerCustomer)
                 AutomaticCapturePanelView(loggerCustomer: self.loggerCustomer)
