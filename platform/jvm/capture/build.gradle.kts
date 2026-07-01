@@ -116,6 +116,7 @@ cargoNdk {
                     "RUSTFLAGS" to
                         "-Zunstable-options -Cpanic=immediate-abort -C link-args=-Wl,-z,max-page-size=16384,--build-id -C codegen-units=1 -C embed-bitcode -C lto=fat -C opt-level=z",
                     "RUSTC_BOOTSTRAP" to "1", // Required for using unstable features in the Rust compiler
+                    "SKIP_PROTO_GEN" to "1",
                 )
         }
 
@@ -133,6 +134,7 @@ cargoNdk {
         mapOf(
             "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384,--build-id",
             "RUSTC_BOOTSTRAP" to "1", // Required for using unstable features in the Rust compiler
+            "SKIP_PROTO_GEN" to "1",
         )
 }
 
