@@ -13,7 +13,8 @@ final class PreviousRunResolverTests: XCTestCase {
         appVersion: "1.2.3",
         osVersion: "18.0",
         binaryUUID: "current-binary",
-        bootTime: 123
+        bootTime: 123,
+        wasDebuggerAttached: false
     )
 
     func test_returnsUnknown_whenNoPreviousStateExists() {
@@ -240,5 +241,58 @@ final class PreviousRunResolverTests: XCTestCase {
         )
 
         XCTAssertEqual(result, .unknown)
+    }
+
+    // MARK: - Debugger attached
+
+    func test_returnsDebuggerAttached_whenPreviousRunHadDebuggerAttached() {
+        let result = PreviousRunResolver().resolve(
+            previousState: .init(
+                appVersion: self.currentState.appVersion,
+                osVersion: self.currentState.osVersion,
+                binaryUUID: self.currentState.binaryUUID,
+                bootTime: self.currentState.bootTime,
+                wasCleanExit: false,
+                wasDebuggerAttached: true
+            ),
+            currentState: self.currentState,
+            didCrashLastLaunch: false
+        )
+
+        XCTAssertEqual(result, PreviousRunInfo(status: .debuggerAttached))
+    }
+
+    func test_returnsAppUpdate_whenDebuggerAttachedAndAppVersionChanged() {
+        let result = PreviousRunResolver().resolve(
+            previousState: .init(
+                appVersion: "1.2.2",
+                osVersion: self.currentState.osVersion,
+                binaryUUID: self.currentState.binaryUUID,
+                bootTime: self.currentState.bootTime,
+                wasCleanExit: false,
+                wasDebuggerAttached: true
+            ),
+            currentState: self.currentState,
+            didCrashLastLaunch: false
+        )
+
+        XCTAssertEqual(result, PreviousRunInfo(status: .appUpdate))
+    }
+
+    func test_returnsFatalCrash_whenDebuggerAttachedAndCrashed() {
+        let result = PreviousRunResolver().resolve(
+            previousState: .init(
+                appVersion: self.currentState.appVersion,
+                osVersion: self.currentState.osVersion,
+                binaryUUID: self.currentState.binaryUUID,
+                bootTime: self.currentState.bootTime,
+                wasCleanExit: false,
+                wasDebuggerAttached: true
+            ),
+            currentState: self.currentState,
+            didCrashLastLaunch: true
+        )
+
+        XCTAssertEqual(result, PreviousRunInfo(status: .fatalCrash))
     }
 }

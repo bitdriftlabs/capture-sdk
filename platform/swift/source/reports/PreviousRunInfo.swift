@@ -40,5 +40,6 @@ public enum PreviousRunStatus: String, Equatable {
     case fatalCrash
     case appUpdate
     case osUpdate
+    case debuggerAttached
     case unknown
 }

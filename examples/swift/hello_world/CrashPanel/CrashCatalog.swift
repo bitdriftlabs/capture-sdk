@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import Foundation
+import UIKit
 internal import HelloWorldCrashSupport
 
 enum CrashCategory: String, CaseIterable {
@@ -62,7 +62,9 @@ final class CrashRegistry {
         SIGILLCrash(),
         SIGFPECrash(),
         StackSmashCrash(),
-        DeadlockCrash(),
+        MainThreadSyncDispatch(),
+        WatchdogSceneUpdateCrash(),
+        WatchdogProcessExitCrash(),
         AsyncSafeThreadCrash(),
         ObjCExceptionCrash(),
         CXXExceptionCrash(),
@@ -283,13 +285,41 @@ final class StackSmashCrash: Crash {
     }
 }
 
-final class DeadlockCrash: Crash {
+final class MainThreadSyncDispatch: Crash {
     let category: CrashCategory = .thread
-    let title = "Main thread deadlock"
-    let crashDescription = "Dispatch sync onto the main queue from the main thread. Produces a watchdog timeout (0x8badf00d) in production."
+    let title = "Main thread sync dispatch"
+    let crashDescription = "Dispatch sync onto the main queue from the main thread."
 
     func trigger() -> Never {
         DispatchQueue.main.sync {}
+        fatalError("unreachable")
+    }
+}
+
+final class WatchdogSceneUpdateCrash: Crash {
+    let category: CrashCategory = .thread
+    let title = "Watchdog scene-update crash"
+    let crashDescription = "Hang for more than 5s while when doing a scene update. Produces a watchdog timeout (0x8badf00d)"
+    let semaphore = DispatchSemaphore(value: 0)
+    
+    func trigger() -> Never {
+        NotificationCenter.default.addObserver(self, selector: #selector(deadlock), name: UIApplication.willResignActiveNotification, object: nil)
+        UIApplication.shared.perform(NSSelectorFromString("suspend"))
+        semaphore.wait()
+        fatalError("unreachable")
+    }
+    
+    @objc func deadlock() {}
+}
+
+final class WatchdogProcessExitCrash: Crash {
+    let category: CrashCategory = .thread
+    let title = "Watchdog process-exit crash"
+    let crashDescription = "Hang for more than 10s the main thread. Produces a watchdog timeout (0x8badf00d)"
+    let semaphore = DispatchSemaphore(value: 0)
+    
+    func trigger() -> Never {
+        semaphore.wait()
         fatalError("unreachable")
     }
 }

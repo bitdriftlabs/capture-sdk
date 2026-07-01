@@ -53,10 +53,12 @@ struct PreviousRunInfoPanelView: View {
             return "App Update"
         case .osUpdate:
             return "OS Update"
+        case .debuggerAttached:
+            return "Debugger was attached"
         case .unknown:
             return "Unknown"
-        default:
-            return "Unknown"
+        @unknown default:
+            fatalError("Add the new status label")
         }
     }
 }

@@ -18,12 +18,14 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, readonly, copy) NSString *binaryUUID;
 @property(nonatomic, readonly) uint64_t bootTime;
 @property(nonatomic, readonly) BOOL wasCleanExit;
+@property(nonatomic, readonly) BOOL wasDebuggerAttached;
 
 - (instancetype)initWithAppVersion:(NSString *)appVersion
                          osVersion:(NSString *)osVersion
                         binaryUUID:(NSString *)binaryUUID
                           bootTime:(uint64_t)bootTime
-                      wasCleanExit:(BOOL)wasCleanExit;
+                      wasCleanExit:(BOOL)wasCleanExit
+               wasDebuggerAttached:(BOOL)wasDebuggerAttached;
 
 @end
 
@@ -37,6 +39,7 @@ NS_ASSUME_NONNULL_BEGIN
                                   osVersion:(NSString *)osVersion
                                  binaryUUID:(NSString *)binaryUUID
                                    bootTime:(uint64_t)bootTime
+                        wasDebuggerAttached:(BOOL)wasDebuggerAttached
                                       error:(NSError **)error;
 - (void)markTerminating;
 

@@ -18,9 +18,11 @@ final class PreviousRunInfoControllerTests: XCTestCase {
     override func setUp() {
         baseDirectoryURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        Debugger.mockIsAttached(false)
     }
 
     override func tearDown() {
+        Debugger.unmock()
         try? FileManager.default.removeItem(at: baseDirectoryURL)
     }
 

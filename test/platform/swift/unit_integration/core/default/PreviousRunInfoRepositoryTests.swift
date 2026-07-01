@@ -48,6 +48,19 @@ final class PreviousRunInfoRepositoryTests: XCTestCase {
         try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: true)
     }
 
+    func testOnLoadPreviousRunInfoWithPersistedDebuggerAttachedReturnsSnapshot() throws {
+        try givenPersistedPreviousRunInfo(wasDebuggerAttached: true)
+        try whenLoadingPreviousRunInfo()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: false, wasDebuggerAttached: true)
+    }
+
+    func testOnPrepareCurrentRunInfoPersistsDebuggerAttached() throws {
+        givenRepository()
+        try whenPreparingCurrentRunInfo(wasDebuggerAttached: true)
+        try whenLoadingPersistedPreviousRunInfoFromFreshRepository()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: false, wasDebuggerAttached: true)
+    }
+
     func testOnPrepareCurrentRunInfoWithoutTerminatingPersistsUncleanExit() throws {
         givenRepository()
         try whenPreparingCurrentRunInfo()
@@ -156,12 +169,14 @@ private extension PreviousRunInfoRepositoryTests {
     func givenPersistedPreviousRunInfo(
         wasCleanExit: Bool = false,
         version: UInt32 = 1,
-        isInitialized: Bool = true
+        isInitialized: Bool = true,
+        wasDebuggerAttached: Bool = false
     ) throws {
         try writePreviousRunInfoFile(makePreviousRunInfoData(
             wasCleanExit: wasCleanExit,
             version: version,
-            isInitialized: isInitialized
+            isInitialized: isInitialized,
+            wasDebuggerAttached: wasDebuggerAttached
         ))
     }
 
@@ -189,7 +204,7 @@ private extension PreviousRunInfoRepositoryTests {
         try Data(repeating: 0, count: 192).write(to: repositoryFileURL)
     }
 
-    func whenPreparingCurrentRunInfo(appVersion: String? = nil) throws {
+    func whenPreparingCurrentRunInfo(appVersion: String? = nil, wasDebuggerAttached: Bool = false) throws {
         guard let sut else {
             throw TestError.repositoryUnavailable
         }
@@ -198,7 +213,8 @@ private extension PreviousRunInfoRepositoryTests {
             withAppVersion: appVersion ?? self.appVersion,
             osVersion: osVersion,
             binaryUUID: binaryUUID,
-            bootTime: bootTime
+            bootTime: bootTime,
+            wasDebuggerAttached: wasDebuggerAttached
         )
     }
 
@@ -277,7 +293,8 @@ private extension PreviousRunInfoRepositoryTests {
                         withAppVersion: self.appVersion,
                         osVersion: self.osVersion,
                         binaryUUID: self.binaryUUID,
-                        bootTime: self.bootTime
+                        bootTime: self.bootTime,
+                        wasDebuggerAttached: false
                     )
                 } catch {
                     lock.lock()
@@ -312,20 +329,22 @@ private extension PreviousRunInfoRepositoryTests {
         XCTAssertNil(previousRunInfo)
     }
 
-    func thenPreviousRunInfoMatchesPreparedState(wasCleanExit: Bool) throws {
+    func thenPreviousRunInfoMatchesPreparedState(wasCleanExit: Bool, wasDebuggerAttached: Bool = false) throws {
         let snapshot = try XCTUnwrap(previousRunInfo)
-        thenSnapshotMatchesPreparedState(snapshot, wasCleanExit: wasCleanExit)
+        thenSnapshotMatchesPreparedState(snapshot, wasCleanExit: wasCleanExit, wasDebuggerAttached: wasDebuggerAttached)
     }
 
     func thenSnapshotMatchesPreparedState(
         _ snapshot: BDPreviousRunInfoSnapshot,
-        wasCleanExit: Bool
+        wasCleanExit: Bool,
+        wasDebuggerAttached: Bool = false
     ) {
         XCTAssertEqual(snapshot.appVersion, appVersion)
         XCTAssertEqual(snapshot.osVersion, osVersion)
         XCTAssertEqual(snapshot.binaryUUID, binaryUUID)
         XCTAssertEqual(snapshot.bootTime, bootTime)
         XCTAssertEqual(snapshot.wasCleanExit, wasCleanExit)
+        XCTAssertEqual(snapshot.wasDebuggerAttached, wasDebuggerAttached)
     }
 
     func thenConcurrentLoadsReturnExpectedNumberOfSnapshots(
@@ -360,14 +379,16 @@ private extension PreviousRunInfoRepositoryTests {
     /// - `char os_version[64]`
     /// - `char binary_uuid[40]`
     /// - `uint8_t is_initialized`
-    /// - 7 bytes trailing padding
+    /// - `uint8_t was_debugger_attached`
+    /// - 6 bytes trailing padding
     ///
     /// Integer fields are encoded as little-endian to match the in-memory C struct
     /// layout read by the repository on iOS.
     func makePreviousRunInfoData(
         wasCleanExit: Bool,
         version: UInt32 = 1,
-        isInitialized: Bool = true
+        isInitialized: Bool = true,
+        wasDebuggerAttached: Bool = false
     ) -> Data {
         var data = Data()
         data.append(version.littleEndianData)
@@ -378,7 +399,8 @@ private extension PreviousRunInfoRepositoryTests {
         data.append(fixedWidthStringData(osVersion, capacity: 64))
         data.append(fixedWidthStringData(binaryUUID, capacity: 40))
         data.append(isInitialized ? 1 : 0)
-        data.append(contentsOf: Array(repeating: 0, count: 7))
+        data.append(wasDebuggerAttached ? 1 : 0)
+        data.append(contentsOf: Array(repeating: 0, count: 6))
         return data
     }
 

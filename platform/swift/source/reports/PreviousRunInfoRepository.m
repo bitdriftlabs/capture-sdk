@@ -29,7 +29,8 @@ typedef struct {
     char os_version[BDPreviousRunInfoStringCapacity];
     char binary_uuid[BDPreviousRunInfoUUIDCapacity];
     uint8_t is_initialized;
-    uint8_t trailing_reserved[7];
+    uint8_t was_debugger_attached;
+    uint8_t trailing_reserved[6];
 } BDPreviousRunInfoRecord;
 
 static NSString *bdpri_make_string(const char *buffer, size_t capacity) {
@@ -128,7 +129,8 @@ static BDPreviousRunInfoSnapshot *bdpri_load_previous_run_info(int fd) {
                                                        osVersion:bdpri_make_string(record.os_version, sizeof(record.os_version))
                                                       binaryUUID:bdpri_make_string(record.binary_uuid, sizeof(record.binary_uuid))
                                                         bootTime:record.boot_time
-                                                    wasCleanExit:record.is_terminating == 1];
+                                                    wasCleanExit:record.is_terminating == 1
+                                              wasDebuggerAttached:record.was_debugger_attached == 1];
 }
 
 static BOOL bdpri_resize_and_map_file(
@@ -163,13 +165,15 @@ static BOOL bdpri_prepare_current_record(
     NSString *appVersion,
     NSString *osVersion,
     NSString *binaryUUID,
-    uint64_t bootTime
+    uint64_t bootTime,
+    BOOL wasDebuggerAttached
 ) {
     if (record == NULL) {
         return NO;
     }
 
     record->boot_time = bootTime;
+    record->was_debugger_attached = wasDebuggerAttached ? 1 : 0;
     bdpri_write_string(record->app_version, sizeof(record->app_version), appVersion);
     bdpri_write_string(record->os_version, sizeof(record->os_version), osVersion);
     bdpri_write_string(record->binary_uuid, sizeof(record->binary_uuid), binaryUUID);
@@ -185,7 +189,8 @@ static BOOL bdpri_prepare_current_record(
                          osVersion:(NSString *)osVersion
                         binaryUUID:(NSString *)binaryUUID
                           bootTime:(uint64_t)bootTime
-                      wasCleanExit:(BOOL)wasCleanExit {
+                      wasCleanExit:(BOOL)wasCleanExit
+               wasDebuggerAttached:(BOOL)wasDebuggerAttached {
     self = [super init];
     if (self == nil) {
         return nil;
@@ -196,6 +201,7 @@ static BOOL bdpri_prepare_current_record(
     _binaryUUID = [binaryUUID copy];
     _bootTime = bootTime;
     _wasCleanExit = wasCleanExit;
+    _wasDebuggerAttached = wasDebuggerAttached;
     return self;
 }
 
@@ -262,6 +268,7 @@ static BOOL bdpri_prepare_current_record(
                                   osVersion:(NSString *)osVersion
                                  binaryUUID:(NSString *)binaryUUID
                                    bootTime:(uint64_t)bootTime
+                        wasDebuggerAttached:(BOOL)wasDebuggerAttached
                                       error:(NSError **)error {
     os_unfair_lock_lock(&_lock);
     if (_mappedRecord != NULL) {
@@ -285,7 +292,8 @@ static BOOL bdpri_prepare_current_record(
         appVersion,
         osVersion,
         binaryUUID,
-        bootTime
+        bootTime,
+        wasDebuggerAttached
     );
     if (!prepared) {
         bdpri_unmap_record(&_mappedRecord);

@@ -31,7 +31,8 @@ final class PreviousRunStateCaptureTests: XCTestCase {
             withAppVersion: appVersion,
             osVersion: osVersion,
             binaryUUID: binaryUUID,
-            bootTime: bootTime
+            bootTime: bootTime,
+            wasDebuggerAttached: false
         )
     }
 

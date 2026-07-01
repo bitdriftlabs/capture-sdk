@@ -15,19 +15,22 @@ struct PreviousRunStoredState: Equatable {
     let binaryUUID: String
     let bootTime: UInt64
     let wasCleanExit: Bool
+    let wasDebuggerAttached: Bool
 
     init(
         appVersion: String,
         osVersion: String,
         binaryUUID: String,
         bootTime: UInt64,
-        wasCleanExit: Bool
+        wasCleanExit: Bool,
+        wasDebuggerAttached: Bool = false
     ) {
         self.appVersion = appVersion
         self.osVersion = osVersion
         self.binaryUUID = binaryUUID
         self.bootTime = bootTime
         self.wasCleanExit = wasCleanExit
+        self.wasDebuggerAttached = wasDebuggerAttached
     }
 
     init(_ snapshot: BDPreviousRunInfoSnapshot) {
@@ -36,6 +39,7 @@ struct PreviousRunStoredState: Equatable {
         self.binaryUUID = snapshot.binaryUUID
         self.bootTime = snapshot.bootTime
         self.wasCleanExit = snapshot.wasCleanExit
+        self.wasDebuggerAttached = snapshot.wasDebuggerAttached
     }
 }
 
@@ -44,6 +48,7 @@ struct PreviousRunCurrentState: Equatable {
     let osVersion: String
     let binaryUUID: String
     let bootTime: UInt64
+    let wasDebuggerAttached: Bool
 
     static func create(
         appVersion: String,
@@ -53,7 +58,8 @@ struct PreviousRunCurrentState: Equatable {
             appVersion: appVersion,
             osVersion: osVersion,
             binaryUUID: BDPreviousRunStateCaptureSupport.mainBinaryUUID() ?? "",
-            bootTime: BDPreviousRunStateCaptureSupport.systemBootTime()
+            bootTime: BDPreviousRunStateCaptureSupport.systemBootTime(),
+            wasDebuggerAttached: Debugger.isAttached()
         )
     }
 }
@@ -109,6 +115,10 @@ struct PreviousRunResolver {
             return .unknown
         }
 
+        if previousState.wasDebuggerAttached {
+            return PreviousRunInfo(status: .debuggerAttached)
+        }
+
         return .unknown
     }
 
@@ -142,7 +152,8 @@ final class PreviousRunInfoController {
             withAppVersion: self.currentState.appVersion,
             osVersion: self.currentState.osVersion,
             binaryUUID: self.currentState.binaryUUID,
-            bootTime: self.currentState.bootTime
+            bootTime: self.currentState.bootTime,
+            wasDebuggerAttached: self.currentState.wasDebuggerAttached
         )) != nil else {
             return nil
         }
