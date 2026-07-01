@@ -51,6 +51,9 @@ static void bdpri_write_string(char *destination, size_t capacity, NSString *val
     memcpy(destination, data.bytes, bytes_to_copy);
 }
 
+// Downgrades from NSURLFileProtectionComplete (the default) to CompleteUnlessOpen so the file stays
+// writable while the device is locked. Without this, markTerminating() would fail to write to the
+// mapped record if any write (like willTerminate) happens the screen locked.
 static BOOL bdpri_disable_file_protection(NSString *path) {
     NSURL *url = [NSURL fileURLWithPath:path];
 
@@ -133,6 +136,8 @@ static BDPreviousRunInfoSnapshot *bdpri_load_previous_run_info(int fd) {
                                               wasDebuggerAttached:record.was_debugger_attached == 1];
 }
 
+// ftruncate grows the file (freshly created files are 0 bytes) to the record size, since mmap
+// requires the backing file to already be at least as large as the mapped region.
 static BOOL bdpri_resize_and_map_file(
     int fd,
     BDPreviousRunInfoRecord **mappedRecordOut,
@@ -146,6 +151,9 @@ static BOOL bdpri_resize_and_map_file(
     }
 
     const int prot = PROT_READ | PROT_WRITE;
+    // MAP_FILE: file-backed mapping (the default on Darwin, kept explicit for clarity).
+    // MAP_SHARED: writes go back to the file and are visible even if the process dies before
+    // munmap/close, which is what lets markTerminating() survive a crash right after it runs.
     const int flags = MAP_FILE | MAP_SHARED;
     void *ptr = mmap(NULL, sizeof(BDPreviousRunInfoRecord), prot, flags, fd, 0);
     if (ptr == MAP_FAILED) {

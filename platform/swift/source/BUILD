@@ -84,8 +84,8 @@ objc_library(
         "ObjCWrapper.mm",
         "reports/BitdriftKSCrashWrapper.m",
         "reports/DiagnosticEventReporter.m",
-        "reports/PreviousRunStateCaptureSupport.m",
         "reports/PreviousRunInfoRepository.m",
+        "reports/PreviousRunStateCaptureSupport.m",
     ],
     hdrs = [
         "CaptureRustBridge.h",

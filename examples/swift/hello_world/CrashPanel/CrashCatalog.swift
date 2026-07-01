@@ -5,8 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import UIKit
 internal import HelloWorldCrashSupport
+import UIKit
 
 enum CrashCategory: String, CaseIterable {
     case swiftRuntime = "Swift Runtime"
@@ -301,14 +301,14 @@ final class WatchdogSceneUpdateCrash: Crash {
     let title = "Watchdog scene-update crash"
     let crashDescription = "Hang for more than 5s while when doing a scene update. Produces a watchdog timeout (0x8badf00d)"
     let semaphore = DispatchSemaphore(value: 0)
-    
+
     func trigger() -> Never {
         NotificationCenter.default.addObserver(self, selector: #selector(deadlock), name: UIApplication.willResignActiveNotification, object: nil)
         UIApplication.shared.perform(NSSelectorFromString("suspend"))
         semaphore.wait()
         fatalError("unreachable")
     }
-    
+
     @objc func deadlock() {}
 }
 
@@ -317,7 +317,7 @@ final class WatchdogProcessExitCrash: Crash {
     let title = "Watchdog process-exit crash"
     let crashDescription = "Hang for more than 10s the main thread. Produces a watchdog timeout (0x8badf00d)"
     let semaphore = DispatchSemaphore(value: 0)
-    
+
     func trigger() -> Never {
         semaphore.wait()
         fatalError("unreachable")

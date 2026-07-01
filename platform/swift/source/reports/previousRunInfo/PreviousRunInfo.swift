@@ -19,7 +19,7 @@ public struct PreviousRunInfo: Equatable {
     public var hasFatallyTerminated: Bool {
         return self.status == .fatalCrash
     }
-    
+
     /// Whether the previous run definitely terminated cleanly.
     public var wasCleanExit: Bool {
         self.status == .cleanExit
@@ -32,14 +32,4 @@ public struct PreviousRunInfo: Equatable {
     }
 
     static let unknown = PreviousRunInfo(status: .unknown)
-}
-
-/// Deterministic launch-time status for the previous app run.
-public enum PreviousRunStatus: String, Equatable {
-    case cleanExit
-    case fatalCrash
-    case appUpdate
-    case osUpdate
-    case debuggerAttached
-    case unknown
 }

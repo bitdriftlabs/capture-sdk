@@ -11,11 +11,11 @@ import Foundation
 import UIKit
 import XCTest
 
-final class PreviousRunStateCaptureTests: XCTestCase {
+final class PreviousRunTerminationObserverTests: XCTestCase {
     private var directoryURL: URL!
     private var notificationCenter: NotificationCenter!
     private var store: BDPreviousRunInfoRepository!
-    private var stateCapture: PreviousRunStateCapture?
+    private var terminationObserver: PreviousRunTerminationObserver?
 
     private let appVersion = "1.2.3"
     private let osVersion = "18.0"
@@ -37,13 +37,13 @@ final class PreviousRunStateCaptureTests: XCTestCase {
     }
 
     override func tearDown() {
-        stateCapture = nil
+        terminationObserver = nil
         store = nil
         try? FileManager.default.removeItem(at: directoryURL)
     }
 
     func testOnWillTerminateNotificationMarksCleanExitForNextLaunch() throws {
-        givenStateCaptureStarted()
+        givenTerminationObserverStarted()
 
         whenWillTerminateNotificationIsPosted()
 
@@ -51,33 +51,33 @@ final class PreviousRunStateCaptureTests: XCTestCase {
     }
 
     func testWithoutNotificationNextLaunchSeesUncleanExit() throws {
-        givenStateCaptureStarted()
+        givenTerminationObserverStarted()
 
         try thenNextLaunchSeesCleanExit(false)
     }
 
     func testOnDeinitRemovesObserverAndStopsMarkingCleanExit() throws {
-        givenStateCaptureStarted()
+        givenTerminationObserverStarted()
 
-        whenStateCaptureIsDeallocated()
+        whenTerminationObserverIsDeallocated()
         whenWillTerminateNotificationIsPosted()
 
         try thenNextLaunchSeesCleanExit(false)
     }
 }
 
-private extension PreviousRunStateCaptureTests {
-    func givenStateCaptureStarted() {
-        stateCapture = PreviousRunStateCapture(store: store, notificationCenter: notificationCenter)
-        stateCapture?.start()
+private extension PreviousRunTerminationObserverTests {
+    func givenTerminationObserverStarted() {
+        terminationObserver = PreviousRunTerminationObserver(store: store, notificationCenter: notificationCenter)
+        terminationObserver?.start()
     }
 
     func whenWillTerminateNotificationIsPosted() {
         notificationCenter.post(name: UIApplication.willTerminateNotification, object: nil)
     }
 
-    func whenStateCaptureIsDeallocated() {
-        stateCapture = nil
+    func whenTerminationObserverIsDeallocated() {
+        terminationObserver = nil
     }
 
     func thenNextLaunchSeesCleanExit(_ expected: Bool) throws {
