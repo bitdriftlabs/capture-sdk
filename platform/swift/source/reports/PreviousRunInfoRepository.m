@@ -53,7 +53,7 @@ static void bdpri_write_string(char *destination, size_t capacity, NSString *val
 
 // Downgrades from NSURLFileProtectionComplete (the default) to CompleteUnlessOpen so the file stays
 // writable while the device is locked. Without this, markTerminating() would fail to write to the
-// mapped record if any write (like willTerminate) happens the screen locked.
+// mapped record if any write (like willTerminate) happens while the screen is locked.
 static BOOL bdpri_disable_file_protection(NSString *path) {
     NSURL *url = [NSURL fileURLWithPath:path];
 
