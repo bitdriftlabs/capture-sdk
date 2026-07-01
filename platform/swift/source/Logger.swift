@@ -316,8 +316,14 @@ public final class Logger {
         }
         #endif
 
-        self.previousRunInfoController?.resolve(didCrashLastLaunch: didCrashLastLaunch)
-        Logger.previousRunInfoValue = self.previousRunInfoController?.previousRunInfo
+        if self.underlyingLogger.runtimeValue(.previousRunInfoRevamped) {
+            self.previousRunInfoController?.resolve(didCrashLastLaunch: didCrashLastLaunch)
+            Logger.previousRunInfoValue = self.previousRunInfoController?.previousRunInfo
+        } else {
+            Logger.previousRunInfoValue = didCrashLastLaunch
+                ? PreviousRunInfo(terminationReason: .fatalCrash)
+                : .unknown
+        }
     }
 
     // swiftlint:enable function_body_length
