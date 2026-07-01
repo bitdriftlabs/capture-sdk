@@ -15,7 +15,8 @@
 
 **Fixed**
 
-- Nothing yet!
+- Switching from the fixed session strategy to the activity session strategy now correctly resets
+  stored state. In practice this is only an issue during onboarding / local development.
 
 ### Android
 
