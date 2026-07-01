@@ -384,6 +384,13 @@ private extension PreviousRunInfoRepositoryTests {
     ///
     /// Integer fields are encoded as little-endian to match the in-memory C struct
     /// layout read by the repository on iOS.
+    ///
+    /// - parameter wasCleanExit:        Value to write for `is_terminating`.
+    /// - parameter version:             Value to write for `version`.
+    /// - parameter isInitialized:       Value to write for `is_initialized`.
+    /// - parameter wasDebuggerAttached: Value to write for `was_debugger_attached`.
+    ///
+    /// - returns: The raw fixture bytes.
     func makePreviousRunInfoData(
         wasCleanExit: Bool,
         version: UInt32 = 1,

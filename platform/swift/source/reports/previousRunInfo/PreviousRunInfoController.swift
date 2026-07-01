@@ -42,10 +42,13 @@ final class PreviousRunInfoController {
         self.terminationObserver.start()
     }
 
-    /// Resolves the previous-run status using `didCrashLastLaunch`. It's only the first call has
-    /// an effect, since the previous/current launch state this is computed from never changes after
-    /// `init`. Later calls (e.g. once crash-reporter initialization determines the final value) are
-    /// no-ops if a resolution is already stored.
+    /// Resolves the previous-run status. Only the first call has an effect, since the previous/current
+    /// launch state this is computed from never changes after `init`. Later calls (e.g. once
+    /// crash-reporter initialization determines the final value) are no-ops if a resolution is already
+    /// stored.
+    ///
+    /// - parameter didCrashLastLaunch: Whether the in-process crash reporter captured a fatal crash
+    ///                                 during the previous run.
     func resolve(didCrashLastLaunch: Bool) {
         self.previousRunInfoStorage.update { stored in
             guard stored == nil else {
