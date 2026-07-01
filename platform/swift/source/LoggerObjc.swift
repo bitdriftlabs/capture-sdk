@@ -467,7 +467,7 @@ public final class LoggerObjc: NSObject {
 
         return [
             "hasFatallyTerminated": previousRunInfo.hasFatallyTerminated,
-            "wasCleanExit": previousRunInfo.wasCleanExit,
+            "wasCleanTermination": previousRunInfo.wasCleanTermination,
             "terminationReason": previousRunInfo.terminationReason.rawValue,
         ]
     }

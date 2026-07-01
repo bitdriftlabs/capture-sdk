@@ -19,7 +19,7 @@ struct PreviousRunInfoPanelView: View {
                         PanelValueRow(title: "Status", value: statusLabel(previousRunInfo.terminationReason))
                         PanelValueRow(
                             title: "Was clean exit",
-                            value: toggleString(previousRunInfo.wasCleanExit))
+                            value: toggleString(previousRunInfo.wasCleanTermination))
                         PanelValueRow(
                             title: "Legacy fatal crash",
                             value: toggleString(previousRunInfo.hasFatallyTerminated)

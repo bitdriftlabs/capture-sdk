@@ -132,7 +132,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                 "Bitdrift PreviousRunInfo",
                 fields: [
                     "hasFatallyTerminated": String(previousRunInfo.hasFatallyTerminated),
-                    "wasCleanExit": String(previousRunInfo.wasCleanExit),
+                    "wasCleanTermination": String(previousRunInfo.wasCleanTermination),
                     "terminationReason": previousRunInfo.terminationReason.rawValue,
                 ]
             )

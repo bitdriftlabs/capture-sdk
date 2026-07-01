@@ -8,6 +8,7 @@
 @testable import CaptureLoggerBridge
 import Foundation
 import XCTest
+import zlib
 
 final class PreviousRunInfoRepositoryTests: XCTestCase {
     private var directoryURL: URL!
@@ -97,6 +98,12 @@ final class PreviousRunInfoRepositoryTests: XCTestCase {
         thenPreviousRunInfoIsNil()
     }
 
+    func testOnLoadPreviousRunInfoWithCorruptedCRCReturnsNil() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: false, crc: 0xDEAD_BEEF)
+        try whenLoadingPreviousRunInfo()
+        thenPreviousRunInfoIsNil()
+    }
+
     func testOnLoadPreviousRunInfoCachesSnapshot() throws {
         try givenPersistedPreviousRunInfo(wasCleanExit: true)
         try whenLoadingPreviousRunInfo()
@@ -170,13 +177,15 @@ private extension PreviousRunInfoRepositoryTests {
         wasCleanExit: Bool = false,
         version: UInt32 = 1,
         isInitialized: Bool = true,
-        wasDebuggerAttached: Bool = false
+        wasDebuggerAttached: Bool = false,
+        crc: UInt32? = nil
     ) throws {
         try writePreviousRunInfoFile(makePreviousRunInfoData(
             wasCleanExit: wasCleanExit,
             version: version,
             isInitialized: isInitialized,
-            wasDebuggerAttached: wasDebuggerAttached
+            wasDebuggerAttached: wasDebuggerAttached,
+            crc: crc
         ))
     }
 
@@ -380,7 +389,8 @@ private extension PreviousRunInfoRepositoryTests {
     /// - `char binary_uuid[40]`
     /// - `uint8_t is_initialized`
     /// - `uint8_t was_debugger_attached`
-    /// - 6 bytes trailing padding
+    /// - 2 bytes reserved padding
+    /// - `uint32_t crc`
     ///
     /// Integer fields are encoded as little-endian to match the in-memory C struct
     /// layout read by the repository on iOS.
@@ -389,13 +399,15 @@ private extension PreviousRunInfoRepositoryTests {
     /// - parameter version:             Value to write for `version`.
     /// - parameter isInitialized:       Value to write for `is_initialized`.
     /// - parameter wasDebuggerAttached: Value to write for `was_debugger_attached`.
+    /// - parameter crc:                 CRC32 to embed; pass `nil` to auto-compute the correct value.
     ///
     /// - returns: The raw fixture bytes.
     func makePreviousRunInfoData(
         wasCleanExit: Bool,
         version: UInt32 = 1,
         isInitialized: Bool = true,
-        wasDebuggerAttached: Bool = false
+        wasDebuggerAttached: Bool = false,
+        crc: UInt32? = nil
     ) -> Data {
         var data = Data()
         data.append(version.littleEndianData)
@@ -407,8 +419,19 @@ private extension PreviousRunInfoRepositoryTests {
         data.append(fixedWidthStringData(binaryUUID, capacity: 40))
         data.append(isInitialized ? 1 : 0)
         data.append(wasDebuggerAttached ? 1 : 0)
-        data.append(contentsOf: Array(repeating: 0, count: 6))
+        data.append(contentsOf: [0, 0])
+        // Append 4 zero bytes as the crc placeholder (matches bdpri_compute_crc which zeros the field),
+        // then replace with the actual CRC32 over the whole record.
+        data.append(contentsOf: [0, 0, 0, 0])
+        let finalCRC = crc ?? crc32(data)
+        data.replaceSubrange((data.count - 4)..., with: finalCRC.littleEndianData)
         return data
+    }
+
+    private func crc32(_ data: Data) -> UInt32 {
+        data.withUnsafeBytes { buffer in
+            UInt32(zlib.crc32(0, buffer.baseAddress?.assumingMemoryBound(to: UInt8.self), UInt32(data.count)))
+        }
     }
 
     func fixedWidthStringData(_ string: String, capacity: Int) -> Data {

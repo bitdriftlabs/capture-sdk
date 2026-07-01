@@ -13,6 +13,7 @@
 #import <sys/mman.h>
 #import <fcntl.h>
 #import <unistd.h>
+#import <zlib.h>
 
 enum {
     BDPreviousRunInfoVersion = 1,
@@ -32,8 +33,16 @@ typedef struct {
     char binary_uuid[BDPreviousRunInfoUUIDCapacity];
     uint8_t is_initialized;
     uint8_t was_debugger_attached;
-    uint8_t trailing_reserved[6];
+    uint8_t reserved2[2];
+    uint32_t crc;
 } BDPreviousRunInfoRecord;
+
+// Computes CRC32 over the entire record with the crc field zeroed.
+static uint32_t bdpri_compute_crc(const BDPreviousRunInfoRecord *record) {
+    BDPreviousRunInfoRecord temp = *record;
+    temp.crc = 0;
+    return (uint32_t)crc32(0, (const Bytef *)&temp, sizeof(temp));
+}
 
 static NSString *bdpri_make_string(const char *buffer, size_t capacity) {
     size_t length = strnlen(buffer, capacity);
@@ -130,6 +139,12 @@ static BDPreviousRunInfoSnapshot *bdpri_load_previous_run_info(int fd) {
         return nil;
     }
 
+    uint32_t expected = record.crc;
+    record.crc = 0;
+    if ((uint32_t)crc32(0, (const Bytef *)&record, sizeof(record)) != expected) {
+        return nil;
+    }
+
     return [[BDPreviousRunInfoSnapshot alloc] initWithAppVersion:bdpri_make_string(record.app_version, sizeof(record.app_version))
                                                        osVersion:bdpri_make_string(record.os_version, sizeof(record.os_version))
                                                       binaryUUID:bdpri_make_string(record.binary_uuid, sizeof(record.binary_uuid))
@@ -187,9 +202,9 @@ static BOOL bdpri_prepare_current_record(
     bdpri_write_string(record->app_version, sizeof(record->app_version), appVersion);
     bdpri_write_string(record->os_version, sizeof(record->os_version), osVersion);
     bdpri_write_string(record->binary_uuid, sizeof(record->binary_uuid), binaryUUID);
-    // Write the version last so partial initialization is rejected on the next launch.
     record->version = BDPreviousRunInfoVersion;
     record->is_initialized = 1;
+    record->crc = bdpri_compute_crc(record);
     return YES;
 }
 
@@ -321,6 +336,7 @@ static BOOL bdpri_prepare_current_record(
     os_unfair_lock_lock(&_lock);
     if (_mappedRecord != NULL) {
         _mappedRecord->is_terminating = 1;
+        _mappedRecord->crc = bdpri_compute_crc(_mappedRecord);
     }
     os_unfair_lock_unlock(&_lock);
 }

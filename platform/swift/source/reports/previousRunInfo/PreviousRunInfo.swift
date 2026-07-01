@@ -21,7 +21,7 @@ public struct PreviousRunInfo: Equatable {
     }
 
     /// Whether the previous run definitely terminated cleanly.
-    public var wasCleanExit: Bool {
+    public var wasCleanTermination: Bool {
         self.terminationReason == .cleanExit
     }
 

@@ -40,7 +40,7 @@ final class PreviousRunInfoControllerTests: XCTestCase {
         let controller = try givenController()
         let result = whenResolving(controller, didCrashLastLaunch: true)
 
-        thenResultEquals(result, PreviousRunInfo(status: .fatalCrash))
+        thenResultEquals(result, PreviousRunInfo(terminationReason: .fatalCrash))
     }
 
     func testOnRelaunchWithoutCrashOrCleanExitReturnsUnknown() throws {
@@ -58,7 +58,7 @@ final class PreviousRunInfoControllerTests: XCTestCase {
         let controller = try givenController(appVersion: "9.9.9")
         let result = whenResolving(controller, didCrashLastLaunch: false)
 
-        thenResultEquals(result, PreviousRunInfo(status: .appUpdate))
+        thenResultEquals(result, PreviousRunInfo(terminationReason: .appUpdate))
     }
 
     func testOnDirectoryUnavailableReturnsNil() throws {
