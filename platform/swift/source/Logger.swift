@@ -271,7 +271,8 @@ public final class Logger {
                     didCrashLastLaunch = BitdriftKSCrashWrapper.didCrashLastLaunch()?.boolValue == true
                     try BitdriftKSCrashWrapper.startCrashReporter()
                 } catch {
-                    // The previous-run result has already been computed without crash evidence.
+                    // KSCrash failed to initialize; previousRunInfo will be resolved without crash
+                    // evidence and didCrashLastLaunch stays false.
                 }
 
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)

@@ -17,7 +17,7 @@ final class PreviousRunInfoController {
     var previousRunInfo: PreviousRunInfo { self.previousRunInfoStorage.load() ?? .unknown }
 
     init?(baseDirectory: URL, appVersion: String, osVersion: String) {
-        let storeDirectory = baseDirectory.appendingPathComponent("reports/previous_run", isDirectory: true)
+        let storeDirectory = baseDirectory.appendingPathComponent("previous_run", isDirectory: true)
         guard let store = try? BDPreviousRunInfoRepository(directory: storeDirectory) else {
             return nil
         }

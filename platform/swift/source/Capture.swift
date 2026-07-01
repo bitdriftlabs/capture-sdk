@@ -138,7 +138,7 @@ extension Logger {
     ///
     /// This API is in experimental phase and may change in the future.
     ///
-    /// Returns `nil` before the SDK is started.
+    /// Returns `nil` before the SDK is started, or if the SDK failed to initialize its storage.
     public static var previousRunInfo: PreviousRunInfo? {
         return Logger.previousRunInfoValue
     }

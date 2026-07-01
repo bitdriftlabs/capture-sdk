@@ -133,7 +133,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                 fields: [
                     "hasFatallyTerminated": String(previousRunInfo.hasFatallyTerminated),
                     "wasCleanExit": String(previousRunInfo.wasCleanExit),
-                    "status": previousRunInfo.status.rawValue,
+                    "terminationReason": previousRunInfo.terminationReason.rawValue,
                 ]
             )
         }

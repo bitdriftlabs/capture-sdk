@@ -23,22 +23,23 @@ struct PreviousRunResolver {
         // In-process crash reports win over the other signals. They are concrete crash
         // records and remain valid across other signal like app/OS updates.
         if didCrashLastLaunch {
-            return PreviousRunInfo(status: .fatalCrash)
+            return PreviousRunInfo(terminationReason: .fatalCrash)
         }
 
         // A clean exit marker means the previous run terminated gracefully (received willTerminate).
         if previousState.wasCleanExit {
-            return PreviousRunInfo(status: .cleanExit)
+            return PreviousRunInfo(terminationReason: .cleanExit)
         }
 
-        // We consider that a change in the binary UUID or a change in the app version is an update
+        // Both appVersion and binaryUUID are checked because the version string alone is not enough:
+        // adhoc/development builds often share the same version string across binary changes.
         if previousState.appVersion != currentState.appVersion ||
             previousState.binaryUUID != currentState.binaryUUID {
-            return PreviousRunInfo(status: .appUpdate)
+            return PreviousRunInfo(terminationReason: .appUpdate)
         }
 
         if previousState.osVersion != currentState.osVersion {
-            return PreviousRunInfo(status: .osUpdate)
+            return PreviousRunInfo(terminationReason: .osUpdate)
         }
 
         if previousState.bootTime != 0,
@@ -56,7 +57,7 @@ struct PreviousRunResolver {
         // for a launch that otherwise looked unclean but wasn't explained by a crash, reboot, or
         // app/OS update.
         if previousState.wasDebuggerAttached {
-            return PreviousRunInfo(status: .debuggerAttached)
+            return PreviousRunInfo(terminationReason: .debuggerAttached)
         }
 
         return .unknown

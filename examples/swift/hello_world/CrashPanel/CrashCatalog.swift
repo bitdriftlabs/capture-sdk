@@ -299,7 +299,7 @@ final class MainThreadSyncDispatch: Crash {
 final class WatchdogSceneUpdateCrash: Crash {
     let category: CrashCategory = .thread
     let title = "Watchdog scene-update crash"
-    let crashDescription = "Hang for more than 5s while when doing a scene update. Produces a watchdog timeout (0x8badf00d)"
+    let crashDescription = "Hang for more than 5s while doing a scene update. Produces a watchdog timeout (0x8badf00d)"
     let semaphore = DispatchSemaphore(value: 0)
 
     func trigger() -> Never {
@@ -315,7 +315,7 @@ final class WatchdogSceneUpdateCrash: Crash {
 final class WatchdogProcessExitCrash: Crash {
     let category: CrashCategory = .thread
     let title = "Watchdog process-exit crash"
-    let crashDescription = "Hang for more than 10s the main thread. Produces a watchdog timeout (0x8badf00d)"
+    let crashDescription = "Hang for more than 10s on the main thread. Produces a watchdog timeout (0x8badf00d)"
     let semaphore = DispatchSemaphore(value: 0)
 
     func trigger() -> Never {

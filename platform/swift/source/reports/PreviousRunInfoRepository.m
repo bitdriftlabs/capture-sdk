@@ -7,7 +7,9 @@
 
 #import "PreviousRunInfoRepository.h"
 
+#import <errno.h>
 #import <os/lock.h>
+#import <string.h>
 #import <sys/mman.h>
 #import <fcntl.h>
 #import <unistd.h>
@@ -116,7 +118,7 @@ static BOOL bdpri_ensure_file_open(NSString *path, int *fd, NSError **error) {
 
 static BDPreviousRunInfoSnapshot *bdpri_load_previous_run_info(int fd) {
     uint8_t buffer[sizeof(BDPreviousRunInfoRecord) + 1];
-    ssize_t bytesRead = read(fd, buffer, sizeof(buffer));
+    ssize_t bytesRead = pread(fd, buffer, sizeof(buffer), 0);
     if (bytesRead != sizeof(BDPreviousRunInfoRecord)) {
         return nil;
     }

@@ -10,26 +10,26 @@ import Foundation
 /// Snapshot of the previous app run status.
 public struct PreviousRunInfo: Equatable {
     /// The best deterministic launch-time status for the previous app run.
-    public let status: PreviousRunStatus
+    public let terminationReason: ExitReason
 
     /// Compatibility shim for the legacy experimental API.
     ///
     /// This only returns `true` when the in-process crash reporter captured a fatal crash.
     /// Other non-clean outcomes, such as `.unknown`, intentionally return `false`.
     public var hasFatallyTerminated: Bool {
-        return self.status == .fatalCrash
+        return self.terminationReason == .fatalCrash
     }
 
     /// Whether the previous run definitely terminated cleanly.
     public var wasCleanExit: Bool {
-        self.status == .cleanExit
+        self.terminationReason == .cleanExit
     }
 
     public init(
-        status: PreviousRunStatus
+        terminationReason: ExitReason
     ) {
-        self.status = status
+        self.terminationReason = terminationReason
     }
 
-    static let unknown = PreviousRunInfo(status: .unknown)
+    static let unknown = PreviousRunInfo(terminationReason: .unknown)
 }

@@ -40,7 +40,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: false
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .appUpdate))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .appUpdate))
     }
 
     func test_returnsAppUpdate_whenBinaryUUIDChanges() {
@@ -56,7 +56,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: false
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .appUpdate))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .appUpdate))
     }
 
     func test_returnsOSUpdate_whenOSVersionChanges() {
@@ -72,7 +72,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: false
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .osUpdate))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .osUpdate))
     }
 
     func test_returnsUnknown_whenBootTimeChanges() {
@@ -105,7 +105,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: false
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .cleanExit))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .cleanExit))
     }
 
     func test_returnsFatalCrash_whenCrashReporterCapturedPreviousCrash() {
@@ -121,7 +121,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: true
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .fatalCrash))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .fatalCrash))
     }
 
     // MARK: - Crash precedence
@@ -139,7 +139,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: true
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .fatalCrash))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .fatalCrash))
     }
 
     func test_returnsFatalCrash_whenOSVersionChangedAndCrashed() {
@@ -155,7 +155,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: true
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .fatalCrash))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .fatalCrash))
     }
 
     func test_returnsFatalCrash_whenBootTimeChangedAndCrashed() {
@@ -171,7 +171,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: true
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .fatalCrash))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .fatalCrash))
     }
 
     func test_returnsFatalCrash_whenCleanExitMarkedAndCrashed() {
@@ -187,7 +187,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: true
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .fatalCrash))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .fatalCrash))
     }
 
     // MARK: - Clean-exit precedence
@@ -205,7 +205,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: false
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .cleanExit))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .cleanExit))
     }
 
     // MARK: - Boot-time tolerance
@@ -259,7 +259,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: false
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .debuggerAttached))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .debuggerAttached))
     }
 
     func test_returnsAppUpdate_whenDebuggerAttachedAndAppVersionChanged() {
@@ -276,7 +276,7 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: false
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .appUpdate))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .appUpdate))
     }
 
     func test_returnsFatalCrash_whenDebuggerAttachedAndCrashed() {
@@ -293,6 +293,6 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: true
         )
 
-        XCTAssertEqual(result, PreviousRunInfo(status: .fatalCrash))
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .fatalCrash))
     }
 }

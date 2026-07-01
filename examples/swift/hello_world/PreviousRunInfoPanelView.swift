@@ -16,7 +16,7 @@ struct PreviousRunInfoPanelView: View {
             PanelCard(background: Color.black.opacity(0.24)) {
                 VStack(alignment: .leading, spacing: 8) {
                     if let previousRunInfo {
-                        PanelValueRow(title: "Status", value: statusLabel(previousRunInfo.status))
+                        PanelValueRow(title: "Status", value: statusLabel(previousRunInfo.terminationReason))
                         PanelValueRow(
                             title: "Was clean exit",
                             value: toggleString(previousRunInfo.wasCleanExit))
@@ -43,7 +43,7 @@ struct PreviousRunInfoPanelView: View {
         return value ? "Yes" : "No"
     }
 
-    private func statusLabel(_ status: PreviousRunStatus) -> String {
+    private func statusLabel(_ status: ExitReason) -> String {
         switch status {
         case .cleanExit:
             return "Clean Exit"
