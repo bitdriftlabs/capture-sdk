@@ -44,16 +44,13 @@ static NSString *bdprcs_uuid_from_header(const struct mach_header *header) {
         return nil;
     }
 
-    uintptr_t cursor = 0;
-    uint32_t commandCount = 0;
-    if (header->magic == MH_MAGIC_64 || header->magic == MH_CIGAM_64) {
-        const struct mach_header_64 *header64 = (const struct mach_header_64 *)header;
-        cursor = (uintptr_t)(header64 + 1);
-        commandCount = header64->ncmds;
-    } else {
-        cursor = (uintptr_t)(header + 1);
-        commandCount = header->ncmds;
+    if (header->magic != MH_MAGIC_64 && header->magic != MH_CIGAM_64) {
+        return nil;
     }
+
+    const struct mach_header_64 *header64 = (const struct mach_header_64 *)header;
+    uintptr_t cursor = (uintptr_t)(header64 + 1);
+    uint32_t commandCount = header64->ncmds;
 
     for (uint32_t idx = 0; idx < commandCount; idx++) {
         const struct load_command *command = (const struct load_command *)cursor;
