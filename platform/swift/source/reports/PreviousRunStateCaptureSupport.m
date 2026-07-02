@@ -85,4 +85,17 @@ static NSString *bdprcs_uuid_from_header(const struct mach_header *header) {
     return ((uint64_t)bootTime.tv_sec * 1000000ULL) + (uint64_t)bootTime.tv_usec;
 }
 
++ (nullable NSString *)osBuildVersion {
+    static NSString *cached = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        char build[64] = {0};
+        size_t size = sizeof(build);
+        if (sysctlbyname("kern.osversion", build, &size, NULL, 0) == 0 && size > 1) {
+            cached = [NSString stringWithUTF8String:build];
+        }
+    });
+    return cached;
+}
+
 @end

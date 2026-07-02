@@ -28,6 +28,19 @@ final class PreviousRunStateCaptureSupportTests: XCTestCase {
 
         thenBootTimesMatch(first, second)
     }
+
+    func testOsBuildVersionReturnsNonEmptyString() throws {
+        let build = whenReadingOsBuildVersion()
+
+        try thenBuildVersionIsNonEmpty(build)
+    }
+
+    func testOsBuildVersionIsStableAcrossCalls() throws {
+        let first = whenReadingOsBuildVersion()
+        let second = whenReadingOsBuildVersion()
+
+        XCTAssertEqual(first, second)
+    }
 }
 
 private extension PreviousRunStateCaptureSupportTests {
@@ -51,5 +64,14 @@ private extension PreviousRunStateCaptureSupportTests {
 
     func thenBootTimesMatch(_ first: UInt64, _ second: UInt64) {
         XCTAssertEqual(first, second)
+    }
+
+    func whenReadingOsBuildVersion() -> String? {
+        return BDPreviousRunStateCaptureSupport.osBuildVersion()
+    }
+
+    func thenBuildVersionIsNonEmpty(_ build: String?) throws {
+        let unwrapped = try XCTUnwrap(build)
+        XCTAssertFalse(unwrapped.isEmpty)
     }
 }

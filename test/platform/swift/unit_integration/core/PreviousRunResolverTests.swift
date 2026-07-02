@@ -56,6 +56,26 @@ final class PreviousRunResolverTests: XCTestCase {
         XCTAssertEqual(result, PreviousRunInfo(terminationReason: .osUpdate))
     }
 
+    func test_returnsOSUpdate_whenOSBuildChanges() {
+        let result = PreviousRunResolver().resolve(
+            previousState: .init(
+                osVersion: "18.0 (22F0000a)",
+                binaryUUID: self.currentState.binaryUUID,
+                bootTime: self.currentState.bootTime,
+                wasCleanExit: false
+            ),
+            currentState: PreviousRunCurrentState(
+                osVersion: "18.0 (22F0001b)",
+                binaryUUID: self.currentState.binaryUUID,
+                bootTime: self.currentState.bootTime,
+                wasDebuggerAttached: false
+            ),
+            didCrashLastLaunch: false
+        )
+
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .osUpdate))
+    }
+
     func test_returnsReboot_whenBootTimeChanges() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(

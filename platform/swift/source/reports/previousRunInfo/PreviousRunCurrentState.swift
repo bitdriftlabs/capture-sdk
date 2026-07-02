@@ -14,8 +14,10 @@ struct PreviousRunCurrentState: Equatable {
     let wasDebuggerAttached: Bool
 
     static func create(osVersion: String) -> PreviousRunCurrentState {
+        let build = BDPreviousRunStateCaptureSupport.osBuildVersion() ?? ""
+        let fullOsVersion = build.isEmpty ? osVersion : "\(osVersion) (\(build))"
         return PreviousRunCurrentState(
-            osVersion: osVersion,
+            osVersion: fullOsVersion,
             binaryUUID: BDPreviousRunStateCaptureSupport.mainBinaryUUID() ?? "",
             bootTime: BDPreviousRunStateCaptureSupport.systemBootTime(),
             wasDebuggerAttached: Debugger.isAttached()

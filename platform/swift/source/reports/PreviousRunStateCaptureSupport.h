@@ -14,6 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface BDPreviousRunStateCaptureSupport : NSObject
 
 + (nullable NSString *)mainBinaryUUID;
++ (nullable NSString *)osBuildVersion;
 + (uint64_t)systemBootTime;
 
 @end
