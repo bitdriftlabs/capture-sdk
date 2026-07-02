@@ -25,10 +25,13 @@ public struct PreviousRunInfo: Equatable {
         self.terminationReason == .cleanExit
     }
 
-    public init(
-        terminationReason: ExitReason
-    ) {
+    public init(terminationReason: ExitReason) {
         self.terminationReason = terminationReason
+    }
+
+    @available(*, deprecated, renamed: "init(terminationReason:)")
+    public init(hasFatallyTerminated: Bool) {
+        self.init(terminationReason: hasFatallyTerminated ? .fatalCrash : .unknown)
     }
 
     static let unknown = PreviousRunInfo(terminationReason: .unknown)
