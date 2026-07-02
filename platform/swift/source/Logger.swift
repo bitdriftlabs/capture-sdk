@@ -264,14 +264,14 @@ public final class Logger {
                     return .initialized(resolution)
                 }
 
+                var reporterInitResolution: ReporterInitResolution?
                 let kscrashReportDir = Logger.kscrashReportDirectory(base: directoryURL)
                 do {
                     try BitdriftKSCrashWrapper.configure(withCrashReportDirectory: kscrashReportDir)
                     didCrashLastLaunch = BitdriftKSCrashWrapper.didCrashLastLaunch()?.boolValue == true
                     try BitdriftKSCrashWrapper.startCrashReporter()
                 } catch {
-                    // KSCrash failed to initialize; previousRunInfo will be resolved without crash
-                    // evidence and didCrashLastLaunch stays false.
+                    reporterInitResolution = .degraded
                 }
 
                 let hangDuration = self.underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
@@ -310,7 +310,7 @@ public final class Logger {
                     val = reporter
                 }
                 MXMetricManager.shared.add(reporter)
-                return .initialized(.monitoring)
+                return .initialized(reporterInitResolution ?? .monitoring)
             }
         }
         #endif
