@@ -53,7 +53,7 @@ static NSString *bdpri_make_string(const char *buffer, size_t capacity) {
 
 static void bdpri_write_string(char *destination, size_t capacity, NSString *value) {
     memset(destination, 0, capacity);
-    NSData *data = [value dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+    NSData *data = [value dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:NO];
     if (data.length == 0) {
         return;
     }
