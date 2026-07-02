@@ -178,7 +178,10 @@ let CAPRNStartResultDidEmitNotification = Notification.Name("BdReactNative.onSta
         guard let info = Capture.Logger.previousRunInfo else {
             return nil
         }
-        return ["hasFatallyTerminated": info.hasFatallyTerminated]
+        return [
+            "hasFatallyTerminated": info.hasFatallyTerminated,
+            "terminationReason": info.terminationReason.rawValue,
+        ]
     }
 
     @objc
