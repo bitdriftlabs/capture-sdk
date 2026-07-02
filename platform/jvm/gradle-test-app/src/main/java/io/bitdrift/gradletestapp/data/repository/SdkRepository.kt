@@ -291,7 +291,7 @@ class SdkRepository(
         val isSleepModeEnabled: Boolean,
     )
 
-    private companion object {
+    companion object {
         private const val PREFS_GLOBAL_FIELDS = "global_fields"
     }
 }

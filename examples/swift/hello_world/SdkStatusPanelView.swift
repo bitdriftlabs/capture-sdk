@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SdkStatusPanelView: View {
     @State private var sdkStatus: SdkStatus?
+    @State private var isTracingActive = false
     @State private var lastCheckTime: Date?
 
     private let dateFormatter: DateFormatter = {
@@ -34,6 +35,15 @@ struct SdkStatusPanelView: View {
                                         ? Theme.primary
                                         : Theme.textSecondary
                                 )
+                        }
+
+                        HStack {
+                            Text("Tracing active:")
+                                .font(.caption)
+                                .foregroundColor(Theme.textSecondary)
+                            Text(isTracingActive ? "Yes" : "No")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(isTracingActive ? Theme.primary : Theme.textPrimary)
                         }
 
                         if let handshake = status.lastHandshakeTime {
@@ -97,6 +107,7 @@ struct SdkStatusPanelView: View {
 
     private func checkSdkStatus() {
         sdkStatus = Capture.Logger.getSdkStatus()
+        isTracingActive = Capture.Logger.isTracingActive
         lastCheckTime = Date()
     }
 

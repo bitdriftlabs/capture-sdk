@@ -20,6 +20,11 @@ config_setting(
     values = {"define": "android_strip_symbols=true"},
 )
 
+config_setting(
+    name = "android_sdk_verification_file",
+    values = {"define": "android_sdk_verification_file=true"},
+)
+
 exports_files(
     [
         "detekt.yml",

@@ -48,6 +48,7 @@ import io.bitdrift.gradletestapp.data.model.GlobalFieldAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
 import io.bitdrift.gradletestapp.data.model.SessionAction
 import io.bitdrift.gradletestapp.ui.compose.components.AppTerminationsCard
+import io.bitdrift.gradletestapp.ui.compose.components.EntityIdCard
 import io.bitdrift.gradletestapp.ui.compose.components.FatalIssuesCard
 import io.bitdrift.gradletestapp.ui.compose.components.GlobalFieldsCard
 import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
@@ -57,6 +58,7 @@ import io.bitdrift.gradletestapp.ui.compose.components.SdkStatusCard
 import io.bitdrift.gradletestapp.ui.compose.components.SessionManagementCard
 import io.bitdrift.gradletestapp.ui.compose.components.SleepModeCard
 import io.bitdrift.gradletestapp.ui.compose.components.TestingToolsCard
+import io.bitdrift.gradletestapp.ui.compose.components.TracingStatusCard
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
@@ -78,6 +80,7 @@ private enum class BottomNavTab(
 fun MainScreen(
     uiState: AppState,
     onAction: (AppAction) -> Unit,
+    currentEntityId: () -> String,
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -163,11 +166,12 @@ fun MainScreen(
                     clipboardManager = clipboardManager,
                     onOpenSettings = { selectedTab = BottomNavTab.SETTINGS.ordinal },
                 )
-                BottomNavTab.SDK_APIS -> SdkApisTabContent(
-                    uiState = uiState,
-                    onAction = onAction,
-                    context = context,
-                )
+                    BottomNavTab.SDK_APIS -> SdkApisTabContent(
+                        uiState = uiState,
+                        onAction = onAction,
+                        context = context,
+                        currentEntityId = currentEntityId,
+                    )
                 BottomNavTab.STRESS_TESTS -> StressTestsTabContent(
                     onAction = onAction,
                 )
@@ -282,6 +286,7 @@ private fun SdkApisTabContent(
     uiState: AppState,
     onAction: (AppAction) -> Unit,
     context: android.content.Context,
+    currentEntityId: () -> String,
 ) {
     val listState = rememberLazyListState()
     val toasterText = stringResource(
@@ -329,6 +334,17 @@ private fun SdkApisTabContent(
             FeatureFlagsTestingCard(
                 onAddVariantFlag = { value -> onAction(FeatureFlagsTestAction.AddVariantFlag(value)) },
                 onAddManyFeatureFlags = { onAction(FeatureFlagsTestAction.AddManyFeatureFlags) },
+            )
+        }
+        item {
+            EntityIdCard(
+                entityIdValue = currentEntityId(),
+                onClearEntityId = { onAction(ConfigAction.ClearEntityId) },
+            )
+        }
+        item {
+            TracingStatusCard(
+                currentIsTracingActive = { Logger.isTracingActive },
             )
         }
         item {

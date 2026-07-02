@@ -12,6 +12,7 @@ import XCTest
 
 typealias Report = bitdrift_public_fbs_issue_reporting_v1_Report
 typealias ReportType = bitdrift_public_fbs_issue_reporting_v1_ReportType
+typealias Arch = bitdrift_public_fbs_issue_reporting_v1_Architecture
 
 final class DiagnosticEventReporterTests: XCTestCase {
     private var reportDir: URL?
@@ -523,6 +524,43 @@ ThermalInfo: (
         XCTAssertEqual(frame.frameAddress - imageOffset2, image2.loadAddress)
     }
 
+    func testDiagnosticsInReport() throws {
+        let reporter = DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: .crash,
+            minimumHangSeconds: 2.5,
+            memoryPressureLevel: .unknown,
+            useStackOverlapMatching: true,
+            crashEnrichmentSummaryHandler: nil
+        )
+        let metadata: [String: Any] = [
+            "regionFormat": "MQ",
+            "deviceType": "iPhone31,5",
+            "platformArchitecture": "arm64e",
+            "osVersion": "iPhone OS 26.9 (33E84)",
+            "lowPowerModeEnabled": true,
+        ]
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1, metadata: metadata)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let path = reportDir!.path
+        let files = try FileManager.default.contentsOfDirectory(atPath: path)
+        XCTAssertEqual(1, files.count)
+        XCTAssertTrue(files[0].contains("_crash_"))
+
+        let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
+        var buf = ByteBuffer(data: contents)
+        let report: Report = try! getCheckedRoot(byteBuffer: &buf)
+        XCTAssertEqual(Arch.arm64, report.deviceMetrics!.arch)
+        XCTAssertEqual("iPhone31,5", report.deviceMetrics!.model!)
+        XCTAssertEqual("26.9", report.deviceMetrics!.osBuild!.version!)
+        XCTAssertEqual("33E84", report.deviceMetrics!.osBuild!.kernOsversion!)
+        XCTAssertEqual("MQ", report.appMetrics!.regionFormat!)
+        XCTAssert(report.deviceMetrics!.lowPowerModeEnabled)
+    }
+
     func testManyThreadCrashReport() throws {
         let reporter = DiagnosticEventReporter(
             outputDir: reportDir!,
@@ -676,6 +714,23 @@ final class MockDiagnosticPayload: MXDiagnosticPayload {
     }
 }
 
+final class MockMetadata: MXMetaData {
+    let mockData: [String: Any]
+    init(data: [String: Any]) {
+        self.mockData = data
+        super.init()
+    }
+
+    required init?(coder: NSCoder) {
+        self.mockData = [:]
+        super.init()
+    }
+
+    override func dictionaryRepresentation() -> [AnyHashable: Any] {
+        return self.mockData
+    }
+}
+
 final class MockCrashDiagnostic: MXCrashDiagnostic {
     let mockCallStackTree: MockCallStackTree?
     let mockSignal: NSNumber?
@@ -683,12 +738,20 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
     let mockExceptionCode: NSNumber?
     let mockExceptionReason: Any?
     let mockTerminationReason: String?
+    let mockDiagnosticMetaData: [String: Any]?
 
     override var callStackTree: MXCallStackTree { get { return mockCallStackTree! } }
     override var signal: NSNumber? { get { return mockSignal } }
     override var exceptionType: NSNumber? { get { return mockExceptionType  } }
     override var exceptionCode: NSNumber? { get { return mockExceptionCode } }
     override var terminationReason: String? { get { return mockTerminationReason } }
+    override var metaData: MXMetaData {
+        get {
+            return (self.mockDiagnosticMetaData != nil)
+                ? MockMetadata(data: self.mockDiagnosticMetaData!)
+                : MockMetadata(data: [:])
+        }
+    }
 
     @available(iOS 17.0, *)
     override var exceptionReason: MXCrashDiagnosticObjectiveCExceptionReason? {
@@ -701,14 +764,18 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
     }
 
     override func dictionaryRepresentation() -> [AnyHashable: Any] {
-        return ["callStackTree": self.mockCallStackTree?.stacks ?? [:]]
+        return [
+            "callStackTree": self.mockCallStackTree?.stacks ?? [:],
+            "diagnosticMetaData": self.mockDiagnosticMetaData ?? [:],
+        ]
     }
 
     init(signal: NSNumber? = nil,
          exceptionType: NSNumber? = nil,
          exceptionCode: NSNumber? = nil,
          terminationReason: String? = nil,
-         callStacks: [[String: Any]] = []
+         callStacks: [[String: Any]] = [],
+         metadata: [String: Any] = [:]
     ) throws {
         self.mockCallStackTree = try MockCallStackTree(callStacks)
         self.mockSignal = signal
@@ -716,6 +783,7 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
         self.mockExceptionCode = exceptionCode
         self.mockExceptionReason = nil
         self.mockTerminationReason = terminationReason
+        self.mockDiagnosticMetaData = metadata
         super.init()
     }
 
@@ -733,6 +801,7 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
         self.mockExceptionCode = exceptionCode
         self.mockExceptionReason = exceptionReason
         self.mockTerminationReason = terminationReason
+        self.mockDiagnosticMetaData = [:]
         super.init()
     }
 
@@ -743,6 +812,7 @@ final class MockCrashDiagnostic: MXCrashDiagnostic {
         self.mockExceptionType = nil
         self.mockExceptionReason = nil
         self.mockTerminationReason = nil
+        self.mockDiagnosticMetaData = [:]
         super.init(coder: coder)
     }
 }

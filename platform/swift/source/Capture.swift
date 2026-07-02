@@ -7,7 +7,6 @@
 
 internal import CaptureLoggerBridge
 import Foundation
-import UIKit
 
 /// A map of log fields.
 public typealias Fields = [String: FieldValue]
@@ -120,6 +119,12 @@ extension Logger {
         return Self.getShared()?.deviceID
     }
 
+    /// Whether workflow-controlled tracing is currently active for this session.
+    /// Returns `false` prior to SDK start.
+    public static var isTracingActive: Bool {
+        Self.getShared()?.isTracingActive == true
+    }
+
     /// Returns a point-in-time snapshot of the SDK's operational status.
     /// Returns `InitializationState.notStarted` if the SDK has not been started.
     ///
@@ -133,12 +138,9 @@ extension Logger {
     ///
     /// This API is in experimental phase and may change in the future.
     ///
-    /// Returns `nil` when previous run status is not available.
+    /// Returns `nil` before the SDK is started, or if the SDK failed to initialize its storage.
     public static var previousRunInfo: PreviousRunInfo? {
-        guard let hasFatallyTerminatedOnPreviousRun = Logger.hasFatallyTerminatedOnPreviousRun else {
-            return nil
-        }
-        return PreviousRunInfo(hasFatallyTerminated: hasFatallyTerminatedOnPreviousRun)
+        return Logger.previousRunInfoValue
     }
 
     public static func setSleepMode(_ mode: SleepMode) {
@@ -460,6 +462,11 @@ extension Logger {
     /// - parameter entityID: Entity identifier.
     public static func setEntityID(_ entityID: String) {
         Self.getShared()?.setEntityID(entityID)
+    }
+
+    /// Clears the current entity identifier used for backend correlation with device identifier.
+    public static func clearEntityID() {
+        Self.getShared()?.clearEntityID()
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

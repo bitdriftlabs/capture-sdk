@@ -99,6 +99,10 @@ android_artifacts(
         "//conditions:default": ["//platform/jvm:capture_shared"],
     }),
     proguard_rules = "//platform/jvm:proguard",
+    sdk_verification_file = select({
+        "//bazel/android:android_sdk_verification_file": ["//platform/jvm/capture:sdk_verification_file"],
+        "//conditions:default": [],
+    }),
     visibility = ["//visibility:public"],
 )
 

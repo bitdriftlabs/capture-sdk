@@ -717,6 +717,7 @@ extern "C" fn capture_write_log(
   fields: *const Object,
   matching_fields: *const Object,
   blocking: bool,
+  blocking_timeout_ms: u32,
   override_occurred_at_unix_milliseconds: i64,
 ) {
   with_handle_unexpected(
@@ -746,7 +747,7 @@ extern "C" fn capture_write_log(
         attributes_overrides,
         if blocking {
           Block::Yes {
-            timeout: std::time::Duration::from_secs(1),
+            timeout: std::time::Duration::from_millis(u64::from(blocking_timeout_ms)),
             poll_callback: None,
           }
         } else {
@@ -1066,6 +1067,17 @@ extern "C" fn capture_set_entity_id(logger_id: LoggerId<'_>, entity_id: *const c
       Ok(())
     },
     "swift set entity id",
+  );
+}
+
+#[no_mangle]
+extern "C" fn capture_clear_entity_id(logger_id: LoggerId<'_>) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      logger_id.register_opaque_entity_id(None);
+      Ok(())
+    },
+    "swift clear entity id",
   );
 }
 

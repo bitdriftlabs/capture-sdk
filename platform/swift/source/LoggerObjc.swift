@@ -433,6 +433,15 @@ public final class LoggerObjc: NSObject {
         return Capture.Logger.sessionURL
     }
 
+    /// Whether workflow-controlled tracing is currently active for this session.
+    /// Returns `NO` prior to SDK start.
+    ///
+    /// - returns: `YES` when workflow-controlled tracing is active for the current session.
+    @objc
+    public static func isTracingActive() -> Bool {
+        return Capture.Logger.isTracingActive
+    }
+
     /// A canonical identifier for a device that remains consistent as long as an application
     /// is not reinstalled.
     ///
@@ -449,14 +458,18 @@ public final class LoggerObjc: NSObject {
     ///
     /// This API is in experimental phase and may change in the future.
     ///
-    /// - returns: A dictionary containing `hasFatallyTerminated` when available.
+    /// - returns: A dictionary containing previous run fields when available.
     @objc
     public static func previousRunInfo() -> [String: Any]? {
         guard let previousRunInfo = Capture.Logger.previousRunInfo else {
             return nil
         }
 
-        return ["hasFatallyTerminated": previousRunInfo.hasFatallyTerminated]
+        return [
+            "hasFatallyTerminated": previousRunInfo.hasFatallyTerminated,
+            "wasCleanTermination": previousRunInfo.wasCleanTermination,
+            "terminationReason": previousRunInfo.terminationReason.rawValue,
+        ]
     }
 
     // MARK: - Extra
@@ -513,6 +526,12 @@ public final class LoggerObjc: NSObject {
     @objc
     public static func setEntityID(_ entityID: String) {
         Capture.Logger.setEntityID(entityID)
+    }
+
+    /// Clears the current entity identifier used for backend correlation with device identifier.
+    @objc
+    public static func clearEntityID() {
+        Capture.Logger.clearEntityID()
     }
 
     /// Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

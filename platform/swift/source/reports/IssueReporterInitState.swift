@@ -22,6 +22,10 @@ package enum ReporterInitResolution: Equatable, Error {
     case unsupportedHardware
     /// Core functionality disabled by Configuration
     case clientNotEnabled
+    /// In-process crash reporter failed to initialize; MetricKit crash capture still active but
+    /// crash enrichment (thread names, accurate timestamps) and previousRunInfo crash detection
+    /// are going to have a degraded experience
+    case degraded
     /// Core functionality disabled by runtime variable
     case runtimeNotEnabled
     /// Runtime config contents are not key/value pairs
@@ -83,6 +87,8 @@ extension IssueReporterInitState: CustomStringConvertible {
                 return "CLIENT_CONFIG_DISABLED"
             case .runtimeInvalid:
                 return "RUNTIME_CONFIG_INVALID"
+            case .degraded:
+                return "CRASH_REPORT_DEGRADED"
             case .runtimeNotEnabled:
                 return "RUNTIME_CONFIG_DISABLED"
             case .unsupportedHardware:

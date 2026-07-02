@@ -249,6 +249,7 @@ internal class IssueReporterProcessor(
         val appId = builder.createString(clientAttributes.appId)
         val appVersion = builder.createString(clientAttributes.appVersion)
         val runningStateOffset = runningState?.let { builder.createString(it) }
+        val regionFormatOffset = clientAttributes.localeCountryCode?.let { builder.createString(it) }
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .startAppMetrics(builder)
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
@@ -257,6 +258,10 @@ internal class IssueReporterProcessor(
             .addVersion(builder, appVersion)
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .addBuildNumber(builder, buildNumber)
+        if (regionFormatOffset != null) {
+            io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
+                .addRegionFormat(builder, regionFormatOffset)
+        }
         io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .addMemoryPressureLevel(builder, memoryPressureLevel.nativeValue.toByte())
         if (runningStateOffset != null) {

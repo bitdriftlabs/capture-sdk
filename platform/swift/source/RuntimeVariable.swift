@@ -112,12 +112,24 @@ extension RuntimeVariable<Bool> {
         name: "client_feature.ios.crash_thread_matching_by_stack_overlap",
         defaultValue: false
     )
+
+    // When disabled, previousRunInfo falls back to reporting only fatalCrash or unknown,
+    // ignoring the revamped resolver signals (cleanExit, appUpdate, osUpdate, etc.).
+    static let previousRunInfoRevamped = RuntimeVariable(
+        name: "client_feature.ios.previous_run_info_revamped",
+        defaultValue: true
+    )
 }
 
 extension RuntimeVariable<UInt32> {
     static let applicationANRReporterThresholdMs = RuntimeVariable(
         name: "client_feature.ios.application_anr_reporting.threshold_ms",
         defaultValue: 2_000
+    )
+
+    static let applicationExitLogBlockingTimeoutMs = RuntimeVariable(
+        name: "client_feature.ios.application_exit_reporting.blocking_timeout_ms",
+        defaultValue: 500
     )
 
     static let appLowMemoryPercentThreshold = RuntimeVariable(

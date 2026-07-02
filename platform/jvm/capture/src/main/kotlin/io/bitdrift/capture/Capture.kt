@@ -326,8 +326,8 @@ object Capture {
          * a user is exposed to a specific feature flag variant in your application. The exposure
          * is recorded with a timestamp and tracked for the duration of the process.
          *
-         * @param name the name of the flag being exposed
-         * @param variant the variant of the flag being exposed
+         * @param name the name of the flag being exposed.
+         * @param variant the variant of the flag being exposed.
          */
         @JvmStatic
         @ExperimentalBitdriftApi
@@ -347,6 +347,15 @@ object Capture {
         @JvmStatic
         fun setEntityId(entityId: String) {
             logger()?.setEntityId(entityId)
+        }
+
+        /**
+         * Clears the current entity identifier used for backend correlation with the device
+         * identifier.
+         */
+        @JvmStatic
+        fun clearEntityId() {
+            logger()?.clearEntityId()
         }
 
         /**

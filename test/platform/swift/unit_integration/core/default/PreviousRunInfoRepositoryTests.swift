@@ -1,0 +1,439 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
+@testable import CaptureLoggerBridge
+import Foundation
+import XCTest
+import zlib
+
+final class PreviousRunInfoRepositoryTests: XCTestCase {
+    private var directoryURL: URL!
+    private var sut: BDPreviousRunInfoRepository!
+    private var previousRunInfo: BDPreviousRunInfoSnapshot?
+
+    private let osVersion = "18.0"
+    private let binaryUUID = "4f179445-15d8-4ec1-a86f-0dfe9d2bb425"
+    private let bootTime: UInt64 = 123_456_789
+
+    override func setUp() {
+        directoryURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        previousRunInfo = nil
+    }
+
+    override func tearDown() {
+        sut = nil
+        try? FileManager.default.removeItem(at: directoryURL)
+    }
+
+    func testOnLoadPreviousRunInfoWithoutExistingStateReturnsNil() throws {
+        givenRepository()
+        try whenLoadingPreviousRunInfo()
+        thenPreviousRunInfoIsNil()
+    }
+
+    func testOnLoadPreviousRunInfoWithPersistedUncleanExitReturnsSnapshot() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: false)
+        try whenLoadingPreviousRunInfo()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: false)
+    }
+
+    func testOnLoadPreviousRunInfoWithPersistedCleanExitReturnsSnapshot() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: true)
+        try whenLoadingPreviousRunInfo()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: true)
+    }
+
+    func testOnLoadPreviousRunInfoWithPersistedDebuggerAttachedReturnsSnapshot() throws {
+        try givenPersistedPreviousRunInfo(wasDebuggerAttached: true)
+        try whenLoadingPreviousRunInfo()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: false, wasDebuggerAttached: true)
+    }
+
+    func testOnPrepareCurrentRunInfoPersistsDebuggerAttached() throws {
+        givenRepository()
+        try whenPreparingCurrentRunInfo(wasDebuggerAttached: true)
+        try whenLoadingPersistedPreviousRunInfoFromFreshRepository()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: false, wasDebuggerAttached: true)
+    }
+
+    func testOnPrepareCurrentRunInfoWithoutTerminatingPersistsUncleanExit() throws {
+        givenRepository()
+        try whenPreparingCurrentRunInfo()
+        try whenLoadingPersistedPreviousRunInfoFromFreshRepository()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: false)
+    }
+
+    func testOnMarkTerminatingPersistsCleanExitForNextLaunch() throws {
+        givenRepository()
+        try whenPreparingCurrentRunInfo()
+        try whenMarkingTerminating()
+        try whenLoadingPersistedPreviousRunInfoFromFreshRepository()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: true)
+    }
+
+    func testOnPrepareCurrentRunInfoWhenInvokedTwiceReturnsYes() throws {
+        givenRepository()
+        try whenPreparingCurrentRunInfo()
+        try whenPreparingCurrentRunInfo()
+        thenPrepareCurrentRunInfoSucceeds()
+    }
+
+    func testOnMarkTerminatingBeforePrepareDoesNotPersistCleanExit() throws {
+        givenRepository()
+        try whenMarkingTerminating()
+        try whenPreparingCurrentRunInfo()
+        try whenLoadingPersistedPreviousRunInfoFromFreshRepository()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: false)
+    }
+
+    func testOnLoadPreviousRunInfoWithCorruptedFileReturnsNil() throws {
+        try givenCorruptedPreviousRunInfo()
+        try whenLoadingPreviousRunInfo()
+        thenPreviousRunInfoIsNil()
+    }
+
+    func testOnLoadPreviousRunInfoWithCorruptedCRCReturnsNil() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: false, crc: 0xDEAD_BEEF)
+        try whenLoadingPreviousRunInfo()
+        thenPreviousRunInfoIsNil()
+    }
+
+    func testOnLoadPreviousRunInfoCachesSnapshot() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: true)
+        try whenLoadingPreviousRunInfo()
+        try givenRepositoryFileContainsCorruptedData()
+        try whenLoadingPreviousRunInfo()
+        try thenPreviousRunInfoMatchesPreparedState(wasCleanExit: true)
+    }
+
+    func testOnConcurrentLoadsReturnsConsistentSnapshot() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: true)
+        let snapshots = try whenLoadingPreviousRunInfoConcurrently(iterations: 32)
+        thenConcurrentLoadsReturnExpectedNumberOfSnapshots(snapshots, expectedCount: 32)
+        snapshots.forEach { snapshot in
+            thenSnapshotMatchesPreparedState(snapshot, wasCleanExit: true)
+        }
+    }
+
+    func testOnConcurrentPrepareMarkTerminatingAndLoadIsThreadSafe() throws {
+        givenRepository()
+        let snapshots = try whenExercisingRepositoryConcurrently(iterations: 96)
+        thenConcurrentSnapshotsAreInternallyConsistent(snapshots)
+    }
+
+    func testOnLoadPreviousRunInfoWithTruncatedFileReturnsNil() throws {
+        try givenTruncatedPreviousRunInfo()
+        try whenLoadingPreviousRunInfo()
+        thenPreviousRunInfoIsNil()
+    }
+
+    func testOnLoadPreviousRunInfoWithOversizedFileReturnsNil() throws {
+        try givenOversizedPreviousRunInfo()
+        try whenLoadingPreviousRunInfo()
+        thenPreviousRunInfoIsNil()
+    }
+
+    func testOnLoadPreviousRunInfoWithWrongVersionReturnsNil() throws {
+        try givenPersistedPreviousRunInfo(version: 2)
+        try whenLoadingPreviousRunInfo()
+        thenPreviousRunInfoIsNil()
+    }
+
+    func testOnLoadPreviousRunInfoWithUninitializedRecordReturnsNil() throws {
+        try givenPersistedPreviousRunInfo(isInitialized: false)
+        try whenLoadingPreviousRunInfo()
+        thenPreviousRunInfoIsNil()
+    }
+
+    func testOnPrepareCurrentRunInfoTruncatesStringsExceedingCapacity() throws {
+        givenRepository()
+        try whenPreparingCurrentRunInfo(osVersion: String(repeating: "a", count: 100))
+        try whenLoadingPersistedPreviousRunInfoFromFreshRepository()
+        // Capacity is 64 bytes including the null terminator, so 63 characters survive.
+        let snapshot = try XCTUnwrap(previousRunInfo)
+        XCTAssertEqual(snapshot.osVersion, String(repeating: "a", count: 63))
+    }
+}
+
+private extension PreviousRunInfoRepositoryTests {
+    enum TestError: Error {
+        case repositoryUnavailable
+    }
+
+    var repositoryFileURL: URL {
+        directoryURL.appendingPathComponent("previous_run_info.bin")
+    }
+
+    func givenRepository() {
+        sut = try? BDPreviousRunInfoRepository(directory: directoryURL)
+    }
+
+    func givenPersistedPreviousRunInfo(
+        wasCleanExit: Bool = false,
+        version: UInt32 = 1,
+        isInitialized: Bool = true,
+        wasDebuggerAttached: Bool = false,
+        crc: UInt32? = nil
+    ) throws {
+        try writePreviousRunInfoFile(makePreviousRunInfoData(
+            wasCleanExit: wasCleanExit,
+            version: version,
+            isInitialized: isInitialized,
+            wasDebuggerAttached: wasDebuggerAttached,
+            crc: crc
+        ))
+    }
+
+    func givenCorruptedPreviousRunInfo() throws {
+        try writePreviousRunInfoFile(Data(repeating: 0, count: 128))
+    }
+
+    func givenTruncatedPreviousRunInfo() throws {
+        try writePreviousRunInfoFile(Data(repeating: 0xFF, count: 10))
+    }
+
+    func givenOversizedPreviousRunInfo() throws {
+        var data = makePreviousRunInfoData(wasCleanExit: false)
+        data.append(0)
+        try writePreviousRunInfoFile(data)
+    }
+
+    func writePreviousRunInfoFile(_ data: Data) throws {
+        try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        try data.write(to: repositoryFileURL)
+        givenRepository()
+    }
+
+    func givenRepositoryFileContainsCorruptedData() throws {
+        try Data(repeating: 0, count: 128).write(to: repositoryFileURL)
+    }
+
+    func whenPreparingCurrentRunInfo(osVersion: String? = nil, wasDebuggerAttached: Bool = false) throws {
+        guard let sut else {
+            throw TestError.repositoryUnavailable
+        }
+
+        try sut.prepareCurrentRunInfo(
+            withOsVersion: osVersion ?? self.osVersion,
+            binaryUUID: binaryUUID,
+            bootTime: bootTime,
+            wasDebuggerAttached: wasDebuggerAttached
+        )
+    }
+
+    func whenMarkingTerminating() throws {
+        guard let sut else {
+            throw TestError.repositoryUnavailable
+        }
+
+        sut.markTerminating()
+    }
+
+    func whenLoadingPreviousRunInfo() throws {
+        guard let sut else {
+            throw TestError.repositoryUnavailable
+        }
+
+        previousRunInfo = try? sut.loadPreviousRunInfo()
+    }
+
+    func whenLoadingPersistedPreviousRunInfoFromFreshRepository() throws {
+        sut = try BDPreviousRunInfoRepository(directory: directoryURL)
+        try whenLoadingPreviousRunInfo()
+    }
+
+    func whenLoadingPreviousRunInfoConcurrently(iterations: Int) throws -> [BDPreviousRunInfoSnapshot] {
+        guard let sut else {
+            throw TestError.repositoryUnavailable
+        }
+
+        let group = DispatchGroup()
+        let queue = DispatchQueue(label: "PreviousRunInfoRepositoryTests", attributes: .concurrent)
+        let lock = NSLock()
+        var snapshots: [BDPreviousRunInfoSnapshot] = []
+        var thrownError: Error?
+
+        for _ in 0 ..< iterations {
+            group.enter()
+            queue.async {
+                defer { group.leave() }
+                do {
+                    let snapshot = try sut.loadPreviousRunInfo()
+                    lock.lock()
+                    snapshots.append(snapshot)
+                    lock.unlock()
+                } catch {
+                    lock.lock()
+                    thrownError = error
+                    lock.unlock()
+                }
+            }
+        }
+
+        group.wait()
+
+        if let thrownError {
+            throw thrownError
+        }
+
+        return snapshots
+    }
+
+    func whenExercisingRepositoryConcurrently(iterations: Int) throws -> [BDPreviousRunInfoSnapshot] {
+        guard let sut else {
+            throw TestError.repositoryUnavailable
+        }
+
+        let lock = NSLock()
+        var snapshots: [BDPreviousRunInfoSnapshot] = []
+        var thrownError: Error?
+
+        DispatchQueue.concurrentPerform(iterations: iterations) { index in
+            switch index % 3 {
+            case 0:
+                do {
+                    try sut.prepareCurrentRunInfo(
+                        withOsVersion: self.osVersion,
+                        binaryUUID: self.binaryUUID,
+                        bootTime: self.bootTime,
+                        wasDebuggerAttached: false
+                    )
+                } catch {
+                    lock.lock()
+                    thrownError = error
+                    lock.unlock()
+                }
+            case 1:
+                // `markTerminating` is a no-op until `prepare` has mapped the record.
+                sut.markTerminating()
+            default:
+                // `load` throws when no valid record is visible yet; only collect real snapshots.
+                if let snapshot = try? sut.loadPreviousRunInfo() {
+                    lock.lock()
+                    snapshots.append(snapshot)
+                    lock.unlock()
+                }
+            }
+        }
+
+        if let thrownError {
+            throw thrownError
+        }
+
+        return snapshots
+    }
+
+    func thenPrepareCurrentRunInfoSucceeds() {
+        XCTAssertNotNil(sut)
+    }
+
+    func thenPreviousRunInfoIsNil() {
+        XCTAssertNil(previousRunInfo)
+    }
+
+    func thenPreviousRunInfoMatchesPreparedState(wasCleanExit: Bool, wasDebuggerAttached: Bool = false) throws {
+        let snapshot = try XCTUnwrap(previousRunInfo)
+        thenSnapshotMatchesPreparedState(snapshot, wasCleanExit: wasCleanExit, wasDebuggerAttached: wasDebuggerAttached)
+    }
+
+    func thenSnapshotMatchesPreparedState(
+        _ snapshot: BDPreviousRunInfoSnapshot,
+        wasCleanExit: Bool,
+        wasDebuggerAttached: Bool = false
+    ) {
+        XCTAssertEqual(snapshot.osVersion, osVersion)
+        XCTAssertEqual(snapshot.binaryUUID, binaryUUID)
+        XCTAssertEqual(snapshot.bootTime, bootTime)
+        XCTAssertEqual(snapshot.wasCleanExit, wasCleanExit)
+        XCTAssertEqual(snapshot.wasDebuggerAttached, wasDebuggerAttached)
+    }
+
+    func thenConcurrentLoadsReturnExpectedNumberOfSnapshots(
+        _ snapshots: [BDPreviousRunInfoSnapshot],
+        expectedCount: Int
+    ) {
+        XCTAssertEqual(snapshots.count, expectedCount)
+    }
+
+    func thenConcurrentSnapshotsAreInternallyConsistent(_ snapshots: [BDPreviousRunInfoSnapshot]) {
+        snapshots.forEach { snapshot in
+            XCTAssertEqual(snapshot.osVersion, osVersion)
+            XCTAssertEqual(snapshot.binaryUUID, binaryUUID)
+            XCTAssertEqual(snapshot.bootTime, bootTime)
+        }
+    }
+
+    /// Builds a raw fixture matching `BDPreviousRunInfoRecord` byte-for-byte.
+    ///
+    /// Layout:
+    /// - `uint32_t version`
+    /// - `uint8_t is_terminating`
+    /// - 3 bytes reserved padding
+    /// - `uint64_t boot_time`
+    /// - `char os_version[64]`
+    /// - `char binary_uuid[40]`
+    /// - `uint8_t is_initialized`
+    /// - `uint8_t was_debugger_attached`
+    /// - 2 bytes reserved padding
+    /// - `uint32_t crc`
+    ///
+    /// Integer fields are encoded as little-endian to match the in-memory C struct
+    /// layout read by the repository on iOS.
+    ///
+    /// - parameter wasCleanExit:        Value to write for `is_terminating`.
+    /// - parameter version:             Value to write for `version`.
+    /// - parameter isInitialized:       Value to write for `is_initialized`.
+    /// - parameter wasDebuggerAttached: Value to write for `was_debugger_attached`.
+    /// - parameter crc:                 CRC32 to embed; pass `nil` to auto-compute the correct value.
+    ///
+    /// - returns: The raw fixture bytes.
+    func makePreviousRunInfoData(
+        wasCleanExit: Bool,
+        version: UInt32 = 1,
+        isInitialized: Bool = true,
+        wasDebuggerAttached: Bool = false,
+        crc: UInt32? = nil
+    ) -> Data {
+        var data = Data()
+        data.append(version.littleEndianData)
+        data.append(wasCleanExit ? 1 : 0)
+        data.append(contentsOf: [0, 0, 0])
+        data.append(bootTime.littleEndianData)
+        data.append(fixedWidthStringData(osVersion, capacity: 64))
+        data.append(fixedWidthStringData(binaryUUID, capacity: 40))
+        data.append(isInitialized ? 1 : 0)
+        data.append(wasDebuggerAttached ? 1 : 0)
+        data.append(contentsOf: [0, 0])
+        // Append 4 zero bytes as the crc placeholder (matches bdpri_compute_crc which zeros the field),
+        // then replace with the actual CRC32 over the whole record.
+        data.append(contentsOf: [0, 0, 0, 0])
+        let finalCRC = crc ?? crc32(data)
+        data.replaceSubrange((data.count - 4)..., with: finalCRC.littleEndianData)
+        return data
+    }
+
+    private func crc32(_ data: Data) -> UInt32 {
+        data.withUnsafeBytes { buffer in
+            UInt32(zlib.crc32(0, buffer.baseAddress?.assumingMemoryBound(to: UInt8.self), UInt32(data.count)))
+        }
+    }
+
+    func fixedWidthStringData(_ string: String, capacity: Int) -> Data {
+        var data = Data(count: capacity)
+        let utf8 = Array(string.utf8.prefix(capacity - 1))
+        data.replaceSubrange(0 ..< utf8.count, with: utf8)
+        return data
+    }
+}
+
+private extension FixedWidthInteger {
+    var littleEndianData: Data {
+        var value = self.littleEndian
+        return Data(bytes: &value, count: MemoryLayout<Self>.size)
+    }
+}

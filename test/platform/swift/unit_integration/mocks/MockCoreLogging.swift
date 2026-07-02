@@ -21,7 +21,7 @@ public final class MockCoreLogging {
         public let matchingFields: Fields?
         public let error: Error?
         public let type: Capture.Logger.LogType
-        public let blocking: Bool
+        public let blockingBehavior: LogBlockingBehavior
         public let occurredAtOverride: Date?
     }
 
@@ -58,6 +58,10 @@ public final class MockCoreLogging {
     public private(set) var notifyMemoryPressureValue: MemoryPressureLevel?
 
     public var mockedPreviousMemoryPressureLevel: MemoryPressureLevel?
+
+    public private(set) var setEntityIDs = [String]()
+
+    public private(set) var clearEntityIDCallCount = 0
 
     public init() {}
 
@@ -105,7 +109,7 @@ extension MockCoreLogging: CoreLogging {
         matchingFields: Fields?,
         error: Error?,
         type: Capture.Logger.LogType,
-        blocking: Bool,
+        blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     ) {
         self.logs.append(
@@ -119,7 +123,7 @@ extension MockCoreLogging: CoreLogging {
                 matchingFields: matchingFields,
                 error: error,
                 type: type,
-                blocking: blocking,
+                blockingBehavior: blockingBehavior,
                 occurredAtOverride: occurredAtOverride
             )
         )
@@ -197,5 +201,11 @@ extension MockCoreLogging: CoreLogging {
 
     public func setFeatureFlagExposure(withName flag: String, variant: String) {}
 
-    public func setEntityID(_: String) {}
+    public func setEntityID(_ entityID: String) {
+        self.setEntityIDs.append(entityID)
+    }
+
+    public func clearEntityID() {
+        self.clearEntityIDCallCount += 1
+    }
 }

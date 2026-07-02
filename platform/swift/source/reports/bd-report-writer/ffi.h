@@ -73,6 +73,7 @@ typedef struct BDDeviceMetrics {
   int8_t rotation;
   uint8_t cpu_abi_count;
   const char *const *cpu_abis;
+  bool low_power_mode_enabled;
 } BDDeviceMetrics;
 
 typedef struct BDAppMetrics {
@@ -85,6 +86,7 @@ typedef struct BDAppMetrics {
   uint64_t memory_free;
   uint64_t memory_total;
   int8_t memory_pressure_level;
+  const char *region_format;
 } BDAppMetrics;
 
 /**
