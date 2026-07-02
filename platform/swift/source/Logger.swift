@@ -175,7 +175,6 @@ public final class Logger {
         self.eventsListenerTarget = EventSubscriber()
         self.previousRunInfoController = PreviousRunInfoController(
             baseDirectory: directoryURL,
-            appVersion: clientAttributes.appVersion,
             osVersion: clientAttributes.osVersion
         )
 

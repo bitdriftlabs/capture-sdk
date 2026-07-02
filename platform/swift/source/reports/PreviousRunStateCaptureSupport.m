@@ -11,32 +11,32 @@
 #import <mach-o/loader.h>
 #import <sys/sysctl.h>
 
-static const struct mach_header *bdprcs_main_image_header(void) {
-    NSString *executablePath = NSBundle.mainBundle.executablePath;
-    const struct mach_header *fallbackHeader = NULL;
-
+static const struct mach_header *bdprcs_image_header_for_path(NSString *path) {
     for (uint32_t idx = 0; idx < _dyld_image_count(); idx++) {
         const char *imageName = _dyld_get_image_name(idx);
         const struct mach_header *header = _dyld_get_image_header(idx);
-        if (header == NULL) {
-            continue;
-        }
-
-        if (fallbackHeader == NULL) {
-            fallbackHeader = header;
-        }
-
-        if (imageName == NULL) {
+        if (header == NULL || imageName == NULL) {
             continue;
         }
 
         NSString *candidate = [NSString stringWithUTF8String:imageName];
-        if ([candidate isEqualToString:executablePath]) {
+        if ([candidate isEqualToString:path]) {
             return header;
         }
     }
 
-    return fallbackHeader;
+    return NULL;
+}
+
+static const struct mach_header *bdprcs_main_image_header(void) {
+    NSString *executablePath = NSBundle.mainBundle.executablePath;
+    const struct mach_header *header = bdprcs_image_header_for_path(executablePath);
+    if (header != NULL) {
+        return header;
+    }
+
+    // Fall back to the first loaded image if the main bundle path didn't match.
+    return _dyld_image_count() > 0 ? _dyld_get_image_header(0) : NULL;
 }
 
 static NSString *bdprcs_uuid_from_header(const struct mach_header *header) {

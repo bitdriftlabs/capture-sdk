@@ -13,19 +13,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface BDPreviousRunInfoSnapshot : NSObject
 
-@property(nonatomic, readonly, copy) NSString *appVersion;
 @property(nonatomic, readonly, copy) NSString *osVersion;
 @property(nonatomic, readonly, copy) NSString *binaryUUID;
 @property(nonatomic, readonly) uint64_t bootTime;
 @property(nonatomic, readonly) BOOL wasCleanExit;
 @property(nonatomic, readonly) BOOL wasDebuggerAttached;
 
-- (instancetype)initWithAppVersion:(NSString *)appVersion
-                         osVersion:(NSString *)osVersion
-                        binaryUUID:(NSString *)binaryUUID
-                          bootTime:(uint64_t)bootTime
-                      wasCleanExit:(BOOL)wasCleanExit
-               wasDebuggerAttached:(BOOL)wasDebuggerAttached;
+- (instancetype)initWithOsVersion:(NSString *)osVersion
+                       binaryUUID:(NSString *)binaryUUID
+                         bootTime:(uint64_t)bootTime
+                     wasCleanExit:(BOOL)wasCleanExit
+              wasDebuggerAttached:(BOOL)wasDebuggerAttached;
 
 @end
 
@@ -35,12 +33,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)init NS_UNAVAILABLE;
 
 - (nullable BDPreviousRunInfoSnapshot *)loadPreviousRunInfoAndReturnError:(NSError **)error;
-- (BOOL)prepareCurrentRunInfoWithAppVersion:(NSString *)appVersion
-                                  osVersion:(NSString *)osVersion
-                                 binaryUUID:(NSString *)binaryUUID
-                                   bootTime:(uint64_t)bootTime
-                        wasDebuggerAttached:(BOOL)wasDebuggerAttached
-                                      error:(NSError **)error;
+- (BOOL)prepareCurrentRunInfoWithOsVersion:(NSString *)osVersion
+                                binaryUUID:(NSString *)binaryUUID
+                                  bootTime:(uint64_t)bootTime
+                       wasDebuggerAttached:(BOOL)wasDebuggerAttached
+                                     error:(NSError **)error;
 - (void)markTerminating;
 
 @end

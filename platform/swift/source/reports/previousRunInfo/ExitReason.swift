@@ -23,6 +23,9 @@ public enum ExitReason: String, Equatable {
     /// The previous run had a debugger attached. Only reported in debug builds.
     case debuggerAttached
 
+    /// The device rebooted between runs.
+    case reboot
+
     /// The previous run's status couldn't be determined at startup.
     case unknown
 }

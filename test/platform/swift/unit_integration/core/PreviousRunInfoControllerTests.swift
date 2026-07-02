@@ -12,7 +12,6 @@ import XCTest
 final class PreviousRunInfoControllerTests: XCTestCase {
     private var baseDirectoryURL: URL!
 
-    private let appVersion = "1.2.3"
     private let osVersion = "18.0"
 
     override func setUp() {
@@ -52,15 +51,6 @@ final class PreviousRunInfoControllerTests: XCTestCase {
         thenResultEquals(result, .unknown)
     }
 
-    func testOnRelaunchWithAppVersionChangeReturnsAppUpdate() throws {
-        try givenController()
-
-        let controller = try givenController(appVersion: "9.9.9")
-        let result = whenResolving(controller, didCrashLastLaunch: false)
-
-        thenResultEquals(result, PreviousRunInfo(terminationReason: .appUpdate))
-    }
-
     func testOnDirectoryUnavailableReturnsNil() throws {
         try givenBaseDirectoryIsBlockedByAFile()
 
@@ -83,10 +73,9 @@ final class PreviousRunInfoControllerTests: XCTestCase {
 
 private extension PreviousRunInfoControllerTests {
     @discardableResult
-    func givenController(appVersion: String? = nil) throws -> PreviousRunInfoController {
+    func givenController() throws -> PreviousRunInfoController {
         try XCTUnwrap(PreviousRunInfoController(
             baseDirectory: baseDirectoryURL,
-            appVersion: appVersion ?? self.appVersion,
             osVersion: osVersion
         ))
     }
@@ -106,7 +95,7 @@ private extension PreviousRunInfoControllerTests {
     }
 
     func whenCreatingController() -> PreviousRunInfoController? {
-        return PreviousRunInfoController(baseDirectory: baseDirectoryURL, appVersion: appVersion, osVersion: osVersion)
+        return PreviousRunInfoController(baseDirectory: baseDirectoryURL, osVersion: osVersion)
     }
 
     func thenResultEquals(_ result: PreviousRunInfo, _ expected: PreviousRunInfo) {

@@ -8,7 +8,6 @@
 internal import CaptureLoggerBridge
 
 struct PreviousRunStoredState: Equatable {
-    let appVersion: String
     let osVersion: String
     let binaryUUID: String
     let bootTime: UInt64
@@ -16,14 +15,12 @@ struct PreviousRunStoredState: Equatable {
     let wasDebuggerAttached: Bool
 
     init(
-        appVersion: String,
         osVersion: String,
         binaryUUID: String,
         bootTime: UInt64,
         wasCleanExit: Bool,
         wasDebuggerAttached: Bool = false
     ) {
-        self.appVersion = appVersion
         self.osVersion = osVersion
         self.binaryUUID = binaryUUID
         self.bootTime = bootTime
@@ -32,7 +29,6 @@ struct PreviousRunStoredState: Equatable {
     }
 
     init(_ snapshot: BDPreviousRunInfoSnapshot) {
-        self.appVersion = snapshot.appVersion
         self.osVersion = snapshot.osVersion
         self.binaryUUID = snapshot.binaryUUID
         self.bootTime = snapshot.bootTime

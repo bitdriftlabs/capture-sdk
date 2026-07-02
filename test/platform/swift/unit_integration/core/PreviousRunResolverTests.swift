@@ -10,7 +10,6 @@ import XCTest
 
 final class PreviousRunResolverTests: XCTestCase {
     private let currentState = PreviousRunCurrentState(
-        appVersion: "1.2.3",
         osVersion: "18.0",
         binaryUUID: "current-binary",
         bootTime: 123,
@@ -27,26 +26,9 @@ final class PreviousRunResolverTests: XCTestCase {
         XCTAssertEqual(result, PreviousRunInfo.unknown)
     }
 
-    func test_returnsAppUpdate_whenAppVersionChanges() {
-        let result = PreviousRunResolver().resolve(
-            previousState: .init(
-                appVersion: "1.2.2",
-                osVersion: self.currentState.osVersion,
-                binaryUUID: self.currentState.binaryUUID,
-                bootTime: self.currentState.bootTime,
-                wasCleanExit: false
-            ),
-            currentState: self.currentState,
-            didCrashLastLaunch: false
-        )
-
-        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .appUpdate))
-    }
-
     func test_returnsAppUpdate_whenBinaryUUIDChanges() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: "previous-binary",
                 bootTime: self.currentState.bootTime,
@@ -62,7 +44,6 @@ final class PreviousRunResolverTests: XCTestCase {
     func test_returnsOSUpdate_whenOSVersionChanges() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: "17.5",
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: self.currentState.bootTime,
@@ -75,10 +56,9 @@ final class PreviousRunResolverTests: XCTestCase {
         XCTAssertEqual(result, PreviousRunInfo(terminationReason: .osUpdate))
     }
 
-    func test_returnsUnknown_whenBootTimeChanges() {
+    func test_returnsReboot_whenBootTimeChanges() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 // A reboot shifts boot time far beyond the sub-second tolerance.
@@ -89,13 +69,12 @@ final class PreviousRunResolverTests: XCTestCase {
             didCrashLastLaunch: false
         )
 
-        XCTAssertEqual(result, .unknown)
+        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .reboot))
     }
 
     func test_returnsCleanExit_whenPreviousRunTerminatedCleanly() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: self.currentState.bootTime,
@@ -111,7 +90,6 @@ final class PreviousRunResolverTests: XCTestCase {
     func test_returnsFatalCrash_whenCrashReporterCapturedPreviousCrash() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: self.currentState.bootTime,
@@ -126,12 +104,11 @@ final class PreviousRunResolverTests: XCTestCase {
 
     // MARK: - Crash precedence
 
-    func test_returnsFatalCrash_whenAppVersionChangedAndCrashed() {
+    func test_returnsFatalCrash_whenBinaryUUIDChangedAndCrashed() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: "1.2.2",
                 osVersion: self.currentState.osVersion,
-                binaryUUID: self.currentState.binaryUUID,
+                binaryUUID: "previous-binary",
                 bootTime: self.currentState.bootTime,
                 wasCleanExit: false
             ),
@@ -145,7 +122,6 @@ final class PreviousRunResolverTests: XCTestCase {
     func test_returnsFatalCrash_whenOSVersionChangedAndCrashed() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: "17.5",
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: self.currentState.bootTime,
@@ -161,7 +137,6 @@ final class PreviousRunResolverTests: XCTestCase {
     func test_returnsFatalCrash_whenBootTimeChangedAndCrashed() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: self.currentState.bootTime + 60_000_000,
@@ -177,7 +152,6 @@ final class PreviousRunResolverTests: XCTestCase {
     func test_returnsFatalCrash_whenCleanExitMarkedAndCrashed() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: self.currentState.bootTime,
@@ -195,7 +169,6 @@ final class PreviousRunResolverTests: XCTestCase {
     func test_returnsCleanExit_whenBootTimeChangedAndCleanExit() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: self.currentState.bootTime + 60_000_000,
@@ -213,7 +186,6 @@ final class PreviousRunResolverTests: XCTestCase {
     func test_returnsUnknown_whenBootTimeWithinToleranceTreatedAsSameBoot() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 // Sub-second drift is not a reboot; falls through to `.unknown`.
@@ -230,7 +202,6 @@ final class PreviousRunResolverTests: XCTestCase {
     func test_returnsUnknown_whenBootTimeIsZero() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: 0,
@@ -248,7 +219,6 @@ final class PreviousRunResolverTests: XCTestCase {
     func test_returnsDebuggerAttached_whenPreviousRunHadDebuggerAttached() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: self.currentState.bootTime,
@@ -262,27 +232,9 @@ final class PreviousRunResolverTests: XCTestCase {
         XCTAssertEqual(result, PreviousRunInfo(terminationReason: .debuggerAttached))
     }
 
-    func test_returnsAppUpdate_whenDebuggerAttachedAndAppVersionChanged() {
-        let result = PreviousRunResolver().resolve(
-            previousState: .init(
-                appVersion: "1.2.2",
-                osVersion: self.currentState.osVersion,
-                binaryUUID: self.currentState.binaryUUID,
-                bootTime: self.currentState.bootTime,
-                wasCleanExit: false,
-                wasDebuggerAttached: true
-            ),
-            currentState: self.currentState,
-            didCrashLastLaunch: false
-        )
-
-        XCTAssertEqual(result, PreviousRunInfo(terminationReason: .appUpdate))
-    }
-
     func test_returnsFatalCrash_whenDebuggerAttachedAndCrashed() {
         let result = PreviousRunResolver().resolve(
             previousState: .init(
-                appVersion: self.currentState.appVersion,
                 osVersion: self.currentState.osVersion,
                 binaryUUID: self.currentState.binaryUUID,
                 bootTime: self.currentState.bootTime,

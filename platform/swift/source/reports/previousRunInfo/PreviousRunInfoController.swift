@@ -16,21 +16,17 @@ final class PreviousRunInfoController {
     private let previousRunInfoStorage = Atomic<PreviousRunInfo?>(nil)
     var previousRunInfo: PreviousRunInfo { self.previousRunInfoStorage.load() ?? .unknown }
 
-    init?(baseDirectory: URL, appVersion: String, osVersion: String) {
+    init?(baseDirectory: URL, osVersion: String) {
         let storeDirectory = baseDirectory.appendingPathComponent("previous_run", isDirectory: true)
         guard let store = try? BDPreviousRunInfoRepository(directory: storeDirectory) else {
             return nil
         }
 
-        self.currentState = PreviousRunCurrentState.create(
-            appVersion: appVersion,
-            osVersion: osVersion
-        )
+        self.currentState = PreviousRunCurrentState.create(osVersion: osVersion)
         self.previousState = (try? store.loadPreviousRunInfo()).map(PreviousRunStoredState.init)
 
         guard (try? store.prepareCurrentRunInfo(
-            withAppVersion: self.currentState.appVersion,
-            osVersion: self.currentState.osVersion,
+            withOsVersion: self.currentState.osVersion,
             binaryUUID: self.currentState.binaryUUID,
             bootTime: self.currentState.bootTime,
             wasDebuggerAttached: self.currentState.wasDebuggerAttached

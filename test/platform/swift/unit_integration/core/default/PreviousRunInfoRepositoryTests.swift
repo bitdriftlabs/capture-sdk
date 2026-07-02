@@ -15,7 +15,6 @@ final class PreviousRunInfoRepositoryTests: XCTestCase {
     private var sut: BDPreviousRunInfoRepository!
     private var previousRunInfo: BDPreviousRunInfoSnapshot?
 
-    private let appVersion = "1.2.3"
     private let osVersion = "18.0"
     private let binaryUUID = "4f179445-15d8-4ec1-a86f-0dfe9d2bb425"
     private let bootTime: UInt64 = 123_456_789
@@ -153,10 +152,11 @@ final class PreviousRunInfoRepositoryTests: XCTestCase {
 
     func testOnPrepareCurrentRunInfoTruncatesStringsExceedingCapacity() throws {
         givenRepository()
-        try whenPreparingCurrentRunInfo(appVersion: String(repeating: "a", count: 100))
+        try whenPreparingCurrentRunInfo(osVersion: String(repeating: "a", count: 100))
         try whenLoadingPersistedPreviousRunInfoFromFreshRepository()
         // Capacity is 64 bytes including the null terminator, so 63 characters survive.
-        try thenPreviousRunInfoAppVersion(equals: String(repeating: "a", count: 63))
+        let snapshot = try XCTUnwrap(previousRunInfo)
+        XCTAssertEqual(snapshot.osVersion, String(repeating: "a", count: 63))
     }
 }
 
@@ -190,7 +190,7 @@ private extension PreviousRunInfoRepositoryTests {
     }
 
     func givenCorruptedPreviousRunInfo() throws {
-        try writePreviousRunInfoFile(Data(repeating: 0, count: 192))
+        try writePreviousRunInfoFile(Data(repeating: 0, count: 128))
     }
 
     func givenTruncatedPreviousRunInfo() throws {
@@ -210,17 +210,16 @@ private extension PreviousRunInfoRepositoryTests {
     }
 
     func givenRepositoryFileContainsCorruptedData() throws {
-        try Data(repeating: 0, count: 192).write(to: repositoryFileURL)
+        try Data(repeating: 0, count: 128).write(to: repositoryFileURL)
     }
 
-    func whenPreparingCurrentRunInfo(appVersion: String? = nil, wasDebuggerAttached: Bool = false) throws {
+    func whenPreparingCurrentRunInfo(osVersion: String? = nil, wasDebuggerAttached: Bool = false) throws {
         guard let sut else {
             throw TestError.repositoryUnavailable
         }
 
         try sut.prepareCurrentRunInfo(
-            withAppVersion: appVersion ?? self.appVersion,
-            osVersion: osVersion,
+            withOsVersion: osVersion ?? self.osVersion,
             binaryUUID: binaryUUID,
             bootTime: bootTime,
             wasDebuggerAttached: wasDebuggerAttached
@@ -299,8 +298,7 @@ private extension PreviousRunInfoRepositoryTests {
             case 0:
                 do {
                     try sut.prepareCurrentRunInfo(
-                        withAppVersion: self.appVersion,
-                        osVersion: self.osVersion,
+                        withOsVersion: self.osVersion,
                         binaryUUID: self.binaryUUID,
                         bootTime: self.bootTime,
                         wasDebuggerAttached: false
@@ -348,7 +346,6 @@ private extension PreviousRunInfoRepositoryTests {
         wasCleanExit: Bool,
         wasDebuggerAttached: Bool = false
     ) {
-        XCTAssertEqual(snapshot.appVersion, appVersion)
         XCTAssertEqual(snapshot.osVersion, osVersion)
         XCTAssertEqual(snapshot.binaryUUID, binaryUUID)
         XCTAssertEqual(snapshot.bootTime, bootTime)
@@ -365,16 +362,10 @@ private extension PreviousRunInfoRepositoryTests {
 
     func thenConcurrentSnapshotsAreInternallyConsistent(_ snapshots: [BDPreviousRunInfoSnapshot]) {
         snapshots.forEach { snapshot in
-            XCTAssertEqual(snapshot.appVersion, appVersion)
             XCTAssertEqual(snapshot.osVersion, osVersion)
             XCTAssertEqual(snapshot.binaryUUID, binaryUUID)
             XCTAssertEqual(snapshot.bootTime, bootTime)
         }
-    }
-
-    func thenPreviousRunInfoAppVersion(equals expected: String) throws {
-        let snapshot = try XCTUnwrap(previousRunInfo)
-        XCTAssertEqual(snapshot.appVersion, expected)
     }
 
     /// Builds a raw fixture matching `BDPreviousRunInfoRecord` byte-for-byte.
@@ -384,7 +375,6 @@ private extension PreviousRunInfoRepositoryTests {
     /// - `uint8_t is_terminating`
     /// - 3 bytes reserved padding
     /// - `uint64_t boot_time`
-    /// - `char app_version[64]`
     /// - `char os_version[64]`
     /// - `char binary_uuid[40]`
     /// - `uint8_t is_initialized`
@@ -414,7 +404,6 @@ private extension PreviousRunInfoRepositoryTests {
         data.append(wasCleanExit ? 1 : 0)
         data.append(contentsOf: [0, 0, 0])
         data.append(bootTime.littleEndianData)
-        data.append(fixedWidthStringData(appVersion, capacity: 64))
         data.append(fixedWidthStringData(osVersion, capacity: 64))
         data.append(fixedWidthStringData(binaryUUID, capacity: 40))
         data.append(isInitialized ? 1 : 0)

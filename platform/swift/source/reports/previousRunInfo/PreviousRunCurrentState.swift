@@ -8,18 +8,13 @@
 internal import CaptureLoggerBridge
 
 struct PreviousRunCurrentState: Equatable {
-    let appVersion: String
     let osVersion: String
     let binaryUUID: String
     let bootTime: UInt64
     let wasDebuggerAttached: Bool
 
-    static func create(
-        appVersion: String,
-        osVersion: String
-    ) -> PreviousRunCurrentState {
+    static func create(osVersion: String) -> PreviousRunCurrentState {
         return PreviousRunCurrentState(
-            appVersion: appVersion,
             osVersion: osVersion,
             binaryUUID: BDPreviousRunStateCaptureSupport.mainBinaryUUID() ?? "",
             bootTime: BDPreviousRunStateCaptureSupport.systemBootTime(),

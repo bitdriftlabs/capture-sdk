@@ -28,7 +28,6 @@ typedef struct {
     uint8_t is_terminating;
     uint8_t reserved[3];
     uint64_t boot_time;
-    char app_version[BDPreviousRunInfoStringCapacity];
     char os_version[BDPreviousRunInfoStringCapacity];
     char binary_uuid[BDPreviousRunInfoUUIDCapacity];
     uint8_t is_initialized;
@@ -145,12 +144,11 @@ static BDPreviousRunInfoSnapshot *bdpri_load_previous_run_info(int fd) {
         return nil;
     }
 
-    return [[BDPreviousRunInfoSnapshot alloc] initWithAppVersion:bdpri_make_string(record.app_version, sizeof(record.app_version))
-                                                       osVersion:bdpri_make_string(record.os_version, sizeof(record.os_version))
-                                                      binaryUUID:bdpri_make_string(record.binary_uuid, sizeof(record.binary_uuid))
-                                                        bootTime:record.boot_time
-                                                    wasCleanExit:record.is_terminating == 1
-                                              wasDebuggerAttached:record.was_debugger_attached == 1];
+    return [[BDPreviousRunInfoSnapshot alloc] initWithOsVersion:bdpri_make_string(record.os_version, sizeof(record.os_version))
+                                                     binaryUUID:bdpri_make_string(record.binary_uuid, sizeof(record.binary_uuid))
+                                                       bootTime:record.boot_time
+                                                   wasCleanExit:record.is_terminating == 1
+                                             wasDebuggerAttached:record.was_debugger_attached == 1];
 }
 
 // ftruncate grows the file (freshly created files are 0 bytes) to the record size, since mmap
@@ -187,7 +185,6 @@ static BOOL bdpri_resize_and_map_file(
 
 static BOOL bdpri_prepare_current_record(
     BDPreviousRunInfoRecord *record,
-    NSString *appVersion,
     NSString *osVersion,
     NSString *binaryUUID,
     uint64_t bootTime,
@@ -199,7 +196,6 @@ static BOOL bdpri_prepare_current_record(
 
     record->boot_time = bootTime;
     record->was_debugger_attached = wasDebuggerAttached ? 1 : 0;
-    bdpri_write_string(record->app_version, sizeof(record->app_version), appVersion);
     bdpri_write_string(record->os_version, sizeof(record->os_version), osVersion);
     bdpri_write_string(record->binary_uuid, sizeof(record->binary_uuid), binaryUUID);
     record->version = BDPreviousRunInfoVersion;
@@ -210,18 +206,16 @@ static BOOL bdpri_prepare_current_record(
 
 @implementation BDPreviousRunInfoSnapshot
 
-- (instancetype)initWithAppVersion:(NSString *)appVersion
-                         osVersion:(NSString *)osVersion
-                        binaryUUID:(NSString *)binaryUUID
-                          bootTime:(uint64_t)bootTime
-                      wasCleanExit:(BOOL)wasCleanExit
-               wasDebuggerAttached:(BOOL)wasDebuggerAttached {
+- (instancetype)initWithOsVersion:(NSString *)osVersion
+                       binaryUUID:(NSString *)binaryUUID
+                         bootTime:(uint64_t)bootTime
+                     wasCleanExit:(BOOL)wasCleanExit
+              wasDebuggerAttached:(BOOL)wasDebuggerAttached {
     self = [super init];
     if (self == nil) {
         return nil;
     }
 
-    _appVersion = [appVersion copy];
     _osVersion = [osVersion copy];
     _binaryUUID = [binaryUUID copy];
     _bootTime = bootTime;
@@ -289,12 +283,11 @@ static BOOL bdpri_prepare_current_record(
     return snapshot;
 }
 
-- (BOOL)prepareCurrentRunInfoWithAppVersion:(NSString *)appVersion
-                                  osVersion:(NSString *)osVersion
-                                 binaryUUID:(NSString *)binaryUUID
-                                   bootTime:(uint64_t)bootTime
-                        wasDebuggerAttached:(BOOL)wasDebuggerAttached
-                                      error:(NSError **)error {
+- (BOOL)prepareCurrentRunInfoWithOsVersion:(NSString *)osVersion
+                                binaryUUID:(NSString *)binaryUUID
+                                  bootTime:(uint64_t)bootTime
+                       wasDebuggerAttached:(BOOL)wasDebuggerAttached
+                                     error:(NSError **)error {
     os_unfair_lock_lock(&_lock);
     if (_mappedRecord != NULL) {
         os_unfair_lock_unlock(&_lock);
@@ -314,7 +307,6 @@ static BOOL bdpri_prepare_current_record(
 
     BOOL prepared = bdpri_prepare_current_record(
         _mappedRecord,
-        appVersion,
         osVersion,
         binaryUUID,
         bootTime,

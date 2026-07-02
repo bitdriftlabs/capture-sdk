@@ -53,6 +53,8 @@ struct PreviousRunInfoPanelView: View {
             return "App Update"
         case .osUpdate:
             return "OS Update"
+        case .reboot:
+            return "Reboot"
         case .debuggerAttached:
             return "Debugger was attached"
         case .unknown:

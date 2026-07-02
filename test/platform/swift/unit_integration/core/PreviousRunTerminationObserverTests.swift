@@ -17,7 +17,6 @@ final class PreviousRunTerminationObserverTests: XCTestCase {
     private var store: BDPreviousRunInfoRepository!
     private var terminationObserver: PreviousRunTerminationObserver?
 
-    private let appVersion = "1.2.3"
     private let osVersion = "18.0"
     private let binaryUUID = "4f179445-15d8-4ec1-a86f-0dfe9d2bb425"
     private let bootTime: UInt64 = 123_456_789
@@ -28,8 +27,7 @@ final class PreviousRunTerminationObserverTests: XCTestCase {
         notificationCenter = NotificationCenter()
         store = try BDPreviousRunInfoRepository(directory: directoryURL)
         try store.prepareCurrentRunInfo(
-            withAppVersion: appVersion,
-            osVersion: osVersion,
+            withOsVersion: osVersion,
             binaryUUID: binaryUUID,
             bootTime: bootTime,
             wasDebuggerAttached: false

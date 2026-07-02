@@ -31,10 +31,9 @@ struct PreviousRunResolver {
             return PreviousRunInfo(terminationReason: .cleanExit)
         }
 
-        // Both appVersion and binaryUUID are checked because the version string alone is not enough:
-        // adhoc/development builds often share the same version string across binary changes.
-        if previousState.appVersion != currentState.appVersion ||
-            previousState.binaryUUID != currentState.binaryUUID {
+        // Binary UUID uniquely identifies a build — it changes with every compilation regardless
+        // of whether the version string was bumped.
+        if previousState.binaryUUID != currentState.binaryUUID {
             return PreviousRunInfo(terminationReason: .appUpdate)
         }
 
@@ -45,17 +44,16 @@ struct PreviousRunResolver {
         if previousState.bootTime != 0,
            currentState.bootTime != 0,
            Self.bootTimeDelta(previousState.bootTime, currentState.bootTime) > Self.bootTimeToleranceMicroseconds {
-            // The device rebooted between runs while the previous run ended without a clean-exit
-            // marker or captured crash. This currently collapses to `.unknown`, same as the
-            // fallthrough below.
-            // TODO: introduce a dedicated status (e.g. forced reboot / power-off) if we want to
-            // distinguish a reboot-induced termination from a genuinely unknown one.
-            return .unknown
+            return PreviousRunInfo(terminationReason: .reboot)
         }
 
         // Checked last since it's the least specific signal we have: only reported in debug builds,
         // for a launch that otherwise looked unclean but wasn't explained by a crash, reboot, or
         // app/OS update.
+        //
+        // This case exists because we skip crash reporting when a debugger is attached, leaving no
+        // crash evidence even if the app crashed. Once we move to out-of-process crash reporting
+        // this signal will no longer be needed and this case should be removed.
         if previousState.wasDebuggerAttached {
             return PreviousRunInfo(terminationReason: .debuggerAttached)
         }
