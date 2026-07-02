@@ -458,14 +458,18 @@ public final class LoggerObjc: NSObject {
     ///
     /// This API is in experimental phase and may change in the future.
     ///
-    /// - returns: A dictionary containing `hasFatallyTerminated` when available.
+    /// - returns: A dictionary containing previous run fields when available.
     @objc
     public static func previousRunInfo() -> [String: Any]? {
         guard let previousRunInfo = Capture.Logger.previousRunInfo else {
             return nil
         }
 
-        return ["hasFatallyTerminated": previousRunInfo.hasFatallyTerminated]
+        return [
+            "hasFatallyTerminated": previousRunInfo.hasFatallyTerminated,
+            "wasCleanTermination": previousRunInfo.wasCleanTermination,
+            "terminationReason": previousRunInfo.terminationReason.rawValue,
+        ]
     }
 
     // MARK: - Extra

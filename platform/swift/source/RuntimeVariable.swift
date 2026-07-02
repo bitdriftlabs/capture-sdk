@@ -112,6 +112,13 @@ extension RuntimeVariable<Bool> {
         name: "client_feature.ios.crash_thread_matching_by_stack_overlap",
         defaultValue: false
     )
+
+    // When disabled, previousRunInfo falls back to reporting only fatalCrash or unknown,
+    // ignoring the revamped resolver signals (cleanExit, appUpdate, osUpdate, etc.).
+    static let previousRunInfoRevamped = RuntimeVariable(
+        name: "client_feature.ios.previous_run_info_revamped",
+        defaultValue: true
+    )
 }
 
 extension RuntimeVariable<UInt32> {
