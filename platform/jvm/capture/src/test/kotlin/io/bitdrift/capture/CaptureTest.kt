@@ -18,10 +18,10 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.ExitReason
-import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
+import io.bitdrift.capture.utils.assertPreviousRunInfo
 import io.bitdrift.capture.utils.setIsDebuggable
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -161,9 +161,7 @@ class CaptureTest {
 
         val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
-        assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
-        )
+        assertPreviousRunInfo(previousRunInfo, hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash)
     }
 
     @Test
@@ -173,9 +171,7 @@ class CaptureTest {
 
         val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
-        assertThat(previousRunInfo).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = false, terminationReason = ExitReason.ExitSelf),
-        )
+        assertPreviousRunInfo(previousRunInfo, hasFatallyTerminated = false, terminationReason = ExitReason.ExitSelf)
     }
 
     @Test
@@ -185,7 +181,7 @@ class CaptureTest {
 
         val previousRunInfo = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler).get()
 
-        assertThat(previousRunInfo).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false, terminationReason = null))
+        assertPreviousRunInfo(previousRunInfo, hasFatallyTerminated = false, terminationReason = null)
     }
 
     @Test
