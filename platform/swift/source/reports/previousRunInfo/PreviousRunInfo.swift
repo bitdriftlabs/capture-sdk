@@ -25,7 +25,7 @@ public struct PreviousRunInfo: Equatable {
         self.terminationReason == .cleanExit
     }
 
-    public init(
+    init(
         terminationReason: ExitReason
     ) {
         self.terminationReason = terminationReason

@@ -15,6 +15,7 @@ import io.bitdrift.capture.MockPreferences
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
+import io.bitdrift.capture.utils.assertPreviousRunInfo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -51,9 +52,7 @@ class PreviousRunInfoResolverTest {
                 buildVersionChecker,
             ).get()
 
-        assertThat(result).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
-        )
+        assertPreviousRunInfo(result, hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash)
     }
 
     @Test
@@ -68,9 +67,7 @@ class PreviousRunInfoResolverTest {
                 buildVersionChecker,
             ).get()
 
-        assertThat(result).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.NativeCrash),
-        )
+        assertPreviousRunInfo(result, hasFatallyTerminated = true, terminationReason = ExitReason.NativeCrash)
     }
 
     @Test
@@ -85,9 +82,7 @@ class PreviousRunInfoResolverTest {
                 buildVersionChecker,
             ).get()
 
-        assertThat(result).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.AppNotResponding),
-        )
+        assertPreviousRunInfo(result, hasFatallyTerminated = true, terminationReason = ExitReason.AppNotResponding)
     }
 
     @Test
@@ -102,9 +97,7 @@ class PreviousRunInfoResolverTest {
                 buildVersionChecker,
             ).get()
 
-        assertThat(result).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = false, terminationReason = ExitReason.UserRequested),
-        )
+        assertPreviousRunInfo(result, hasFatallyTerminated = false, terminationReason = ExitReason.UserRequested)
     }
 
     @Test
@@ -119,7 +112,7 @@ class PreviousRunInfoResolverTest {
                 buildVersionChecker,
             ).get()
 
-        assertThat(result).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false))
+        assertPreviousRunInfo(result, hasFatallyTerminated = false)
     }
 
     @Test
@@ -165,7 +158,7 @@ class PreviousRunInfoResolverTest {
                 buildVersionChecker,
             ).get()
 
-        assertThat(result).isEqualTo(PreviousRunInfo(hasFatallyTerminated = false))
+        assertPreviousRunInfo(result, hasFatallyTerminated = false)
     }
 
     @Test
@@ -182,9 +175,7 @@ class PreviousRunInfoResolverTest {
                 buildVersionChecker,
             ).get()
 
-        assertThat(result).isEqualTo(
-            PreviousRunInfo(hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash),
-        )
+        assertPreviousRunInfo(result, hasFatallyTerminated = true, terminationReason = ExitReason.JvmCrash)
     }
 
     @Test
@@ -217,5 +208,15 @@ class PreviousRunInfoResolverTest {
         val resolver = PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler, buildVersionChecker)
 
         verify(captureUncaughtExceptionHandler, never()).install(resolver)
+    }
+
+    private fun assertPreviousRunInfo(
+        actual: PreviousRunInfo?,
+        hasFatallyTerminated: Boolean,
+        terminationReason: ExitReason? = null,
+    ) {
+        assertThat(actual).isNotNull
+        assertThat(actual?.hasFatallyTerminated).isEqualTo(hasFatallyTerminated)
+        assertThat(actual?.terminationReason).isEqualTo(terminationReason)
     }
 }
