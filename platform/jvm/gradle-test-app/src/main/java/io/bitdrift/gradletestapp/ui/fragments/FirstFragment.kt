@@ -76,6 +76,7 @@ class FirstFragment : Fragment() {
                     val uiState = viewModel.uiState.collectAsState().value
                     MainScreen(
                         uiState = uiState,
+                        currentEntityId = viewModel::currentEntityId,
                         onAction = { action ->
                             when (action) {
                                 is NavigationAction.NavigateToConfig -> {

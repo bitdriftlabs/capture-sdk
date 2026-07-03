@@ -30,6 +30,8 @@ sealed class ConfigAction : AppAction {
     data class SetSleepModeEnabled(
         val enabled: Boolean,
     ) : ConfigAction()
+
+    object ClearEntityId : ConfigAction()
 }
 
 sealed class SessionAction : AppAction {
@@ -107,6 +109,8 @@ sealed class StressTestAction : AppAction {
     data class IncreaseMemoryPressure(val targetPercent: Int) : StressTestAction()
 
     object TriggerMemoryPressureAnr : StressTestAction()
+
+    data class CreateThreads(val count: Int) : StressTestAction()
 
     data class TriggerJankyFrames(val type: JankType) : StressTestAction()
 

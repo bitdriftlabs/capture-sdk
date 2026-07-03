@@ -477,6 +477,7 @@ NSString *logLevelToString(LogLevel level) {
     formatter.dateFormat = @"HH:mm:ss";
 
     NSMutableString *text = [NSMutableString stringWithFormat:@"State: %@", stateStr];
+    [text appendFormat:@"\nTracing active: %@", [CAPLogger isTracingActive] ? @"Yes" : @"No"];
 
     if (status.lastHandshakeTime) {
         [text appendFormat:@"\nLast handshake: %@", [formatter stringFromDate:status.lastHandshakeTime]];

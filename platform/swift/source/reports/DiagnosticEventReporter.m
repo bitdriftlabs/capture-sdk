@@ -355,6 +355,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
     .os_brand = cstring_from(os_build_info.name),
     .time_nanos = nanoseconds,
     .time_seconds = seconds,
+    .low_power_mode_enabled = [metadata[@"lowPowerModeEnabled"] boolValue],
   };
   bdrw_add_device(handle, &device);
 }
@@ -365,6 +366,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
   NSString *bundle_version = [NSString stringWithFormat:@"%@.%@", app_version, string_for_key(metadata, @"appBuildVersion")];
   BDAppMetrics app = {
     .app_id = cstring_from(string_for_key(metadata, @"bundleIdentifier")),
+    .region_format = cstring_from(string_for_key(metadata, @"regionFormat")),
     .version = cstring_from(app_version),
     .cf_bundle_version = cstring_from(bundle_version),
     .memory_pressure_level = self.memoryPressureLevel,

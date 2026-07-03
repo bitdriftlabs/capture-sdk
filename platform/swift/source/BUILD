@@ -85,6 +85,8 @@ objc_library(
         "reports/BitdriftCrashHandler.m",
         "reports/BitdriftKSCrashWrapper.m",
         "reports/DiagnosticEventReporter.m",
+        "reports/PreviousRunInfoRepository.m",
+        "reports/PreviousRunStateCaptureSupport.m",
     ],
     hdrs = [
         "CaptureRustBridge.h",
@@ -92,6 +94,8 @@ objc_library(
         "reports/BitdriftCrashHandler.h",
         "reports/BitdriftKSCrashWrapper.h",
         "reports/DiagnosticEventReporter.h",
+        "reports/PreviousRunInfoRepository.h",
+        "reports/PreviousRunStateCaptureSupport.h",
         "reports/bd-report-writer/ffi.h",
     ],
     module_name = "CaptureLoggerBridge",

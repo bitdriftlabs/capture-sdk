@@ -34,6 +34,15 @@ java_library(
 # export proguard library rules
 exports_files(["consumer-rules.pro"])
 
+filegroup(
+    name = "sdk_verification_file",
+    srcs = glob(
+        ["src/main/resources/META-INF/io/bitdrift/capture/verification.properties"],
+        allow_empty = True,
+    ),
+    visibility = ["//visibility:public"],
+)
+
 # Separate target to avoid running lints against the generated file.
 kt_jvm_library(
     name = "gen_sources",

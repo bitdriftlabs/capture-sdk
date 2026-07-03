@@ -217,7 +217,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
             fields: fields,
             error: nil,
             type: Capture.Logger.LogType.device,
-            blocking: false
+            blockingBehavior: .nonBlocking
         )
 
         // Find "alternate type log" - there may be other logs interleaved

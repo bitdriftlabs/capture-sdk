@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
@@ -47,6 +49,9 @@ fun StressTestScreen(
             MemoryPressureCard(onAction = onAction)
         }
         item {
+            ThreadCountCard(onAction = onAction)
+        }
+        item {
             JankyFramesCard(onAction = onAction)
         }
         item {
@@ -54,6 +59,68 @@ fun StressTestScreen(
         }
         item {
             ScreenReplayCard(onAction = onAction)
+        }
+    }
+}
+
+@Composable
+private fun ThreadCountCard(onAction: (AppAction) -> Unit) {
+    var threadCountInput by remember { mutableStateOf("500") }
+    val threadCount = threadCountInput.toIntOrNull()
+    val isValid = threadCount != null && threadCount > 0
+
+    StressTestCard(title = "Threads") {
+        Text(
+            text = "Create an exact number of sleeping background threads.",
+            style = MaterialTheme.typography.bodySmall,
+            color = BitdriftColors.TextSecondary,
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = threadCountInput,
+            onValueChange = { value ->
+                if (value.all(Char::isDigit)) {
+                    threadCountInput = value
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Thread count", color = BitdriftColors.TextSecondary) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            isError = threadCountInput.isNotEmpty() && !isValid,
+            colors =
+                OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = BitdriftColors.TextBright,
+                    unfocusedTextColor = BitdriftColors.TextBright,
+                    focusedBorderColor = BitdriftColors.Primary,
+                    unfocusedBorderColor = BitdriftColors.Border,
+                    focusedLabelColor = BitdriftColors.Primary,
+                    unfocusedLabelColor = BitdriftColors.TextSecondary,
+                    cursorColor = BitdriftColors.TextBright,
+                    selectionColors =
+                        TextSelectionColors(
+                            handleColor = BitdriftColors.TextBright,
+                            backgroundColor = BitdriftColors.Primary.copy(alpha = 0.3f),
+                        ),
+                ),
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = { threadCount?.let { onAction(StressTestAction.CreateThreads(it)) } },
+            enabled = isValid,
+            modifier = Modifier.fillMaxWidth(),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = BitdriftColors.Primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = BitdriftColors.Border,
+                ),
+        ) {
+            Text("Create Threads")
         }
     }
 }

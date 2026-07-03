@@ -77,7 +77,8 @@ void capture_start_logger(logger_id logger_id);
  *        remote services.
  * @param matching_fields The list of matching fields that can be read when processing a given log but are
  *        not a part of the log itself.
- * @Param blocking whether the method should return only after the log is processed.
+ * @param blocking whether the method should return only after the log is processed.
+ * @param blocking_timeout_ms timeout to use when waiting for the log to be processed.
  */
 void capture_write_log(
     logger_id logger_id,
@@ -87,6 +88,7 @@ void capture_write_log(
     const NSArray<const Field *> *_Nullable fields,
     const NSArray<const Field *> *_Nullable matching_fields,
     bool blocking,
+    uint32_t blocking_timeout_ms,
     int64_t occurred_at_override
 );
 
@@ -305,6 +307,13 @@ int8_t capture_get_previous_memory_pressure_level(logger_id logger_id);
  * @param entity_id entity identifier.
  */
 void capture_set_entity_id(logger_id logger_id, const char *entity_id);
+
+/*
+ * Clears the current entity identifier used for backend correlation with device identifier.
+ *
+ * @param logger_id the logger to clear the entity identifier on.
+ */
+void capture_clear_entity_id(logger_id logger_id);
 
 /**
  * Signals the specified logger to shut down.

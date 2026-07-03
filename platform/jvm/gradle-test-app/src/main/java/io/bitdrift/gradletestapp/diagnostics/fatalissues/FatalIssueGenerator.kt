@@ -34,6 +34,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.UUID
+import java.util.concurrent.Executors
 
 
 /**
@@ -160,19 +161,27 @@ internal object FatalIssueGenerator {
     }
 
     fun forceTooManyThreadsOutOfMemory() {
-        var threadIndex = 0
-        while (true) {
-            val thread = Thread(
-                {
-                    runCatching {
-                        Thread.sleep(Long.MAX_VALUE)
-                    }
-                },
-                "oom-thread-$threadIndex",
-            )
-            thread.start()
-            threadsListForOom.add(thread)
-            threadIndex++
+        forceThreadCount(7000)
+    }
+
+    fun forceThreadCount(count: Int) {
+        val executor = Executors.newFixedThreadPool(1)
+        executor.submit {
+
+            var threadIndex = 0
+            while (threadIndex < count) {
+                val thread = Thread(
+                    {
+                        runCatching {
+                            Thread.sleep(Long.MAX_VALUE)
+                        }
+                    },
+                    "oom-thread-$threadIndex",
+                )
+                thread.start()
+                threadsListForOom.add(thread)
+                threadIndex++
+            }
         }
     }
 

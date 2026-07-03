@@ -22,7 +22,7 @@ public final class MockLoggerBridging {
         public let fields: InternalFields?
         public let matchingFields: InternalFields?
         public let type: Capture.Logger.LogType
-        public let blocking: Bool
+        public let blockingBehavior: LogBlockingBehavior
         public let occurredAtOverride: Date?
     }
 
@@ -38,6 +38,10 @@ public final class MockLoggerBridging {
     public private(set) var errors: [HandledError] = []
 
     public private(set) var sleepMode: SleepMode = .disabled
+
+    public private(set) var setEntityIDs = [String]()
+
+    public private(set) var clearEntityIDCallCount = 0
 
     public var shouldLogAppUpdateEvent = false
 
@@ -74,7 +78,7 @@ extension MockLoggerBridging: LoggerBridging {
         fields: InternalFields?,
         matchingFields: InternalFields?,
         type: Capture.Logger.LogType,
-        blocking: Bool,
+        blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     ) {
         self.underlyingLogs.update {
@@ -85,7 +89,7 @@ extension MockLoggerBridging: LoggerBridging {
                     fields: fields,
                     matchingFields: matchingFields,
                     type: type,
-                    blocking: blocking,
+                    blockingBehavior: blockingBehavior,
                     occurredAtOverride: occurredAtOverride
                 )
             )
@@ -148,7 +152,13 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func setFeatureFlagExposure(withName flag: String, variant: String) {}
 
-    public func setEntityID(_: String) {}
+    public func setEntityID(_ entityID: String) {
+        self.setEntityIDs.append(entityID)
+    }
+
+    public func clearEntityID() {
+        self.clearEntityIDCallCount += 1
+    }
 
     public func notifyMemoryPressure(level: MemoryPressureLevel) {}
 

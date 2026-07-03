@@ -33,6 +33,7 @@ final class SessionReplayControllerTests: XCTestCase {
         self.logger.logSessionReplayScreenExpectation = expectation
         self.target.captureScreen()
 
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 0.5))
+        XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 1))
+        XCTAssertEqual(1, self.logger.sessionReplayScreenLogs.count)
     }
 }

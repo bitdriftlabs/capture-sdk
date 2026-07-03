@@ -42,7 +42,7 @@ public final class Logger {
     private var crashReporterService: CrashReporterService?
 
     static var issueReporterInitResult: IssueReporterInitResult = (.notInitialized, 0)
-    static var hasFatallyTerminatedOnPreviousRun: Bool?
+    static var previousRunInfoValue: PreviousRunInfo?
     static var diagnosticReporter = Atomic<DiagnosticEventReporter?>(nil)
 
     private static let syncedShared = Atomic<State>(.notStarted)
@@ -173,6 +173,10 @@ public final class Logger {
             timeProvider: timeProvider
         )
         self.eventsListenerTarget = EventSubscriber()
+        self.previousRunInfoController = PreviousRunInfoController(
+            baseDirectory: directoryURL,
+            osVersion: clientAttributes.osVersion
+        )
 
         self.sessionReplayController = configuration.sessionReplayConfiguration.map {
             SessionReplayController(configuration: $0)
@@ -246,7 +250,6 @@ public final class Logger {
         self.deviceCodeController = DeviceCodeController(client: client)
 
         if !configuration.enableFatalIssueReporting {
-            Logger.hasFatallyTerminatedOnPreviousRun = nil
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
             self.crashReporterService = CrashReporterService()
@@ -286,7 +289,7 @@ public final class Logger {
         matchingFields: Fields? = nil,
         error: Error? = nil,
         type: LogType,
-        blocking: Bool = false
+        blockingBehavior: LogBlockingBehavior = .nonBlocking
     ) {
         self.underlyingLogger.log(
             level: level,
@@ -298,7 +301,7 @@ public final class Logger {
             matchingFields: matchingFields,
             error: error,
             type: type,
-            blocking: blocking
+            blockingBehavior: blockingBehavior
         )
     }
 
@@ -410,6 +413,10 @@ extension Logger: Logging {
             .absoluteString
     }
 
+    public var isTracingActive: Bool {
+        (self.underlyingLogger as? CoreLogger)?.isTracingActive == true
+    }
+
     public func startNewSession() {
         self.underlyingLogger.startNewSession()
     }
@@ -440,7 +447,7 @@ extension Logger: Logging {
             fields: fields,
             error: error,
             type: .normal,
-            blocking: false
+            blockingBehavior: .nonBlocking
         )
     }
 
@@ -460,7 +467,7 @@ extension Logger: Logging {
             matchingFields: request.toMatchingFields(),
             error: nil,
             type: .span,
-            blocking: false
+            blockingBehavior: .nonBlocking
         )
     }
 
@@ -480,7 +487,7 @@ extension Logger: Logging {
             matchingFields: response.toMatchingFields(),
             error: nil,
             type: .span,
-            blocking: false
+            blockingBehavior: .nonBlocking
         )
     }
 
@@ -511,6 +518,10 @@ extension Logger: Logging {
 
     public func setEntityID(_ entityID: String) {
         self.underlyingLogger.setEntityID(entityID)
+    }
+
+    public func clearEntityID() {
+        self.underlyingLogger.clearEntityID()
     }
 
     public func createTemporaryDeviceCode(completion: @escaping (Result<String, Error>) -> Void) {
@@ -568,10 +579,6 @@ extension Logger: Logging {
 // MARK: - Features
 
 extension Logger {
-    internal var isTracingActive: Bool {
-        (self.underlyingLogger as? CoreLogger)?.isTracingActive == true
-    }
-
     internal func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
         self.underlyingLogger.runtimeValue(variable)
     }

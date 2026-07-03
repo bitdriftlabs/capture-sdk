@@ -26,7 +26,7 @@ final class CoreLoggerTests: XCTestCase {
         XCTAssertNil(log.fields)
         XCTAssertEqual(.debug, log.level)
         XCTAssertEqual(.normal, log.type)
-        XCTAssertFalse(log.blocking)
+        XCTAssertEqual(log.blockingBehavior, .nonBlocking)
     }
 
     func testLogWithError() throws {
@@ -52,7 +52,7 @@ final class CoreLoggerTests: XCTestCase {
         )
         XCTAssertEqual(.debug, log.level)
         XCTAssertEqual(.normal, log.type)
-        XCTAssertFalse(log.blocking)
+        XCTAssertEqual(log.blockingBehavior, .nonBlocking)
     }
 
     func testLogInternal() {
@@ -76,7 +76,7 @@ final class CoreLoggerTests: XCTestCase {
         XCTAssertEqual(3, log.fields?.count)
         XCTAssertEqual(.debug, log.level)
         XCTAssertEqual(.internalsdk, log.type)
-        XCTAssertFalse(log.blocking)
+        XCTAssertEqual(log.blockingBehavior, .nonBlocking)
     }
 
     func testPassingFields() {
@@ -103,5 +103,14 @@ final class CoreLoggerTests: XCTestCase {
             [CapturePassable.Field(key: "matchingFoo", data: "matchingBar" as AnyObject, type: .string)],
             log.matchingFields
         )
+    }
+
+    func testClearEntityIDDelegatesToBridge() {
+        let bridge = MockLoggerBridging()
+        let logger = CoreLogger(logger: bridge)
+
+        logger.clearEntityID()
+
+        XCTAssertEqual(1, bridge.clearEntityIDCallCount)
     }
 }

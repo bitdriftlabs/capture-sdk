@@ -447,6 +447,10 @@ internal class LoggerImpl(
         CaptureJniLibrary.setEntityId(this.loggerId, entityId)
     }
 
+    override fun clearEntityId() {
+        CaptureJniLibrary.clearEntityId(this.loggerId)
+    }
+
     override fun setFeatureFlagExposure(
         name: String,
         variant: Boolean,

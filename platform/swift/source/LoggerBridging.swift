@@ -22,7 +22,7 @@ protocol LoggerBridging {
         fields: InternalFields?,
         matchingFields: InternalFields?,
         type: Capture.Logger.LogType,
-        blocking: Bool,
+        blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     )
 
@@ -94,6 +94,9 @@ protocol LoggerBridging {
     ///
     /// - parameter entityID: Entity identifier.
     func setEntityID(_ entityID: String)
+
+    /// Clears the current entity identifier used for backend correlation with device identifier.
+    func clearEntityID()
 
     /// Retrieves a given runtime variable.
     ///
