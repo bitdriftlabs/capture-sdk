@@ -35,7 +35,7 @@ jobs:
       - name: Check for workflow file changes
         id: workflow_check
         run: |
-          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock ci/ios_app_size_report.sh ci/parse_ios_app_thinning_report.py ci/parse_ios_app_thinning_report_test.py
+          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock ci/ios_app_size_report.sh ci/parse_ios_app_thinning_report.py
         continue-on-error: true
       - name: Determine if tests should run
         id: check_changes_separate
@@ -165,7 +165,7 @@ jobs:
       - name: Upload iOS size artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ios_app_size_iPhone18_3
+          name: ios_app_size
           path: |
             ios_app_size_output/export/*.ipa
             ios_app_size_output/export/App Thinning Size Report.txt
@@ -176,7 +176,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          BASELINE_FILE=ci/baseline_ios_app_size_iPhone18_3_kb.txt
+          BASELINE_FILE=ci/baseline_ios_app_size_kb.txt
           echo "${{ steps.ios_size.outputs.current_kb }}" > "$BASELINE_FILE"
 
           git config user.name "github-actions"
@@ -188,7 +188,7 @@ jobs:
           cp "$BASELINE_FILE" temp-worktree/ci/
 
           cd temp-worktree
-          git add ci/baseline_ios_app_size_iPhone18_3_kb.txt
+          git add ci/baseline_ios_app_size_kb.txt
 
           if ! git diff --cached --quiet; then
             git commit -m "ci: update iOS app size baseline [skip ci]"
@@ -206,8 +206,8 @@ jobs:
           set -euo pipefail
           git fetch origin ci-baseline || true
           if git worktree add temp-baseline origin/ci-baseline; then
-            if [ -f temp-baseline/ci/baseline_ios_app_size_iPhone18_3_kb.txt ]; then
-              cp temp-baseline/ci/baseline_ios_app_size_iPhone18_3_kb.txt ci/
+            if [ -f temp-baseline/ci/baseline_ios_app_size_kb.txt ]; then
+              cp temp-baseline/ci/baseline_ios_app_size_kb.txt ci/
             fi
             git worktree remove temp-baseline --force
           else
@@ -219,7 +219,7 @@ jobs:
         id: ios_size_compare
         run: |
           set -euo pipefail
-          BASELINE_PATH=ci/baseline_ios_app_size_iPhone18_3_kb.txt
+          BASELINE_PATH=ci/baseline_ios_app_size_kb.txt
           CURRENT_KB="${{ steps.ios_size.outputs.current_kb }}"
           echo "current_kb=$CURRENT_KB" >> "$GITHUB_OUTPUT"
 
@@ -249,7 +249,7 @@ jobs:
             const diff = process.env.IOS_DIFF_KB;
 
             let body = `${marker}
-            ## iOS Size Comparison Report (iPhone18,3)
+            ## iOS Size Comparison Report
 
             | Metric | App Size (KB) |
             |--------|---------------|`;
