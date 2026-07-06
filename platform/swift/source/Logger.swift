@@ -173,10 +173,6 @@ public final class Logger {
             timeProvider: timeProvider
         )
         self.eventsListenerTarget = EventSubscriber()
-        self.previousRunInfoController = PreviousRunInfoController(
-            baseDirectory: directoryURL,
-            osVersion: clientAttributes.osVersion
-        )
 
         self.sessionReplayController = configuration.sessionReplayConfiguration.map {
             SessionReplayController(configuration: $0)
@@ -252,7 +248,12 @@ public final class Logger {
         if !configuration.enableFatalIssueReporting {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
         } else {
-            self.crashReporterService = CrashReporterService()
+            self.crashReporterService = CrashReporterService(
+                previousRunInfoController: .init(
+                    baseDirectory: directoryURL,
+                    osVersion: clientAttributes.osVersion
+                )
+            )
             self.crashReporterService?.setup(sdkBaseURL: directoryURL, underlyingLogger: self.underlyingLogger)
         }
     }

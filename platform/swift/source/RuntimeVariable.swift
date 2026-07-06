@@ -107,7 +107,7 @@ extension RuntimeVariable<Bool> {
         name: "crash_reporting.enabled",
         defaultValue: true
     )
-    
+
     static let bdCrashReporter = RuntimeVariable(
         name: "client_feature.ios.use_bd_crash_reporter",
         defaultValue: false

@@ -13,11 +13,12 @@ import XCTest
 final class CrashReporterServiceTests: XCTestCase {
     private var ksCrashHandler: MockKSCrashHandler!
     private var bitdriftCrashHandler: MockBitdriftCrashHandler!
-    private let logger = MockCoreLogging()
+    private var logger: MockCoreLogging!
     private var sdkBaseURL: URL!
     private var sut: CrashReporterService!
 
     override func setUp() {
+        logger = MockCoreLogging()
         ksCrashHandler = MockKSCrashHandler()
         bitdriftCrashHandler = MockBitdriftCrashHandler()
         sdkBaseURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -26,8 +27,8 @@ final class CrashReporterServiceTests: XCTestCase {
 
     override func tearDown() {
         Logger.issueReporterInitResult = (.notInitialized, 0)
-        Logger.hasFatallyTerminatedOnPreviousRun = nil
         Logger.diagnosticReporter.update { $0 = nil }
+        Logger.previousRunInfoValue = nil
         try? FileManager.default.removeItem(at: sdkBaseURL)
     }
 
@@ -37,7 +38,6 @@ final class CrashReporterServiceTests: XCTestCase {
         givenCrashReporterService(environment: .simulator())
         whenInvokingSetup()
         thenIssueReporterInitStateIs(.initialized(.unsupportedHardware))
-        thenHasFatallyTerminatedOnPreviousRunIsNil()
     }
 
     // MARK: - Runtime state
@@ -186,19 +186,88 @@ final class CrashReporterServiceTests: XCTestCase {
         whenInvokingSetup()
         thenDiagnosticReporterIsCreated()
     }
+
+    // MARK: - degraded
+
+    func testSetupSetsDegradedWhenKSCrashConfigurationFails() {
+        givenCrashReporterService()
+        givenKSCrashThrowsOnConfigure()
+        whenInvokingSetup()
+        thenIssueReporterInitStateIs(.initialized(.degraded))
+    }
+
+    // MARK: - previousRunInfo (legacy path)
+
+    func testPreviousRunInfoIsNilOnSimulator() {
+        givenCrashReporterService(environment: .simulator())
+        whenInvokingSetup()
+        thenPreviousRunInfoIsNil()
+    }
+
+    func testPreviousRunInfoIsUnknownWhenNoCrash() {
+        givenCrashReporterService()
+        whenInvokingSetup()
+        thenPreviousRunInfoIs(.unknown)
+    }
+
+    func testPreviousRunInfoIsFatalCrashWhenKSCrashReportsCrash() {
+        givenCrashReporterService()
+        givenKSCrashDidCrashLastLaunch(true)
+        whenInvokingSetup()
+        thenPreviousRunInfoIs(PreviousRunInfo(terminationReason: .fatalCrash))
+    }
+
+    func testPreviousRunInfoIsUnknownWhenRuntimeDisablesCrashReporting() {
+        givenCrashReporterService()
+        givenConfigFile("crash_reporting.enabled,false")
+        whenInvokingSetup()
+        thenPreviousRunInfoIs(.unknown)
+    }
+
+    // MARK: - previousRunInfo (revamped path)
+
+    func testPreviousRunInfoComesFromControllerWhenRevampedEnabled() throws {
+        let controller = try XCTUnwrap(PreviousRunInfoController(baseDirectory: sdkBaseURL, osVersion: "18.0"))
+        givenCrashReporterService(previousRunInfoRevamped: true, previousRunInfoController: controller)
+        whenInvokingSetup()
+        // on first launch, controller always resolves to .unknown regardless of didCrashLastLaunch
+        thenPreviousRunInfoIs(.unknown)
+    }
+
+    func testPreviousRunInfoIsFatalCrashFromControllerOnSecondLaunchWithCrash() throws {
+        // Simulate first launch to write state to disk
+        let firstController = try XCTUnwrap(
+            PreviousRunInfoController(baseDirectory: sdkBaseURL, osVersion: "18.0")
+        )
+        firstController.resolve(didCrashLastLaunch: false)
+
+        let controller = try XCTUnwrap(PreviousRunInfoController(baseDirectory: sdkBaseURL, osVersion: "18.0"))
+        givenCrashReporterService(previousRunInfoRevamped: true, previousRunInfoController: controller)
+        givenKSCrashDidCrashLastLaunch(true)
+        whenInvokingSetup()
+        thenPreviousRunInfoIs(PreviousRunInfo(terminationReason: .fatalCrash))
+    }
 }
 
 private extension CrashReporterServiceTests {
     func givenCrashReporterService(
         bitdriftCrashReporterEnabled: Bool = true,
-        environment: MockEnvironment = .device()
+        previousRunInfoRevamped: Bool = false,
+        environment: MockEnvironment = .device(),
+        previousRunInfoController: PreviousRunInfoController? = nil
     ) {
         logger.mockRuntimeVariable(.bdCrashReporter, with: bitdriftCrashReporterEnabled)
+        logger.mockRuntimeVariable(.previousRunInfoRevamped, with: previousRunInfoRevamped)
         sut = CrashReporterService(
+            previousRunInfoController: previousRunInfoController,
             ksCrashHandler: ksCrashHandler,
             bitdriftCrashHandler: bitdriftCrashHandler,
             environment: environment
         )
+    }
+
+    func givenKSCrashDidCrashLastLaunch(_ crashed: Bool) {
+        ksCrashHandler.didCrashLastLaunchValue = NSNumber(value: crashed)
     }
 
     // TODO: move all of this csv logic into an abstraction that can be injected; this knows a lot of internals
@@ -246,10 +315,6 @@ private extension CrashReporterServiceTests {
 
     func thenIssueReporterInitStateIs(_ expected: IssueReporterInitState) {
         XCTAssertEqual(Logger.issueReporterInitResult.0, expected)
-    }
-
-    func thenHasFatallyTerminatedOnPreviousRunIsNil() {
-        XCTAssertNil(Logger.hasFatallyTerminatedOnPreviousRun)
     }
 
     func thenKSCrashHandlerIsConfigured() {
@@ -308,5 +373,13 @@ private extension CrashReporterServiceTests {
 
     func thenDiagnosticReporterIsCreated() {
         XCTAssertNotNil(Logger.diagnosticReporter.load())
+    }
+
+    func thenPreviousRunInfoIs(_ expected: PreviousRunInfo) {
+        XCTAssertEqual(Logger.previousRunInfoValue, expected)
+    }
+
+    func thenPreviousRunInfoIsNil() {
+        XCTAssertNil(Logger.previousRunInfoValue)
     }
 }

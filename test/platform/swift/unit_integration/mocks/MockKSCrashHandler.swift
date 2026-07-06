@@ -16,7 +16,7 @@ public class MockKSCrashHandler: NSObject, KSCrashHandling {
     public var shouldThrowOnConfigure = false
     public var didCrashLastLaunchValue: NSNumber?
     public var cachedCrashDateValue: Date?
-    
+
     init(
         didConfigure: Bool = false,
         didStart: Bool = false,
@@ -34,7 +34,7 @@ public class MockKSCrashHandler: NSObject, KSCrashHandling {
         self.didCrashLastLaunchValue = didCrashLastLaunchValue
         self.cachedCrashDateValue = cachedCrashDateValue
     }
-    
+
     public func configure(withCrashReportDirectory _: URL) throws {
         if shouldThrowOnConfigure { throw MockError() }
         didConfigure = true

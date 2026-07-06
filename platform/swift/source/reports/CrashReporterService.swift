@@ -23,9 +23,12 @@ import Foundation
     private let metricManager: MXMetricManager
     private let fileManager: FileManager
     private let environment: AppEnvironment
+    private let previousRunInfoController: PreviousRunInfoController?
+
     private var isBitdriftCrashHandlerEnabled = false
 
     init(
+        previousRunInfoController: PreviousRunInfoController?,
         ksCrashHandler: any KSCrashHandling = BitdriftKSCrashWrapper(),
         bitdriftCrashHandler: any BitdriftCrashHandling = BitdriftCrashHandler(),
         metricManager: MXMetricManager = .shared,
@@ -37,33 +40,53 @@ import Foundation
         self.metricManager = metricManager
         self.fileManager = fileManager
         self.environment = environment
+        self.previousRunInfoController = previousRunInfoController
     }
 
     func setup(sdkBaseURL: URL, underlyingLogger: CoreLogging) {
         guard !environment.isSimulator else {
-            Logger.hasFatallyTerminatedOnPreviousRun = nil
             Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
             return
         }
-        
-        isBitdriftCrashHandlerEnabled = underlyingLogger.runtimeValue(.bdCrashReporter)
+
+        var lastRunResult = false
+
         Logger.issueReporterInitResult = measureTime {
+            isBitdriftCrashHandlerEnabled = underlyingLogger.runtimeValue(.bdCrashReporter)
+
             let runtimeState = resolveRuntimeState(from: sdkBaseURL)
             if runtimeState != .monitoring {
                 return .initialized(runtimeState)
             }
-            _ = initializeKSCrash(atURL: sdkBaseURL)
+
+            var reporterInitResolution: ReporterInitResolution?
+
+            if case .failure = initializeKSCrash(atURL: sdkBaseURL) {
+                reporterInitResolution = .degraded
+            }
 
             if isBitdriftCrashHandlerEnabled {
+                // TODO: see how to handle this failure.
+                // e.g. log via underlyingLogger or extend ReporterInitResolution
                 _ = initializeBitdriftCrashReporter(atURL: sdkBaseURL)
             }
-            
-            Logger.hasFatallyTerminatedOnPreviousRun = didCrashLastLaunch()
+
+            lastRunResult = didCrashLastLaunch()
 
             let reporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
             Logger.diagnosticReporter.update { val in val = reporter }
             self.metricManager.add(reporter)
-            return .initialized(.monitoring)
+
+            return .initialized(reporterInitResolution ?? .monitoring)
+        }
+
+        if underlyingLogger.runtimeValue(.previousRunInfoRevamped) {
+            self.previousRunInfoController?.resolve(didCrashLastLaunch: lastRunResult)
+            Logger.previousRunInfoValue = self.previousRunInfoController?.previousRunInfo
+        } else {
+            Logger.previousRunInfoValue = lastRunResult
+                ? PreviousRunInfo(terminationReason: .fatalCrash)
+                : .unknown
         }
     }
 
@@ -136,16 +159,16 @@ private extension CrashReporterService {
         return .success(())
     }
 
-    func didCrashLastLaunch() -> Bool? {
+    func didCrashLastLaunch() -> Bool {
         if let crashed = self.ksCrashHandler.didCrashLastLaunch() {
             return crashed.boolValue
         }
 
         if isBitdriftCrashHandlerEnabled {
-            return self.bitdriftCrashHandler.didCrashLastLaunch()?.boolValue
+            return self.bitdriftCrashHandler.didCrashLastLaunch()?.boolValue == true
         }
 
-        return nil
+        return false
     }
 
     func makeDiagnosticReporter(sdkBaseURL: URL, underlyingLogger: CoreLogging) -> DiagnosticEventReporter {
@@ -170,6 +193,7 @@ private extension CrashReporterService {
                 else {
                     return
                 }
+
                 underlyingLogger.logInternal(
                     level: .debug,
                     message: "[CrashEnrichment] MetricKit crash enrichment summary",
@@ -186,10 +210,16 @@ private extension CrashReporterService {
     }
 
     func resolveRuntimeState(from baseURL: URL) -> ReporterInitResolution {
-        let configPath = baseURL.appendingPathComponent(Constants.configCSV, isDirectory: false)
+        let configPath = baseURL.appendingPathComponent(
+            Constants.configCSV,
+            isDirectory: false
+        )
         guard let data = self.fileManager.contents(atPath: configPath.path),
               let contents = String(data: data, encoding: .utf8)
         else {
+            // For initial app installation/clear cache, the configuration wasn't written
+            // to disk yet, so we intentionally enable crash reporting to not miss any
+            // of those early crashes.
             return .monitoring
         }
 

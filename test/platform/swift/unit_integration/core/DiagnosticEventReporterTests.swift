@@ -541,6 +541,7 @@ ThermalInfo: (
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let metadata: [String: Any] = [
