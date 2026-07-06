@@ -247,6 +247,7 @@ public final class Logger {
 
         if !configuration.enableFatalIssueReporting {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
+            Logger.previousRunInfoValue = .unknown
         } else {
             self.crashReporterService = CrashReporterService(
                 previousRunInfoController: .init(

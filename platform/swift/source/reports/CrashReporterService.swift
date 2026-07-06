@@ -46,6 +46,7 @@ import Foundation
     func setup(sdkBaseURL: URL, underlyingLogger: CoreLogging) {
         guard !environment.isSimulator else {
             Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
+            Logger.previousRunInfoValue = .unknown
             return
         }
 

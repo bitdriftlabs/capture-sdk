@@ -198,10 +198,10 @@ final class CrashReporterServiceTests: XCTestCase {
 
     // MARK: - previousRunInfo (legacy path)
 
-    func testPreviousRunInfoIsNilOnSimulator() {
+    func testPreviousRunInfoIsUnknownOnSimulator() {
         givenCrashReporterService(environment: .simulator())
         whenInvokingSetup()
-        thenPreviousRunInfoIsNil()
+        thenPreviousRunInfoIs(.unknown)
     }
 
     func testPreviousRunInfoIsUnknownWhenNoCrash() {
@@ -379,7 +379,4 @@ private extension CrashReporterServiceTests {
         XCTAssertEqual(Logger.previousRunInfoValue, expected)
     }
 
-    func thenPreviousRunInfoIsNil() {
-        XCTAssertNil(Logger.previousRunInfoValue)
-    }
 }
