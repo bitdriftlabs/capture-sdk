@@ -180,12 +180,6 @@ class LogBenchmarkTest {
     }
 
     @Test
-    fun logScreenView() =
-        benchmarkCaptureOperation(configuration = Configuration(sessionReplayConfiguration = null)) {
-            Capture.Logger.logScreenView("fake_screen")
-        }
-
-    @Test
     fun logAppLaunchTTI() = benchmarkCaptureOperation{
         Capture.Logger.logAppLaunchTTI(1.toDuration(DurationUnit.SECONDS))
     }
