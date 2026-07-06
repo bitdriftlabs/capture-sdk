@@ -150,8 +150,38 @@ jobs:
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh
 
+      - name: Install signing assets
+        env:
+          IOS_SIZE_CERT_P12_BASE64: ${{ secrets.IOS_SIZE_CERT_P12_BASE64 }}
+          IOS_SIZE_CERT_PASSWORD: ${{ secrets.IOS_SIZE_CERT_PASSWORD }}
+          IOS_SIZE_PROFILE_BASE64: ${{ secrets.IOS_SIZE_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+
+          CERT_PATH="$RUNNER_TEMP/ios_size_cert.p12"
+          PROFILE_PATH="$RUNNER_TEMP/ios_size_profile.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/ios-size.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+
+          echo "$IOS_SIZE_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "$IOS_SIZE_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$IOS_SIZE_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+
       - name: Build and export thinned iOS app
         id: ios_size
+        env:
+          APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
+          APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
         run: |
           set -euo pipefail
           ./ci/ios_app_size_report.sh | tee ios_app_size_output.log

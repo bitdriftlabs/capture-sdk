@@ -9,20 +9,20 @@ ARCHIVE_PATH="bazel-bin/examples/swift/hello_world/Bitdrift Sample App.xcarchive
 EXPORT_ARCHIVE_PATH="$OUTPUT_DIR/Bitdrift Sample App.xcarchive"
 EXPORT_OPTIONS_PLIST="$OUTPUT_DIR/ExportOptions.plist"
 EXPORT_DIR="$OUTPUT_DIR/export"
+EXPORT_METHOD="${IOS_APP_SIZE_EXPORT_METHOD:-release-testing}"
+PROFILE_PLIST="$OUTPUT_DIR/embedded_profile.plist"
 
 strip_data_protection_entitlement() {
   local archive_path="$1"
   local application_path
   local app_path
   local embedded_profile
-  local profile_plist
   local signing_identity
   local entitlements_plist
 
   application_path="$(/usr/libexec/PlistBuddy -c "Print :ApplicationProperties:ApplicationPath" "$archive_path/Info.plist")"
   app_path="$archive_path/Products/$application_path"
   embedded_profile="$app_path/embedded.mobileprovision"
-  profile_plist="$OUTPUT_DIR/embedded_profile.plist"
   signing_identity="$(/usr/libexec/PlistBuddy -c "Print :ApplicationProperties:SigningIdentity" "$archive_path/Info.plist")"
   entitlements_plist="$OUTPUT_DIR/export_entitlements.plist"
 
@@ -31,8 +31,8 @@ strip_data_protection_entitlement() {
     exit 1
   fi
 
-  if ! security cms -D -i "$embedded_profile" > "$profile_plist" 2> /dev/null; then
-    python3 - "$embedded_profile" "$profile_plist" <<'PY'
+  if ! security cms -D -i "$embedded_profile" > "$PROFILE_PLIST" 2> /dev/null; then
+    python3 - "$embedded_profile" "$PROFILE_PLIST" <<'PY'
 import sys
 
 source, destination = sys.argv[1:]
@@ -45,7 +45,7 @@ open(destination, "wb").write(data[start : end + len(b"</plist>")])
 PY
   fi
 
-  plutil -extract Entitlements xml1 -o "$entitlements_plist" "$profile_plist"
+  plutil -extract Entitlements xml1 -o "$entitlements_plist" "$PROFILE_PLIST"
 
   if /usr/libexec/PlistBuddy -c "Print :com.apple.developer.default-data-protection" "$entitlements_plist" > /dev/null 2>&1; then
     /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.default-data-protection" "$entitlements_plist"
@@ -75,8 +75,18 @@ ditto "$ARCHIVE_PATH" "$EXPORT_ARCHIVE_PATH"
 chmod -R u+w "$EXPORT_ARCHIVE_PATH"
 strip_data_protection_entitlement "$EXPORT_ARCHIVE_PATH"
 
+APP_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c "Print :ApplicationProperties:CFBundleIdentifier" "$EXPORT_ARCHIVE_PATH/Info.plist")"
+TEAM_ID="$(/usr/libexec/PlistBuddy -c "Print :ApplicationProperties:Team" "$EXPORT_ARCHIVE_PATH/Info.plist")"
+SIGNING_IDENTITY="$(/usr/libexec/PlistBuddy -c "Print :ApplicationProperties:SigningIdentity" "$EXPORT_ARCHIVE_PATH/Info.plist")"
+PROFILE_NAME="$(/usr/libexec/PlistBuddy -c "Print :Name" "$PROFILE_PLIST")"
+
 /usr/libexec/PlistBuddy -c "Add :destination string export" "$EXPORT_OPTIONS_PLIST"
-/usr/libexec/PlistBuddy -c "Add :method string debugging" "$EXPORT_OPTIONS_PLIST"
+/usr/libexec/PlistBuddy -c "Add :method string $EXPORT_METHOD" "$EXPORT_OPTIONS_PLIST"
+/usr/libexec/PlistBuddy -c "Add :signingStyle string manual" "$EXPORT_OPTIONS_PLIST"
+/usr/libexec/PlistBuddy -c "Add :teamID string $TEAM_ID" "$EXPORT_OPTIONS_PLIST"
+/usr/libexec/PlistBuddy -c "Add :signingCertificate string $SIGNING_IDENTITY" "$EXPORT_OPTIONS_PLIST"
+/usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_OPTIONS_PLIST"
+/usr/libexec/PlistBuddy -c "Add :provisioningProfiles:$APP_BUNDLE_ID string $PROFILE_NAME" "$EXPORT_OPTIONS_PLIST"
 /usr/libexec/PlistBuddy -c "Add :stripSwiftSymbols bool true" "$EXPORT_OPTIONS_PLIST"
 /usr/libexec/PlistBuddy -c "Add :thinning string $DEVICE_MODEL" "$EXPORT_OPTIONS_PLIST"
 
