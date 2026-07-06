@@ -16,6 +16,7 @@ final class CrashReporterServiceTests: XCTestCase {
     private var logger: MockCoreLogging!
     private var sdkBaseURL: URL!
     private var sut: CrashReporterService!
+    private var setupResult: CrashReporterSetupResult?
 
     override func setUp() {
         logger = MockCoreLogging()
@@ -26,9 +27,7 @@ final class CrashReporterServiceTests: XCTestCase {
     }
 
     override func tearDown() {
-        Logger.issueReporterInitResult = (.notInitialized, 0)
-        Logger.diagnosticReporter.update { $0 = nil }
-        Logger.previousRunInfoValue = nil
+        setupResult = nil
         try? FileManager.default.removeItem(at: sdkBaseURL)
     }
 
@@ -306,7 +305,7 @@ private extension CrashReporterServiceTests {
     }
 
     func whenInvokingSetup() {
-        sut.setup(sdkBaseURL: sdkBaseURL, underlyingLogger: logger)
+        setupResult = sut.setup(sdkBaseURL: sdkBaseURL, underlyingLogger: logger)
     }
 
     func whenInvokingStop() {
@@ -314,7 +313,7 @@ private extension CrashReporterServiceTests {
     }
 
     func thenIssueReporterInitStateIs(_ expected: IssueReporterInitState) {
-        XCTAssertEqual(Logger.issueReporterInitResult.0, expected)
+        XCTAssertEqual(setupResult?.initResult.0, expected)
     }
 
     func thenKSCrashHandlerIsConfigured() {
@@ -372,11 +371,11 @@ private extension CrashReporterServiceTests {
     }
 
     func thenDiagnosticReporterIsCreated() {
-        XCTAssertNotNil(Logger.diagnosticReporter.load())
+        XCTAssertNotNil(setupResult?.diagnosticReporter)
     }
 
     func thenPreviousRunInfoIs(_ expected: PreviousRunInfo) {
-        XCTAssertEqual(Logger.previousRunInfoValue, expected)
+        XCTAssertEqual(setupResult?.previousRunInfo, expected)
     }
 
 }

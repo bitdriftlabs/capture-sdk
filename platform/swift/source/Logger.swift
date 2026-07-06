@@ -255,7 +255,17 @@ public final class Logger {
                     osVersion: clientAttributes.osVersion
                 )
             )
-            self.crashReporterService?.setup(sdkBaseURL: directoryURL, underlyingLogger: self.underlyingLogger)
+            if let result = self.crashReporterService?.setup(
+                sdkBaseURL: directoryURL,
+                underlyingLogger: self.underlyingLogger
+            ) {
+                Logger.issueReporterInitResult = result.initResult
+                Logger.previousRunInfoValue = result.previousRunInfo
+                Logger.diagnosticReporter.update { $0 = result.diagnosticReporter }
+                if let reporter = result.diagnosticReporter {
+                    self.crashReporterService?.activate(reporter: reporter)
+                }
+            }
         }
     }
 

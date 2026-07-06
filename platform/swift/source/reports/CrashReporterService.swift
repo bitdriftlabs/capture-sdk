@@ -8,6 +8,12 @@
 internal import CaptureLoggerBridge
 import Foundation
 
+struct CrashReporterSetupResult {
+    let initResult: IssueReporterInitResult
+    let previousRunInfo: PreviousRunInfo
+    let diagnosticReporter: DiagnosticEventReporter?
+}
+
 /// Coordinates crash reporter initialization and exposes the combined state of all active handlers
 /// through the `CrashReporting` protocol, abstracting away which reporters are in use.
 @objc class CrashReporterService: NSObject {
@@ -43,16 +49,24 @@ import Foundation
         self.previousRunInfoController = previousRunInfoController
     }
 
-    func setup(sdkBaseURL: URL, underlyingLogger: CoreLogging) {
+    /// Initializes all crash handlers, resolves the previous-run status, and builds the
+    /// `DiagnosticEventReporter`.
+    ///
+    /// - Warning: The returned result must be applied to shared state before activating
+    /// MetricKit to avoid a race with payload delivery.
+    func setup(sdkBaseURL: URL, underlyingLogger: CoreLogging) -> CrashReporterSetupResult {
         guard !environment.isSimulator else {
-            Logger.issueReporterInitResult = (.initialized(.unsupportedHardware), 0)
-            Logger.previousRunInfoValue = .unknown
-            return
+            return CrashReporterSetupResult(
+                initResult: (.initialized(.unsupportedHardware), 0),
+                previousRunInfo: .unknown,
+                diagnosticReporter: nil
+            )
         }
 
         var lastRunResult = false
+        var diagnosticReporter: DiagnosticEventReporter?
 
-        Logger.issueReporterInitResult = measureTime {
+        let initResult: IssueReporterInitResult = measureTime {
             isBitdriftCrashHandlerEnabled = underlyingLogger.runtimeValue(.bdCrashReporter)
 
             let runtimeState = resolveRuntimeState(from: sdkBaseURL)
@@ -73,24 +87,35 @@ import Foundation
             }
 
             lastRunResult = didCrashLastLaunch()
-
-            let reporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
-            Logger.diagnosticReporter.update { val in val = reporter }
-            self.metricManager.add(reporter)
+            diagnosticReporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
 
             return .initialized(reporterInitResolution ?? .monitoring)
         }
 
+        let previousRunInfo: PreviousRunInfo
         if underlyingLogger.runtimeValue(.previousRunInfoRevamped) {
             self.previousRunInfoController?.resolve(didCrashLastLaunch: lastRunResult)
-            Logger.previousRunInfoValue = self.previousRunInfoController?.previousRunInfo
+            previousRunInfo = self.previousRunInfoController?.previousRunInfo ?? .unknown
         } else {
-            Logger.previousRunInfoValue = lastRunResult
-                ? PreviousRunInfo(terminationReason: .fatalCrash)
-                : .unknown
+            previousRunInfo = lastRunResult ? PreviousRunInfo(terminationReason: .fatalCrash) : .unknown
         }
+
+        return CrashReporterSetupResult(
+            initResult: initResult,
+            previousRunInfo: previousRunInfo,
+            diagnosticReporter: diagnosticReporter
+        )
     }
 
+    /// Registers the `DiagnosticEventReporter` with MetricKit.
+    ///
+    /// - Warning: Must be called after the result of `setup(sdkBaseURL:underlyingLogger:)`
+    /// has been applied to shared state.
+    func activate(reporter: DiagnosticEventReporter) {
+        self.metricManager.add(reporter)
+    }
+
+    /// Stops all active crash handlers. Called on logger teardown.
     func stop() {
         self.ksCrashHandler.stopCrashReporter()
         if isBitdriftCrashHandlerEnabled {
