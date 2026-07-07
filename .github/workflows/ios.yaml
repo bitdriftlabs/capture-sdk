@@ -158,11 +158,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          CERT_PATH="$RUNNER_TEMP/ios_size_cert.p12"
-          PROFILE_PATH="$RUNNER_TEMP/ios_size_profile.mobileprovision"
-          KEYCHAIN_PATH="$RUNNER_TEMP/ios-size.keychain-db"
-          KEYCHAIN_PASSWORD="$(uuidgen)"
+          # Import signing material into a throwaway keychain instead of the shared login keychain.
+          # This keeps the GitHub-hosted runner isolated to the cert/profile required for this job.
+          SIGNING_TEMP_DIR="$RUNNER_TEMP/ios-size-signing"
+          CERT_PATH="$SIGNING_TEMP_DIR/ios_size_cert.p12"
+          PROFILE_PATH="$SIGNING_TEMP_DIR/ios_size_profile.mobileprovision"
+          KEYCHAIN_PATH="$SIGNING_TEMP_DIR/ios-size.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 32)"
+          XCODE_PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          LEGACY_PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
 
+          mkdir -p "$SIGNING_TEMP_DIR"
           echo "$IOS_SIZE_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
           echo "$IOS_SIZE_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
 
@@ -174,8 +180,11 @@ jobs:
           security default-keychain -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+          # Xcode 16+ uses the UserData location, but some tooling still consults the legacy directory.
+          # So, we copy the provisioning profile to both directories to prevent issues
+          mkdir -p "$XCODE_PROFILE_DIR" "$LEGACY_PROFILE_DIR"
+          cp "$PROFILE_PATH" "$XCODE_PROFILE_DIR/"
+          cp "$PROFILE_PATH" "$LEGACY_PROFILE_DIR/"
 
       - name: Build and export thinned iOS app
         id: ios_size
@@ -200,6 +209,20 @@ jobs:
             ios_app_size_output/export/*.ipa
             ios_app_size_output/export/App Thinning Size Report.txt
 
+      - name: Remove signing assets
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          SIGNING_TEMP_DIR="$RUNNER_TEMP/ios-size-signing"
+          XCODE_PROFILE_PATH="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/ios_size_profile.mobileprovision"
+          LEGACY_PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles/ios_size_profile.mobileprovision"
+
+          security delete-keychain "$SIGNING_TEMP_DIR/ios-size.keychain-db" || true
+          rm -f "$XCODE_PROFILE_PATH" "$LEGACY_PROFILE_PATH" || true
+          rm -rf "$SIGNING_TEMP_DIR" || true
+
       - name: Save iOS size baseline (main only)
         if: github.ref == 'refs/heads/main' && success()
         env:
@@ -209,6 +232,8 @@ jobs:
           BASELINE_FILE=ci/baseline_ios_app_size_kb.txt
           echo "${{ steps.ios_size.outputs.current_kb }}" > "$BASELINE_FILE"
 
+          # main updates a dedicated ci-baseline branch that stores the latest accepted iOS size
+          # snapshot. PRs read from that branch so they can compare against main without rebuilding it.
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
@@ -234,6 +259,9 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           set -euo pipefail
+
+          # PRs pull the last baseline file from the ci-baseline branch instead of recomputing main's
+          # size in-line. That keeps the comparison stable and makes the PR report just a diff vs main.
           git fetch origin ci-baseline || true
           if git worktree add temp-baseline origin/ci-baseline; then
             if [ -f temp-baseline/ci/baseline_ios_app_size_kb.txt ]; then

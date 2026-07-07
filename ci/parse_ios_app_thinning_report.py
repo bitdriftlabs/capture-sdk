@@ -3,10 +3,22 @@
 import argparse
 import re
 import sys
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-
+# Reduced example of the structure we parse from "App Thinning Size Report.txt":
+#
+# Variant: ExampleApp.ipa
+# Supported variant descriptors: [device: iPhone18,3, os-version: 26.0]
+# App + On Demand Resources size: 8.2 MB compressed, 21.6 MB uncompressed
+# App size: 7.7 MB compressed, 20.1 MB uncompressed
+# On Demand Resources size: Zero KB compressed, Zero KB uncompressed
+#
+# The parser splits the report into "Variant:" blocks and extracts the numeric
+# value from the selected block's "App size:" line.
+# - If the report has only one variant block, that block is used directly.
+# - If the report has multiple variant blocks, the requested device model is
+#   used to select the matching block.
 SIZE_RE = re.compile(
     r"^App size:\s+(?P<value>Zero|[\d][\d,\s]*(?:\.\d+)?)\s+"
     r"(?P<unit>[KMG]B)\s+compressed,",
@@ -15,6 +27,7 @@ SIZE_RE = re.compile(
 
 
 def _blocks(report):
+    """Split the report into per-variant sections starting at each 'Variant:' line."""
     blocks = []
     current = []
     for line in report.splitlines():
@@ -30,6 +43,7 @@ def _blocks(report):
 
 
 def _to_kb(value, unit):
+    """Convert the compressed size from KB/MB/GB text into rounded KB."""
     if value.lower() == "zero":
         return 0
 
@@ -43,8 +57,16 @@ def _to_kb(value, unit):
     return int((size * multiplier).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
-def parse_app_size_kb(report, device_model):
-    matching_blocks = [block for block in _blocks(report) if device_model in block]
+def parse_app_size_kb(report, device_model=None):
+    """Return the compressed app size from the selected app thinning report block."""
+    blocks = _blocks(report)
+    if len(blocks) == 1:
+        matching_blocks = blocks
+    elif device_model:
+        matching_blocks = [block for block in blocks if device_model in block]
+    else:
+        raise ValueError("multiple app thinning report variants found; pass a device model")
+
     if not matching_blocks:
         raise ValueError(f"no app thinning report variant found for {device_model}")
 
@@ -62,7 +84,7 @@ def main():
         description="Extract compressed iOS app size in KB from an App Thinning Size Report.",
     )
     parser.add_argument("report", type=Path)
-    parser.add_argument("device_model")
+    parser.add_argument("device_model", nargs="?")
     args = parser.parse_args()
 
     try:
