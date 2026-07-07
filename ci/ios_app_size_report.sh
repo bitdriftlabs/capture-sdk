@@ -14,7 +14,7 @@ Environment variables:
   IOS_APP_SIZE_OUTPUT_DIR
       Directory for intermediate archive/export files. Default: ios_app_size_output
   IOS_APP_SIZE_EXPORT_METHOD
-      xcodebuild export method. Default: release-testing
+      xcodebuild export method. Default: release-testing (aka. adhoc)
 
 Output:
   IOS_APP_SIZE_KB=<rounded compressed app size in KB>
