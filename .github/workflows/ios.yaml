@@ -35,7 +35,7 @@ jobs:
       - name: Check for workflow file changes
         id: workflow_check
         run: |
-          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock ci/ios_app_size_report.sh ci/parse_ios_app_thinning_report.py
+          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock ci/ios_app_size_report.sh ci/parse_ios_app_thinning_report.py ci/capture_ios_binary_size.sh
         continue-on-error: true
       - name: Determine if tests should run
         id: check_changes_separate
@@ -201,6 +201,18 @@ jobs:
           fi
           echo "current_kb=$IOS_APP_SIZE_KB" >> "$GITHUB_OUTPUT"
 
+      - name: Measure Capture SDK binary size
+        id: capture_binary_size
+        run: |
+          set -euo pipefail
+          ./ci/capture_ios_binary_size.sh | tee ios_capture_binary_size_output.log
+          IOS_CAPTURE_BINARY_SIZE_KB=$(grep '^IOS_CAPTURE_BINARY_SIZE_KB=' ios_capture_binary_size_output.log | cut -d'=' -f2)
+          if [ -z "$IOS_CAPTURE_BINARY_SIZE_KB" ]; then
+            echo "Failed to parse IOS_CAPTURE_BINARY_SIZE_KB from binary size script output."
+            exit 1
+          fi
+          echo "current_kb=$IOS_CAPTURE_BINARY_SIZE_KB" >> "$GITHUB_OUTPUT"
+
       - name: Upload iOS size artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -230,7 +242,9 @@ jobs:
         run: |
           set -euo pipefail
           BASELINE_FILE=ci/baseline_ios_app_size_kb.txt
+          CAPTURE_BINARY_BASELINE_FILE=ci/baseline_ios_capture_binary_size_kb.txt
           echo "${{ steps.ios_size.outputs.current_kb }}" > "$BASELINE_FILE"
+          echo "${{ steps.capture_binary_size.outputs.current_kb }}" > "$CAPTURE_BINARY_BASELINE_FILE"
 
           # main updates a dedicated ci-baseline branch that stores the latest accepted iOS size
           # snapshot. PRs read from that branch so they can compare against main without rebuilding it.
@@ -241,15 +255,16 @@ jobs:
           git worktree add temp-worktree origin/ci-baseline
 
           cp "$BASELINE_FILE" temp-worktree/ci/
+          cp "$CAPTURE_BINARY_BASELINE_FILE" temp-worktree/ci/
 
           cd temp-worktree
-          git add ci/baseline_ios_app_size_kb.txt
+          git add ci/baseline_ios_app_size_kb.txt ci/baseline_ios_capture_binary_size_kb.txt
 
           if ! git diff --cached --quiet; then
-            git commit -m "ci: update iOS app size baseline [skip ci]"
+            git commit -m "ci: update iOS size baselines [skip ci]"
             git push origin HEAD:ci-baseline
           else
-            echo "No changes to iOS app size baseline."
+            echo "No changes to iOS size baselines."
           fi
 
           cd ..
@@ -266,6 +281,9 @@ jobs:
           if git worktree add temp-baseline origin/ci-baseline; then
             if [ -f temp-baseline/ci/baseline_ios_app_size_kb.txt ]; then
               cp temp-baseline/ci/baseline_ios_app_size_kb.txt ci/
+            fi
+            if [ -f temp-baseline/ci/baseline_ios_capture_binary_size_kb.txt ]; then
+              cp temp-baseline/ci/baseline_ios_capture_binary_size_kb.txt ci/
             fi
             git worktree remove temp-baseline --force
           else
@@ -291,6 +309,25 @@ jobs:
             echo "diff_kb=$DIFF_KB" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Compare Capture SDK binary size
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        id: capture_binary_size_compare
+        run: |
+          set -euo pipefail
+          BASELINE_PATH=ci/baseline_ios_capture_binary_size_kb.txt
+          CURRENT_KB="${{ steps.capture_binary_size.outputs.current_kb }}"
+          echo "current_kb=$CURRENT_KB" >> "$GITHUB_OUTPUT"
+
+          if [ ! -f "$BASELINE_PATH" ]; then
+            echo "baseline_kb=" >> "$GITHUB_OUTPUT"
+            echo "diff_kb=" >> "$GITHUB_OUTPUT"
+          else
+            BASELINE_KB=$(cat "$BASELINE_PATH")
+            DIFF_KB=$((CURRENT_KB - BASELINE_KB))
+            echo "baseline_kb=$BASELINE_KB" >> "$GITHUB_OUTPUT"
+            echo "diff_kb=$DIFF_KB" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Report iOS app size on PR
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
@@ -299,37 +336,56 @@ jobs:
           IOS_CURRENT_KB: ${{ steps.ios_size_compare.outputs.current_kb }}
           IOS_BASELINE_KB: ${{ steps.ios_size_compare.outputs.baseline_kb }}
           IOS_DIFF_KB: ${{ steps.ios_size_compare.outputs.diff_kb }}
+          IOS_CAPTURE_BINARY_CURRENT_KB: ${{ steps.capture_binary_size_compare.outputs.current_kb }}
+          IOS_CAPTURE_BINARY_BASELINE_KB: ${{ steps.capture_binary_size_compare.outputs.baseline_kb }}
+          IOS_CAPTURE_BINARY_DIFF_KB: ${{ steps.capture_binary_size_compare.outputs.diff_kb }}
         with:
           script: |
             const marker = '<!-- ios-size-comparison -->';
-            const current = process.env.IOS_CURRENT_KB;
-            const baseline = process.env.IOS_BASELINE_KB;
-            const diff = process.env.IOS_DIFF_KB;
+            const appCurrent = process.env.IOS_CURRENT_KB;
+            const appBaseline = process.env.IOS_BASELINE_KB;
+            const appDiff = process.env.IOS_DIFF_KB;
+            const captureCurrent = process.env.IOS_CAPTURE_BINARY_CURRENT_KB;
+            const captureBaseline = process.env.IOS_CAPTURE_BINARY_BASELINE_KB;
+            const captureDiff = process.env.IOS_CAPTURE_BINARY_DIFF_KB;
 
             let body = `${marker}
             ## iOS Size Comparison Report
 
-            | Metric | App Size (KB) |
-            |--------|---------------|`;
+            | Metric | App Size (KB) | Capture Binary (KB) |
+            |--------|---------------|---------------------|`;
 
-            if (baseline && baseline !== '') {
+            if ((appBaseline && appBaseline !== '') || (captureBaseline && captureBaseline !== '')) {
               body += `
-            | Baseline | ${baseline} |
-            | Current | ${current} |
-            | Difference | ${diff} |`;
+            | Baseline | ${appBaseline || 'N/A'} | ${captureBaseline || 'N/A'} |
+            | Current | ${appCurrent} | ${captureCurrent} |
+            | Difference | ${appDiff || 'N/A'} | ${captureDiff || 'N/A'} |`;
 
-              const diffNumber = parseInt(diff, 10);
-              if (diffNumber > 0) {
-                body += `\n\n> iOS app size increased by ${diffNumber} KB.`;
-              } else if (diffNumber < 0) {
-                body += `\n\n> iOS app size decreased by ${Math.abs(diffNumber)} KB.`;
-              } else {
-                body += '\n\n> iOS app size unchanged.';
+              if (appBaseline && appBaseline !== '') {
+                const appDiffNumber = parseInt(appDiff, 10);
+                if (appDiffNumber > 0) {
+                  body += `\n\n> iOS app size increased by ${appDiffNumber} KB.`;
+                } else if (appDiffNumber < 0) {
+                  body += `\n\n> iOS app size decreased by ${Math.abs(appDiffNumber)} KB.`;
+                } else {
+                  body += '\n\n> iOS app size unchanged.';
+                }
+              }
+
+              if (captureBaseline && captureBaseline !== '') {
+                const captureDiffNumber = parseInt(captureDiff, 10);
+                if (captureDiffNumber > 0) {
+                  body += `\n> Capture SDK binary size increased by ${captureDiffNumber} KB.`;
+                } else if (captureDiffNumber < 0) {
+                  body += `\n> Capture SDK binary size decreased by ${Math.abs(captureDiffNumber)} KB.`;
+                } else {
+                  body += '\n> Capture SDK binary size unchanged.';
+                }
               }
             } else {
               body += `
-            | Current | ${current} |`;
-              body += '\n\nNo iOS app size baseline is available for comparison.';
+            | Current | ${appCurrent} | ${captureCurrent} |`;
+              body += '\n\nNo iOS size baselines are available for comparison.';
             }
 
             const comments = await github.rest.issues.listComments({

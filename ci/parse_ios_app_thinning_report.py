@@ -17,8 +17,10 @@ from pathlib import Path
 # The parser splits the report into "Variant:" blocks and extracts the numeric
 # value from the selected block's "App size:" line.
 # - If the report has only one variant block, that block is used directly.
-# - If the report has multiple variant blocks, the requested device model is
-#   used to select the matching block.
+# - If the report has multiple variant blocks and all report the same app size,
+#   that shared size is used directly.
+# - If the report has multiple variant blocks with different sizes, the requested
+#   device model is used to select the matching block.
 SIZE_RE = re.compile(
     r"^App size:\s+(?P<value>Zero|[\d][\d,\s]*(?:\.\d+)?)\s+"
     r"(?P<unit>[KMG]B)\s+compressed,",
@@ -57,24 +59,39 @@ def _to_kb(value, unit):
     return int((size * multiplier).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
+def _extract_block_size_kb(block):
+    for line in block.splitlines():
+        match = SIZE_RE.match(line.strip())
+        if match:
+            return _to_kb(match.group("value"), match.group("unit"))
+    return None
+
+
 def parse_app_size_kb(report, device_model=None):
     """Return the compressed app size from the selected app thinning report block."""
     blocks = _blocks(report)
     if len(blocks) == 1:
         matching_blocks = blocks
-    elif device_model:
-        matching_blocks = [block for block in blocks if device_model in block]
     else:
-        raise ValueError("multiple app thinning report variants found; pass a device model")
+        block_sizes = [_extract_block_size_kb(block) for block in blocks]
+        unique_sizes = {size for size in block_sizes if size is not None}
+        if len(unique_sizes) == 1:
+            return unique_sizes.pop()
+        if device_model:
+            matching_blocks = [block for block in blocks if device_model in block]
+        else:
+            raise ValueError("multiple app thinning report variants found; pass a device model")
 
-    if not matching_blocks:
+    if device_model and len(blocks) > 1 and not matching_blocks:
         raise ValueError(f"no app thinning report variant found for {device_model}")
 
+    if device_model and len(blocks) > 1:
+        matching_blocks = [block for block in blocks if device_model in block]
+
     for block in matching_blocks:
-        for line in block.splitlines():
-            match = SIZE_RE.match(line.strip())
-            if match:
-                return _to_kb(match.group("value"), match.group("unit"))
+        size_kb = _extract_block_size_kb(block)
+        if size_kb is not None:
+            return size_kb
 
     raise ValueError(f"no compressed app size found for {device_model}")
 
