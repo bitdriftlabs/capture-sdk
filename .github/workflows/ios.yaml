@@ -186,7 +186,17 @@ jobs:
           cp "$PROFILE_PATH" "$XCODE_PROFILE_DIR/"
           cp "$PROFILE_PATH" "$LEGACY_PROFILE_DIR/"
 
-      - name: Build and export thinned iOS app
+      - name: Build iOS size artifacts
+        run: |
+          set -euo pipefail
+          ./bazelw build \
+            --config ci \
+            --config release-ios \
+            --cpu=ios_arm64 \
+            //examples/swift/hello_world:ios_app_archive \
+            //examples/swift/hello_world:expanded_xcframework
+
+      - name: Export and measure thinned iOS app size
         id: ios_size
         env:
           APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}

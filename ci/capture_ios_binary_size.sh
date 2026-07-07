@@ -4,20 +4,15 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Prints the size in KB of the arm64 Capture SDK binary produced for the iOS
+Prints the size in KB of the arm64 Capture SDK binary from the prebuilt iOS
 XCFramework used by the hello world sample app.
 
 Environment variables:
   IOS_CAPTURE_BINARY_PATH
       Optional override for the Capture.framework/Capture binary path.
-  IOS_CAPTURE_BINARY_TARGET
-      Bazel target that materializes the Capture XCFramework. Default:
-      //examples/swift/hello_world:expanded_xcframework
   IOS_CAPTURE_BINARY_FIND_ROOTS
       Space-separated directories searched for the built Capture binary when no
       explicit IOS_CAPTURE_BINARY_PATH is provided. Default: "bazel-bin bazel-out"
-  IOS_CAPTURE_BINARY_SKIP_BUILD
-      Set to 1 to skip the Bazel build step and only measure the existing file.
 
 Output:
   IOS_CAPTURE_BINARY_SIZE_KB=<binary size in KB>
@@ -30,7 +25,6 @@ if [[ "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-BINARY_TARGET="${IOS_CAPTURE_BINARY_TARGET:-//examples/swift/hello_world:expanded_xcframework}"
 FIND_ROOTS="${IOS_CAPTURE_BINARY_FIND_ROOTS:-bazel-bin bazel-out}"
 
 find_binary_path() {
@@ -58,14 +52,6 @@ import sys
 print(os.path.getsize(sys.argv[1]))
 PY
 }
-
-if [[ "${IOS_CAPTURE_BINARY_SKIP_BUILD:-0}" != "1" ]]; then
-  ./bazelw build \
-    --config ci \
-    --config release-ios \
-    --cpu=ios_arm64 \
-    "$BINARY_TARGET"
-fi
 
 BINARY_PATH="${IOS_CAPTURE_BINARY_PATH:-$(find_binary_path)}"
 

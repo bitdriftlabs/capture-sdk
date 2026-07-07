@@ -4,8 +4,8 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Builds an iOS archive for the hello world sample app, exports a thinned IPA, and
-prints the compressed app size reported by Xcode's App Thinning report.
+Uses an existing iOS archive for the hello world sample app, exports a thinned
+IPA, and prints the compressed app size reported by Xcode's App Thinning report.
 
 Environment variables:
   IOS_APP_SIZE_DEVICE_MODEL
@@ -15,6 +15,9 @@ Environment variables:
       Directory for intermediate archive/export files. Default: ios_app_size_output
   IOS_APP_SIZE_EXPORT_METHOD
       xcodebuild export method. Default: release-testing (aka. adhoc)
+  IOS_APP_SIZE_ARCHIVE_PATH
+      Path to the prebuilt xcarchive to export. Default:
+      bazel-bin/examples/swift/hello_world/Bitdrift Sample App.xcarchive
 
 Output:
   IOS_APP_SIZE_KB=<rounded compressed app size in KB>
@@ -30,8 +33,7 @@ fi
 
 DEVICE_MODEL="${IOS_APP_SIZE_DEVICE_MODEL:-}"
 OUTPUT_DIR="${IOS_APP_SIZE_OUTPUT_DIR:-ios_app_size_output}"
-ARCHIVE_TARGET="//examples/swift/hello_world:ios_app_archive"
-ARCHIVE_PATH="bazel-bin/examples/swift/hello_world/Bitdrift Sample App.xcarchive"
+ARCHIVE_PATH="${IOS_APP_SIZE_ARCHIVE_PATH:-bazel-bin/examples/swift/hello_world/Bitdrift Sample App.xcarchive}"
 EXPORT_ARCHIVE_PATH="$OUTPUT_DIR/Bitdrift Sample App.xcarchive"
 EXPORT_OPTIONS_PLIST="$OUTPUT_DIR/ExportOptions.plist"
 EXPORT_DIR="$OUTPUT_DIR/export"
@@ -54,13 +56,7 @@ prepare_output_dir() {
   mkdir -p "$EXPORT_DIR"
 }
 
-build_archive() {
-  ./bazelw build \
-    --config ci \
-    --config release-ios \
-    --cpu=ios_arm64 \
-    "$ARCHIVE_TARGET"
-
+require_archive() {
   if [[ ! -d "$ARCHIVE_PATH" ]]; then
     echo "Expected xcarchive not found at $ARCHIVE_PATH" >&2
     exit 1
@@ -143,7 +139,7 @@ export_archive() {
 }
 
 prepare_output_dir
-build_archive
+require_archive
 copy_archive_for_export
 strip_data_protection_entitlement "$EXPORT_ARCHIVE_PATH"
 
