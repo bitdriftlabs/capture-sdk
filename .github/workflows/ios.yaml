@@ -187,6 +187,9 @@ jobs:
           cp "$PROFILE_PATH" "$LEGACY_PROFILE_DIR/"
 
       - name: Build iOS size artifacts
+        env:
+          APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
+          APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
         run: |
           set -euo pipefail
           ./bazelw build \
