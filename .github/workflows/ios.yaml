@@ -220,6 +220,7 @@ jobs:
           path: |
             ios_app_size_output/export/*.ipa
             ios_app_size_output/export/App Thinning Size Report.txt
+            ios_capture_binary_size_output.log
 
       - name: Remove signing assets
         if: always()

@@ -13,6 +13,9 @@ Environment variables:
   IOS_CAPTURE_BINARY_TARGET
       Bazel target that materializes the Capture XCFramework. Default:
       //examples/swift/hello_world:expanded_xcframework
+  IOS_CAPTURE_BINARY_FIND_ROOTS
+      Space-separated directories searched for the built Capture binary when no
+      explicit IOS_CAPTURE_BINARY_PATH is provided. Default: "bazel-bin bazel-out"
   IOS_CAPTURE_BINARY_SKIP_BUILD
       Set to 1 to skip the Bazel build step and only measure the existing file.
 
@@ -28,7 +31,33 @@ if [[ "${1:-}" == "--help" ]]; then
 fi
 
 BINARY_TARGET="${IOS_CAPTURE_BINARY_TARGET:-//examples/swift/hello_world:expanded_xcframework}"
-BINARY_PATH="${IOS_CAPTURE_BINARY_PATH:-bazel-bin/examples/swift/hello_world/Capture.xcframework/ios-arm64/Capture.framework/Capture}"
+FIND_ROOTS="${IOS_CAPTURE_BINARY_FIND_ROOTS:-bazel-bin bazel-out}"
+
+find_binary_path() {
+  local root
+  local candidate
+  for root in $FIND_ROOTS; do
+    if [[ ! -d "$root" ]]; then
+      continue
+    fi
+
+    candidate="$(find -L "$root" -path '*Capture.xcframework/ios-arm64/Capture.framework/Capture' -type f -print -quit)"
+    if [[ -n "$candidate" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+}
+
+resolve_size_bytes() {
+  local path="$1"
+  python3 - "$path" <<'PY'
+import os
+import sys
+
+print(os.path.getsize(sys.argv[1]))
+PY
+}
 
 if [[ "${IOS_CAPTURE_BINARY_SKIP_BUILD:-0}" != "1" ]]; then
   ./bazelw build \
@@ -38,16 +67,14 @@ if [[ "${IOS_CAPTURE_BINARY_SKIP_BUILD:-0}" != "1" ]]; then
     "$BINARY_TARGET"
 fi
 
+BINARY_PATH="${IOS_CAPTURE_BINARY_PATH:-$(find_binary_path)}"
+
 if [[ ! -f "$BINARY_PATH" ]]; then
   echo "Expected Capture SDK binary not found at $BINARY_PATH" >&2
   exit 1
 fi
 
-if stat -f%z "$BINARY_PATH" > /dev/null 2>&1; then
-  BINARY_SIZE_BYTES="$(stat -f%z "$BINARY_PATH")"
-else
-  BINARY_SIZE_BYTES="$(stat -c%s "$BINARY_PATH")"
-fi
+BINARY_SIZE_BYTES="$(resolve_size_bytes "$BINARY_PATH")"
 
 IOS_CAPTURE_BINARY_SIZE_KB="$((BINARY_SIZE_BYTES / 1024))"
 echo "IOS_CAPTURE_BINARY_SIZE_KB=$IOS_CAPTURE_BINARY_SIZE_KB"
