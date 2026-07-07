@@ -197,7 +197,7 @@ jobs:
             --config release-ios \
             --cpu=ios_arm64 \
             //examples/swift/hello_world:ios_app_archive \
-            //examples/swift/hello_world:expanded_xcframework
+            //platform/swift/source:Capture
 
       - name: Export and measure thinned iOS app size
         id: ios_size
@@ -366,8 +366,8 @@ jobs:
             let body = `${marker}
             ## iOS Size Comparison Report
 
-            | Metric | App Size (KB) | Capture Binary (KB) |
-            |--------|---------------|---------------------|`;
+            | Metric | Thinned App Size (KB) | Capture SDK Binary (KB) |
+            |--------|------------------------|-------------------------|`;
 
             if ((appBaseline && appBaseline !== '') || (captureBaseline && captureBaseline !== '')) {
               body += `
@@ -378,11 +378,11 @@ jobs:
               if (appBaseline && appBaseline !== '') {
                 const appDiffNumber = parseInt(appDiff, 10);
                 if (appDiffNumber > 0) {
-                  body += `\n\n> iOS app size increased by ${appDiffNumber} KB.`;
+                  body += `\n\n> Thinned app size increased by ${appDiffNumber} KB.`;
                 } else if (appDiffNumber < 0) {
-                  body += `\n\n> iOS app size decreased by ${Math.abs(appDiffNumber)} KB.`;
+                  body += `\n\n> Thinned app size decreased by ${Math.abs(appDiffNumber)} KB.`;
                 } else {
-                  body += '\n\n> iOS app size unchanged.';
+                  body += '\n\n> Thinned app size unchanged.';
                 }
               }
 
