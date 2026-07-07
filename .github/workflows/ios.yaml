@@ -196,8 +196,7 @@ jobs:
             --config ci \
             --config release-ios \
             --cpu=ios_arm64 \
-            //examples/swift/hello_world:ios_app_archive \
-            //platform/swift/source:Capture
+            //examples/swift/hello_world:ios_app_archive
 
       - name: Export and measure thinned iOS app size
         id: ios_size
@@ -214,8 +213,26 @@ jobs:
           fi
           echo "current_kb=$IOS_APP_SIZE_KB" >> "$GITHUB_OUTPUT"
 
+      - name: Build Capture SDK XCFramework for size measurement
+        run: |
+          set -euo pipefail
+          ./bazelw build \
+            --config ci \
+            --config release-ios \
+            --define ios_produce_framework_plist=true \
+            //:ios_dist
+
+      - name: Materialize Capture SDK XCFramework
+        run: |
+          set -euo pipefail
+          rm -rf ios_capture_size
+          mkdir -p ios_capture_size
+          unzip -q bazel-bin/Capture.ios.zip -d ios_capture_size
+
       - name: Measure Capture SDK binary size
         id: capture_binary_size
+        env:
+          IOS_CAPTURE_BINARY_PATH: ios_capture_size/Capture.xcframework/ios-arm64/Capture.framework/Capture
         run: |
           set -euo pipefail
           ./ci/capture_ios_binary_size.sh | tee ios_capture_binary_size_output.log
@@ -233,6 +250,7 @@ jobs:
           path: |
             ios_app_size_output/export/*.ipa
             ios_app_size_output/export/App Thinning Size Report.txt
+            bazel-bin/Capture.ios.zip
             ios_capture_binary_size_output.log
 
       - name: Remove signing assets
