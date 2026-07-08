@@ -34,6 +34,7 @@ class AppExitRepository {
             AppExitReason.ANR_SLEEP_MAIN_THREAD -> FatalIssueGenerator.forceThreadSleepAnr()
             AppExitReason.APP_CRASH_COROUTINE_EXCEPTION -> FatalIssueGenerator.forceCoroutinesCrash()
             AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION -> FatalIssueGenerator.forceUnhandledException()
+            AppExitReason.APP_CRASH_STACK_OVERFLOW -> FatalIssueGenerator.forceStackOverflowCrash()
             AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION -> FatalIssueGenerator.forceRxJavaException()
             AppExitReason.APP_CRASH_JVM_OOM -> FatalIssueGenerator.forceJvmOutOfMemoryCrash()
             AppExitReason.APP_CRASH_TOO_MANY_THREADS_OOM -> FatalIssueGenerator.forceTooManyThreadsOutOfMemory()

@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Reduced the size of persisted fatal issue reports.
 
 ### iOS
 
