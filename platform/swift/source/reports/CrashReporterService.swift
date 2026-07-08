@@ -54,6 +54,13 @@ struct CrashReporterSetupResult {
     ///
     /// - Warning: The returned result must be applied to shared state before activating
     /// MetricKit to avoid a race with payload delivery.
+    ///
+    /// - parameter sdkBaseURL:       the base URL under which crash reporting directories are located.
+    /// - parameter underlyingLogger: the logger used to read runtime feature flags and build the
+    ///                                diagnostic reporter.
+    ///
+    /// - returns: the combined result of crash handler initialization, previous-run info, and the
+    ///            diagnostic reporter.
     func setup(sdkBaseURL: URL, underlyingLogger: CoreLogging) -> CrashReporterSetupResult {
         guard !environment.isSimulator else {
             return CrashReporterSetupResult(
@@ -111,6 +118,8 @@ struct CrashReporterSetupResult {
     ///
     /// - Warning: Must be called after the result of `setup(sdkBaseURL:underlyingLogger:)`
     /// has been applied to shared state.
+    ///
+    /// - parameter reporter: the diagnostic reporter to register with MetricKit.
     func activate(reporter: DiagnosticEventReporter) {
         self.metricManager.add(reporter)
     }

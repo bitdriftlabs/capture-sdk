@@ -377,5 +377,4 @@ private extension CrashReporterServiceTests {
     func thenPreviousRunInfoIs(_ expected: PreviousRunInfo) {
         XCTAssertEqual(setupResult?.previousRunInfo, expected)
     }
-
 }
