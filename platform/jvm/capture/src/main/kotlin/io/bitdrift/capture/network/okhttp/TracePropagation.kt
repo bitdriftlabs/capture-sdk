@@ -8,6 +8,7 @@
 package io.bitdrift.capture.network.okhttp
 
 import okhttp3.Request
+import java.math.BigInteger
 
 internal object TracePropagation {
     internal const val TRACE_ID_FIELD_KEY = "_trace_id"
@@ -15,7 +16,8 @@ internal object TracePropagation {
     internal fun hasExistingTraceHeaders(request: Request): Boolean =
         request.header("traceparent") != null ||
             request.header("b3") != null ||
-            request.header("X-B3-TraceId") != null
+            request.header("X-B3-TraceId") != null ||
+            request.header("x-datadog-trace-id") != null
 
     internal fun extractSampledTraceId(request: Request): String? {
         val w3c = request.header("traceparent")
@@ -39,6 +41,20 @@ internal object TracePropagation {
             val sampled = request.header("X-B3-Sampled") ?: return null
             if (sampled != "1") return null
             return b3TraceId
+        }
+
+        val ddTraceId = request.header("x-datadog-trace-id")
+        if (ddTraceId != null) {
+            val sampled = request.header("x-datadog-sampling-priority")
+            // Datadog sampling priority values: 1 = AUTO_KEEP, 2 = USER_KEEP
+            // https://datadoghq.dev/dd-trace-rb/Datadog/Tracing/Sampling/Ext/Priority.html
+            if (sampled == "1" || sampled == "2") {
+                return try {
+                    BigInteger(ddTraceId).toString(16).padStart(16, '0')
+                } catch (_: NumberFormatException) {
+                    null
+                }
+            }
         }
 
         return null
