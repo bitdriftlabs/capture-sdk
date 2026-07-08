@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.8...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.9...HEAD
 
 ### Both
 
@@ -15,8 +15,7 @@
 
 **Fixed**
 
-- Switching from the fixed session strategy to the activity session strategy now correctly resets
-  stored state. In practice this is only an issue during onboarding / local development.
+- Nothing yet!
 
 ### Android
 
@@ -45,6 +44,23 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.9]
+[0.23.9]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.9
+
+### Both
+
+**Fixed**
+
+- Switching from the fixed session strategy to the activity session strategy now correctly resets
+  stored state. In practice this is only an issue during onboarding / local development.
+
+### iOS
+
+**Changed**
+
+- `previousRunInfo` now reports a richer `ExitReason` instead of just `hasFatallyTerminated`.
+- `PreviousRunInfo.init(hasFatallyTerminated:)` was removed in favor of `init(terminationReason:)`.
 
 ## [0.23.8]
 [0.23.8]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.8

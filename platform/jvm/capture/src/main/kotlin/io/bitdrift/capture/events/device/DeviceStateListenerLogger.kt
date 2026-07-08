@@ -76,6 +76,10 @@ internal class DeviceStateListenerLogger(
     }
 
     override fun stop() {
+        if (!runtime.isEnabled(RuntimeFeature.DEVICE_STATE_EVENTS)) {
+            return
+        }
+
         context.unregisterReceiver(this)
         context.unregisterComponentCallbacks(this)
 

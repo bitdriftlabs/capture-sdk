@@ -15,6 +15,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
+import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.events.span.SpanResult
@@ -47,14 +48,16 @@ class LogBenchmarkTest {
     @get:Rule
     val benchmarkRule = BenchmarkRule()
 
-    private fun startLogger(fieldProviders: List<FieldProvider> = listOf()) {
+    private fun startLogger(fieldProviders: List<FieldProvider> = listOf(), configuration: Configuration = Configuration()) {
         CaptureJniLibrary.load()
+
         Capture.Logger.start(
             apiKey = "[test_api_key]",
             apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
             context = InstrumentationRegistry.getInstrumentation().targetContext,
             sessionStrategy = SessionStrategy.Fixed(),
-            fieldProviders = fieldProviders
+            fieldProviders = fieldProviders,
+            configuration =  configuration,
         )
     }
 
@@ -177,11 +180,6 @@ class LogBenchmarkTest {
     }
 
     @Test
-    fun logScreenView() = benchmarkCaptureOperation{
-        Capture.Logger.logScreenView("fake_screen")
-    }
-
-    @Test
     fun logAppLaunchTTI() = benchmarkCaptureOperation{
         Capture.Logger.logAppLaunchTTI(1.toDuration(DurationUnit.SECONDS))
     }
@@ -196,8 +194,8 @@ class LogBenchmarkTest {
         Capture.Logger.clearEntityId()
     }
 
-    private fun benchmarkCaptureOperation(captureSdkOperation: () -> Unit) {
-        startLogger(createFieldProviders())
+    private fun benchmarkCaptureOperation(configuration: Configuration = Configuration(), captureSdkOperation: () -> Unit ) {
+        startLogger(fieldProviders = createFieldProviders(), configuration = configuration)
 
         benchmarkRule.measureRepeated { captureSdkOperation() }
     }
