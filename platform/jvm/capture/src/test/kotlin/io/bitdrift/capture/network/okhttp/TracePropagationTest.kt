@@ -185,4 +185,28 @@ class TracePropagationTest {
         val request = Request.Builder().url("https://example.com").build()
         assertThat(TracePropagation.extractSampledTraceId(request)).isNull()
     }
+
+    @Test
+    fun hasExistingTraceHeaders_detectsDatadog() {
+        val request =
+            Request
+                .Builder()
+                .url("https://example.com")
+                .header("x-datadog-trace-id", "12345")
+                .build()
+        assertThat(TracePropagation.hasExistingTraceHeaders(request)).isTrue()
+    }
+
+    @Test
+    fun extractSampledTraceId_datadogSampled_returnsTraceId() {
+        // 12345 in hex is 3039, padded to 16 chars: 0000000000003039
+        val request =
+            Request
+                .Builder()
+                .url("https://example.com")
+                .header("x-datadog-trace-id", "12345")
+                .header("x-datadog-sampling-priority", "1")
+                .build()
+        assertThat(TracePropagation.extractSampledTraceId(request)).isEqualTo("0000000000003039")
+    }
 }

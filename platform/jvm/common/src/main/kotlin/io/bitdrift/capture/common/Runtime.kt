@@ -154,6 +154,7 @@ sealed class RuntimeStringConfig(
      * - "w3c": use the W3C `traceparent` header
      * - "b3-single": use the Zipkin B3 `b3` header
      * - "b3-multi": use the Zipkin B3 `X-B3-*` headers
+     * - "dd": use the Datadog `x-datadog-*` headers
      */
     data object TRACE_PROPAGATION_MODE : RuntimeStringConfig("client_config.trace.propagation_mode", "w3c")
 }
