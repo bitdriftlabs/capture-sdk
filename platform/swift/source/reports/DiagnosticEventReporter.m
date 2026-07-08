@@ -44,6 +44,7 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle,
                                        NSString *_Nonnull sdk_version,
                                        MXDiagnostic *_Nonnull event,
                                        NSTimeInterval timestamp,
+                                       BOOL fileSizeOptimizationEnabled,
                                        BOOL useStackOverlapMatching,
                                        CAPMemoryPressureLevel memoryPressureLevel,
                                        CAPCrashEnrichmentSummaryHandler _Nullable crashEnrichmentSummaryHandler)
@@ -58,24 +59,27 @@ static const char *name_for_diagnostic_type(ReportType type);
 @property (nullable, strong, nonatomic) void (^completionHandler)();
 @property (nullable, copy, nonatomic) CAPCrashEnrichmentSummaryHandler crashEnrichmentSummaryHandler;
 @property CAPDiagnosticType diagnosticTypes;
+@property BOOL fileSizeOptimizationEnabled;
 @property BOOL useStackOverlapMatching;
 @property CAPMemoryPressureLevel memoryPressureLevel;
 @end
 
 @implementation DiagnosticEventReporter
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)dir
-                                sdkVersion:(NSString *_Nonnull)sdkVersion
-                                eventTypes:(CAPDiagnosticType)types
-                        minimumHangSeconds:(NSTimeInterval)seconds
-                     memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
-                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
-                crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
+                                 sdkVersion:(NSString *_Nonnull)sdkVersion
+                                 eventTypes:(CAPDiagnosticType)types
+                         minimumHangSeconds:(NSTimeInterval)seconds
+                      memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
+              fileSizeOptimizationEnabled:(BOOL)fileSizeOptimizationEnabled
+                    useStackOverlapMatching:(BOOL)useStackOverlapMatching
+              crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completionHandler {
   if (self = [super init]) {
     self.dir = dir;
     self.sdkVersion = sdkVersion;
     self.diagnosticTypes = types;
     self.completionHandler = completionHandler;
+    self.fileSizeOptimizationEnabled = fileSizeOptimizationEnabled;
     self.useStackOverlapMatching = useStackOverlapMatching;
     self.crashEnrichmentSummaryHandler = crashEnrichmentSummaryHandler;
     self.memoryPressureLevel = memoryPressureLevel;
@@ -131,6 +135,7 @@ static const char *name_for_diagnostic_type(ReportType type);
     self.sdkVersion,
     event,
     timestamp,
+    self.fileSizeOptimizationEnabled,
     self.useStackOverlapMatching,
     self.memoryPressureLevel,
     self.crashEnrichmentSummaryHandler
@@ -364,6 +369,7 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle,
                                        NSString *sdk_version,
                                        MXDiagnostic *event,
                                        NSTimeInterval timestamp,
+                                       BOOL fileSizeOptimizationEnabled,
                                        BOOL useStackOverlapMatching,
                                        CAPMemoryPressureLevel memoryPressureLevel,
                                        CAPCrashEnrichmentSummaryHandler _Nullable crashEnrichmentSummaryHandler) {
@@ -372,7 +378,7 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle,
     MXCrashDiagnostic *crash = (MXCrashDiagnostic *)event;
     BOOL is_hang = crash_is_hang_termination(crash);
     report_type = is_hang ? ReportTypeAppNotResponding : ReportTypeNativeCrash;
-    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
+    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version), fileSizeOptimizationEnabled);
     NSString *name = is_hang ? DEFAULT_HANG_NAME : name_for_crash(crash);
     NSString *reason = reason_for_crash(crash, name);
     NSDictionary<NSString *, NSString *> *summary = nil;
@@ -385,7 +391,7 @@ static ReportType serialize_diagnostic(BDProcessorHandle handle,
     serialize_error_threads(handle, dictReport, name, reason, FrameOrderInnerToOuter);
   } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
     report_type = ReportTypeAppNotResponding;
-    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version));
+    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(sdk_version), fileSizeOptimizationEnabled);
     MXHangDiagnostic *hang = (MXHangDiagnostic *)event;
     NSMeasurementFormatter *formatter = [NSMeasurementFormatter new];
     NSString *duration = [formatter stringFromMeasurement:hang.hangDuration];

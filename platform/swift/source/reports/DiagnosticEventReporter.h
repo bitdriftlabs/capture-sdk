@@ -39,6 +39,8 @@ typedef void (^CAPCrashEnrichmentSummaryHandler)(
  * @param types      event types to report
  * @param seconds    number of seconds required to report `CAPDiagnosticTypeHang` events
  * @param memoryPressureLevel previous run's memory pressure level (CAPMemoryPressureLevel)
+ * @param fileSizeOptimizationEnabled whether `client_feature.ios.optimize_fatal_issue_report_size`
+ *                                    is enabled for generated fatal issue reports
  * @param useStackOverlapMatching whether to use the overlap-based thread matcher (finds the best
  * contiguous matching region from the stack base) instead of the exact matcher for crash enrichment
  * @param crashEnrichmentSummaryHandler block invoked after crash enrichment with the summary fields
@@ -46,13 +48,14 @@ typedef void (^CAPCrashEnrichmentSummaryHandler)(
  * @param completion block to invoke when report processing is completed
  */
 - (instancetype _Nonnull)initWithOutputDir:(NSURL *_Nonnull)path
-                                sdkVersion:(NSString *_Nonnull)sdkVersion
-                                eventTypes:(CAPDiagnosticType)types
-                        minimumHangSeconds:(NSTimeInterval)seconds
-                     memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
-                   useStackOverlapMatching:(BOOL)useStackOverlapMatching
-             crashEnrichmentSummaryHandler:
-                 (CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
+                                 sdkVersion:(NSString *_Nonnull)sdkVersion
+                                 eventTypes:(CAPDiagnosticType)types
+                         minimumHangSeconds:(NSTimeInterval)seconds
+                      memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
+              fileSizeOptimizationEnabled:(BOOL)fileSizeOptimizationEnabled
+                    useStackOverlapMatching:(BOOL)useStackOverlapMatching
+              crashEnrichmentSummaryHandler:
+                  (CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completion;
 
 - (void)setMinimumHangSeconds:(NSTimeInterval)seconds;
