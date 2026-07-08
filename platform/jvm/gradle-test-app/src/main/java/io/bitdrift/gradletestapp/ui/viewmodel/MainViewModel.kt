@@ -464,6 +464,7 @@ private val JVM_CRASH_REASONS =
     listOf(
         AppExitReason.APP_CRASH_COROUTINE_EXCEPTION,
         AppExitReason.APP_CRASH_REGULAR_JVM_EXCEPTION,
+        AppExitReason.APP_CRASH_STACK_OVERFLOW,
         AppExitReason.APP_CRASH_RX_JAVA_EXCEPTION,
         AppExitReason.APP_CRASH_TOO_MANY_THREADS_OOM,
     )

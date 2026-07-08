@@ -96,6 +96,10 @@ internal object FatalIssueGenerator {
 
     fun forceUnhandledException(): Unit = throw RuntimeException("Forced unhandled exception")
 
+    fun forceStackOverflowCrash() {
+        triggerStackOverflow()
+    }
+
     @SuppressLint("CheckResult")
     fun forceRxJavaException() {
         Observable
@@ -225,6 +229,10 @@ internal object FatalIssueGenerator {
             Thread.sleep(100)
             Os.kill(Os.getpid(), signal)
         }.start()
+    }
+
+    private fun triggerStackOverflow() {
+        triggerStackOverflow()
     }
 
     private fun runActionWithAppInBackgroundState(context: Context, delayInMilli: Long = 2000L, onAction: () -> Unit) {
