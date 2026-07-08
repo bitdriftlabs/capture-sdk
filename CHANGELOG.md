@@ -25,11 +25,11 @@
 
 **Changed**
 
-- Reduced the size of persisted fatal issue reports.
+- Nothing yet!
 
 **Fixed**
 
-- Nothing yet!
+- Reduced the size of persisted fatal issue reports.
 
 ### iOS
 
