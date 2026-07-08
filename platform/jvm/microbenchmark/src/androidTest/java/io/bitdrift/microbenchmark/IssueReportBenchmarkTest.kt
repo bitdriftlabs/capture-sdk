@@ -45,7 +45,7 @@ class IssueReportBenchmarkTest {
 
     private fun buildJvmReport(): Int {
         val callerThread = Thread("crashing-thread")
-        val allThreads = buildThreadStacks(callerThread, threadCount = 2_000)
+        val allThreads = buildThreadStacks(callerThread)
         val throwable = RuntimeException("benchmark-crash")
         val builder = FlatBufferBuilder()
         val reportOffset =
@@ -58,13 +58,14 @@ class IssueReportBenchmarkTest {
                 callerThread = callerThread,
                 allThreads = allThreads,
                 reportType = ReportType.JVMCrash,
+                isFileSizeOptimizationEnabled = true,
             )
         builder.finish(reportOffset)
         return builder.sizedByteArray().size
     }
 
     private fun buildNativeReport(): Int {
-        val tombstone = buildNativeTombstone(threadCount = 2_000)
+        val tombstone = buildNativeTombstone()
         val builder = FlatBufferBuilder()
         val reportOffset =
             NativeCrashProcessor.process(
@@ -75,6 +76,7 @@ class IssueReportBenchmarkTest {
                 description = "benchmark-native-crash",
                 traceInputStream = tombstone.toInputStream(),
                 terminatingSignalNumber = 0,
+                isFileSizeOptimizationEnabled = true,
             )
         builder.finish(reportOffset)
         return builder.sizedByteArray().size
@@ -82,7 +84,6 @@ class IssueReportBenchmarkTest {
 
     private fun buildThreadStacks(
         callerThread: Thread,
-        threadCount: Int,
     ): Map<Thread, Array<StackTraceElement>> =
         buildMap {
             val sharedTerminalFrames =
@@ -90,7 +91,7 @@ class IssueReportBenchmarkTest {
                     StackTraceElement("java.lang.Thread", "run", "Thread.java", 840),
                 )
 
-            repeat(threadCount) { index ->
+            repeat(DEFAULT_THREAD_COUNT) { index ->
                 put(
                     Thread("worker-$index"),
                     arrayOf(
@@ -108,7 +109,7 @@ class IssueReportBenchmarkTest {
             )
         }
 
-    private fun buildNativeTombstone(threadCount: Int): TombstoneProtos.Tombstone {
+    private fun buildNativeTombstone(): TombstoneProtos.Tombstone {
         val sharedFrames =
             listOf(
                 SimpleNativeFrame("file1", "function1", 110, 10),
@@ -117,7 +118,7 @@ class IssueReportBenchmarkTest {
 
         val tombstoneBuilder = TombstoneProtos.Tombstone.newBuilder().setTid(1)
 
-        repeat(threadCount) { index ->
+        repeat(DEFAULT_THREAD_COUNT) { index ->
             val threadId = index + 1
             val threadBuilder =
                 TombstoneProtos.Thread
@@ -174,4 +175,8 @@ class IssueReportBenchmarkTest {
         val pc: Long,
         val relPc: Long,
     )
+
+    private companion object {
+        private const val DEFAULT_THREAD_COUNT = 50
+    }
 }

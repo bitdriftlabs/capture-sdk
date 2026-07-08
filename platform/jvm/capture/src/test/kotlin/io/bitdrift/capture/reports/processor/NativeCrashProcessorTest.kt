@@ -384,6 +384,7 @@ class NativeCrashProcessorTest {
                 "description",
                 tombstone.toInputStream(),
                 terminatingSignalNumber = 0,
+                isFileSizeOptimizationEnabled = true,
             )
 
         flatBufferBuilder.finish(reportOffset)

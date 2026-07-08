@@ -283,6 +283,7 @@ class IssueReporterProcessorTest {
             eq("foreground"),
             isNull(),
             any(),
+            eq(true),
         )
     }
 
@@ -308,6 +309,7 @@ class IssueReporterProcessorTest {
             eq("cached"),
             isNull(),
             any(),
+            eq(true),
         )
     }
 
@@ -333,6 +335,7 @@ class IssueReporterProcessorTest {
             eq("foreground_service"),
             isNull(),
             any(),
+            eq(true),
         )
     }
 
@@ -682,6 +685,7 @@ class IssueReporterProcessorTest {
                 any(),
                 any(),
                 any(),
+                eq(true),
             )
     }
 

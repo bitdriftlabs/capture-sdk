@@ -33,9 +33,10 @@ internal object JvmProcessor {
         callerThread: Thread,
         allThreads: Map<Thread, Array<StackTraceElement>>?,
         reportType: Byte,
+        isFileSizeOptimizationEnabled: Boolean,
     ): Int {
         val stackTraceOffsetsByFrames = mutableMapOf<List<StackTraceElement>, Int>()
-        val errors = buildErrors(builder, throwable)
+        val errors = buildErrors(builder, throwable, isFileSizeOptimizationEnabled)
         val threadList =
             allThreads?.map { (thread, frames) ->
                 val threadId =
@@ -46,20 +47,19 @@ internal object JvmProcessor {
                         thread.id
                     }
                 val threadStack =
-                    stackTraceOffsetsByFrames.getOrPut(frames.asList()) {
-                        val frameOffsets =
-                            frames
-                                .map { frame -> getFrameDetails(builder, frame) }
-                                .toIntArray()
-                        io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread
-                            .createStackTraceVector(builder, frameOffsets)
-                    }
+                    buildStackTraceVector(builder, frames, isFileSizeOptimizationEnabled, stackTraceOffsetsByFrames)
                 io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread.createThread(
                     builder,
-                    builder.createSharedString(thread.name),
+                    if (isFileSizeOptimizationEnabled) builder.createSharedString(thread.name) else builder.createString(thread.name),
                     thread == callerThread,
                     threadId.toUInt(),
-                    builder.createSharedString(thread.state.name),
+                    if (isFileSizeOptimizationEnabled) {
+                        builder.createSharedString(
+                            thread.state.name,
+                        )
+                    } else {
+                        builder.createString(thread.state.name)
+                    },
                     thread.priority.toFloat(),
                     -1, // default value for quality of service (unused on Android)
                     threadStack,
@@ -88,12 +88,27 @@ internal object JvmProcessor {
     private fun buildErrors(
         builder: FlatBufferBuilder,
         throwable: Throwable,
+        isFileSizeOptimizationEnabled: Boolean,
     ): List<Int> =
         generateSequence(throwable) { it.cause }
             .map { error ->
-                val frames = error.stackTrace.map { getFrameDetails(builder, it) }.toIntArray()
-                val className = builder.createSharedString(error.javaClass.name)
-                val message = error.getReason()?.let { builder.createSharedString(it) } ?: 0
+                val frames = error.stackTrace.map { getFrameDetails(builder, it, isFileSizeOptimizationEnabled) }.toIntArray()
+                val className =
+                    if (isFileSizeOptimizationEnabled) {
+                        builder.createSharedString(
+                            error.javaClass.name,
+                        )
+                    } else {
+                        builder.createString(error.javaClass.name)
+                    }
+                val message =
+                    error.getReason()?.let {
+                        if (isFileSizeOptimizationEnabled) {
+                            builder.createSharedString(it)
+                        } else {
+                            builder.createString(it)
+                        }
+                    } ?: 0
                 Error.createError(
                     builder,
                     className,
@@ -115,6 +130,7 @@ internal object JvmProcessor {
     private fun getFrameDetails(
         builder: FlatBufferBuilder,
         element: StackTraceElement,
+        isFileSizeOptimizationEnabled: Boolean,
     ): Int {
         val frameData =
             FrameData(
@@ -127,6 +143,29 @@ internal object JvmProcessor {
             FrameType.JVM,
             builder,
             frameData,
+            isFileSizeOptimizationEnabled,
         )
+    }
+
+    private fun buildStackTraceVector(
+        builder: FlatBufferBuilder,
+        frames: Array<StackTraceElement>,
+        isFileSizeOptimizationEnabled: Boolean,
+        stackTraceOffsetsByFrames: MutableMap<List<StackTraceElement>, Int>,
+    ): Int {
+        val frameOffsets =
+            frames
+                .map { frame -> getFrameDetails(builder, frame, isFileSizeOptimizationEnabled) }
+                .toIntArray()
+
+        return if (isFileSizeOptimizationEnabled) {
+            stackTraceOffsetsByFrames.getOrPut(frames.asList()) {
+                io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread
+                    .createStackTraceVector(builder, frameOffsets)
+            }
+        } else {
+            io.bitdrift.capture.reports.binformat.v1.issue_reporting.Thread
+                .createStackTraceVector(builder, frameOffsets)
+        }
     }
 }

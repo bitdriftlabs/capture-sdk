@@ -23,11 +23,12 @@ internal object ReportFrameBuilder {
         frameType: Byte, // e.g. FrameType.AndroidNative
         builder: FlatBufferBuilder,
         frameData: FrameData,
+        isFileSizeOptimizationEnabled: Boolean,
     ): Int {
-        val classNameOffset = builder.toOffset(frameData.className)
-        val symbolNameOffset = builder.toOffset(frameData.symbolName)
-        val sourceFileOffset = buildSourceFile(builder, frameData.fileName, frameData.lineNumber)
-        val imageIdOffset = builder.toOffset(frameData.imageId)
+        val classNameOffset = builder.toOffset(frameData.className, isFileSizeOptimizationEnabled)
+        val symbolNameOffset = builder.toOffset(frameData.symbolName, isFileSizeOptimizationEnabled)
+        val sourceFileOffset = buildSourceFile(builder, frameData.fileName, frameData.lineNumber, isFileSizeOptimizationEnabled)
+        val imageIdOffset = builder.toOffset(frameData.imageId, isFileSizeOptimizationEnabled)
         return Frame.createFrame(
             builder,
             type = frameType,
@@ -52,15 +53,19 @@ internal object ReportFrameBuilder {
      *
      * NOTE: Defaults to 0 if nullable string
      */
-    fun FlatBufferBuilder.toOffset(originalValue: String?): Int = originalValue?.let { createSharedString(it) } ?: 0
+    fun FlatBufferBuilder.toOffset(
+        originalValue: String?,
+        isFileSizeOptimizationEnabled: Boolean,
+    ): Int = originalValue?.let { if (isFileSizeOptimizationEnabled) createSharedString(it) else createString(it) } ?: 0
 
     private fun buildSourceFile(
         builder: FlatBufferBuilder,
         fileName: String?,
         lineNumber: Long?,
+        isFileSizeOptimizationEnabled: Boolean,
     ): Int =
         if (fileName != null) {
-            val path = builder.createSharedString(fileName)
+            val path = if (isFileSizeOptimizationEnabled) builder.createSharedString(fileName) else builder.createString(fileName)
             SourceFile.createSourceFile(
                 builder,
                 path,
