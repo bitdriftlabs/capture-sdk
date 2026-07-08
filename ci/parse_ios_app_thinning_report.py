@@ -93,7 +93,9 @@ def parse_app_size_kb(report, device_model=None):
         if size_kb is not None:
             return size_kb
 
-    raise ValueError(f"no compressed app size found for {device_model}")
+    if device_model:
+        raise ValueError(f"no compressed app size found for {device_model}")
+    raise ValueError("no compressed app size found in the app thinning report")
 
 
 def main():

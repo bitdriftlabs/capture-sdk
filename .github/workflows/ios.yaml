@@ -35,7 +35,7 @@ jobs:
       - name: Check for workflow file changes
         id: workflow_check
         run: |
-          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock ci/ios_app_size_report.sh ci/parse_ios_app_thinning_report.py ci/capture_ios_binary_size.sh
+          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock ci/ios_app_size_report.sh ci/parse_ios_app_thinning_report.py ci/capture_ios_binary_size.sh ci/extract_embedded_profile_plist.py
         continue-on-error: true
       - name: Determine if tests should run
         id: check_changes_separate
@@ -206,7 +206,7 @@ jobs:
         run: |
           set -euo pipefail
           ./ci/ios_app_size_report.sh | tee ios_app_size_output.log
-          IOS_APP_SIZE_KB=$(grep '^IOS_APP_SIZE_KB=' ios_app_size_output.log | cut -d'=' -f2)
+          IOS_APP_SIZE_KB=$(grep '^IOS_APP_SIZE_KB=' ios_app_size_output.log | cut -d'=' -f2 || true)
           if [ -z "$IOS_APP_SIZE_KB" ]; then
             echo "Failed to parse IOS_APP_SIZE_KB from size script output."
             exit 1
@@ -236,7 +236,7 @@ jobs:
         run: |
           set -euo pipefail
           ./ci/capture_ios_binary_size.sh | tee ios_capture_binary_size_output.log
-          IOS_CAPTURE_BINARY_SIZE_KB=$(grep '^IOS_CAPTURE_BINARY_SIZE_KB=' ios_capture_binary_size_output.log | cut -d'=' -f2)
+          IOS_CAPTURE_BINARY_SIZE_KB=$(grep '^IOS_CAPTURE_BINARY_SIZE_KB=' ios_capture_binary_size_output.log | cut -d'=' -f2 || true)
           if [ -z "$IOS_CAPTURE_BINARY_SIZE_KB" ]; then
             echo "Failed to parse IOS_CAPTURE_BINARY_SIZE_KB from binary size script output."
             exit 1
