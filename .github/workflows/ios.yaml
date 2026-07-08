@@ -8,6 +8,12 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+  statuses: write
 jobs:
   pre_check:
     name: pre_check
@@ -29,7 +35,7 @@ jobs:
       - name: Check for workflow file changes
         id: workflow_check
         run: |
-          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock
+          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock ci/ios_app_size_report.sh ci/parse_ios_app_thinning_report.py ci/capture_ios_binary_size.sh ci/extract_embedded_profile_plist.py
         continue-on-error: true
       - name: Determine if tests should run
         id: check_changes_separate
@@ -122,9 +128,325 @@ jobs:
       - name: Run iOS tests
         # Bypass rules_apple's hardcoded 60s simulator boot and 150s test-launch timeouts,
         run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)') --test_tag_filters=macos_only --test_output=errors --config ci --config ios --test_env=REUSE_GLOBAL_SIMULATOR=1 --test_env=STARTUP_TIMEOUT_SEC=300
+  ios_size_comparison:
+    name: iOS size comparison
+    timeout-minutes: 40
+    needs: "pre_check"
+    if: needs.pre_check.outputs.should_run == 'true'
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ github.job }}
+          repository-cache: true
+
+      - name: Install dependencies
+        run: ./ci/mac_ci_setup.sh
+
+      - name: Install signing assets
+        env:
+          IOS_SIZE_CERT_P12_BASE64: ${{ secrets.IOS_SIZE_CERT_P12_BASE64 }}
+          IOS_SIZE_CERT_PASSWORD: ${{ secrets.IOS_SIZE_CERT_PASSWORD }}
+          IOS_SIZE_PROFILE_BASE64: ${{ secrets.IOS_SIZE_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+
+          # Import signing material into a throwaway keychain instead of the shared login keychain.
+          # This keeps the GitHub-hosted runner isolated to the cert/profile required for this job.
+          SIGNING_TEMP_DIR="$RUNNER_TEMP/ios-size-signing"
+          CERT_PATH="$SIGNING_TEMP_DIR/ios_size_cert.p12"
+          PROFILE_PATH="$SIGNING_TEMP_DIR/ios_size_profile.mobileprovision"
+          KEYCHAIN_PATH="$SIGNING_TEMP_DIR/ios-size.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 32)"
+          XCODE_PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          LEGACY_PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+
+          mkdir -p "$SIGNING_TEMP_DIR"
+          echo "$IOS_SIZE_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "$IOS_SIZE_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$IOS_SIZE_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Xcode 16+ uses the UserData location, but some tooling still consults the legacy directory.
+          # So, we copy the provisioning profile to both directories to prevent issues
+          mkdir -p "$XCODE_PROFILE_DIR" "$LEGACY_PROFILE_DIR"
+          cp "$PROFILE_PATH" "$XCODE_PROFILE_DIR/"
+          cp "$PROFILE_PATH" "$LEGACY_PROFILE_DIR/"
+
+      - name: Build iOS size artifacts
+        env:
+          APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
+          APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
+        run: |
+          set -euo pipefail
+          ./bazelw build \
+            --config ci \
+            --config release-ios \
+            --cpu=ios_arm64 \
+            //examples/swift/hello_world:ios_app_archive
+
+      - name: Export and measure thinned iOS app size
+        id: ios_size
+        env:
+          APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
+          APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
+        run: |
+          set -euo pipefail
+          ./ci/ios_app_size_report.sh | tee ios_app_size_output.log
+          IOS_APP_SIZE_KB=$(grep '^IOS_APP_SIZE_KB=' ios_app_size_output.log | cut -d'=' -f2 || true)
+          if [ -z "$IOS_APP_SIZE_KB" ]; then
+            echo "Failed to parse IOS_APP_SIZE_KB from size script output."
+            exit 1
+          fi
+          echo "current_kb=$IOS_APP_SIZE_KB" >> "$GITHUB_OUTPUT"
+
+      - name: Build Capture SDK XCFramework for size measurement
+        run: |
+          set -euo pipefail
+          ./bazelw build \
+            --config ci \
+            --config release-ios \
+            --define ios_produce_framework_plist=true \
+            //:ios_dist
+
+      - name: Materialize Capture SDK XCFramework
+        run: |
+          set -euo pipefail
+          rm -rf ios_capture_size
+          mkdir -p ios_capture_size
+          unzip -q bazel-bin/Capture.ios.zip -d ios_capture_size
+
+      - name: Measure Capture SDK binary size
+        id: capture_binary_size
+        env:
+          IOS_CAPTURE_BINARY_PATH: ios_capture_size/Capture.xcframework/ios-arm64/Capture.framework/Capture
+        run: |
+          set -euo pipefail
+          ./ci/capture_ios_binary_size.sh | tee ios_capture_binary_size_output.log
+          IOS_CAPTURE_BINARY_SIZE_KB=$(grep '^IOS_CAPTURE_BINARY_SIZE_KB=' ios_capture_binary_size_output.log | cut -d'=' -f2 || true)
+          if [ -z "$IOS_CAPTURE_BINARY_SIZE_KB" ]; then
+            echo "Failed to parse IOS_CAPTURE_BINARY_SIZE_KB from binary size script output."
+            exit 1
+          fi
+          echo "current_kb=$IOS_CAPTURE_BINARY_SIZE_KB" >> "$GITHUB_OUTPUT"
+
+      - name: Upload iOS size artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios_app_size
+          path: |
+            ios_app_size_output/export/*.ipa
+            ios_app_size_output/export/App Thinning Size Report.txt
+            bazel-bin/Capture.ios.zip
+            ios_capture_binary_size_output.log
+
+      - name: Remove signing assets
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          SIGNING_TEMP_DIR="$RUNNER_TEMP/ios-size-signing"
+          XCODE_PROFILE_PATH="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/ios_size_profile.mobileprovision"
+          LEGACY_PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles/ios_size_profile.mobileprovision"
+
+          security delete-keychain "$SIGNING_TEMP_DIR/ios-size.keychain-db" || true
+          rm -f "$XCODE_PROFILE_PATH" "$LEGACY_PROFILE_PATH" || true
+          rm -rf "$SIGNING_TEMP_DIR" || true
+
+      - name: Save iOS size baseline (main only)
+        if: github.ref == 'refs/heads/main' && success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          BASELINE_FILE=ci/baseline_ios_app_size_kb.txt
+          CAPTURE_BINARY_BASELINE_FILE=ci/baseline_ios_capture_binary_size_kb.txt
+          echo "${{ steps.ios_size.outputs.current_kb }}" > "$BASELINE_FILE"
+          echo "${{ steps.capture_binary_size.outputs.current_kb }}" > "$CAPTURE_BINARY_BASELINE_FILE"
+
+          # main updates a dedicated ci-baseline branch that stores the latest accepted iOS size
+          # snapshot. PRs read from that branch so they can compare against main without rebuilding it.
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git fetch origin ci-baseline
+          git worktree add temp-worktree origin/ci-baseline
+
+          cp "$BASELINE_FILE" temp-worktree/ci/
+          cp "$CAPTURE_BINARY_BASELINE_FILE" temp-worktree/ci/
+
+          cd temp-worktree
+          git add ci/baseline_ios_app_size_kb.txt ci/baseline_ios_capture_binary_size_kb.txt
+
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: update iOS size baselines [skip ci]"
+            git push origin HEAD:ci-baseline
+          else
+            echo "No changes to iOS size baselines."
+          fi
+
+          cd ..
+          git worktree remove temp-worktree --force
+
+      - name: Fetch iOS size baseline (PR only)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          set -euo pipefail
+
+          # PRs pull the last baseline file from the ci-baseline branch instead of recomputing main's
+          # size in-line. That keeps the comparison stable and makes the PR report just a diff vs main.
+          git fetch origin ci-baseline || true
+          if git worktree add temp-baseline origin/ci-baseline; then
+            if [ -f temp-baseline/ci/baseline_ios_app_size_kb.txt ]; then
+              cp temp-baseline/ci/baseline_ios_app_size_kb.txt ci/
+            fi
+            if [ -f temp-baseline/ci/baseline_ios_capture_binary_size_kb.txt ]; then
+              cp temp-baseline/ci/baseline_ios_capture_binary_size_kb.txt ci/
+            fi
+            git worktree remove temp-baseline --force
+          else
+            echo "No ci-baseline branch found."
+          fi
+
+      - name: Compare iOS app size
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        id: ios_size_compare
+        run: |
+          set -euo pipefail
+          BASELINE_PATH=ci/baseline_ios_app_size_kb.txt
+          CURRENT_KB="${{ steps.ios_size.outputs.current_kb }}"
+          echo "current_kb=$CURRENT_KB" >> "$GITHUB_OUTPUT"
+
+          if [ ! -f "$BASELINE_PATH" ]; then
+            echo "baseline_kb=" >> "$GITHUB_OUTPUT"
+            echo "diff_kb=" >> "$GITHUB_OUTPUT"
+          else
+            BASELINE_KB=$(cat "$BASELINE_PATH")
+            DIFF_KB=$((CURRENT_KB - BASELINE_KB))
+            echo "baseline_kb=$BASELINE_KB" >> "$GITHUB_OUTPUT"
+            echo "diff_kb=$DIFF_KB" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compare Capture SDK binary size
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        id: capture_binary_size_compare
+        run: |
+          set -euo pipefail
+          BASELINE_PATH=ci/baseline_ios_capture_binary_size_kb.txt
+          CURRENT_KB="${{ steps.capture_binary_size.outputs.current_kb }}"
+          echo "current_kb=$CURRENT_KB" >> "$GITHUB_OUTPUT"
+
+          if [ ! -f "$BASELINE_PATH" ]; then
+            echo "baseline_kb=" >> "$GITHUB_OUTPUT"
+            echo "diff_kb=" >> "$GITHUB_OUTPUT"
+          else
+            BASELINE_KB=$(cat "$BASELINE_PATH")
+            DIFF_KB=$((CURRENT_KB - BASELINE_KB))
+            echo "baseline_kb=$BASELINE_KB" >> "$GITHUB_OUTPUT"
+            echo "diff_kb=$DIFF_KB" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report iOS app size on PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: actions/github-script@v6
+        env:
+          IOS_CURRENT_KB: ${{ steps.ios_size_compare.outputs.current_kb }}
+          IOS_BASELINE_KB: ${{ steps.ios_size_compare.outputs.baseline_kb }}
+          IOS_DIFF_KB: ${{ steps.ios_size_compare.outputs.diff_kb }}
+          IOS_CAPTURE_BINARY_CURRENT_KB: ${{ steps.capture_binary_size_compare.outputs.current_kb }}
+          IOS_CAPTURE_BINARY_BASELINE_KB: ${{ steps.capture_binary_size_compare.outputs.baseline_kb }}
+          IOS_CAPTURE_BINARY_DIFF_KB: ${{ steps.capture_binary_size_compare.outputs.diff_kb }}
+        with:
+          script: |
+            const marker = '<!-- ios-size-comparison -->';
+            const appCurrent = process.env.IOS_CURRENT_KB;
+            const appBaseline = process.env.IOS_BASELINE_KB;
+            const appDiff = process.env.IOS_DIFF_KB;
+            const captureCurrent = process.env.IOS_CAPTURE_BINARY_CURRENT_KB;
+            const captureBaseline = process.env.IOS_CAPTURE_BINARY_BASELINE_KB;
+            const captureDiff = process.env.IOS_CAPTURE_BINARY_DIFF_KB;
+
+            let body = `${marker}
+            ## iOS Size Comparison Report
+
+            | Metric | Thinned App Size (KB) | Capture SDK Binary (KB) |
+            |--------|------------------------|-------------------------|`;
+
+            if ((appBaseline && appBaseline !== '') || (captureBaseline && captureBaseline !== '')) {
+              body += `
+            | Baseline | ${appBaseline || 'N/A'} | ${captureBaseline || 'N/A'} |
+            | Current | ${appCurrent} | ${captureCurrent} |
+            | Difference | ${appDiff || 'N/A'} | ${captureDiff || 'N/A'} |`;
+
+              if (appBaseline && appBaseline !== '') {
+                const appDiffNumber = parseInt(appDiff, 10);
+                if (appDiffNumber > 0) {
+                  body += `\n\n> Thinned app size increased by ${appDiffNumber} KB.`;
+                } else if (appDiffNumber < 0) {
+                  body += `\n\n> Thinned app size decreased by ${Math.abs(appDiffNumber)} KB.`;
+                } else {
+                  body += '\n\n> Thinned app size unchanged.';
+                }
+              }
+
+              if (captureBaseline && captureBaseline !== '') {
+                const captureDiffNumber = parseInt(captureDiff, 10);
+                if (captureDiffNumber > 0) {
+                  body += `\n> Capture SDK binary size increased by ${captureDiffNumber} KB.`;
+                } else if (captureDiffNumber < 0) {
+                  body += `\n> Capture SDK binary size decreased by ${Math.abs(captureDiffNumber)} KB.`;
+                } else {
+                  body += '\n> Capture SDK binary size unchanged.';
+                }
+              }
+            } else {
+              body += `
+            | Current | ${appCurrent} | ${captureCurrent} |`;
+              body += '\n\nNo iOS size baselines are available for comparison.';
+            }
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const foundComment = comments.data.find((comment) =>
+              comment.user.login === 'github-actions[bot]' && comment.body.includes(marker)
+            );
+            const comment = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body,
+            };
+
+            if (foundComment?.id) {
+              await github.rest.issues.updateComment({
+                ...comment,
+                comment_id: foundComment.id,
+              });
+            } else {
+              await github.rest.issues.createComment(comment);
+            }
   verify_ios:
     runs-on: ubuntu-latest
-    needs: ["tests", "swift_hello_world", "unit_tests"]
+    needs: ["tests", "swift_hello_world", "unit_tests", "ios_size_comparison"]
     if: always()
     steps:
       # Checkout repo to Github Actions runner
@@ -134,4 +456,6 @@ jobs:
           fetch-depth: 1
       - run: |
           ./ci/check_result.sh ${{ needs.tests.result }} \
-          && ./ci/check_result.sh ${{ needs.swift_hello_world.result }}
+          && ./ci/check_result.sh ${{ needs.swift_hello_world.result }} \
+          && ./ci/check_result.sh ${{ needs.unit_tests.result }} \
+          && ./ci/check_result.sh ${{ needs.ios_size_comparison.result }}
