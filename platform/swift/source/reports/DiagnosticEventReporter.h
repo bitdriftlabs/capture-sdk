@@ -23,7 +23,7 @@
 - (BitdriftPreviousCrash *_Nullable)cachedPreviousCrash;
 /// Enriches a raw MetricKit report with supplemental data from a matching KSCrash report
 /// (e.g. thread names). Returns the original report unchanged if no matching report is found.
-- (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
+- (NSDictionary<NSString *, id> *_Nonnull)enhancedMetricKitReport:(NSDictionary<NSString *, id> *_Nonnull)metricKitReport
                                       useStackOverlapMatching:(BOOL)useStackOverlapMatching
                                                    summaryOut:(NSDictionary<NSString *, NSString *> *_Nullable *_Nullable)summaryOut;
 @end
