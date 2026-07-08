@@ -1,6 +1,7 @@
 load("@rules_apple//apple:apple.bzl", "apple_static_xcframework_import")
 load("@rules_apple//apple:ios.bzl", "ios_application")
 load("@rules_apple//apple:versioning.bzl", "apple_bundle_version")
+load("@rules_apple//apple:xcarchive.bzl", "xcarchive")
 load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
@@ -87,6 +88,35 @@ ios_application(
     version = ":hello_world_version",
     visibility = ["//visibility:public"],
     deps = [":ios_main"],
+)
+
+ios_application(
+    name = "ios_app_size",
+    app_icons = CI_APP_ICONS,
+    bundle_id = "io.bitdrift.example.swiftapp.helloworld",
+    bundle_name = "Bitdrift Sample App",
+    executable_name = "hello_world_app",
+    families = [
+        "iphone",
+        "ipad",
+    ],
+    infoplists = ["Info.plist"],
+    minimum_os_version = MINIMUM_IOS_VERSION,
+    provisioning_profile = select({
+        "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
+        "//conditions:default": None,
+    }),
+    tags = [
+        "no-remote",
+    ],
+    version = ":hello_world_version",
+    deps = [":ios_main"],
+)
+
+xcarchive(
+    name = "ios_app_archive",
+    bundle = ":ios_app_size",
+    visibility = ["//visibility:public"],
 )
 
 # App that directly imports Capture as a `swift_library` for compatibility with `rules_xcodeproj`

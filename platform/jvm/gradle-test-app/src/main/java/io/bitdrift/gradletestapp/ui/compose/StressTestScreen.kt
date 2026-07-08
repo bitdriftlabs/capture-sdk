@@ -65,7 +65,7 @@ fun StressTestScreen(
 
 @Composable
 private fun ThreadCountCard(onAction: (AppAction) -> Unit) {
-    var threadCountInput by remember { mutableStateOf("500") }
+    var threadCountInput by remember { mutableStateOf("5000") }
     val threadCount = threadCountInput.toIntOrNull()
     val isValid = threadCount != null && threadCount > 0
 

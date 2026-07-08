@@ -41,11 +41,11 @@ def format_allocations(count):
 
 def format_diff_percent(current, baseline, current_formatted, baseline_formatted):
     """Format the difference as a percentage with indicator."""
-    if baseline == 0:
-        return "N/A"
     # If the formatted display values are the same, show 0%
     if current_formatted == baseline_formatted:
         return "0.0%"
+    if baseline == 0:
+        return "N/A"
     diff_percent = ((current - baseline) / baseline) * 100
     if diff_percent > 5:
         return f"+{diff_percent:.1f}%"

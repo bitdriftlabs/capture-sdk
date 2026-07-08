@@ -23,6 +23,8 @@ compile_commands.json
 /external
 /tmp
 /target
+ios_app_size_output/
+ios_app_size_output.log
 *.xcodeproj
 rust-project.json
 .cache

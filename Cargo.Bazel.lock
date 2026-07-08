@@ -1,5 +1,5 @@
 {
-  "checksum": "16fa0160529a8100256c874c5ed5c72fd6df117944d35d46c53eb08cf929b0d2",
+  "checksum": "5f2005cd08ec543dcff391b811a51e40313a99187673652621a01d216518c41e",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -8719,7 +8719,7 @@
         "deps": {
           "common": [
             {
-              "id": "crossbeam-epoch 0.9.18",
+              "id": "crossbeam-epoch 0.9.20",
               "target": "crossbeam_epoch"
             },
             {
@@ -8739,14 +8739,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "crossbeam-epoch 0.9.18": {
+    "crossbeam-epoch 0.9.20": {
       "name": "crossbeam-epoch",
-      "version": "0.9.18",
+      "version": "0.9.20",
       "package_url": "https://github.com/crossbeam-rs/crossbeam",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/crossbeam-epoch/0.9.18/download",
-          "sha256": "5b82ac4a3c2ca9c3460964f020e1402edd5753411d7737aa39c3714ad1b5420e"
+          "url": "https://static.crates.io/crates/crossbeam-epoch/0.9.20/download",
+          "sha256": "2d6914041f254d6e9176c01941b21115dcfb7089e55135a35411081bd106ef3f"
         }
       },
       "targets": [
@@ -8754,6 +8754,18 @@
           "Library": {
             "crate_name": "crossbeam_epoch",
             "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
             "srcs": {
               "allow_empty": true,
               "include": [
@@ -8778,6 +8790,10 @@
         "deps": {
           "common": [
             {
+              "id": "crossbeam-epoch 0.9.20",
+              "target": "build_script_build"
+            },
+            {
               "id": "crossbeam-utils 0.8.21",
               "target": "crossbeam_utils"
             }
@@ -8785,7 +8801,18 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.9.18"
+        "version": "0.9.20"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ]
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [

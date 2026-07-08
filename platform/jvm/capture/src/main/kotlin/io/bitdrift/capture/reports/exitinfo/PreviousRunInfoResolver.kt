@@ -103,7 +103,7 @@ internal class PreviousRunInfoResolver(
  * @property hasFatallyTerminated Whether the previous run ended in a fatal termination.
  * @property terminationReason Platform exit reason when available.
  */
-data class PreviousRunInfo(
+class PreviousRunInfo internal constructor(
     val hasFatallyTerminated: Boolean,
     val terminationReason: ExitReason? = null,
 )
