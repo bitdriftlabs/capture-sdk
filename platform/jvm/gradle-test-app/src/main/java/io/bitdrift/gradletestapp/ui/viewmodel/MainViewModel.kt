@@ -141,6 +141,9 @@ class MainViewModel(
             is NetworkTestAction.PerformPreExistingB3MultiRequest -> {
                 networkTestingRepository.performPreExistingB3MultiRequest()
             }
+            is NetworkTestAction.PerformPreExistingDatadogRequest -> {
+                networkTestingRepository.performPreExistingDatadogRequest()
+            }
             is NetworkTestAction.PerformLocalBackendAddToCartRequest -> {
                 networkTestingRepository.performLocalBackendAddToCartRequest()
             }

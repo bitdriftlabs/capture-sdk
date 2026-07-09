@@ -356,6 +356,7 @@ private fun SdkApisTabContent(
                 onPreExistingW3cRequest = { onAction(NetworkTestAction.PerformPreExistingW3cRequest) },
                 onPreExistingB3SingleRequest = { onAction(NetworkTestAction.PerformPreExistingB3SingleRequest) },
                 onPreExistingB3MultiRequest = { onAction(NetworkTestAction.PerformPreExistingB3MultiRequest) },
+                onPreExistingDatadogRequest = { onAction(NetworkTestAction.PerformPreExistingDatadogRequest) },
                 onLocalBackendAddToCartRequest = { onAction(NetworkTestAction.PerformLocalBackendAddToCartRequest) },
                 onLocalBackendGetCartRequest = { onAction(NetworkTestAction.PerformLocalBackendGetCartRequest) },
                 onLocalBackendDeleteCartItemRequest = { onAction(NetworkTestAction.PerformLocalBackendDeleteCartItemRequest) },

@@ -50,7 +50,7 @@ internal object TracePropagation {
             // https://datadoghq.dev/dd-trace-rb/Datadog/Tracing/Sampling/Ext/Priority.html
             if (sampled == "1" || sampled == "2") {
                 return try {
-                    BigInteger(ddTraceId).toString(16).padStart(16, '0')
+                    ddTraceId.takeIf { BigInteger(it) > BigInteger.ZERO }
                 } catch (_: NumberFormatException) {
                     null
                 }

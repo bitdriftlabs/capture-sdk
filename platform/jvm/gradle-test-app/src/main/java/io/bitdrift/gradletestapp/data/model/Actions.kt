@@ -76,6 +76,8 @@ sealed class NetworkTestAction : AppAction {
 
     object PerformPreExistingB3MultiRequest : NetworkTestAction()
 
+    object PerformPreExistingDatadogRequest : NetworkTestAction()
+
     object PerformLocalBackendAddToCartRequest : NetworkTestAction()
 
     object PerformLocalBackendGetCartRequest : NetworkTestAction()
