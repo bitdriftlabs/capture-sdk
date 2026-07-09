@@ -27,6 +27,7 @@ fun NetworkTestingCard(
     onPreExistingW3cRequest: () -> Unit,
     onPreExistingB3SingleRequest: () -> Unit,
     onPreExistingB3MultiRequest: () -> Unit,
+    onPreExistingDatadogRequest: () -> Unit,
     onLocalBackendAddToCartRequest: () -> Unit,
     onLocalBackendGetCartRequest: () -> Unit,
     onLocalBackendDeleteCartItemRequest: () -> Unit,
@@ -151,6 +152,17 @@ fun NetworkTestingCard(
                         ),
                 ) {
                     Text("B3 Multi", maxLines = 1, softWrap = false)
+                }
+
+                OutlinedButton(
+                    onClick = onPreExistingDatadogRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("DD", maxLines = 1, softWrap = false)
                 }
             }
 

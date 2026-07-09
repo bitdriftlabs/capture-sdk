@@ -199,7 +199,6 @@ class TracePropagationTest {
 
     @Test
     fun extractSampledTraceId_datadogSampled_returnsTraceId() {
-        // 12345 in hex is 3039, padded to 16 chars: 0000000000003039
         val request =
             Request
                 .Builder()
@@ -207,6 +206,54 @@ class TracePropagationTest {
                 .header("x-datadog-trace-id", "12345")
                 .header("x-datadog-sampling-priority", "1")
                 .build()
-        assertThat(TracePropagation.extractSampledTraceId(request)).isEqualTo("0000000000003039")
+        assertThat(TracePropagation.extractSampledTraceId(request)).isEqualTo("12345")
+    }
+
+    @Test
+    fun extractSampledTraceId_datadogUserKeep_returnsTraceId() {
+        val request =
+            Request
+                .Builder()
+                .url("https://example.com")
+                .header("x-datadog-trace-id", "5498017814432956682")
+                .header("x-datadog-sampling-priority", "2")
+                .build()
+        assertThat(TracePropagation.extractSampledTraceId(request)).isEqualTo("5498017814432956682")
+    }
+
+    @Test
+    fun extractSampledTraceId_datadogNotSampled_returnsNull() {
+        val request =
+            Request
+                .Builder()
+                .url("https://example.com")
+                .header("x-datadog-trace-id", "12345")
+                .header("x-datadog-sampling-priority", "0")
+                .build()
+        assertThat(TracePropagation.extractSampledTraceId(request)).isNull()
+    }
+
+    @Test
+    fun extractSampledTraceId_datadogInvalidTraceId_returnsNull() {
+        val request =
+            Request
+                .Builder()
+                .url("https://example.com")
+                .header("x-datadog-trace-id", "abc")
+                .header("x-datadog-sampling-priority", "1")
+                .build()
+        assertThat(TracePropagation.extractSampledTraceId(request)).isNull()
+    }
+
+    @Test
+    fun extractSampledTraceId_datadogZeroTraceId_returnsNull() {
+        val request =
+            Request
+                .Builder()
+                .url("https://example.com")
+                .header("x-datadog-trace-id", "0")
+                .header("x-datadog-sampling-priority", "1")
+                .build()
+        assertThat(TracePropagation.extractSampledTraceId(request)).isNull()
     }
 }

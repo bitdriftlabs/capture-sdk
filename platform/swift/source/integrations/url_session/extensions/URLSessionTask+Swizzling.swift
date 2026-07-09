@@ -73,6 +73,10 @@ extension URLSessionTask {
             mutableRequest.setValue(traceContext.traceID, forHTTPHeaderField: URLSessionTracePropagation.xB3TraceIDHeader)
             mutableRequest.setValue(traceContext.spanID, forHTTPHeaderField: URLSessionTracePropagation.xB3SpanIDHeader)
             mutableRequest.setValue("1", forHTTPHeaderField: URLSessionTracePropagation.xB3SampledHeader)
+        case .datadog:
+            mutableRequest.setValue(traceContext.datadogTraceID, forHTTPHeaderField: URLSessionTracePropagation.xDatadogTraceIDHeader)
+            mutableRequest.setValue(traceContext.datadogParentID, forHTTPHeaderField: URLSessionTracePropagation.xDatadogParentIDHeader)
+            mutableRequest.setValue("2", forHTTPHeaderField: URLSessionTracePropagation.xDatadogSamplingPriorityHeader)
         case .disabled:
             break
         }

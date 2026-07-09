@@ -152,6 +152,7 @@ extension RuntimeVariable<String> {
     /// - "w3c": use the W3C `traceparent` header
     /// - "b3-single": use the Zipkin B3 `b3` header
     /// - "b3-multi": use the Zipkin B3 `X-B3-*` headers
+    /// - "dd": use the Datadog `x-datadog-*` headers
     static let tracePropagationMode = RuntimeVariable(
         name: "client_config.trace.propagation_mode",
         defaultValue: "w3c"

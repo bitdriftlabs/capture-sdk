@@ -254,6 +254,18 @@ class NetworkTestingRepository(context: Context) {
         performRequestWithPreExistingHeaders(request, "Pre-existing B3 Multi")
     }
 
+    fun performPreExistingDatadogRequest() {
+        val traceId = generateFakeDatadogTraceId()
+        val spanId = generateFakeDatadogSpanId()
+        val request = Request.Builder()
+            .url("https://httpbin.org/get")
+            .header("x-datadog-trace-id", traceId)
+            .header("x-datadog-parent-id", spanId)
+            .header("x-datadog-sampling-priority", "2")
+            .build()
+        performRequestWithPreExistingHeaders(request, "Pre-existing DD")
+    }
+
     fun performLocalBackendAddToCartRequest() {
         val requestBody = JSONObject()
             .put("product_id", LOCAL_BACKEND_PRODUCT_ID)
@@ -309,6 +321,22 @@ class NetworkTestingRepository(context: Context) {
         val bytes = ByteArray(8)
         Random.nextBytes(bytes)
         return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun generateFakeDatadogTraceId(): String {
+        var value = Random.nextLong().toULong()
+        while (value == 0UL) {
+            value = Random.nextLong().toULong()
+        }
+        return value.toString()
+    }
+
+    private fun generateFakeDatadogSpanId(): String {
+        var value = Random.nextLong().toULong()
+        while (value == 0UL) {
+            value = Random.nextLong().toULong()
+        }
+        return value.toString()
     }
 
     /**

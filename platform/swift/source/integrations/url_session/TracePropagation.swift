@@ -12,6 +12,7 @@ enum URLSessionTracePropagationMode {
     case w3c
     case b3Single
     case b3Multi
+    case datadog
     case disabled
 
     init(runtimeValue: String) {
@@ -25,6 +26,8 @@ enum URLSessionTracePropagationMode {
             self = .b3Single
         case "b3-multi":
             self = .b3Multi
+        case "dd":
+            self = .datadog
         case "w3c":
             self = .w3c
         default:
@@ -40,6 +43,9 @@ enum URLSessionTracePropagation {
     static let xB3TraceIDHeader = "X-B3-TraceId"
     static let xB3SpanIDHeader = "X-B3-SpanId"
     static let xB3SampledHeader = "X-B3-Sampled"
+    static let xDatadogTraceIDHeader = "x-datadog-trace-id"
+    static let xDatadogParentIDHeader = "x-datadog-parent-id"
+    static let xDatadogSamplingPriorityHeader = "x-datadog-sampling-priority"
 
     static func traceparentValue(traceContext: URLSessionTraceContext) -> String {
         "00-\(traceContext.traceID)-\(traceContext.spanID)-01"
@@ -60,6 +66,7 @@ enum URLSessionTracePropagation {
         return headers[traceparentHeader] != nil
             || headers[b3Header] != nil
             || headers[xB3TraceIDHeader] != nil
+            || headers[xDatadogTraceIDHeader] != nil
     }
 
     /// Extracts the trace ID from known tracing headers only when the trace is sampled.
@@ -97,6 +104,14 @@ enum URLSessionTracePropagation {
             return traceID
         }
 
+        if let traceID = headers[xDatadogTraceIDHeader] {
+            let sampled = headers[xDatadogSamplingPriorityHeader]
+            // Datadog sampling priority values: 1 = AUTO_KEEP, 2 = USER_KEEP
+            if sampled == "1" || sampled == "2" {
+                return UInt64(traceID).flatMap { $0 > 0 ? traceID : nil }
+            }
+        }
+
         return nil
     }
 }
@@ -104,6 +119,14 @@ enum URLSessionTracePropagation {
 struct URLSessionTraceContext {
     let traceID: String
     let spanID: String
+
+    var datadogTraceID: String? {
+        Self.hexToDecimal(String(self.traceID.suffix(16)))
+    }
+
+    var datadogParentID: String? {
+        Self.hexToDecimal(self.spanID)
+    }
 
     static func make() -> URLSessionTraceContext {
         URLSessionTraceContext(traceID: Self.hexString(byteCount: 16), spanID: Self.hexString(byteCount: 8))
@@ -127,5 +150,9 @@ struct URLSessionTraceContext {
         }
 
         return String(decoding: output, as: UTF8.self)
+    }
+
+    private static func hexToDecimal(_ hex: String) -> String? {
+        UInt64(hex, radix: 16).map(String.init)
     }
 }
