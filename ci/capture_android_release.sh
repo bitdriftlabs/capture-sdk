@@ -122,13 +122,15 @@ function generate_all_checksums() {
   "$sdk_repo/ci/checksum.sh" sha512 "$file"
 }
 
-# Create Maven Central-ready structure under dist/maven-central for a single artifact
+# Stage Maven Central-ready structure under dist/maven-central for a single artifact.
+# The final Sonatype upload zip is assembled once after all artifacts are staged so a
+# whole Android release version counts as a single portal upload.
 # Args:
 #   $1 - group path (e.g., io/bitdrift)
 #   $2 - artifact id (e.g., capture)
 #   $3 - version
 #   $4.. - files to include (must be located in current CWD)
-function package_maven_central_bundle() {
+function stage_maven_central_artifact() {
   local -r group_path="$1"
   local -r artifact_id="$2"
   local -r ver="$3"
@@ -158,15 +160,25 @@ function package_maven_central_bundle() {
     popd >/dev/null
   done
 
-  # Zip the group root to ease upload via Sonatype UI/API
-  local -r zip_out_dir="$sdk_repo/dist/maven-central"
-  mkdir -p "$zip_out_dir"
-  local -r zip_name="${artifact_id}-${ver}.maven-central.zip"
-  pushd "$zip_out_dir" >/dev/null
-  # Create a zip that contains the repo path starting from the group root
-  zip -r "$zip_name" "$group_path/$artifact_id/$ver" >/dev/null
+}
+
+function create_maven_central_bundle() {
+  local -r ver="$1"
+  local -r bundle_root="$sdk_repo/dist/maven-central"
+  local -r bundle_name="android-${ver}.maven-central.zip"
+
+  if [[ ! -d "$bundle_root/io" ]]; then
+    echo "No staged Maven Central artifacts found under $bundle_root/io" >&2
+    exit 1
+  fi
+
+  rm -f "$bundle_root"/*.maven-central.zip
+
+  pushd "$bundle_root" >/dev/null
+  zip -r "$bundle_name" io >/dev/null
   popd >/dev/null
-  echo "Created Maven Central bundle: $zip_out_dir/$zip_name"
+
+  echo "Created Maven Central bundle: $bundle_root/$bundle_name"
 }
 
 function upload_file() {
@@ -236,8 +248,8 @@ function release_capture_sdk() {
 
   generate_maven_file "$remote_location_prefix" "$capture_artifact_name"
 
-  # Prepare Maven Central bundle (group: io/bitdrift, artifact: $capture_artifact_name)
-  package_maven_central_bundle "io/bitdrift" "$capture_artifact_name" "$version" \
+  # Stage Maven Central bundle contents (group: io/bitdrift, artifact: $capture_artifact_name)
+  stage_maven_central_artifact "io/bitdrift" "$capture_artifact_name" "$version" \
     "$name.pom" "$name-javadoc.jar" "$name-sources.jar" "$name.aar"
   popd
 }
@@ -271,7 +283,7 @@ function release_gradle_library() {
 
   generate_maven_file "$remote_location_prefix" "$library_name"
 
-  # Prepare Maven Central bundle (group: io/bitdrift, artifact: $library_name)
+  # Stage Maven Central bundle contents (group: io/bitdrift, artifact: $library_name)
   # Try to derive base from .pom name
   shopt -s nullglob
   local poms=( *.pom )
@@ -291,7 +303,7 @@ function release_gradle_library() {
           ;;
       esac
     done
-    package_maven_central_bundle "io/bitdrift" "$library_name" "$version" "${bundle_files[@]}"
+    stage_maven_central_artifact "io/bitdrift" "$library_name" "$version" "${bundle_files[@]}"
   else
     echo "Warning: No .pom found for $library_name; skipping Maven Central bundle."
   fi
@@ -327,12 +339,12 @@ function release_gradle_plugin() {
 
   generate_maven_file "$remote_location_prefix" "$plugin_marker"
 
-  # Prepare Maven Central bundle (group: io/bitdrift/capture-plugin, artifact: io.bitdrift.capture-plugin.gradle.plugin)
+  # Stage Maven Central bundle contents (group: io/bitdrift/capture-plugin, artifact: io.bitdrift.capture-plugin.gradle.plugin)
   shopt -s nullglob
   local poms=( *.pom )
   if (( ${#poms[@]} > 0 )); then
     local base="${poms[0]%.pom}"
-    package_maven_central_bundle "io/bitdrift/$plugin_name" "$plugin_marker" "$version" "$base.pom"
+    stage_maven_central_artifact "io/bitdrift/$plugin_name" "$plugin_marker" "$version" "$base.pom"
   else
     echo "Warning: No .pom found for $plugin_marker; skipping Maven Central bundle."
   fi
@@ -343,6 +355,8 @@ function release_gradle_plugin() {
 
 # If requested, set up GPG for signing
 import_gpg_key_if_available
+
+rm -rf "$sdk_repo/dist/maven-central"
 
 release_capture_sdk
 
@@ -359,3 +373,5 @@ fi
 if [[ -n "$capture_plugin_marker_archive" ]]; then
   release_gradle_plugin "capture-plugin" "io.bitdrift.capture-plugin.gradle.plugin" "$capture_plugin_marker_archive"
 fi
+
+create_maven_central_bundle "$version"
