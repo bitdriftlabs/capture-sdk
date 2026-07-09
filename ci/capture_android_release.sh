@@ -172,7 +172,7 @@ function create_maven_central_bundle() {
     exit 1
   fi
 
-  rm -f "$bundle_root"/*.maven-central.zip
+  rm -f "$bundle_root/$bundle_name"
 
   pushd "$bundle_root" >/dev/null
   zip -r "$bundle_name" io >/dev/null
@@ -356,7 +356,7 @@ function release_gradle_plugin() {
 # If requested, set up GPG for signing
 import_gpg_key_if_available
 
-rm -rf "$sdk_repo/dist/maven-central"
+rm -rf -- "$sdk_repo/dist/maven-central"
 
 release_capture_sdk
 
