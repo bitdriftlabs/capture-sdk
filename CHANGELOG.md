@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Reduced the size of persisted fatal issue reports.
 
 ### Android
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Reduced the size of persisted fatal issue reports.
+- Nothing yet!
 
 ### iOS
 

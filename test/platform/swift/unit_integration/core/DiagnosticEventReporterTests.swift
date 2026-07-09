@@ -121,6 +121,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -147,6 +148,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -173,6 +175,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -202,6 +205,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -247,6 +251,7 @@ ThermalInfo: (
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -274,6 +279,7 @@ ThermalInfo: (
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -350,6 +356,7 @@ ThermalInfo: (
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -419,6 +426,7 @@ ThermalInfo: (
             eventTypes: [.hang, .crash],
             minimumHangSeconds: 1,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -446,6 +454,7 @@ ThermalInfo: (
             eventTypes: [.hang, .crash],
             minimumHangSeconds: 1,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -531,6 +540,7 @@ ThermalInfo: (
             eventTypes: .crash,
             minimumHangSeconds: 2.5,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
@@ -568,6 +578,7 @@ ThermalInfo: (
             eventTypes: [.crash],
             minimumHangSeconds: 1,
             memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
             crashEnrichmentSummaryHandler: nil
         )
