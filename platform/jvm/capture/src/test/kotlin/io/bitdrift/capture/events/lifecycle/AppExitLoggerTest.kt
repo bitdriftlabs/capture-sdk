@@ -25,6 +25,7 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.MockPreferences
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
@@ -394,6 +395,7 @@ class AppExitLoggerTest {
             lastExitInfo,
             captureUncaughtExceptionHandler,
             FakeIssueReporter(fatalReporterInitState),
+            backgroundThreadHandler = FakeBackgroundThreadHandler(),
         )
 
     private fun fieldsMatchExpectedAnr(arrayFields: ArrayFields): Boolean {

@@ -39,8 +39,8 @@ import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
-import io.bitdrift.capture.network.okhttp.OkHttpApiClient
-import io.bitdrift.capture.network.okhttp.OkHttpNetwork
+import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
+import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
@@ -94,7 +94,12 @@ internal class LoggerImpl(
         ),
     preferences: IPreferences = Preferences(context),
     sharedOkHttpClient: OkHttpClient = buildSharedOkHttpClient(),
-    private val apiClient: OkHttpApiClient = OkHttpApiClient(apiUrl, apiKey, client = sharedOkHttpClient),
+    // This client is only used for temporary device code creation and internal
+    // SDK error reporting, so defer constructing it until one of those paths runs.
+    private val apiClient: Lazy<OkHttpCaptureApiClient> =
+        lazy {
+            OkHttpCaptureApiClient(apiUrl, apiKey, client = sharedOkHttpClient)
+        },
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     bridge: IBridge = CaptureJniLibrary,
@@ -116,9 +121,17 @@ internal class LoggerImpl(
     private val runtime: JniRuntime
     private var jankStatsMonitor: JankStatsMonitor? = null
 
-    // we can assume a properly formatted api url is being used, so we can follow the same pattern
-    // making sure we only replace the first occurrence
-    private val sessionUrlBase: HttpUrl
+    // Session URLs are only needed when queried externally, so derive the
+    // timeline base URL on first access. We replace only the first "api."
+    // prefix when converting the Capture API host to the timeline host.
+    private val sessionUrlBase: HttpUrl by lazy {
+        HttpUrl
+            .Builder()
+            .scheme("https")
+            .host(apiUrl.host.replaceFirst("api.", "timeline."))
+            .addQueryParameter("utm_source", "sdk")
+            .build()
+    }
 
     private val resourceUtilizationTarget: ResourceUtilizationTarget
     private val eventsListenerTarget = EventsListenerTarget()
@@ -148,14 +161,6 @@ internal class LoggerImpl(
     internal val loggerId: LoggerId
 
     init {
-        this.sessionUrlBase =
-            HttpUrl
-                .Builder()
-                .scheme("https")
-                .host(apiUrl.host.replaceFirst("api.", "timeline."))
-                .addQueryParameter("utm_source", "sdk")
-                .build()
-
         val networkAttributes = NetworkAttributes(context)
 
         metadataProvider =
@@ -173,7 +178,7 @@ internal class LoggerImpl(
             )
 
         val network =
-            OkHttpNetwork(
+            OkHttpCaptureStream(
                 apiBaseUrl = apiUrl,
                 okHttpClient = sharedOkHttpClient,
             )

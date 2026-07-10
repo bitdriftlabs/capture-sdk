@@ -31,7 +31,13 @@ internal sealed class HttpApiEndpoint(
     object ReportSdkError : HttpApiEndpoint("v1/sdk-errors")
 }
 
-internal class OkHttpApiClient(
+/**
+ * Small JSON-over-HTTP client for Capture's non-streaming backend APIs.
+ *
+ * This is used for secondary request/response endpoints such as temporary
+ * device code creation and SDK error reporting.
+ */
+internal class OkHttpCaptureApiClient(
     private val apiBaseUrl: HttpUrl,
     private val apiKey: String,
     private val gson: Gson = Gson(),

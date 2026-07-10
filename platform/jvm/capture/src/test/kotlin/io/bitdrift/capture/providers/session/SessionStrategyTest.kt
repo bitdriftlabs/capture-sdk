@@ -11,6 +11,7 @@ import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.LoggerImpl
@@ -31,6 +32,7 @@ class SessionStrategyTest {
     fun setUp() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
+        CaptureJniLibrary.load()
     }
 
     @Test

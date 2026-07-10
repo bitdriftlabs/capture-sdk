@@ -17,6 +17,7 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
@@ -29,6 +30,7 @@ import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 
 internal class AppExitLogger(
@@ -38,7 +40,8 @@ internal class AppExitLogger(
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
-    private val issueReporter: IIssueReporter?,
+    issueReporter: IIssueReporter?,
+    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) : IJvmCrashListener {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -56,17 +59,26 @@ internal class AppExitLogger(
         private const val FOREGROUND_KEY = "foreground"
     }
 
+    private val isFatalIssueReportingInitialized = IssueReporterState.Initialized == issueReporter?.initializationState()
+
     @SuppressLint("NewApi")
     fun installAppExitLogger() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
-        captureUncaughtExceptionHandler.install(this)
-        logPreviousExitReasonIfAny()
+        if (!isFatalIssueReportingInitialized) {
+            captureUncaughtExceptionHandler.install(this)
+        }
+        backgroundThreadHandler.runAsync {
+            // Ordering is handled at shared-core layer
+            logPreviousExitReasonIfAny()
+        }
     }
 
     fun uninstallAppExitLogger() {
-        captureUncaughtExceptionHandler.uninstall()
+        if (!isFatalIssueReportingInitialized) {
+            captureUncaughtExceptionHandler.uninstall()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -101,9 +113,7 @@ internal class AppExitLogger(
         throwable: Throwable,
     ) {
         // When IssueReporterState is Initialized will rely on shared-core to emit the related JVM crash log
-        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) ||
-            IssueReporterState.Initialized == issueReporter?.initializationState()
-        ) {
+        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || isFatalIssueReportingInitialized) {
             return
         }
 
