@@ -120,11 +120,8 @@ class MainViewModel(
             is DiagnosticsAction.TriggerRandomAnrCrash -> triggerRandomAnrCrash()
             is DiagnosticsAction.UpdateAppExitReason -> updateAppExitReason(action.reason)
 
-            is NetworkTestAction.PerformOkHttpRequestManual -> {
+            is NetworkTestAction.PerformOkHttpRequest -> {
                 networkTestingRepository.performOkHttpRequest()
-            }
-            is NetworkTestAction.PerformOkHttpRequestAutomatic -> {
-                networkTestingRepository.performOkHttpRequestAutomatic()
             }
             is NetworkTestAction.PerformGraphQlRequest -> {
                 networkTestingRepository.performGraphQlRequest()
