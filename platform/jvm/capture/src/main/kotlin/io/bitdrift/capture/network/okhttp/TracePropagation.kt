@@ -50,7 +50,8 @@ internal object TracePropagation {
             // https://datadoghq.dev/dd-trace-rb/Datadog/Tracing/Sampling/Ext/Priority.html
             if (sampled == "1" || sampled == "2") {
                 return try {
-                    ddTraceId.takeIf { BigInteger(it) > BigInteger.ZERO }
+                    val id = BigInteger(ddTraceId)
+                    ddTraceId.takeIf { id.signum() == 1 && id.bitLength() <= 64 }
                 } catch (_: NumberFormatException) {
                     null
                 }

@@ -19,6 +19,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Test
 import org.mockito.Mockito.mock
+import java.math.BigInteger
 import java.util.concurrent.atomic.AtomicReference
 
 class CaptureOkHttpTracingInterceptorTest {
@@ -75,6 +76,25 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(request.header("X-B3-TraceId")).hasSize(32)
         assertThat(request.header("X-B3-SpanId")).hasSize(16)
         assertThat(request.header("X-B3-Sampled")).isEqualTo("1")
+        assertThat(request.header("traceparent")).isNull()
+        assertThat(request.header("b3")).isNull()
+    }
+
+    @Test
+    fun intercept_whenActiveTracingAndDatadog_shouldAddExpectedHeaders() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("dd")
+
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com").build())
+
+        interceptor.intercept(chain)
+
+        val request = chain.capturedRequest
+        val traceId = BigInteger(request.header("x-datadog-trace-id")!!)
+        assertThat(traceId.signum()).isEqualTo(1)
+        assertThat(traceId.bitLength()).isLessThanOrEqualTo(64)
+        assertThat(request.header("x-datadog-sampling-priority")).isEqualTo("2")
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
     }
@@ -262,6 +282,30 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(captured.header("b3")).isEqualTo(existingB3)
         assertThat(captured.header("X-B3-TraceId")).isNull()
         assertThat(captured.header("X-B3-SpanId")).isNull()
+        assertThat(captured.headers.size).isEqualTo(request.headers.size)
+    }
+
+    @Test
+    fun intercept_whenExistingDatadogHeaders_shouldPassThroughUnchanged() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("dd")
+
+        val existingTraceId = "5498017814432956682"
+        val request =
+            Request
+                .Builder()
+                .url("https://example.com")
+                .header("x-datadog-trace-id", existingTraceId)
+                .header("x-datadog-sampling-priority", "1")
+                .build()
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain = FakeOkHttpInterceptorChain(request)
+
+        interceptor.intercept(chain)
+
+        val captured = chain.capturedRequest
+        assertThat(captured.header("x-datadog-trace-id")).isEqualTo(existingTraceId)
+        assertThat(captured.header("x-datadog-sampling-priority")).isEqualTo("1")
         assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
 

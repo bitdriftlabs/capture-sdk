@@ -181,6 +181,18 @@ class TracePropagationTest {
     }
 
     @Test
+    fun extractSampledTraceId_datadogOverflowTraceId_returnsNull() {
+        val request =
+            Request
+                .Builder()
+                .url("https://example.com")
+                .header("x-datadog-trace-id", "18446744073709551616") // 2^64
+                .header("x-datadog-sampling-priority", "1")
+                .build()
+        assertThat(TracePropagation.extractSampledTraceId(request)).isNull()
+    }
+
+    @Test
     fun extractSampledTraceId_noHeaders_returnsNull() {
         val request = Request.Builder().url("https://example.com").build()
         assertThat(TracePropagation.extractSampledTraceId(request)).isNull()

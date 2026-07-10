@@ -4,8 +4,14 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     id("com.google.firebase.crashlytics") version "3.0.6"
-    id("io.bitdrift.capture-plugin") version "0.23.4" // To verify new changes at capture-plugin use your maven local published version
+    id("io.bitdrift.capture-plugin") version "0.23.9" // To verify new changes at capture-plugin use your maven local published version
 }
+
+val enableAutoCaptureOkHttpInstrumentation =
+    providers.gradleProperty("enableAutoCaptureOkHttpInstrumentation")
+        .map(String::toBoolean)
+        .orElse(true)
+        .get()
 
 dependencies {
     implementation(project(":capture"))
@@ -94,6 +100,11 @@ android {
         versionCode = 68
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            "boolean",
+            "ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION",
+            enableAutoCaptureOkHttpInstrumentation.toString(),
+        )
     }
 
     // This needs to be set to access the strip tools to strip the shared libraries.
@@ -177,7 +188,7 @@ apollo {
 
 bitdrift {
     instrumentation {
-        automaticOkHttpInstrumentation = true
+        automaticOkHttpInstrumentation = enableAutoCaptureOkHttpInstrumentation
         automaticWebViewInstrumentation = true
         // Comment out to change the default type. e.g. okHttpInstrumentationType = OVERWRITE
     }

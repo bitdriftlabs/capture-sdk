@@ -76,7 +76,6 @@ class CaptureOkHttpTracingInterceptor
 
                 TracePropagationMode.DD -> {
                     requestBuilder.header("x-datadog-trace-id", traceContext.traceIdAsDecimal())
-                    requestBuilder.header("x-datadog-parent-id", traceContext.spanIdAsDecimal())
                     // Using 2 to mean USER_KEEP from https://datadoghq.dev/dd-trace-rb/Datadog/Tracing/Sampling/Ext/Priority.html
                     requestBuilder.header("x-datadog-sampling-priority", "2")
                 }
