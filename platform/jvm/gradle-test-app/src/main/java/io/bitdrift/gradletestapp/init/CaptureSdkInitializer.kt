@@ -18,7 +18,6 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
-import io.bitdrift.capture.InitializationState
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -27,7 +26,7 @@ import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
 import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.webview.WebViewConfiguration
-import io.bitdrift.gradletestapp.data.repository.SdkRepository
+import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
@@ -38,8 +37,13 @@ import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Com
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_WEB_VITALS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BACKGROUND_START_PREFS_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DIAGNOSTICS_ENABLED_KEY
 import io.sentry.Sentry
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
@@ -52,7 +56,10 @@ import java.util.concurrent.Executors
  */
 object CaptureSdkInitializer {
     private val userUuid = UUID.randomUUID().toString()
-    private val bitdriftSessionUrlKey = "bitdrift_session_url"
+    private const val BITDRIFT_SESSION_URL_KEY = "bitdrift_session_url"
+    private val _sdkInitializationState = MutableStateFlow<Boolean?>(null)
+
+    val sdkInitializationState: StateFlow<Boolean?> = _sdkInitializationState.asStateFlow()
 
     val currentUserUuid: String
         get() = userUuid
@@ -64,24 +71,27 @@ object CaptureSdkInitializer {
     fun initFromPreferences(
         applicationContext: Context,
         sharedPreferences: SharedPreferences,
-    ): Boolean {
+    ) {
 
         val persistedSdkConfigResult = getPersistedCaptureSdkSettings(
             applicationContext,
             sharedPreferences,
         )
 
-        return when (persistedSdkConfigResult) {
+        when (persistedSdkConfigResult) {
 
             is PersistedSdkConfigResult.Success -> {
-                startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext)
+                startCaptureSdk(
+                    persistedSdkConfigResult.captureSdkInitSettings,
+                    applicationContext,
+                    sharedPreferences,
+                )
                 logPreviousRunInfoToBitdrift()
-                return Capture.Logger.getSdkStatus().initializationState != InitializationState.NOT_STARTED
             }
 
             is PersistedSdkConfigResult.Failed -> {
                 Timber.i(persistedSdkConfigResult.message)
-                false
+                _sdkInitializationState.value = false
             }
         }
     }
@@ -91,7 +101,23 @@ object CaptureSdkInitializer {
     private fun startCaptureSdk(
         settings: CaptureSdkInitSettings,
         context: Context,
+        sharedPreferences: SharedPreferences,
     ) {
+        val shouldStartInBackground =
+            sharedPreferences.getBoolean(BACKGROUND_START_PREFS_KEY, false)
+
+        val executor = if (shouldStartInBackground){
+            Executors.newSingleThreadExecutor { runnable ->
+                Thread(runnable, "capture-sdk-start-background-thread")
+            }
+        }else{
+            null
+        }
+
+        val shouldEnableStrictMode = sharedPreferences.getBoolean(DIAGNOSTICS_ENABLED_KEY, false)
+        if (shouldEnableStrictMode) {
+            StrictModeConfigurator.install()
+        }
 
         Capture.Logger.start(
             apiKey = settings.apiKey,
@@ -100,6 +126,7 @@ object CaptureSdkInitializer {
             sessionStrategy = settings.sessionStrategy,
             fieldProviders = settings.fieldProviders,
             context = context,
+            executor = executor,
         ) { startResult ->
             when (startResult) {
                 is CaptureResult.Success -> {
@@ -107,10 +134,12 @@ object CaptureSdkInitializer {
                     Log.d("bitdrift","SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}, userUuid=${userUuid}")
                     Capture.Logger.setEntityId(userUuid)
                     addSessionUrlToThirdPartySdks(context, logger.sessionUrl)
+                    _sdkInitializationState.value = true
                 }
 
                 is CaptureResult.Failure -> {
                     Log.d("bitdrift","SDK failed to start: ${startResult.error.message}")
+                    _sdkInitializationState.value = false
                     // Re-throwing on debug builds so we can get immediate signal of
                     // any issues at Capture.Logger.start internals during the development phase.
                     throw IllegalStateException(startResult.error.message)
@@ -136,12 +165,12 @@ object CaptureSdkInitializer {
         }
         val fatalIssueReporterEnabled =
             sharedPreferences.getBoolean(
-                ConfigurationSettingsFragment.Companion.FATAL_ISSUE_ENABLED_PREFS_KEY,
+                ConfigurationSettingsFragment.FATAL_ISSUE_ENABLED_PREFS_KEY,
                 true,
             )
         val sessionReplayEnabled =
             sharedPreferences.getBoolean(
-                ConfigurationSettingsFragment.Companion.SESSION_REPLAY_ENABLED_PREFS_KEY,
+                ConfigurationSettingsFragment.SESSION_REPLAY_ENABLED_PREFS_KEY,
                 true,
             )
 
@@ -186,7 +215,7 @@ object CaptureSdkInitializer {
         sharedPreferences: SharedPreferences
     ): SessionStrategy =
         if (sharedPreferences.getString(
-                ConfigurationSettingsFragment.Companion.SESSION_STRATEGY_PREFS_KEY,
+                ConfigurationSettingsFragment.SESSION_STRATEGY_PREFS_KEY,
                 ConfigurationSettingsFragment.SessionStrategyPreferences.FIXED.displayName,
             ) == "Fixed"
         ) {
@@ -200,9 +229,9 @@ object CaptureSdkInitializer {
                 inactivityThresholdMins = thresholdMins,
                 onSessionIdChanged = { sessionId ->
                     val message =
-                        "Bitdrift Logger session id updated due to inactivity: $sessionId. Callback triggered in ${Thread.currentThread().name} thread"
+                        "bitdrift Logger session id updated due to inactivity: $sessionId. Callback triggered in ${Thread.currentThread().name} thread"
                     Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
-                    Timber.Forest.i(message)
+                    Timber.i(message)
                 },
             )
         }
@@ -253,19 +282,19 @@ object CaptureSdkInitializer {
 
     private fun addSessionUrlToThirdPartySdks(applicationContext: Context, sessionUrl: String) {
         if (Sentry.isEnabled()) {
-            Sentry.setExtra(bitdriftSessionUrlKey, sessionUrl)
+            Sentry.setExtra(BITDRIFT_SESSION_URL_KEY, sessionUrl)
         }
 
         if (Bugsnag.isStarted()) {
             val frontendTabName = "bitdrift_session_url"
-            Bugsnag.addMetadata(frontendTabName, bitdriftSessionUrlKey, sessionUrl)
+            Bugsnag.addMetadata(frontendTabName, BITDRIFT_SESSION_URL_KEY, sessionUrl)
         }
 
         FirebaseApp.getApps(applicationContext)
             .firstOrNull { it.name == FirebaseApp.DEFAULT_APP_NAME }
             ?.let {
                 FirebaseCrashlytics.getInstance()
-                    .setCustomKey(bitdriftSessionUrlKey, sessionUrl)
+                    .setCustomKey(BITDRIFT_SESSION_URL_KEY, sessionUrl)
             }
     }
 

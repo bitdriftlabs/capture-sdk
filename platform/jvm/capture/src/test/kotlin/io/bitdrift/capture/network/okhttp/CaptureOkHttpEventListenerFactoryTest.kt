@@ -636,9 +636,9 @@ class CaptureOkHttpEventListenerFactoryTest {
         // ACT
         val factory =
             CaptureOkHttpEventListenerFactory(
-                null,
-                logger,
-                clock,
+                targetEventListenerFactory = null,
+                loggerProvider = { logger },
+                clock = clock,
                 requestFieldProvider = requestFieldProvider,
                 responseFieldProvider = responseFieldProvider,
             )
@@ -747,7 +747,7 @@ class CaptureOkHttpEventListenerFactoryTest {
     ): CaptureOkHttpEventListenerFactory =
         CaptureOkHttpEventListenerFactory(
             targetEventListenerFactory = targetEventListenerCreator,
-            logger = logger,
+            loggerProvider = { logger },
             clock = clock,
             requestFieldProvider = requestFieldProvider,
             responseFieldProvider = responseFieldProvider,

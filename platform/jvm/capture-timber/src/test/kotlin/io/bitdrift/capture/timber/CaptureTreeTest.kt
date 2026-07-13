@@ -24,7 +24,7 @@ import java.io.IOException
 
 class CaptureTreeTest {
     private val mockLogger: ILogger = mock()
-    private val captureTree = CaptureTree(mockLogger)
+    private val captureTree = CaptureTree { mockLogger }
     private val message = "my_message"
 
     @Test
