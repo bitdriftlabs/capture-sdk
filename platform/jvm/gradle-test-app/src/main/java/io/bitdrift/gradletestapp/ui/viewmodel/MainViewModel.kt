@@ -31,6 +31,7 @@ import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,6 +56,11 @@ class MainViewModel(
     init {
         viewModelScope.launch {
             initializeSdkConfig()
+            CaptureSdkInitializer.sdkInitializationState
+                .filterNotNull()
+                .collect {
+                    refreshSdkState()
+                }
         }
     }
 
@@ -68,6 +74,7 @@ class MainViewModel(
                         apiUrl = cfg.apiUrl,
                         sessionStrategy = cfg.sessionStrategy,
                         isDeferredStart = cfg.isDeferredStart,
+                        isBackgroundStart = cfg.isBackgroundStart,
                         isSleepModeEnabled = cfg.isSleepModeEnabled,
                         entityId = CaptureSdkInitializer.currentUserUuid,
                     ),
@@ -75,11 +82,15 @@ class MainViewModel(
         }
         val persistedFields = sdkRepository.restoreGlobalFields()
         _uiState.update { it.copy(globalFields = persistedFields) }
+        refreshSdkState()
+        checkAutoInitialization()
+    }
+
+    private suspend fun refreshSdkState() {
         updateSdkState()
         if (_uiState.value.session.isSdkInitialized) {
             checkConnectivity()
         }
-        checkAutoInitialization()
     }
 
     private fun checkAutoInitialization() {

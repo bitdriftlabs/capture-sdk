@@ -33,6 +33,10 @@ import org.junit.runners.MethodSorters
 import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
@@ -152,6 +156,74 @@ class CaptureTest {
 
         // Calling reconfigure a second time does not change the static logger.
         assertThat(logger).isEqualTo(Capture.logger())
+    }
+
+    @Test
+    fun startAsync_withExecutor_emitsSuccessAndUpdatesFlows() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+
+        val latch = CountDownLatch(1)
+        var capturedResult: CaptureResult<ILogger>? = null
+        val executor = Executors.newSingleThreadExecutor()
+
+        try {
+            Logger.start(
+                apiKey = "test1",
+                sessionStrategy = SessionStrategy.Fixed(),
+                dateProvider = null,
+                executor = executor,
+            ) { result ->
+                capturedResult = result
+                latch.countDown()
+            }
+
+            assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue()
+            assertThat(capturedResult).isInstanceOf(CaptureResult.Success::class.java)
+            assertThat(Logger.sessionId).isNotEmpty()
+            assertThat(Logger.sessionUrl).isNotEmpty()
+            assertThat(Logger.deviceId).isNotEmpty()
+            assertThat(Logger.getSdkStatus().initializationState).isNotEqualTo(InitializationState.NOT_STARTED)
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun startAsync_buffersLogsWhileStarting() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+
+        val executor = Executors.newSingleThreadExecutor()
+        val blockLatch = CountDownLatch(1)
+        val releaseLatch = CountDownLatch(1)
+        val completionLatch = CountDownLatch(1)
+
+        try {
+            Logger.start(
+                apiKey = "test1",
+                sessionStrategy = SessionStrategy.Fixed(),
+                dateProvider = null,
+                executor =
+                    Executor { command ->
+                        executor.execute {
+                            blockLatch.countDown()
+                            releaseLatch.await(5, TimeUnit.SECONDS)
+                            command.run()
+                        }
+                    },
+            ) {
+                completionLatch.countDown()
+            }
+
+            assertThat(blockLatch.await(5, TimeUnit.SECONDS)).isTrue()
+            Logger.logInfo { "buffered log" }
+            releaseLatch.countDown()
+            assertThat(completionLatch.await(5, TimeUnit.SECONDS)).isTrue()
+            assertThat(Capture.logger()).isNotNull()
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     @Test

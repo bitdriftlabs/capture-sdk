@@ -48,10 +48,12 @@ import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.combineFields
+import io.bitdrift.capture.providers.extractFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
+import io.bitdrift.capture.providers.toThrowableFields
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
@@ -532,15 +534,7 @@ internal class LoggerImpl(
         blocking: Boolean,
         message: () -> String,
     ) {
-        val throwableFields =
-            if (throwable == null) {
-                ArrayFields.EMPTY
-            } else {
-                ArrayFields(
-                    arrayOf("_error", "_error_details"),
-                    arrayOf(throwable.javaClass.name.orEmpty(), throwable.message.orEmpty()),
-                )
-            }
+        val throwableFields = throwable.toThrowableFields()
         logInternal(
             type,
             level,
@@ -624,44 +618,6 @@ internal class LoggerImpl(
         durationS: Double,
     ) {
         CaptureJniLibrary.writeAppUpdateLog(this.loggerId, appVersion, appVersionCode, appSizeBytes, durationS)
-    }
-
-    internal fun extractFields(
-        fields: Map<String, String>?,
-        throwable: Throwable?,
-    ): ArrayFields {
-        val hasThrowable = throwable != null
-        val fieldsSize = fields?.size ?: 0
-
-        if (fieldsSize == 0 && !hasThrowable) {
-            return ArrayFields.EMPTY
-        }
-
-        val throwableFieldCount = if (hasThrowable) 2 else 0
-        val totalSize = fieldsSize + throwableFieldCount
-
-        val keys = ArrayList<String>(totalSize)
-        val values = ArrayList<String>(totalSize)
-
-        fields?.forEach { (key, value) ->
-            @Suppress("SENSELESS_COMPARISON")
-            if (key != null && value != null) {
-                keys.add(key)
-                values.add(value)
-            }
-        }
-
-        throwable?.let {
-            keys.add("_error")
-            values.add(it.javaClass.name.orEmpty())
-            keys.add("_error_details")
-            values.add(it.message.orEmpty())
-        }
-
-        return ArrayFields(
-            keys.toTypedArray(),
-            values.toTypedArray(),
-        )
     }
 
     @Suppress("UnusedPrivateMember")
