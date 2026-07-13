@@ -1,4 +1,4 @@
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rs//rs:cargo_build_script.bzl", "cargo_build_script")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary", "bitdrift_rust_library")
 
 bitdrift_rust_library(
