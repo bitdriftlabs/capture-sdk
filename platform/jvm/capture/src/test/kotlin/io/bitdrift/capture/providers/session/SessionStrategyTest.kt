@@ -37,7 +37,7 @@ class SessionStrategyTest {
     fun fixedSessionStrategy() {
         val generatedSessionIds = mutableListOf<String>()
 
-        Capture.Logger.start(
+        Capture.Logger.startAsync(
             apiKey = "test",
             apiUrl = testServerUrl(),
             fieldProviders = listOf(),

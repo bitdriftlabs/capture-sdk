@@ -64,7 +64,7 @@ class AppLifecycleListenerLoggerTest {
     }
 
     @Test
-    fun testAppStartInfoFieldsAreSkippedIfNotCreate() {
+    fun testAppStartAsyncInfoFieldsAreSkippedIfNotCreate() {
         // ARRANGE
         whenever(versionChecker.isAtLeast(35)).thenReturn(true)
 
@@ -84,7 +84,7 @@ class AppLifecycleListenerLoggerTest {
     }
 
     @Test
-    fun testAppStartInfoFieldsAreSkippedIfError() {
+    fun testAppStartAsyncInfoFieldsAreSkippedIfError() {
         // ARRANGE
         whenever(versionChecker.isAtLeast(35)).thenReturn(true)
         val error = RuntimeException("test exception")
@@ -106,7 +106,7 @@ class AppLifecycleListenerLoggerTest {
     }
 
     @Test
-    fun testAppStartInfoFieldsAreLogged() {
+    fun testAppStartAsyncInfoFieldsAreLogged() {
         // ARRANGE
         val launchTime = 10 * 1_000_000L
         val firstFrameTime = 100 * 1_000_000L

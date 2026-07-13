@@ -70,7 +70,7 @@ class SessionUrlTest {
     }
 
     private fun startAndReturnLogger(apiUrl: String): ILogger? {
-        Capture.Logger.start(
+        Capture.Logger.startAsync(
             apiKey = "test",
             apiUrl = apiUrl.toHttpUrl(),
             configuration = Configuration(),

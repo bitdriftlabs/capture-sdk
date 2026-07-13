@@ -80,7 +80,7 @@ data object SdkNotStartedError : Error("SDK not started")
 
 /**
  * Represents a failure during SDK initialization.
- * This error is returned via the [Capture.Logger.start] result callback when the SDK
+ * This error is returned via the [Capture.Logger.startAsync] result callback when the SDK
  * fails to initialize.
  *
  * @param reason A message describing what went wrong during initialization.

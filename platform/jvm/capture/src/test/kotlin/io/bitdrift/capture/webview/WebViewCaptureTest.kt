@@ -126,7 +126,7 @@ class WebViewCaptureTest {
     }
 
     private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
-        Capture.Logger.start(
+        Capture.Logger.startAsync(
             apiKey = "test",
             sessionStrategy = SessionStrategy.Fixed(),
             configuration = Configuration(webViewConfiguration = webViewConfiguration),

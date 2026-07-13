@@ -33,7 +33,7 @@ class CaptureTokioThreadTest {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
-        Logger.start(
+        Logger.startAsync(
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Fixed(),
             dateProvider = null,

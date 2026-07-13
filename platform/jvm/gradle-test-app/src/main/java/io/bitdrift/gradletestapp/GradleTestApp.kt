@@ -10,6 +10,7 @@ package io.bitdrift.gradletestapp
 import android.app.Application
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
+import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.ThirdPartyCrashReportersInitializer
 import io.bitdrift.gradletestapp.diagnostics.lifecycle.ActivitySpanCallbacks
 import io.bitdrift.gradletestapp.diagnostics.papa.PapaTelemetry
@@ -18,12 +19,17 @@ import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DIAGNOSTICS_ENABLED_KEY
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
  * A Kotlin app entry point that initializes the Bitdrift Logger automatically only when ConfigState.isDeferredStart is set to false
  */
 class GradleTestApp : Application() {
+    @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
 
@@ -39,6 +45,19 @@ class GradleTestApp : Application() {
             Timber.i("Deferred start enabled - SDK initialization skipped")
         } else {
             CaptureSdkInitializer.initFromPreferences(this, sharedPreferences)
+        }
+
+        triggerManyLogs()
+        GlobalScope.launch(Dispatchers.IO) {
+            triggerManyLogs()
+        }
+    }
+
+    private fun triggerManyLogs(){
+        repeat(125){
+            Capture.Logger.logInfo {
+                "Log info message $it called from ${Thread.currentThread().name}"
+            }
         }
     }
 

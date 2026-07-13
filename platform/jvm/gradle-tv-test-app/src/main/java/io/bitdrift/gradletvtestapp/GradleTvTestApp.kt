@@ -34,7 +34,7 @@ class GradleTvTestApp : Application() {
             return false
         }
 
-        Capture.Logger.start(
+        Capture.Logger.startAsync(
             apiKey = apiKey,
             apiUrl = apiUrl,
             sessionStrategy = SessionStrategy.ActivityBased(inactivityThresholdMins = 30L),

@@ -103,7 +103,7 @@ class IssueCallbackConfigurationTest {
         )
 
     private fun startSdkAndReturnLogger(issueCallbackConfiguration: IssueCallbackConfiguration): IInternalLogger {
-        Capture.Logger.start(
+        Capture.Logger.startAsync(
             apiKey = "test",
             sessionStrategy = SessionStrategy.Fixed(),
             configuration = Configuration(issueCallbackConfiguration = issueCallbackConfiguration),

@@ -23,15 +23,14 @@ import io.bitdrift.capture.events.span.SpanResult
 
 class SampleAppWebViewCapture(
     private val original: WebViewClient,
-    private val logger: ILogger? = Capture.logger(),
+    private val loggerProvider: () -> ILogger? = { Capture.logger() },
 ) : WebViewClient() {
 
     // all WebViewClient callbacks are guaranteed to happen on the main thread, so no need for synchronization
     private var pageLoad: Span? = null
     private var ongoingRequest: PageLoadRequest? = null
 
-    // attempts to get the latest logger if one wasn't found at construction time
-    private fun getLogger(): ILogger? = logger ?: Capture.logger()
+    private fun getLogger(): ILogger? = loggerProvider()
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         if (ongoingRequest == null) {
