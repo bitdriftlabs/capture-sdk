@@ -52,9 +52,18 @@ internal object NativeCrashProcessor {
         description: String?,
         traceInputStream: InputStream?,
         terminatingSignalNumber: Int,
+        isFileSizeOptimizationEnabled: Boolean,
     ): Int {
         if (traceInputStream == null) {
-            return createReportWithoutTraces(builder, sdk, appMetrics, deviceMetrics, description, terminatingSignalNumber)
+            return createReportWithoutTraces(
+                builder,
+                sdk,
+                appMetrics,
+                deviceMetrics,
+                description,
+                terminatingSignalNumber,
+                isFileSizeOptimizationEnabled,
+            )
         }
 
         val tombstone = Tombstone.parseFrom(traceInputStream)
@@ -63,6 +72,7 @@ internal object NativeCrashProcessor {
         val binaryImageOffsets = mutableListOf<Int>()
 
         val referencedMappings = mutableSetOf<TombstoneProtos.MemoryMapping>()
+        val stackTraceOffsetsByFrames = mutableMapOf<List<Int>, Int>()
 
         tombstone.threadsMap.forEach { (tid, thread) ->
             val frameOffsets =
@@ -92,7 +102,6 @@ internal object NativeCrashProcessor {
                         val frameData =
                             FrameData(
                                 symbolName = frame.functionName,
-                                fileName = null,
                                 imageId = imageId,
                                 frameAddress = frame.pc.toULong(),
                             )
@@ -100,25 +109,30 @@ internal object NativeCrashProcessor {
                             FrameType.AndroidNative,
                             builder,
                             frameData,
+                            isFileSizeOptimizationEnabled,
                         )
                     }.toIntArray()
+            val stackTraceOffset =
+                buildStackTraceVector(builder, frameOffsets, isFileSizeOptimizationEnabled, stackTraceOffsetsByFrames)
+
+            val threadName = thread.name.ifEmpty { "native-thread-${thread.id}" }
 
             val threadOffset =
                 Thread.createThread(
                     builder,
-                    builder.createString(thread.name.ifEmpty { "native-thread-${thread.id}" }),
+                    if (isFileSizeOptimizationEnabled) builder.createSharedString(threadName) else builder.createString(threadName),
                     isCrashingThread(tid, tombstone),
                     thread.id.toUInt(),
                     0,
                     0f,
                     0,
-                    Thread.createStackTraceVector(builder, frameOffsets),
+                    stackTraceOffset,
                     summaryOffset = 0,
                 )
             threadOffsets.add(threadOffset)
 
             if (isCrashingThread(tid, tombstone)) {
-                nativeErrors.add(createErrorOffset(builder, description, tombstone, frameOffsets))
+                nativeErrors.add(createErrorOffset(builder, description, tombstone, stackTraceOffset, isFileSizeOptimizationEnabled))
             }
         }
 
@@ -133,8 +147,8 @@ internal object NativeCrashProcessor {
             binaryImageOffsets.add(
                 BinaryImage.createBinaryImage(
                     builder,
-                    builder.createString(it.imageId()),
-                    builder.createString(it.path()),
+                    if (isFileSizeOptimizationEnabled) builder.createSharedString(it.imageId()) else builder.createString(it.imageId()),
+                    if (isFileSizeOptimizationEnabled) builder.createSharedString(it.path()) else builder.createString(it.path()),
                     it.beginAddress.toULong(),
                 ),
             )
@@ -169,11 +183,23 @@ internal object NativeCrashProcessor {
         deviceMetrics: Int,
         description: String?,
         terminatingSignalNumber: Int,
+        isFileSizeOptimizationEnabled: Boolean,
     ): Int {
         val defaultReason = "Native crash"
         val signalInfo = signalsByNumber[terminatingSignalNumber]
-        val name = builder.createString(signalInfo?.name ?: description ?: defaultReason)
-        val reason = builder.createString(signalInfo?.description ?: defaultReason)
+
+        val extractedName = signalInfo?.name ?: description ?: defaultReason
+        val extractedReason = signalInfo?.description ?: defaultReason
+
+        val name = if (isFileSizeOptimizationEnabled) builder.createSharedString(extractedName) else builder.createString(extractedName)
+        val reason =
+            if (isFileSizeOptimizationEnabled) {
+                builder.createSharedString(
+                    extractedReason,
+                )
+            } else {
+                builder.createString(extractedReason)
+            }
         val errorOffset =
             Error.createError(
                 builder,
@@ -206,24 +232,39 @@ internal object NativeCrashProcessor {
         builder: FlatBufferBuilder,
         description: String?,
         tombstone: Tombstone,
-        frameOffsets: IntArray,
+        stackTraceOffset: Int,
+        isFileSizeOptimizationEnabled: Boolean,
     ): Int {
         val signalName = tombstone.signalInfo.name
         val errorName = signalName.ifEmpty { description ?: "Native crash" }
-        val reason = builder.createString(errorName)
+        val reason = if (isFileSizeOptimizationEnabled) builder.createSharedString(errorName) else builder.createString(errorName)
         val causeText =
             tombstone.causesList.firstOrNull()?.humanReadable ?: tombstone.abortMessage.ifEmpty {
                 signalsByNumber.values.firstOrNull { it.name == signalName }?.description ?: "Native crash"
             }
-        val cause = builder.createString(causeText)
+        val cause = if (isFileSizeOptimizationEnabled) builder.createSharedString(causeText) else builder.createString(causeText)
         return Error.createError(
             builder,
             reason,
             cause,
-            Error.createStackTraceVector(builder, frameOffsets),
+            stackTraceOffset,
             ErrorRelation.CausedBy,
         )
     }
+
+    private fun buildStackTraceVector(
+        builder: FlatBufferBuilder,
+        frameOffsets: IntArray,
+        isFileSizeOptimizationEnabled: Boolean,
+        stackTraceOffsetsByFrames: MutableMap<List<Int>, Int>,
+    ): Int =
+        if (isFileSizeOptimizationEnabled) {
+            stackTraceOffsetsByFrames.getOrPut(frameOffsets.toList()) {
+                Thread.createStackTraceVector(builder, frameOffsets)
+            }
+        } else {
+            Thread.createStackTraceVector(builder, frameOffsets)
+        }
 
     private fun isCrashingThread(
         threadId: Int,

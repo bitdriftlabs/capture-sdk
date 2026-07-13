@@ -24,6 +24,7 @@ interface IStreamingReportProcessor {
         runningState: String?,
         appExitDescription: String?,
         memoryPressureLevel: Int,
+        isFileSizeOptimizationEnabled: Boolean,
     )
 
     /**

@@ -430,6 +430,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         runningState: String?,
         appExitDescription: String?,
         memoryPressureLevel: Int,
+        isFileSizeOptimizationEnabled: Boolean,
     )
 
     /**

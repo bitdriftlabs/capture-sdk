@@ -14,9 +14,12 @@ import android.os.strictmode.Violation
 import androidx.annotation.RequiresApi
 import com.google.flatbuffers.FlatBufferBuilder
 import io.bitdrift.capture.BuildConstants
+import io.bitdrift.capture.CaptureRuntimeProvider
 import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IClientAttributes
+import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppBuildNumber
@@ -43,11 +46,14 @@ internal class IssueReporterProcessor(
     private val dateProvider: DateProvider,
     private val internalLogger: IInternalLogger,
     private val memoryMetricsProvider: IMemoryMetricsProvider,
+    private val runtimeProvider: IRuntimeProvider = CaptureRuntimeProvider,
 ) : IIssueReporterProcessor {
     companion object {
         // Initial size for file builder buffer
         private const val FBS_BUILDER_DEFAULT_SIZE = 1024
     }
+
+    private val isFileSizeOptimizationEnabled = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.OPTIMIZE_FATAL_ISSUE_REPORT_SIZE)
 
     /**
      * Processes and persists a JavaScript report.
@@ -120,6 +126,7 @@ internal class IssueReporterProcessor(
                     runningState,
                     applicationExit.description,
                     internalLogger.getPreviousRunMemoryPressureLevel().nativeValue,
+                    isFileSizeOptimizationEnabled,
                 )
             } else if (fatalIssueType == ReportType.NativeCrash) {
                 val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
@@ -135,6 +142,7 @@ internal class IssueReporterProcessor(
                         applicationExit.description,
                         traceInputStream,
                         terminatingSignalNumber = applicationExit.status,
+                        isFileSizeOptimizationEnabled,
                     )
                 builder.finish(report)
 
@@ -209,6 +217,7 @@ internal class IssueReporterProcessor(
                     callerThread,
                     allThreads,
                     reportType,
+                    isFileSizeOptimizationEnabled,
                 )
             builder.finish(report)
 

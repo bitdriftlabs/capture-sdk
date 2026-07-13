@@ -134,6 +134,9 @@ jobs:
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
     runs-on: macos-26
+    outputs:
+      ios_app_size_kb: ${{ steps.ios_size.outputs.current_kb }}
+      capture_binary_size_kb: ${{ steps.capture_binary_size.outputs.current_kb }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -267,16 +270,29 @@ jobs:
           rm -f "$XCODE_PROFILE_PATH" "$LEGACY_PROFILE_PATH" || true
           rm -rf "$SIGNING_TEMP_DIR" || true
 
+  ios_size_baseline:
+    name: iOS size baseline
+    runs-on: ubuntu-latest
+    needs: ["pre_check", "ios_size_comparison"]
+    if: needs.pre_check.outputs.should_run == 'true' && needs.ios_size_comparison.result == 'success'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Save iOS size baseline (main only)
-        if: github.ref == 'refs/heads/main' && success()
+        if: github.ref == 'refs/heads/main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IOS_APP_SIZE_KB: ${{ needs.ios_size_comparison.outputs.ios_app_size_kb }}
+          IOS_CAPTURE_BINARY_SIZE_KB: ${{ needs.ios_size_comparison.outputs.capture_binary_size_kb }}
         run: |
           set -euo pipefail
           BASELINE_FILE=ci/baseline_ios_app_size_kb.txt
           CAPTURE_BINARY_BASELINE_FILE=ci/baseline_ios_capture_binary_size_kb.txt
-          echo "${{ steps.ios_size.outputs.current_kb }}" > "$BASELINE_FILE"
-          echo "${{ steps.capture_binary_size.outputs.current_kb }}" > "$CAPTURE_BINARY_BASELINE_FILE"
+          echo "$IOS_APP_SIZE_KB" > "$BASELINE_FILE"
+          echo "$IOS_CAPTURE_BINARY_SIZE_KB" > "$CAPTURE_BINARY_BASELINE_FILE"
 
           # main updates a dedicated ci-baseline branch that stores the latest accepted iOS size
           # snapshot. PRs read from that branch so they can compare against main without rebuilding it.
@@ -325,10 +341,12 @@ jobs:
       - name: Compare iOS app size
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: ios_size_compare
+        env:
+          IOS_APP_SIZE_KB: ${{ needs.ios_size_comparison.outputs.ios_app_size_kb }}
         run: |
           set -euo pipefail
           BASELINE_PATH=ci/baseline_ios_app_size_kb.txt
-          CURRENT_KB="${{ steps.ios_size.outputs.current_kb }}"
+          CURRENT_KB="$IOS_APP_SIZE_KB"
           echo "current_kb=$CURRENT_KB" >> "$GITHUB_OUTPUT"
 
           if [ ! -f "$BASELINE_PATH" ]; then
@@ -344,10 +362,12 @@ jobs:
       - name: Compare Capture SDK binary size
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: capture_binary_size_compare
+        env:
+          IOS_CAPTURE_BINARY_SIZE_KB: ${{ needs.ios_size_comparison.outputs.capture_binary_size_kb }}
         run: |
           set -euo pipefail
           BASELINE_PATH=ci/baseline_ios_capture_binary_size_kb.txt
-          CURRENT_KB="${{ steps.capture_binary_size.outputs.current_kb }}"
+          CURRENT_KB="$IOS_CAPTURE_BINARY_SIZE_KB"
           echo "current_kb=$CURRENT_KB" >> "$GITHUB_OUTPUT"
 
           if [ ! -f "$BASELINE_PATH" ]; then
@@ -446,7 +466,14 @@ jobs:
             }
   verify_ios:
     runs-on: ubuntu-latest
-    needs: ["tests", "swift_hello_world", "unit_tests", "ios_size_comparison"]
+    needs:
+      [
+        "tests",
+        "swift_hello_world",
+        "unit_tests",
+        "ios_size_comparison",
+        "ios_size_baseline",
+      ]
     if: always()
     steps:
       # Checkout repo to Github Actions runner
@@ -458,4 +485,5 @@ jobs:
           ./ci/check_result.sh ${{ needs.tests.result }} \
           && ./ci/check_result.sh ${{ needs.swift_hello_world.result }} \
           && ./ci/check_result.sh ${{ needs.unit_tests.result }} \
-          && ./ci/check_result.sh ${{ needs.ios_size_comparison.result }}
+          && ./ci/check_result.sh ${{ needs.ios_size_comparison.result }} \
+          && ./ci/check_result.sh ${{ needs.ios_size_baseline.result }}
