@@ -44,25 +44,25 @@ new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl"
 
 bazel_dep(name = "rules_robolectric", version = "4.14.1.2")
 bazel_dep(name = "rules_multirun", version = "0.10.0")
-bazel_dep(name = "apple_support", version = "1.22.1", repo_name = "build_bazel_apple_support")
+bazel_dep(name = "apple_support", version = "1.24.1", repo_name = "build_bazel_apple_support")
 bazel_dep(name = "rules_swift", version = "2.9.0")
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "rules_xcodeproj", version = "2.12.1")
 bazel_dep(name = "rules_apple", version = "4.1.1")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
-bazel_dep(name = "rules_cc", version = "0.1.1")
-bazel_dep(name = "rules_java", version = "8.11.0")
+bazel_dep(name = "rules_cc", version = "0.2.19")
+bazel_dep(name = "rules_java", version = "8.14.0")
 bazel_dep(name = "rules_android", version = "0.6.4")
 bazel_dep(name = "rules_android_ndk", version = "0.1.3")
 bazel_dep(name = "rules_jvm_external", version = "6.6")
 bazel_dep(name = "rules_detekt", version = "0.8.1.2")
 bazel_dep(name = "flatbuffers", version = "25.2.10")
-bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_kotlin", version = "2.1.9")
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "protobuf", version = "29.3")
-bazel_dep(name = "rules_rust", version = "0.65.0")
-bazel_dep(name = "rules_shell", version = "0.4.0")
+bazel_dep(name = "rules_rs", version = "0.0.96")
+bazel_dep(name = "rules_shell", version = "0.6.1")
 
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 
@@ -284,16 +284,25 @@ use_repo(maven, "maven")
 # Rust extensions
 ####################
 
+# rules_rs upgrades these transitively, but this project still needs the existing Maven resolver
+# and protobuf release while its Android dependency graph is migrated separately.
 single_version_override(
-    module_name = "rules_rust",
-    patches = ["//bazel/third_party/patches:rules_rust.patch"],
+    module_name = "protobuf",
+    version = "29.3",
 )
 
-rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+single_version_override(
+    module_name = "rules_jvm_external",
+    version = "6.6",
+)
+
+rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
+use_repo(rules_rust, "rules_rust")
+
+rust = use_extension("@rules_rs//rs:rules_rust_reexported_extensions.bzl", "rust")
 rust.toolchain(
-    # Rules rust defaults to using an allocator library that is outdated. One would hope you can set your own here
-    # but I couldn't find a way to pass it in, since all lables here are local to rules_rust (ie you can't pass //core/alloc).
-    allocator_library = "@rules_rust//ffi/cc/allocator_library:noop",
+    # Use rules_rust's built-in no-op allocator instead of its C allocator shim.
+    allocator_library = "@rules_rust//ffi/rs:empty",
     extra_target_triples = [
         "aarch64-apple-ios-sim",
         "aarch64-apple-ios",
@@ -317,6 +326,7 @@ rust.toolchain(
         "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "60b494bd5a96b9188c42b3810f9396baea20361b2433440a5caeb28076a1650d",
         "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "92b311a8ce1e32689803149fea8a296eae589ec662385bb59c6fd4d7c254550b",
         "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "c5ce94413c3fcc381826e3b4c2ebdb3468f00eee75f85088068a50652025fead",
+        "rust-std-" + RUST_VERSION + "-x86_64-linux-android.tar.gz": "d2ee901e593b7640f4a212c16605c36a8f0da32c94b20d49fba17813e4d2008e",
         "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "64f20ce6864040b822b8fbdb7dbfd892e5b04828ca8cbd1e6accef9694da3ebb",
         "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "0421d71bd676f0d38e318bf3eb7cd1a9ca33cf5ccf70f49644950a91fa046de7",
         "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "c8b7851f83d232c2abf5dbca31af43701deca0973ac7eb7cd1741c180396b7db",
@@ -347,38 +357,46 @@ rust.toolchain(
 )
 use_repo(rust, "rust_toolchains")
 
-crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+register_toolchains("@rust_toolchains//:all")
+
+crate = use_extension("@rules_rs//rs:extensions.bzl", "crate")
 crate.from_cargo(
     name = "crates",
-    cargo_config = "//:Cargo.toml",
-    cargo_lockfile = "//:Cargo.lock",
-    # This trades the chance that the registry gets corrupted for speed when repinning.
-    isolated = False,
-    lockfile = "//:Cargo.Bazel.lock",
-    manifests = [
-        "//:Cargo.toml",
-        "//proto:Cargo.toml",
-        "//platform/jvm:Cargo.toml",
-        "//platform/jvm/core:Cargo.toml",
-        "//test/platform/jvm:Cargo.toml",
-        "//platform/shared:Cargo.toml",
-        "//platform/swift/source:Cargo.toml",
-        "//platform/test_helpers:Cargo.toml",
-        "//test/platform/pom_checker:Cargo.toml",
-        "//test/platform/swift/bridging:Cargo.toml",
-        "//test/benchmark:Cargo.toml",
-    ],
-    supported_platform_triples = [
+    cargo_lock = "//:Cargo.lock",
+    cargo_toml = "//:Cargo.toml",
+    platform_triples = [
+        "aarch64-apple-darwin",
         "aarch64-apple-ios-sim",
         "aarch64-apple-ios",
         "aarch64-linux-android",
         "armv7-linux-androideabi",
         "i686-linux-android",
+        "x86_64-apple-darwin",
         "x86_64-apple-ios",
         "x86_64-linux-android",
-        "aarch64-apple-darwin",
         "x86_64-unknown-linux-gnu",
     ],
+    # Preserve the existing custom rules_rust toolchain while migrating dependency resolution.
+    use_legacy_rules_rust_platforms = True,
+)
+
+# These shared-core crates are intentionally excluded from that repository's workspace member
+# list, so rules_rs cannot infer their package directories from the workspace Cargo.toml.
+crate.annotation(
+    crate = "bd-log",
+    strip_prefix = "bd-log",
+)
+crate.annotation(
+    crate = "bd-log-metadata",
+    strip_prefix = "bd-log-metadata",
+)
+crate.annotation(
+    crate = "bd-log-primitives",
+    strip_prefix = "bd-log-primitives",
+)
+crate.annotation(
+    crate = "bd-shutdown",
+    strip_prefix = "bd-shutdown",
 )
 
 # File generation must be skipped because of https://github.com/bazelbuild/rules_rust/issues/3552
@@ -412,5 +430,17 @@ crate.annotation(
         "general",
         "ioctl",
     ],
+)
+
+# Android's NDK and Apple's SDK provide zlib dynamically. Keep libz-sys's build script enabled
+# so those targets emit their platform-native `-lz` directive. On Linux, enable libz-sys's
+# `static` feature so its build script compiles the crate's bundled zlib through Bazel's
+# hermetic C/C++ toolchain instead of probing the host system.
+crate.annotation(
+    crate = "libz-sys",
+    crate_features_select = {
+        "x86_64-unknown-linux-gnu": ["static"],
+    },
+    gen_build_script = "on",
 )
 use_repo(crate, "crates")
