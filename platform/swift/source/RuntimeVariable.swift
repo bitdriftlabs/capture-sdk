@@ -118,6 +118,12 @@ extension RuntimeVariable<Bool> {
         defaultValue: false
     )
 
+    /// Whether iOS fatal issue report size optimizations are enabled.
+    static let optimizeFatalIssueReportSize = RuntimeVariable(
+        name: "client_feature.ios.optimize_fatal_issue_report_size",
+        defaultValue: true
+    )
+
     // When disabled, previousRunInfo falls back to reporting only fatalCrash or unknown,
     // ignoring the revamped resolver signals (cleanExit, appUpdate, osUpdate, etc.).
     static let previousRunInfoRevamped = RuntimeVariable(

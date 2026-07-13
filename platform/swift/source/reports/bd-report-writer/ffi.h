@@ -104,7 +104,8 @@ typedef struct BDAppMetrics {
 void bdrw_create_buffer_handle(BDProcessorHandle handle,
                                int8_t report_type,
                                const char *sdk_id,
-                               const char *sdk_version);
+                               const char *sdk_version,
+                               bool is_file_size_optimization_enabled);
 
 /**
  * Finishes Report creation and returns a pointer to the memory buffer

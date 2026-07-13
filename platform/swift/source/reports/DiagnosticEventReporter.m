@@ -108,6 +108,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
 @property (nullable, strong, nonatomic) void (^completionHandler)();
 @property (nullable, copy, nonatomic) CAPCrashEnrichmentSummaryHandler crashEnrichmentSummaryHandler;
 @property CAPDiagnosticType diagnosticTypes;
+@property BOOL fileSizeOptimizationEnabled;
 @property BOOL useStackOverlapMatching;
 @property CAPMemoryPressureLevel memoryPressureLevel;
 @property (nonnull, strong, nonatomic) id<CrashReporting> crashReporting;
@@ -120,6 +121,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
                                 eventTypes:(CAPDiagnosticType)types
                         minimumHangSeconds:(NSTimeInterval)seconds
                        memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
+               fileSizeOptimizationEnabled:(BOOL)fileSizeOptimizationEnabled
                    useStackOverlapMatching:(BOOL)useStackOverlapMatching
                             crashReporting:(id<CrashReporting> _Nonnull)crashReporting
              crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
@@ -129,6 +131,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
     self.sdkVersion = sdkVersion;
     self.diagnosticTypes = types;
     self.completionHandler = completionHandler;
+    self.fileSizeOptimizationEnabled = fileSizeOptimizationEnabled;
     self.useStackOverlapMatching = useStackOverlapMatching;
     self.crashReporting = crashReporting;
     self.crashEnrichmentSummaryHandler = crashEnrichmentSummaryHandler;
@@ -201,7 +204,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
     // Watchdog terminations arrive as MXCrashDiagnostic but should be reported as ANRs.
     BOOL is_hang = [self crashIsHangTermination:crash];
     report_type = is_hang ? ReportTypeAppNotResponding : ReportTypeNativeCrash;
-    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion));
+    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
     NSString *name = is_hang ? DEFAULT_HANG_NAME : [self nameForCrash:crash];
     NSString *reason = [self reasonForCrash:crash name:name];
     NSDictionary<NSString *, NSString *> *summary = nil;
@@ -214,7 +217,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
     [self serializeErrorThreads:handle crash:dictReport name:name reason:reason order:FrameOrderInnerToOuter];
   } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
     report_type = ReportTypeAppNotResponding;
-    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion));
+    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
     MXHangDiagnostic *hang = (MXHangDiagnostic *)event;
     NSMeasurementFormatter *formatter = [NSMeasurementFormatter new];
     NSString *duration = [formatter stringFromMeasurement:hang.hangDuration];

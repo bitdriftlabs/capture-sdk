@@ -164,6 +164,7 @@ pub(crate) fn persist_anr(
   running_state: Option<&str>,
   app_exit_description: Option<&str>,
   memory_pressure_level: jint,
+  is_file_size_optimization_enabled: bool,
 ) -> anyhow::Result<()> {
   let mut builder = FlatBufferBuilder::new();
   let source_file = read_stream_to_file(env, source_stream)?;
@@ -187,6 +188,7 @@ pub(crate) fn persist_anr(
     &mut device_info,
     source_view,
     app_exit_description,
+    is_file_size_optimization_enabled,
   )
   .map_err(|e| anyhow::anyhow!("failed to parse ANR report: {e}"))?;
 

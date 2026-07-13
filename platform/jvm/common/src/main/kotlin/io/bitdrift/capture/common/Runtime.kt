@@ -67,6 +67,14 @@ sealed class RuntimeFeature(
      * Whether WebView Instrumentation is enabled
      */
     data object WEBVIEW_INSTRUMENTATION : RuntimeFeature("client_feature.android.webview_instrumentation", defaultValue = true)
+
+    /**
+     * Whether Android fatal issue report size optimizations are enabled.
+     */
+    data object OPTIMIZE_FATAL_ISSUE_REPORT_SIZE : RuntimeFeature(
+        "client_feature.android.optimize_fatal_issue_report_size",
+        defaultValue = true,
+    )
 }
 
 /**

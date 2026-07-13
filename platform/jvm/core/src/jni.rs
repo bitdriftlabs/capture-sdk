@@ -1568,6 +1568,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   running_state: JString<'_>,
   app_exit_description: JString<'_>,
   memory_pressure_level: jint,
+  is_file_size_optimization_enabled: jboolean,
 ) {
   let destination = match unsafe { env.get_string_unchecked(&destination) } {
     Ok(destination) => destination.to_string_lossy().to_string(),
@@ -1604,6 +1605,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
     running_state_str.as_deref(),
     app_exit_description_str.as_deref(),
     memory_pressure_level,
+    is_file_size_optimization_enabled == JNI_TRUE,
   ) {
     Ok(()) => {},
     Err(e) => {

@@ -129,26 +129,113 @@ class IssueReporterProcessorTest {
                 "OnErrorNotImplementedException",
                 IllegalArgumentException("Artificial exception"),
             )
-        processor.processJvmCrash(
-            Thread("crashing-thread"),
-            exception,
-            null,
-        )
-
-        verify(issueReporterStorage).persistFatalIssue(
-            eq(DEFAULT_TEST_TIMESTAMP),
-            issueReportCaptor.capture(),
-            reportTypeCaptor.capture(),
-        )
-
-        val buffer = ByteBuffer.wrap(issueReportCaptor.firstValue)
-        val report = Report.getRootAsReport(buffer)
+        val report =
+            persistJvmCrashAndGetReport(
+                callerThread = Thread("crashing-thread"),
+                throwable = exception,
+                allThreads = null,
+            )
         val mainError = report.errors(0)!!
         val rootCause = report.errors(1)!!
         assertThat(mainError.name).isEqualTo("java.lang.RuntimeException")
         assertThat(mainError.reason).isEqualTo("OnErrorNotImplementedException")
         assertThat(rootCause.name).isEqualTo("java.lang.IllegalArgumentException")
         assertThat(rootCause.reason).isEqualTo("Artificial exception")
+    }
+
+    @Test
+    fun processJvmCrash_withIdenticalThreadStacks_shouldBuildAllThreads() {
+        val callerThread = Thread("crashing-thread")
+        val sharedStackTrace =
+            arrayOf(
+                StackTraceElement("io.test.SharedClass", "sharedMethod", "SharedClass.kt", 42),
+                StackTraceElement("java.lang.Thread", "run", "Thread.java", 840),
+            )
+        val allThreads =
+            buildMap {
+                repeat(200) { index ->
+                    put(Thread("worker-$index"), sharedStackTrace)
+                }
+                put(callerThread, sharedStackTrace)
+            }
+
+        val report =
+            persistJvmCrashAndGetReport(
+                callerThread = callerThread,
+                throwable = RuntimeException("crash"),
+                allThreads = allThreads,
+            )
+
+        val threadDetails = requireNotNull(report.threadDetails)
+        assertThat(threadDetails.threadsLength).isEqualTo(allThreads.size)
+
+        val firstThread = requireNotNull(threadDetails.threads(0))
+        assertThat(firstThread.stackTraceLength).isEqualTo(sharedStackTrace.size)
+        assertThat(requireNotNull(firstThread.stackTrace(0)).className).isEqualTo("io.test.SharedClass")
+        assertThat(requireNotNull(firstThread.stackTrace(0)).symbolName).isEqualTo("sharedMethod")
+        assertThat(requireNotNull(firstThread.stackTrace(1)).className).isEqualTo("java.lang.Thread")
+        assertThat(requireNotNull(firstThread.stackTrace(1)).symbolName).isEqualTo("run")
+
+        val error = requireNotNull(report.errors(0))
+        assertThat(
+            requireNotNull(error.stackTrace(0)).className,
+        ).isEqualTo("io.bitdrift.capture.reports.processor.IssueReporterProcessorTest")
+        assertThat(
+            requireNotNull(error.stackTrace(0)).symbolName,
+        ).isEqualTo("processJvmCrash_withIdenticalThreadStacks_shouldBuildAllThreads")
+    }
+
+    @Test
+    fun processJvmCrash_withDistinctThreadStacks_shouldBuildAllThreads() {
+        val callerThread = Thread("crashing-thread")
+        val allThreads =
+            buildMap {
+                repeat(200) { index ->
+                    put(
+                        Thread("worker-$index"),
+                        arrayOf(
+                            StackTraceElement("io.test.Worker$index", "run$index", "Worker$index.kt", index),
+                            StackTraceElement("java.lang.Thread", "run", "Thread.java", 840),
+                        ),
+                    )
+                }
+                put(
+                    callerThread,
+                    arrayOf(
+                        StackTraceElement("io.test.CrashingClass", "crash", "CrashingClass.kt", 99),
+                        StackTraceElement("java.lang.Thread", "run", "Thread.java", 840),
+                    ),
+                )
+            }
+
+        val report =
+            persistJvmCrashAndGetReport(
+                callerThread = callerThread,
+                throwable = RuntimeException("crash"),
+                allThreads = allThreads,
+            )
+
+        val threadDetails = requireNotNull(report.threadDetails)
+        assertThat(threadDetails.threadsLength).isEqualTo(allThreads.size)
+
+        val firstThread = requireNotNull(threadDetails.threads(0))
+        val secondThread = requireNotNull(threadDetails.threads(1))
+        assertThat(firstThread.stackTraceLength).isEqualTo(2)
+        assertThat(secondThread.stackTraceLength).isEqualTo(2)
+        assertThat(requireNotNull(firstThread.stackTrace(0)).className).isEqualTo("io.test.Worker0")
+        assertThat(requireNotNull(firstThread.stackTrace(0)).symbolName).isEqualTo("run0")
+        assertThat(requireNotNull(secondThread.stackTrace(0)).className).isEqualTo("io.test.Worker1")
+        assertThat(requireNotNull(secondThread.stackTrace(0)).symbolName).isEqualTo("run1")
+        assertThat(requireNotNull(firstThread.stackTrace(1)).className).isEqualTo("java.lang.Thread")
+        assertThat(requireNotNull(secondThread.stackTrace(1)).className).isEqualTo("java.lang.Thread")
+
+        val error = requireNotNull(report.errors(0))
+        assertThat(
+            requireNotNull(error.stackTrace(0)).className,
+        ).isEqualTo("io.bitdrift.capture.reports.processor.IssueReporterProcessorTest")
+        assertThat(
+            requireNotNull(error.stackTrace(0)).symbolName,
+        ).isEqualTo("processJvmCrash_withDistinctThreadStacks_shouldBuildAllThreads")
     }
 
     @Test
@@ -196,6 +283,7 @@ class IssueReporterProcessorTest {
             eq("foreground"),
             isNull(),
             any(),
+            eq(true),
         )
     }
 
@@ -221,6 +309,7 @@ class IssueReporterProcessorTest {
             eq("cached"),
             isNull(),
             any(),
+            eq(true),
         )
     }
 
@@ -246,6 +335,7 @@ class IssueReporterProcessorTest {
             eq("foreground_service"),
             isNull(),
             any(),
+            eq(true),
         )
     }
 
@@ -562,6 +652,27 @@ class IssueReporterProcessorTest {
         io.bitdrift.capture.TestResourceHelper
             .getResourceAsStream(rawFilePath)
 
+    private fun persistJvmCrashAndGetReport(
+        callerThread: Thread,
+        throwable: Throwable,
+        allThreads: Map<Thread, Array<StackTraceElement>>?,
+    ): Report {
+        processor.processJvmCrash(
+            callerThread,
+            throwable,
+            allThreads,
+        )
+
+        verify(issueReporterStorage).persistFatalIssue(
+            eq(DEFAULT_TEST_TIMESTAMP),
+            issueReportCaptor.capture(),
+            reportTypeCaptor.capture(),
+        )
+
+        val buffer = ByteBuffer.wrap(issueReportCaptor.lastValue)
+        return Report.getRootAsReport(buffer)
+    }
+
     private fun setReportDirectoryAndThrowException(exception: Exception) {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         doThrow(exception)
@@ -574,6 +685,7 @@ class IssueReporterProcessorTest {
                 any(),
                 any(),
                 any(),
+                eq(true),
             )
     }
 

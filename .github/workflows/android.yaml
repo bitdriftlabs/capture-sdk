@@ -266,7 +266,7 @@ jobs:
             const soBaseline = process.env.SO_BASELINE_KB;
             const soDiff = process.env.SO_DIFF_KB;
 
-            let body = '## Size Comparison Report (x86_64)\n\n';
+            let body = '## Android Size Comparison Report (x86_64)\n\n';
 
             // Combined table for both APK and SO sizes
             if ((apkBaseline && apkBaseline !== '') || (soBaseline && soBaseline !== '')) {
@@ -358,7 +358,7 @@ jobs:
     - name: Create AVD and generate snapshot for caching
       if: steps.avd-cache.outputs.cache-hit != 'true'
       timeout-minutes: 30
-      uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # pin@v2.35.0
+      uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
       with:
         channel: stable
         force-avd-creation: false
@@ -384,7 +384,7 @@ jobs:
       working-directory: ./platform/jvm
       run: ./gradlew microbenchmark:assembleAndroidTest
     - name: Instrumentation Tests
-      uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # pin@v2.35.0
+      uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
       with:
         channel: stable
         force-avd-creation: false
@@ -430,7 +430,7 @@ jobs:
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         timeout-minutes: 30
-        uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # pin@v2.35.0
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         with:
           channel: stable
           force-avd-creation: false
@@ -445,7 +445,7 @@ jobs:
           script: echo "Generated AVD snapshot for caching."
 
       - name: Run Microbenchmarks
-        uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # pin@v2.35.0
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         timeout-minutes: 30
         with:
           channel: stable
@@ -640,7 +640,7 @@ jobs:
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         timeout-minutes: 30
-        uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # pin@v2.35.0
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         with:
           channel: stable
           api-level: ${{ matrix.api-level }}
@@ -652,7 +652,7 @@ jobs:
           emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: echo "Generated AVD snapshot for caching."
       - name: run tests
-        uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # pin@v2.35.0
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         timeout-minutes: 15
         with:
           force-avd-creation: false
