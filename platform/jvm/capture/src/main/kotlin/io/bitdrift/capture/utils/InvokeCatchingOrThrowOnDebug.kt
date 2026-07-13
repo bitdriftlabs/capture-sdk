@@ -10,19 +10,44 @@ package io.bitdrift.capture.utils
 import android.util.Log
 import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.ContextHolder
+import java.util.concurrent.Executor
 
 /**
  * Safely invokes a customer facing callback with the given [arg]. On failure:
  * - Always logs a warning to logcat.
  * - In debug builds, throws [DebugCustomerCallbackException] so the customer is aware during development.
  * - In release builds, the exception is swallowed to avoid crashing the app.
+ *
+ * If an [executor] is provided, the callback is dispatched through it. If the executor itself
+ * throws (e.g. RejectedExecutionException), the callback is invoked inline as a fallback.
  */
-internal fun <T> ((T) -> Unit)?.invokeCatchingOrThrowOnDebug(arg: T) {
-    runCatching {
-        this?.invoke(arg)
-    }.onFailure { throwable ->
-        DebugCustomerCallbackException.createIfDebug(throwable)?.let { throw it }
+internal fun <T> ((T) -> Unit)?.invokeCatchingOrThrowOnDebug(
+    arg: T,
+    executor: Executor? = null,
+) {
+    val callback = this ?: return
+
+    val action =
+        Runnable {
+            runCatching { callback(arg) }
+                .onFailure { handleCallbackFailure(it) }
+        }
+
+    if (executor == null) {
+        action.run()
+        return
     }
+
+    runCatching { executor.execute(action) }
+        .onFailure { executorFailure ->
+            // Executor rejected/failed — log, surface in debug, then run inline as fallback.
+            handleCallbackFailure(executorFailure)
+            action.run()
+        }
+}
+
+private fun handleCallbackFailure(throwable: Throwable) {
+    DebugCustomerCallbackException.createIfDebug(throwable)?.let { throw it }
 }
 
 /**

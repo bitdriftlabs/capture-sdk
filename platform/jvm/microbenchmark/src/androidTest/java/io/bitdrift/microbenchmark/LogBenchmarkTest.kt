@@ -28,9 +28,13 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.webview.WebViewBridgeMessageHandler
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.junit.After
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -59,6 +63,13 @@ class LogBenchmarkTest {
             fieldProviders = fieldProviders,
             configuration =  configuration,
         )
+    }
+
+    @Ignore("TODO: Fran. Still prototyping")
+    @After
+    fun tearDown() {
+        destroyCurrentLogger()
+        Capture.Logger.resetShared()
     }
 
     private fun createFieldProviders(providers: Int = 5, fields: Int = 10): List<FieldProvider> {
@@ -168,7 +179,7 @@ class LogBenchmarkTest {
             handler.log(message)
         }
     }
-    
+
     @Test
     fun startNewSession() = benchmarkCaptureOperation{
         Capture.Logger.startNewSession()
@@ -194,6 +205,40 @@ class LogBenchmarkTest {
         Capture.Logger.clearEntityId()
     }
 
+    @Ignore("TODO: Fran. Still prototyping")
+    @Test
+    fun sdkStartOnMainThread() {
+        benchmarkSdkStart(initSdkExecutor = null)
+    }
+
+    @Ignore("TODO: Fran. Still prototyping")
+    @Test
+    fun sdkStartOnBackgroundThread() {
+        val executor =
+            Executors.newSingleThreadExecutor { runnable ->
+                Thread(runnable, "capture-sdk-start-background-thread")
+            }
+        try {
+            benchmarkSdkStart(initSdkExecutor = executor)
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    private fun benchmarkSdkStart(initSdkExecutor: Executor?){
+        benchmarkRule.measureRepeated {
+            Capture.Logger.start(
+                apiKey = "[test_api_key]",
+                apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
+                context = InstrumentationRegistry.getInstrumentation().targetContext,
+                sessionStrategy = SessionStrategy.Fixed(),
+                executor = initSdkExecutor,
+            )
+            destroyCurrentLogger()
+            Capture.Logger.resetShared()
+        }
+    }
+
     private fun benchmarkCaptureOperation(configuration: Configuration = Configuration(), captureSdkOperation: () -> Unit ) {
         startLogger(fieldProviders = createFieldProviders(), configuration = configuration)
 
@@ -203,6 +248,13 @@ class LogBenchmarkTest {
     private fun getInternalLogger(): IInternalLogger {
         startLogger()
         return Capture.logger() as IInternalLogger
+    }
+
+    private fun destroyCurrentLogger() {
+        (Capture.logger() as? IInternalLogger)?.let {
+            CaptureJniLibrary.shutdown((it as io.bitdrift.capture.LoggerImpl).loggerId)
+            CaptureJniLibrary.destroyLogger(it.loggerId)
+        }
     }
 
     private fun buildFieldsMap(size: Int, keyIdentifier: String = "key_"): Map<String, String> =

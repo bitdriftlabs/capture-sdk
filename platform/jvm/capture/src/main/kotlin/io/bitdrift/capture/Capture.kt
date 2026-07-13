@@ -14,6 +14,7 @@ import android.os.strictmode.Violation
 import android.system.Os
 import android.util.Log
 import androidx.annotation.RequiresApi
+import io.bitdrift.capture.Capture.Logger.start
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
 import io.bitdrift.capture.common.MainThreadHandler
@@ -32,6 +33,7 @@ import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
 import okhttp3.HttpUrl
 import java.util.UUID
+import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 import kotlin.time.TimeSource
@@ -43,6 +45,12 @@ internal sealed class LoggerState {
      * The logger has not yet been started.
      */
     data object NotStarted : LoggerState()
+
+
+    /**
+     * The logger is in pre-init in memory buffer state
+     */
+    data object PreInit : LoggerState()
 
     /**
      * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
@@ -68,6 +76,8 @@ internal sealed class LoggerState {
 object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
+    private val preInitInMemoryLoggerRef: AtomicReference<PreInitInMemoryLogger?> =
+        AtomicReference()
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -77,7 +87,8 @@ object Capture {
     fun logger(): ILogger? =
         when (val state = default.get()) {
             is LoggerState.NotStarted -> null
-            is LoggerState.Starting -> null
+            is LoggerState.PreInit -> preInitInMemoryLoggerRef.get()
+            is LoggerState.Starting -> preInitInMemoryLoggerRef.get()
             is LoggerState.Started -> state.logger
             is LoggerState.StartFailure -> null
         }
@@ -121,6 +132,15 @@ object Capture {
             }
 
         /**
+         * Sends a signal to keep logs in memory while internal SDK is being initialized
+         */
+        @JvmStatic
+        fun preInit(){
+            default.compareAndSet(LoggerState.NotStarted, LoggerState.PreInit)
+            preInitInMemoryLoggerRef.compareAndSet(null, PreInitInMemoryLogger())
+        }
+
+        /**
          * Initializes the Capture SDK with the specified API key, providers, and configuration.
          * Calling other SDK methods has no effect unless the logger has been initialized.
          * Subsequent calls to this function will have no effect.
@@ -136,11 +156,13 @@ object Capture {
          * @param context an optional context reference. You should provide the context if called from
          * a [android.content.ContentProvider].
          * @param startResult an optional callback invoked with the result of the SDK initialization.
-         *                     The callback is always called on the calling thread before [start] returns.
+         *                     When no [executor] is provided, the callback is invoked on the calling thread
+         *                     before [start] returns. When an [executor] is provided, [start] returns
+         *                     immediately after submitting the init task, and the callback is invoked on the
+         *                     executor thread once initialization completes.
          *                     On success, it receives a [CaptureResult.Success] containing an [ILogger] instance.
          *                     On failure, it receives a [CaptureResult.Failure] with a [SdkStartFailure].
          */
-        @Synchronized
         @JvmStatic
         @JvmOverloads
         fun start(
@@ -166,9 +188,9 @@ object Capture {
             )
         }
 
-        // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
-        // while subsequent logger access relies on volatile reads.
-        @Synchronized
+        // Single-initialization is enforced by the atomic CAS on `default` below;
+        // no external locking is required. Callers observe the started LoggerImpl via
+        // `Capture.logger()`, published through the AtomicReference (volatile-equivalent semantics).
         @JvmStatic
         @JvmOverloads
         internal fun start(
@@ -191,53 +213,71 @@ object Capture {
             }
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
-                initSdk(
-                    apiKey = apiKey,
-                    sessionStrategy = sessionStrategy,
-                    configuration = configuration,
-                    fieldProviders = fieldProviders,
-                    dateProvider = dateProvider,
-                    apiUrl = apiUrl,
-                    bridge = bridge,
-                    context = context,
-                    startResult = startResult,
-                )
-            } else {
+            // Only the CAS winner performs any side effects; concurrent/repeat callers are a no-op.
+            val didStart =
+                default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting) ||
+                        default.compareAndSet(LoggerState.PreInit, LoggerState.Starting)
+            if (!didStart) {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
+                return
             }
+
+            initSdk(
+                apiKey = apiKey,
+                sessionStrategy = sessionStrategy,
+                configuration = configuration,
+                fieldProviders = fieldProviders,
+                dateProvider = dateProvider,
+                apiUrl = apiUrl,
+                bridge = bridge,
+                context = context,
+                startResult = startResult,
+            )
         }
 
         /**
          * The Id for the current ongoing session.
-         * It's equal to `null` prior to the start of Capture SDK.
+         *
+         * Returns `null` until the Capture SDK has finished starting successfully.
+         * To obtain a guaranteed non-null value, use the [ILogger] instance delivered
+         * via [CaptureResult.Success] to the `startResult` callback passed to [start].
          */
         @JvmStatic
         val sessionId: String?
-            get() = logger()?.sessionId
+            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.sessionId
 
         /**
          * The URL for the current ongoing session.
-         * It's equal to `null` prior to the start of Capture SDK.
+         *
+         * Returns `null` until the Capture SDK has finished starting successfully.
+         * To obtain a guaranteed non-null value, use the [ILogger] instance delivered
+         * via [CaptureResult.Success] to the `startResult` callback passed to [start].
          */
         @JvmStatic
         val sessionUrl: String?
-            get() = logger()?.sessionUrl
+            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.sessionUrl
 
         /**
          * A canonical identifier for a device that remains consistent as long as an application
          * is not reinstalled.
          *
          * The value of this property is different for apps from the same vendor running on
-         * the same device. It is equal to null prior to the start of bitdrift Capture SDK.
+         * the same device.
+         *
+         * Returns `null` until the Capture SDK has finished starting successfully.
+         * To obtain a guaranteed non-null value, use the [ILogger] instance delivered
+         * via [CaptureResult.Success] to the `startResult` callback passed to [start].
          */
         @JvmStatic
         val deviceId: String?
-            get() = logger()?.deviceId
+            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.deviceId
 
         /**
          * Whether workflow-controlled tracing is currently active for this session.
-         * Returns `null` prior to SDK start.
+         *
+         * Returns `null` until the Capture SDK has finished starting successfully.
+         * To obtain a guaranteed non-null value, use the [ILogger] instance delivered
+         * via [CaptureResult.Success] to the `startResult` callback passed to [start].
          */
         @JvmStatic
         val isTracingActive: Boolean?
@@ -305,9 +345,7 @@ object Capture {
             key: String,
             value: String,
         ) {
-            logger()?.let {
-                it.addField(key, value)
-            }
+            logger()?.addField(key, value)
         }
 
         /**
@@ -686,66 +724,97 @@ object Capture {
         context: Context?,
         startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
     ) {
-        try {
-            val startSdkTimer = TimeSource.Monotonic.markNow()
+        val initAction =
+            Runnable {
+                try {
+                    val startSdkTimer = TimeSource.Monotonic.markNow()
 
-            if (!ContextHolder.isInitialized && context != null) {
-                // Make sure the global context is set if no Initializer was used
-                ContextHolder.APP_CONTEXT = context.applicationContext
-            }
+                    if (!ContextHolder.isInitialized && context != null) {
+                        // Make sure the global context is set if no Initializer was used
+                        ContextHolder.APP_CONTEXT = context.applicationContext
+                    }
 
-            val appContext = ContextHolder.APP_CONTEXT
+                    val appContext = ContextHolder.APP_CONTEXT
 
-            // This needs to happen before loading the native library as we set
-            // up logging during library initialization.
-            setUpInternalLogging(appContext)
+                    // This needs to happen before loading the native library as we set
+                    // up logging during library initialization.
+                    setUpInternalLogging(appContext)
 
-            val nativeLoadDuration =
-                measureTime {
-                    CaptureJniLibrary.load()
-                }
+                    val nativeLoadDuration =
+                        measureTime {
+                            CaptureJniLibrary.load()
+                        }
 
-            val (loggerImpl, loggerImplBuildDuration) =
-                measureTimedValue {
-                    LoggerImpl(
-                        apiKey = apiKey,
-                        apiUrl = apiUrl,
-                        context = appContext,
-                        fieldProviders = fieldProviders,
-                        dateProvider = dateProvider ?: SystemDateProvider(),
-                        configuration = configuration,
-                        sessionStrategy = sessionStrategy,
-                        bridge = bridge,
+                    val (loggerImpl, loggerImplBuildDuration) =
+                        measureTimedValue {
+                            LoggerImpl(
+                                apiKey = apiKey,
+                                apiUrl = apiUrl,
+                                context = appContext,
+                                fieldProviders = fieldProviders,
+                                dateProvider = dateProvider ?: SystemDateProvider(),
+                                configuration = configuration,
+                                sessionStrategy = sessionStrategy,
+                                bridge = bridge,
+                            )
+                        }
+
+                    default.set(LoggerState.Started(loggerImpl))
+
+                    preInitInMemoryLoggerRef.getAndSet(null)?.let { preInitLogger ->
+                        preInitLogger.flushToNative(loggerImpl)
+                        preInitLogger.clear()
+                    }
+
+                    // Must be initialized right after the logger state is set to avoid a null
+                    // Capture.logger() reference when onBeforeSend callbacks are triggered.
+                    loggerImpl.initIssueReporter()
+
+                    val sdkConfiguredDuration =
+                        SdkConfiguredDuration(
+                            wholeStartDuration = startSdkTimer.elapsedNow(),
+                            nativeLoadDuration = nativeLoadDuration,
+                            loggerImplBuildDuration = loggerImplBuildDuration,
+                        )
+
+                    loggerImpl.writeSdkStartLog(
+                        appContext = appContext,
+                        sdkConfiguredDuration = sdkConfiguredDuration,
+                        captureStartThread = Thread.currentThread().name,
+                    )
+
+                    startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Success(loggerImpl))
+                } catch (throwable: Throwable) {
+                    reportStartFailure(
+                        errorDetails = "Failed to start Capture: ${throwable.message}",
+                        throwable = throwable,
+                        startResult = startResult,
                     )
                 }
+            }
 
-            default.set(LoggerState.Started(loggerImpl))
+        // Install the pre-init buffer so log calls made between now and `Started`
+        // are captured. `initSdk` is responsible for draining and clearing it.
+        preInitInMemoryLoggerRef.compareAndSet(null, PreInitInMemoryLogger())
 
-            // Must be initialized right after the logger state is set to avoid a null
-            // Capture.logger() reference when onBeforeSend callbacks are triggered.
-            loggerImpl.initIssueReporter()
+        initAction.run()
+    }
 
-            val sdkConfiguredDuration =
-                SdkConfiguredDuration(
-                    wholeStartDuration = startSdkTimer.elapsedNow(),
-                    nativeLoadDuration = nativeLoadDuration,
-                    loggerImplBuildDuration = loggerImplBuildDuration,
-                )
+    private fun reportStartFailure(
+        errorDetails: String,
+        throwable: Throwable,
+        startResult: ((CaptureResult<ILogger>) -> Unit)?,
+        executor: Executor? = null,
+    ) {
+        preInitInMemoryLoggerRef.getAndSet(null)?.clear()
 
-            loggerImpl.writeSdkStartLog(
-                appContext = appContext,
-                sdkConfiguredDuration = sdkConfiguredDuration,
-                captureStartThread = Thread.currentThread().name,
-            )
-
-            startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Success(loggerImpl))
-        } catch (throwable: Throwable) {
-            if (throwable.shouldReThrowOnDebugBuild()) throw throwable
-            val errorDetails = "Failed to start Capture: ${throwable.message}"
-            Log.w(LOG_TAG, errorDetails, throwable)
-            default.set(LoggerState.StartFailure)
-            startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorDetails, throwable)))
-        }
+        if (throwable.shouldReThrowOnDebugBuild()) throw throwable
+        Log.w(LOG_TAG, errorDetails, throwable)
+        default.set(LoggerState.StartFailure)
+        startResult.invokeCatchingOrThrowOnDebug(
+            CaptureResult.Failure(SdkStartFailure(errorDetails, throwable)),
+            executor,
+        )
     }
 
     private fun Throwable.shouldReThrowOnDebugBuild(): Boolean = this is DebugCustomerCallbackException

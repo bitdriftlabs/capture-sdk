@@ -48,7 +48,7 @@ class CaptureOkHttpTracingInterceptor
             }
 
             val propagationMode = getPropagationMode()
-            propagationMode.logInternalStatus()
+            propagationMode.logInternalStatus(currentLogger)
 
             if (!shouldAddTraceHeaders(currentLogger, propagationMode, request)) {
                 return chain.proceed(request)
@@ -96,8 +96,8 @@ class CaptureOkHttpTracingInterceptor
             return TracePropagationMode.fromRuntimeValue(runtimeValue)
         }
 
-        private fun TracePropagationMode.logInternalStatus() {
-            val internalLogger = Capture.logger() as? IInternalLogger
+        private fun TracePropagationMode.logInternalStatus(currentLogger: ILogger) {
+            val internalLogger = currentLogger as? IInternalLogger
             internalLogger?.logInternal(
                 type = LogType.INTERNALSDK,
                 level = LogLevel.INFO,

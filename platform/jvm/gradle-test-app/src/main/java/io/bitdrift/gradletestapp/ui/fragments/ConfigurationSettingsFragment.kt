@@ -103,6 +103,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         backendCategory.addPreference(buildSwitchPreference(context))
         backendCategory.addPreference(buildSessionReplaySwitch(context))
         backendCategory.addPreference(buildDeferredStartSwitch(context))
+        backendCategory.addPreference(buildBackgroundStartSwitch(context))
         backendCategory.addPreference(buildWebViewMonitoringPreference(context))
         backendCategory.addPreference(buildDiagnosticsSwitch(context))
 
@@ -176,6 +177,9 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     private fun buildDeferredStartSwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, DEFERRED_START_PREFS_KEY, DEFERRED_START_TITLE, false)
 
+    private fun buildBackgroundStartSwitch(context: Context): SwitchPreference =
+        buildSwitchPreference(context, BACKGROUND_START_PREFS_KEY, BACKGROUND_START_TITLE, false)
+
     private fun buildSessionReplaySwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, SESSION_REPLAY_ENABLED_PREFS_KEY, SESSION_REPLAY_TITLE, true)
 
@@ -222,6 +226,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
+        const val BACKGROUND_START_PREFS_KEY = "backgroundStart"
         const val SESSION_REPLAY_ENABLED_PREFS_KEY = "sessionReplayEnabled"
         const val DIAGNOSTICS_ENABLED_KEY = "diagnosticsEnabled"
         const val WEBVIEW_MONITORING_PREFS_KEY = "webviewMonitoring"
@@ -233,6 +238,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"
+        private const val BACKGROUND_START_TITLE = "Start SDK On Background Thread"
         private const val SESSION_REPLAY_TITLE = "Session Replay"
         private const val DIAGNOSTICS_TITLE = "Diagnostics Tools"
         private const val WEBVIEW_MONITORING_TITLE = "WebView Monitoring"

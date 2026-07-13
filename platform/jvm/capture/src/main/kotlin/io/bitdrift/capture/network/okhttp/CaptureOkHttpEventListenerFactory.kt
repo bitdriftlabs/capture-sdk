@@ -30,7 +30,7 @@ import okhttp3.EventListener
  */
 class CaptureOkHttpEventListenerFactory internal constructor(
     private val targetEventListenerFactory: EventListener.Factory?,
-    private val logger: ILogger?,
+    private val loggerProvider: () -> ILogger?,
     private val clock: IClock,
     private val requestFieldProvider: OkHttpRequestFieldProvider,
     private val responseFieldProvider: OkHttpResponseFieldProvider,
@@ -49,7 +49,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
         responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
     ) : this(
         targetEventListenerFactory = targetEventListenerFactory,
-        logger = Capture.logger(),
+        loggerProvider = { Capture.logger() },
         clock = DefaultClock.getInstance(),
         requestFieldProvider = requestFieldProvider,
         responseFieldProvider = responseFieldProvider,
@@ -70,8 +70,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
         )
     }
 
-    // attempts to get the latest logger if one wasn't found at construction time
-    private fun getLogger(): ILogger? = logger ?: Capture.logger()
+    private fun getLogger(): ILogger? = loggerProvider()
 
     private companion object {
         private val DEFAULT_REQUEST_FIELD_PROVIDER = OkHttpRequestFieldProvider { emptyMap() }
