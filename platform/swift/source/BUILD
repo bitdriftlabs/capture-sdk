@@ -80,11 +80,10 @@ bitdrift_rust_library(
 )
 
 # Rust 1.89+ requires mangled allocator symbols when its static standard
-# library is consumed by the Apple linker. rules_rust's global allocator
-# provider supplies those through a Rust staticlib, which also embeds a second
-# full copy of the standard library. This no_std rlib emits only the allocator
-# shims and uses the platform allocator, so the framework continues to contain
-# exactly the custom standard library from rust-std-mobile.
+# library is consumed by the Apple linker. rules_rust's current provider emits
+# them through a Rust staticlib, which also embeds a second standard-library
+# copy. This no_std rlib is the former rules_rust shim: it forwards to the
+# custom rust-std-mobile allocator and does not contain a standard library.
 rust_library(
     name = "rust_allocator_shim",
     srcs = ["allocator_shim.rs"],
