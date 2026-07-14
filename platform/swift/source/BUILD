@@ -2,6 +2,7 @@ load("@rules_apple//apple:apple.bzl", "apple_static_xcframework")
 load("@rules_apple//apple:docc.bzl", "docc_archive")
 load("@rules_apple//apple:ios.bzl", "ios_static_framework")
 load("@rules_cc//cc:defs.bzl", "objc_library")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("@sdk_version//:sdk_version.bzl", "SDK_VERSION")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
@@ -78,6 +79,25 @@ bitdrift_rust_library(
     ],
 )
 
+# Rust 1.89+ requires mangled allocator symbols when its static standard
+# library is consumed by the Apple linker. rules_rust's current provider emits
+# them through a Rust staticlib, which also embeds a second standard-library
+# copy. This no_std rlib is the former rules_rust shim: it forwards to the
+# custom rust-std-mobile allocator and does not contain a standard library.
+rust_library(
+    name = "rust_allocator_shim",
+    srcs = ["allocator_shim.rs"],
+    crate_name = "rust_allocator_shim",
+    edition = "2021",
+    rustc_env = {
+        "RUSTC_BOOTSTRAP": "1",
+    },
+    rustc_flags = ["-Cpanic=abort"],
+    tags = ["macos_only"],
+    visibility = ["//visibility:private"],
+    alwayslink = True,
+)
+
 objc_library(
     name = "objc_bridge",
     srcs = [
@@ -102,6 +122,7 @@ objc_library(
     deps = [
         ":CapturePassable",
         ":bitdrift_enhanced_crash_data",
+        ":rust_allocator_shim",
         ":swift_bridge",
     ],
 )

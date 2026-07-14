@@ -1,13 +1,17 @@
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_library", "rust_shared_library", "rust_test")
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_clippy")
 
 def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], **args):
     rust_binary(
         name = name,
         srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
-        deps = all_crate_deps(normal = True) + deps,
-        proc_macro_deps = all_crate_deps(proc_macro = True) + proc_macro_deps,
-        aliases = aliases(),
+        deps = all_crate_deps(normal = True, cargo_only = True) + deps,
+        proc_macro_deps = proc_macro_deps,
+        aliases = _crate_aliases(),
         edition = "2021",
         rustc_flags = _rustc_flags(),
         **args
@@ -28,9 +32,9 @@ def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps =
     rust_shared_library(
         name = name,
         srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
-        deps = all_crate_deps(normal = True) + deps,
-        proc_macro_deps = all_crate_deps(proc_macro = True) + proc_macro_deps,
-        aliases = aliases(),
+        deps = all_crate_deps(normal = True, cargo_only = True) + deps,
+        proc_macro_deps = proc_macro_deps,
+        aliases = _crate_aliases(),
         edition = "2021",
         rustc_flags = rustc_flags + _rustc_flags(),
         **args
@@ -52,9 +56,9 @@ def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], **args):
         name = name,
         rustc_flags = _rustc_flags(),
         edition = "2021",
-        deps = all_crate_deps(normal = True, normal_dev = True) + deps,
-        proc_macro_deps = all_crate_deps(proc_macro = True, proc_macro_dev = True) + proc_macro_deps,
-        aliases = aliases(),
+        deps = all_crate_deps(normal = True, normal_dev = True, cargo_only = True) + deps,
+        proc_macro_deps = proc_macro_deps,
+        aliases = _crate_aliases(),
         **args
     )
 
@@ -71,15 +75,9 @@ def bitdrift_rust_library_only(name, srcs, deps = []):
     rust_library(
         name = name,
         srcs = srcs,
-        deps = [
-            # This dependency is required in order to allow clang to link the final binaries. Normally rustc would inject this.
-            "//core/alloc:alloc",
-        ] + deps + all_crate_deps(normal = True),
-        proc_macro_deps = all_crate_deps(
-            proc_macro = True,
-        ),
+        deps = deps + all_crate_deps(normal = True, cargo_only = True),
         disable_pipelining = True,
-        aliases = aliases(),
+        aliases = _crate_aliases(),
         rustc_flags = _rustc_flags(),
         edition = "2021",
     )
@@ -87,16 +85,10 @@ def bitdrift_rust_library_only(name, srcs, deps = []):
 def bitdrift_rust_library(name, srcs = None, deps = [], test_deps = [], tags = [], data = [], extra_aliases = {}, **args):
     rust_library(
         name = name,
-        deps = [
-            # This dependency is required in order to allow clang to link the final binaries. Normally rustc would inject this.
-            "//core/alloc:alloc",
-        ] + deps + all_crate_deps(normal = True),
+        deps = deps + all_crate_deps(normal = True, cargo_only = True),
         srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
-        proc_macro_deps = all_crate_deps(
-            proc_macro = True,
-        ),
         disable_pipelining = True,
-        aliases = dict(extra_aliases.items() + aliases().items()),
+        aliases = _crate_aliases(extra_aliases),
         rustc_flags = _rustc_flags(),
         edition = "2021",
         tags = tags,
@@ -109,17 +101,12 @@ def bitdrift_rust_library(name, srcs = None, deps = [], test_deps = [], tags = [
         crate = name,
         tags = tags,
         rustc_flags = _rustc_flags(),
-        aliases = dict(extra_aliases.items() + aliases(
-            normal_dev = True,
-            proc_macro_dev = True,
-        ).items()),
+        aliases = _crate_aliases(extra_aliases),
         data = data,
         deps = all_crate_deps(
             normal_dev = True,
+            cargo_only = True,
         ) + test_deps,
-        proc_macro_deps = all_crate_deps(
-            proc_macro_dev = True,
-        ),
         edition = "2021",
     )
 
@@ -166,3 +153,15 @@ def _rustc_flags():
         "-Aclippy::significant-drop-tightening",
         "-Aclippy::significant-drop-in-scrutinee",
     ]
+
+def _crate_aliases(extra_aliases = {}):
+    result = dict(extra_aliases)
+
+    # First-party targets are supplied directly by the BUILD targets, whose names don't always
+    # match their package directories. rules_rs aliases those packages by directory, so retain
+    # only aliases that resolve through the generated crates repository.
+    for dep, crate_name in aliases().items():
+        if dep.startswith("@crates//"):
+            result[dep] = crate_name
+
+    return result
