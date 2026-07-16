@@ -228,9 +228,17 @@ fn image_id_from_header(header_ptr: *const c_void) -> Option<String> {
       .cast::<u8>()
       .add(std::mem::size_of::<MachHeader64>())
   };
+  let load_command_size = size_u32::<LoadCommand>();
+  let uuid_command_size = size_u32::<UuidCommand>();
   for _ in 0 .. header.ncmds {
     let command = unsafe { read_unaligned(cursor.cast::<LoadCommand>()) };
+    if command.cmdsize < load_command_size {
+      break;
+    }
     if command.cmd == LC_UUID {
+      if command.cmdsize < uuid_command_size {
+        break;
+      }
       let uuid_command = unsafe { read_unaligned(cursor.cast::<UuidCommand>()) };
       return Some(format_uuid(uuid_command.uuid));
     }
@@ -238,6 +246,12 @@ fn image_id_from_header(header_ptr: *const c_void) -> Option<String> {
   }
 
   None
+}
+
+fn size_u32<T>() -> u32 {
+  u32::try_from(std::mem::size_of::<T>())
+    .ok()
+    .unwrap_or(u32::MAX)
 }
 
 fn format_uuid(uuid: [u8; 16]) -> String {

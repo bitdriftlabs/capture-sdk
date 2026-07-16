@@ -17,7 +17,7 @@
 /// only in `CrashReporterService`; consumers like `DiagnosticEventReporter` and `Logger`
 /// remain unaffected.
 @protocol CrashReporting <NSObject>
-/// Returns the date of the most recent crash captured by KSCrash, or nil if none is available.
+/// Returns the date of the most recent crash captured by an active crash reporter, or nil if none is available.
 - (NSDate *_Nullable)cachedCrashDate;
 /// Returns structured data about the previous crash (kind, NSException info, date), or nil if none.
 - (BitdriftPreviousCrash *_Nullable)cachedPreviousCrash;

@@ -227,3 +227,48 @@ fn handle_exception_snapshot_records_missing_reason_and_empty_stack() {
     .iter()
     .all(|frame| frame == &schema::RawNSExceptionStackFrame::default()));
 }
+
+#[test]
+fn image_id_from_header_returns_none_for_invalid_command_sizes() {
+  #[repr(C)]
+  struct HeaderWithCommand {
+    header: super::MachHeader64,
+    command: super::LoadCommand,
+  }
+
+  let invalid_load_command = HeaderWithCommand {
+    header: super::MachHeader64 {
+      magic: super::MH_MAGIC_64,
+      cputype: 0,
+      cpusubtype: 0,
+      filetype: 0,
+      ncmds: 1,
+      sizeofcmds: super::size_u32::<super::LoadCommand>(),
+      flags: 0,
+      reserved: 0,
+    },
+    command: super::LoadCommand {
+      cmd: super::LC_UUID,
+      cmdsize: super::size_u32::<super::LoadCommand>() - 1,
+    },
+  };
+  assert!(super::image_id_from_header((&raw const invalid_load_command).cast()).is_none());
+
+  let invalid_uuid_command = HeaderWithCommand {
+    header: super::MachHeader64 {
+      magic: super::MH_MAGIC_64,
+      cputype: 0,
+      cpusubtype: 0,
+      filetype: 0,
+      ncmds: 1,
+      sizeofcmds: super::size_u32::<super::LoadCommand>(),
+      flags: 0,
+      reserved: 0,
+    },
+    command: super::LoadCommand {
+      cmd: super::LC_UUID,
+      cmdsize: super::size_u32::<super::LoadCommand>(),
+    },
+  };
+  assert!(super::image_id_from_header((&raw const invalid_uuid_command).cast()).is_none());
+}
