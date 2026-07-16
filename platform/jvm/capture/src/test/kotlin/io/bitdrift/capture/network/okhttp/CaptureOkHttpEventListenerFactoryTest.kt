@@ -13,7 +13,9 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.ILogger
+import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.common.IClock
+import io.bitdrift.capture.common.RuntimeStringConfig
 import io.bitdrift.capture.network.HttpField
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -36,6 +38,7 @@ class CaptureOkHttpEventListenerFactoryTest {
     private val endpoint = "https://api.bitdrift.io/my_path/12345?my_query=my_value"
     private val clock: IClock = mock()
     private val logger: ILogger = mock()
+    private val runtimeProvider: IRuntimeProvider = mock()
 
     private val call: Call = mock()
 
@@ -526,6 +529,108 @@ class CaptureOkHttpEventListenerFactoryTest {
     }
 
     @Test
+    fun testDatadogIntakeRequestIsIgnored() {
+        val request =
+            Request
+                .Builder()
+                .url("https://app.datadoghq.com/api/v2/spans")
+                .post("test".toRequestBody())
+                .header("DD-API-KEY", "client-token")
+                .header("DD-EVP-ORIGIN", "android")
+                .header("DD-REQUEST-ID", "request-id")
+                .build()
+
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(202)
+                .message("accepted")
+                .build()
+
+        whenever(call.request()).thenReturn(request)
+
+        val factory =
+            createListenerFactory(
+                propagationMode = TracePropagationMode.DD,
+                ignoredRequestPathsCSV = "/api/v2/spans",
+                ignoredRequestRequiredHeadersCSV = "DD-EVP-ORIGIN",
+            )
+        val listener = factory.create(call)
+
+        listener.callStart(call)
+        listener.responseHeadersEnd(call, response)
+        listener.responseBodyEnd(call, 1)
+        listener.callEnd(call)
+
+        verify(logger, org.mockito.Mockito.never()).log(any<HttpRequestInfo>())
+        verify(logger, org.mockito.Mockito.never()).log(any<HttpResponseInfo>())
+    }
+
+    @Test
+    fun testDatadogModeUsesDatadogLinkableTraceIdForExistingW3CHeaders() {
+        val w3cTraceId = "88c131f5a4a41657a4cc039862759571"
+        val expectedDatadogTraceId = "11874870270490940785"
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .post("test".toRequestBody())
+                .header("traceparent", "00-$w3cTraceId-639ec5ab80cb312d-01")
+                .build()
+
+        val response =
+            Response
+                .Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(200)
+                .message("message")
+                .build()
+
+        whenever(call.request()).thenReturn(request)
+
+        val factory =
+            CaptureOkHttpEventListenerFactory(
+                targetEventListenerFactory = null,
+                logger = logger,
+                clock = clock,
+                runtimeProvider =
+                    runtimeProvider.also {
+                        whenever(
+                            it.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE),
+                        ).thenReturn(TracePropagationMode.DD.value)
+                        whenever(
+                            it.getRuntimeStringConfigValue(RuntimeStringConfig.NETWORK_REQUEST_IGNORE_PATHS_CSV),
+                        ).thenReturn("")
+                        whenever(
+                            it.getRuntimeStringConfigValue(RuntimeStringConfig.NETWORK_REQUEST_IGNORE_REQUIRED_HEADERS_CSV),
+                        ).thenReturn("")
+                    },
+                requestFieldProvider = OkHttpRequestFieldProvider { emptyMap() },
+                responseFieldProvider = OkHttpResponseFieldProvider { emptyMap() },
+            )
+        val listener = factory.create(call)
+
+        listener.callStart(call)
+        listener.responseHeadersEnd(call, response)
+        listener.responseBodyEnd(call, 1)
+        listener.callEnd(call)
+
+        val requestInfoCapture = argumentCaptor<HttpRequestInfo>()
+        verify(logger).log(requestInfoCapture.capture())
+        val responseInfoCapture = argumentCaptor<HttpResponseInfo>()
+        verify(logger).log(responseInfoCapture.capture())
+
+        val requestInfo = requestInfoCapture.firstValue
+        val responseInfo = responseInfoCapture.firstValue
+
+        assertThat(requestInfo.arrayFields[TracePropagation.TRACE_ID_FIELD_KEY].toString()).isEqualTo(expectedDatadogTraceId)
+        assertThat(responseInfo.arrayFields[TracePropagation.TRACE_ID_FIELD_KEY].toString()).isEqualTo(expectedDatadogTraceId)
+    }
+
+    @Test
     fun testApolloHeadersSendGraphQlSpans() {
         // ARRANGE
         val headerFields =
@@ -636,9 +741,21 @@ class CaptureOkHttpEventListenerFactoryTest {
         // ACT
         val factory =
             CaptureOkHttpEventListenerFactory(
-                null,
-                logger,
-                clock,
+                targetEventListenerFactory = null,
+                logger = logger,
+                clock = clock,
+                runtimeProvider =
+                    runtimeProvider.also {
+                        whenever(
+                            it.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE),
+                        ).thenReturn(TracePropagationMode.W3C.value)
+                        whenever(
+                            it.getRuntimeStringConfigValue(RuntimeStringConfig.NETWORK_REQUEST_IGNORE_PATHS_CSV),
+                        ).thenReturn("")
+                        whenever(
+                            it.getRuntimeStringConfigValue(RuntimeStringConfig.NETWORK_REQUEST_IGNORE_REQUIRED_HEADERS_CSV),
+                        ).thenReturn("")
+                    },
                 requestFieldProvider = requestFieldProvider,
                 responseFieldProvider = responseFieldProvider,
             )
@@ -693,6 +810,7 @@ class CaptureOkHttpEventListenerFactoryTest {
 
     @Test
     fun create_withNullLoggerAndNullTargetListener_shouldReturnNoOpListener() {
+        whenever(call.request()).thenReturn(Request.Builder().url(endpoint).build())
         val factory = createListenerFactory(logger = null)
 
         val noOpEventListener = factory.create(call)
@@ -702,6 +820,7 @@ class CaptureOkHttpEventListenerFactoryTest {
 
     @Test
     fun create_withNullLogAndValidTargetListener_returnsTargetListener() {
+        whenever(call.request()).thenReturn(Request.Builder().url(endpoint).build())
         val targetEventListener: EventListener = mock()
         val factory =
             createListenerFactory(
@@ -736,6 +855,9 @@ class CaptureOkHttpEventListenerFactoryTest {
     private fun createListenerFactory(
         targetEventListenerCreator: EventListener.Factory? = null,
         logger: ILogger? = this.logger,
+        propagationMode: TracePropagationMode = TracePropagationMode.W3C,
+        ignoredRequestPathsCSV: String = "",
+        ignoredRequestRequiredHeadersCSV: String = "",
         requestFieldProvider: OkHttpRequestFieldProvider =
             OkHttpRequestFieldProvider {
                 emptyMap()
@@ -749,6 +871,16 @@ class CaptureOkHttpEventListenerFactoryTest {
             targetEventListenerFactory = targetEventListenerCreator,
             logger = logger,
             clock = clock,
+            runtimeProvider =
+                runtimeProvider.also {
+                    whenever(it.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE)).thenReturn(propagationMode.value)
+                    whenever(
+                        it.getRuntimeStringConfigValue(RuntimeStringConfig.NETWORK_REQUEST_IGNORE_PATHS_CSV),
+                    ).thenReturn(ignoredRequestPathsCSV)
+                    whenever(
+                        it.getRuntimeStringConfigValue(RuntimeStringConfig.NETWORK_REQUEST_IGNORE_REQUIRED_HEADERS_CSV),
+                    ).thenReturn(ignoredRequestRequiredHeadersCSV)
+                },
             requestFieldProvider = requestFieldProvider,
             responseFieldProvider = responseFieldProvider,
         )

@@ -34,6 +34,7 @@ internal class CaptureOkHttpEventListener internal constructor(
     private val logger: ILogger?,
     private val clock: IClock,
     private val targetEventListener: EventListener?,
+    private val configuredPropagationMode: TracePropagationMode,
     private val requestExtraFieldsProvider: OkHttpRequestFieldProvider,
     private val responseExtraFieldsProvider: OkHttpResponseFieldProvider,
 ) : EventListener() {
@@ -514,7 +515,7 @@ internal class CaptureOkHttpEventListener internal constructor(
         request: Request,
         baseFields: Map<String, String> = emptyMap(),
     ): Map<String, String> {
-        val traceId = TracePropagation.extractSampledTraceId(request) ?: return baseFields
+        val traceId = TracePropagation.extractSampledTraceId(request, configuredPropagationMode) ?: return baseFields
         val fields = baseFields.toMutableMap()
         fields[TracePropagation.TRACE_ID_FIELD_KEY] = traceId
         return fields

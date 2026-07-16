@@ -79,6 +79,22 @@ final class URLSessionIntegration {
         return URLSessionTracePropagationMode(runtimeValue: runtimeValue)
     }
 
+    var requestIgnorePathsCSV: String {
+        guard let logger = Logger.getShared() as? Logger else {
+            return RuntimeVariable<String>.networkRequestIgnorePathsCSV.defaultValue
+        }
+
+        return logger.runtimeValue(.networkRequestIgnorePathsCSV)
+    }
+
+    var requestIgnoreRequiredHeadersCSV: String {
+        guard let logger = Logger.getShared() as? Logger else {
+            return RuntimeVariable<String>.networkRequestIgnoreRequiredHeadersCSV.defaultValue
+        }
+
+        return logger.runtimeValue(.networkRequestIgnoreRequiredHeadersCSV)
+    }
+
     var isTracingActive: Bool {
         (Logger.getShared() as? Logger)?.isTracingActive == true
     }

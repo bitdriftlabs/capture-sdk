@@ -91,6 +91,15 @@ final class URLSessionTaskTracker {
             return
         }
 
+        let integration = URLSessionIntegration.shared
+        let ignorePolicy = RuntimeURLSessionIgnorePolicy(
+            ignorePathsCSV: integration.requestIgnorePathsCSV,
+            requiredHeadersCSV: integration.requestIgnoreRequiredHeadersCSV,
+            )
+        if ignorePolicy.shouldIgnore(task.originalRequest) {
+            return
+        }
+
         self.lock.withLock {
             guard task.cap_requestInfo == nil else {
                 // Defensive check in case we've logged a request for a given task already.
@@ -99,7 +108,7 @@ final class URLSessionTaskTracker {
 
             var extraFields: Fields?
             if let originalRequest = task.originalRequest {
-                extraFields = URLSessionIntegration.shared.requestFieldProvider?.provideExtraFields(for: originalRequest)
+                extraFields = integration.requestFieldProvider?.provideExtraFields(for: originalRequest)
             }
             extraFields = Self.enrichExtraFields(extraFields, with: Self.ensureTraceContext(for: task))
             guard let requestInfo = HTTPRequestInfo(task: task, extraFields: extraFields) else {
@@ -107,7 +116,7 @@ final class URLSessionTaskTracker {
             }
 
             task.cap_requestInfo = requestInfo
-            URLSessionIntegration.shared.logger?.log(requestInfo, file: nil, line: nil, function: nil)
+            integration.logger?.log(requestInfo, file: nil, line: nil, function: nil)
         }
     }
 

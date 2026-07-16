@@ -34,15 +34,24 @@ extension URLSessionTask {
             return
         }
 
+        let ignorePolicy = RuntimeURLSessionIgnorePolicy(
+            ignorePathsCSV: integration.requestIgnorePathsCSV,
+            requiredHeadersCSV: integration.requestIgnoreRequiredHeadersCSV,
+            )
+
         let existingHeaders = self.originalRequest?.allHTTPHeaderFields
 
         guard !URLSessionTracePropagation.isBitdriftInternalRequest(existingHeaders) else {
             return
         }
 
+        guard !ignorePolicy.shouldIgnore(self.originalRequest) else {
+            return
+        }
+
         if URLSessionTracePropagation.hasExistingTraceHeaders(in: existingHeaders) {
             self.cap_hasExistingTraceHeaders = true
-            if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders) {
+            if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders, configuredPropagationMode: mode) {
                 self.cap_traceContext = URLSessionTraceContext(traceID: sampledTraceID, spanID: "")
             }
             return
@@ -75,7 +84,6 @@ extension URLSessionTask {
             mutableRequest.setValue("1", forHTTPHeaderField: URLSessionTracePropagation.xB3SampledHeader)
         case .datadog:
             mutableRequest.setValue(traceContext.datadogTraceID, forHTTPHeaderField: URLSessionTracePropagation.xDatadogTraceIDHeader)
-            mutableRequest.setValue(traceContext.datadogParentID, forHTTPHeaderField: URLSessionTracePropagation.xDatadogParentIDHeader)
             mutableRequest.setValue("2", forHTTPHeaderField: URLSessionTracePropagation.xDatadogSamplingPriorityHeader)
         case .disabled:
             break
