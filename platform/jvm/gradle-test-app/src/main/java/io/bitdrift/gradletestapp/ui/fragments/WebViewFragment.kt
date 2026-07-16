@@ -14,6 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebViewClient
 import androidx.fragment.app.Fragment
+import io.bitdrift.capture.webview.WebViewCapture
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.ui.webview.CustomWebView
 
@@ -33,6 +34,7 @@ class WebViewFragment : Fragment() {
         val webView = view.findViewById<CustomWebView>(R.id.webView)
         webView.webViewClient = WebViewClient()
         webView.settings.javaScriptEnabled = true
+        WebViewCapture.instrument(webView)
         val url = arguments?.getString(ARG_URL) ?: WEBVIEW_URLS.first().second
         webView.loadUrl(url)
         return view

@@ -43,7 +43,7 @@ import io.bitdrift.capture.providers.fieldsOf
  * **Note:** WebViewCapture.instrument(webView) will be called automatically only if the `io.bitdrift.capture-plugin`
  *  Gradle plugin must be applied to your project with `automaticWebViewInstrumentation` set to `true`.
  */
-internal object WebViewCapture {
+public object WebViewCapture {
     private const val BRIDGE_NAME = "BitdriftLogger"
     private const val TAG_KEY_INSTRUMENTED = 0x62697464 // "bitd" in hex, unique key for setTag
 

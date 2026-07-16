@@ -11,11 +11,23 @@ import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.RuntimeStringConfig
 
-internal interface IRuntimeProvider {
+/**
+ * TO-DO
+ */
+public interface IRuntimeProvider {
+    /**
+     * TO-DO
+     */
     fun isRuntimeFeatureEnabled(feature: RuntimeFeature): Boolean
 
+    /**
+     * TO-DO
+     */
     fun getRuntimeConfigValue(config: RuntimeConfig): Int
 
+    /**
+     * TO-DO
+     */
     fun getRuntimeStringConfigValue(config: RuntimeStringConfig): String
 }
 
