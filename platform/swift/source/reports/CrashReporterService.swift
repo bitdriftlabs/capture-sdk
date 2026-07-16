@@ -15,6 +15,13 @@ struct CrashReporterSetupResult {
     let diagnosticReporter: DiagnosticEventReporter?
 }
 
+/// The crash reporting state derived from the cached `reports/config.csv` file, read synchronously
+/// at startup before the runtime configuration snapshot is populated.
+private struct RuntimeFileState {
+    let resolution: ReporterInitResolution
+    let bitdriftCrashReporterEnabled: Bool
+}
+
 /// Coordinates crash reporter initialization and exposes the combined state of all active handlers
 /// through the `CrashReporting` protocol, abstracting away which reporters are in use.
 @objc class CrashReporterService: NSObject {
@@ -75,11 +82,11 @@ struct CrashReporterSetupResult {
         var diagnosticReporter: DiagnosticEventReporter?
 
         let initResult: IssueReporterInitResult = measureTime {
-            isBitdriftCrashHandlerEnabled = underlyingLogger.runtimeValue(.bdCrashReporter)
+            let runtimeFileState = resolveRuntimeState(from: sdkBaseURL)
+            isBitdriftCrashHandlerEnabled = runtimeFileState.bitdriftCrashReporterEnabled
 
-            let runtimeState = resolveRuntimeState(from: sdkBaseURL)
-            if runtimeState != .monitoring {
-                return .initialized(runtimeState)
+            if runtimeFileState.resolution != .monitoring {
+                return .initialized(runtimeFileState.resolution)
             }
 
             var reporterInitResolution: ReporterInitResolution?
@@ -247,7 +254,7 @@ private extension CrashReporterService {
         }
     }
 
-    func resolveRuntimeState(from baseURL: URL) -> ReporterInitResolution {
+    func resolveRuntimeState(from baseURL: URL) -> RuntimeFileState {
         let configPath = baseURL.appendingPathComponent(
             Constants.configCSV,
             isDirectory: false
@@ -258,20 +265,34 @@ private extension CrashReporterService {
             // For initial app installation/clear cache, the configuration wasn't written
             // to disk yet, so we intentionally enable crash reporting to not miss any
             // of those early crashes.
-            return .monitoring
+            return RuntimeFileState(
+                resolution: .monitoring,
+                bitdriftCrashReporterEnabled: RuntimeVariable.bdCrashReporter.defaultValue
+            )
         }
 
         guard let config = readCachedValues(contents) else {
-            return .runtimeInvalid
+            return RuntimeFileState(
+                resolution: .runtimeInvalid,
+                bitdriftCrashReporterEnabled: RuntimeVariable.bdCrashReporter.defaultValue
+            )
         }
 
+        // The config file may still only contain the legacy `crash_reporting.enabled` entry if it
+        // was written by an older SDK version, so this key can be absent even in a well-formed file.
+        let bitdriftCrashReporterEnabled = (config[RuntimeVariable.bdCrashReporter.name] as? Bool)
+            ?? RuntimeVariable.bdCrashReporter.defaultValue
+
+        let resolution: ReporterInitResolution
         switch config[RuntimeVariable.crashReporting.name] {
         case let enabled as Bool:
-            return enabled ? .monitoring : .runtimeNotEnabled
+            resolution = enabled ? .monitoring : .runtimeNotEnabled
         case nil:
-            return .runtimeMissingFlag
+            resolution = .runtimeMissingFlag
         default:
-            return .runtimeInvalid
+            resolution = .runtimeInvalid
         }
+
+        return RuntimeFileState(resolution: resolution, bitdriftCrashReporterEnabled: bitdriftCrashReporterEnabled)
     }
 }
