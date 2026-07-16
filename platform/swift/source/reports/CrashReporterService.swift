@@ -7,6 +7,7 @@
 
 internal import CaptureLoggerBridge
 import Foundation
+import MetricKit
 
 struct CrashReporterSetupResult {
     let initResult: IssueReporterInitResult
