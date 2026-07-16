@@ -20,6 +20,17 @@ typedef NS_ENUM(NSUInteger, BitdriftPreviousCrashKind) {
 
 @property(nonatomic, readonly, copy) NSString *name;
 @property(nonatomic, readonly, copy, nullable) NSString *reason;
+@property(nonatomic, readonly, copy) NSArray *frames;
+
+@end
+
+@interface BitdriftCrashStackFrame: NSObject
+
+@property(nonatomic, readonly) uint64_t frameAddress;
+@property(nonatomic, readonly) uint64_t symbolAddress;
+@property(nonatomic, readonly, copy, nullable) NSString *symbolName;
+@property(nonatomic, readonly, copy, nullable) NSString *binaryName;
+@property(nonatomic, readonly, copy, nullable) NSString *imageID;
 
 @end
 

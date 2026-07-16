@@ -12,6 +12,7 @@ use crate::previous::{
   CrashKind,
   NSExceptionCallStack,
   NSExceptionCrashInfo,
+  NSExceptionStackFrame,
   PreviousCrashDetails,
   PreviousCrashState,
 };
@@ -69,7 +70,8 @@ fn open_reads_previous_nsexception_state() -> Result<()> {
     record.nsexception.name[.. 12].copy_from_slice(b"NSException\0");
     record.nsexception.reason[.. 12].copy_from_slice(b"bad reason!\0");
     record.nsexception.call_stack.frame_count = 2;
-    record.nsexception.call_stack.return_addresses[.. 2].copy_from_slice(&[21, 34]);
+    record.nsexception.call_stack.frames[0].return_address = 21;
+    record.nsexception.call_stack.frames[1].return_address = 34;
     write(&path, crash_record_bytes(&record))?;
   }
 
@@ -100,6 +102,12 @@ fn open_reads_previous_nsexception_state() -> Result<()> {
             let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
             return_addresses[.. 2].copy_from_slice(&[21, 34]);
             return_addresses
+          },
+          frames: {
+            let mut frames = std::array::from_fn(|_| NSExceptionStackFrame::default());
+            frames[0].return_address = 21;
+            frames[1].return_address = 34;
+            frames
           },
         },
       })),

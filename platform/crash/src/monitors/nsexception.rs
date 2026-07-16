@@ -10,8 +10,10 @@
 mod tests;
 
 use crate::monitors::Monitor;
-use crate::writer;
+use crate::writer::{self, NSExceptionFrameRecord};
 use objc2_foundation::{NSArray, NSException, NSNumber};
+use std::ffi::{c_char, c_int, c_void, CStr};
+use std::ptr::{null, null_mut, read_unaligned};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 type ExceptionHandler = unsafe extern "C" fn(*mut NSException);
@@ -23,7 +25,49 @@ static PREVIOUS_HANDLER: AtomicUsize = AtomicUsize::new(0);
 struct ExceptionSnapshot {
   name: String,
   reason: Option<String>,
-  return_addresses: Vec<u64>,
+  frames: Vec<ExceptionFrameSnapshot>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ExceptionFrameSnapshot {
+  return_address: u64,
+  image_load_address: u64,
+  binary_name: Option<String>,
+  image_id: Option<String>,
+}
+
+#[allow(clippy::struct_field_names)]
+#[repr(C)]
+struct DlInfo {
+  dli_fname: *const c_char,
+  dli_fbase: *mut c_void,
+  dli_sname: *const c_char,
+  dli_saddr: *mut c_void,
+}
+
+#[repr(C)]
+struct MachHeader64 {
+  magic: u32,
+  cputype: i32,
+  cpusubtype: i32,
+  filetype: u32,
+  ncmds: u32,
+  sizeofcmds: u32,
+  flags: u32,
+  reserved: u32,
+}
+
+#[repr(C)]
+struct LoadCommand {
+  cmd: u32,
+  cmdsize: u32,
+}
+
+#[repr(C)]
+struct UuidCommand {
+  cmd: u32,
+  cmdsize: u32,
+  uuid: [u8; 16],
 }
 
 unsafe extern "C" {
@@ -35,7 +79,12 @@ unsafe extern "C" {
   // https://developer.apple.com/documentation/Foundation/NSSetUncaughtExceptionHandler(_:)
   fn NSGetUncaughtExceptionHandler() -> Option<ExceptionHandler>;
   fn NSSetUncaughtExceptionHandler(handler: Option<ExceptionHandler>);
+  fn dladdr(addr: *const c_void, info: *mut DlInfo) -> c_int;
 }
+
+const LC_UUID: u32 = 0x1b;
+const MH_MAGIC_64: u32 = 0xfeed_facf;
+const MH_CIGAM_64: u32 = 0xcffa_edfe;
 
 //
 // NSExceptionMonitor
@@ -103,23 +152,115 @@ fn handle_exception_snapshot(exception: *mut NSException, snapshot: Option<Excep
 fn extract_exception_snapshot(exception: &NSException) -> ExceptionSnapshot {
   let return_addresses = exception.callStackReturnAddresses();
   let return_addresses: &NSArray<NSNumber> = return_addresses.as_ref();
-  let return_addresses = (0 .. return_addresses.count())
-    .map(|index| return_addresses.objectAtIndex(index).as_u64())
+  let frames = (0 .. return_addresses.count())
+    .map(|index| resolve_frame_snapshot(return_addresses.objectAtIndex(index).as_u64()))
     .collect::<Vec<_>>();
 
   ExceptionSnapshot {
     name: exception.name().to_string(),
     reason: exception.reason().map(|reason| reason.to_string()),
-    return_addresses,
+    frames,
   }
 }
 
 fn record_exception_snapshot(snapshot: &ExceptionSnapshot) {
-  writer::record_nsexception(
-    snapshot.name.as_str(),
-    snapshot.reason.as_deref(),
-    &snapshot.return_addresses,
-  );
+  let frames = snapshot
+    .frames
+    .iter()
+    .map(|frame| NSExceptionFrameRecord {
+      return_address: frame.return_address,
+      image_load_address: frame.image_load_address,
+      binary_name: frame.binary_name.as_deref(),
+      image_id: frame.image_id.as_deref(),
+    })
+    .collect::<Vec<_>>();
+  writer::record_nsexception(snapshot.name.as_str(), snapshot.reason.as_deref(), &frames);
+}
+
+fn resolve_frame_snapshot(return_address: u64) -> ExceptionFrameSnapshot {
+  let mut info = DlInfo {
+    dli_fname: null(),
+    dli_fbase: null_mut(),
+    dli_sname: null(),
+    dli_saddr: null_mut(),
+  };
+  #[allow(clippy::cast_possible_truncation)]
+  let address = return_address as usize as *const c_void;
+  let result = unsafe { dladdr(address, &raw mut info) };
+  if result == 0 {
+    return ExceptionFrameSnapshot {
+      return_address,
+      image_load_address: 0,
+      binary_name: None,
+      image_id: None,
+    };
+  }
+
+  ExceptionFrameSnapshot {
+    return_address,
+    image_load_address: info.dli_fbase as usize as u64,
+    binary_name: binary_name_from_path(info.dli_fname),
+    image_id: image_id_from_header(info.dli_fbase.cast_const()),
+  }
+}
+
+fn binary_name_from_path(path_ptr: *const c_char) -> Option<String> {
+  if path_ptr.is_null() {
+    return None;
+  }
+
+  let path = unsafe { CStr::from_ptr(path_ptr) }.to_str().ok()?;
+  path.rsplit('/').next().map(str::to_owned)
+}
+
+fn image_id_from_header(header_ptr: *const c_void) -> Option<String> {
+  if header_ptr.is_null() {
+    return None;
+  }
+
+  let header = unsafe { &*header_ptr.cast::<MachHeader64>() };
+  if !matches!(header.magic, MH_MAGIC_64 | MH_CIGAM_64) {
+    return None;
+  }
+
+  let mut cursor = unsafe {
+    header_ptr
+      .cast::<u8>()
+      .add(std::mem::size_of::<MachHeader64>())
+  };
+  for _ in 0 .. header.ncmds {
+    let command = unsafe { read_unaligned(cursor.cast::<LoadCommand>()) };
+    if command.cmd == LC_UUID {
+      let uuid_command = unsafe { read_unaligned(cursor.cast::<UuidCommand>()) };
+      return Some(format_uuid(uuid_command.uuid));
+    }
+    cursor = unsafe { cursor.add(command.cmdsize as usize) };
+  }
+
+  None
+}
+
+fn format_uuid(uuid: [u8; 16]) -> String {
+  format!(
+    "{:02X}{:02X}{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:\
+     02X}{:02X}",
+    uuid[0],
+    uuid[1],
+    uuid[2],
+    uuid[3],
+    uuid[4],
+    uuid[5],
+    uuid[6],
+    uuid[7],
+    uuid[8],
+    uuid[9],
+    uuid[10],
+    uuid[11],
+    uuid[12],
+    uuid[13],
+    uuid[14],
+    uuid[15],
+  )
 }
 
 fn try_enter_handler() -> bool {

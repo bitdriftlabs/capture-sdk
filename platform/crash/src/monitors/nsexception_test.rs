@@ -64,7 +64,20 @@ fn exception_snapshot() -> ExceptionSnapshot {
   ExceptionSnapshot {
     name: "NSException".to_string(),
     reason: Some("bad reason".to_string()),
-    return_addresses: vec![0x1234, 0x5678],
+    frames: vec![
+      super::ExceptionFrameSnapshot {
+        return_address: 0x1234,
+        image_load_address: 0x1000,
+        binary_name: Some("MyApp".to_string()),
+        image_id: Some("BD9C11B4-BF87-3F60-AEA0-0141BD7F8AC0".to_string()),
+      },
+      super::ExceptionFrameSnapshot {
+        return_address: 0x5678,
+        image_load_address: 0,
+        binary_name: None,
+        image_id: None,
+      },
+    ],
   }
 }
 
@@ -125,8 +138,20 @@ fn handle_exception_snapshot_records_snapshot_and_chains_previous() {
   assert_eq!(&record.nsexception.reason[.. 11], b"bad reason\0");
   assert_eq!(record.nsexception.call_stack.frame_count, 2);
   assert_eq!(
-    &record.nsexception.call_stack.return_addresses[.. 2],
-    &[0x1234, 0x5678]
+    record.nsexception.call_stack.frames[0].return_address,
+    0x1234
+  );
+  assert_eq!(
+    record.nsexception.call_stack.frames[1].return_address,
+    0x5678
+  );
+  assert_eq!(
+    record.nsexception.call_stack.frames[0].image_load_address,
+    0x1000
+  );
+  assert_eq!(
+    &record.nsexception.call_stack.frames[0].binary_name[.. 6],
+    b"MyApp\0"
   );
   assert_eq!(PREVIOUS_CALL_COUNT.load(Ordering::Acquire), 1);
   assert_eq!(PREVIOUS_LAST_EXCEPTION.load(Ordering::Acquire), exception);
@@ -187,7 +212,7 @@ fn handle_exception_snapshot_records_missing_reason_and_empty_stack() {
     Some(ExceptionSnapshot {
       name: "NSException".to_string(),
       reason: None,
-      return_addresses: Vec::new(),
+      frames: Vec::new(),
     }),
   );
 
@@ -195,8 +220,10 @@ fn handle_exception_snapshot_records_missing_reason_and_empty_stack() {
   assert_eq!(record.header.record_state, RecordState::Committed);
   assert_eq!(record.nsexception.reason[0], 0);
   assert_eq!(record.nsexception.call_stack.frame_count, 0);
-  assert_eq!(
-    record.nsexception.call_stack.return_addresses,
-    [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES]
-  );
+  assert!(record
+    .nsexception
+    .call_stack
+    .frames
+    .iter()
+    .all(|frame| frame == &schema::RawNSExceptionStackFrame::default()));
 }

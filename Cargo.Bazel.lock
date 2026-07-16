@@ -1,5 +1,5 @@
 {
-  "checksum": "eae2143e46605ab1247b07abba8785562d0fe72db06cecab293185c93608402d",
+  "checksum": "bdafd92245b665830678e949437777c0669c37823761af3958174e5fa6361613",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -323,7 +323,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.2.65",
+              "id": "cc 1.2.67",
               "target": "cc"
             }
           ],
@@ -1133,7 +1133,7 @@
               "target": "axum_core"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -1287,7 +1287,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -1588,7 +1588,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-api"
         }
@@ -1753,7 +1753,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-artifact-upload"
         }
@@ -1844,7 +1844,7 @@
               "target": "log"
             },
             {
-              "id": "mockall 0.14.0",
+              "id": "mockall 0.15.0",
               "target": "mockall"
             },
             {
@@ -1890,7 +1890,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-backoff"
         }
@@ -1921,7 +1921,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "rand 0.10.1",
+              "id": "rand 0.10.2",
               "target": "rand"
             },
             {
@@ -1946,7 +1946,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-bonjson"
         }
@@ -1981,7 +1981,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -2010,7 +2010,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-bonjson-ffi"
         }
@@ -2061,7 +2061,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -2116,7 +2116,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-bounded-buffer"
         }
@@ -2192,7 +2192,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-buffer"
         }
@@ -2341,7 +2341,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-client-common"
         }
@@ -2408,7 +2408,7 @@
               "target": "flate2"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -2416,7 +2416,7 @@
               "target": "log"
             },
             {
-              "id": "mockall 0.14.0",
+              "id": "mockall 0.15.0",
               "target": "mockall"
             },
             {
@@ -2478,7 +2478,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-client-stats"
         }
@@ -2565,7 +2565,7 @@
               "target": "futures_util"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -2615,7 +2615,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-client-stats-store"
         }
@@ -2708,7 +2708,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-completion"
         }
@@ -2772,7 +2772,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-crash-handler"
         }
@@ -2871,7 +2871,7 @@
               "target": "flatbuffers"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -2883,7 +2883,7 @@
               "target": "memmap2"
             },
             {
-              "id": "mockall 0.14.0",
+              "id": "mockall 0.15.0",
               "target": "mockall"
             },
             {
@@ -2891,7 +2891,7 @@
               "target": "notify"
             },
             {
-              "id": "regex 1.12.4",
+              "id": "regex 1.13.0",
               "target": "regex"
             },
             {
@@ -3005,7 +3005,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-device"
         }
@@ -3077,7 +3077,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-error-reporter"
         }
@@ -3161,7 +3161,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-events"
         }
@@ -3229,7 +3229,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-grpc"
         }
@@ -3320,7 +3320,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -3460,7 +3460,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-grpc-codec"
         }
@@ -3502,7 +3502,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -3539,7 +3539,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-hyper-network"
         }
@@ -3597,7 +3597,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -3671,7 +3671,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-internal-logging"
         }
@@ -3731,7 +3731,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-key-value"
         }
@@ -3819,7 +3819,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-log"
         }
@@ -3919,7 +3919,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-log-filter"
         }
@@ -3974,7 +3974,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -3982,7 +3982,7 @@
               "target": "log"
             },
             {
-              "id": "regex 1.12.4",
+              "id": "regex 1.13.0",
               "target": "regex"
             },
             {
@@ -4007,7 +4007,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-log-matcher"
         }
@@ -4058,7 +4058,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -4066,11 +4066,11 @@
               "target": "protobuf"
             },
             {
-              "id": "rand 0.10.1",
+              "id": "rand 0.10.2",
               "target": "rand"
             },
             {
-              "id": "regex 1.12.4",
+              "id": "regex 1.13.0",
               "target": "regex"
             },
             {
@@ -4095,7 +4095,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-log-metadata"
         }
@@ -4155,7 +4155,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-log-primitives"
         }
@@ -4248,7 +4248,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-logger"
         }
@@ -4431,7 +4431,7 @@
               "target": "futures_util"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -4509,7 +4509,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-macros"
         }
@@ -4569,7 +4569,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-metadata"
         }
@@ -4617,7 +4617,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-network-quality"
         }
@@ -4665,7 +4665,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-noop-network"
         }
@@ -4734,7 +4734,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-panic"
         }
@@ -4794,7 +4794,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-pgv"
         }
@@ -4896,7 +4896,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-proto"
         }
@@ -4947,7 +4947,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -5010,7 +5010,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-proto-util"
         }
@@ -5081,7 +5081,7 @@
               "target": "flatbuffers"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -5123,7 +5123,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.2.65",
+              "id": "cc 1.2.67",
               "target": "cc"
             }
           ],
@@ -5142,7 +5142,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-report-parsers"
         }
@@ -5185,7 +5185,7 @@
               "target": "flatbuffers"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -5214,7 +5214,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-report-writer"
         }
@@ -5312,7 +5312,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-resilient-kv"
         }
@@ -5387,7 +5387,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -5440,7 +5440,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-resource-utilization"
         }
@@ -5524,7 +5524,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-runtime"
         }
@@ -5621,7 +5621,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-server-stats"
         }
@@ -5672,7 +5672,7 @@
               "target": "dashmap"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -5684,7 +5684,7 @@
               "target": "prometheus"
             },
             {
-              "id": "regex 1.12.4",
+              "id": "regex 1.13.0",
               "target": "regex"
             },
             {
@@ -5717,7 +5717,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-session"
         }
@@ -5826,7 +5826,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-session-replay"
         }
@@ -5930,7 +5930,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-shutdown"
         }
@@ -5986,7 +5986,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-state"
         }
@@ -6049,7 +6049,7 @@
               "target": "bd_workspace_hack"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -6095,7 +6095,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-stats-common"
         }
@@ -6168,7 +6168,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-test-helpers"
         }
@@ -6384,7 +6384,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-time"
         }
@@ -6423,7 +6423,7 @@
               "target": "protobuf"
             },
             {
-              "id": "rand 0.10.1",
+              "id": "rand 0.10.2",
               "target": "rand"
             },
             {
@@ -6461,7 +6461,7 @@
         "Git": {
           "remote": "https://github.com/bitdriftlabs/shared-core.git",
           "commitish": {
-            "Rev": "6c4f0e341e66a2f16d3da8681eda269030467da2"
+            "Rev": "d0144d41ae2b7156450342576193cff1db0289d9"
           },
           "strip_prefix": "bd-workflows"
         }
@@ -6564,7 +6564,7 @@
               "target": "bincode"
             },
             {
-              "id": "itertools 0.14.0",
+              "id": "itertools 0.15.0",
               "target": "itertools"
             },
             {
@@ -6580,7 +6580,7 @@
               "target": "protobuf"
             },
             {
-              "id": "regex 1.12.4",
+              "id": "regex 1.13.0",
               "target": "regex"
             },
             {
@@ -6992,14 +6992,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "bytes 1.12.0": {
+    "bytes 1.12.1": {
       "name": "bytes",
-      "version": "1.12.0",
+      "version": "1.12.1",
       "package_url": "https://github.com/tokio-rs/bytes",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/bytes/1.12.0/download",
-          "sha256": "8ae3f5d315924270530207e2a68396c3cc547f6dca3fbdca317cfb1a51edb593"
+          "url": "https://static.crates.io/crates/bytes/1.12.1/download",
+          "sha256": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
         }
       },
       "targets": [
@@ -7029,7 +7029,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.12.0"
+        "version": "1.12.1"
       },
       "license": "MIT",
       "license_ids": [
@@ -7360,14 +7360,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "cc 1.2.65": {
+    "cc 1.2.67": {
       "name": "cc",
-      "version": "1.2.65",
+      "version": "1.2.67",
       "package_url": "https://github.com/rust-lang/cc-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/cc/1.2.65/download",
-          "sha256": "e228eec9be7c17ccb640b59b36a5cd805ea2a564a4c5e162c2f659fea30d3b96"
+          "url": "https://static.crates.io/crates/cc/1.2.67/download",
+          "sha256": "e17dd265a7d0f31ef544e1b20e03add05d3b45b491b633b10d67145d2acc1a38"
         }
       },
       "targets": [
@@ -7403,7 +7403,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.2.65"
+        "version": "1.2.67"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -8054,7 +8054,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -8589,7 +8589,7 @@
               "target": "rayon"
             },
             {
-              "id": "regex 1.12.4",
+              "id": "regex 1.13.0",
               "target": "regex"
             },
             {
@@ -11165,7 +11165,7 @@
               "target": "atomic_waker"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -11487,7 +11487,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -11539,7 +11539,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -11596,7 +11596,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -11838,7 +11838,7 @@
               "target": "atomic_waker"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -12103,7 +12103,7 @@
               "target": "base64"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -13221,6 +13221,62 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "itertools 0.15.0": {
+      "name": "itertools",
+      "version": "0.15.0",
+      "package_url": "https://github.com/rust-itertools/itertools",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/itertools/0.15.0/download",
+          "sha256": "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "itertools",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "itertools",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default",
+            "use_alloc",
+            "use_std"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "either 1.16.0",
+              "target": "either"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.15.0"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
     "itoa 1.0.18": {
       "name": "itoa",
       "version": "1.0.18",
@@ -13864,7 +13920,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.2.65",
+              "id": "cc 1.2.67",
               "target": "cc"
             },
             {
@@ -14870,14 +14926,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "mockall 0.14.0": {
+    "mockall 0.15.0": {
       "name": "mockall",
-      "version": "0.14.0",
+      "version": "0.15.0",
       "package_url": "https://github.com/asomers/mockall",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/mockall/0.14.0/download",
-          "sha256": "f58d964098a5f9c6b63d0798e5372fd04708193510a7af313c22e9f29b7b620b"
+          "url": "https://static.crates.io/crates/mockall/0.15.0/download",
+          "sha256": "1a6ceddfe3ce334925e96bf420fdb2dcee5bed6c632a168ece622676dadeaf8a"
         }
       },
       "targets": [
@@ -14926,7 +14982,7 @@
               "target": "fragile"
             },
             {
-              "id": "mockall 0.14.0",
+              "id": "mockall 0.15.0",
               "target": "build_script_build"
             },
             {
@@ -14944,13 +15000,13 @@
         "proc_macro_deps": {
           "common": [
             {
-              "id": "mockall_derive 0.14.0",
+              "id": "mockall_derive 0.15.0",
               "target": "mockall_derive"
             }
           ],
           "selects": {}
         },
-        "version": "0.14.0"
+        "version": "0.15.0"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -14970,14 +15026,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "mockall_derive 0.14.0": {
+    "mockall_derive 0.15.0": {
       "name": "mockall_derive",
-      "version": "0.14.0",
+      "version": "0.15.0",
       "package_url": "https://github.com/asomers/mockall",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/mockall_derive/0.14.0/download",
-          "sha256": "ca41ce716dda6a9be188b385aa78ee5260fc25cd3802cb2a8afdc6afbe6b6dbf"
+          "url": "https://static.crates.io/crates/mockall_derive/0.15.0/download",
+          "sha256": "9cfe16fbe8a314aeec0b861ac24e60b1e123e97634bab045475b9d6a18416fd8"
         }
       },
       "targets": [
@@ -15018,7 +15074,7 @@
               "target": "cfg_if"
             },
             {
-              "id": "mockall_derive 0.14.0",
+              "id": "mockall_derive 0.15.0",
               "target": "build_script_build"
             },
             {
@@ -15037,7 +15093,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.14.0"
+        "version": "0.15.0"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -16164,7 +16220,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -17086,7 +17142,7 @@
               "target": "build_script_build"
             },
             {
-              "id": "regex 1.12.4",
+              "id": "regex 1.13.0",
               "target": "regex"
             },
             {
@@ -18050,7 +18106,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             }
           ],
@@ -18365,7 +18421,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -18458,7 +18514,7 @@
               "target": "protobuf_parse"
             },
             {
-              "id": "regex 1.12.4",
+              "id": "regex 1.13.0",
               "target": "regex"
             },
             {
@@ -18987,14 +19043,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "rand 0.10.1": {
+    "rand 0.10.2": {
       "name": "rand",
-      "version": "0.10.1",
+      "version": "0.10.2",
       "package_url": "https://github.com/rust-random/rand",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/rand/0.10.1/download",
-          "sha256": "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
+          "url": "https://static.crates.io/crates/rand/0.10.2/download",
+          "sha256": "c7f5fa3a058cd35567ef9bfa5e75732bee0f9e4c55fa90477bef2dfcdbc4be80"
         }
       },
       "targets": [
@@ -19045,7 +19101,7 @@
           "selects": {}
         },
         "edition": "2024",
-        "version": "0.10.1"
+        "version": "0.10.2"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -19424,14 +19480,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "regex 1.12.4": {
+    "regex 1.13.0": {
       "name": "regex",
-      "version": "1.12.4",
+      "version": "1.13.0",
       "package_url": "https://github.com/rust-lang/regex",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/regex/1.12.4/download",
-          "sha256": "f1292b7759ae1cb9ec195452d1390a074f0cd8541ab7a5a8c31cd6db45d4a6ba"
+          "url": "https://static.crates.io/crates/regex/1.13.0/download",
+          "sha256": "2a0e75113e14dc5acb068cd0786884f214f1312650a3d36d269f5c4f3cdee8a2"
         }
       },
       "targets": [
@@ -19497,7 +19553,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.12.4"
+        "version": "1.13.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -19681,7 +19737,7 @@
               "target": "base64"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -19883,7 +19939,7 @@
         "deps": {
           "common": [
             {
-              "id": "cc 1.2.65",
+              "id": "cc 1.2.67",
               "target": "cc"
             }
           ],
@@ -23760,7 +23816,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -24024,7 +24080,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -24320,7 +24376,7 @@
               "target": "base64"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -24436,7 +24492,7 @@
         "deps": {
           "common": [
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -24671,7 +24727,7 @@
               "target": "bitflags"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -24767,7 +24823,7 @@
               "target": "bitflags"
             },
             {
-              "id": "bytes 1.12.0",
+              "id": "bytes 1.12.1",
               "target": "bytes"
             },
             {
@@ -30479,7 +30535,7 @@
     "objc2-foundation 0.3.2",
     "parking_lot 0.12.5",
     "protobuf 4.0.0-alpha.0",
-    "regex 1.12.4",
+    "regex 1.13.0",
     "serde 1.0.228",
     "serde_json 1.0.150",
     "simple-xml 0.1.10",

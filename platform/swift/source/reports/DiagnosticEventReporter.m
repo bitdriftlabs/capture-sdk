@@ -20,6 +20,19 @@ typedef NS_ENUM(int8_t, ReportType) {
   ReportTypeNativeCrash = 5,
 };
 
+typedef NS_ENUM(int8_t, CrashReporterScopeValue) {
+  CrashReporterScopeValueUnknown = 0,
+  CrashReporterScopeValueInProcess = 1,
+  CrashReporterScopeValueOutOfProcess = 2,
+};
+
+typedef NS_ENUM(int8_t, CrashReporterValue) {
+  CrashReporterValueUnknown = 0,
+  CrashReporterValueAppleMetricKit = 1,
+  CrashReporterValueAppleKSCrash = 2,
+  CrashReporterValueAppleBitdriftCrashReporter = 3,
+};
+
 // Unpack version numbers formatted as "iPhone OS 16.7.11 (20H360)"
 // - `osName` is everything before the version number ("iPhone OS")
 // - `osVersion` is the dot-delimited numbers
@@ -36,6 +49,11 @@ typedef enum : NSUInteger {
   /// The root frame is the "bottom"/innermost frame of the call stack tree
   FrameOrderInnerToOuter,
 } FrameOrder;
+
+typedef struct {
+  BDCrashInfoThreadDetails details;
+  BDCrashInfoThread *threads;
+} BDCrashInfoThreadDetailsStorage;
 
 // MARK: - Static helpers (pure utilities, no instance state)
 
@@ -56,6 +74,68 @@ static inline const char * cstring_from(NSString *str) {
   return [str cStringUsingEncoding:NSUTF8StringEncoding];
 }
 
+static inline void timestamp_components(NSTimeInterval timestamp, uint64_t *seconds, uint32_t *nanos) {
+  long double whole_seconds = truncl(timestamp);
+  *seconds = (uint64_t)whole_seconds;
+  *nanos = (uint32_t)((timestamp - whole_seconds) * NSEC_PER_SEC);
+}
+
+static NSString *trimmed_value_after_prefix(NSString *line, NSString *prefix) {
+  if (![line hasPrefix:prefix]) {
+    return nil;
+  }
+
+  NSString *value = [line substringFromIndex:prefix.length];
+  return [value stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
+
+static NSDictionary<NSString *, NSString *> *parse_termination_context(NSString *terminationReason) {
+  if (terminationReason.length == 0) {
+    return @{};
+  }
+
+  NSMutableDictionary<NSString *, NSString *> *fields = [NSMutableDictionary dictionary];
+  NSError *error = nil;
+  NSRegularExpression *headerPattern = [NSRegularExpression regularExpressionWithPattern:@"domain:(\\S+)\\s+code:(\\S+)\\s+explanation:(.*)$"
+                                                                                 options:NSRegularExpressionAnchorsMatchLines
+                                                                                   error:&error];
+  NSTextCheckingResult *headerMatch = [headerPattern firstMatchInString:terminationReason
+                                                                options:0
+                                                                  range:NSMakeRange(0, terminationReason.length)];
+  if (headerMatch.numberOfRanges == 4) {
+    fields[@"domain"] = [terminationReason substringWithRange:[headerMatch rangeAtIndex:1]];
+    fields[@"code"] = [terminationReason substringWithRange:[headerMatch rangeAtIndex:2]];
+    fields[@"explanation"] = [terminationReason substringWithRange:[headerMatch rangeAtIndex:3]];
+  }
+
+  for (NSString *line in [terminationReason componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]]) {
+    NSString *processVisibility = trimmed_value_after_prefix(line, @"ProcessVisibility:");
+    if (processVisibility != nil) {
+      fields[@"process_visibility"] = processVisibility;
+      continue;
+    }
+
+    NSString *processState = trimmed_value_after_prefix(line, @"ProcessState:");
+    if (processState != nil) {
+      fields[@"process_state"] = processState;
+      continue;
+    }
+
+    NSString *watchdogEvent = trimmed_value_after_prefix(line, @"WatchdogEvent:");
+    if (watchdogEvent != nil) {
+      fields[@"watchdog_event"] = watchdogEvent;
+      continue;
+    }
+
+    NSString *watchdogVisibility = trimmed_value_after_prefix(line, @"WatchdogVisibility:");
+    if (watchdogVisibility != nil) {
+      fields[@"watchdog_visibility"] = watchdogVisibility;
+    }
+  }
+
+  return fields;
+}
+
 static const char *name_for_diagnostic_type(ReportType type) {
   switch (type) {
     case ReportTypeNativeCrash:
@@ -66,6 +146,10 @@ static const char *name_for_diagnostic_type(ReportType type) {
     default:
       return "unknown";
   }
+}
+
+static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(void) {
+  return (BDCrashInfoThreadDetailsStorage){0};
 }
 
 // MARK: - BDOSBuild
@@ -155,10 +239,11 @@ static const char *name_for_diagnostic_type(ReportType type) {
   for (MXDiagnosticPayload *payload in payloads) {
     NSTimeInterval timestamp = [payload.timeStampEnd timeIntervalSince1970];
     if ((self.diagnosticTypes & CAPDiagnosticTypeCrash) > 0) {
-      NSDate *crashDate = payload.crashDiagnostics.count == 1 ? [self.crashReporting cachedCrashDate] : nil;
+      BitdriftPreviousCrash *capturedCrash = [self.crashReporting cachedPreviousCrash];
+      NSDate *crashDate = [self.crashReporting cachedCrashDate];
       for (MXCrashDiagnostic *event in payload.crashDiagnostics) {
         NSTimeInterval eventTimestamp = crashDate ? crashDate.timeIntervalSince1970 : timestamp;
-        [self processDiagnostic:event atTimestamp:eventTimestamp];
+        [self processDiagnostic:event atTimestamp:eventTimestamp capturedCrash:capturedCrash];
       }
     }
 
@@ -178,8 +263,14 @@ static const char *name_for_diagnostic_type(ReportType type) {
 }
 
 - (void)processDiagnostic:(MXDiagnostic *)event atTimestamp:(NSTimeInterval)timestamp {
+  [self processDiagnostic:event atTimestamp:timestamp capturedCrash:nil];
+}
+
+- (void)processDiagnostic:(MXDiagnostic *)event
+              atTimestamp:(NSTimeInterval)timestamp
+            capturedCrash:(BitdriftPreviousCrash *)capturedCrash {
   const void *handle = 0;
-  ReportType report_type = [self serializeDiagnostic:event atTimestamp:timestamp intoHandle:&handle];
+  ReportType report_type = [self serializeDiagnostic:event atTimestamp:timestamp capturedCrash:capturedCrash intoHandle:&handle];
   if (report_type != ReportTypeNone && handle != 0) {
     uint64_t length = 0;
     const uint8_t *contents = bdrw_get_completed_buffer(&handle, &length);
@@ -197,16 +288,18 @@ static const char *name_for_diagnostic_type(ReportType type) {
 
 - (ReportType)serializeDiagnostic:(MXDiagnostic *)event
                       atTimestamp:(NSTimeInterval)timestamp
+                    capturedCrash:(BitdriftPreviousCrash *)capturedCrash
                        intoHandle:(BDProcessorHandle)handle API_AVAILABLE(ios(14.0), macos(12.0)) {
   ReportType report_type = ReportTypeNone;
   if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
-    MXCrashDiagnostic *crash = (MXCrashDiagnostic *)event;
+    MXCrashDiagnostic *mxCrash = (MXCrashDiagnostic *)event;
     // Watchdog terminations arrive as MXCrashDiagnostic but should be reported as ANRs.
-    BOOL is_hang = [self crashIsHangTermination:crash];
+    BOOL is_hang = [self crashIsHangTermination:mxCrash];
+    capturedCrash = is_hang ? nil : capturedCrash;
     report_type = is_hang ? ReportTypeAppNotResponding : ReportTypeNativeCrash;
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
-    NSString *name = is_hang ? DEFAULT_HANG_NAME : [self nameForCrash:crash];
-    NSString *reason = [self reasonForCrash:crash name:name];
+    NSString *name = is_hang ? DEFAULT_HANG_NAME : [self nameForCrash:mxCrash];
+    NSString *reason = [self reasonForCrash:mxCrash name:name capturedCrash:capturedCrash];
     NSDictionary<NSString *, NSString *> *summary = nil;
     NSDictionary *dictReport = [self.crashReporting enhancedMetricKitReport:event.dictionaryRepresentation
                                                         useStackOverlapMatching:self.useStackOverlapMatching
@@ -215,6 +308,11 @@ static const char *name_for_diagnostic_type(ReportType type) {
       self.crashEnrichmentSummaryHandler(summary);
     }
     [self serializeErrorThreads:handle crash:dictReport name:name reason:reason order:FrameOrderInnerToOuter];
+    [self serializeCrashInfo:handle
+                   crashDict:dictReport
+                     mxCrash:mxCrash
+               capturedCrash:capturedCrash
+                  metricTime:timestamp];
   } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
     report_type = ReportTypeAppNotResponding;
     bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
@@ -307,6 +405,235 @@ static const char *name_for_diagnostic_type(ReportType type) {
   // handle case where there are no threads
   if (call_stacks.count == 0) {
     bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, 0, 0);
+  }
+}
+
+- (BDCrashInfoThreadDetailsStorage)buildCrashInfoThreadDetails:(NSDictionary *)crash
+                                                         order:(FrameOrder)order API_AVAILABLE(ios(14.0), macos(12.0)) {
+  NSArray *call_stacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
+  if (call_stacks.count == 0) {
+    return empty_crash_info_thread_details_storage();
+  }
+
+  uint32_t crashed_index = [self crashedThreadIndex:call_stacks];
+  BDCrashInfoThread *threads = (BDCrashInfoThread *)calloc(call_stacks.count, sizeof(BDCrashInfoThread));
+  uint16_t thread_count = 0;
+
+  for (uint32_t thread_index = 0; thread_index < call_stacks.count; thread_index++) {
+    NSDictionary *thread = call_stacks[thread_index];
+    NSString *threadName = string_for_key(thread, @"name");
+    NSDictionary *frame = [self threadRootFrame:thread];
+    uint64_t frame_count = [self countFrames:frame];
+    if (frame_count == 0) {
+      continue;
+    }
+
+    BDStackFrame *stack = (BDStackFrame *)calloc(frame_count, sizeof(BDStackFrame));
+    uint32_t frame_index = 0;
+    while ([frame isKindOfClass:[NSDictionary class]] && frame_index < frame_count) {
+      NSString *binary_uuid = string_for_key(frame, @"binaryUUID");
+      NSNumber *address = number_for_key(frame, @"address");
+      if (binary_uuid == nil || address == nil) {
+        break;
+      }
+
+      uint64_t insert_at = order == FrameOrderInnerToOuter
+        ? frame_index
+        : (frame_count - frame_index - 1);
+      stack[insert_at] = (BDStackFrame) {
+        .image_id = cstring_from(binary_uuid),
+        .frame_address = [address unsignedLongLongValue],
+        .type_ = 2,
+      };
+      frame = [array_for_key(frame, @"subFrames") firstObject];
+      frame_index++;
+    }
+
+    if (frame_index == 0) {
+      free(stack);
+      continue;
+    }
+
+    threads[thread_count++] = (BDCrashInfoThread) {
+      .thread =
+        (BDThread){
+          .index = thread_index,
+          .quality_of_service = -1,
+          .name = cstring_from(threadName),
+          .active = (thread_index == crashed_index),
+        },
+      .stack_count = frame_index,
+      .stack = stack,
+    };
+  }
+
+  if (thread_count == 0) {
+    free(threads);
+    return empty_crash_info_thread_details_storage();
+  }
+
+  return (BDCrashInfoThreadDetailsStorage){
+    .details =
+      (BDCrashInfoThreadDetails){
+        .count = (uint16_t)call_stacks.count,
+        .threads_count = thread_count,
+        .threads = threads,
+      },
+    .threads = threads,
+  };
+}
+
+- (BDCrashInfoThreadDetailsStorage)buildCrashInfoThreadDetailsFromCapturedFrames:(NSArray *)frames {
+  if (frames.count == 0) {
+    return empty_crash_info_thread_details_storage();
+  }
+
+  BDCrashInfoThread *threads = (BDCrashInfoThread *)calloc(1, sizeof(BDCrashInfoThread));
+  BDStackFrame *stack = (BDStackFrame *)calloc(frames.count, sizeof(BDStackFrame));
+  uint32_t frame_count = 0;
+
+  for (BitdriftCrashStackFrame *frame in frames) {
+    stack[frame_count++] = (BDStackFrame) {
+      .type_ = 2,
+      .frame_address = frame.frameAddress,
+      .symbol_address = frame.symbolAddress,
+      .symbol_name = cstring_from(frame.symbolName),
+      .image_id = cstring_from(frame.imageID),
+    };
+  }
+
+  if (frame_count == 0) {
+    free(stack);
+    free(threads);
+    return empty_crash_info_thread_details_storage();
+  }
+
+  threads[0] = (BDCrashInfoThread) {
+    .thread =
+      (BDThread){
+        .index = 0,
+        .quality_of_service = -1,
+        .active = true,
+      },
+    .stack_count = frame_count,
+    .stack = stack,
+  };
+  return (BDCrashInfoThreadDetailsStorage){
+    .details =
+      (BDCrashInfoThreadDetails){
+        .count = 1,
+        .threads_count = 1,
+        .threads = threads,
+      },
+    .threads = threads,
+  };
+}
+
+- (void)addCapturedCrashBinaryImages:(BDProcessorHandle)handle frames:(NSArray *)frames {
+  NSMutableSet<NSString *> *seenImages = [NSMutableSet set];
+  for (BitdriftCrashStackFrame *frame in frames) {
+    if (frame.imageID == nil || frame.binaryName == nil || [seenImages containsObject:frame.imageID]) {
+      continue;
+    }
+
+    BDBinaryImage image = {
+      .id = cstring_from(frame.imageID),
+      .path = cstring_from(frame.binaryName),
+      .load_address = 0,
+    };
+    bdrw_add_binary_image(handle, &image);
+    [seenImages addObject:frame.imageID];
+  }
+}
+
+- (void)freeCrashInfoThreadDetails:(BDCrashInfoThreadDetailsStorage)threadDetails API_AVAILABLE(ios(14.0), macos(12.0)) {
+  for (uintptr_t thread_index = 0; thread_index < threadDetails.details.threads_count; thread_index++) {
+    free((void *)threadDetails.threads[thread_index].stack);
+  }
+  free(threadDetails.threads);
+}
+
+- (void)serializeCrashInfo:(BDProcessorHandle)handle
+                 crashDict:(NSDictionary *)crash
+                   mxCrash:(MXCrashDiagnostic *)mxCrash
+             capturedCrash:(BitdriftPreviousCrash *)capturedCrash
+                metricTime:(NSTimeInterval)metricTime API_AVAILABLE(ios(14.0), macos(12.0)) {
+  BDCrashInfoThreadDetailsStorage metricKitThreadDetails =
+    [self buildCrashInfoThreadDetails:crash order:FrameOrderInnerToOuter];
+  BDAppleCrashInfoPayload payload = {0};
+  if (mxCrash.exceptionType != nil) {
+    payload.has_mach_exception = true;
+    payload.mach_exception = (BDMachException) {
+      .type_ = mxCrash.exceptionType.unsignedIntValue,
+      .code = mxCrash.exceptionCode.unsignedLongLongValue,
+      .subcode = 0,
+    };
+  }
+
+  if (mxCrash.signal != nil) {
+    payload.has_posix_signal = true;
+    payload.posix_signal = (BDPosixSignal) {
+      .number = mxCrash.signal.intValue,
+      .code = 0,
+      .errno_value = 0,
+      .has_fault_address = false,
+      .fault_address = 0,
+    };
+  }
+
+  NSDictionary<NSString *, NSString *> *terminationContext = @{};
+  if ([mxCrash.signal isEqualToNumber:@SIGKILL]) {
+    terminationContext = parse_termination_context(mxCrash.terminationReason);
+  }
+  if ([mxCrash.signal isEqualToNumber:@SIGKILL] && (mxCrash.terminationReason.length > 0 || terminationContext.count > 0)) {
+    payload.has_termination = true;
+    payload.termination = (BDAppleTermination) {
+      .domain = cstring_from(terminationContext[@"domain"]),
+      .code = cstring_from(terminationContext[@"code"]),
+      .explanation = cstring_from(terminationContext[@"explanation"]),
+      .process_visibility = cstring_from(terminationContext[@"process_visibility"]),
+      .process_state = cstring_from(terminationContext[@"process_state"]),
+      .watchdog_event = cstring_from(terminationContext[@"watchdog_event"]),
+      .watchdog_visibility = cstring_from(terminationContext[@"watchdog_visibility"]),
+    };
+  }
+
+  uint64_t seconds = 0;
+  uint32_t nanos = 0;
+  timestamp_components(metricTime, &seconds, &nanos);
+  bdrw_add_apple_crash_info(handle,
+                            CrashReporterScopeValueOutOfProcess,
+                            CrashReporterValueAppleMetricKit,
+                            seconds,
+                            nanos,
+                            &payload,
+                            metricKitThreadDetails.details.threads_count > 0
+                              ? &metricKitThreadDetails.details
+                              : NULL);
+  [self freeCrashInfoThreadDetails:metricKitThreadDetails];
+
+  if (capturedCrash.kind == BitdriftPreviousCrashKindNSException && capturedCrash.nsexception != nil) {
+    BDCrashInfoThreadDetailsStorage capturedThreadDetails =
+      [self buildCrashInfoThreadDetailsFromCapturedFrames:capturedCrash.nsexception.frames];
+    [self addCapturedCrashBinaryImages:handle frames:capturedCrash.nsexception.frames];
+    BDAppleCrashInfoPayload capturedPayload = {0};
+    capturedPayload.has_nsexception = true;
+    capturedPayload.nsexception = (BDNSException) {
+      .name = cstring_from(capturedCrash.nsexception.name),
+      .reason = cstring_from(capturedCrash.nsexception.reason),
+    };
+
+    timestamp_components(capturedCrash.crashDate.timeIntervalSince1970, &seconds, &nanos);
+    bdrw_add_apple_crash_info(handle,
+                              CrashReporterScopeValueInProcess,
+                              CrashReporterValueAppleBitdriftCrashReporter,
+                              seconds,
+                              nanos,
+                              &capturedPayload,
+                              capturedThreadDetails.details.threads_count > 0
+                                ? &capturedThreadDetails.details
+                                : NULL);
+    [self freeCrashInfoThreadDetails:capturedThreadDetails];
   }
 }
 
@@ -424,12 +751,6 @@ static const char *name_for_diagnostic_type(ReportType type) {
 }
 
 - (NSString *)nameForCrash:(MXCrashDiagnostic *)event API_AVAILABLE(ios(14.0), macos(12.0)) {
-  // NSException data is captured in-process and carries the original name; MetricKit only provides
-  // a Mach exception type, which loses that detail
-  BitdriftPreviousCrash *bitdriftCrash = [self.crashReporting cachedPreviousCrash];
-  if (bitdriftCrash.kind == BitdriftPreviousCrashKindNSException && bitdriftCrash.nsexception.name != nil) {
-    return bitdriftCrash.nsexception.name;
-  }
   switch (event.exceptionType.intValue) {
       print_case(EXC_BAD_ACCESS);
       print_case(EXC_BAD_INSTRUCTION);
@@ -450,14 +771,13 @@ static const char *name_for_diagnostic_type(ReportType type) {
 #undef print_case
 
 - (NSString *)reasonForCrash:(MXCrashDiagnostic *)event
-                        name:(NSString *)name API_AVAILABLE(ios(14.0), macos(12.0)) {
-  BitdriftPreviousCrash *bitdriftCrash = [self.crashReporting cachedPreviousCrash];
-  if (bitdriftCrash.kind == BitdriftPreviousCrashKindNSException && bitdriftCrash.nsexception.reason != nil) {
-    return bitdriftCrash.nsexception.reason;
-  }
+                        name:(NSString *)name
+                capturedCrash:(BitdriftPreviousCrash *)capturedCrash API_AVAILABLE(ios(14.0), macos(12.0)) {
   NSMutableArray <NSString *> *components = [NSMutableArray new];
+  BOOL hasMetricKitExceptionReason = NO;
   if (@available(iOS 17, macOS 14, *)) {
     if (event.exceptionReason) {
+      hasMetricKitExceptionReason = YES;
       // exception name included here instead of in the name_for_crash
       // to avoid cases where devices on iOS <17 have a different name
       // and thus a different issue grouping
@@ -465,6 +785,14 @@ static const char *name_for_diagnostic_type(ReportType type) {
                                event.exceptionReason.exceptionName,
                                event.exceptionReason.composedMessage]];
     }
+  }
+  if (!hasMetricKitExceptionReason
+      && capturedCrash.kind == BitdriftPreviousCrashKindNSException
+      && capturedCrash.nsexception.name != nil
+      && capturedCrash.nsexception.reason != nil) {
+    [components addObject:[NSString stringWithFormat:@"%@: %@",
+                             capturedCrash.nsexception.name,
+                             capturedCrash.nsexception.reason]];
   }
   if (event.terminationReason) {
     [components addObject:event.terminationReason];

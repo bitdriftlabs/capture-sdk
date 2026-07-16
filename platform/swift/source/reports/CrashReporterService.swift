@@ -209,6 +209,7 @@ private extension CrashReporterService {
     func makeDiagnosticReporter(sdkBaseURL: URL, underlyingLogger: CoreLogging) -> DiagnosticEventReporter {
         let hangDuration = underlyingLogger.runtimeValue(.applicationANRReporterThresholdMs)
         let useStackOverlapMatching = underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
+        let fileSizeOptimizationEnabled = underlyingLogger.runtimeValue(.optimizeFatalIssueReportSize)
         let memoryPressureLevel = underlyingLogger.previousMemoryPressureLevel()
         let outputDir = sdkBaseURL.appendingPathComponent(Constants.reportCollectionDirectory, isDirectory: true)
         return DiagnosticEventReporter(
@@ -217,6 +218,7 @@ private extension CrashReporterService {
             eventTypes: .crash,
             minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
             memoryPressureLevel: memoryPressureLevel,
+            fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
             useStackOverlapMatching: useStackOverlapMatching,
             crashReporting: self,
             crashEnrichmentSummaryHandler: { [weak underlyingLogger] summary in

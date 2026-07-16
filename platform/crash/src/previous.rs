@@ -9,7 +9,13 @@
 #[path = "./previous_test.rs"]
 mod tests;
 
-use crate::schema::{self, CrashRecord, RawNSExceptionCallStack, RawNSExceptionPayload};
+use crate::schema::{
+  self,
+  CrashRecord,
+  RawNSExceptionCallStack,
+  RawNSExceptionPayload,
+  RawNSExceptionStackFrame,
+};
 pub(crate) use schema::CrashKind;
 use std::mem::size_of;
 use std::ptr::read_unaligned;
@@ -19,9 +25,29 @@ use std::ptr::read_unaligned;
 //
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct NSExceptionStackFrame {
+  pub(crate) return_address: u64,
+  pub(crate) image_load_address: u64,
+  pub(crate) binary_name: [u8; schema::NS_EXCEPTION_BINARY_NAME_CAPACITY],
+  pub(crate) image_id: [u8; schema::NS_EXCEPTION_IMAGE_ID_CAPACITY],
+}
+
+impl Default for NSExceptionStackFrame {
+  fn default() -> Self {
+    Self {
+      return_address: 0,
+      image_load_address: 0,
+      binary_name: [0; schema::NS_EXCEPTION_BINARY_NAME_CAPACITY],
+      image_id: [0; schema::NS_EXCEPTION_IMAGE_ID_CAPACITY],
+    }
+  }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct NSExceptionCallStack {
   pub(crate) frame_count: u16,
   pub(crate) return_addresses: [u64; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
+  pub(crate) frames: [NSExceptionStackFrame; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
 }
 
 impl Default for NSExceptionCallStack {
@@ -29,6 +55,7 @@ impl Default for NSExceptionCallStack {
     Self {
       frame_count: 0,
       return_addresses: [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
+      frames: std::array::from_fn(|_| NSExceptionStackFrame::default()),
     }
   }
 }
@@ -150,9 +177,36 @@ fn sanitize_c_string_bytes<const N: usize>(bytes: &mut [u8; N]) {
 fn parse_nsexception_call_stack(raw: &RawNSExceptionCallStack) -> NSExceptionCallStack {
   let max_frame_count =
     u16::try_from(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES).unwrap_or(u16::MAX);
+  let frame_count = raw.frame_count.min(max_frame_count);
+  let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
+  let mut frames = std::array::from_fn(|_| NSExceptionStackFrame::default());
+
+  for (index, raw_frame) in raw.frames[.. usize::from(frame_count)].iter().enumerate() {
+    let mut binary_name = raw_frame.binary_name;
+    let mut image_id = raw_frame.image_id;
+    sanitize_c_string_bytes(&mut binary_name);
+    sanitize_c_string_bytes(&mut image_id);
+
+    return_addresses[index] = raw_frame.return_address;
+    frames[index] = parse_nsexception_stack_frame(raw_frame, binary_name, image_id);
+  }
 
   NSExceptionCallStack {
-    frame_count: raw.frame_count.min(max_frame_count),
-    return_addresses: raw.return_addresses,
+    frame_count,
+    return_addresses,
+    frames,
+  }
+}
+
+const fn parse_nsexception_stack_frame(
+  raw: &RawNSExceptionStackFrame,
+  binary_name: [u8; schema::NS_EXCEPTION_BINARY_NAME_CAPACITY],
+  image_id: [u8; schema::NS_EXCEPTION_IMAGE_ID_CAPACITY],
+) -> NSExceptionStackFrame {
+  NSExceptionStackFrame {
+    return_address: raw.return_address,
+    image_load_address: raw.image_load_address,
+    binary_name,
+    image_id,
   }
 }

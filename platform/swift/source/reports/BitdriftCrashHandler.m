@@ -15,20 +15,60 @@ uint64_t capture_bitdrift_crash_cached_timestamp(void);
 uint8_t capture_bitdrift_crash_cached_kind(void);
 const char *_Nullable capture_bitdrift_crash_last_exception_name(void);
 const char *_Nullable capture_bitdrift_crash_last_exception_reason(void);
+uint16_t capture_bitdrift_crash_last_exception_call_stack_frame_count(void);
+const uint64_t *_Nullable capture_bitdrift_crash_last_exception_call_stack_return_addresses(void);
+uint64_t capture_bitdrift_crash_last_exception_call_stack_image_load_address_at(uint16_t frame_index);
+const char *_Nullable capture_bitdrift_crash_last_exception_call_stack_binary_name_at(uint16_t frame_index);
+const char *_Nullable capture_bitdrift_crash_last_exception_call_stack_image_id_at(uint16_t frame_index);
 
 @interface BitdriftNSExceptionCrash ()
 
-- (instancetype)initWithName:(NSString *)name reason:(NSString *_Nullable)reason;
+- (instancetype)initWithName:(NSString *)name
+                      reason:(NSString *_Nullable)reason
+                      frames:(NSArray *)frames;
+
+@end
+
+@interface BitdriftCrashStackFrame ()
+
+- (instancetype)initWithFrameAddress:(uint64_t)frameAddress
+                       symbolAddress:(uint64_t)symbolAddress
+                          symbolName:(NSString *_Nullable)symbolName
+                          binaryName:(NSString *_Nullable)binaryName
+                             imageID:(NSString *_Nullable)imageID;
 
 @end
 
 @implementation BitdriftNSExceptionCrash
 
-- (instancetype)initWithName:(NSString *)name reason:(NSString *_Nullable)reason {
+- (instancetype)initWithName:(NSString *)name
+                      reason:(NSString *_Nullable)reason
+                      frames:(NSArray *)frames {
     self = [super init];
     if (self != nil) {
         _name = [name copy];
         _reason = [reason copy];
+        _frames = [frames copy];
+    }
+    return self;
+}
+
+@end
+
+@implementation BitdriftCrashStackFrame
+
+- (instancetype)initWithFrameAddress:(uint64_t)frameAddress
+                       symbolAddress:(uint64_t)symbolAddress
+                          symbolName:(NSString *_Nullable)symbolName
+                          binaryName:(NSString *_Nullable)binaryName
+                             imageID:(NSString *_Nullable)imageID {
+    self = [super init];
+    if (self != nil) {
+        _frameAddress = frameAddress;
+        _symbolAddress = symbolAddress;
+        _symbolName = [symbolName copy];
+        _binaryName = [binaryName copy];
+        _imageID = [imageID copy];
     }
     return self;
 }
@@ -153,7 +193,23 @@ const char *_Nullable capture_bitdrift_crash_last_exception_reason(void);
     if (kind == BitdriftPreviousCrashKindNSException) {
         NSString *name = [self cachedExceptionName];
         if (name != nil) {
-            nsexception = [[BitdriftNSExceptionCrash alloc] initWithName:name reason:[self cachedExceptionReason]];
+            NSMutableArray *frames = [NSMutableArray array];
+            uint16_t frameCount = capture_bitdrift_crash_last_exception_call_stack_frame_count();
+            const uint64_t *returnAddresses = capture_bitdrift_crash_last_exception_call_stack_return_addresses();
+            if (returnAddresses != nil) {
+                for (uint16_t index = 0; index < frameCount; index++) {
+                    const char *binaryName = capture_bitdrift_crash_last_exception_call_stack_binary_name_at(index);
+                    const char *imageID = capture_bitdrift_crash_last_exception_call_stack_image_id_at(index);
+                    [frames addObject:[[BitdriftCrashStackFrame alloc] initWithFrameAddress:returnAddresses[index]
+                                                                            symbolAddress:capture_bitdrift_crash_last_exception_call_stack_image_load_address_at(index)
+                                                                               symbolName:nil
+                                                                               binaryName:binaryName == NULL ? nil : [NSString stringWithUTF8String:binaryName]
+                                                                                  imageID:imageID == NULL ? nil : [NSString stringWithUTF8String:imageID]]];
+                }
+            }
+            nsexception = [[BitdriftNSExceptionCrash alloc] initWithName:name
+                                                                  reason:[self cachedExceptionReason]
+                                                                  frames:frames];
         }
     }
 

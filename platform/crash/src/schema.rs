@@ -9,6 +9,8 @@ pub(crate) const MAGIC: u64 = u64::from_be_bytes(*b"BDCRASH\0");
 pub(crate) const VERSION: u32 = 1;
 pub(crate) const NS_EXCEPTION_NAME_CAPACITY: usize = 128;
 pub(crate) const NS_EXCEPTION_REASON_CAPACITY: usize = 512;
+pub(crate) const NS_EXCEPTION_BINARY_NAME_CAPACITY: usize = 256;
+pub(crate) const NS_EXCEPTION_IMAGE_ID_CAPACITY: usize = 37;
 pub(crate) const MAX_NS_EXCEPTION_CALL_STACK_FRAMES: usize = 64;
 
 #[repr(u8)]
@@ -64,18 +66,39 @@ pub(crate) struct CrashRecordHeader {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct RawNSExceptionStackFrame {
+  pub(crate) return_address: u64,
+  pub(crate) image_load_address: u64,
+  pub(crate) binary_name: [u8; NS_EXCEPTION_BINARY_NAME_CAPACITY],
+  pub(crate) image_id: [u8; NS_EXCEPTION_IMAGE_ID_CAPACITY],
+}
+
+impl Default for RawNSExceptionStackFrame {
+  fn default() -> Self {
+    Self {
+      return_address: 0,
+      image_load_address: 0,
+      binary_name: [0; NS_EXCEPTION_BINARY_NAME_CAPACITY],
+      image_id: [0; NS_EXCEPTION_IMAGE_ID_CAPACITY],
+    }
+  }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct RawNSExceptionCallStack {
   pub(crate) frame_count: u16,
   pub(crate) reserved: [u8; 6],
-  pub(crate) return_addresses: [u64; MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
+  pub(crate) frames: [RawNSExceptionStackFrame; MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
 }
 
 impl Default for RawNSExceptionCallStack {
+  #[allow(clippy::large_stack_arrays)]
   fn default() -> Self {
     Self {
       frame_count: 0,
       reserved: [0; 6],
-      return_addresses: [0; MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
+      frames: [RawNSExceptionStackFrame::default(); MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
     }
   }
 }
