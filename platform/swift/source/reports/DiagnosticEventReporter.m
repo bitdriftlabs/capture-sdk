@@ -539,7 +539,7 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
     BDBinaryImage image = {
       .id = cstring_from(frame.imageID),
       .path = cstring_from(frame.binaryName),
-      .load_address = 0,
+      .load_address = frame.symbolAddress,
     };
     bdrw_add_binary_image(handle, &image);
     [seenImages addObject:frame.imageID];

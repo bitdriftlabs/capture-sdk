@@ -84,7 +84,6 @@ unsafe extern "C" {
 
 const LC_UUID: u32 = 0x1b;
 const MH_MAGIC_64: u32 = 0xfeed_facf;
-const MH_CIGAM_64: u32 = 0xcffa_edfe;
 
 //
 // NSExceptionMonitor
@@ -219,7 +218,9 @@ fn image_id_from_header(header_ptr: *const c_void) -> Option<String> {
   }
 
   let header = unsafe { &*header_ptr.cast::<MachHeader64>() };
-  if !matches!(header.magic, MH_MAGIC_64 | MH_CIGAM_64) {
+  // Only support native-endian 64-bit Mach-O headers. Byte-swapped headers would require
+  // swapping `ncmds`, `sizeofcmds`, and each load command before parsing the load-command region.
+  if header.magic != MH_MAGIC_64 {
     return None;
   }
 
