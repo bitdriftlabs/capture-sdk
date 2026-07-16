@@ -1024,7 +1024,7 @@ private func makePreviousCrash(
 private func makeCapturedFrame(frameAddress: UInt64) -> BitdriftCrashStackFrame {
     let frame = BitdriftCrashStackFrame()
     frame.setValue(frameAddress, forKey: "frameAddress")
-    frame.setValue(UInt64(0), forKey: "symbolAddress")
+    frame.setValue(UInt64(0), forKey: "imageLoadAddress")
     return frame
 }
 

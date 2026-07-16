@@ -176,6 +176,9 @@ fn record_exception_snapshot(snapshot: &ExceptionSnapshot) {
   writer::record_nsexception(snapshot.name.as_str(), snapshot.reason.as_deref(), &frames);
 }
 
+/// Resolves the loaded Mach-O image containing `return_address` via `dladdr`, capturing the
+/// image's load address, file name, and build UUID. No symbol name is resolved on-device; only
+/// image identification.
 fn resolve_frame_snapshot(return_address: u64) -> ExceptionFrameSnapshot {
   let mut info = DlInfo {
     dli_fname: null(),
@@ -203,6 +206,8 @@ fn resolve_frame_snapshot(return_address: u64) -> ExceptionFrameSnapshot {
   }
 }
 
+/// Extracts the file name (last path component) from a `dladdr`-provided image path, e.g.
+/// `/System/Library/Frameworks/Foundation.framework/Foundation` -> `Foundation`.
 fn binary_name_from_path(path_ptr: *const c_char) -> Option<String> {
   if path_ptr.is_null() {
     return None;
@@ -212,6 +217,9 @@ fn binary_name_from_path(path_ptr: *const c_char) -> Option<String> {
   path.rsplit('/').next().map(str::to_owned)
 }
 
+/// Walks the Mach-O load commands starting at `header_ptr` (a `dladdr`-provided image base) to
+/// find `LC_UUID` and returns the image's build UUID formatted as a hex string. Returns `None` if
+/// the header isn't a native-endian 64-bit Mach-O, or if no `LC_UUID` command is present.
 fn image_id_from_header(header_ptr: *const c_void) -> Option<String> {
   if header_ptr.is_null() {
     return None;
@@ -265,6 +273,8 @@ fn image_id_from_header(header_ptr: *const c_void) -> Option<String> {
   None
 }
 
+/// Formats a 16-byte Mach-O UUID as the typical `XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX` UUID
+/// string format.
 fn format_uuid(uuid: [u8; 16]) -> String {
   format!(
     "{:02X}{:02X}{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:\

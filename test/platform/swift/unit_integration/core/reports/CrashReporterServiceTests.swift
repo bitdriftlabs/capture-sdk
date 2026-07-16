@@ -37,6 +37,7 @@ final class CrashReporterServiceTests: XCTestCase {
         givenCrashReporterService(environment: .simulator())
         whenInvokingSetup()
         thenIssueReporterInitStateIs(.initialized(.unsupportedHardware))
+        thenPreviousRunInfoIs(.unknown)
     }
 
     // MARK: - Runtime state

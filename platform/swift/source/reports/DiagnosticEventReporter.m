@@ -335,12 +335,18 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
 - (BOOL)crashIsHangTermination:(MXCrashDiagnostic *)event API_AVAILABLE(ios(14.0), macos(12.0)) {
   // if its a watchdog termination
   return [event.exceptionType isEqualToNumber:@EXC_CRASH] && [event.signal isEqualToNumber:@SIGKILL]
-  // and the termination context indicates ate bad food or
+  // and the termination context indicates an 0x8BADF00D (ate bad food) watchdog kill
   && ([[event.terminationReason lowercaseString] containsString:@"0x8badf00d"]
-      // no context is provided
+      // or no context is provided
       || (event.terminationReason == nil && [event.exceptionCode isEqualToNumber:@0]));
 }
 
+// Writes every thread in `crash`'s call stack tree to the in-progress report buffer `handle` via
+// `bdrw_add_thread`, registering each frame's owning binary image along the way, and additionally
+// writes `bdrw_add_error` for the crashed thread. Threads with no frames are skipped unless
+// they're the crashed thread (so a crash with no captured stack still produces an error entry). A
+// thread whose walk hits an invalid frame (missing binary/address fields) stops early rather than
+// failing the whole call.
 - (void)serializeErrorThreads:(BDProcessorHandle)handle
                         crash:(NSDictionary *)crash
                          name:(NSString *)name
@@ -408,6 +414,8 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
   }
 }
 
+// Walks the same call stack tree as `serializeErrorThreads:`, but into a `BDCrashInfoThreadDetails`
+// (the shape `bdrw_add_apple_crash_info` expects) instead of writing directly to the report buffer.
 - (BDCrashInfoThreadDetailsStorage)buildCrashInfoThreadDetails:(NSDictionary *)crash
                                                          order:(FrameOrder)order API_AVAILABLE(ios(14.0), macos(12.0)) {
   NSArray *call_stacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
@@ -425,9 +433,13 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
     NSDictionary *frame = [self threadRootFrame:thread];
     uint64_t frame_count = [self countFrames:frame];
     if (frame_count == 0) {
+      // Unlike serializeErrorThreads:, there's no crashed-thread exception here: this data
+      // isn't used to report an error, so an empty crashed thread just doesn't contribute frames.
       continue;
     }
 
+    // Binary images aren't registered here: this always runs right after serializeErrorThreads:
+    // over the same `crash` dict, which already registered every image in this tree.
     BDStackFrame *stack = (BDStackFrame *)calloc(frame_count, sizeof(BDStackFrame));
     uint32_t frame_index = 0;
     while ([frame isKindOfClass:[NSDictionary class]] && frame_index < frame_count) {
@@ -496,8 +508,6 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
     stack[frame_count++] = (BDStackFrame) {
       .type_ = 2,
       .frame_address = frame.frameAddress,
-      .symbol_address = frame.symbolAddress,
-      .symbol_name = cstring_from(frame.symbolName),
       .image_id = cstring_from(frame.imageID),
     };
   }
@@ -539,7 +549,7 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
     BDBinaryImage image = {
       .id = cstring_from(frame.imageID),
       .path = cstring_from(frame.binaryName),
-      .load_address = frame.symbolAddress,
+      .load_address = frame.imageLoadAddress,
     };
     bdrw_add_binary_image(handle, &image);
     [seenImages addObject:frame.imageID];
@@ -553,13 +563,9 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
   free(threadDetails.threads);
 }
 
-- (void)serializeCrashInfo:(BDProcessorHandle)handle
-                 crashDict:(NSDictionary *)crash
-                   mxCrash:(MXCrashDiagnostic *)mxCrash
-             capturedCrash:(BitdriftPreviousCrash *)capturedCrash
-                metricTime:(NSTimeInterval)metricTime API_AVAILABLE(ios(14.0), macos(12.0)) {
-  BDCrashInfoThreadDetailsStorage metricKitThreadDetails =
-    [self buildCrashInfoThreadDetails:crash order:FrameOrderInnerToOuter];
+// Builds the MetricKit-derived BDAppleCrashInfoPayload: mach exception, posix signal, and (for
+// SIGKILL watchdog terminations) the parsed termination context.
+- (BDAppleCrashInfoPayload)buildMetricKitPayload:(MXCrashDiagnostic *)mxCrash API_AVAILABLE(ios(14.0), macos(12.0)) {
   BDAppleCrashInfoPayload payload = {0};
   if (mxCrash.exceptionType != nil) {
     payload.has_mach_exception = true;
@@ -597,6 +603,22 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
       .watchdog_visibility = cstring_from(terminationContext[@"watchdog_visibility"]),
     };
   }
+
+  return payload;
+}
+
+// Writes two independent BDAppleCrashInfo entries to `handle` when available: one from the
+// out-of-process MetricKit report (always, if `crash` has thread data), and one from bitdrift's
+// own in-process crash capture (only when `capturedCrash` carries one). They're independent
+// sources of the same underlying crash, so both get written rather than one replacing the other.
+- (void)serializeCrashInfo:(BDProcessorHandle)handle
+                 crashDict:(NSDictionary *)crash
+                   mxCrash:(MXCrashDiagnostic *)mxCrash
+             capturedCrash:(BitdriftPreviousCrash *)capturedCrash
+                metricTime:(NSTimeInterval)metricTime API_AVAILABLE(ios(14.0), macos(12.0)) {
+  BDCrashInfoThreadDetailsStorage metricKitThreadDetails =
+    [self buildCrashInfoThreadDetails:crash order:FrameOrderInnerToOuter];
+  BDAppleCrashInfoPayload payload = [self buildMetricKitPayload:mxCrash];
 
   uint64_t seconds = 0;
   uint32_t nanos = 0;

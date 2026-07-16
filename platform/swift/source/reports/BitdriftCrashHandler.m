@@ -32,8 +32,7 @@ const char *_Nullable capture_bitdrift_crash_last_exception_call_stack_image_id_
 @interface BitdriftCrashStackFrame ()
 
 - (instancetype)initWithFrameAddress:(uint64_t)frameAddress
-                       symbolAddress:(uint64_t)symbolAddress
-                          symbolName:(NSString *_Nullable)symbolName
+                    imageLoadAddress:(uint64_t)imageLoadAddress
                           binaryName:(NSString *_Nullable)binaryName
                              imageID:(NSString *_Nullable)imageID;
 
@@ -58,15 +57,13 @@ const char *_Nullable capture_bitdrift_crash_last_exception_call_stack_image_id_
 @implementation BitdriftCrashStackFrame
 
 - (instancetype)initWithFrameAddress:(uint64_t)frameAddress
-                       symbolAddress:(uint64_t)symbolAddress
-                          symbolName:(NSString *_Nullable)symbolName
+                    imageLoadAddress:(uint64_t)imageLoadAddress
                           binaryName:(NSString *_Nullable)binaryName
                              imageID:(NSString *_Nullable)imageID {
     self = [super init];
     if (self != nil) {
         _frameAddress = frameAddress;
-        _symbolAddress = symbolAddress;
-        _symbolName = [symbolName copy];
+        _imageLoadAddress = imageLoadAddress;
         _binaryName = [binaryName copy];
         _imageID = [imageID copy];
     }
@@ -182,6 +179,9 @@ const char *_Nullable capture_bitdrift_crash_last_exception_call_stack_image_id_
     return timestamp == 0 ? nil : [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)timestamp];
 }
 
+// Builds a `BitdriftPreviousCrash` from the cached FFI state written by the Rust crash reporter
+// during the previous launch. Returns nil if no crash date is cached, meaning nothing crashed
+// (or the crash reporter wasn't configured in time).
 + (BitdriftPreviousCrash * _Nullable)cachedPreviousCrash {
     NSDate *crashDate = [self cachedCrashDate];
     if (crashDate == nil) {
@@ -201,8 +201,7 @@ const char *_Nullable capture_bitdrift_crash_last_exception_call_stack_image_id_
                     const char *binaryName = capture_bitdrift_crash_last_exception_call_stack_binary_name_at(index);
                     const char *imageID = capture_bitdrift_crash_last_exception_call_stack_image_id_at(index);
                     [frames addObject:[[BitdriftCrashStackFrame alloc] initWithFrameAddress:returnAddresses[index]
-                                                                            symbolAddress:capture_bitdrift_crash_last_exception_call_stack_image_load_address_at(index)
-                                                                               symbolName:nil
+                                                                         imageLoadAddress:capture_bitdrift_crash_last_exception_call_stack_image_load_address_at(index)
                                                                                binaryName:binaryName == NULL ? nil : [NSString stringWithUTF8String:binaryName]
                                                                                   imageID:imageID == NULL ? nil : [NSString stringWithUTF8String:imageID]]];
                 }
