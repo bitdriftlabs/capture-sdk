@@ -157,4 +157,23 @@ extension RuntimeVariable<String> {
         name: "client_config.trace.propagation_mode",
         defaultValue: "w3c"
     )
+
+    /// Comma-separated list (CSV) of request paths used to match requests that should be ignored.
+    ///
+    /// Example: `/api/v2/spans,/api/v2/logs`
+    static let networkRequestIgnorePathsCSV = RuntimeVariable(
+        name: "client_config.network.request_ignore_match_paths",
+        defaultValue: ""
+    )
+
+    /// Comma-separated list (CSV) of request headers used to match requests that should be ignored.
+    ///
+    /// If paths and headers are both configured, both must match.
+    /// If only one is configured, only that matcher is used.
+    ///
+    /// Example: `DD-EVP-ORIGIN,Some-Other-Header`
+    static let networkRequestIgnoreRequiredHeadersCSV = RuntimeVariable(
+        name: "client_config.network.request_ignore_match_headers",
+        defaultValue: ""
+    )
 }

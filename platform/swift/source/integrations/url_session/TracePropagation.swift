@@ -44,8 +44,21 @@ enum URLSessionTracePropagation {
     static let xB3SpanIDHeader = "X-B3-SpanId"
     static let xB3SampledHeader = "X-B3-Sampled"
     static let xDatadogTraceIDHeader = "x-datadog-trace-id"
-    static let xDatadogParentIDHeader = "x-datadog-parent-id"
     static let xDatadogSamplingPriorityHeader = "x-datadog-sampling-priority"
+
+    static func extractSampledTraceID(
+        from headers: [String: String]?,
+        configuredPropagationMode: URLSessionTracePropagationMode
+    ) -> String?
+    {
+        guard configuredPropagationMode == .datadog else {
+            return extractSampledTraceID(from: headers)
+        }
+
+        return extractSampledDatadogTraceID(from: headers)
+            ?? extractSampledW3CTraceIDAsDatadogDecimal(from: headers)
+            ?? extractSampledTraceID(from: headers)
+    }
 
     static func traceparentValue(traceContext: URLSessionTraceContext) -> String {
         "00-\(traceContext.traceID)-\(traceContext.spanID)-01"
@@ -104,6 +117,27 @@ enum URLSessionTracePropagation {
             return traceID
         }
 
+        return extractSampledDatadogTraceID(from: headers)
+    }
+
+    private static func extractSampledW3CTraceIDAsDatadogDecimal(from headers: [String: String]?) -> String? {
+        guard let headers else { return nil }
+        guard let traceparent = headers[traceparentHeader] else { return nil }
+
+        let parts = traceparent.split(separator: "-")
+        guard parts.count >= 4,
+              let flags = UInt8(parts[3], radix: 16),
+              flags & 0x01 == 1
+        else {
+            return nil
+        }
+
+        let low64TraceID = String(parts[1].suffix(16))
+        return UInt64(low64TraceID, radix: 16).map(String.init)
+    }
+
+    private static func extractSampledDatadogTraceID(from headers: [String: String]?) -> String? {
+        guard let headers else { return nil }
         if let traceID = headers[xDatadogTraceIDHeader] {
             let sampled = headers[xDatadogSamplingPriorityHeader]
             // Datadog sampling priority values: 1 = AUTO_KEEP, 2 = USER_KEEP
@@ -116,16 +150,54 @@ enum URLSessionTracePropagation {
     }
 }
 
+protocol URLSessionRequestIgnorePolicy {
+    func shouldIgnore(_ request: URLRequest?) -> Bool
+}
+
+struct RuntimeURLSessionIgnorePolicy: URLSessionRequestIgnorePolicy {
+    private let ignorePaths: Set<String>
+    private let requiredHeaders: Set<String>
+
+    init(ignorePathsCSV: String, requiredHeadersCSV: String) {
+        self.ignorePaths = Self.readCSV(ignorePathsCSV)
+        self.requiredHeaders = Self.readCSV(requiredHeadersCSV)
+    }
+
+    func shouldIgnore(_ request: URLRequest?) -> Bool {
+        guard let request else { return false }
+
+        let hasIgnoredPaths = !ignorePaths.isEmpty
+        let hasRequiredHeaders = !requiredHeaders.isEmpty
+        if !hasIgnoredPaths && !hasRequiredHeaders {
+            return false
+        }
+
+        let matchesIgnoredPath = request.url.map { ignorePaths.contains($0.path) } ?? false
+        let matchesRequiredHeader = requiredHeaders.contains { request.value(forHTTPHeaderField: $0) != nil }
+
+        switch (hasIgnoredPaths, hasRequiredHeaders) {
+        case (true, true):
+            return matchesIgnoredPath && matchesRequiredHeader
+        case (true, false):
+            return matchesIgnoredPath
+        case (false, true):
+            return matchesRequiredHeader
+        case (false, false):
+            return false
+        }
+    }
+
+    private static func readCSV(_ value: String) -> Set<String> {
+        Set(value.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })
+    }
+}
+
 struct URLSessionTraceContext {
     let traceID: String
     let spanID: String
 
     var datadogTraceID: String? {
         Self.hexToDecimal(String(self.traceID.suffix(16)))
-    }
-
-    var datadogParentID: String? {
-        Self.hexToDecimal(self.spanID)
     }
 
     static func make() -> URLSessionTraceContext {

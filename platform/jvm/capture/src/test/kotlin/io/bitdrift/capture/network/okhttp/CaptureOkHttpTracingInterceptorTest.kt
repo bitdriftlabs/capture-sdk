@@ -34,6 +34,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenActiveTracingAndW3c_shouldAddExpectedHeaders() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("w3c")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
         val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
         val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com").build())
 
@@ -50,6 +52,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenActiveTracingAndB3_shouldAddExpectedHeaders() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-single")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
         val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com").build())
@@ -66,6 +70,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenActiveTracingAndB3Multi_shouldAddExpectedHeaders() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-multi")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
         val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com").build())
@@ -84,6 +90,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenActiveTracingAndDatadog_shouldAddExpectedHeaders() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("dd")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
         val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com").build())
@@ -103,6 +111,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenNotActiveTracing_shouldNotAddHeaders() {
         setActiveTracingState(isActiveTracingEnabled = false)
         setPropagationMode("w3c")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
         val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com").build())
@@ -118,6 +128,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenPropagationModeOff_shouldNotAddHeaders() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("off")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
         val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com").build())
@@ -133,6 +145,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenStringModeUnknown_shouldDefaultToNone() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("invalid")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
         val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com").build())
@@ -148,6 +162,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenExistingTraceparent_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("w3c")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val existingTraceparent = "00-88c131f5a4a41657a4cc039862759571-639ec5ab80cb312d-01"
         val request =
@@ -170,6 +186,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenExistingB3Single_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-single")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val existingB3 = "88c131f5a4a41657a4cc039862759571-639ec5ab80cb312d-1"
         val request =
@@ -192,6 +210,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenExistingB3Multi_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-multi")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val existingTraceId = "88c131f5a4a41657a4cc039862759571"
         val existingSpanId = "639ec5ab80cb312d"
@@ -219,6 +239,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenW3cModeButExistingB3Header_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("w3c")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val existingB3 = "88c131f5a4a41657a4cc039862759571-639ec5ab80cb312d-1"
         val request =
@@ -242,6 +264,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenB3SingleModeButExistingTraceparent_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-single")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val existingTraceparent = "00-88c131f5a4a41657a4cc039862759571-639ec5ab80cb312d-01"
         val request =
@@ -265,6 +289,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenB3MultiModeButExistingB3SingleHeader_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("b3-multi")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val existingB3 = "88c131f5a4a41657a4cc039862759571-639ec5ab80cb312d-1"
         val request =
@@ -289,6 +315,8 @@ class CaptureOkHttpTracingInterceptorTest {
     fun intercept_whenExistingDatadogHeaders_shouldPassThroughUnchanged() {
         setActiveTracingState(isActiveTracingEnabled = true)
         setPropagationMode("dd")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
 
         val existingTraceId = "5498017814432956682"
         val request =
@@ -309,8 +337,84 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(captured.headers.size).isEqualTo(request.headers.size)
     }
 
+    @Test
+    fun intercept_whenDatadogIntakeRequest_shouldPassThroughUnchanged() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("dd")
+        setIgnoredRequestPaths("/api/v2/spans")
+        setIgnoredRequestRequiredHeaders("DD-EVP-ORIGIN")
+
+        val request =
+            Request
+                .Builder()
+                .url("https://app.datadoghq.com/api/v2/spans")
+                .header("DD-API-KEY", "client-token")
+                .header("DD-EVP-ORIGIN", "android")
+                .header("DD-REQUEST-ID", "request-id")
+                .build()
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain = FakeOkHttpInterceptorChain(request)
+
+        interceptor.intercept(chain)
+
+        val captured = chain.capturedRequest
+        assertThat(captured.header("x-datadog-trace-id")).isNull()
+        assertThat(captured.header("x-datadog-sampling-priority")).isNull()
+        assertThat(captured.headers.size).isEqualTo(request.headers.size)
+    }
+
+    @Test
+    fun intercept_whenPlainApiV2SpansRequest_shouldStillInjectHeaders() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("dd")
+        setIgnoredRequestPaths("")
+        setIgnoredRequestRequiredHeaders("")
+
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain = FakeOkHttpInterceptorChain(Request.Builder().url("https://example.com/api/v2/spans").build())
+
+        interceptor.intercept(chain)
+
+        val request = chain.capturedRequest
+        assertThat(request.header("x-datadog-trace-id")).isNotNull()
+        assertThat(request.header("x-datadog-sampling-priority")).isEqualTo("2")
+    }
+
+    @Test
+    fun intercept_whenIgnoreRequestConfigHasOnlyPath_shouldPassThroughUnchanged() {
+        setActiveTracingState(isActiveTracingEnabled = true)
+        setPropagationMode("dd")
+        setIgnoredRequestPaths("/api/v2/spans")
+        setIgnoredRequestRequiredHeaders("")
+
+        val request =
+            Request
+                .Builder()
+                .url("https://app.datadoghq.com/api/v2/spans")
+                .header("DD-EVP-ORIGIN", "android")
+                .build()
+        val interceptor = CaptureOkHttpTracingInterceptor(runtimeProvider)
+        val chain = FakeOkHttpInterceptorChain(request)
+
+        interceptor.intercept(chain)
+
+        val captured = chain.capturedRequest
+        assertThat(captured.header("x-datadog-trace-id")).isNull()
+        assertThat(captured.header("x-datadog-sampling-priority")).isNull()
+    }
+
     private fun setPropagationMode(value: String) {
         whenever(runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE)).thenReturn(value)
+    }
+
+    private fun setIgnoredRequestPaths(value: String) {
+        whenever(runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.NETWORK_REQUEST_IGNORE_PATHS_CSV)).thenReturn(value)
+    }
+
+    private fun setIgnoredRequestRequiredHeaders(value: String) {
+        whenever(
+            runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.NETWORK_REQUEST_IGNORE_REQUIRED_HEADERS_CSV),
+        ).thenReturn(value)
     }
 
     private fun setActiveTracingState(isActiveTracingEnabled: Boolean) {

@@ -43,6 +43,33 @@ internal object TracePropagation {
             return b3TraceId
         }
 
+        return extractSampledDatadogTraceId(request)
+    }
+
+    internal fun extractSampledTraceId(
+        request: Request,
+        configuredPropagationMode: TracePropagationMode,
+    ): String? {
+        if (configuredPropagationMode != TracePropagationMode.DD) {
+            return extractSampledTraceId(request)
+        }
+
+        return extractSampledDatadogTraceId(request)
+            ?: extractSampledW3CTraceIdAsDatadogDecimal(request)
+            ?: extractSampledTraceId(request)
+    }
+
+    private fun extractSampledW3CTraceIdAsDatadogDecimal(request: Request): String? {
+        val traceparent = request.header("traceparent") ?: return null
+        val parts = traceparent.split("-")
+        val flags = parts.getOrNull(3)?.toIntOrNull(16) ?: return null
+        if (flags and 0x01 != 1) return null
+
+        val low64TraceId = parts.getOrNull(1)?.takeLast(16) ?: return null
+        return low64TraceId.toBigIntegerOrNull(16)?.toString()
+    }
+
+    private fun extractSampledDatadogTraceId(request: Request): String? {
         val ddTraceId = request.header("x-datadog-trace-id")
         if (ddTraceId != null) {
             val sampled = request.header("x-datadog-sampling-priority")

@@ -8,9 +8,12 @@
 package io.bitdrift.capture.network.okhttp
 
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.CaptureRuntimeProvider
 import io.bitdrift.capture.ILogger
+import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
+import io.bitdrift.capture.common.RuntimeStringConfig
 import okhttp3.Call
 import okhttp3.EventListener
 
@@ -32,9 +35,17 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     private val targetEventListenerFactory: EventListener.Factory?,
     private val logger: ILogger?,
     private val clock: IClock,
+    private val runtimeProvider: IRuntimeProvider,
     private val requestFieldProvider: OkHttpRequestFieldProvider,
     private val responseFieldProvider: OkHttpResponseFieldProvider,
 ) : EventListener.Factory {
+    private val configuredPropagationMode by lazy {
+        TracePropagationMode.fromRuntimeValue(
+            runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE),
+        )
+    }
+    private val requestIgnorePolicy by lazy { RuntimeOkHttpRequestIgnorePolicy(runtimeProvider) }
+
     /**
      * Initializes a new instance of the Capture event listener with an existing event listener factory.
      *
@@ -51,6 +62,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
         targetEventListenerFactory = targetEventListenerFactory,
         logger = Capture.logger(),
         clock = DefaultClock.getInstance(),
+        runtimeProvider = CaptureRuntimeProvider,
         requestFieldProvider = requestFieldProvider,
         responseFieldProvider = responseFieldProvider,
     )
@@ -58,13 +70,14 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     override fun create(call: Call): EventListener {
         val currentLogger = getLogger()
         val targetEventListener = targetEventListenerFactory?.create(call)
-        if (currentLogger == null) {
+        if (currentLogger == null || requestIgnorePolicy.shouldIgnore(call.request())) {
             return targetEventListener ?: EventListener.NONE
         }
         return CaptureOkHttpEventListener(
             logger = currentLogger,
             clock = clock,
             targetEventListener = targetEventListener,
+            configuredPropagationMode = configuredPropagationMode,
             requestExtraFieldsProvider = requestFieldProvider,
             responseExtraFieldsProvider = responseFieldProvider,
         )

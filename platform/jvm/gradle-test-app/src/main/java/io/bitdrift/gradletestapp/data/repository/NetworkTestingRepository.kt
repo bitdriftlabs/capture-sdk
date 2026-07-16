@@ -75,7 +75,9 @@ class NetworkTestingRepository(context: Context) {
                     addInterceptor(CaptureOkHttpTracingInterceptor())
                     eventListenerFactory(
                         CaptureOkHttpEventListenerFactory(
-                            requestFieldProvider = RetrofitUrlPathProvider(CustomRequestFieldProvider()),
+                            requestFieldProvider = RetrofitUrlPathProvider(
+                                CustomRequestFieldProvider()
+                            ),
                             responseFieldProvider = CustomResponseFieldProvider(),
                         ),
                     )
@@ -295,7 +297,7 @@ class NetworkTestingRepository(context: Context) {
         okHttpClient.newCall(request).enqueue(
             object : Callback {
                 override fun onResponse(call: Call, response: Response) {
-                    val body = response.use { it.body!!.string() }
+                    val body = response.use { it.body.string() }
                     Timber.v("OkHttp request ($label) completed with status code=${response.code} and body=$body")
                 }
 
