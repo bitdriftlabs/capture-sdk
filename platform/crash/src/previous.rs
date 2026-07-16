@@ -46,15 +46,15 @@ impl Default for NSExceptionStackFrame {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct NSExceptionCallStack {
   pub(crate) frame_count: u16,
-  pub(crate) return_addresses: [u64; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
-  pub(crate) frames: [NSExceptionStackFrame; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
+  pub(crate) return_addresses: [u64; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize],
+  pub(crate) frames: [NSExceptionStackFrame; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize],
 }
 
 impl Default for NSExceptionCallStack {
   fn default() -> Self {
     Self {
       frame_count: 0,
-      return_addresses: [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
+      return_addresses: [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize],
       frames: std::array::from_fn(|_| NSExceptionStackFrame::default()),
     }
   }
@@ -175,10 +175,10 @@ fn sanitize_c_string_bytes<const N: usize>(bytes: &mut [u8; N]) {
 }
 
 fn parse_nsexception_call_stack(raw: &RawNSExceptionCallStack) -> NSExceptionCallStack {
-  let max_frame_count =
-    u16::try_from(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES).unwrap_or(u16::MAX);
-  let frame_count = raw.frame_count.min(max_frame_count);
-  let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
+  let frame_count = raw
+    .frame_count
+    .min(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES);
+  let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize];
   let mut frames = std::array::from_fn(|_| NSExceptionStackFrame::default());
 
   for (index, raw_frame) in raw.frames[.. usize::from(frame_count)].iter().enumerate() {

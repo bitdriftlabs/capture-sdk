@@ -115,7 +115,7 @@ fn record_nsexception_truncates_return_addresses_to_capacity() {
   }
 
   let return_addresses = (0 .. schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES + 10)
-    .map(|index| index as u64)
+    .map(u64::from)
     .collect::<Vec<_>>();
   let frames = frame_records(&return_addresses);
   record_nsexception("NSException", None, &frames);
@@ -124,14 +124,14 @@ fn record_nsexception_truncates_return_addresses_to_capacity() {
   let record = unsafe { &*record_ptr };
   assert_eq!(
     record.nsexception.call_stack.frame_count,
-    u16::try_from(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES).unwrap_or(u16::MAX)
+    schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES
   );
   for (raw_frame, expected_address) in record
     .nsexception
     .call_stack
     .frames
     .iter()
-    .zip(&return_addresses[.. schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES])
+    .zip(&return_addresses[.. schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize])
   {
     assert_eq!(raw_frame.return_address, *expected_address);
   }

@@ -8,10 +8,10 @@
 pub(crate) const MAGIC: u64 = u64::from_be_bytes(*b"BDCRASH\0");
 pub(crate) const VERSION: u32 = 1;
 pub(crate) const NS_EXCEPTION_NAME_CAPACITY: usize = 128;
-pub(crate) const NS_EXCEPTION_REASON_CAPACITY: usize = 512;
+pub(crate) const NS_EXCEPTION_REASON_CAPACITY: usize = 1024;
 pub(crate) const NS_EXCEPTION_BINARY_NAME_CAPACITY: usize = 256;
 pub(crate) const NS_EXCEPTION_IMAGE_ID_CAPACITY: usize = 37;
-pub(crate) const MAX_NS_EXCEPTION_CALL_STACK_FRAMES: usize = 64;
+pub(crate) const MAX_NS_EXCEPTION_CALL_STACK_FRAMES: u16 = 128;
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -89,7 +89,7 @@ impl Default for RawNSExceptionStackFrame {
 pub(crate) struct RawNSExceptionCallStack {
   pub(crate) frame_count: u16,
   pub(crate) reserved: [u8; 6],
-  pub(crate) frames: [RawNSExceptionStackFrame; MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
+  pub(crate) frames: [RawNSExceptionStackFrame; MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize],
 }
 
 impl Default for RawNSExceptionCallStack {
@@ -98,7 +98,7 @@ impl Default for RawNSExceptionCallStack {
     Self {
       frame_count: 0,
       reserved: [0; 6],
-      frames: [RawNSExceptionStackFrame::default(); MAX_NS_EXCEPTION_CALL_STACK_FRAMES],
+      frames: [RawNSExceptionStackFrame::default(); MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize],
     }
   }
 }

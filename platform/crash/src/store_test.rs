@@ -99,7 +99,7 @@ fn open_reads_previous_nsexception_state() -> Result<()> {
         call_stack: NSExceptionCallStack {
           frame_count: 2,
           return_addresses: {
-            let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
+            let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize];
             return_addresses[.. 2].copy_from_slice(&[21, 34]);
             return_addresses
           },

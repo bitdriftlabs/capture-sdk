@@ -156,7 +156,7 @@ fn reads_committed_nsexception() {
     NSExceptionCallStack {
       frame_count: 2,
       return_addresses: {
-        let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
+        let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize];
         return_addresses[.. 2].copy_from_slice(&[10, 11]);
         return_addresses
       },
@@ -201,7 +201,7 @@ fn clamps_nsexception_frame_count_to_capacity() {
   };
   assert_eq!(
     exception.call_stack.frame_count,
-    u16::try_from(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES).unwrap_or(u16::MAX)
+    schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES
   );
 }
 

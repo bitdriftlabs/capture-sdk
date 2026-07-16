@@ -19,7 +19,7 @@ use crate::schema;
 
 #[test]
 fn previous_nsexception_returns_exception_details() {
-  let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES];
+  let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize];
   return_addresses[.. 2].copy_from_slice(&[0x1234, 0x5678]);
   let state = PreviousCrashState {
     did_crash: true,

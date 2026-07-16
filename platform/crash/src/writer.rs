@@ -70,12 +70,10 @@ pub(crate) fn record_nsexception(
   } else {
     record.nsexception.reason.fill(0);
   }
-  record.nsexception.call_stack.frame_count = frames
-    .len()
-    .min(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES)
-    .try_into()
-    .ok()
-    .unwrap_or(u16::MAX);
+  let frame_count =
+    u16::try_from(frames.len()).unwrap_or(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES);
+  record.nsexception.call_stack.frame_count =
+    frame_count.min(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES);
   let copy_len = usize::from(record.nsexception.call_stack.frame_count);
   record
     .nsexception
