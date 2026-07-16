@@ -505,6 +505,9 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
   uint32_t frame_count = 0;
 
   for (BitdriftCrashStackFrame *frame in frames) {
+    if (frame.imageID == nil) {
+      continue;
+    }
     stack[frame_count++] = (BDStackFrame) {
       .type_ = 2,
       .frame_address = frame.frameAddress,
