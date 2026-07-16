@@ -236,6 +236,13 @@ fn image_id_from_header_returns_none_for_invalid_command_sizes() {
     command: super::LoadCommand,
   }
 
+  let load_command_size = u32::try_from(std::mem::size_of::<super::LoadCommand>())
+    .ok()
+    .unwrap_or(u32::MAX);
+  let uuid_command_size = u32::try_from(std::mem::size_of::<super::UuidCommand>())
+    .ok()
+    .unwrap_or(u32::MAX);
+
   let invalid_load_command = HeaderWithCommand {
     header: super::MachHeader64 {
       magic: super::MH_MAGIC_64,
@@ -243,13 +250,13 @@ fn image_id_from_header_returns_none_for_invalid_command_sizes() {
       cpusubtype: 0,
       filetype: 0,
       ncmds: 1,
-      sizeofcmds: super::size_u32::<super::LoadCommand>(),
+      sizeofcmds: load_command_size,
       flags: 0,
       reserved: 0,
     },
     command: super::LoadCommand {
       cmd: super::LC_UUID,
-      cmdsize: super::size_u32::<super::LoadCommand>() - 1,
+      cmdsize: load_command_size - 1,
     },
   };
   assert!(super::image_id_from_header((&raw const invalid_load_command).cast()).is_none());
@@ -261,14 +268,32 @@ fn image_id_from_header_returns_none_for_invalid_command_sizes() {
       cpusubtype: 0,
       filetype: 0,
       ncmds: 1,
-      sizeofcmds: super::size_u32::<super::LoadCommand>(),
+      sizeofcmds: load_command_size,
       flags: 0,
       reserved: 0,
     },
     command: super::LoadCommand {
       cmd: super::LC_UUID,
-      cmdsize: super::size_u32::<super::LoadCommand>(),
+      cmdsize: load_command_size,
     },
   };
   assert!(super::image_id_from_header((&raw const invalid_uuid_command).cast()).is_none());
+
+  let truncated_load_commands = HeaderWithCommand {
+    header: super::MachHeader64 {
+      magic: super::MH_MAGIC_64,
+      cputype: 0,
+      cpusubtype: 0,
+      filetype: 0,
+      ncmds: 1,
+      sizeofcmds: load_command_size - 1,
+      flags: 0,
+      reserved: 0,
+    },
+    command: super::LoadCommand {
+      cmd: super::LC_UUID,
+      cmdsize: uuid_command_size,
+    },
+  };
+  assert!(super::image_id_from_header((&raw const truncated_load_commands).cast()).is_none());
 }

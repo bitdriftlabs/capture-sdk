@@ -223,35 +223,45 @@ fn image_id_from_header(header_ptr: *const c_void) -> Option<String> {
     return None;
   }
 
-  let mut cursor = unsafe {
+  let start = unsafe {
     header_ptr
       .cast::<u8>()
       .add(std::mem::size_of::<MachHeader64>())
   };
-  let load_command_size = size_u32::<LoadCommand>();
-  let uuid_command_size = size_u32::<UuidCommand>();
+  let sizeofcmds = usize::try_from(header.sizeofcmds).ok()?;
+  let end = unsafe { start.add(sizeofcmds) };
+
+  let mut cursor = start;
+  let load_command_size = std::mem::size_of::<LoadCommand>();
+  let uuid_command_size = std::mem::size_of::<UuidCommand>();
   for _ in 0 .. header.ncmds {
-    let command = unsafe { read_unaligned(cursor.cast::<LoadCommand>()) };
-    if command.cmdsize < load_command_size {
+    if cursor >= end {
       break;
     }
+
+    let remaining = (end as usize).saturating_sub(cursor as usize);
+    if remaining < load_command_size {
+      break;
+    }
+
+    let command = unsafe { read_unaligned(cursor.cast::<LoadCommand>()) };
+    let cmdsize = usize::try_from(command.cmdsize).ok()?;
+    if cmdsize < load_command_size || cmdsize > remaining {
+      break;
+    }
+
     if command.cmd == LC_UUID {
-      if command.cmdsize < uuid_command_size {
+      if cmdsize < uuid_command_size || remaining < uuid_command_size {
         break;
       }
       let uuid_command = unsafe { read_unaligned(cursor.cast::<UuidCommand>()) };
       return Some(format_uuid(uuid_command.uuid));
     }
-    cursor = unsafe { cursor.add(command.cmdsize as usize) };
+
+    cursor = unsafe { cursor.add(cmdsize) };
   }
 
   None
-}
-
-fn size_u32<T>() -> u32 {
-  u32::try_from(std::mem::size_of::<T>())
-    .ok()
-    .unwrap_or(u32::MAX)
 }
 
 fn format_uuid(uuid: [u8; 16]) -> String {
