@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.9...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.10...HEAD
 
 ### Both
 
@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Reduced the size of persisted fatal issue reports.
+- Nothing yet!
 
 ### Android
 
@@ -44,6 +44,21 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.10]
+[0.23.10]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.10
+
+### Both
+
+**Fixed**
+
+- Reduced the size of persisted fatal issue reports.
+
+### iOS
+
+**Fixed**
+
+- Improved NSException handling across all supported OS versions
 
 ## [0.23.9]
 [0.23.9]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.9
