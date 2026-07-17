@@ -58,7 +58,7 @@
 
 **Fixed**
 
-- Improved NSException handling in all OS versions.
+- Improved NSException handling across all supported OS versions
 
 ## [0.23.9]
 [0.23.9]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.9
