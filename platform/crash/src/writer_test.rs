@@ -56,6 +56,7 @@ fn record_nsexception_commits_after_payload() {
   assert_eq!(&record.nsexception.name[.. 12], b"NSException\0");
   assert_eq!(&record.nsexception.reason[.. 11], b"bad reason\0");
   assert_eq!(record.nsexception.call_stack.frame_count, 3);
+  assert_eq!(record.header.crc32, schema::compute_record_checksum(record));
 }
 
 #[test]

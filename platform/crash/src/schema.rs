@@ -5,6 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+use std::mem::size_of;
+
 pub(crate) const MAGIC: u64 = u64::from_be_bytes(*b"BDCRASH\0");
 pub(crate) const VERSION: u32 = 1;
 pub(crate) const NS_EXCEPTION_NAME_CAPACITY: usize = 128;
@@ -62,6 +64,7 @@ pub(crate) struct CrashRecordHeader {
   pub(crate) record_state: u8,
   pub(crate) crash_kind: u8,
   pub(crate) reserved: [u8; 2],
+  pub(crate) crc32: u32,
 }
 
 #[repr(C)]
@@ -129,4 +132,16 @@ pub(crate) struct CrashRecord {
   pub(crate) pid: u32,
   pub(crate) reserved: [u8; 4],
   pub(crate) nsexception: RawNSExceptionPayload,
+}
+
+pub(crate) fn compute_record_checksum(record: &CrashRecord) -> u32 {
+  // `record_state` is committed via a separate volatile write after this checksum is computed, so
+  // it's masked out here along with `crc32` itself to keep the checksum reproducible on read.
+  let mut masked = *record;
+  masked.header.record_state = 0;
+  masked.header.crc32 = 0;
+  let bytes = unsafe {
+    std::slice::from_raw_parts((&raw const masked).cast::<u8>(), size_of::<CrashRecord>())
+  };
+  crc32fast::hash(bytes)
 }

@@ -31,11 +31,16 @@ fn committed_nsexception_record() -> CrashRecord {
       record_state: RecordState::Committed.into(),
       crash_kind: CrashKind::NSException.into(),
       reserved: [0; 2],
+      crc32: 0,
     },
     timestamp_secs: 99,
     pid: 7,
     ..CrashRecord::default()
   }
+}
+
+fn finalize_crc32(record: &mut CrashRecord) {
+  record.header.crc32 = schema::compute_record_checksum(record);
 }
 
 #[test]
@@ -55,6 +60,7 @@ fn ignores_record_with_unexpected_magic() {
       record_state: RecordState::Committed.into(),
       crash_kind: CrashKind::NSException.into(),
       reserved: [0; 2],
+      crc32: 0,
     },
     ..CrashRecord::default()
   };
@@ -74,6 +80,7 @@ fn ignores_record_with_unsupported_version() {
       record_state: RecordState::Committed.into(),
       crash_kind: CrashKind::NSException.into(),
       reserved: [0; 2],
+      crc32: 0,
     },
     ..CrashRecord::default()
   };
@@ -93,9 +100,23 @@ fn ignores_uncommitted_records() {
       record_state: RecordState::Writing.into(),
       crash_kind: CrashKind::NSException.into(),
       reserved: [0; 2],
+      crc32: 0,
     },
     ..CrashRecord::default()
   };
+
+  assert_eq!(
+    read_previous_state_from_bytes(crash_record_bytes(&raw)),
+    PreviousCrashState::default()
+  );
+}
+
+#[test]
+fn ignores_record_with_crc32_mismatch() {
+  let mut raw = committed_nsexception_record();
+  raw.nsexception.name[.. 12].copy_from_slice(b"NSException\0");
+  finalize_crc32(&mut raw);
+  raw.nsexception.name[0] = b'X';
 
   assert_eq!(
     read_previous_state_from_bytes(crash_record_bytes(&raw)),
@@ -112,6 +133,7 @@ fn ignores_unknown_crash_kind() {
       record_state: RecordState::Committed.into(),
       crash_kind: 255,
       reserved: [0; 2],
+      crc32: 0,
     },
     ..CrashRecord::default()
   };
@@ -134,6 +156,7 @@ fn reads_committed_nsexception() {
   raw.nsexception.call_stack.frames[0].binary_name[.. 6].copy_from_slice(b"MyApp\0");
   raw.nsexception.call_stack.frames[0].image_id[.. schema::NS_EXCEPTION_IMAGE_ID_CAPACITY]
     .copy_from_slice(b"BD9C11B4-BF87-3F60-AEA0-0141BD7F8AC0\0");
+  finalize_crc32(&mut raw);
 
   let previous = read_previous_state_from_bytes(crash_record_bytes(&raw));
 
@@ -188,6 +211,7 @@ fn reads_committed_nsexception() {
 fn clamps_nsexception_frame_count_to_capacity() {
   let mut raw = committed_nsexception_record();
   raw.nsexception.call_stack.frame_count = u16::MAX;
+  finalize_crc32(&mut raw);
 
   let previous = read_previous_state_from_bytes(crash_record_bytes(&raw));
 
@@ -210,6 +234,7 @@ fn clears_unterminated_nsexception_strings() {
   let mut raw = committed_nsexception_record();
   raw.nsexception.name.fill(b'A');
   raw.nsexception.reason.fill(b'B');
+  finalize_crc32(&mut raw);
 
   let previous = read_previous_state_from_bytes(crash_record_bytes(&raw));
 
@@ -232,6 +257,7 @@ fn clears_unterminated_frame_metadata_strings() {
   raw.nsexception.call_stack.frames[0].return_address = 10;
   raw.nsexception.call_stack.frames[0].binary_name.fill(b'A');
   raw.nsexception.call_stack.frames[0].image_id.fill(b'B');
+  finalize_crc32(&mut raw);
 
   let previous = read_previous_state_from_bytes(crash_record_bytes(&raw));
 

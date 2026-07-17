@@ -63,6 +63,7 @@ fn open_reads_previous_nsexception_state() -> Result<()> {
         record_state: RecordState::Committed.into(),
         crash_kind: CrashKind::NSException.into(),
         reserved: [0; 2],
+        crc32: 0,
       },
       timestamp_secs: 123,
       ..CrashRecord::default()
@@ -72,6 +73,7 @@ fn open_reads_previous_nsexception_state() -> Result<()> {
     record.nsexception.call_stack.frame_count = 2;
     record.nsexception.call_stack.frames[0].return_address = 21;
     record.nsexception.call_stack.frames[1].return_address = 34;
+    record.header.crc32 = schema::compute_record_checksum(&record);
     write(&path, crash_record_bytes(&record))?;
   }
 
@@ -121,17 +123,19 @@ fn open_prepares_empty_record_for_current_run_after_reading_previous_state() -> 
   let _guard = test_crash_record_guard();
   let tempdir = tempfile::tempdir()?;
   let path = tempdir.path().join("state.bin");
-  let record = CrashRecord {
+  let mut record = CrashRecord {
     header: CrashRecordHeader {
       magic: schema::MAGIC,
       version: schema::VERSION,
       record_state: RecordState::Committed.into(),
       crash_kind: CrashKind::NSException.into(),
       reserved: [0; 2],
+      crc32: 0,
     },
     timestamp_secs: 456,
     ..CrashRecord::default()
   };
+  record.header.crc32 = schema::compute_record_checksum(&record);
   write(&path, crash_record_bytes(&record))?;
 
   let path = CString::new(path.to_string_lossy().as_bytes())?;

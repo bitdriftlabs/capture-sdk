@@ -40,6 +40,7 @@ pub(crate) unsafe fn prime_shared_record(record_ptr: *mut CrashRecord) {
       record_state: RecordState::Empty.into(),
       crash_kind: CrashKind::None.into(),
       reserved: [0; 2],
+      crc32: 0,
     },
     timestamp_secs: 0,
     pid: id(),
@@ -110,6 +111,7 @@ fn mark_record_writing(record: &mut CrashRecord) {
 fn commit_record(record: &mut CrashRecord) {
   // Publish the record only after all payload bytes are visible so the next launch never treats a
   // partially-written mmap record as committed.
+  record.header.crc32 = schema::compute_record_checksum(record);
   fence(Ordering::Release);
   unsafe {
     addr_of_mut!(record.header.record_state).write_volatile(RecordState::Committed.into());

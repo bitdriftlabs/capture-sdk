@@ -1,5 +1,5 @@
 {
-  "checksum": "bf8c38f5c0e31733e76e0aa22c6ebabf7c0927c88faf72a4187b778bb9f977ac",
+  "checksum": "60c5a4e1168480c995ffa1ad8a3a5803913958c3a1afb890a1740fa8933eeb28",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -2958,6 +2958,10 @@
             {
               "id": "anyhow 1.0.103",
               "target": "anyhow"
+            },
+            {
+              "id": "crc32fast 1.5.0",
+              "target": "crc32fast"
             },
             {
               "id": "log 0.4.33",
@@ -30522,6 +30526,7 @@
     "bd-shutdown 1.0.0",
     "bd-test-helpers 1.0.0",
     "bd-time 1.0.0",
+    "crc32fast 1.5.0",
     "criterion 0.8.2",
     "ctor 1.0.7",
     "flatbuffers 25.9.23",

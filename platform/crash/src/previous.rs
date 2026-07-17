@@ -135,6 +135,15 @@ pub(crate) fn read_previous_state_from_bytes(bytes: &[u8]) -> PreviousCrashState
     return PreviousCrashState::default();
   }
 
+  let expected_crc32 = schema::compute_record_checksum(&raw);
+  if raw.header.crc32 != expected_crc32 {
+    log::debug!(
+      "ignoring crash record with crc32 mismatch (expected {expected_crc32}, got {})",
+      raw.header.crc32
+    );
+    return PreviousCrashState::default();
+  }
+
   match raw.header.crash_kind {
     kind if kind == CrashKind::NSException => PreviousCrashState {
       did_crash: true,

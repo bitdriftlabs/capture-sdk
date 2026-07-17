@@ -537,6 +537,7 @@ name = "bd-crash-reporter"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "crc32fast",
  "log",
  "memmap2",
  "objc2",

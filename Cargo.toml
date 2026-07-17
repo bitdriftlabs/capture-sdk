@@ -50,6 +50,7 @@ bd-test-helpers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev
 ] }
 bd-time = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "f906e535ad171308752874e09329c5182b85a9a0" }
 clap = { version = "4.6.1", features = ["derive", "env"] }
+crc32fast = "1.5.0"
 ctor = "1.0.7"
 env_logger = { version = "0.11.11", default-features = false }
 flatbuffers = "=25.9.23" # https://github.com/google/flatbuffers/issues/8876
@@ -58,9 +59,16 @@ jni = "0.21.1"
 log = { version = "0.4.33", features = ["max_level_trace", "release_max_level_info"] }
 memmap2 = "0.9.11"
 objc = "0.2.7"
-objc2 = "0.6.3"
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["alloc", "NSException", "NSObjCRuntime", "NSString", "NSArray", "NSValue"] }
 objc-foundation = "0.1.1"
+objc2 = "0.6.3"
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+  "alloc",
+  "NSException",
+  "NSObjCRuntime",
+  "NSString",
+  "NSArray",
+  "NSValue",
+] }
 parameterized = "2.1.0"
 parking_lot = "0.12.5"
 platform-shared = { path = "platform/shared" }
