@@ -11,7 +11,31 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface BitdriftKSCrashWrapper: NSObject
+@protocol KSCrashHandling <NSObject>
+- (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error;
+- (BOOL)startCrashReporterWithError:(NSError **)error;
+- (void)stopCrashReporter;
+- (NSNumber *_Nullable)didCrashLastLaunch;
+- (NSDate *_Nullable)cachedCrashDate;
+- (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
+                                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                                                   summaryOut:(NSDictionary<NSString *, NSString *> * _Nullable * _Nullable)summaryOut;
+@end
+
+@interface BitdriftKSCrashWrapper: NSObject <KSCrashHandling>
+
+// MARK: - Instance methods (conforms to KSCrashHandling)
+
+- (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error;
+- (BOOL)startCrashReporterWithError:(NSError **)error;
+- (void)stopCrashReporter;
+- (NSNumber *_Nullable)didCrashLastLaunch;
+- (NSDate *_Nullable)cachedCrashDate;
+- (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
+                                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                                                   summaryOut:(NSDictionary<NSString *, NSString *> * _Nullable * _Nullable)summaryOut;
+
+// MARK: - Static methods
 
 /**
  * Configure this class.

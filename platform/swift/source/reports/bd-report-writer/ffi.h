@@ -89,6 +89,58 @@ typedef struct BDAppMetrics {
   const char *region_format;
 } BDAppMetrics;
 
+typedef struct BDNSException {
+  const char *name;
+  const char *reason;
+} BDNSException;
+
+typedef struct BDMachException {
+  uint32_t type_;
+  uint64_t code;
+  uint64_t subcode;
+} BDMachException;
+
+typedef struct BDPosixSignal {
+  int32_t number;
+  int32_t code;
+  int32_t errno_value;
+  bool has_fault_address;
+  uint64_t fault_address;
+} BDPosixSignal;
+
+typedef struct BDAppleTermination {
+  const char *domain;
+  const char *code;
+  const char *explanation;
+  const char *process_visibility;
+  const char *process_state;
+  const char *watchdog_event;
+  const char *watchdog_visibility;
+} BDAppleTermination;
+
+typedef struct BDAppleCrashInfoPayload {
+  bool has_nsexception;
+  struct BDNSException nsexception;
+  bool has_mach_exception;
+  struct BDMachException mach_exception;
+  bool has_posix_signal;
+  struct BDPosixSignal posix_signal;
+  bool has_termination;
+  struct BDAppleTermination termination;
+} BDAppleCrashInfoPayload;
+
+typedef struct BDCrashInfoThread {
+  struct BDThread thread;
+  uint32_t stack_count;
+  const struct BDStackFrame *stack;
+} BDCrashInfoThread;
+
+typedef struct BDCrashInfoThreadDetails {
+  uint16_t count;
+  uintptr_t threads_count;
+  const struct BDCrashInfoThread *threads;
+} BDCrashInfoThreadDetails;
+
 /**
  * Entry point to creating a new Report
  *
@@ -185,3 +237,11 @@ bool bdrw_add_device(BDProcessorHandle handle, const struct BDDeviceMetrics *dev
  * a report processor, created with `bdrw_create_buffer_handle`
  */
 bool bdrw_add_app(BDProcessorHandle handle, const struct BDAppMetrics *app_ptr);
+
+bool bdrw_add_apple_crash_info(BDProcessorHandle handle,
+                               int8_t reporter_scope,
+                               int8_t reporter,
+                               uint64_t occurred_at_seconds,
+                               uint32_t occurred_at_nanos,
+                               const struct BDAppleCrashInfoPayload *payload_ptr,
+                               const struct BDCrashInfoThreadDetails *thread_details_ptr);

@@ -84,7 +84,24 @@ def bitdrift_rust_library_only(name, srcs, deps = []):
         edition = "2021",
     )
 
-def bitdrift_rust_library(name, srcs = None, deps = [], test_deps = [], tags = [], data = [], extra_aliases = {}, **args):
+def bitdrift_rust_library(
+        name,
+        srcs = None,
+        deps = [],
+        test_deps = [],
+        tags = [],
+        data = [],
+        crate_aliases = None,
+        test_crate_aliases = None,
+        **args):
+    if crate_aliases == None:
+        crate_aliases = aliases()
+    if test_crate_aliases == None:
+        test_crate_aliases = aliases(
+            normal_dev = True,
+            proc_macro_dev = True,
+        )
+
     rust_library(
         name = name,
         deps = [
@@ -96,7 +113,7 @@ def bitdrift_rust_library(name, srcs = None, deps = [], test_deps = [], tags = [
             proc_macro = True,
         ),
         disable_pipelining = True,
-        aliases = dict(extra_aliases.items() + aliases().items()),
+        aliases = crate_aliases,
         rustc_flags = _rustc_flags(),
         edition = "2021",
         tags = tags,
@@ -109,10 +126,7 @@ def bitdrift_rust_library(name, srcs = None, deps = [], test_deps = [], tags = [
         crate = name,
         tags = tags,
         rustc_flags = _rustc_flags(),
-        aliases = dict(extra_aliases.items() + aliases(
-            normal_dev = True,
-            proc_macro_dev = True,
-        ).items()),
+        aliases = test_crate_aliases,
         data = data,
         deps = all_crate_deps(
             normal_dev = True,

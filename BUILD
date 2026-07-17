@@ -217,6 +217,9 @@ xcodeproj(
         xcschemes.scheme(
             name = "iOS Hello World App",
             run = xcschemes.run(
+                env = {
+                    "RUST_LOG": "info,bd_crash_reporter=debug,swift_bridge=debug",
+                },
                 launch_target = xcschemes.launch_target("//examples/swift/hello_world:hello_world_app"),
             ),
         ),

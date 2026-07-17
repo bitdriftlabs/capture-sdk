@@ -1,0 +1,80 @@
+name: crash_reporter
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+# Cancel in-progress CI jobs when a new commit is pushed to a PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  pre_check:
+    name: pre_check
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check_changes.outputs.run_tests }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for crash reporter changes
+        id: crash_check
+        run: |
+          ./ci/files_changed.sh '^(platform/crash/|Cargo\.toml$|Cargo\.lock$|Cargo\.Bazel\.lock$|MODULE\.bazel$|MODULE\.bazel\.lock$|\.cargo/|\.github/workflows/crash_reporter\.yaml$)'
+        continue-on-error: true
+
+      - name: Determine if tests should run
+        id: check_changes
+        run: |
+          crash_status="${{ steps.crash_check.outputs.check_result }}"
+
+          echo "crash_status: $crash_status"
+
+          if [[ "$crash_status" == "1" ]]; then
+            echo "An unexpected issue occurred during checks."
+            exit 1
+          elif [[ "$crash_status" == "0" ]]; then
+            echo "Changes detected in crash reporter files. Running tests."
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$crash_status" == "2" ]]; then
+            echo "No relevant crash reporter changes found."
+            echo "run_tests=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Unknown issue."
+            exit 1
+          fi
+        shell: bash
+
+  rust_tests:
+    name: rust tests
+    needs: "pre_check"
+    if: needs.pre_check.outputs.should_run == 'true'
+    runs-on: macos-26
+    env:
+      SKIP_PROTO_GEN: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: |
+          RUST_VERSION="$(sed -n 's/^RUST_VERSION = "\(.*\)"/\1/p' MODULE.bazel)"
+          rustup toolchain install "$RUST_VERSION" --profile minimal --component clippy
+          rustup default "$RUST_VERSION"
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2.7.8
+
+      - name: Run crash reporter tests
+        run: cargo nextest run -p bd-crash-reporter
+
+      - name: Run crash reporter clippy
+        run: cargo clippy -p bd-crash-reporter --tests --quiet
