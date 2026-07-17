@@ -76,6 +76,20 @@ final class CrashReporterServiceTests: XCTestCase {
         thenIssueReporterInitStateIs(.initialized(.runtimeMissingFlag))
     }
 
+    func testSetupUsesBitdriftDefaultWhenConfigFileOnlyHasLegacyCrashReportingKey() {
+        givenCrashReporterService()
+        givenConfigFile("crash_reporting.enabled,true")
+        whenInvokingSetup()
+        thenBitdriftCrashHandlerIsConfigured()
+    }
+
+    func testSetupDoesNotCallBitdriftHandlerWhenConfigFileDisablesIt() {
+        givenCrashReporterService()
+        givenConfigFile("crash_reporting.enabled,true\nclient_feature.ios.use_bd_crash_reporter,false")
+        whenInvokingSetup()
+        thenBitdriftCrashHandlerIsNotConfigured()
+    }
+
     // MARK: - Handler initialization
 
     func testSetupCallsConfigureAndStartOnKSCrashHandler() {
@@ -256,8 +270,10 @@ private extension CrashReporterServiceTests {
         environment: MockEnvironment = .device(),
         previousRunInfoController: PreviousRunInfoController? = nil
     ) {
-        logger.mockRuntimeVariable(.bdCrashReporter, with: bitdriftCrashReporterEnabled)
         logger.mockRuntimeVariable(.previousRunInfoRevamped, with: previousRunInfoRevamped)
+        if !bitdriftCrashReporterEnabled {
+            givenConfigFile("crash_reporting.enabled,true\nclient_feature.ios.use_bd_crash_reporter,false")
+        }
         sut = CrashReporterService(
             previousRunInfoController: previousRunInfoController,
             ksCrashHandler: ksCrashHandler,
