@@ -80,7 +80,7 @@ function ensureWebViewInstrumentation(contents: string): string {
 
 function prependCapturePlugin(contents: string): string {
   return `plugins {
-    id 'io.bitdrift.capture-plugin' version '0.23.9'
+    id 'io.bitdrift.capture-plugin' version '0.23.10'
 }
 
 ${contents}`;
