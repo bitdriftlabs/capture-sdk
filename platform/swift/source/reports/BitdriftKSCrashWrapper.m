@@ -5,67 +5,69 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-//#define BITDRIFT_OMIT_KSCRASH 1
-
 #import "BitdriftKSCrashWrapper.h"
-
-#ifndef BITDRIFT_OMIT_KSCRASH
 #import "../crash_handler/BitdriftKSCrashHandler.h"
-#endif
 
 @implementation BitdriftKSCrashWrapper
 
+// MARK: - Instance methods
+
+- (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error {
+    return [BitdriftKSCrashHandler configureWithCrashReportDirectory:crashReportDir error:error];
+}
+
+- (BOOL)startCrashReporterWithError:(NSError **)error {
+    return [BitdriftKSCrashHandler startCrashReporterWithError:error];
+}
+
+- (void)stopCrashReporter {
+    [BitdriftKSCrashHandler stopCrashReporter];
+}
+
+- (NSNumber *_Nullable)didCrashLastLaunch {
+    return [BitdriftKSCrashHandler didCrashLastLaunch];
+}
+
+- (NSDate *_Nullable)cachedCrashDate {
+    return [BitdriftKSCrashHandler cachedCrashDate];
+}
+
+- (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
+                                      useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                                                   summaryOut:(NSDictionary<NSString *, NSString *> * _Nullable * _Nullable)summaryOut {
+    return [BitdriftKSCrashHandler enhancedMetricKitReport:metricKitReport
+                                    useStackOverlapMatching:useStackOverlapMatching
+                                                summaryOut:summaryOut];
+}
+
+// MARK: - Static methods
+
 + (BOOL)configureWithCrashReportDirectory:(NSURL *)basePath error:(NSError **)error {
-#ifndef BITDRIFT_OMIT_KSCRASH
     return [BitdriftKSCrashHandler configureWithCrashReportDirectory:basePath error:error];
-#else
-    return true;
-#endif
 }
 
 + (NSDictionary<NSString *, id> *)enhancedMetricKitReport:(NSDictionary<NSString *, id> *)metricKitReport
                                       useStackOverlapMatching:(BOOL)useStackOverlapMatching
                                                    summaryOut:(NSDictionary<NSString *, NSString *> * _Nullable * _Nullable)summaryOut {
-#ifndef BITDRIFT_OMIT_KSCRASH
     return [BitdriftKSCrashHandler enhancedMetricKitReport:metricKitReport
-                                  useStackOverlapMatching:useStackOverlapMatching
-                                               summaryOut:summaryOut];
-#else
-    if (summaryOut != nil) {
-        *summaryOut = nil;
-    }
-    return metricKitReport;
-#endif
+                                    useStackOverlapMatching:useStackOverlapMatching
+                                                summaryOut:summaryOut];
 }
 
 + (BOOL)startCrashReporterWithError:(NSError **)error {
-#ifndef BITDRIFT_OMIT_KSCRASH
     return [BitdriftKSCrashHandler startCrashReporterWithError:error];
-#else
-    return true;
-#endif
 }
 
 + (NSNumber *_Nullable)didCrashLastLaunch {
-#ifndef BITDRIFT_OMIT_KSCRASH
     return [BitdriftKSCrashHandler didCrashLastLaunch];
-#else
-    return nil;
-#endif
 }
 
 + (NSDate * _Nullable)cachedCrashDate {
-#ifndef BITDRIFT_OMIT_KSCRASH
     return [BitdriftKSCrashHandler cachedCrashDate];
-#else
-    return nil;
-#endif
 }
 
 + (void)stopCrashReporter {
-#ifndef BITDRIFT_OMIT_KSCRASH
     [BitdriftKSCrashHandler stopCrashReporter];
-#endif
 }
 
 @end

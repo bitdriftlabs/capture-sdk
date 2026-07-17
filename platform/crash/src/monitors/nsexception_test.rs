@@ -64,7 +64,20 @@ fn exception_snapshot() -> ExceptionSnapshot {
   ExceptionSnapshot {
     name: "NSException".to_string(),
     reason: Some("bad reason".to_string()),
-    return_addresses: vec![0x1234, 0x5678],
+    frames: vec![
+      super::ExceptionFrameSnapshot {
+        return_address: 0x1234,
+        image_load_address: 0x1000,
+        binary_name: Some("MyApp".to_string()),
+        image_id: Some("BD9C11B4-BF87-3F60-AEA0-0141BD7F8AC0".to_string()),
+      },
+      super::ExceptionFrameSnapshot {
+        return_address: 0x5678,
+        image_load_address: 0,
+        binary_name: None,
+        image_id: None,
+      },
+    ],
   }
 }
 
@@ -125,8 +138,20 @@ fn handle_exception_snapshot_records_snapshot_and_chains_previous() {
   assert_eq!(&record.nsexception.reason[.. 11], b"bad reason\0");
   assert_eq!(record.nsexception.call_stack.frame_count, 2);
   assert_eq!(
-    &record.nsexception.call_stack.return_addresses[.. 2],
-    &[0x1234, 0x5678]
+    record.nsexception.call_stack.frames[0].return_address,
+    0x1234
+  );
+  assert_eq!(
+    record.nsexception.call_stack.frames[1].return_address,
+    0x5678
+  );
+  assert_eq!(
+    record.nsexception.call_stack.frames[0].image_load_address,
+    0x1000
+  );
+  assert_eq!(
+    &record.nsexception.call_stack.frames[0].binary_name[.. 6],
+    b"MyApp\0"
   );
   assert_eq!(PREVIOUS_CALL_COUNT.load(Ordering::Acquire), 1);
   assert_eq!(PREVIOUS_LAST_EXCEPTION.load(Ordering::Acquire), exception);
@@ -187,7 +212,7 @@ fn handle_exception_snapshot_records_missing_reason_and_empty_stack() {
     Some(ExceptionSnapshot {
       name: "NSException".to_string(),
       reason: None,
-      return_addresses: Vec::new(),
+      frames: Vec::new(),
     }),
   );
 
@@ -195,8 +220,80 @@ fn handle_exception_snapshot_records_missing_reason_and_empty_stack() {
   assert_eq!(record.header.record_state, RecordState::Committed);
   assert_eq!(record.nsexception.reason[0], 0);
   assert_eq!(record.nsexception.call_stack.frame_count, 0);
-  assert_eq!(
-    record.nsexception.call_stack.return_addresses,
-    [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES]
-  );
+  assert!(record
+    .nsexception
+    .call_stack
+    .frames
+    .iter()
+    .all(|frame| frame == &schema::RawNSExceptionStackFrame::default()));
+}
+
+#[test]
+fn image_id_from_header_returns_none_for_invalid_command_sizes() {
+  #[repr(C)]
+  struct HeaderWithCommand {
+    header: super::MachHeader64,
+    command: super::LoadCommand,
+  }
+
+  let load_command_size = u32::try_from(std::mem::size_of::<super::LoadCommand>())
+    .ok()
+    .unwrap_or(u32::MAX);
+  let uuid_command_size = u32::try_from(std::mem::size_of::<super::UuidCommand>())
+    .ok()
+    .unwrap_or(u32::MAX);
+
+  let invalid_load_command = HeaderWithCommand {
+    header: super::MachHeader64 {
+      magic: super::MH_MAGIC_64,
+      cputype: 0,
+      cpusubtype: 0,
+      filetype: 0,
+      ncmds: 1,
+      sizeofcmds: load_command_size,
+      flags: 0,
+      reserved: 0,
+    },
+    command: super::LoadCommand {
+      cmd: super::LC_UUID,
+      cmdsize: load_command_size - 1,
+    },
+  };
+  assert!(super::image_id_from_header((&raw const invalid_load_command).cast()).is_none());
+
+  let invalid_uuid_command = HeaderWithCommand {
+    header: super::MachHeader64 {
+      magic: super::MH_MAGIC_64,
+      cputype: 0,
+      cpusubtype: 0,
+      filetype: 0,
+      ncmds: 1,
+      sizeofcmds: load_command_size,
+      flags: 0,
+      reserved: 0,
+    },
+    command: super::LoadCommand {
+      cmd: super::LC_UUID,
+      cmdsize: load_command_size,
+    },
+  };
+  assert!(super::image_id_from_header((&raw const invalid_uuid_command).cast()).is_none());
+
+  let truncated_load_commands = HeaderWithCommand {
+    header: super::MachHeader64 {
+      magic: super::MH_MAGIC_64,
+      cputype: 0,
+      cpusubtype: 0,
+      filetype: 0,
+      ncmds: 1,
+      sizeofcmds: load_command_size - 1,
+      flags: 0,
+      reserved: 0,
+    },
+    command: super::LoadCommand {
+      cmd: super::LC_UUID,
+      cmdsize: uuid_command_size,
+    },
+  };
+  assert!(super::image_id_from_header((&raw const truncated_load_commands).cast()).is_none());
 }

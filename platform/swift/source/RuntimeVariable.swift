@@ -108,6 +108,11 @@ extension RuntimeVariable<Bool> {
         defaultValue: true
     )
 
+    static let bdCrashReporter = RuntimeVariable(
+        name: "client_feature.ios.use_bd_crash_reporter",
+        defaultValue: true
+    )
+
     static let crashThreadMatchingByStackOverlap = RuntimeVariable(
         name: "client_feature.ios.crash_thread_matching_by_stack_overlap",
         defaultValue: false

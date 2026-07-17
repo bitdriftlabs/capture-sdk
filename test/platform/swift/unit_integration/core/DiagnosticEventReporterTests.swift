@@ -74,6 +74,37 @@ final class DiagnosticEventReporterTests: XCTestCase {
         return true
     }
 
+    private func makeReporter(crashReporting: CrashReporting = MockCrashReporting()) -> DiagnosticEventReporter {
+        DiagnosticEventReporter(
+            outputDir: reportDir!,
+            sdkVersion: "41.5.67",
+            eventTypes: .crash,
+            minimumHangSeconds: 2.5,
+            memoryPressureLevel: .unknown,
+            fileSizeOptimizationEnabled: true,
+            useStackOverlapMatching: true,
+            crashReporting: crashReporting,
+            crashEnrichmentSummaryHandler: nil
+        )
+    }
+
+    private func loadOnlyReport() throws -> Report {
+        let path = try XCTUnwrap(reportDir?.path)
+        let files = try FileManager.default.contentsOfDirectory(atPath: path)
+        XCTAssertEqual(1, files.count)
+
+        let contents = try XCTUnwrap(FileManager.default.contents(atPath: "\(path)/\(files[0])"))
+        var buf = ByteBuffer(data: contents)
+        return try getCheckedRoot(byteBuffer: &buf)
+    }
+
+    private func onlyReportFilename() throws -> String {
+        let path = try XCTUnwrap(reportDir?.path)
+        let files = try FileManager.default.contentsOfDirectory(atPath: path)
+        XCTAssertEqual(1, files.count)
+        return files[0]
+    }
+
     func testReportMerging() throws {
         let metrickitReport = try! getContentsOfTestBundleJsonFile("metrickit-example.json")
         XCTAssertNotNil(metrickitReport)
@@ -123,6 +154,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: nil, exceptionCode: nil, callStacks: [])
@@ -150,6 +182,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: nil, exceptionCode: nil, callStacks: [])
@@ -177,6 +210,7 @@ final class DiagnosticEventReporterTests: XCTestCase {
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
@@ -199,34 +233,171 @@ final class DiagnosticEventReporterTests: XCTestCase {
 
     @available(iOS 17.0, *)
     func testNSExceptionNameInError() throws {
-        let reporter = DiagnosticEventReporter(
-            outputDir: reportDir!,
-            sdkVersion: "41.5.67",
-            eventTypes: .crash,
-            minimumHangSeconds: 2.5,
-            memoryPressureLevel: .unknown,
-            fileSizeOptimizationEnabled: true,
-            useStackOverlapMatching: true,
-            crashEnrichmentSummaryHandler: nil
-        )
+        let reporter = makeReporter()
         let crashReason = MockObjectiveCReason("NSRangeException", message: "index 5 out of range [0..2]")
         let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1, exceptionReason: crashReason)
 
         reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
-
-        let path = reportDir!.path
-        let files = try FileManager.default.contentsOfDirectory(atPath: path)
-        XCTAssertEqual(1, files.count)
-        XCTAssertTrue(files[0].contains("_crash_"))
-
-        let contents = FileManager.default.contents(atPath: "\(path)/\(files[0])")!
-        var buf = ByteBuffer(data: contents)
-        let report: Report = try! getCheckedRoot(byteBuffer: &buf)
+        XCTAssertTrue(try onlyReportFilename().contains("_crash_"))
+        let report = try loadOnlyReport()
         XCTAssertEqual(1, report.errorsCount)
 
         let error = report.errors(at: 0)!
         XCTAssertEqual("EXC_BAD_ACCESS", error.name!)
         XCTAssertEqual("NSRangeException: index 5 out of range [0..2]", error.reason!)
+    }
+
+    @available(iOS 17.0, *)
+    func testUsesMetricKitExceptionReasonWhenAvailable() throws {
+        let crashReporting = MockCrashReporting(
+            previousCrash: makePreviousCrash(
+                nsexceptionName: "CapturedException",
+                nsexceptionReason: "captured reason"
+            )
+        )
+        let reporter = makeReporter(crashReporting: crashReporting)
+        let crashReason = MockObjectiveCReason("MetricException", message: "metric reason")
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1, exceptionReason: crashReason)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("EXC_BAD_ACCESS", error.name!)
+        XCTAssertEqual("MetricException: metric reason", error.reason!)
+    }
+
+    func testFallsBackToCapturedNSExceptionReasonWhenMetricKitReasonMissing() throws {
+        let crashReporting = MockCrashReporting(
+            previousCrash: makePreviousCrash(
+                nsexceptionName: "CapturedException",
+                nsexceptionReason: "captured reason"
+            )
+        )
+        let reporter = makeReporter(crashReporting: crashReporting)
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("CapturedException: captured reason", error.reason!)
+    }
+
+    func testFallsBackToCapturedNSExceptionNameAndReasonOnlyWhenCaptureExists() throws {
+        let reporter = makeReporter()
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("SIGILL", error.reason!)
+    }
+
+    func testDoesNotOverrideOriginalNameWhenCapturedNSExceptionExists() throws {
+        let crashReporting = MockCrashReporting(
+            previousCrash: makePreviousCrash(
+                nsexceptionName: "CapturedException",
+                nsexceptionReason: "captured reason"
+            )
+        )
+        let reporter = makeReporter(crashReporting: crashReporting)
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("EXC_BAD_ACCESS", error.name!)
+        XCTAssertEqual("CapturedException: captured reason", error.reason!)
+    }
+
+    func testHandlesMissingCapturedNSExceptionWithoutCrashing() throws {
+        let crashReporting = MockCrashReporting(previousCrash: makePreviousCrash())
+        let reporter = makeReporter(crashReporting: crashReporting)
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("EXC_BAD_ACCESS", error.name!)
+        XCTAssertEqual("SIGILL", error.reason!)
+    }
+
+    func testHandlesEmptyCapturedNSExceptionNameWithoutCrashing() throws {
+        let crashReporting = MockCrashReporting(
+            previousCrash: makePreviousCrash(
+                nsexceptionName: "",
+                nsexceptionReason: "captured reason"
+            )
+        )
+        let reporter = makeReporter(crashReporting: crashReporting)
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual(": captured reason", error.reason!)
+    }
+
+    func testHandlesEmptyCapturedNSExceptionReasonWithoutCrashing() throws {
+        let crashReporting = MockCrashReporting(
+            previousCrash: makePreviousCrash(
+                nsexceptionName: "CapturedException",
+                nsexceptionReason: ""
+            )
+        )
+        let reporter = makeReporter(crashReporting: crashReporting)
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("CapturedException: ", error.reason!)
+    }
+
+    func testFormatsCapturedNSExceptionReasonConsistently() throws {
+        let crashReporting = MockCrashReporting(
+            previousCrash: makePreviousCrash(
+                nsexceptionName: "CapturedException",
+                nsexceptionReason: "captured reason"
+            )
+        )
+        let reporter = makeReporter(crashReporting: crashReporting)
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("CapturedException: captured reason", error.reason!)
+    }
+
+    func testPreservesOriginalReasonWhenNoFallbackIsNeeded() throws {
+        let reporter = makeReporter()
+        let crash = try MockCrashDiagnostic(signal: 4, exceptionType: 1)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("SIGILL", error.reason!)
+    }
+
+    func testPreviousCrashHelperPreservesCapturedFrames() {
+        let previousCrash = makePreviousCrash(
+            nsexceptionName: "CapturedException",
+            nsexceptionReason: "captured reason",
+            frames: [makeCapturedFrame(frameAddress: 0x1234), makeCapturedFrame(frameAddress: 0x5678)]
+        )
+
+        XCTAssertEqual(2, previousCrash.nsexception?.frames.count)
+        let frame = previousCrash.nsexception?.frames.first as? BitdriftCrashStackFrame
+        XCTAssertEqual(0x1234, frame?.frameAddress)
     }
 
     func testWatchdogTermination() throws {
@@ -253,6 +424,7 @@ ThermalInfo: (
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, exceptionCode: 0, terminationReason: termContext)
@@ -272,6 +444,113 @@ ThermalInfo: (
         XCTAssertEqual(termContext, error.reason!)
     }
 
+    func testAppleTerminationIsNotSerializedForNonSigkillSignal() throws {
+        let termContext = "<RBSTerminateContext| domain:10 code:0x8BADF00D explanation:[app]>"
+        let reporter = makeReporter()
+        let crash = try MockCrashDiagnostic(signal: 6, exceptionType: 10, terminationReason: termContext)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        XCTAssertTrue(try onlyReportFilename().contains("_crash_"))
+        let report = try loadOnlyReport()
+        XCTAssertEqual(ReportType.nativecrash, report.type)
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("EXC_CRASH", error.name!)
+        XCTAssertEqual(termContext, error.reason!)
+    }
+
+    func testAppleTerminationHandlesMissingTerminationReasonWithoutCrashing() throws {
+        let reporter = makeReporter()
+        let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, exceptionCode: 0)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        XCTAssertTrue(try onlyReportFilename().contains("_anr_"))
+        let report = try loadOnlyReport()
+        XCTAssertEqual(ReportType.appnotresponding, report.type)
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("App Hang", error.name!)
+        XCTAssertEqual("code: 0, signal: SIGKILL", error.reason!)
+    }
+
+    func testAppleTerminationHandlesPartialFieldsWithoutCrashing() throws {
+        let termContext = "<RBSTerminateContext| domain:10 code:0x8BADF00D explanation:[app]>"
+        let reporter = makeReporter()
+        let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, terminationReason: termContext)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        XCTAssertTrue(try onlyReportFilename().contains("_anr_"))
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("App Hang", error.name!)
+        XCTAssertEqual(termContext, error.reason!)
+    }
+
+    func testAppleTerminationRegexOrTextExtractionToleratesUnexpectedReasonFormat() throws {
+        let termContext = "watchdog text without expected formatting"
+        let reporter = makeReporter()
+        let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, exceptionCode: 1, terminationReason: termContext)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        XCTAssertTrue(try onlyReportFilename().contains("_crash_"))
+        let report = try loadOnlyReport()
+        XCTAssertEqual(ReportType.nativecrash, report.type)
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("EXC_CRASH", error.name!)
+        XCTAssertEqual(termContext, error.reason!)
+    }
+
+    func testAppleTerminationReasonWithUnrecognizedShapeDoesNotCrashAndOmitsContext() throws {
+        let termContext = "unrecognized watchdog payload"
+        let reporter = makeReporter()
+        let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, exceptionCode: 1, terminationReason: termContext)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual(termContext, error.reason!)
+    }
+
+    func testSigkillWithValidTerminationReasonIncludesExpectedContextFields() throws {
+        let termContext = """
+<RBSTerminateContext| domain:10 code:0x8BADF00D explanation:[app<com.example.myapp>:123] Failed to terminate gracefully after 5.0s
+ProcessVisibility: Foreground
+ProcessState: Running
+WatchdogEvent: process-exit
+WatchdogVisibility: Background
+>
+"""
+        let reporter = makeReporter()
+        let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, terminationReason: termContext)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        let reason = try XCTUnwrap(error.reason)
+        XCTAssertTrue(reason.contains("domain:10"))
+        XCTAssertTrue(reason.contains("code:0x8BADF00D"))
+        XCTAssertTrue(reason.contains("ProcessVisibility: Foreground"))
+        XCTAssertTrue(reason.contains("ProcessState: Running"))
+        XCTAssertTrue(reason.contains("WatchdogEvent: process-exit"))
+        XCTAssertTrue(reason.contains("WatchdogVisibility: Background"))
+    }
+
+    func testSigkillWithoutTerminationReasonDoesNotCrash() throws {
+        let reporter = makeReporter()
+        let crash = try MockCrashDiagnostic(signal: 9, exceptionType: 10, exceptionCode: 0)
+
+        reporter.didReceive([MockDiagnosticPayload(crashDiagnostics: [crash])])
+
+        let report = try loadOnlyReport()
+        let error = try XCTUnwrap(report.errors(at: 0))
+        XCTAssertEqual("App Hang", error.name!)
+        XCTAssertEqual("code: 0, signal: SIGKILL", error.reason!)
+    }
+
     func testSendAttributedEmptyStack() throws {
         let reporter = DiagnosticEventReporter(
             outputDir: reportDir!,
@@ -281,6 +560,7 @@ ThermalInfo: (
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let imageOffset: UInt64 = 165304
@@ -358,6 +638,7 @@ ThermalInfo: (
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let imageOffset: UInt64 = 165304
@@ -428,6 +709,7 @@ ThermalInfo: (
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let timestamp = dateFormatter.date(from: "2022-04-07")!
@@ -456,6 +738,7 @@ ThermalInfo: (
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let timestamp = dateFormatter.date(from: "2008-11-25")!
@@ -542,6 +825,7 @@ ThermalInfo: (
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let metadata: [String: Any] = [
@@ -580,6 +864,7 @@ ThermalInfo: (
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
         let timestamp = dateFormatter.date(from: "2008-11-25")!
@@ -697,6 +982,51 @@ func createTempDir() throws -> URL {
 }
 
 // MARK: - mock classes
+
+final class MockCrashReporting: NSObject, CrashReporting {
+    let previousCrash: BitdriftPreviousCrash?
+
+    init(previousCrash: BitdriftPreviousCrash? = nil) {
+        self.previousCrash = previousCrash
+        super.init()
+    }
+
+    func cachedCrashDate() -> Date? { nil }
+    func cachedPreviousCrash() -> BitdriftPreviousCrash? { previousCrash }
+    func enhancedMetricKitReport(
+        _ metricKitReport: [String: Any],
+        useStackOverlapMatching: Bool,
+        summaryOut: AutoreleasingUnsafeMutablePointer<NSDictionary?>?
+    ) -> [String: Any] { metricKitReport }
+}
+
+private func makePreviousCrash(
+    nsexceptionName: String? = nil,
+    nsexceptionReason: String? = nil,
+    frames: [BitdriftCrashStackFrame] = [],
+    crashDate: Date = Date(timeIntervalSince1970: 1_700_000_000)
+) -> BitdriftPreviousCrash {
+    let previousCrash = BitdriftPreviousCrash()
+    previousCrash.setValue(1, forKey: "kind")
+    previousCrash.setValue(crashDate, forKey: "crashDate")
+
+    if nsexceptionName != nil || nsexceptionReason != nil {
+        let nsexception = BitdriftNSExceptionCrash()
+        nsexception.setValue(nsexceptionName, forKey: "name")
+        nsexception.setValue(nsexceptionReason, forKey: "reason")
+        nsexception.setValue(frames, forKey: "frames")
+        previousCrash.setValue(nsexception, forKey: "nsexception")
+    }
+
+    return previousCrash
+}
+
+private func makeCapturedFrame(frameAddress: UInt64) -> BitdriftCrashStackFrame {
+    let frame = BitdriftCrashStackFrame()
+    frame.setValue(frameAddress, forKey: "frameAddress")
+    frame.setValue(UInt64(0), forKey: "imageLoadAddress")
+    return frame
+}
 
 final class MockDiagnosticPayload: MXDiagnosticPayload {
     let mockCrashDiagnostics: [MXCrashDiagnostic]?

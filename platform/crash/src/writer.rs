@@ -21,6 +21,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(crate) static CRASH_RECORD: AtomicPtr<CrashRecord> = AtomicPtr::new(null_mut());
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct NSExceptionFrameRecord<'a> {
+  pub(crate) return_address: u64,
+  pub(crate) image_load_address: u64,
+  pub(crate) binary_name: Option<&'a str>,
+  pub(crate) image_id: Option<&'a str>,
+}
+
 pub(crate) unsafe fn prime_shared_record(record_ptr: *mut CrashRecord) {
   // Initialize the backed record for the current run before any monitor can publish crash data into
   // it. This binds the shared pointer to live storage and resets the record to a known empty state.
@@ -41,7 +49,11 @@ pub(crate) unsafe fn prime_shared_record(record_ptr: *mut CrashRecord) {
   CRASH_RECORD.store(record_ptr, Ordering::Release);
 }
 
-pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addresses: &[u64]) {
+pub(crate) fn record_nsexception(
+  name: &str,
+  reason: Option<&str>,
+  frames: &[NSExceptionFrameRecord<'_>],
+) {
   let record_ptr = CRASH_RECORD.load(Ordering::Acquire);
   if record_ptr.is_null() {
     return;
@@ -58,16 +70,29 @@ pub(crate) fn record_nsexception(name: &str, reason: Option<&str>, return_addres
   } else {
     record.nsexception.reason.fill(0);
   }
-  record.nsexception.call_stack.frame_count = return_addresses
-    .len()
-    .min(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES)
-    .try_into()
-    .ok()
-    .unwrap_or(u16::MAX);
-  record.nsexception.call_stack.return_addresses.fill(0);
+  let frame_count =
+    u16::try_from(frames.len()).unwrap_or(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES);
+  record.nsexception.call_stack.frame_count =
+    frame_count.min(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES);
   let copy_len = usize::from(record.nsexception.call_stack.frame_count);
-  record.nsexception.call_stack.return_addresses[.. copy_len]
-    .copy_from_slice(&return_addresses[.. copy_len]);
+  record
+    .nsexception
+    .call_stack
+    .frames
+    .fill(schema::RawNSExceptionStackFrame::default());
+  for (target, frame) in record.nsexception.call_stack.frames[.. copy_len]
+    .iter_mut()
+    .zip(&frames[.. copy_len])
+  {
+    target.return_address = frame.return_address;
+    target.image_load_address = frame.image_load_address;
+    if let Some(binary_name) = frame.binary_name {
+      write_string(binary_name, &mut target.binary_name);
+    }
+    if let Some(image_id) = frame.image_id {
+      write_string(image_id, &mut target.image_id);
+    }
+  }
   record.header.crash_kind = CrashKind::NSException.into();
   // Always mark as "Committed" after every other field is updated, so the next
   // launch never treats a partial write as a valid crash record

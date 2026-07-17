@@ -7,10 +7,20 @@
 
 #![allow(clippy::unwrap_used)]
 
-use super::{prime_shared_record, record_nsexception, CRASH_RECORD};
+use super::{prime_shared_record, record_nsexception, NSExceptionFrameRecord, CRASH_RECORD};
 use crate::schema::{self, CrashKind, RecordState};
 use crate::test_support::test_crash_record_guard;
 use std::sync::atomic::Ordering;
+
+fn frame_records(return_addresses: &[u64]) -> Vec<NSExceptionFrameRecord<'static>> {
+  return_addresses
+    .iter()
+    .map(|return_address| NSExceptionFrameRecord {
+      return_address: *return_address,
+      ..NSExceptionFrameRecord::default()
+    })
+    .collect()
+}
 
 #[test]
 fn prime_shared_record_initializes_empty_record() {
@@ -33,7 +43,11 @@ fn record_nsexception_commits_after_payload() {
     prime_shared_record(&raw mut record);
   }
 
-  record_nsexception("NSException", Some("bad reason"), &[1, 2, 3]);
+  record_nsexception(
+    "NSException",
+    Some("bad reason"),
+    &frame_records(&[1, 2, 3]),
+  );
 
   let record_ptr = CRASH_RECORD.load(Ordering::Acquire);
   let record = unsafe { &*record_ptr };
@@ -101,24 +115,30 @@ fn record_nsexception_truncates_return_addresses_to_capacity() {
   }
 
   let return_addresses = (0 .. schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES + 10)
-    .map(|index| index as u64)
+    .map(u64::from)
     .collect::<Vec<_>>();
-  record_nsexception("NSException", None, &return_addresses);
+  let frames = frame_records(&return_addresses);
+  record_nsexception("NSException", None, &frames);
 
   let record_ptr = CRASH_RECORD.load(Ordering::Acquire);
   let record = unsafe { &*record_ptr };
   assert_eq!(
     record.nsexception.call_stack.frame_count,
-    u16::try_from(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES).unwrap_or(u16::MAX)
+    schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES
   );
-  assert_eq!(
-    &record.nsexception.call_stack.return_addresses[..],
-    &return_addresses[.. schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES]
-  );
+  for (raw_frame, expected_address) in record
+    .nsexception
+    .call_stack
+    .frames
+    .iter()
+    .zip(&return_addresses[.. schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize])
+  {
+    assert_eq!(raw_frame.return_address, *expected_address);
+  }
 }
 
 #[test]
-fn record_nsexception_clears_unused_return_addresses() {
+fn record_nsexception_clears_unused_frames() {
   let _guard = test_crash_record_guard();
   let mut record = schema::CrashRecord::default();
   unsafe {
@@ -127,17 +147,55 @@ fn record_nsexception_clears_unused_return_addresses() {
   record
     .nsexception
     .call_stack
-    .return_addresses
-    .fill(u64::MAX);
+    .frames
+    .fill(schema::RawNSExceptionStackFrame {
+      return_address: u64::MAX,
+      ..schema::RawNSExceptionStackFrame::default()
+    });
 
-  record_nsexception("NSException", None, &[0x1234, 0x5678]);
+  record_nsexception("NSException", None, &frame_records(&[0x1234, 0x5678]));
 
   let record_ptr = CRASH_RECORD.load(Ordering::Acquire);
   let record = unsafe { &*record_ptr };
   assert_eq!(record.nsexception.call_stack.frame_count, 2);
   assert_eq!(
-    &record.nsexception.call_stack.return_addresses[.. 2],
-    &[0x1234, 0x5678]
+    record.nsexception.call_stack.frames[0].return_address,
+    0x1234
   );
-  assert_eq!(record.nsexception.call_stack.return_addresses[2], 0);
+  assert_eq!(
+    record.nsexception.call_stack.frames[1].return_address,
+    0x5678
+  );
+  assert_eq!(record.nsexception.call_stack.frames[2].return_address, 0);
+}
+
+#[test]
+fn record_nsexception_persists_binary_name_and_image_id() {
+  let _guard = test_crash_record_guard();
+  let mut record = schema::CrashRecord::default();
+  unsafe {
+    prime_shared_record(&raw mut record);
+  }
+
+  record_nsexception(
+    "NSException",
+    None,
+    &[NSExceptionFrameRecord {
+      return_address: 0x1234,
+      image_load_address: 0x1000,
+      binary_name: Some("MyApp"),
+      image_id: Some("BD9C11B4-BF87-3F60-AEA0-0141BD7F8AC0"),
+    }],
+  );
+
+  let record_ptr = CRASH_RECORD.load(Ordering::Acquire);
+  let record = unsafe { &*record_ptr };
+  let frame = &record.nsexception.call_stack.frames[0];
+  assert_eq!(frame.return_address, 0x1234);
+  assert_eq!(frame.image_load_address, 0x1000);
+  assert_eq!(&frame.binary_name[.. 6], b"MyApp\0");
+  assert_eq!(
+    &frame.image_id[.. schema::NS_EXCEPTION_IMAGE_ID_CAPACITY],
+    b"BD9C11B4-BF87-3F60-AEA0-0141BD7F8AC0\0"
+  );
 }
