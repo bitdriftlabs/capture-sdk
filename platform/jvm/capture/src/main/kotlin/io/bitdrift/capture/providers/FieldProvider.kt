@@ -296,6 +296,57 @@ fun Map<String, String>?.toFieldsOrEmpty(): ArrayFields {
 }
 
 /**
+ * Converts optional log fields and throwable details into [ArrayFields].
+ */
+internal fun extractFields(
+    fields: Map<String, String>?,
+    throwable: Throwable?,
+): ArrayFields {
+    val hasThrowable = throwable != null
+    val fieldsSize = fields?.size ?: 0
+
+    if (fieldsSize == 0 && !hasThrowable) {
+        return ArrayFields.EMPTY
+    }
+
+    val throwableFieldCount = if (hasThrowable) 2 else 0
+    val totalSize = fieldsSize + throwableFieldCount
+
+    val keys = ArrayList<String>(totalSize)
+    val values = ArrayList<String>(totalSize)
+
+    fields?.forEach { (key, value) ->
+        @Suppress("SENSELESS_COMPARISON")
+        if (key != null && value != null) {
+            keys.add(key)
+            values.add(value)
+        }
+    }
+
+    throwable?.let {
+        keys.add("_error")
+        values.add(it.javaClass.name.orEmpty())
+        keys.add("_error_details")
+        values.add(it.message.orEmpty())
+    }
+
+    return ArrayFields(
+        keys.toTypedArray(),
+        values.toTypedArray(),
+    )
+}
+
+internal fun Throwable?.toThrowableFields(): ArrayFields =
+    if (this == null) {
+        ArrayFields.EMPTY
+    } else {
+        ArrayFields(
+            arrayOf("_error", "_error_details"),
+            arrayOf(javaClass.name.orEmpty(), message.orEmpty()),
+        )
+    }
+
+/**
  * Combines multiple InternalFields into a single array.
  */
 fun combineFields(vararg arrays: ArrayFields): ArrayFields {

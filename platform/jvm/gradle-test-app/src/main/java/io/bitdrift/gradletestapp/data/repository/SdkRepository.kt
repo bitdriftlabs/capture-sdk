@@ -16,6 +16,7 @@ import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.SleepMode
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BACKGROUND_START_PREFS_KEY
 import io.bitdrift.gradletestapp.data.model.GlobalFieldEntry
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_URL_KEY
@@ -23,12 +24,14 @@ import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Comp
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.PREFS_SLEEP_MODE_ENABLED
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SESSION_REPLAY_ENABLED_PREFS_KEY
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import kotlin.coroutines.resume
 import java.net.URLDecoder
 import java.net.URLEncoder
+import kotlin.coroutines.resume
 
 /**
  * Repository that manages SDK state and operations
@@ -50,9 +53,10 @@ class SdkRepository(
                 putString(BITDRIFT_URL_KEY, apiUrl)
             }
         }
-        return withContext(Dispatchers.Main.immediate) {
-            CaptureSdkInitializer.initFromPreferences(applicationContext, sharedPreferences)
-        }
+        CaptureSdkInitializer.initFromPreferences(applicationContext, sharedPreferences)
+        return CaptureSdkInitializer.sdkInitializationState
+            .filterNotNull()
+            .first()
     }
 
     suspend fun startNewSession(): String? =
@@ -86,6 +90,7 @@ class SdkRepository(
             apiUrl = getApiUrl(),
             sessionStrategy = getSessionStrategy(),
             isDeferredStart = isDeferredStartEnabled(),
+            isBackgroundStart = isBackgroundStartEnabled(),
             isSessionReplayEnabled = isSessionReplayEnabled(),
             isSleepModeEnabled = isSleepModeEnabled(),
         )
@@ -120,6 +125,14 @@ class SdkRepository(
         withContext(Dispatchers.IO) {
             sharedPreferences.getBoolean(
                 DEFERRED_START_PREFS_KEY,
+                false,
+            )
+        }
+
+    suspend fun isBackgroundStartEnabled(): Boolean =
+        withContext(Dispatchers.IO) {
+            sharedPreferences.getBoolean(
+                BACKGROUND_START_PREFS_KEY,
                 false,
             )
         }
@@ -287,6 +300,7 @@ class SdkRepository(
         val apiUrl: String,
         val sessionStrategy: String,
         val isDeferredStart: Boolean,
+        val isBackgroundStart: Boolean,
         val isSessionReplayEnabled: Boolean,
         val isSleepModeEnabled: Boolean,
     )

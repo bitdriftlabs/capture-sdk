@@ -22,13 +22,9 @@ import timber.log.Timber
  * if the Logger is initialized.
  */
 open class CaptureTree internal constructor(
-    private val internalLogger: ILogger?,
+    private val loggerProvider: () -> ILogger?,
 ) : Timber.Tree() {
-    constructor() : this(Capture.logger())
-
-    // attempts to get the latest logger if one wasn't found at construction time
-    private val logger: ILogger?
-        get() = internalLogger ?: Capture.logger()
+    constructor() : this({ Capture.logger() })
 
     final override fun log(
         priority: Int,
@@ -36,7 +32,7 @@ open class CaptureTree internal constructor(
         message: String,
         t: Throwable?,
     ) {
-        logger?.log(toCaptureLogLevel(priority), extractFields(tag), t) { message }
+        loggerProvider()?.log(toCaptureLogLevel(priority), extractFields(tag), t) { message }
     }
 
     private fun toCaptureLogLevel(priority: Int): LogLevel =
