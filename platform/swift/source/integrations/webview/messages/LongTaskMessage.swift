@@ -39,7 +39,6 @@ struct LongTaskMessage: WebViewLoggableMessage, Equatable {
     }
 }
 
-
 struct LongTaskAttribution: Codable, Equatable {
     let name: String?
     let containerType: String?

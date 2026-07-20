@@ -5,7 +5,6 @@
 //  Created by Ariel Demarco on 04/05/2026.
 //
 
-
 struct CustomLogMessage: WebViewLoggableMessage, Equatable {
     let tag: String
     let v: Int

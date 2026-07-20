@@ -60,7 +60,7 @@ enum WebViewSerializableValue: Codable, Equatable {
             try container.encode(value)
         }
     }
-    
+
     var fieldStringValue: String {
         switch self {
         case .array, .object:

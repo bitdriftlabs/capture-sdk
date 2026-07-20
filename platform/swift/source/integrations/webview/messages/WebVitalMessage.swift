@@ -39,7 +39,6 @@ struct WebVitalMessage: WebViewMessage, Equatable {
     }
 }
 
-
 extension WebVitalMessage: WebViewLoggableMessage {
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
         let parentSpanID = context.parentLoggerSpanID(for: parentSpanId)

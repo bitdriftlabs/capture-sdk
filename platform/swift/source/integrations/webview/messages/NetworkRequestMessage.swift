@@ -21,7 +21,7 @@ struct NetworkRequestMessage: WebViewLoggableMessage, Equatable {
     let error: String?
     let requestType: String
     let timing: WebViewResourceTiming?
-    
+
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
         guard let components = URLComponents(string: url) else {
             return nil
@@ -87,7 +87,7 @@ struct WebViewResourceTiming: Codable, Equatable {
     let decodedBodySize: Int?
     let responseStatus: Int?
     let serverTiming: [WebViewServerTiming]?
-    
+
     var httpRequestMetrics: HTTPRequestMetrics {
         HTTPRequestMetrics(
             responseBodyBytesReceivedCount: transferSize.map(Int64.init),
@@ -100,7 +100,7 @@ struct WebViewResourceTiming: Codable, Equatable {
     }
 
     var tcpDuration: TimeInterval? {
-        if let secureConnectionStart = secureConnectionStart, secureConnectionStart > 0 {
+        if let secureConnectionStart, secureConnectionStart > 0 {
             return duration(from: connectStart, to: secureConnectionStart)
         }
 
@@ -108,7 +108,7 @@ struct WebViewResourceTiming: Codable, Equatable {
     }
 
     var tlsDuration: TimeInterval? {
-        guard let secureConnectionStart = secureConnectionStart, secureConnectionStart > 0 else {
+        guard let secureConnectionStart, secureConnectionStart > 0 else {
             return nil
         }
 

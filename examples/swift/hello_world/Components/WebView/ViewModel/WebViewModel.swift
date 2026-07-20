@@ -19,59 +19,59 @@ final class WebViewModel: NSObject, ObservableObject {
     @Published private(set) var canGoForward = false
     @Published private(set) var lastErrorMessage: String?
     @Published private(set) var selectedStartupPageID: WebViewPage.ID?
-    
+
     let startupPages = WebViewPage.defaults
     let wkWebView: WKWebView
-    
+
     private var observations = [NSKeyValueObservation]()
-    
+
     var pageCaption: String {
         if self.isLoading {
             return "Loading..."
         }
-        
+
         if let host = self.wkWebView.url?.host, !host.isEmpty {
             return host
         }
-        
+
         return self.currentURLText
     }
-    
+
     override init() {
         let initialPage = WebViewPage.defaults[0]
         let configuration = WKWebViewConfiguration()
         let webView = WKWebView(frame: .zero, configuration: configuration)
-        
+
         self.wkWebView = webView
         self.addressText = initialPage.addressText
         self.currentURLText = initialPage.addressText
         self.pageTitle = initialPage.title
         self.selectedStartupPageID = initialPage.id
-        
+
         super.init()
-        
+
         self.wkWebView.navigationDelegate = self
         self.wkWebView.allowsBackForwardNavigationGestures = true
         self.wkWebView.isOpaque = false
         self.wkWebView.backgroundColor = .clear
         self.wkWebView.scrollView.backgroundColor = .clear
-        
+
         self.observeWebView()
         self.load(page: initialPage)
     }
-    
+
     func loadSubmittedText() {
         let submittedText = self.addressText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !submittedText.isEmpty else {
             self.resetAddressBar()
             return
         }
-        
+
         guard let url = self.resolveURL(from: submittedText) else {
             self.lastErrorMessage = "Couldn't open that address. Try a full URL like https://example.com."
             return
         }
-        
+
         self.selectedStartupPageID = self.remotePageID(for: url)
         self.load(url: url)
     }
@@ -85,26 +85,26 @@ final class WebViewModel: NSObject, ObservableObject {
             self.loadHTML(html, baseURL: baseURL, addressText: page.addressText)
         }
     }
-    
+
     func goBack() {
         self.lastErrorMessage = nil
         self.wkWebView.goBack()
     }
-    
+
     func goForward() {
         self.lastErrorMessage = nil
         self.wkWebView.goForward()
     }
-    
+
     func reload() {
         self.lastErrorMessage = nil
         self.wkWebView.reload()
     }
-    
+
     func resetAddressBar() {
         self.addressText = self.currentURLText
     }
-    
+
     private func load(url: URL) {
         self.lastErrorMessage = nil
         self.currentURLText = url.absoluteString
@@ -127,7 +127,7 @@ final class WebViewModel: NSObject, ObservableObject {
             return false
         })?.id
     }
-    
+
     private func observeWebView() {
         self.observations = [
             self.wkWebView.observe(\.title, options: [.initial, .new]) { [weak self] webView, _ in
@@ -178,30 +178,30 @@ final class WebViewModel: NSObject, ObservableObject {
             },
         ]
     }
-    
+
     private func resolveURL(from input: String) -> URL? {
         if input.contains(" ") {
             return WebViewModel.searchURL(for: input)
         }
-        
+
         if let url = URL(string: input), url.scheme != nil {
             return url
         }
-        
+
         if input.contains(".") {
             return URL(string: "https://\(input)")
         }
-        
+
         return WebViewModel.searchURL(for: input)
     }
-    
+
     private static func searchURL(for query: String) -> URL? {
         guard
             let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
         else {
             return nil
         }
-        
+
         return URL(string: "https://duckduckgo.com/?q=\(encodedQuery)")
     }
 }
@@ -212,7 +212,7 @@ extension WebViewModel: WKNavigationDelegate {
         self.isLoading = true
         self.estimatedProgress = webView.estimatedProgress
     }
-    
+
     func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
         self.isLoading = false
         self.estimatedProgress = 1.0
@@ -221,11 +221,11 @@ extension WebViewModel: WKNavigationDelegate {
             self.addressText = url.absoluteString
         }
     }
-    
+
     func webView(_: WKWebView, didFail _: WKNavigation!, withError error: Error) {
         self.handleNavigationFailure(error)
     }
-    
+
     func webView(
         _: WKWebView,
         didFailProvisionalNavigation _: WKNavigation!,
@@ -233,17 +233,16 @@ extension WebViewModel: WKNavigationDelegate {
     ) {
         self.handleNavigationFailure(error)
     }
-    
+
     private func handleNavigationFailure(_ error: Error) {
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorCancelled {
             return
         }
-        
+
         self.isLoading = false
         self.estimatedProgress = 0.0
         self.lastErrorMessage = nsError.localizedDescription
         self.resetAddressBar()
     }
 }
-

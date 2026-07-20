@@ -5,8 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import WebKit
 import Foundation
+import WebKit
 
 extension Integration {
     public static func webView() -> Integration {
