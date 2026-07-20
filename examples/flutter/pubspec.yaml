@@ -1,0 +1,23 @@
+name: flutter_capture_example
+description: A sample Flutter app demonstrating Bitdrift Capture SDK integration.
+
+publish_to: "none"
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  capture_flutter:
+    path: ../../platform/capture_flutter
+  shared_preferences: ^2.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
