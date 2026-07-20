@@ -12,7 +12,7 @@ import WebKit
 struct WebView: View {
     @FocusState private var isAddressFieldFocused: Bool
     @StateObject private var browser = WebViewModel()
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
@@ -77,10 +77,10 @@ struct WebView: View {
 
 private struct WKWebViewBridge: UIViewRepresentable {
     let webView: WKWebView
-    
+
     func makeUIView(context _: Context) -> WKWebView {
         return self.webView
     }
-    
+
     func updateUIView(_: WKWebView, context _: Context) {}
 }

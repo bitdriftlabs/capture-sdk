@@ -12,7 +12,7 @@ struct WebViewControlButton: View {
     let isEnabled: Bool
     let tint: Color
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: self.action) {
             Image(systemName: self.systemImage)

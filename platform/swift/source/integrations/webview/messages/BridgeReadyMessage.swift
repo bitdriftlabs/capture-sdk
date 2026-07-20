@@ -14,7 +14,7 @@ struct BridgeReadyMessage: WebViewLoggableMessage, Equatable {
     let timestamp: Int64
     let url: String
     let instrumentationConfig: WebViewScriptConfiguration?
-    
+
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
         .log(
             level: .debug,

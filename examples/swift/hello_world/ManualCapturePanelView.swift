@@ -10,7 +10,7 @@ import SwiftUI
 struct ManualCapturePanelView: View {
     @State private var selectedLogLevel = LoggerCustomer.LogLevel.info
     var loggerCustomer: LoggerCustomer
-    
+
     var body: some View {
         PanelSection(
             title: "Manual capture",
@@ -29,7 +29,7 @@ struct ManualCapturePanelView: View {
                 )
             }
             .buttonStyle(PressableCardButtonStyle())
-            
+
             Button(action: { self.loggerCustomer.simulateSpan() }) {
                 PanelRow(
                     title: "Span event",
@@ -37,7 +37,7 @@ struct ManualCapturePanelView: View {
                 )
             }
             .buttonStyle(PressableCardButtonStyle())
-            
+
             Button(action: { self.loggerCustomer.simulateNavigation() }) {
                 PanelRow(
                     title: "Screen navigation",
@@ -45,7 +45,7 @@ struct ManualCapturePanelView: View {
                 )
             }
             .buttonStyle(PressableCardButtonStyle())
-            
+
             Button(action: {
                 self.loggerCustomer.setFeatureFlagExposure(name: "MyFlag", variant: "MyVariant")
             }) {
@@ -55,7 +55,7 @@ struct ManualCapturePanelView: View {
                 )
             }
             .buttonStyle(PressableCardButtonStyle())
-            
+
             NavigationLink(
                 destination: WebView()
             ) {

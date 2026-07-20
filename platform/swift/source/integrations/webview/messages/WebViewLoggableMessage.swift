@@ -36,26 +36,26 @@ enum WebViewLoggingAction {
     case log(level: LogLevel, message: String, fields: Fields)
     case network(request: HTTPRequestInfo, response: HTTPResponseInfo)
     case startSpan(
-        id: String,
-        name: String,
-        level: LogLevel,
-        fields: Fields,
-        startTimeInterval: TimeInterval?,
-        parentSpanID: UUID?
-    )
+            id: String,
+            name: String,
+            level: LogLevel,
+            fields: Fields,
+            startTimeInterval: TimeInterval?,
+            parentSpanID: UUID?
+         )
     case endSpan(
-        id: String,
-        result: SpanResult,
-        fields: Fields,
-        endTimeInterval: TimeInterval?
-    )
+            id: String,
+            result: SpanResult,
+            fields: Fields,
+            endTimeInterval: TimeInterval?
+         )
     case completeSpan(
-        name: String,
-        level: LogLevel,
-        fields: Fields,
-        startTimeInterval: TimeInterval?,
-        endTimeInterval: TimeInterval?,
-        parentSpanID: UUID?,
-        result: SpanResult
-    )
+            name: String,
+            level: LogLevel,
+            fields: Fields,
+            startTimeInterval: TimeInterval?,
+            endTimeInterval: TimeInterval?,
+            parentSpanID: UUID?,
+            result: SpanResult
+         )
 }
