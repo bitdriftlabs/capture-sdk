@@ -1,9 +1,10 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
 //
-//  CustomLogMessage.swift
-//  Capture
-//
-//  Created by Ariel Demarco on 04/05/2026.
-//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
 
 struct CustomLogMessage: WebViewLoggableMessage, Equatable {
     let tag: String
