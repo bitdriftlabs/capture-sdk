@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+import Capture
 import SwiftUI
 import WebKit
 
@@ -49,6 +50,15 @@ final class WebViewModel: NSObject, ObservableObject {
         self.selectedStartupPageID = initialPage.id
 
         super.init()
+
+        Logger.logInfo(
+            "Web view initialized",
+            fields: ["webview_mode": LoggerCustomer.webViewManualInstrumentationEnabled ? "manual" : "swizzled"]
+        )
+
+        if LoggerCustomer.webViewManualInstrumentationEnabled {
+            Logger.shared?.instrument(webView: self.wkWebView)
+        }
 
         self.wkWebView.navigationDelegate = self
         self.wkWebView.allowsBackForwardNavigationGestures = true
