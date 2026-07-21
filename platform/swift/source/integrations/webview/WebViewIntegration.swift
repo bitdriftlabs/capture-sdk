@@ -19,12 +19,6 @@ extension Integration {
     }
 }
 
-struct WebViewLoggingProvider: LoggingProvider {
-    func getLogging() -> (any Logging)? {
-        WebViewIntegration.shared.getLogger()
-    }
-}
-
 final class WebViewIntegration {
     private var hasSwizzledWebViewInit = Atomic(false)
     private let underlyingLogger = Atomic<Logging?>(nil)
@@ -80,15 +74,10 @@ extension WebViewIntegration {
 extension WKWebView {
     @objc
     func cap_init(frame: CGRect, configuration: WKWebViewConfiguration) -> WKWebView {
-        let script = WKUserScript(
-            source: WebViewBridgeScript.getScript(configuration: .init()),
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: false
-        )
+        WebViewInstrumenter
+            .make(loggingProvider: WebViewLoggingProvider())
+            .captureInstrument(configuration)
 
-        let userContentController = configuration.userContentController
-        userContentController.addUserScript(script)
-        userContentController.add(ScriptMessageHandler(loggingProvider: WebViewLoggingProvider()), name: "BitdriftLogger")
         let webView = cap_init(frame: frame, configuration: configuration)
         #if DEBUG
         if #available(iOS 16.4, *) {
@@ -105,12 +94,12 @@ extension WKWebView {
 
 class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
     private let processingQueue: DispatchQueue
-    private var loggingProvider: WebViewLoggingProvider?
+    private var loggingProvider: LoggingProvider?
     private var currentPageViewSpanID: String?
     private var activePageViewSpans = [String: Span]()
 
     init(
-        loggingProvider: WebViewLoggingProvider,
+        loggingProvider: LoggingProvider,
         processingQueue: DispatchQueue = DispatchQueue(label: "io.bitdrift.capture.webview.processing")
     ) {
         self.loggingProvider = loggingProvider
