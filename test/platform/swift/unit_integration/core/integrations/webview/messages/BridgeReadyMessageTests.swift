@@ -16,7 +16,15 @@ final class BridgeReadyMessageTests: XCTestCase {
         let action = whenMakingLoggingAction()
         thenActionLogsInitialized(action) { fields in
             XCTAssertEqual(fields["_url"], "https://example.com")
-            XCTAssertEqual(fields["_config"], WebViewScriptConfiguration(captureWebVitals: false).toJSONString())
+
+            guard let configJSON = fields["_config"],
+                  let configData = configJSON.data(using: .utf8),
+                  let decodedConfig = try? JSONDecoder().decode(WebViewScriptConfiguration.self, from: configData)
+            else {
+                XCTFail("missing or invalid _config field")
+                return
+            }
+            XCTAssertEqual(decodedConfig, WebViewScriptConfiguration(captureWebVitals: false))
         }
     }
 
