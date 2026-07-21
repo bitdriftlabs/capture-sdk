@@ -1,3 +1,7 @@
+# WebViewBridgeScript.swift is auto-generated and formatting changes its structure. Inline
+# swiftlint:disable doesn't work here since swiftlint's --format flag ignores it.
+excluded:
+  - platform/swift/source/integrations/webview/WebViewBridgeScript.swift
 only_rules:
   - array_init
   - attributes
