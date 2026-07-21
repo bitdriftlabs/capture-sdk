@@ -13,6 +13,8 @@ extension Integration {
     ///                               favor of manual instrumentation without affecting other
     ///                               integrations. Defaults to `nil`, which falls back to the global
     ///                               setting.
+    ///
+    /// - returns: The webview integration.
     public static func webView(disableSwizzling: Bool? = nil) -> Integration {
         .init { logger, globalDisableSwizzling, _ in
             WebViewIntegration.shared.start(
