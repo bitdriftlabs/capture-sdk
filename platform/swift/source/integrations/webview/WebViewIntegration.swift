@@ -9,11 +9,15 @@ import Foundation
 import WebKit
 
 extension Integration {
-    public static func webView() -> Integration {
-        .init { logger, disableSwizzling, _ in
+    /// - parameter disableSwizzling: Overrides the global swizzling setting, to disable swizzling in
+    ///                               favor of manual instrumentation without affecting other
+    ///                               integrations. Defaults to `nil`, which falls back to the global
+    ///                               setting.
+    public static func webView(disableSwizzling: Bool? = nil) -> Integration {
+        .init { logger, globalDisableSwizzling, _ in
             WebViewIntegration.shared.start(
                 logger: logger,
-                disableSwizzling: disableSwizzling
+                disableSwizzling: disableSwizzling ?? globalDisableSwizzling
             )
         }
     }
