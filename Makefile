@@ -35,7 +35,9 @@ fix-swift:
 # tools/lint:fix doesn't warn about all docstring violations.
 # For this reason format doc strings first (by running tools/lint:fix) and validate whether
 # any doc string violations are left next (by running tools/lint:lint-docstrings).
-	swiftlint --quiet --fix --format && ./bazelw run tools/lint:lint-docstrings
+# WebViewBridgeScript.swift is auto-generated; swiftlint's --format flag reindents it via
+# SourceKit regardless of `excluded` in .swiftlint.yml, so it's passed an explicit file list here.
+	swiftlint --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift') && ./bazelw run tools/lint:lint-docstrings
 
 .PHONY: format
 format: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml
