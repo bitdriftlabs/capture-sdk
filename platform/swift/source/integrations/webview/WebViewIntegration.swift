@@ -39,14 +39,13 @@ final class WebViewIntegration {
             storedLogger = logger
         }
 
-        guard !hasBeenSwizzled.load() else {
-            return
-        }
-
         hasBeenSwizzled.update { swizzled in
-            swizzled.toggle()
+            guard !swizzled else {
+                return
+            }
+            swizzled = true
 
-            if disableSwizzling {
+            guard !disableSwizzling else {
                 return
             }
 
@@ -76,9 +75,11 @@ extension WKWebView {
         userContentController.addUserScript(script)
         userContentController.add(ScriptMessageHandler(loggingProvider: WebViewLoggingProvider()), name: "BitdriftLogger")
         let webView = cap_init(frame: frame, configuration: configuration)
+        #if DEBUG
         if #available(iOS 16.4, *) {
             webView.isInspectable = true
         }
+        #endif
         return webView
     }
 
