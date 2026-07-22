@@ -21,6 +21,7 @@ struct ConsoleMessage: WebViewLoggableMessage, Equatable {
         case "error": .error
         case "warn": .warning
         case "info": .info
+        case "trace": .trace
         default: .debug
         }
 
