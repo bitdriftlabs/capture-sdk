@@ -32,10 +32,16 @@ final class WebViewIntegrationTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        WebViewIntegration.shared.disableWebViewSwizzling()
         self.logger = MockLogging()
         Integration.webView().start(with: self.logger, disableSwizzling: true)
         self.sut = ScriptMessageHandler(loggingProvider: WebViewLoggingProvider())
         self.userContentController = WKUserContentController()
+    }
+
+    override func tearDown() {
+        WebViewIntegration.shared.disableWebViewSwizzling()
+        super.tearDown()
     }
 
     // MARK: - WebViewLoggingProvider / WebViewIntegration wiring
@@ -108,6 +114,19 @@ final class WebViewIntegrationTests: XCTestCase {
 
         self.wait(for: [noLogExpectation], timeout: 0.3)
         XCTAssertTrue(self.logger.logs.isEmpty)
+    }
+
+    // MARK: - Concurrent `start()` calls
+
+    func testConcurrentStartOnlySwizzlesWebViewInitOnce() throws {
+        let logger = try XCTUnwrap(self.logger)
+
+        DispatchQueue.concurrentPerform(iterations: 50) { _ in
+            Integration.webView().start(with: logger, disableSwizzling: false)
+        }
+
+        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        XCTAssertEqual(webView.configuration.userContentController.userScripts.count, 1)
     }
 }
 
