@@ -9,10 +9,10 @@ package io.bitdrift.capture
 
 import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
-import io.bitdrift.capture.network.okhttp.OkHttpApiClient
+import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 
 internal class DeviceCodeService(
-    private val apiClient: OkHttpApiClient,
+    private val apiClient: Lazy<OkHttpCaptureApiClient>,
 ) {
     fun createTemporaryDeviceCode(
         deviceId: String,
@@ -20,7 +20,7 @@ internal class DeviceCodeService(
     ) {
         val typedRequest = DeviceCodeRequest(deviceId)
 
-        apiClient.perform<DeviceCodeRequest, DeviceCodeResponse>(
+        apiClient.value.perform<DeviceCodeRequest, DeviceCodeResponse>(
             HttpApiEndpoint.GetTemporaryDeviceCode,
             typedRequest,
         ) { result ->

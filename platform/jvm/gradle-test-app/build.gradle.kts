@@ -3,8 +3,20 @@ plugins {
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
-    id("com.google.firebase.crashlytics") version "3.0.6"
+    id("com.google.firebase.crashlytics") version "3.0.6" apply false
     id("io.bitdrift.capture-plugin") version "0.23.4" // To verify new changes at capture-plugin use your maven local published version
+}
+
+val requestedDebugVariant =
+    gradle.startParameter.taskNames.any { taskName ->
+        taskName.contains("Debug", ignoreCase = true)
+    }
+
+if (requestedDebugVariant) {
+    logger.lifecycle("Debug crashlytics plugin enabled")
+    pluginManager.apply("com.google.firebase.crashlytics")
+} else {
+    logger.lifecycle("Release crashlytics plugin disabled")
 }
 
 dependencies {
@@ -99,24 +111,6 @@ android {
     // This needs to be set to access the strip tools to strip the shared libraries.
     ndkVersion = "27.2.12479018"
 
-    buildTypes {
-        debug {
-            ndk {
-                debugSymbolLevel = "SYMBOL_TABLE" // Using this to reduce output .so size
-            }
-        }
-        release {
-            ndk {
-                debugSymbolLevel = "FULL"
-            }
-            packaging {
-                jniLibs {
-                    keepDebugSymbols += "**/*.so"
-                }
-            }
-        }
-    }
-
     // Run lint checks on every build
     applicationVariants.configureEach {
         val lintTask = tasks.named("lint${name.replaceFirstChar(Char::titlecase)}")
@@ -144,6 +138,9 @@ android {
     buildTypes {
         debug {
             // This can be enable to test proguard rules while debugging
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE" // Using this to reduce output .so size
+            }
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -156,6 +153,20 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             testProguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "test-proguard-rules.pro")
         }
+        create("profileable") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
+            packaging {
+                jniLibs {
+                    keepDebugSymbols += "**/*.so"
+                }
+            }
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles("profileable-rules.pro")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -164,6 +175,12 @@ android {
 
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+}
+
+afterEvaluate {
+    dependencies {
+        add("profileableImplementation", "com.github.chuckerteam.chucker:library-no-op:4.2.0")
     }
 }
 

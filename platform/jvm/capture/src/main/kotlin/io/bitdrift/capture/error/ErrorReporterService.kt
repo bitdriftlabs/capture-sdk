@@ -12,12 +12,12 @@ import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.ApiError
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
-import io.bitdrift.capture.network.okhttp.OkHttpApiClient
+import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.providers.FieldProvider
 
 internal class ErrorReporterService(
     private val fieldProviders: List<FieldProvider>,
-    private val apiClient: OkHttpApiClient,
+    private val apiClient: Lazy<OkHttpCaptureApiClient>,
 ) : IErrorReporter {
     private fun headers(): Map<String, String> {
         val map = mutableMapOf<String, String>()
@@ -45,7 +45,7 @@ internal class ErrorReporterService(
                 putAll(fields)
             }
 
-        apiClient.perform<ErrorReportRequest, Unit>(
+        apiClient.value.perform<ErrorReportRequest, Unit>(
             HttpApiEndpoint.ReportSdkError,
             typedRequest,
             allFields,

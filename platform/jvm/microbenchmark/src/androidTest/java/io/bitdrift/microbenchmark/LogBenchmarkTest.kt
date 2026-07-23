@@ -16,23 +16,38 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.IBridge
+import io.bitdrift.capture.IEventsListenerTarget
 import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.IMetadataProvider
+import io.bitdrift.capture.IPreferences
+import io.bitdrift.capture.IResourceUtilizationTarget
+import io.bitdrift.capture.ISessionReplayTarget
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.RuntimeConfig
+import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.common.RuntimeStringConfig
+import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponse.HttpResult
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.webview.WebViewBridgeMessageHandler
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.time.Duration
 import kotlin.time.DurationUnit
+import kotlin.time.measureTime
 import kotlin.time.toDuration
 
 private const val LOG_MESSAGE = "50 characters long test message - 0123456789012345"
@@ -48,7 +63,10 @@ class LogBenchmarkTest {
     @get:Rule
     val benchmarkRule = BenchmarkRule()
 
-    private fun startLogger(fieldProviders: List<FieldProvider> = listOf(), configuration: Configuration = Configuration()) {
+    private fun startLogger(
+        fieldProviders: List<FieldProvider> = listOf(),
+        configuration: Configuration = Configuration()
+    ) {
         CaptureJniLibrary.load()
 
         Capture.Logger.start(
@@ -57,17 +75,14 @@ class LogBenchmarkTest {
             context = InstrumentationRegistry.getInstrumentation().targetContext,
             sessionStrategy = SessionStrategy.Fixed(),
             fieldProviders = fieldProviders,
-            configuration =  configuration,
+            configuration = configuration,
         )
     }
 
-    private fun createFieldProviders(providers: Int = 5, fields: Int = 10): List<FieldProvider> {
-        return (1..providers).map { providerIndex ->
-            val fields = (1..fields).associate { fieldIndex ->
-                "provider${providerIndex}_key$fieldIndex" to "provider${providerIndex}_val$fieldIndex"
-            }
-            FieldProvider { fields }
-        }
+    @After
+    fun tearDown() {
+        destroyCurrentLogger()
+        Capture.Logger.resetShared()
     }
 
     @Test
@@ -162,39 +177,65 @@ class LogBenchmarkTest {
     @Test
     fun webViewBridgeBridgeReady() {
         val handler = WebViewBridgeMessageHandler(getInternalLogger())
-        val message = """{"v":1,"type":"bridgeReady","url":"https://example.com","instrumentationConfig":{"capturePageViews":true,"captureErrors":false}}"""
+        val message =
+            """{"v":1,"type":"bridgeReady","url":"https://example.com","instrumentationConfig":{"capturePageViews":true,"captureErrors":false}}"""
 
         benchmarkRule.measureRepeated {
             handler.log(message)
         }
     }
-    
+
     @Test
-    fun startNewSession() = benchmarkCaptureOperation{
+    fun startNewSession() = benchmarkCaptureOperation {
         Capture.Logger.startNewSession()
     }
 
     @Test
-    fun getSdkStatus() = benchmarkCaptureOperation{
+    fun getSdkStatus() = benchmarkCaptureOperation {
         Capture.Logger.getSdkStatus()
     }
 
     @Test
-    fun logAppLaunchTTI() = benchmarkCaptureOperation{
+    fun logAppLaunchTTI() = benchmarkCaptureOperation {
         Capture.Logger.logAppLaunchTTI(1.toDuration(DurationUnit.SECONDS))
     }
 
     @Test
-    fun setEntityId() = benchmarkCaptureOperation{
+    fun setEntityId() = benchmarkCaptureOperation {
         Capture.Logger.setEntityId("fake_id")
     }
 
     @Test
-    fun clearEntityId() = benchmarkCaptureOperation{
+    fun clearEntityId() = benchmarkCaptureOperation {
         Capture.Logger.clearEntityId()
     }
 
-    private fun benchmarkCaptureOperation(configuration: Configuration = Configuration(), captureSdkOperation: () -> Unit ) {
+    @Test
+    fun loggerImplCreation() {
+        benchmarkRule.measureRepeated {
+            runWithTimingDisabled {
+                CaptureJniLibrary.load()
+            }
+            val logger = LoggerImpl(
+                apiKey = "[test_api_key]",
+                apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
+                context = InstrumentationRegistry.getInstrumentation().targetContext,
+                fieldProviders = emptyList(),
+                dateProvider = SystemDateProvider(),
+                configuration = Configuration(),
+                sessionStrategy = SessionStrategy.Fixed(),
+            )
+            runWithTimingDisabled {
+                CaptureJniLibrary.shutdown(logger.loggerId)
+                CaptureJniLibrary.destroyLogger(logger.loggerId)
+            }
+        }
+    }
+
+    private fun benchmarkCaptureOperation(
+        configuration: Configuration = Configuration(),
+        captureSdkOperation: () -> Unit
+    ) {
         startLogger(fieldProviders = createFieldProviders(), configuration = configuration)
 
         benchmarkRule.measureRepeated { captureSdkOperation() }
@@ -203,6 +244,21 @@ class LogBenchmarkTest {
     private fun getInternalLogger(): IInternalLogger {
         startLogger()
         return Capture.logger() as IInternalLogger
+    }
+
+    private fun destroyCurrentLogger() {
+        (Capture.logger() as? IInternalLogger)?.let {
+            CaptureJniLibrary.shutdown((it as io.bitdrift.capture.LoggerImpl).loggerId)
+            CaptureJniLibrary.destroyLogger(it.loggerId)
+        }
+    }
+    private fun createFieldProviders(providers: Int = 5, fields: Int = 10): List<FieldProvider> {
+        return (1..providers).map { providerIndex ->
+            val fields = (1..fields).associate { fieldIndex ->
+                "provider${providerIndex}_key$fieldIndex" to "provider${providerIndex}_val$fieldIndex"
+            }
+            FieldProvider { fields }
+        }
     }
 
     private fun buildFieldsMap(size: Int, keyIdentifier: String = "key_"): Map<String, String> =

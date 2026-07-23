@@ -9,7 +9,7 @@ package io.bitdrift.capture
 
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.mock
-import io.bitdrift.capture.network.okhttp.OkHttpNetwork
+import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
@@ -70,7 +70,7 @@ class CaptureLoggerNetworkTest {
         testServerPort = CaptureTestJniLibrary.startTestApiServer(pingIdleTimeout)
 
         val network =
-            OkHttpNetwork(
+            OkHttpCaptureStream(
                 apiBaseUrl = testServerUrl(testServerPort!!),
                 timeoutSeconds = streamTimeoutSeconds,
                 okHttpClient = okHttpClient,
@@ -155,7 +155,7 @@ class CaptureLoggerNetworkTest {
         // We start the logger without starting the test server, so any attempt at connecting
         // to it should immediately fail (connection refused).
         val network =
-            OkHttpNetwork(
+            OkHttpCaptureStream(
                 apiBaseUrl = testServerUrl(50051),
                 timeoutSeconds = 1,
                 okHttpClient = okHttpClient,
@@ -193,7 +193,7 @@ class CaptureLoggerNetworkTest {
     fun large_upload() {
         val port = CaptureTestJniLibrary.startTestApiServer(500)
         val network =
-            OkHttpNetwork(
+            OkHttpCaptureStream(
                 apiBaseUrl = testServerUrl(port),
                 timeoutSeconds = 1,
                 okHttpClient = okHttpClient,

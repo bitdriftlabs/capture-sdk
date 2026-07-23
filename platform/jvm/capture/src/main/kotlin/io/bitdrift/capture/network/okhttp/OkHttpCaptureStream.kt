@@ -73,7 +73,11 @@ internal fun newDuplexRequestBody(contentType: MediaType): PipeDuplexRequestBody
         pipeMaxBufferSize = REQUEST_BODY_BUFFER_SIZE.toLong(),
     )
 
-internal class OkHttpNetwork(
+/**
+ * Concrete implementation of [ICaptureNetwork] used for the logger's
+ * long-lived backend stream.
+ */
+internal class OkHttpCaptureStream(
     apiBaseUrl: HttpUrl,
     timeoutSeconds: Long = 2L * 60,
     private val okHttpClient: OkHttpClient,

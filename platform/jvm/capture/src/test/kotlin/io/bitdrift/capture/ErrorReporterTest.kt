@@ -12,7 +12,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
-import io.bitdrift.capture.network.okhttp.OkHttpApiClient
+import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -44,12 +44,12 @@ class ErrorReporterTest {
         server = MockWebServer()
         server.start()
 
-        val apiClient = OkHttpApiClient(server.url(""), "api-key", client = OkHttpClient())
+        val apiClient = OkHttpCaptureApiClient(server.url(""), "api-key", client = OkHttpClient())
 
         reporter =
             ErrorReporterService(
                 listOf(FieldProvider { mapOf("foo" to "bar") }),
-                apiClient,
+                lazyOf(apiClient),
             )
 
         val initializer = ContextHolder()

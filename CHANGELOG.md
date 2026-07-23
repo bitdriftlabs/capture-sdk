@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Improving performance of Capture.Logger.start call
 
 ### iOS
 

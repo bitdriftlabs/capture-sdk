@@ -23,15 +23,15 @@ import java.nio.charset.Charset
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-class OkHttpApiClientTest {
+class OkHttpCaptureApiClientTest {
     private lateinit var server: MockWebServer
-    private lateinit var apiClient: OkHttpApiClient
+    private lateinit var apiClient: OkHttpCaptureApiClient
 
     @Before
     fun setup() {
         server = MockWebServer()
         server.start()
-        apiClient = OkHttpApiClient(server.url(""), "api-key", client = OkHttpClient())
+        apiClient = OkHttpCaptureApiClient(server.url(""), "api-key", client = OkHttpClient())
     }
 
     @After

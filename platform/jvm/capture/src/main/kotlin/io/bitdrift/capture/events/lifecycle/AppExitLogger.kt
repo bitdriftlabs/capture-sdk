@@ -38,7 +38,7 @@ internal class AppExitLogger(
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
-    private val issueReporter: IIssueReporter?,
+    issueReporter: IIssueReporter?,
 ) : IJvmCrashListener {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -56,17 +56,23 @@ internal class AppExitLogger(
         private const val FOREGROUND_KEY = "foreground"
     }
 
+    private val isFatalIssueReportingInitialized = IssueReporterState.Initialized == issueReporter?.initializationState()
+
     @SuppressLint("NewApi")
     fun installAppExitLogger() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
-        captureUncaughtExceptionHandler.install(this)
+        if (!isFatalIssueReportingInitialized) {
+            captureUncaughtExceptionHandler.install(this)
+        }
         logPreviousExitReasonIfAny()
     }
 
     fun uninstallAppExitLogger() {
-        captureUncaughtExceptionHandler.uninstall()
+        if (!isFatalIssueReportingInitialized) {
+            captureUncaughtExceptionHandler.uninstall()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -101,9 +107,7 @@ internal class AppExitLogger(
         throwable: Throwable,
     ) {
         // When IssueReporterState is Initialized will rely on shared-core to emit the related JVM crash log
-        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) ||
-            IssueReporterState.Initialized == issueReporter?.initializationState()
-        ) {
+        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || isFatalIssueReportingInitialized) {
             return
         }
 
