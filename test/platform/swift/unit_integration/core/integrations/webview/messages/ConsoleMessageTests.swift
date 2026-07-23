@@ -29,8 +29,14 @@ final class ConsoleMessageTests: XCTestCase {
         thenActionLogsConsole(action, level: .info)
     }
 
-    func testMakeLoggingActionWithUnknownLevelLogsAtDebugLevel() throws {
+    func testMakeLoggingActionWithTraceLevelLogsAtTraceLevel() throws {
         try givenConsoleMessage(level: "trace")
+        let action = whenMakingLoggingAction()
+        thenActionLogsConsole(action, level: .trace)
+    }
+
+    func testMakeLoggingActionWithUnknownLevelLogsAtDebugLevel() throws {
+        try givenConsoleMessage(level: "verbose")
         let action = whenMakingLoggingAction()
         thenActionLogsConsole(action, level: .debug)
     }
