@@ -20,13 +20,13 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
  */
 @Composable
 fun NetworkTestingCard(
-    onOkHttpManualRequest: () -> Unit,
-    onOkHttpAutoRequest: () -> Unit,
+    onOkHttpRequest: () -> Unit,
     onGraphQlRequest: () -> Unit,
     onRetrofitRequest: () -> Unit,
     onPreExistingW3cRequest: () -> Unit,
     onPreExistingB3SingleRequest: () -> Unit,
     onPreExistingB3MultiRequest: () -> Unit,
+    onPreExistingDatadogRequest: () -> Unit,
     onLocalBackendAddToCartRequest: () -> Unit,
     onLocalBackendGetCartRequest: () -> Unit,
     onLocalBackendDeleteCartItemRequest: () -> Unit,
@@ -61,25 +61,14 @@ fun NetworkTestingCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedButton(
-                    onClick = onOkHttpManualRequest,
+                    onClick = onOkHttpRequest,
                     modifier = Modifier.weight(1f),
                     colors =
                         ButtonDefaults.outlinedButtonColors(
                             contentColor = BitdriftColors.TextPrimary,
                         ),
                 ) {
-                    Text("OkHttp (Manual)", maxLines = 1, softWrap = false)
-                }
-
-                OutlinedButton(
-                    onClick = onOkHttpAutoRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("OkHttp (Auto)", maxLines = 1, softWrap = false)
+                    Text("OkHttp", maxLines = 1, softWrap = false)
                 }
             }
 
@@ -141,7 +130,12 @@ fun NetworkTestingCard(
                 ) {
                     Text("B3 Single", maxLines = 1, softWrap = false)
                 }
+            }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedButton(
                     onClick = onPreExistingB3MultiRequest,
                     modifier = Modifier.weight(1f),
@@ -152,6 +146,19 @@ fun NetworkTestingCard(
                 ) {
                     Text("B3 Multi", maxLines = 1, softWrap = false)
                 }
+
+                OutlinedButton(
+                    onClick = onPreExistingDatadogRequest,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("DD", maxLines = 1, softWrap = false)
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
             }
 
             Text(

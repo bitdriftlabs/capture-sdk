@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added Datadog trace propagation support for automatic network tracing.
 
 **Changed**
 

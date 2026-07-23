@@ -34,15 +34,21 @@ extension URLSessionTask {
             return
         }
 
+        let ignorePolicy = integration.requestIgnorePolicy
+
         let existingHeaders = self.originalRequest?.allHTTPHeaderFields
 
         guard !URLSessionTracePropagation.isBitdriftInternalRequest(existingHeaders) else {
             return
         }
 
+        guard !ignorePolicy.shouldIgnore(self.originalRequest) else {
+            return
+        }
+
         if URLSessionTracePropagation.hasExistingTraceHeaders(in: existingHeaders) {
             self.cap_hasExistingTraceHeaders = true
-            if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders) {
+            if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders, configuredPropagationMode: mode) {
                 self.cap_traceContext = URLSessionTraceContext(traceID: sampledTraceID, spanID: "")
             }
             return
@@ -73,6 +79,9 @@ extension URLSessionTask {
             mutableRequest.setValue(traceContext.traceID, forHTTPHeaderField: URLSessionTracePropagation.xB3TraceIDHeader)
             mutableRequest.setValue(traceContext.spanID, forHTTPHeaderField: URLSessionTracePropagation.xB3SpanIDHeader)
             mutableRequest.setValue("1", forHTTPHeaderField: URLSessionTracePropagation.xB3SampledHeader)
+        case .datadog:
+            mutableRequest.setValue(traceContext.datadogTraceID, forHTTPHeaderField: URLSessionTracePropagation.xDatadogTraceIDHeader)
+            mutableRequest.setValue("2", forHTTPHeaderField: URLSessionTracePropagation.xDatadogSamplingPriorityHeader)
         case .disabled:
             break
         }

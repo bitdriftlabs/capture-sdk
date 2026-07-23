@@ -55,6 +55,7 @@ final class URLSessionIntegration {
     private let underlyingRequestFieldProvider = Atomic<URLSessionRequestFieldProvider?>(nil)
     /// The field provider for adding custom fields to response logs
     private let underlyingResponseFieldProvider = Atomic<URLSessionResponseFieldProvider?>(nil)
+    private let underlyingRequestIgnorePolicy = Atomic<URLSessionRequestIgnorePolicy?>(nil)
     fileprivate static var swizzled = Atomic(false)
     static let shared = URLSessionIntegration()
 
@@ -79,6 +80,16 @@ final class URLSessionIntegration {
         return URLSessionTracePropagationMode(runtimeValue: runtimeValue)
     }
 
+    var requestIgnorePolicy: URLSessionRequestIgnorePolicy {
+        if let policy = self.underlyingRequestIgnorePolicy.load() {
+            return policy
+        }
+
+        let policy = self.makeRequestIgnorePolicy()
+        self.underlyingRequestIgnorePolicy.update { $0 = policy }
+        return policy
+    }
+
     var isTracingActive: Bool {
         (Logger.getShared() as? Logger)?.isTracingActive == true
     }
@@ -92,6 +103,7 @@ final class URLSessionIntegration {
         self.underlyingLogger.update { $0 = logger }
         self.underlyingRequestFieldProvider.update { $0 = requestFieldProvider }
         self.underlyingResponseFieldProvider.update { $0 = responseFieldProvider }
+        self.underlyingRequestIgnorePolicy.update { $0 = self.makeRequestIgnorePolicy() }
         if disableSwizzling || Self.swizzled.load() {
             return
         }
@@ -124,6 +136,20 @@ final class URLSessionIntegration {
         defer { task.cancel() }
 
         return type(of: task)
+    }
+
+    private func makeRequestIgnorePolicy() -> URLSessionRequestIgnorePolicy {
+        guard let logger = Logger.getShared() as? Logger else {
+            return RuntimeURLSessionIgnorePolicy(
+                ignorePathsCSV: RuntimeVariable<String>.networkRequestIgnorePathsCSV.defaultValue,
+                requiredHeadersCSV: RuntimeVariable<String>.networkRequestIgnoreRequiredHeadersCSV.defaultValue,
+                )
+        }
+
+        return RuntimeURLSessionIgnorePolicy(
+            ignorePathsCSV: logger.runtimeValue(.networkRequestIgnorePathsCSV),
+            requiredHeadersCSV: logger.runtimeValue(.networkRequestIgnoreRequiredHeadersCSV),
+            )
     }
 }
 

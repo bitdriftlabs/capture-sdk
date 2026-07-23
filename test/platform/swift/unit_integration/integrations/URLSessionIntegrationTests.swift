@@ -1141,6 +1141,74 @@ final class URLSessionTracePropagationTests: XCTestCase {
         session.invalidateAndCancel()
     }
 
+    func testCapResume_whenDatadogEnabled_shouldInjectDatadogHeaders() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertEqual(headers?["x-datadog-trace-id"], traceContext.datadogTraceID)
+        XCTAssertNil(headers?["x-datadog-parent-id"])
+        XCTAssertEqual(headers?["x-datadog-sampling-priority"], "2")
+
+        XCTAssertNil(headers?["traceparent"])
+        XCTAssertNil(headers?["b3"])
+        XCTAssertNil(headers?["X-B3-TraceId"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_withExistingTraceparentInDatadogMode_shouldExtractDatadogLinkableTraceID() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("00-88c131f5a4a41657a4cc039862759571-1234567890abcdef-01", forHTTPHeaderField: "traceparent")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(traceContext.traceID, "11874870270490940785")
+        XCTAssertEqual(traceContext.spanID, "")
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_withIgnoredDatadogIntakeRequest_shouldSkipTraceContext() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
+        self.loggerBridge.mockRuntimeVariable(.networkRequestIgnorePathsCSV, with: "/api/v2/spans")
+        self.loggerBridge.mockRuntimeVariable(.networkRequestIgnoreRequiredHeadersCSV, with: "DD-EVP-ORIGIN")
+
+        var request = URLRequest(url: URL(staticString: "https://app.datadoghq.com/api/v2/spans"))
+        request.setValue("android", forHTTPHeaderField: "DD-EVP-ORIGIN")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        XCTAssertNil(task.cap_traceContext)
+        XCTAssertFalse(task.cap_hasExistingTraceHeaders)
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertNil(headers?["x-datadog-trace-id"])
+        XCTAssertNil(headers?["traceparent"])
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
     // MARK: - Bitdrift internal request exclusion
 
     func testCapResume_withBitdriftApiKey_shouldNotAttachTraceContext() throws {
@@ -1261,6 +1329,55 @@ final class URLSessionTracePropagationTests: XCTestCase {
         session.invalidateAndCancel()
     }
 
+    func testCapResume_withExistingDatadog_sampled_shouldExtractTraceIDAndSkipInjection() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("5498017814432956682", forHTTPHeaderField: "x-datadog-trace-id")
+        request.setValue("4063799684456813420", forHTTPHeaderField: "x-datadog-parent-id")
+        request.setValue("1", forHTTPHeaderField: "x-datadog-sampling-priority")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        let traceContext = try XCTUnwrap(task.cap_traceContext)
+        XCTAssertEqual(traceContext.traceID, "5498017814432956682")
+        XCTAssertEqual(traceContext.spanID, "")
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertEqual(headers?["x-datadog-trace-id"], "5498017814432956682")
+        XCTAssertEqual(headers?["x-datadog-sampling-priority"], "1")
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
+    func testCapResume_withExistingDatadog_notSampled_shouldSkipTraceContext() throws {
+        self.loggerBridge.tracingActive = true
+        self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
+
+        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        request.setValue("5498017814432956682", forHTTPHeaderField: "x-datadog-trace-id")
+        request.setValue("0", forHTTPHeaderField: "x-datadog-sampling-priority")
+
+        let session = URLSession(configuration: .default)
+        let task = session.dataTask(with: request)
+
+        task.resume()
+
+        XCTAssertNil(task.cap_traceContext)
+        XCTAssertTrue(task.cap_hasExistingTraceHeaders)
+
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertEqual(headers?["x-datadog-trace-id"], "5498017814432956682")
+
+        task.cancel()
+        session.invalidateAndCancel()
+    }
+
     func testCapResume_withExistingTraceparent_notSampled_shouldSkipTraceContext() throws {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
@@ -1367,6 +1484,11 @@ final class URLSessionTracePropagationDetectionTests: XCTestCase {
 
     func testHasExistingTraceHeaders_withB3Multi() {
         let headers = ["X-B3-TraceId": "abcdef1234567890abcdef1234567890"]
+        XCTAssertTrue(URLSessionTracePropagation.hasExistingTraceHeaders(in: headers))
+    }
+
+    func testHasExistingTraceHeaders_withDatadog() {
+        let headers = ["x-datadog-trace-id": "5498017814432956682"]
         XCTAssertTrue(URLSessionTracePropagation.hasExistingTraceHeaders(in: headers))
     }
 
@@ -1483,6 +1605,60 @@ final class URLSessionTracePropagationExtractionTests: XCTestCase {
     func testExtractSampledTraceID_fromB3Multi_missingSampled() {
         let headers = ["X-B3-TraceId": "abcdef1234567890abcdef1234567890"]
         XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
+    }
+
+    func testExtractSampledTraceID_fromDatadog_sampled() {
+        let headers = [
+            "x-datadog-trace-id": "5498017814432956682",
+            "x-datadog-sampling-priority": "1",
+        ]
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers),
+            "5498017814432956682"
+        )
+    }
+
+    func testExtractSampledTraceID_fromDatadog_userKeep() {
+        let headers = [
+            "x-datadog-trace-id": "5498017814432956682",
+            "x-datadog-sampling-priority": "2",
+        ]
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers),
+            "5498017814432956682"
+        )
+    }
+
+    func testExtractSampledTraceID_fromDatadog_notSampled() {
+        let headers = [
+            "x-datadog-trace-id": "5498017814432956682",
+            "x-datadog-sampling-priority": "0",
+        ]
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
+    }
+
+    func testExtractSampledTraceID_fromDatadog_invalidTraceID() {
+        let headers = [
+            "x-datadog-trace-id": "abc",
+            "x-datadog-sampling-priority": "1",
+        ]
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
+    }
+
+    func testExtractSampledTraceID_fromDatadog_zeroTraceID() {
+        let headers = [
+            "x-datadog-trace-id": "0",
+            "x-datadog-sampling-priority": "1",
+        ]
+        XCTAssertNil(URLSessionTracePropagation.extractSampledTraceID(from: headers))
+    }
+
+    func testExtractSampledTraceID_fromW3C_inDatadogMode_returnsDatadogLinkableTraceID() {
+        let headers = ["traceparent": "00-88c131f5a4a41657a4cc039862759571-1234567890abcdef-01"]
+        XCTAssertEqual(
+            URLSessionTracePropagation.extractSampledTraceID(from: headers, configuredPropagationMode: .datadog),
+            "11874870270490940785"
+        )
     }
 
     func testExtractSampledTraceID_prefersW3COverB3() {

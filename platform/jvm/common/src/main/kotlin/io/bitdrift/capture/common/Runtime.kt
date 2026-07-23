@@ -154,8 +154,29 @@ sealed class RuntimeStringConfig(
      * - "w3c": use the W3C `traceparent` header
      * - "b3-single": use the Zipkin B3 `b3` header
      * - "b3-multi": use the Zipkin B3 `X-B3-*` headers
+     * - "dd": use the Datadog `x-datadog-*` headers
      */
     data object TRACE_PROPAGATION_MODE : RuntimeStringConfig("client_config.trace.propagation_mode", "w3c")
+
+    /**
+     * Comma-separated list (CSV) of request paths used to match requests that should be ignored.
+     *
+     * Example: `/api/v2/spans,/api/v2/logs`
+     */
+    data object NETWORK_REQUEST_IGNORE_PATHS_CSV : RuntimeStringConfig(
+        "client_config.network.request_ignore_match_paths",
+        "",
+    )
+
+    /**
+     * Comma-separated list (CSV) of request paths used to match requests that should be ignored.
+     *
+     * Example: `/api/v2/spans,/api/v2/logs`
+     */
+    data object NETWORK_REQUEST_IGNORE_REQUIRED_HEADERS_CSV : RuntimeStringConfig(
+        "client_config.network.request_ignore_match_headers",
+        "",
+    )
 }
 
 /**
