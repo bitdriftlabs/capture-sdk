@@ -40,7 +40,7 @@ final class WebViewIntegration {
         }
 
         hasSwizzledWebViewInit.update { hasSwizzled in
-            guard !hasSwizzled, !disableSwizzling else {
+            guard !hasSwizzled, !disableSwizzling, logger.runtimeValue(.webviewSwizzling) else {
                 return
             }
 
