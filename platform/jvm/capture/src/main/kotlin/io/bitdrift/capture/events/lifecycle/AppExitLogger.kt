@@ -17,7 +17,6 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
-import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
@@ -30,7 +29,6 @@ import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
-import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildVersionChecker
 
 internal class AppExitLogger(
@@ -41,7 +39,6 @@ internal class AppExitLogger(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
     issueReporter: IIssueReporter?,
-    private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
 ) : IJvmCrashListener {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -69,10 +66,7 @@ internal class AppExitLogger(
         if (!isFatalIssueReportingInitialized) {
             captureUncaughtExceptionHandler.install(this)
         }
-        backgroundThreadHandler.runAsync {
-            // Ordering is handled at shared-core layer
-            logPreviousExitReasonIfAny()
-        }
+        logPreviousExitReasonIfAny()
     }
 
     fun uninstallAppExitLogger() {
