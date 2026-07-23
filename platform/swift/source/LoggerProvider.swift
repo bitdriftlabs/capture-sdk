@@ -7,4 +7,5 @@
 
 protocol LoggingProvider {
     func getLogging() -> Logging?
+    func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T
 }
