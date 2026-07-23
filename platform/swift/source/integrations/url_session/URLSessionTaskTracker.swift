@@ -92,10 +92,7 @@ final class URLSessionTaskTracker {
         }
 
         let integration = URLSessionIntegration.shared
-        let ignorePolicy = RuntimeURLSessionIgnorePolicy(
-            ignorePathsCSV: integration.requestIgnorePathsCSV,
-            requiredHeadersCSV: integration.requestIgnoreRequiredHeadersCSV,
-            )
+        let ignorePolicy = integration.requestIgnorePolicy
         if ignorePolicy.shouldIgnore(task.originalRequest) {
             return
         }
