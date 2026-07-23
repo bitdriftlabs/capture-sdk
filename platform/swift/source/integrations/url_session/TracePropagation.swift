@@ -175,16 +175,13 @@ struct RuntimeURLSessionIgnorePolicy: URLSessionRequestIgnorePolicy {
         let matchesIgnoredPath = request.url.map { ignorePaths.contains($0.path) } ?? false
         let matchesRequiredHeader = requiredHeaders.contains { request.value(forHTTPHeaderField: $0) != nil }
 
-        switch (hasIgnoredPaths, hasRequiredHeaders) {
-        case (true, true):
+        if hasIgnoredPaths && hasRequiredHeaders {
             return matchesIgnoredPath && matchesRequiredHeader
-        case (true, false):
+        } else if hasIgnoredPaths {
             return matchesIgnoredPath
-        case (false, true):
-            return matchesRequiredHeader
-        case (false, false):
-            return false
         }
+
+        return matchesRequiredHeader
     }
 
     private static func readCSV(_ value: String) -> Set<String> {

@@ -34,10 +34,7 @@ extension URLSessionTask {
             return
         }
 
-        let ignorePolicy = RuntimeURLSessionIgnorePolicy(
-            ignorePathsCSV: integration.requestIgnorePathsCSV,
-            requiredHeadersCSV: integration.requestIgnoreRequiredHeadersCSV,
-            )
+        let ignorePolicy = integration.requestIgnorePolicy
 
         let existingHeaders = self.originalRequest?.allHTTPHeaderFields
 
