@@ -41,6 +41,10 @@ final class WebViewInstrumenter {
     }
 
     private func performCaptureInstrument(_ configuration: WKWebViewConfiguration) {
+        guard loggingProvider.runtimeValue(.webviewInstrumentation) else {
+            return
+        }
+
         let userContentController = configuration.userContentController
 
         guard !userContentController.userScripts.contains(where: { $0.source.hasPrefix(Self.scriptMarker) }) else {

@@ -43,6 +43,31 @@ final class WebViewInstrumenterTests: XCTestCase {
 
         self.thenUserScriptCount(is: 1)
     }
+
+    func testCaptureInstrumentDoesNothingWhenRuntimeFlagDisabled() {
+        self.sut = WebViewInstrumenter.make(
+            loggingProvider: FakeLoggingProvider(logger: self.logger, webviewInstrumentationEnabled: false)
+        )
+
+        self.whenInstrumenting()
+
+        self.thenUserScriptCount(is: 0)
+    }
+}
+
+private struct FakeLoggingProvider: LoggingProvider {
+    let logger: Logging?
+    let webviewInstrumentationEnabled: Bool
+
+    func getLogging() -> Logging? { self.logger }
+
+    func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
+        if T.self == Bool.self {
+            // swiftlint:disable:next force_cast
+            return self.webviewInstrumentationEnabled as! T
+        }
+        return variable.defaultValue
+    }
 }
 
 private extension WebViewInstrumenterTests {

@@ -24,6 +24,12 @@ struct RuntimeVariable<T: RuntimeValue> {
     let defaultValue: T
 }
 
+extension Logging {
+    func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
+        (self as? Logger)?.runtimeValue(variable) ?? variable.defaultValue
+    }
+}
+
 extension RuntimeVariable {
     func load(loggerID: LoggerID) -> T {
         if T.self == Bool.self {
@@ -128,6 +134,16 @@ extension RuntimeVariable<Bool> {
     // ignoring the revamped resolver signals (cleanExit, appUpdate, osUpdate, etc.).
     static let previousRunInfoRevamped = RuntimeVariable(
         name: "client_feature.ios.previous_run_info_revamped",
+        defaultValue: true
+    )
+
+    static let webviewInstrumentation = RuntimeVariable(
+        name: "client_feature.ios.webview_instrumentation",
+        defaultValue: true
+    )
+
+    static let webviewSwizzling = RuntimeVariable(
+        name: "client_feature.ios.webview_swizzling",
         defaultValue: true
     )
 }
