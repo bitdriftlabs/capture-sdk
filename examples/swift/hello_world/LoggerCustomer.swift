@@ -26,6 +26,8 @@ private struct EncodableExampleStruct: Encodable {
 }
 
 final class LoggerCustomer: NSObject, URLSessionDelegate {
+    private(set) static var webViewManualInstrumentationEnabled = false
+
     private struct RequestDefinition {
         let method: String
         let url: URL
@@ -82,6 +84,8 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
 
         super.init()
 
+        Self.webViewManualInstrumentationEnabled = Configuration.storedWebViewManualInstrumentation
+
         guard let apiURL = URL(string: Configuration.storedAPIURL) else {
             print("failed to initialize logger due to invalid API URL: \(Configuration.storedAPIURL)")
             return
@@ -120,10 +124,18 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                     requestFieldProvider: CustomNetworkFieldProvider(),
                     responseFieldProvider: CustomNetworkResponseFieldProvider()
                 ),
-                .webView(),
+                .webView(disableSwizzling: Self.webViewManualInstrumentationEnabled),
                 ],
                 disableSwizzling: false
             )
+
+        Logger.logInfo(
+            "Integrations configured",
+            fields: [
+                "url_session_mode": "swizzled",
+                "webview_mode": Self.webViewManualInstrumentationEnabled ? "manual" : "swizzled",
+            ]
+        )
 
         Logger.addField(withKey: "field_container_field_key", value: "field_container_value")
         Logger.setEntityID(kEntityID)

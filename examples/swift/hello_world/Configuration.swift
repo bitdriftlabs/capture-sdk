@@ -11,6 +11,7 @@ import Foundation
 final class Configuration: ObservableObject {
     @Published var apiURL: String
     @Published var apiKey: String
+    @Published var webViewManualInstrumentation: Bool
 
     private var subscriptions = Set<AnyCancellable>()
 
@@ -24,15 +25,24 @@ final class Configuration: ObservableObject {
         set { UserDefaults.standard.setValue(newValue, forKey: "apiKey") }
     }
 
+    static var storedWebViewManualInstrumentation: Bool {
+        get { UserDefaults.standard.bool(forKey: "webViewManualInstrumentation") }
+        set { UserDefaults.standard.setValue(newValue, forKey: "webViewManualInstrumentation") }
+    }
+
     init() {
         self.apiURL = Self.storedAPIURL
         self.apiKey = Self.storedAPIKey ?? ""
+        self.webViewManualInstrumentation = Self.storedWebViewManualInstrumentation
 
         $apiURL
             .sink(receiveValue: { Self.storedAPIURL = $0 })
             .store(in: &self.subscriptions)
         $apiKey
             .sink(receiveValue: { Self.storedAPIKey = $0 })
+            .store(in: &self.subscriptions)
+        $webViewManualInstrumentation
+            .sink(receiveValue: { Self.storedWebViewManualInstrumentation = $0 })
             .store(in: &self.subscriptions)
     }
 }
