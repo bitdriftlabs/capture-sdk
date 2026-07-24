@@ -26,7 +26,7 @@ extension Integration {
 }
 
 final class WebViewIntegration {
-    private var hasSwizzledWebViewInit = Atomic(false)
+    private var hasBeenConfigured = Atomic(false)
     private let underlyingLogger = Atomic<Logging?>(nil)
 
     static let shared: WebViewIntegration = .init()
@@ -39,7 +39,7 @@ final class WebViewIntegration {
             storedLogger = logger
         }
 
-        hasSwizzledWebViewInit.update { hasSwizzled in
+        hasBeenConfigured.update { hasSwizzled in
             guard !hasSwizzled, !disableSwizzling, logger.runtimeValue(.webviewSwizzling) else {
                 return
             }
@@ -62,7 +62,7 @@ extension WebViewIntegration {
     /// Exchanging the method twice should in theory restore the original implementation.
     /// Note: This should only be used in tests.
     func disableWebViewSwizzling() {
-        hasSwizzledWebViewInit.update { hasSwizzled in
+        hasBeenConfigured.update { hasSwizzled in
             guard hasSwizzled else {
                 return
             }
