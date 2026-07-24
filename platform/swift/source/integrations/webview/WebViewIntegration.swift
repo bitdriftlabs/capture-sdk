@@ -26,12 +26,7 @@ struct WebViewLoggingProvider: LoggingProvider {
 }
 
 final class WebViewIntegration {
-    private struct SwizzleState {
-        var hasStarted = false
-        var isMethodExchanged = false
-    }
-
-    private var swizzleState = Atomic(SwizzleState())
+    private var hasSwizzledWebViewInit = Atomic(false)
     private let underlyingLogger = Atomic<Logging?>(nil)
 
     static let shared: WebViewIntegration = .init()
@@ -44,17 +39,12 @@ final class WebViewIntegration {
             storedLogger = logger
         }
 
-        swizzleState.update { state in
-            guard !state.hasStarted else {
-                return
-            }
-            state.hasStarted = true
-
-            guard !disableSwizzling else {
+        hasSwizzledWebViewInit.update { hasSwizzled in
+            guard !hasSwizzled, !disableSwizzling else {
                 return
             }
 
-            state.isMethodExchanged = true
+            hasSwizzled = true
             exchangeInstanceMethod(
                 class: WKWebView.getClass(),
                 selector: #selector(WKWebView.init(frame:configuration:)),
@@ -72,14 +62,12 @@ extension WebViewIntegration {
     /// Exchanging the method twice should in theory restore the original implementation.
     /// Note: This should only be used in tests.
     func disableWebViewSwizzling() {
-        swizzleState.update { state in
-            state.hasStarted = false
-
-            guard state.isMethodExchanged else {
+        hasSwizzledWebViewInit.update { hasSwizzled in
+            guard hasSwizzled else {
                 return
             }
-            state.isMethodExchanged = false
 
+            hasSwizzled = false
             exchangeInstanceMethod(
                 class: WKWebView.getClass(),
                 selector: #selector(WKWebView.init(frame:configuration:)),
