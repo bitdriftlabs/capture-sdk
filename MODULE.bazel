@@ -315,6 +315,11 @@ use_repo(maven, "maven")
 # Rust extensions
 ####################
 
+single_version_override(
+    module_name = "rules_rs",
+    patches = ["//bazel/third_party/patches:rules_rs_external_path_dependencies.patch"],
+)
+
 rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
 
 # The rules_rs facade provisions its own rules_rust repository. Patch that repository,

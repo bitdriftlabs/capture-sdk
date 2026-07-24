@@ -1,0 +1,103 @@
+diff --git rs/extensions.bzl rs/extensions.bzl
+index 4f17f434..67da3296 100644
+--- rs/extensions.bzl
++++ rs/extensions.bzl
+@@ -8,0 +9 @@ load(
++    "cargo_metadata_dep_to_dep_dict",
+@@ -83,0 +85,8 @@ def _target_label(repo_name, package_path, target):
++def _is_path_in_workspace(path, workspace_root):
++    normalized_path = _normalize_path(path)
++    if not paths.is_absolute(normalized_path):
++        normalized_path = paths.join(workspace_root, normalized_path)
++    normalized_path = paths.normalize(normalized_path)
++    normalized_workspace_root = paths.normalize(_normalize_path(workspace_root))
++    return normalized_path.startswith(normalized_workspace_root + "/")
++
+@@ -136,0 +146,48 @@ def _generate_hub_and_spokes(
++    workspace_member_keys = {
++        (package["name"], package["version"]): True
++        for package in cargo_metadata["packages"]
++    }
++    direct_path_deps = {}
++    for package in cargo_metadata["packages"]:
++        for dep in package.get("dependencies", []):
++            dep_path = dep.get("path")
++            if dep_path:
++                direct_path_deps[dep["name"]] = dep_path
++
++    requires_full_metadata = False
++    workspace_root = paths.normalize(_normalize_path(cargo_metadata["workspace_root"]))
++    for package in all_packages:
++        if package.get("source"):
++            continue
++
++        package_key = (package["name"], package["version"])
++        if package_key in workspace_member_keys:
++            continue
++
++        dep_path = direct_path_deps.get(package["name"])
++        if not dep_path or not _is_path_in_workspace(dep_path, workspace_root):
++            requires_full_metadata = True
++            break
++
++    if requires_full_metadata:
++        result = mctx.execute(
++            [cargo_path, "metadata", "--locked", "--format-version=1", "--quiet"] +
++            (["--config", str(mctx.path(cargo_config))] if cargo_config else []),
++            working_directory = str(mctx.path(cargo_lock_path).dirname),
++        )
++        if result.return_code != 0:
++            fail(result.stdout + "\n" + result.stderr)
++        cargo_metadata = json.decode(result.stdout)
++
++    workspace_member_ids = {package_id: True for package_id in cargo_metadata.get("workspace_members", [])}
++    workspace_cargo_metadata = dict(cargo_metadata)
++    workspace_cargo_metadata["packages"] = [
++        package
++        for package in cargo_metadata["packages"]
++        if package["id"] in workspace_member_ids
++    ]
++    cargo_metadata_packages = {
++        _fq_crate(package["name"], package["version"]): package
++        for package in cargo_metadata["packages"]
++    }
++
+@@ -214,4 +271,15 @@ def _generate_hub_and_spokes(
+-            mctx.watch(mctx.path(cargo_toml_path))
+-            annotation = annotation_for(annotations, name, package["version"], hub_name)
+-            cargo_toml_json = run_toml2json(mctx, cargo_toml_path)
+-            fact = cargo_toml_fact(cargo_toml_json, {})
++            if _is_path_in_workspace(cargo_toml_path, workspace_root):
++                mctx.watch(mctx.path(cargo_toml_path))
++                cargo_toml_json = run_toml2json(mctx, cargo_toml_path)
++                fact = cargo_toml_fact(cargo_toml_json, workspace_cargo_toml_json)
++            else:
++                metadata_package = cargo_metadata_packages.get(_fq_crate(name, version))
++                if not metadata_package:
++                    fail("Cargo metadata did not include path dependency %s %s" % (name, version))
++                fact = dict(
++                    features = metadata_package.get("features", {}),
++                    dependencies = [
++                        cargo_metadata_dep_to_dep_dict(dep)
++                        for dep in metadata_package.get("dependencies", [])
++                    ],
++                )
+@@ -263 +331 @@ def _generate_hub_and_spokes(
+-        cargo_metadata = cargo_metadata,
++        cargo_metadata = workspace_cargo_metadata,
+@@ -492 +560 @@ alias(
+-    for package in cargo_metadata["packages"]:
++    for package in workspace_cargo_metadata["packages"]:
+@@ -625 +693 @@ RESOLVED_PLATFORMS = select({{
+-        cargo_metadata = cargo_metadata,
++        cargo_metadata = workspace_cargo_metadata,
+diff --git rs/private/cargo_workspace_graph.bzl rs/private/cargo_workspace_graph.bzl
+index e7bdf496..dc55d3cb 100644
+--- rs/private/cargo_workspace_graph.bzl
++++ rs/private/cargo_workspace_graph.bzl
+@@ -331,0 +332 @@ def split_lockfile_packages(hub_name, cargo_metadata, workspace_cargo_toml, all_
++    workspace_member_ids = {package_id: True for package_id in cargo_metadata.get("workspace_members", [])}
+@@ -334 +335,2 @@ def split_lockfile_packages(hub_name, cargo_metadata, workspace_cargo_toml, all_
+-        workspace_member_keys[(package["name"], package["version"])] = True
++        if package["id"] in workspace_member_ids:
++            workspace_member_keys[(package["name"], package["version"])] = True
