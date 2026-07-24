@@ -119,3 +119,6 @@ while IFS= read -r line; do
 done < "$CARGO_TOML"
 
 mv "$TMP_FILE" "$CARGO_TOML"
+
+cargo update
+make repin
