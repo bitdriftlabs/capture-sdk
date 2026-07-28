@@ -975,6 +975,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         super.setUp()
         self.loggerBridge = MockLoggerBridging()
         URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
+        URLSessionIntegration.shared.resetForTests()
 
         let logger: Logger? = Logger(
             withAPIKey: "123",
@@ -1004,6 +1005,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
     override func tearDown() {
         URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
+        URLSessionIntegration.shared.resetForTests()
         Logger.resetShared()
         super.tearDown()
     }

@@ -103,7 +103,7 @@ final class URLSessionIntegration {
         self.underlyingLogger.update { $0 = logger }
         self.underlyingRequestFieldProvider.update { $0 = requestFieldProvider }
         self.underlyingResponseFieldProvider.update { $0 = responseFieldProvider }
-        self.underlyingRequestIgnorePolicy.update { $0 = self.makeRequestIgnorePolicy() }
+        self.underlyingRequestIgnorePolicy.update { $0 = nil }
         if disableSwizzling || Self.swizzled.load() {
             return
         }
@@ -160,5 +160,12 @@ extension URLSessionIntegration {
         if Self.swizzled.load() {
             self.toggleURLSessionTaskSwizzling()
         }
+    }
+
+    func resetForTests() {
+        self.underlyingLogger.update { $0 = nil }
+        self.underlyingRequestFieldProvider.update { $0 = nil }
+        self.underlyingResponseFieldProvider.update { $0 = nil }
+        self.underlyingRequestIgnorePolicy.update { $0 = nil }
     }
 }
