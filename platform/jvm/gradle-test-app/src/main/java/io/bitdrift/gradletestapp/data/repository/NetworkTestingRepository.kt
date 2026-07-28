@@ -23,6 +23,7 @@ import io.bitdrift.capture.network.okhttp.CaptureOkHttpTracingInterceptor
 import io.bitdrift.capture.network.okhttp.OkHttpRequestFieldProvider
 import io.bitdrift.capture.network.okhttp.OkHttpResponseFieldProvider
 import io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
+import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.data.service.BinaryJazzRetrofitService
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -63,38 +64,37 @@ class NetworkTestingRepository(context: Context) {
             ).alwaysReadResponseBody(true)
             .build()
 
-    // Manual integration: explicit CaptureOkHttpEventListenerFactory with custom field providers
-    private val okHttpClientManual: OkHttpClient =
+    private val okHttpClient: OkHttpClient =
         OkHttpClient
             .Builder()
             .addInterceptor(chuckerInterceptor)
-            .addInterceptor(CaptureOkHttpTracingInterceptor())
-            .eventListenerFactory(
-                CaptureOkHttpEventListenerFactory(
-                    requestFieldProvider = RetrofitUrlPathProvider(CustomRequestFieldProvider()),
-                    responseFieldProvider = CustomResponseFieldProvider(),
-                ),
-            )
-            .build()
-
-    // Automatic integration: relies on Gradle plugin instrumentation (tests PROXY vs OVERWRITE)
-    private val okHttpClientAutomatic: OkHttpClient =
-        OkHttpClient
-            .Builder()
-            .addInterceptor(chuckerInterceptor)
-            .eventListenerFactory { TimberOkHttpEventListener() }
+            .apply {
+                if (BuildConfig.ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION) {
+                    eventListenerFactory { TimberOkHttpEventListener() }
+                } else {
+                    addInterceptor(CaptureOkHttpTracingInterceptor())
+                    eventListenerFactory(
+                        CaptureOkHttpEventListenerFactory(
+                            requestFieldProvider = RetrofitUrlPathProvider(
+                                CustomRequestFieldProvider()
+                            ),
+                            responseFieldProvider = CustomResponseFieldProvider(),
+                        ),
+                    )
+                }
+            }
             .build()
 
     private val apolloClient: ApolloClient =
         ApolloClient
             .Builder()
             .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
-            .okHttpClient(okHttpClientManual)
+            .okHttpClient(okHttpClient)
             .addInterceptor(CaptureApolloInterceptor())
             .build()
     private val retrofitService = Retrofit.Builder()
         .baseUrl("https://binaryjazz.us")
-        .client(okHttpClientManual)
+        .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
         .create(BinaryJazzRetrofitService::class.java)
@@ -141,15 +141,12 @@ class NetworkTestingRepository(context: Context) {
     }
 
     fun performOkHttpRequest() {
-        performOkHttpRequestWithClient(okHttpClientManual, "Manual")
-    }
-
-    fun performOkHttpRequestAutomatic() {
-        performOkHttpRequestWithClient(okHttpClientAutomatic, "Automatic")
-    }
-
-    private fun performOkHttpRequestWithClient(okHttpClient: OkHttpClient, label: String) {
         val requestDef = requestDefinitions.random()
+        val label = if(BuildConfig.ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION){
+            "autoOkHttpInstrumentation"
+        }else{
+            "manualOkHttpInstrumentation"
+        }
         Timber.i("Performing OkHttp Network Request ($label): $requestDef")
 
         val url =
@@ -179,7 +176,7 @@ class NetworkTestingRepository(context: Context) {
                 ) {
                     val body =
                         response.use {
-                            it.body!!.string()
+                            it.body.string()
                         }
                     Timber.v("OkHttp request ($label) completed with status code=${response.code} and body=$body")
                 }
@@ -254,6 +251,18 @@ class NetworkTestingRepository(context: Context) {
         performRequestWithPreExistingHeaders(request, "Pre-existing B3 Multi")
     }
 
+    fun performPreExistingDatadogRequest() {
+        val traceId = generateFakeDatadogTraceId()
+        val spanId = generateFakeDatadogSpanId()
+        val request = Request.Builder()
+            .url("https://httpbin.org/get")
+            .header("x-datadog-trace-id", traceId)
+            .header("x-datadog-parent-id", spanId)
+            .header("x-datadog-sampling-priority", "2")
+            .build()
+        performRequestWithPreExistingHeaders(request, "Pre-existing DD")
+    }
+
     fun performLocalBackendAddToCartRequest() {
         val requestBody = JSONObject()
             .put("product_id", LOCAL_BACKEND_PRODUCT_ID)
@@ -285,10 +294,10 @@ class NetworkTestingRepository(context: Context) {
 
     private fun performRequestWithPreExistingHeaders(request: Request, label: String) {
         Timber.i("Performing OkHttp request ($label): ${request.url}")
-        okHttpClientManual.newCall(request).enqueue(
+        okHttpClient.newCall(request).enqueue(
             object : Callback {
                 override fun onResponse(call: Call, response: Response) {
-                    val body = response.use { it.body!!.string() }
+                    val body = response.use { it.body.string() }
                     Timber.v("OkHttp request ($label) completed with status code=${response.code} and body=$body")
                 }
 
@@ -309,6 +318,22 @@ class NetworkTestingRepository(context: Context) {
         val bytes = ByteArray(8)
         Random.nextBytes(bytes)
         return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun generateFakeDatadogTraceId(): String {
+        var value = Random.nextLong().toULong()
+        while (value == 0UL) {
+            value = Random.nextLong().toULong()
+        }
+        return value.toString()
+    }
+
+    private fun generateFakeDatadogSpanId(): String {
+        var value = Random.nextLong().toULong()
+        while (value == 0UL) {
+            value = Random.nextLong().toULong()
+        }
+        return value.toString()
     }
 
     /**

@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.network.okhttp
 
+import java.math.BigInteger
 import java.security.SecureRandom
 
 internal class TraceContextFactory {
@@ -59,6 +60,9 @@ internal enum class TracePropagationMode(
 
     /** Zipkin B3 multiple-headers format via `X-B3-*` headers. */
     B3_MULTI("b3-multi"),
+
+    /** Datadog format via `x-datadog-*` headers. */
+    DD("dd"),
     ;
 
     internal companion object {
@@ -68,6 +72,7 @@ internal enum class TracePropagationMode(
                 W3C.value -> W3C
                 B3_SINGLE.value -> B3_SINGLE
                 B3_MULTI.value -> B3_MULTI
+                DD.value -> DD
                 else -> NONE
             }
     }
@@ -76,4 +81,12 @@ internal enum class TracePropagationMode(
 internal data class TraceContext(
     val traceId: String,
     val spanId: String,
-)
+) {
+    /** Returns the lower 64 bits of the trace ID as a decimal string. */
+    fun traceIdAsDecimal(): String = hexToDecimal(traceId.takeLast(16))
+
+    /** Returns the 64 bits of the span ID as a decimal string. */
+    fun spanIdAsDecimal(): String = hexToDecimal(spanId)
+
+    private fun hexToDecimal(hex: String): String = BigInteger(hex, 16).toString()
+}

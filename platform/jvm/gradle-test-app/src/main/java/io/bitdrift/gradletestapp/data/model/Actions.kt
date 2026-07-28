@@ -62,9 +62,7 @@ sealed class DiagnosticsAction : AppAction {
 }
 
 sealed class NetworkTestAction : AppAction {
-    object PerformOkHttpRequestManual : NetworkTestAction()
-
-    object PerformOkHttpRequestAutomatic : NetworkTestAction()
+    object PerformOkHttpRequest : NetworkTestAction()
 
     object PerformGraphQlRequest : NetworkTestAction()
 
@@ -75,6 +73,8 @@ sealed class NetworkTestAction : AppAction {
     object PerformPreExistingB3SingleRequest : NetworkTestAction()
 
     object PerformPreExistingB3MultiRequest : NetworkTestAction()
+
+    object PerformPreExistingDatadogRequest : NetworkTestAction()
 
     object PerformLocalBackendAddToCartRequest : NetworkTestAction()
 

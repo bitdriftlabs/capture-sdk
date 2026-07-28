@@ -8,6 +8,7 @@
 package io.bitdrift.capture.network.okhttp
 
 import okhttp3.Request
+import java.math.BigInteger
 
 internal object TracePropagation {
     internal const val TRACE_ID_FIELD_KEY = "_trace_id"
@@ -15,7 +16,8 @@ internal object TracePropagation {
     internal fun hasExistingTraceHeaders(request: Request): Boolean =
         request.header("traceparent") != null ||
             request.header("b3") != null ||
-            request.header("X-B3-TraceId") != null
+            request.header("X-B3-TraceId") != null ||
+            request.header("x-datadog-trace-id") != null
 
     internal fun extractSampledTraceId(request: Request): String? {
         val w3c = request.header("traceparent")
@@ -39,6 +41,48 @@ internal object TracePropagation {
             val sampled = request.header("X-B3-Sampled") ?: return null
             if (sampled != "1") return null
             return b3TraceId
+        }
+
+        return extractSampledDatadogTraceId(request)
+    }
+
+    internal fun extractSampledTraceId(
+        request: Request,
+        configuredPropagationMode: TracePropagationMode,
+    ): String? {
+        if (configuredPropagationMode != TracePropagationMode.DD) {
+            return extractSampledTraceId(request)
+        }
+
+        return extractSampledDatadogTraceId(request)
+            ?: extractSampledW3CTraceIdAsDatadogDecimal(request)
+            ?: extractSampledTraceId(request)
+    }
+
+    private fun extractSampledW3CTraceIdAsDatadogDecimal(request: Request): String? {
+        val traceparent = request.header("traceparent") ?: return null
+        val parts = traceparent.split("-")
+        val flags = parts.getOrNull(3)?.toIntOrNull(16) ?: return null
+        if (flags and 0x01 != 1) return null
+
+        val low64TraceId = parts.getOrNull(1)?.takeLast(16) ?: return null
+        return low64TraceId.toBigIntegerOrNull(16)?.toString()
+    }
+
+    private fun extractSampledDatadogTraceId(request: Request): String? {
+        val ddTraceId = request.header("x-datadog-trace-id")
+        if (ddTraceId != null) {
+            val sampled = request.header("x-datadog-sampling-priority")
+            // Datadog sampling priority values: 1 = AUTO_KEEP, 2 = USER_KEEP
+            // https://datadoghq.dev/dd-trace-rb/Datadog/Tracing/Sampling/Ext/Priority.html
+            if (sampled == "1" || sampled == "2") {
+                return try {
+                    val id = BigInteger(ddTraceId)
+                    ddTraceId.takeIf { id.signum() == 1 && id.bitLength() <= 64 }
+                } catch (_: NumberFormatException) {
+                    null
+                }
+            }
         }
 
         return null

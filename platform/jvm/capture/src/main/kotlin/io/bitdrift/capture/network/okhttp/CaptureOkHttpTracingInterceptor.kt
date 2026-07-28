@@ -38,12 +38,13 @@ class CaptureOkHttpTracingInterceptor
         constructor() : this(CaptureRuntimeProvider)
 
         private val traceContextFactory by lazy { TraceContextFactory() }
+        private val requestIgnorePolicy by lazy { RuntimeOkHttpRequestIgnorePolicy(runtimeProvider) }
 
         override fun intercept(chain: Interceptor.Chain): Response {
             val currentLogger = Capture.logger()
             val request = chain.request()
 
-            if (currentLogger == null || TracePropagation.hasExistingTraceHeaders(request)) {
+            if (currentLogger == null || requestIgnorePolicy.shouldIgnore(request) || TracePropagation.hasExistingTraceHeaders(request)) {
                 return chain.proceed(request)
             }
 
@@ -72,6 +73,12 @@ class CaptureOkHttpTracingInterceptor
                     requestBuilder.header("X-B3-TraceId", traceContext.traceId)
                     requestBuilder.header("X-B3-SpanId", traceContext.spanId)
                     requestBuilder.header("X-B3-Sampled", "1")
+                }
+
+                TracePropagationMode.DD -> {
+                    requestBuilder.header("x-datadog-trace-id", traceContext.traceIdAsDecimal())
+                    // Using 2 to mean USER_KEEP from https://datadoghq.dev/dd-trace-rb/Datadog/Tracing/Sampling/Ext/Priority.html
+                    requestBuilder.header("x-datadog-sampling-priority", "2")
                 }
 
                 TracePropagationMode.NONE -> return chain.proceed(request)
@@ -105,6 +112,7 @@ class CaptureOkHttpTracingInterceptor
                     fieldsOf(
                         "is_tracing_active" to internalLogger.isTracingActive.toString(),
                         "configured_propagation_mode" to this.value,
+                        "dd_support_enabled" to "yes",
                     ),
             ) { "Tracing configuration" }
         }

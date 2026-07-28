@@ -157,8 +157,28 @@ extension RuntimeVariable<String> {
     /// - "w3c": use the W3C `traceparent` header
     /// - "b3-single": use the Zipkin B3 `b3` header
     /// - "b3-multi": use the Zipkin B3 `X-B3-*` headers
+    /// - "dd": use the Datadog `x-datadog-*` headers
     static let tracePropagationMode = RuntimeVariable(
         name: "client_config.trace.propagation_mode",
         defaultValue: "w3c"
+    )
+
+    /// Comma-separated list (CSV) of request paths used to match requests that should be ignored.
+    ///
+    /// Example: `/api/v2/spans,/api/v2/logs`
+    static let networkRequestIgnorePathsCSV = RuntimeVariable(
+        name: "client_config.network.request_ignore_match_paths",
+        defaultValue: ""
+    )
+
+    /// Comma-separated list (CSV) of request headers used to match requests that should be ignored.
+    ///
+    /// If paths and headers are both configured, both must match.
+    /// If only one is configured, only that matcher is used.
+    ///
+    /// Example: `DD-EVP-ORIGIN,Some-Other-Header`
+    static let networkRequestIgnoreRequiredHeadersCSV = RuntimeVariable(
+        name: "client_config.network.request_ignore_match_headers",
+        defaultValue: ""
     )
 }
