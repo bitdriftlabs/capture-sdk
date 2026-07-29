@@ -55,6 +55,17 @@ struct ManualCapturePanelView: View {
                 )
             }
             .buttonStyle(PressableCardButtonStyle())
+
+            NavigationLink(
+                destination: WebView()
+            ) {
+                PanelRow(
+                    title: "Web View",
+                    subtitle: "Open a WKWebView with the integration enabled",
+                    showsChevron: true
+                )
+            }
+            .buttonStyle(PressableCardButtonStyle())
         }
     }
 }
