@@ -152,6 +152,38 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
   return (BDCrashInfoThreadDetailsStorage){0};
 }
 
+static BDCPURegister *registers_for_thread(NSDictionary *thread, uintptr_t *register_count) {
+  *register_count = 0;
+  NSDictionary *registers = dict_for_key(thread, @"bitdriftRegisters");
+  if (registers.count == 0) {
+    return NULL;
+  }
+
+  NSArray<NSString *> *names = [registers.allKeys sortedArrayUsingSelector:@selector(compare:)];
+  BDCPURegister *result = (BDCPURegister *)calloc(names.count, sizeof(BDCPURegister));
+  if (result == NULL) {
+    return NULL;
+  }
+
+  for (NSString *name in names) {
+    NSNumber *value = number_for_key(registers, name);
+    if (value == nil) {
+      continue;
+    }
+    result[*register_count] = (BDCPURegister) {
+      .name = cstring_from(name),
+      .value = value.unsignedLongLongValue,
+    };
+    (*register_count)++;
+  }
+
+  if (*register_count == 0) {
+    free(result);
+    return NULL;
+  }
+  return result;
+}
+
 // MARK: - BDOSBuild
 
 @interface BDOSBuild : NSObject
@@ -279,6 +311,9 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
     NSString *filename = [NSString stringWithFormat:@"%Lf_%s_%@.cap", truncl(timestamp), name_for_diagnostic_type(report_type), identifier];
     NSString *path = [[self.dir URLByAppendingPathComponent:filename] path];
     [[NSFileManager defaultManager] createFileAtPath:path contents:data attributes:0];
+    NSURL *documentsDirectory = [[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
+    NSString *documentsPath = [[documentsDirectory URLByAppendingPathComponent:filename] path];
+    [[NSFileManager defaultManager] createFileAtPath:documentsPath contents:data attributes:0];
     bdrw_dispose_buffer_handle(&handle);
   }
 }
@@ -367,6 +402,8 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
     BDStackFrame *stack = frame_count
       ? (BDStackFrame *)calloc(frame_count, sizeof(BDStackFrame))
       : 0;
+    uintptr_t register_count = 0;
+    BDCPURegister *registers = registers_for_thread(thread, &register_count);
 
     uint32_t frame_index = 0;
     while ([frame isKindOfClass:[NSDictionary class]] && frame_index < frame_count) {
@@ -401,11 +438,16 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
       frame = [array_for_key(frame, @"subFrames") firstObject];
       frame_index++;
     }
+    if (frame_index > 0 && register_count > 0) {
+      stack[0].reg_count = register_count;
+      stack[0].regs = registers;
+    }
     BDThread bdthread = { .index = thread_index, .quality_of_service = -1, .name = cstring_from(threadName), .active = (thread_index == crashed_index) };
     bdrw_add_thread(handle, [call_stacks count], &bdthread, frame_index, stack);
     if (thread_index == crashed_index) {
       bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, frame_index, stack);
     }
+    free(registers);
     free(stack);
   }
   // handle case where there are no threads
