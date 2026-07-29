@@ -120,6 +120,7 @@ final class WebViewIntegrationTests: XCTestCase {
 
     func testConcurrentStartOnlySwizzlesWebViewInitOnce() throws {
         let logger = try XCTUnwrap(self.logger)
+        WebViewIntegration.shared.disableWebViewSwizzling()
 
         DispatchQueue.concurrentPerform(iterations: 50) { _ in
             Integration.webView().start(with: logger, disableSwizzling: false)

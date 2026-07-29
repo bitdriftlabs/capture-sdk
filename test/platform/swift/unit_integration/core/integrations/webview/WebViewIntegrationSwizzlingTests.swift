@@ -40,3 +40,57 @@ private extension WebViewIntegrationSwizzlingTests {
         XCTAssertTrue(webView.configuration.userContentController.userScripts.isEmpty)
     }
 }
+
+@MainActor
+final class WebViewIntegrationSwizzlingRuntimeFlagTests: XCTestCase {
+    private var loggerBridge: MockLoggerBridging!
+    private var logger: Logger!
+
+    override func setUp() {
+        super.setUp()
+        WebViewIntegration.shared.disableWebViewSwizzling()
+
+        self.loggerBridge = MockLoggerBridging()
+        self.logger = Logger(
+            withAPIKey: "123",
+            remoteErrorReporter: nil,
+            configuration: .init(
+                rootFileURL: FileManager.default.temporaryDirectory.appendingPathComponent(
+                    "bitdrift_test_\(UUID().uuidString)"
+                )
+            ),
+            sessionStrategy: .fixed(),
+            dateProvider: nil,
+            fieldProviders: [],
+            enableNetwork: false,
+            storageProvider: MockStorageProvider(),
+            timeProvider: MockTimeProvider(),
+            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: self.loggerBridge)
+        )
+    }
+
+    override func tearDown() {
+        WebViewIntegration.shared.disableWebViewSwizzling()
+        super.tearDown()
+    }
+
+    func testSwizzlingDisabledByRuntimeFlagSkipsAutomaticInstrumentation() {
+        self.loggerBridge.mockRuntimeVariable(.webviewSwizzling, with: false)
+
+        Integration.webView().start(with: self.logger, disableSwizzling: false)
+        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+
+        XCTAssertTrue(webView.configuration.userContentController.userScripts.isEmpty)
+    }
+
+    func testSwizzlingDisabledByRuntimeFlagDoesNotAffectManualInstrumentation() {
+        self.loggerBridge.mockRuntimeVariable(.webviewSwizzling, with: false)
+
+        Integration.webView().start(with: self.logger, disableSwizzling: false)
+
+        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        self.logger.instrument(webView: webView)
+
+        XCTAssertEqual(webView.configuration.userContentController.userScripts.count, 1)
+    }
+}

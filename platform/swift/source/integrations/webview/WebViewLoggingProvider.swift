@@ -18,4 +18,8 @@ struct WebViewLoggingProvider: LoggingProvider {
     func getLogging() -> (any Logging)? {
         explicitLogger ?? WebViewIntegration.shared.getLogger()
     }
+
+    func runtimeValue<T: RuntimeValue>(_ variable: RuntimeVariable<T>) -> T {
+        getLogging()?.runtimeValue(variable) ?? variable.defaultValue
+    }
 }
