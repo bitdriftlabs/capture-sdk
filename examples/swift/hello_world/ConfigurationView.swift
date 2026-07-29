@@ -31,6 +31,25 @@ struct ConfigurationView: View {
                 }
             }
 
+            PanelSection(
+                title: "Web view instrumentation",
+                subtitle: "Applied on the next app launch."
+            ) {
+                PanelCard {
+                    Toggle("Instrument web views manually", isOn: self.$configuration.webViewManualInstrumentation)
+                }
+
+                if self.configuration.webViewManualInstrumentation {
+                    Text("Manual instrumentation will be used starting from the next app launch.")
+                        .font(.footnote)
+                        .foregroundColor(Theme.textSecondary)
+                } else {
+                    Text("Automatic swizzling will be used starting from the next app launch.")
+                        .font(.footnote)
+                        .foregroundColor(Theme.textSecondary)
+                }
+            }
+
             PanelCard {
                 Text("Restart the app after changing configuration so the SDK is recreated with the updated endpoint and API key.")
                     .font(.footnote)

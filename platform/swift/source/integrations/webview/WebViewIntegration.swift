@@ -9,19 +9,19 @@ import Foundation
 import WebKit
 
 extension Integration {
-    public static func webView() -> Integration {
-        .init { logger, disableSwizzling, _ in
+    /// - parameter disableSwizzling: Overrides the global swizzling setting, to disable swizzling in
+    ///                               favor of manual instrumentation without affecting other
+    ///                               integrations. Defaults to `nil`, which falls back to the global
+    ///                               setting.
+    ///
+    /// - returns: The webview integration.
+    public static func webView(disableSwizzling: Bool? = nil) -> Integration {
+        .init { logger, globalDisableSwizzling, _ in
             WebViewIntegration.shared.start(
                 logger: logger,
-                disableSwizzling: disableSwizzling
+                disableSwizzling: disableSwizzling ?? globalDisableSwizzling
             )
         }
-    }
-}
-
-struct WebViewLoggingProvider: LoggingProvider {
-    func getLogging() -> (any Logging)? {
-        WebViewIntegration.shared.getLogger()
     }
 }
 
@@ -80,15 +80,10 @@ extension WebViewIntegration {
 extension WKWebView {
     @objc
     func cap_init(frame: CGRect, configuration: WKWebViewConfiguration) -> WKWebView {
-        let script = WKUserScript(
-            source: WebViewBridgeScript.getScript(configuration: .init()),
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: false
-        )
+        WebViewInstrumenter
+            .make(loggingProvider: WebViewLoggingProvider())
+            .captureInstrument(configuration)
 
-        let userContentController = configuration.userContentController
-        userContentController.addUserScript(script)
-        userContentController.add(ScriptMessageHandler(loggingProvider: WebViewLoggingProvider()), name: "BitdriftLogger")
         let webView = cap_init(frame: frame, configuration: configuration)
         #if DEBUG
         if #available(iOS 16.4, *) {
@@ -105,12 +100,12 @@ extension WKWebView {
 
 class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
     private let processingQueue: DispatchQueue
-    private var loggingProvider: WebViewLoggingProvider?
+    private var loggingProvider: LoggingProvider?
     private var currentPageViewSpanID: String?
     private var activePageViewSpans = [String: Span]()
 
     init(
-        loggingProvider: WebViewLoggingProvider,
+        loggingProvider: LoggingProvider,
         processingQueue: DispatchQueue = DispatchQueue(label: "io.bitdrift.capture.webview.processing")
     ) {
         self.loggingProvider = loggingProvider
