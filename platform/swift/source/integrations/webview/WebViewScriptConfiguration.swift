@@ -8,7 +8,11 @@
 import Foundation
 
 struct WebViewScriptConfiguration: Equatable, Codable {
-    private static let encoder: JSONEncoder = JSONEncoder()
+    private static let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return encoder
+    }()
 
     private let capturePageViews: Bool
     private let captureNetworkRequests: Bool
