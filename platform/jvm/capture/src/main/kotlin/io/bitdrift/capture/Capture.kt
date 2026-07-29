@@ -22,6 +22,7 @@ import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
@@ -424,6 +425,23 @@ object Capture {
             message: () -> String,
         ) {
             logger()?.log(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
+        }
+
+        /**
+         * Logs a message at info level.
+         *
+         * @param fields an optional map of additional data to include with the log.
+         * @param throwable an optional throwable to include with the log.
+         * @param message the message to log.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun logInfo(
+            fields: ArrayFields,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
+            logger()?.log(level = LogLevel.INFO, arrayFields = fields, throwable = throwable, message = message)
         }
 
         /**

@@ -17,6 +17,7 @@ import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.profiling.PerfettoProfiler
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.combineJniFields
@@ -49,6 +50,8 @@ internal class SessionReplayTarget(
     //  `sessionReplayTarget` argument is moved from logger creation time to logger start time.
     //  Refer to TODO in `LoggerImpl` for more details.
     internal var runtime: Runtime? = null
+
+    private val perfettoProfiler: PerfettoProfiler = PerfettoProfiler(context)
     private val sessionReplayController: SessionReplayController =
         SessionReplayController(
             errorHandler,
@@ -81,8 +84,11 @@ internal class SessionReplayTarget(
         )
     }
 
+    /**
+     * TODO: Pending to expose a worfklow trigger for start/stop trace profiling
+     */
     override fun captureScreenshot() {
-        sessionReplayController.captureScreenshot()
+        perfettoProfiler.start()
     }
 
     override fun onScreenshotCaptured(

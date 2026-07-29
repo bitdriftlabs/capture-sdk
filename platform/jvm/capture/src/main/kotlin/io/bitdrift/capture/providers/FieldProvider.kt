@@ -97,7 +97,7 @@ fun interface FieldProvider : () -> Fields
 /**
  * Converts a String into FieldValue.StringField.
  */
-internal fun String.toFieldValue() =
+internal fun String.toFieldValue(): FieldValue =
     with(this@toFieldValue) {
         FieldValue.StringField(this)
     }
@@ -105,7 +105,7 @@ internal fun String.toFieldValue() =
 /**
  * Converts a ByteArray into FieldValue.BinaryField.
  */
-internal fun ByteArray.toFieldValue() =
+internal fun ByteArray.toFieldValue(): FieldValue =
     with(this@toFieldValue) {
         FieldValue.BinaryField(this)
     }
@@ -122,7 +122,7 @@ internal fun ByteArray.toFieldValue() =
  */
 class ArrayFields internal constructor(
     internal val keys: Array<String>,
-    internal val values: Array<String>,
+    internal val values: Array<FieldValue>,
 ) {
     internal val size: Int get() = keys.size
 
@@ -132,7 +132,7 @@ class ArrayFields internal constructor(
 
     internal operator fun get(key: String): String? {
         val index = keys.indexOf(key)
-        return if (index >= 0) values[index] else null
+        return (values.getOrNull(index) as? FieldValue.StringField)?.stringValue
     }
 
     /**
@@ -179,7 +179,7 @@ internal fun combineJniFields(
 
     val result = ArrayList<Field>(totalSize)
     for (i in 0 until stringArrayFields.size) {
-        result.add(Field(stringArrayFields.keys[i], FieldValue.StringField(stringArrayFields.values[i])))
+        result.add(Field(stringArrayFields.keys[i], stringArrayFields.values[i]))
     }
     result.addAll(binaryFields)
     return result.toTypedArray()
@@ -203,7 +203,15 @@ internal fun combineJniFields(
 fun fieldOf(
     key: String,
     value: String,
-): ArrayFields = ArrayFields(arrayOf(key), arrayOf(value))
+): ArrayFields = ArrayFields(arrayOf(key), arrayOf(value.toFieldValue()))
+
+/**
+ * Creates an [ArrayFields] instance containing a single binary key-value pair.
+ */
+fun fieldOf(
+    key: String,
+    value: ByteArray,
+): ArrayFields = ArrayFields(arrayOf(key), arrayOf(value.toFieldValue()))
 
 /**
  * Creates a [ArrayFields] instance from key-value pairs.
@@ -222,7 +230,7 @@ fun fieldOf(
 fun fieldsOf(vararg pairs: Pair<String, String>): ArrayFields {
     if (pairs.isEmpty()) return ArrayFields.EMPTY
     val keys = Array(pairs.size) { pairs[it].first }
-    val values = Array(pairs.size) { pairs[it].second }
+    val values = Array<FieldValue>(pairs.size) { pairs[it].second.toFieldValue() }
     return ArrayFields(keys, values)
 }
 
@@ -246,7 +254,7 @@ fun fieldsOfOptional(vararg pairs: Pair<String, String?>): ArrayFields {
     val nonNull = pairs.filter { it.second != null }
     if (nonNull.isEmpty()) return ArrayFields.EMPTY
     val keys = Array(nonNull.size) { nonNull[it].first }
-    val values = Array(nonNull.size) { nonNull[it].second!! }
+    val values = Array<FieldValue>(nonNull.size) { nonNull[it].second!!.toFieldValue() }
     return ArrayFields(keys, values)
 }
 
@@ -256,7 +264,7 @@ fun fieldsOfOptional(vararg pairs: Pair<String, String?>): ArrayFields {
 internal fun Array<Pair<String, String>>.toFields(): ArrayFields {
     if (isEmpty()) return ArrayFields.EMPTY
     val keys = Array(size) { this[it].first }
-    val values = Array(size) { this[it].second }
+    val values = Array<FieldValue>(size) { this[it].second.toFieldValue() }
     return ArrayFields(keys, values)
 }
 
@@ -273,7 +281,7 @@ internal fun Map<String, String>.toFields(): ArrayFields {
         }
     if (validEntries.isEmpty()) return ArrayFields.EMPTY
     val keys = Array(validEntries.size) { validEntries[it].key }
-    val values = Array(validEntries.size) { validEntries[it].value }
+    val values = Array<FieldValue>(validEntries.size) { validEntries[it].value.toFieldValue() }
     return ArrayFields(keys, values)
 }
 
@@ -291,7 +299,7 @@ fun Map<String, String>?.toFieldsOrEmpty(): ArrayFields {
         }
     if (validEntries.isEmpty()) return ArrayFields.EMPTY
     val keys = Array(validEntries.size) { validEntries[it].key }
-    val values = Array(validEntries.size) { validEntries[it].value }
+    val values = Array<FieldValue>(validEntries.size) { validEntries[it].value.toFieldValue() }
     return ArrayFields(keys, values)
 }
 
@@ -303,7 +311,7 @@ fun combineFields(vararg arrays: ArrayFields): ArrayFields {
     if (totalSize == 0) return ArrayFields.EMPTY
 
     val keys = arrayOfNulls<String>(totalSize)
-    val values = arrayOfNulls<String>(totalSize)
+    val values = arrayOfNulls<FieldValue>(totalSize)
     var offset = 0
     for (array in arrays) {
         System.arraycopy(array.keys, 0, keys, offset, array.size)
@@ -314,11 +322,11 @@ fun combineFields(vararg arrays: ArrayFields): ArrayFields {
 }
 
 /**
- * Converts InternalFields to legacy Array<Field> for JNI calls that require it.
+ * Converts [ArrayFields] to fields accepted by JNI.
  */
 internal fun ArrayFields.toLegacyJniFields(): Array<Field> {
     if (isEmpty()) return emptyArray()
-    return Array(size) { i -> Field(keys[i], FieldValue.StringField(values[i])) }
+    return Array(size) { i -> Field(keys[i], values[i]) }
 }
 
 /**
@@ -328,14 +336,14 @@ internal class FieldArraysBuilder(
     initialCapacity: Int = 8,
 ) {
     private val keys = ArrayList<String>(initialCapacity)
-    private val values = ArrayList<String>(initialCapacity)
+    private val values = ArrayList<FieldValue>(initialCapacity)
 
     fun add(
         key: String,
         value: String,
     ): FieldArraysBuilder {
         keys.add(key)
-        values.add(value)
+        values.add(value.toFieldValue())
         return this
     }
 
@@ -345,7 +353,7 @@ internal class FieldArraysBuilder(
     ): FieldArraysBuilder {
         if (value != null) {
             keys.add(key)
-            values.add(value)
+            values.add(value.toFieldValue())
         }
         return this
     }

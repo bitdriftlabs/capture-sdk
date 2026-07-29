@@ -10,11 +10,12 @@
 package io.bitdrift.capture.utils
 
 import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.FieldValue
 
 fun ArrayFields.toStringMap(): Map<String, String> {
     val map = mutableMapOf<String, String>()
     for (i in keys.indices) {
-        map[keys[i]] = values[i]
+        map[keys[i]] = (values[i] as FieldValue.StringField).stringValue
     }
     return map
 }

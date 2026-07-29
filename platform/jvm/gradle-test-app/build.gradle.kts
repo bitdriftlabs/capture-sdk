@@ -110,7 +110,7 @@ android {
         minSdk = 23
         targetSdk = 36
         versionCode = 68
-        versionName = "3.0"
+        versionName = "4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField(
             "boolean",

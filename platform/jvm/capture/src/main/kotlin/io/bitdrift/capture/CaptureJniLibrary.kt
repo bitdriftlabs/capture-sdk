@@ -208,10 +208,8 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param logType the type of the log to be logged.
      * @param logLevel the log level of the log.
      * @param log the log message of the log.
-     * @param fieldKeys array of field keys (parallel to fieldValues).
-     * @param fieldValues array of field values (parallel to fieldKeys).
-     * @param matchingFieldKeys array of matching field keys.
-     * @param matchingFieldValues array of matching field values.
+     * @param fields fields to include with the log.
+     * @param matchingFields matching fields to include with the log.
      * @param usePreviousProcessSessionId if set to true, this log will be emitted with the session ID
      *        corresponding to the last session ID during the previous process run.
      * @param overrideOccurredAtUnixMilliseconds used to override the timestamp of the log.
@@ -222,10 +220,8 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         logType: Int,
         logLevel: Int,
         log: String,
-        fieldKeys: Array<String>,
-        fieldValues: Array<String>,
-        matchingFieldKeys: Array<String>,
-        matchingFieldValues: Array<String>,
+        fields: Array<Field>,
+        matchingFields: Array<Field>,
         usePreviousProcessSessionId: Boolean,
         overrideOccurredAtUnixMilliseconds: Long,
         blocking: Boolean,
