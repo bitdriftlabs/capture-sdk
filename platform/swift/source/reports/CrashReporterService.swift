@@ -40,6 +40,7 @@ private struct RuntimeFileState {
     private let previousRunInfoController: PreviousRunInfoController?
 
     private var isBitdriftCrashHandlerEnabled = false
+    var metricKitDiagnosticManager: (any MetricKitDiagnosticManaging)?
 
     init(
         previousRunInfoController: PreviousRunInfoController?,
@@ -102,7 +103,14 @@ private struct RuntimeFileState {
             }
 
             lastRunResult = didCrashLastLaunch()
-            diagnosticReporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
+
+            if #available(iOS 27.0, *) {
+                let manager = makeMetricKitDiagnosticManager(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
+                manager.start()
+                self.metricKitDiagnosticManager = manager
+            } else {
+                diagnosticReporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
+            }
 
             return .initialized(reporterInitResolution ?? .monitoring)
         }
@@ -138,6 +146,7 @@ private struct RuntimeFileState {
         if isBitdriftCrashHandlerEnabled {
             self.bitdriftCrashHandler.stopCrashReporter()
         }
+        self.metricKitDiagnosticManager?.stop()
     }
 }
 
@@ -225,6 +234,47 @@ private extension CrashReporterService {
             sdkVersion: capture_get_sdk_version(),
             eventTypes: .crash,
             minimumHangSeconds: Double(hangDuration) / Double(MSEC_PER_SEC),
+            memoryPressureLevel: memoryPressureLevel,
+            fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
+            useStackOverlapMatching: useStackOverlapMatching,
+            crashReporting: self,
+            crashEnrichmentSummaryHandler: { [weak underlyingLogger] summary in
+                let matcherMode = useStackOverlapMatching ? "base" : "exact"
+                guard let underlyingLogger,
+                      let summary,
+                      let outcome = summary["outcome"],
+                      let reason = summary["reason"]
+                else {
+                    return
+                }
+
+                underlyingLogger.logInternal(
+                    level: .debug,
+                    message: "[CrashEnrichment] MetricKit crash enrichment summary",
+                    fields: [
+                        "outcome": outcome,
+                        "reason": reason,
+                        "matcher_mode": matcherMode,
+                    ]
+                )
+            }
+        ) { [weak underlyingLogger] in
+            underlyingLogger?.processIssueReports(reportProcessingSession: .previousRun)
+        }
+    }
+
+    @available(iOS 27.0, *)
+    func makeMetricKitDiagnosticManager(
+        sdkBaseURL: URL,
+        underlyingLogger: CoreLogging
+    ) -> MetricKitDiagnosticManager {
+        let useStackOverlapMatching = underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
+        let fileSizeOptimizationEnabled = underlyingLogger.runtimeValue(.optimizeFatalIssueReportSize)
+        let memoryPressureLevel = underlyingLogger.previousMemoryPressureLevel()
+        let outputDir = sdkBaseURL.appendingPathComponent(Constants.reportCollectionDirectory, isDirectory: true)
+        return MetricKitDiagnosticManager(
+            outputDir: outputDir,
+            sdkVersion: capture_get_sdk_version(),
             memoryPressureLevel: memoryPressureLevel,
             fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
             useStackOverlapMatching: useStackOverlapMatching,

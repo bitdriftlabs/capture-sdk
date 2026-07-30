@@ -7,31 +7,13 @@
 
 #import "DiagnosticEventReporter.h"
 #import "BitdriftCrashHandler.h"
+#import "MetricKitDiagnosticParsing.h"
 #import "bd-report-writer/ffi.h"
 
 #import <mach/exception_types.h>
 #include <stdlib.h>
 #include <stdint.h>
 #import <signal.h>
-
-typedef NS_ENUM(int8_t, ReportType) {
-  ReportTypeNone = 0,
-  ReportTypeAppNotResponding = 1,
-  ReportTypeNativeCrash = 5,
-};
-
-typedef NS_ENUM(int8_t, CrashReporterScopeValue) {
-  CrashReporterScopeValueUnknown = 0,
-  CrashReporterScopeValueInProcess = 1,
-  CrashReporterScopeValueOutOfProcess = 2,
-};
-
-typedef NS_ENUM(int8_t, CrashReporterValue) {
-  CrashReporterValueUnknown = 0,
-  CrashReporterValueAppleMetricKit = 1,
-  CrashReporterValueAppleKSCrash = 2,
-  CrashReporterValueAppleBitdriftCrashReporter = 3,
-};
 
 // Unpack version numbers formatted as "iPhone OS 16.7.11 (20H360)"
 // - `osName` is everything before the version number ("iPhone OS")
@@ -42,13 +24,6 @@ static NSString *const OS_VERSION_MATCHER = @"^(?<osName>.*)\\s+(?<osVersion>\\d
 static NSString *const DEFAULT_HANG_NAME = @"App Hang";
 // SDK identifier used in generated files
 static const char *const SDK_ID = "io.bitdrift.capture-apple";
-
-typedef enum : NSUInteger {
-  /// The root frame is the "top"/outermost frame of the call stack tree
-  FrameOrderOuterToInner,
-  /// The root frame is the "bottom"/innermost frame of the call stack tree
-  FrameOrderInnerToOuter,
-} FrameOrder;
 
 typedef struct {
   BDCrashInfoThreadDetails details;
@@ -72,68 +47,6 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
 
 static inline const char * cstring_from(NSString *str) {
   return [str cStringUsingEncoding:NSUTF8StringEncoding];
-}
-
-static inline void timestamp_components(NSTimeInterval timestamp, uint64_t *seconds, uint32_t *nanos) {
-  long double whole_seconds = truncl(timestamp);
-  *seconds = (uint64_t)whole_seconds;
-  *nanos = (uint32_t)((timestamp - whole_seconds) * NSEC_PER_SEC);
-}
-
-static NSString *trimmed_value_after_prefix(NSString *line, NSString *prefix) {
-  if (![line hasPrefix:prefix]) {
-    return nil;
-  }
-
-  NSString *value = [line substringFromIndex:prefix.length];
-  return [value stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-}
-
-static NSDictionary<NSString *, NSString *> *parse_termination_context(NSString *terminationReason) {
-  if (terminationReason.length == 0) {
-    return @{};
-  }
-
-  NSMutableDictionary<NSString *, NSString *> *fields = [NSMutableDictionary dictionary];
-  NSError *error = nil;
-  NSRegularExpression *headerPattern = [NSRegularExpression regularExpressionWithPattern:@"domain:(\\S+)\\s+code:(\\S+)\\s+explanation:(.*)$"
-                                                                                 options:NSRegularExpressionAnchorsMatchLines
-                                                                                   error:&error];
-  NSTextCheckingResult *headerMatch = [headerPattern firstMatchInString:terminationReason
-                                                                options:0
-                                                                  range:NSMakeRange(0, terminationReason.length)];
-  if (headerMatch.numberOfRanges == 4) {
-    fields[@"domain"] = [terminationReason substringWithRange:[headerMatch rangeAtIndex:1]];
-    fields[@"code"] = [terminationReason substringWithRange:[headerMatch rangeAtIndex:2]];
-    fields[@"explanation"] = [terminationReason substringWithRange:[headerMatch rangeAtIndex:3]];
-  }
-
-  for (NSString *line in [terminationReason componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]]) {
-    NSString *processVisibility = trimmed_value_after_prefix(line, @"ProcessVisibility:");
-    if (processVisibility != nil) {
-      fields[@"process_visibility"] = processVisibility;
-      continue;
-    }
-
-    NSString *processState = trimmed_value_after_prefix(line, @"ProcessState:");
-    if (processState != nil) {
-      fields[@"process_state"] = processState;
-      continue;
-    }
-
-    NSString *watchdogEvent = trimmed_value_after_prefix(line, @"WatchdogEvent:");
-    if (watchdogEvent != nil) {
-      fields[@"watchdog_event"] = watchdogEvent;
-      continue;
-    }
-
-    NSString *watchdogVisibility = trimmed_value_after_prefix(line, @"WatchdogVisibility:");
-    if (watchdogVisibility != nil) {
-      fields[@"watchdog_visibility"] = watchdogVisibility;
-    }
-  }
-
-  return fields;
 }
 
 static const char *name_for_diagnostic_type(ReportType type) {
@@ -196,6 +109,7 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
 @property BOOL useStackOverlapMatching;
 @property CAPMemoryPressureLevel memoryPressureLevel;
 @property (nonnull, strong, nonatomic) id<CrashReporting> crashReporting;
+@property (nonnull, strong, nonatomic) MetricKitDiagnosticParsing *parsing;
 @end
 
 @implementation DiagnosticEventReporter
@@ -220,6 +134,7 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
     self.crashReporting = crashReporting;
     self.crashEnrichmentSummaryHandler = crashEnrichmentSummaryHandler;
     self.memoryPressureLevel = memoryPressureLevel;
+    self.parsing = [MetricKitDiagnosticParsing new];
     [self setMinimumHangSeconds:seconds];
   }
   return self;
@@ -592,7 +507,7 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
 
   NSDictionary<NSString *, NSString *> *terminationContext = @{};
   if ([mxCrash.signal isEqualToNumber:@SIGKILL]) {
-    terminationContext = parse_termination_context(mxCrash.terminationReason);
+    terminationContext = [self.parsing parseTerminationContext:mxCrash.terminationReason];
   }
   if ([mxCrash.signal isEqualToNumber:@SIGKILL] && (mxCrash.terminationReason.length > 0 || terminationContext.count > 0)) {
     payload.has_termination = true;
@@ -625,7 +540,7 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
 
   uint64_t seconds = 0;
   uint32_t nanos = 0;
-  timestamp_components(metricTime, &seconds, &nanos);
+  [self.parsing timestampComponentsFor:metricTime seconds:&seconds nanos:&nanos];
   bdrw_add_apple_crash_info(handle,
                             CrashReporterScopeValueOutOfProcess,
                             CrashReporterValueAppleMetricKit,
@@ -648,7 +563,7 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
       .reason = cstring_from(capturedCrash.nsexception.reason),
     };
 
-    timestamp_components(capturedCrash.crashDate.timeIntervalSince1970, &seconds, &nanos);
+    [self.parsing timestampComponentsFor:capturedCrash.crashDate.timeIntervalSince1970 seconds:&seconds nanos:&nanos];
     bdrw_add_apple_crash_info(handle,
                               CrashReporterScopeValueInProcess,
                               CrashReporterValueAppleBitdriftCrashReporter,
@@ -704,7 +619,7 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
 
   BDDeviceMetrics device = {
     .model = cstring_from(string_for_key(metadata, @"deviceType")),
-    .architecture = [self architectureConstant:string_for_key(metadata, @"platformArchitecture")],
+    .architecture = [self.parsing architectureConstantFor:string_for_key(metadata, @"platformArchitecture")],
     .os_kernversion = cstring_from(os_build_info.kernversion),
     .os_version = cstring_from(os_build_info.version),
     .os_brand = cstring_from(os_build_info.name),
@@ -729,71 +644,15 @@ static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(v
   bdrw_add_app(handle, &app);
 }
 
-- (int8_t)architectureConstant:(NSString *)arch {
-  if (!arch) {
-    return /* Architecture.Unknown */ 0;
-  }
-  return [arch containsString:@"arm64"] ? /* Architecture.arm64 */ 2 : /* Architecture.x86_64 */ 4;
-}
-
 // MARK: - Crash type helpers
 
-#define print_case(name) case name: return @#name
 - (NSString *)nameForSignal:(NSNumber *)signal {
-  switch (signal.intValue) {
-    print_case(SIGHUP);
-    print_case(SIGINT);
-    print_case(SIGQUIT);
-    print_case(SIGILL);
-    print_case(SIGTRAP);
-    print_case(SIGABRT);
-    print_case(SIGFPE);
-    print_case(SIGKILL);
-    print_case(SIGBUS);
-    print_case(SIGSEGV);
-    print_case(SIGSYS);
-    print_case(SIGPIPE);
-    print_case(SIGALRM);
-    print_case(SIGTERM);
-    print_case(SIGURG);
-    print_case(SIGSTOP);
-    print_case(SIGTSTP);
-    print_case(SIGCONT);
-    print_case(SIGCHLD);
-    print_case(SIGTTIN);
-    print_case(SIGTTOU);
-    print_case(SIGXCPU);
-    print_case(SIGXFSZ);
-    print_case(SIGVTALRM);
-    print_case(SIGPROF);
-    print_case(SIGWINCH);
-    print_case(SIGINFO);
-    print_case(SIGUSR1);
-    print_case(SIGUSR2);
-    default:
-      return nil;
-  }
+  return [self.parsing nameForSignal:signal.intValue];
 }
 
 - (NSString *)nameForCrash:(MXCrashDiagnostic *)event API_AVAILABLE(ios(14.0), macos(12.0)) {
-  switch (event.exceptionType.intValue) {
-      print_case(EXC_BAD_ACCESS);
-      print_case(EXC_BAD_INSTRUCTION);
-      print_case(EXC_SYSCALL);
-      print_case(EXC_MACH_SYSCALL);
-      print_case(EXC_CRASH);
-      print_case(EXC_RESOURCE);
-      print_case(EXC_GUARD);
-      print_case(EXC_CORPSE_NOTIFY);
-      print_case(EXC_ARITHMETIC);
-      print_case(EXC_EMULATION);
-      print_case(EXC_SOFTWARE);
-      print_case(EXC_BREAKPOINT);
-    default:
-      return [self nameForSignal:event.signal];
-  }
+  return [self.parsing nameForExceptionType:event.exceptionType.intValue] ?: [self nameForSignal:event.signal];
 }
-#undef print_case
 
 - (NSString *)reasonForCrash:(MXCrashDiagnostic *)event
                         name:(NSString *)name
