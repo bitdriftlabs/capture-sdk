@@ -46,10 +46,12 @@ import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
@@ -500,10 +502,8 @@ internal class LoggerImpl(
                 type.value,
                 level.value,
                 message(),
-                arrayFields.keys,
-                arrayFields.values,
-                matchingArrayFields.keys,
-                matchingArrayFields.values,
+                arrayFields.toLegacyJniFields(),
+                matchingArrayFields.toLegacyJniFields(),
                 previousRunSessionId,
                 occurredAtTimestampMs,
                 blocking,
@@ -543,7 +543,12 @@ internal class LoggerImpl(
             } else {
                 ArrayFields(
                     arrayOf("_error", "_error_details"),
-                    arrayOf(throwable.javaClass.name.orEmpty(), throwable.message.orEmpty()),
+                    arrayOf(
+                        throwable.javaClass.name
+                            .orEmpty()
+                            .toFieldValue(),
+                        throwable.message.orEmpty().toFieldValue(),
+                    ),
                 )
             }
         logInternal(
@@ -646,21 +651,25 @@ internal class LoggerImpl(
         val totalSize = fieldsSize + throwableFieldCount
 
         val keys = ArrayList<String>(totalSize)
-        val values = ArrayList<String>(totalSize)
+        val values = ArrayList<FieldValue>(totalSize)
 
         fields?.forEach { (key, value) ->
             @Suppress("SENSELESS_COMPARISON")
             if (key != null && value != null) {
                 keys.add(key)
-                values.add(value)
+                values.add(value.toFieldValue())
             }
         }
 
         throwable?.let {
             keys.add("_error")
-            values.add(it.javaClass.name.orEmpty())
+            values.add(
+                it.javaClass.name
+                    .orEmpty()
+                    .toFieldValue(),
+            )
             keys.add("_error_details")
-            values.add(it.message.orEmpty())
+            values.add(it.message.orEmpty().toFieldValue())
         }
 
         return ArrayFields(

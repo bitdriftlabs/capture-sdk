@@ -37,8 +37,10 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.TimeUnit
 
@@ -236,7 +238,7 @@ internal class JankStatsMonitor(
         // Convert the list of StateInfo to a map of fields using StateInfo's key and value properties
         if (isEmpty()) return ArrayFields.EMPTY
         val keys = Array(size) { i -> this[i].key }
-        val values = Array(size) { i -> this[i].value }
+        val values = Array<FieldValue>(size) { i -> this[i].value.toFieldValue() }
         return ArrayFields(keys, values)
     }
 

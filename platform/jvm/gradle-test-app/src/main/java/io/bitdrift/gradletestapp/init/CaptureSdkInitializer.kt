@@ -40,6 +40,10 @@ import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Com
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.sentry.Sentry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
@@ -93,27 +97,34 @@ object CaptureSdkInitializer {
         context: Context,
     ) {
 
-        Capture.Logger.start(
-            apiKey = settings.apiKey,
-            apiUrl = settings.apiUrl,
-            configuration = settings.configuration,
-            sessionStrategy = settings.sessionStrategy,
-            fieldProviders = settings.fieldProviders,
-            context = context,
-        ) { startResult ->
-            when (startResult) {
-                is CaptureResult.Success -> {
-                    val logger = startResult.value
-                    Log.d("bitdrift","SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}, userUuid=${userUuid}")
-                    Capture.Logger.setEntityId(userUuid)
-                    addSessionUrlToThirdPartySdks(context, logger.sessionUrl)
-                }
+        val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-                is CaptureResult.Failure -> {
-                    Log.d("bitdrift","SDK failed to start: ${startResult.error.message}")
-                    // Re-throwing on debug builds so we can get immediate signal of
-                    // any issues at Capture.Logger.start internals during the development phase.
-                    throw IllegalStateException(startResult.error.message)
+        coroutineScope.launch(Dispatchers.IO) {
+            Capture.Logger.start(
+                apiKey = settings.apiKey,
+                apiUrl = settings.apiUrl,
+                configuration = settings.configuration,
+                sessionStrategy = settings.sessionStrategy,
+                fieldProviders = settings.fieldProviders,
+                context = context,
+            ) { startResult ->
+                when (startResult) {
+                    is CaptureResult.Success -> {
+                        val logger = startResult.value
+                        Log.d(
+                            "bitdrift",
+                            "SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}, userUuid=${userUuid}"
+                        )
+                        Capture.Logger.setEntityId(userUuid)
+                        addSessionUrlToThirdPartySdks(context, logger.sessionUrl)
+                    }
+
+                    is CaptureResult.Failure -> {
+                        Log.d("bitdrift", "SDK failed to start: ${startResult.error.message}")
+                        // Re-throwing on debug builds so we can get immediate signal of
+                        // any issues at Capture.Logger.start internals during the development phase.
+                        throw IllegalStateException(startResult.error.message)
+                    }
                 }
             }
         }

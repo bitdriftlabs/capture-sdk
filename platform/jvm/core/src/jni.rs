@@ -1128,10 +1128,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   log_type: jint,
   log_level: jint,
   log: JString<'_>,
-  field_keys: JObjectArray<'_>,
-  field_values: JObjectArray<'_>,
-  matching_field_keys: JObjectArray<'_>,
-  matching_field_values: JObjectArray<'_>,
+  fields: JObjectArray<'_>,
+  matching_fields: JObjectArray<'_>,
   use_previous_process_session_id: jboolean,
   override_occurred_at_unix_milliseconds: jlong,
   blocking: jboolean,
@@ -1139,18 +1137,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   // This should only fail if the JVM is in a bad state.
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::string_arrays_to_annotated_fields(
-        &mut env,
-        &field_keys,
-        &field_values,
-        LogFieldKind::Ootb,
-      )?;
-      let matching_fields = ffi::string_arrays_to_annotated_fields(
-        &mut env,
-        &matching_field_keys,
-        &matching_field_values,
-        LogFieldKind::Ootb,
-      )?;
+      let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
+      let matching_fields =
+        ffi::jarray_to_annotated_fields(&mut env, &matching_fields, LogFieldKind::Ootb)?;
 
       let attributes_overrides = if use_previous_process_session_id != JNI_TRUE
         && override_occurred_at_unix_milliseconds <= 0
