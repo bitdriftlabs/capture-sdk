@@ -1,0 +1,68 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+
+import Foundation
+import MetricKit
+
+@available(iOS 27.0, *)
+class MetricKitLegacyCrashAdapter {
+    /// This method transforms MetricKit's v2 crash payload into the old one.
+    /// The result of this method is going to be used in the rust bridge to avoid duplicating logic
+    /// (and preventing any issues while doing so).
+    /// - Parameters:
+    ///   - diagnostic: the information related to the crash.
+    ///   - environment: the context where the crash happened.
+    /// - Returns: a dictionary in the shape of a crash reported by MetricKit in v1
+    static func makeCrashDict(
+        diagnostic: CrashDiagnostic,
+        environment: DiagnosticReport.Environment
+    ) -> [String: Any] {
+        let threads = diagnostic.callStackTree.callStackThreads.map { thread -> [String: Any] in
+            [
+                "threadAttributed": thread.threadAttributed ?? false,
+                "callStackRootFrames": [self.frameDict(thread.rootFrames.first, tree: diagnostic.callStackTree)]
+                    .compactMap { $0 },
+            ]
+        }
+
+        return [
+            "diagnosticMetaData": [
+                "signal": diagnostic.signal ?? 0,
+                "pid": environment.pid.map(Int.init) ?? 0,
+            ],
+            "callStackTree": [
+                "callStacks": threads,
+            ],
+        ]
+    }
+
+    private static func frameDict(_ frame: CallStackFrame?, tree: CallStackTree) -> [String: Any]? {
+        guard
+            let frame,
+            let address = frame.address,
+            let binaryUUID = frame.binaryUUID,
+            let offset = frame.offsetIntoBinaryTextSegment
+        else {
+            return nil
+        }
+
+        var dict: [String: Any] = [
+            "address": address,
+            "binaryUUID": binaryUUID.uuidString,
+            "binaryName": frame.binaryName(from: tree) ?? "",
+            "offsetIntoBinaryTextSegment": offset,
+        ]
+
+        if let subFrame = self.frameDict(frame.subFrames.first, tree: tree) {
+            dict["subFrames"] = [subFrame]
+        } else {
+            dict["subFrames"] = []
+        }
+
+        return dict
+    }
+}
