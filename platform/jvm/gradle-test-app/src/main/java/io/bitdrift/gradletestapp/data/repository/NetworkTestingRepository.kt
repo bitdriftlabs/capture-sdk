@@ -27,6 +27,7 @@ import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.data.service.BinaryJazzRetrofitService
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Connection
@@ -40,7 +41,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONObject
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import timber.log.Timber
 import java.io.IOException
 import java.net.InetSocketAddress
@@ -95,7 +96,7 @@ class NetworkTestingRepository(context: Context) {
     private val retrofitService = Retrofit.Builder()
         .baseUrl("https://binaryjazz.us")
         .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
+        .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
         .build()
         .create(BinaryJazzRetrofitService::class.java)
 

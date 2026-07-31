@@ -179,7 +179,10 @@ maven.install(
         "org.jetbrains.dokka:dokka-cli:1.9.20",
 
         # Library dependencies
-        "com.google.code.gson:gson:2.10.1",
+        "org.jetbrains.kotlin:kotlin-serialization-compiler-plugin-embeddable:{}".format(KOTLIN_COMPILE_VERSION),
+        "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.8.1",
+        "org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1",
+        "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.8.1",
         "com.squareup.okhttp3:okhttp:{}".format(OKHTTP_VERSION),
         "androidx.startup:startup-runtime:1.2.0",
         "androidx.core:core:1.13.1",

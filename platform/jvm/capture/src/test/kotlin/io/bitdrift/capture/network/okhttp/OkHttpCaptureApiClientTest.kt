@@ -48,9 +48,11 @@ class OkHttpCaptureApiClientTest {
 
         // ACT
         apiClient.perform(
-            HttpApiEndpoint.GetTemporaryDeviceCode,
-            DeviceCodeRequest("device-id"),
-            mapOf("x-custom-header" to "header-value"),
+            endpoint = HttpApiEndpoint.GetTemporaryDeviceCode,
+            body = DeviceCodeRequest("device-id"),
+            requestSerializer = DeviceCodeRequest.serializer(),
+            responseSerializer = DeviceCodeResponse.serializer(),
+            headers = mapOf("x-custom-header" to "header-value"),
         ) {
             apiResult = it
             latch.countDown()
@@ -79,8 +81,10 @@ class OkHttpCaptureApiClientTest {
 
         // ACT
         apiClient.perform(
-            HttpApiEndpoint.GetTemporaryDeviceCode,
-            DeviceCodeRequest("device-id"),
+            endpoint = HttpApiEndpoint.GetTemporaryDeviceCode,
+            body = DeviceCodeRequest("device-id"),
+            requestSerializer = DeviceCodeRequest.serializer(),
+            responseSerializer = DeviceCodeResponse.serializer(),
         ) {
             apiResult = it
             latch.countDown()
@@ -101,8 +105,10 @@ class OkHttpCaptureApiClientTest {
 
         // ACT
         apiClient.perform(
-            HttpApiEndpoint.GetTemporaryDeviceCode,
-            DeviceCodeRequest("device-id"),
+            endpoint = HttpApiEndpoint.GetTemporaryDeviceCode,
+            body = DeviceCodeRequest("device-id"),
+            requestSerializer = DeviceCodeRequest.serializer(),
+            responseSerializer = DeviceCodeResponse.serializer(),
         ) {
             apiResult = it
             latch.countDown()
@@ -125,8 +131,10 @@ class OkHttpCaptureApiClientTest {
 
         // ACT
         apiClient.perform(
-            HttpApiEndpoint.GetTemporaryDeviceCode,
-            DeviceCodeRequest("device-id"),
+            endpoint = HttpApiEndpoint.GetTemporaryDeviceCode,
+            body = DeviceCodeRequest("device-id"),
+            requestSerializer = DeviceCodeRequest.serializer(),
+            responseSerializer = DeviceCodeResponse.serializer(),
         ) {
             apiResult = it
             latch.countDown()

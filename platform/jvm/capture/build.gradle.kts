@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.rust.android)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.detekt)
 
     // Publish
@@ -29,7 +30,7 @@ dependencies {
     implementation(libs.androidx.core)
     implementation(libs.androidx.startup.runtime)
     implementation(libs.jsr305)
-    implementation(libs.gson)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.performance)
     implementation(libs.protobuf.kotlinlite)
 

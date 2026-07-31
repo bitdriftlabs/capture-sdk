@@ -44,7 +44,7 @@ class WebViewBridgeMessageHandlerTest {
             errorHandlerMessageCaptor.capture(),
             throwableCaptor.capture(),
         )
-        assertThat(throwableCaptor.firstValue.message).contains("Expected BEGIN_OBJECT")
+        assertThat(throwableCaptor.firstValue).isNotNull()
         assertThat(errorHandlerMessageCaptor.firstValue)
             .isEqualTo("Failed to extract WebView bridge message. $message")
     }
@@ -58,8 +58,8 @@ class WebViewBridgeMessageHandlerTest {
             throwableCaptor.capture(),
         )
         assertThat(errorHandlerMessageCaptor.firstValue)
-            .isEqualTo("WebView bridge message is null after parsing")
-        assertThat(throwableCaptor.firstValue).isNull()
+            .isEqualTo("Failed to extract WebView bridge message. ")
+        assertThat(throwableCaptor.firstValue).isNotNull()
     }
 
     @Test

@@ -8,7 +8,6 @@
 package io.bitdrift.capture.webview
 
 import android.webkit.JavascriptInterface
-import com.google.gson.Gson
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
@@ -23,6 +22,8 @@ import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.toFields
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.net.URI
 import java.util.UUID
 
@@ -33,10 +34,13 @@ import java.util.UUID
 internal class WebViewBridgeMessageHandler(
     private val logger: IInternalLogger,
 ) {
-    /**
-     * TODO(Fran): BIT-5074. Consider switching to kotlinx.serialization
-     */
-    private val gson by lazy { Gson() }
+    private val json =
+        Json {
+            coerceInputValues = true
+            explicitNulls = false
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
 
     private var currentPageSpanId: String? = null
     private val activePageViewSpans = mutableMapOf<String, Span>()
@@ -48,16 +52,11 @@ internal class WebViewBridgeMessageHandler(
     fun log(message: String) {
         val bridgeMessage =
             runCatching {
-                gson.fromJson(message, WebViewBridgeMessage::class.java)
+                json.decodeFromString<WebViewBridgeMessage>(message)
             }.getOrElse { throwable ->
                 logger.handleInternalError("Failed to extract WebView bridge message. $message", throwable)
                 return
             }
-
-        if (bridgeMessage == null) {
-            logger.handleInternalError("WebView bridge message is null after parsing", null)
-            return
-        }
 
         if (bridgeMessage.version != 1) {
             logger.log(LogLevel.WARNING, fieldsOf("_version" to bridgeMessage.version.toString())) {
@@ -147,7 +146,7 @@ internal class WebViewBridgeMessageHandler(
         val optionalFields =
             fieldsOfOptional(
                 "_url" to msg.url,
-                "_config" to msg.instrumentationConfig?.let { gson.toJson(it) },
+                "_config" to msg.instrumentationConfig?.toString(),
             )
 
         logger.log(LogLevel.DEBUG, combineFields(baseFields, optionalFields)) {
@@ -225,7 +224,7 @@ internal class WebViewBridgeMessageHandler(
 
         // Include entries array as JSON
         metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
-            fields["_entries"] = gson.toJson(entries)
+            fields["_entries"] = json.encodeToString(entries)
         }
 
         logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
@@ -249,7 +248,7 @@ internal class WebViewBridgeMessageHandler(
 
         // Include entries array as JSON
         metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
-            fields["_entries"] = gson.toJson(entries)
+            fields["_entries"] = json.encodeToString(entries)
         }
 
         logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
@@ -273,7 +272,7 @@ internal class WebViewBridgeMessageHandler(
 
         // Include entries array as JSON
         metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
-            fields["_entries"] = gson.toJson(entries)
+            fields["_entries"] = json.encodeToString(entries)
         }
 
         logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
@@ -297,7 +296,7 @@ internal class WebViewBridgeMessageHandler(
 
         // Include entries array as JSON
         metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
-            fields["_entries"] = gson.toJson(entries)
+            fields["_entries"] = json.encodeToString(entries)
         }
 
         logWebVitalDurationSpan(timestamp, value, level, fields, parentSpanId)
@@ -318,7 +317,7 @@ internal class WebViewBridgeMessageHandler(
 
         // Include entries array as JSON
         metric.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
-            fields["_entries"] = gson.toJson(entries)
+            fields["_entries"] = json.encodeToString(entries)
         }
 
         logger.logInternal(LogType.UX, level, fields.toFields()) {

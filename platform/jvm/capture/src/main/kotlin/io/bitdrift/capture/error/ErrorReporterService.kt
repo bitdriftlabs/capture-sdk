@@ -8,12 +8,12 @@
 package io.bitdrift.capture.error
 
 import android.util.Log
-import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.ApiError
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.providers.FieldProvider
+import kotlinx.serialization.Serializable
 
 internal class ErrorReporterService(
     private val fieldProviders: List<FieldProvider>,
@@ -45,10 +45,11 @@ internal class ErrorReporterService(
                 putAll(fields)
             }
 
-        apiClient.value.perform<ErrorReportRequest, Unit>(
-            HttpApiEndpoint.ReportSdkError,
-            typedRequest,
-            allFields,
+        apiClient.value.performWithoutResponse(
+            endpoint = HttpApiEndpoint.ReportSdkError,
+            body = typedRequest,
+            requestSerializer = ErrorReportRequest.serializer(),
+            headers = allFields,
         ) { result ->
             when (result) {
                 is CaptureResult.Success -> {
@@ -73,7 +74,8 @@ internal class ErrorReporterService(
     }
 }
 
+@Serializable
 internal data class ErrorReportRequest(
-    @SerializedName("message") val message: String,
-    @SerializedName("details") val details: String?,
+    val message: String,
+    val details: String?,
 )

@@ -172,6 +172,16 @@ kt_compiler_plugin(
     ],
 )
 
+kt_compiler_plugin(
+    name = "kotlin_serialization_compiler_plugin",
+    id = "org.jetbrains.kotlinx.serialization",
+    target_embedded_compiler = True,
+    visibility = ["//visibility:public"],
+    deps = [
+        "@maven//:org_jetbrains_kotlin_kotlin_serialization_compiler_plugin_embeddable",
+    ],
+)
+
 xcodeproj(
     name = "xcodeproj",
     bazel_path = "./bazelw",

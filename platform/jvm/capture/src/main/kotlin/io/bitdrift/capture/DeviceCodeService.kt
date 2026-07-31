@@ -7,9 +7,10 @@
 
 package io.bitdrift.capture
 
-import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 internal class DeviceCodeService(
     private val apiClient: Lazy<OkHttpCaptureApiClient>,
@@ -20,9 +21,11 @@ internal class DeviceCodeService(
     ) {
         val typedRequest = DeviceCodeRequest(deviceId)
 
-        apiClient.value.perform<DeviceCodeRequest, DeviceCodeResponse>(
-            HttpApiEndpoint.GetTemporaryDeviceCode,
-            typedRequest,
+        apiClient.value.perform(
+            endpoint = HttpApiEndpoint.GetTemporaryDeviceCode,
+            body = typedRequest,
+            requestSerializer = DeviceCodeRequest.serializer(),
+            responseSerializer = DeviceCodeResponse.serializer(),
         ) { result ->
             val mappedResult =
                 when (result) {
@@ -34,10 +37,12 @@ internal class DeviceCodeService(
     }
 }
 
+@Serializable
 internal data class DeviceCodeRequest(
-    @SerializedName("device_id") val deviceId: String,
+    @SerialName("device_id") val deviceId: String,
 )
 
+@Serializable
 internal data class DeviceCodeResponse(
-    @SerializedName("code") val code: String,
+    val code: String,
 )

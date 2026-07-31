@@ -26,12 +26,12 @@ mod test {
       "androidx.lifecycle:lifecycle-process",
       "androidx.metrics:metrics-performance",
       "androidx.startup:startup-runtime",
-      "com.google.code.gson:gson",
       "com.google.flatbuffers:flatbuffers-java",
       "com.google.guava:listenablefuture",
       "com.google.protobuf:protobuf-kotlin-lite",
       "com.squareup.okhttp3:okhttp",
       "org.jetbrains.kotlin:kotlin-stdlib",
+      "org.jetbrains.kotlinx:kotlinx-serialization-json",
     ];
 
     let root = simple_xml::from_file(runfiles_path("capture_aar_pom_xml.xml")).unwrap();

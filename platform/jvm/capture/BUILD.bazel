@@ -60,6 +60,7 @@ bitdrift_kt_android_library(
         exclude = ["src/main/**/BuildConstants.kt"],
     ),
     custom_package = "io.bitdrift.capture",
+    plugins = ["//:kotlin_serialization_compiler_plugin"],
     visibility = ["//visibility:public"],
     # Exported dependencies will appear as dependencies in the generated .pom xml.
     exports = [
@@ -70,6 +71,8 @@ bitdrift_kt_android_library(
         artifact("androidx.core:core"),
         artifact("com.google.guava:listenablefuture"),
         artifact("com.google.flatbuffers:flatbuffers-java"),
+        artifact("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm"),
+        artifact("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm"),
     ],
     deps = [
         ":gen_sources",
@@ -82,10 +85,11 @@ bitdrift_kt_android_library(
         artifact("androidx.core:core"),
         artifact("com.google.guava:listenablefuture"),
         artifact("com.google.code.findbugs:jsr305"),
-        artifact("com.google.code.gson:gson"),
         artifact("com.google.flatbuffers:flatbuffers-java"),
         artifact("com.google.protobuf:protobuf-kotlin-lite"),
         artifact("androidx.metrics:metrics-performance"),
+        artifact("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm"),
+        artifact("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm"),
         # Compile-only dependency (neverlink wrapper). Not packaged nor appearing in POM.
         ":retrofit_compile_only",
         ":webkit_compile_only",
