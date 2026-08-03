@@ -6,17 +6,32 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::jni::{initialize_class, initialize_method_handle, CachedClass, CachedMethod};
+use ahash::AHashMap;
 use anyhow::bail;
 use bd_client_common::error::InvariantError;
-use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldKind, LogFieldValue, LogFields};
-use jni::objects::{JMap, JObject, JObjectArray, JPrimitiveArray};
+use bd_log_primitives::LogMapData;
+use bd_logger::{AnnotatedLogField, AnnotatedLogFields, DataValue, LogFieldKind, LogFieldValue, LogFields};
+use jni::objects::{JMap, JObject, JObjectArray, JPrimitiveArray, ReleaseMode};
 use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
+use ordered_float::NotNan;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
 const FIELD_VALUE_BYTE_ARRAY: i32 = 0;
 const FIELD_VALUE_STRING: i32 = 1;
+const FIELD_VALUE_MAP: i32 = 2;
+
+const MAP_VALUE_TYPE_STRING: u8 = 0x00;
+const MAP_VALUE_TYPE_BYTES: u8 = 0x01;
+const MAP_VALUE_TYPE_BOOL: u8 = 0x02;
+const MAP_VALUE_TYPE_U64: u8 = 0x03;
+const MAP_VALUE_TYPE_I64: u8 = 0x04;
+const MAP_VALUE_TYPE_DOUBLE: u8 = 0x05;
+const MAP_VALUE_TYPE_MAP: u8 = 0x06;
+const MAP_VALUE_TYPE_ARRAY: u8 = 0x07;
+const ROOT_TYPE_MAP: u8 = 0x01;
+const ROOT_TYPE_ARRAY: u8 = 0x02;
 
 // Cached classes
 static BINARY_FIELD: OnceLock<CachedClass> = OnceLock::new();
@@ -86,6 +101,91 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   Ok(())
 }
 
+struct MapDecoder<'a> {
+  data: &'a [u8],
+  pos: usize,
+}
+
+impl<'a> MapDecoder<'a> {
+  fn new(data: &'a [u8]) -> Self {
+    Self { data, pos: 0 }
+  }
+
+  fn decode_root(&mut self) -> anyhow::Result<DataValue> {
+    match self.read_u8()? {
+      ROOT_TYPE_MAP => self.decode_map(),
+      ROOT_TYPE_ARRAY => self.decode_array(),
+      value_type => bail!("unknown structured field root type: {value_type:#x}"),
+    }
+  }
+
+  fn decode_map(&mut self) -> anyhow::Result<DataValue> {
+    let entry_count = self.read_u32()? as usize;
+    let mut entries = AHashMap::with_capacity(entry_count);
+    for _ in 0 .. entry_count {
+      entries.insert(self.read_string()?, self.decode_value()?);
+    }
+    Ok(DataValue::Map(LogMapData::new(entries)))
+  }
+
+  fn decode_value(&mut self) -> anyhow::Result<DataValue> {
+    match self.read_u8()? {
+      MAP_VALUE_TYPE_STRING => Ok(DataValue::String(self.read_string()?)),
+      MAP_VALUE_TYPE_BYTES => {
+        let len = self.read_u32()? as usize;
+        Ok(DataValue::Bytes(self.read_bytes(len)?.into()))
+      },
+      MAP_VALUE_TYPE_BOOL => Ok(DataValue::Boolean(self.read_u8()? != 0)),
+      MAP_VALUE_TYPE_U64 => Ok(DataValue::U64(self.read_u64()?)),
+      MAP_VALUE_TYPE_I64 => Ok(DataValue::I64(self.read_u64()? as i64)),
+      MAP_VALUE_TYPE_DOUBLE => Ok(DataValue::Double(
+        NotNan::new(f64::from_bits(self.read_u64()?)).map_err(|_| anyhow::anyhow!("NaN value in map"))?,
+      )),
+      MAP_VALUE_TYPE_MAP => self.decode_map(),
+      MAP_VALUE_TYPE_ARRAY => self.decode_array(),
+      value_type => bail!("unknown map value type: {value_type:#x}"),
+    }
+  }
+
+  fn decode_array(&mut self) -> anyhow::Result<DataValue> {
+    let item_count = self.read_u32()? as usize;
+    let mut items = Vec::with_capacity(item_count);
+    for _ in 0 .. item_count {
+      items.push(self.decode_value()?);
+    }
+    Ok(DataValue::Array(bd_log_primitives::LogArrayData::new(items)))
+  }
+
+  fn read_u8(&mut self) -> anyhow::Result<u8> {
+    if self.pos >= self.data.len() { bail!("unexpected end of map data"); }
+    let value = self.data[self.pos];
+    self.pos += 1;
+    Ok(value)
+  }
+
+  fn read_u32(&mut self) -> anyhow::Result<u32> {
+    let bytes: [u8; 4] = self.read_bytes(4)?.try_into().unwrap();
+    Ok(u32::from_le_bytes(bytes))
+  }
+
+  fn read_u64(&mut self) -> anyhow::Result<u64> {
+    let bytes: [u8; 8] = self.read_bytes(8)?.try_into().unwrap();
+    Ok(u64::from_le_bytes(bytes))
+  }
+
+  fn read_bytes(&mut self, len: usize) -> anyhow::Result<Vec<u8>> {
+    if self.pos + len > self.data.len() { bail!("unexpected end of map data"); }
+    let bytes = self.data[self.pos .. self.pos + len].to_vec();
+    self.pos += len;
+    Ok(bytes)
+  }
+
+  fn read_string(&mut self) -> anyhow::Result<String> {
+    let len = self.read_u32()? as usize;
+    String::from_utf8(self.read_bytes(len)?).map_err(Into::into)
+  }
+}
+
 /// Extracts a single field (key and value) from a Java Field object.
 /// This is the common extraction logic used by both array and list converters.
 fn extract_field(
@@ -128,6 +228,16 @@ fn extract_field(
           .to_string_lossy()
           .to_string(),
       )
+    },
+    FIELD_VALUE_MAP => {
+      let field_value = FIELD_BYTE_ARRAY
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(env, field_obj, ReturnType::Array, &[])?.l()?;
+      let byte_array = JPrimitiveArray::from(field_value);
+      let elements = unsafe { env.get_array_elements(&byte_array, ReleaseMode::NoCopyBack) }?;
+      let bytes: &[u8] = unsafe { &*(std::ptr::from_ref(&*elements) as *const [i8] as *const [u8]) };
+      MapDecoder::new(bytes).decode_root()?
     },
     _ => bail!("unknown field value type {value_type:?}"),
   };

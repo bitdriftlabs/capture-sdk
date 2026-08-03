@@ -6,6 +6,10 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.providers
 
+import org.json.JSONArray
+import org.json.JSONObject
+import org.json.JSONTokener
+
 /**
  * A single field.
  * @param key the field key.
@@ -24,6 +28,7 @@ data class Field(
             return when (value) {
                 is FieldValue.StringField -> value.stringValue
                 is FieldValue.BinaryField -> throw UnsupportedOperationException()
+                is FieldValue.StructuredField -> throw UnsupportedOperationException()
             }
         }
 
@@ -36,17 +41,19 @@ data class Field(
             return when (value) {
                 is FieldValue.BinaryField -> value.byteArrayValue
                 is FieldValue.StringField -> throw UnsupportedOperationException()
+                is FieldValue.StructuredField -> value.encode()
             }
         }
 
     /**
-     * The type of the field value. 0 means Binary field (Byte Array), 1 means String.
+     * The type of the field value. 0 means Binary field, 1 means String, and 2 means structured data.
      */
     val valueType: Int
         get() {
             return when (value) {
                 is FieldValue.BinaryField -> 0
                 is FieldValue.StringField -> 1
+                is FieldValue.StructuredField -> 2
             }
         }
 }
@@ -83,9 +90,248 @@ sealed class FieldValue {
 
         override fun toString(): String = String(byteArrayValue)
     }
+
+    internal data class StructuredField(
+        val value: StructuredValue,
+    ) : FieldValue() {
+        internal fun encode(): ByteArray {
+            val buffer = StructuredEncoder()
+            buffer.encodeRoot(value)
+            return buffer.toByteArray()
+        }
+    }
 }
 
 typealias Fields = Map<String, String>
+typealias TypedFields = Array<Field>
+
+/** A value attached through Capture's structured logging API. */
+sealed class StructuredFieldValue {
+    /** A plain string field. */
+    data class StringField(
+        /** The string field value. */
+        val value: String,
+    ) : StructuredFieldValue()
+
+    /** A binary field. */
+    data class BinaryField(
+        /** The binary field value. */
+        val value: ByteArray,
+    ) : StructuredFieldValue()
+
+    /** A JSON object or array whose structure is preserved for workflow matching. */
+    data class Json(
+        /** The JSON object or array text. */
+        val value: String,
+    ) : StructuredFieldValue()
+}
+
+/**
+ * Structured fields for a log event.
+ *
+ * Created with [structuredFieldsOf]. This representation avoids an intermediate map allocation
+ * before values are encoded for the native logging layer.
+ */
+class StructuredFields internal constructor(
+    internal val keys: Array<String>,
+    internal val values: Array<StructuredFieldValue>,
+) {
+    internal fun isEmpty(): Boolean = keys.isEmpty()
+
+    internal fun toFields(): Array<Field> =
+        Array(keys.size) { index ->
+            Field(
+                keys[index],
+                when (val fieldValue = values[index]) {
+                    is StructuredFieldValue.StringField -> FieldValue.StringField(fieldValue.value)
+                    is StructuredFieldValue.BinaryField -> FieldValue.BinaryField(fieldValue.value)
+                    is StructuredFieldValue.Json -> FieldValue.StructuredField(fieldValue.value.parseStructuredJson())
+                },
+            )
+        }
+}
+
+internal sealed class StructuredValue {
+    data class Map(val entries: kotlin.collections.Map<String, StructuredValue>) : StructuredValue()
+    data class Array(val items: List<StructuredValue>) : StructuredValue()
+    data class StringValue(val value: String) : StructuredValue()
+    data class Bytes(val value: ByteArray) : StructuredValue() {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Bytes
+
+            return value.contentEquals(other.value)
+        }
+
+        override fun hashCode(): Int {
+            return value.contentHashCode()
+        }
+    }
+
+    data class BooleanValue(val value: Boolean) : StructuredValue()
+    data class U64(val value: ULong) : StructuredValue()
+    data class I64(val value: Long) : StructuredValue()
+    data class DoubleValue(val value: Double) : StructuredValue()
+}
+
+internal class StructuredEncoder {
+    private val buffer = java.io.ByteArrayOutputStream()
+
+    fun encodeRoot(value: StructuredValue) {
+        when (value) {
+            is StructuredValue.Map -> {
+                buffer.write(ROOT_TYPE_MAP)
+                encodeMap(value.entries)
+            }
+            is StructuredValue.Array -> {
+                buffer.write(ROOT_TYPE_ARRAY)
+                encodeArray(value.items)
+            }
+            else -> throw IllegalArgumentException("Structured field root must be a JSON object or array")
+        }
+    }
+
+    private fun encodeMap(entries: Map<String, StructuredValue>) {
+        writeU32(entries.size)
+        for ((key, value) in entries) {
+            writeString(key)
+            encodeValue(value)
+        }
+    }
+
+    private fun encodeArray(items: List<StructuredValue>) {
+        writeU32(items.size)
+        items.forEach(::encodeValue)
+    }
+
+    private fun encodeValue(value: StructuredValue) {
+        when (value) {
+            is StructuredValue.StringValue -> {
+                buffer.write(VALUE_TYPE_STRING)
+                writeString(value.value)
+            }
+            is StructuredValue.Bytes -> {
+                buffer.write(VALUE_TYPE_BYTES)
+                writeU32(value.value.size)
+                buffer.write(value.value)
+            }
+            is StructuredValue.BooleanValue -> {
+                buffer.write(VALUE_TYPE_BOOL)
+                buffer.write(if (value.value) 1 else 0)
+            }
+            is StructuredValue.U64 -> {
+                buffer.write(VALUE_TYPE_U64)
+                writeU64(value.value.toLong())
+            }
+            is StructuredValue.I64 -> {
+                buffer.write(VALUE_TYPE_I64)
+                writeU64(value.value)
+            }
+            is StructuredValue.DoubleValue -> {
+                buffer.write(VALUE_TYPE_DOUBLE)
+                writeU64(java.lang.Double.doubleToRawLongBits(value.value))
+            }
+            is StructuredValue.Map -> {
+                buffer.write(VALUE_TYPE_MAP)
+                encodeMap(value.entries)
+            }
+            is StructuredValue.Array -> {
+                buffer.write(VALUE_TYPE_ARRAY)
+                encodeArray(value.items)
+            }
+        }
+    }
+
+    private fun writeString(value: String) {
+        val bytes = value.toByteArray(Charsets.UTF_8)
+        writeU32(bytes.size)
+        buffer.write(bytes)
+    }
+
+    private fun writeU32(value: Int) {
+        buffer.write(value and 0xFF)
+        buffer.write((value shr 8) and 0xFF)
+        buffer.write((value shr 16) and 0xFF)
+        buffer.write((value shr 24) and 0xFF)
+    }
+
+    private fun writeU64(value: Long) {
+        buffer.write((value and 0xFF).toInt())
+        buffer.write(((value shr 8) and 0xFF).toInt())
+        buffer.write(((value shr 16) and 0xFF).toInt())
+        buffer.write(((value shr 24) and 0xFF).toInt())
+        buffer.write(((value shr 32) and 0xFF).toInt())
+        buffer.write(((value shr 40) and 0xFF).toInt())
+        buffer.write(((value shr 48) and 0xFF).toInt())
+        buffer.write(((value shr 56) and 0xFF).toInt())
+    }
+
+    fun toByteArray(): ByteArray = buffer.toByteArray()
+
+    companion object {
+        const val VALUE_TYPE_STRING = 0x00
+        const val VALUE_TYPE_BYTES = 0x01
+        const val VALUE_TYPE_BOOL = 0x02
+        const val VALUE_TYPE_U64 = 0x03
+        const val VALUE_TYPE_I64 = 0x04
+        const val VALUE_TYPE_DOUBLE = 0x05
+        const val VALUE_TYPE_MAP = 0x06
+        const val VALUE_TYPE_ARRAY = 0x07
+        const val ROOT_TYPE_MAP = 0x01
+        const val ROOT_TYPE_ARRAY = 0x02
+    }
+}
+
+/** Creates typed fields from key/value pairs. */
+fun typedFieldsOf(vararg pairs: Pair<String, FieldValue>): TypedFields =
+    Array(pairs.size) { index -> Field(pairs[index].first, pairs[index].second) }
+
+/** Creates structured fields from key/value pairs. */
+fun structuredFieldsOf(vararg pairs: Pair<String, StructuredFieldValue>): StructuredFields =
+    StructuredFields(
+        keys = Array(pairs.size) { index -> pairs[index].first },
+        values = Array(pairs.size) { index -> pairs[index].second },
+    )
+
+private fun String.parseStructuredJson(): StructuredValue {
+    val root = JSONTokener(this).nextValue()
+    return root.toStructuredValue().also {
+        require(it is StructuredValue.Map || it is StructuredValue.Array) {
+            "StructuredFieldValue.Json must contain a JSON object or array"
+        }
+    }
+}
+
+private fun Any.toStructuredValue(): StructuredValue =
+    when (this) {
+        is JSONObject -> {
+            val entries = buildMap<String, StructuredValue> {
+                keys().forEach { key ->
+                    val value = opt(key)
+                    require(value != null && value != JSONObject.NULL) {
+                        "Structured JSON cannot contain null values"
+                    }
+                    put(key, value.toStructuredValue())
+                }
+            }
+            StructuredValue.Map(entries)
+        }
+        is JSONArray -> StructuredValue.Array(
+            List(length()) { index ->
+                val value = get(index)
+                require(value != JSONObject.NULL) { "Structured JSON cannot contain null values" }
+                value.toStructuredValue()
+            },
+        )
+        is String -> StructuredValue.StringValue(this)
+        is Boolean -> StructuredValue.BooleanValue(this)
+        is Int, is Long, is Short, is Byte -> StructuredValue.I64((this as Number).toLong())
+        is UInt, is ULong -> StructuredValue.U64((this as Number).toLong().toULong())
+        is Float, is Double -> StructuredValue.DoubleValue((this as Number).toDouble())
+        else -> throw IllegalArgumentException("Unsupported JSON value type: ${this::class.java.name}")
+    }
 
 /**
  * A field provider is used to provide additional fields to each log event.

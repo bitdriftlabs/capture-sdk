@@ -18,6 +18,7 @@ import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DIAGNOSTICS_ENABLED_KEY
+import io.bitdrift.capture.Capture
 import timber.log.Timber
 
 /**

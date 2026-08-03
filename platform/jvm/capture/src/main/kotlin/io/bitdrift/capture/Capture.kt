@@ -25,6 +25,8 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.StructuredFieldValue
+import io.bitdrift.capture.providers.StructuredFields
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.utils.BuildTypeChecker
@@ -393,6 +395,23 @@ object Capture {
         }
 
         /**
+         * Logs a message at trace level with structured fields.
+         *
+         * @param structuredFields structured fields whose JSON objects and arrays remain matchable.
+         * @param throwable an optional throwable to include with the log.
+         * @param message the message to log.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun logTrace(
+            structuredFields: StructuredFields,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
+            logger()?.log(level = LogLevel.TRACE, structuredFields = structuredFields, throwable = throwable, message = message)
+        }
+
+        /**
          * Logs a message at debug level.
          *
          * @param fields an optional map of additional data to include with the log.
@@ -407,6 +426,23 @@ object Capture {
             message: () -> String,
         ) {
             logger()?.log(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
+        }
+
+        /**
+         * Logs a message at debug level with structured fields.
+         *
+         * @param structuredFields structured fields whose JSON objects and arrays remain matchable.
+         * @param throwable an optional throwable to include with the log.
+         * @param message the message to log.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun logDebug(
+            structuredFields: StructuredFields,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
+            logger()?.log(level = LogLevel.DEBUG, structuredFields = structuredFields, throwable = throwable, message = message)
         }
 
         /**
@@ -427,6 +463,23 @@ object Capture {
         }
 
         /**
+         * Logs a message at info level with structured fields.
+         *
+         * @param structuredFields structured fields whose JSON objects and arrays remain matchable.
+         * @param throwable an optional throwable to include with the log.
+         * @param message the message to log.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun logInfo(
+            structuredFields: StructuredFields,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
+            logger()?.log(level = LogLevel.INFO, structuredFields = structuredFields, throwable = throwable, message = message)
+        }
+
+        /**
          * Logs a message at warning level.
          *
          * @param fields an optional map of additional data to include with the log.
@@ -441,6 +494,23 @@ object Capture {
             message: () -> String,
         ) {
             logger()?.log(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
+        }
+
+        /**
+         * Logs a message at warning level with structured fields.
+         *
+         * @param structuredFields structured fields whose JSON objects and arrays remain matchable.
+         * @param throwable an optional throwable to include with the log.
+         * @param message the message to log.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun logWarning(
+            structuredFields: StructuredFields,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
+            logger()?.log(level = LogLevel.WARNING, structuredFields = structuredFields, throwable = throwable, message = message)
         }
 
         /**
@@ -461,6 +531,23 @@ object Capture {
         }
 
         /**
+         * Logs a message at error level with structured fields.
+         *
+         * @param structuredFields structured fields whose JSON objects and arrays remain matchable.
+         * @param throwable an optional throwable to include with the log.
+         * @param message the message to log.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun logError(
+            structuredFields: StructuredFields,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
+            logger()?.log(level = LogLevel.ERROR, structuredFields = structuredFields, throwable = throwable, message = message)
+        }
+
+        /**
          * Logs a message at a specified level.
          *
          *  @param level the severity of the log.
@@ -477,6 +564,25 @@ object Capture {
             message: () -> String,
         ) {
             logger()?.log(level = level, fields = fields, throwable = throwable, message = message)
+        }
+
+        /**
+         * Logs a message at a specified level with structured fields.
+         *
+         * @param level the severity of the log.
+         * @param structuredFields structured fields whose JSON objects and arrays remain matchable.
+         * @param throwable an optional throwable to include with the log.
+         * @param message the message to log.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun log(
+            level: LogLevel,
+            structuredFields: StructuredFields,
+            throwable: Throwable? = null,
+            message: () -> String,
+        ) {
+            logger()?.log(level = level, structuredFields = structuredFields, throwable = throwable, message = message)
         }
 
         /**

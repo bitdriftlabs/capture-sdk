@@ -315,6 +315,10 @@ private fun SdkApisTabContent(
                     onAction(DiagnosticsAction.LogManyMessages)
                     Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
                 },
+                onLogStructuredField = {
+                    onAction(DiagnosticsAction.LogStructuredField)
+                    Toast.makeText(context, "Structured field logged", Toast.LENGTH_SHORT).show()
+                },
             )
         }
         item {

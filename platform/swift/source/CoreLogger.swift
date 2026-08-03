@@ -69,17 +69,29 @@ extension CoreLogger: CoreLogging {
             fields["_function"] = function
         }
 
-        let fieldsOrNil: InternalFields? = if fields.isEmpty {
+        let convertedFields = fields.compactMap { fieldKeyValue in
+            do {
+                return try Field.makeWithLegacyMatchingField(key: fieldKeyValue.key, value: fieldKeyValue.value)
+            } catch let error {
+                self.handleError(
+                    context: "write_log: failed to encode field",
+                    error: FieldEncodingError(key: fieldKeyValue.key, error: error)
+                )
+                return nil
+            }
+        }
+        let fieldsOrNil: InternalFields? = if convertedFields.isEmpty {
             nil
         } else {
-            self.convertFields(fields: fields)
+            convertedFields.map(\.field)
         }
-
+        let legacyMatchingFields = convertedFields.compactMap(\.legacyMatchingField)
+        let matchingFieldsOrNil = legacyMatchingFields + (matchingFields.map(self.convertFields) ?? [])
         self.underlyingLogger.log(
             level: level,
             message: message(),
             fields: fieldsOrNil,
-            matchingFields: matchingFields.flatMap(self.convertFields),
+            matchingFields: matchingFieldsOrNil.isEmpty ? nil : matchingFieldsOrNil,
             type: type,
             blockingBehavior: blockingBehavior,
             occurredAtOverride: occurredAtOverride
@@ -223,6 +235,7 @@ extension CoreLogger: CoreLogging {
             }
         }
     }
+
 }
 
 private struct FieldEncodingError: Error {

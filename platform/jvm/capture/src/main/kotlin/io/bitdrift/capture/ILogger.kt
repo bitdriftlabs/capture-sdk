@@ -11,6 +11,9 @@ import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.StructuredFieldValue
+import io.bitdrift.capture.providers.StructuredFields
+import io.bitdrift.capture.providers.TypedFields
 import java.util.UUID
 import kotlin.time.Duration
 
@@ -155,6 +158,14 @@ interface ILogger {
     fun log(
         level: LogLevel,
         arrayFields: ArrayFields,
+        throwable: Throwable? = null,
+        message: () -> String,
+    )
+
+    /** Logs a message with fields whose JSON object and array values remain matchable. */
+    fun log(
+        level: LogLevel,
+        structuredFields: StructuredFields,
         throwable: Throwable? = null,
         message: () -> String,
     )

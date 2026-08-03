@@ -1313,6 +1313,7 @@ dependencies = [
 name = "capture-core"
 version = "1.0.0"
 dependencies = [
+ "ahash",
  "android_logger",
  "anyhow",
  "async-trait",
@@ -1323,6 +1324,7 @@ dependencies = [
  "bd-device",
  "bd-error-reporter",
  "bd-key-value",
+ "bd-log-primitives",
  "bd-logger",
  "bd-proto",
  "bd-report-parsers",
@@ -1334,6 +1336,7 @@ dependencies = [
  "jni",
  "log",
  "memmap2",
+ "ordered-float",
  "platform-shared",
  "protobuf 4.0.0-alpha.0",
  "tempfile",
@@ -3730,6 +3733,7 @@ dependencies = [
  "bd-time",
  "log",
  "objc",
+ "ordered-float",
  "parking_lot",
  "platform-shared",
  "pretty_assertions",

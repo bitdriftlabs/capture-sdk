@@ -105,6 +105,37 @@ final class CoreLoggerTests: XCTestCase {
         )
     }
 
+    func testStructuredFieldsKeepLegacyJSONForMatching() throws {
+        struct User: Encodable, Sendable {
+            let id: String
+            let plan: String
+        }
+
+        let bridge = MockLoggerBridging()
+        let logger = CoreLogger(logger: bridge)
+        logger.start()
+
+        logger.log(
+            level: .debug,
+            message: "foo",
+            fields: ["myField": User(id: "user_123", plan: "pro")],
+            type: .normal
+        )
+
+        let log = try XCTUnwrap(bridge.logs.first)
+        XCTAssertEqual(.map, log.fields?.first?.type)
+        self.assertEqual(
+            [
+                CapturePassable.Field(
+                    key: "myField",
+                    data: "{\"id\":\"user_123\",\"plan\":\"pro\"}" as AnyObject,
+                    type: .string
+                ),
+            ],
+            log.matchingFields
+        )
+    }
+
     func testClearEntityIDDelegatesToBridge() {
         let bridge = MockLoggerBridging()
         let logger = CoreLogger(logger: bridge)

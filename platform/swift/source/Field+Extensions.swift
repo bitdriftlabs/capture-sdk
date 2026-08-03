@@ -10,8 +10,7 @@ internal import CapturePassable
 import Foundation
 
 extension Field {
-    /// Converts a given key-value pair into a Field. With the exception of screen replay captures,
-    /// which are converted to Data values, all other types are represented as Strings.
+    /// Converts a given key-value pair into a Field. Objects and arrays are represented as structured values.
     ///
     /// The method throws an error if the encoding fails.
     ///
@@ -22,8 +21,7 @@ extension Field {
         try self.make(key: keyValue.key, value: keyValue.value)
     }
 
-    /// Converts a given key-value pair into a Field. With the exception of screen replay captures,
-    /// which are converted to Data values, all other types are represented as Strings.
+    /// Converts a given key-value pair into a Field. Objects and arrays are represented as structured values.
     ///
     /// The method throws an error if the encoding fails.
     ///
@@ -32,11 +30,27 @@ extension Field {
     ///
     /// - returns: The created `Field` instance .
     static func make(key: String, value: FieldValue) throws -> Field {
+        try self.makeWithLegacyMatchingField(key: key, value: value).field
+    }
+
+    static func makeWithLegacyMatchingField(
+        key: String,
+        value: FieldValue
+    ) throws -> (field: Field, legacyMatchingField: Field?) {
         if let value = value as? SessionReplayCapture {
-            return Field(key: key, data: value.data as NSData, type: .data)
-        } else {
-            let stringValue = try value.encodeToString()
-            return Field(key: key, data: stringValue as NSString, type: .string)
+            return (Field(key: key, data: value.data as NSData, type: .data), nil)
         }
+
+        let encodedData = try JSONEncoder.makeDefault().encode(value)
+        let object = try JSONSerialization.jsonObject(with: encodedData)
+        if object is NSDictionary || object is NSArray {
+            // Legacy workflows match this value without persisting a duplicate field.
+            return (
+                Field(key: key, data: object as AnyObject, type: .map),
+                Field(key: key, data: String(decoding: encodedData, as: UTF8.self) as NSString, type: .string)
+            )
+        }
+
+        return (Field(key: key, data: try value.encodeToString() as NSString, type: .string), nil)
     }
 }

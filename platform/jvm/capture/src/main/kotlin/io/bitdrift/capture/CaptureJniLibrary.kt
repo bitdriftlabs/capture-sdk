@@ -231,6 +231,15 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         blocking: Boolean,
     )
 
+    external fun writeTypedLog(
+        loggerId: Long,
+        logType: Int,
+        logLevel: Int,
+        log: String,
+        fields: Array<Field>?,
+        blocking: Boolean,
+    )
+
     /**
      * Shuts down the logger, blocking until the event loop has terminated. This is not yet ready
      * to be exposed as a public API due to lack of testing and no timeout on the blocking wait.

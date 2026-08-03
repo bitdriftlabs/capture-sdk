@@ -25,6 +25,21 @@ private struct EncodableExampleStruct: Encodable {
     private let dFieldStruct = InternalEncodableExampleStruct()
 }
 
+private struct StructuredFieldExample: Encodable, Sendable {
+    struct User: Encodable, Sendable {
+        let id = "user_123"
+        let plan = "basic"
+    }
+
+    struct Item: Encodable, Sendable {
+        let id = "shirt"
+        let inStock = true
+    }
+
+    let user = User()
+    let items = [Item()]
+}
+
 final class LoggerCustomer: NSObject, URLSessionDelegate {
     private(set) static var webViewManualInstrumentationEnabled = false
 
@@ -232,6 +247,13 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         case .trace:
             Logger.logTrace(resolvedMessage, fields: fields)
         }
+    }
+
+    func logStructuredField() {
+        Logger.logInfo(
+            "Structured field example",
+            fields: ["myField": StructuredFieldExample()]
+        )
     }
 
     func logAppLaunchTTI() {

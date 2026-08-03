@@ -69,6 +69,7 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "NSArray",
   "NSValue",
 ] }
+ordered-float = "5.3.0"
 parameterized = "2.1.0"
 parking_lot = "0.12.5"
 platform-shared = { path = "platform/shared" }

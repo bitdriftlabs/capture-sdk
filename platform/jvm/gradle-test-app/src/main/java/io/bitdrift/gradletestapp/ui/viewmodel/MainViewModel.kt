@@ -13,6 +13,8 @@ import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.providers.StructuredFieldValue
+import io.bitdrift.capture.providers.structuredFieldsOf
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.data.model.AppState
@@ -114,6 +116,7 @@ class MainViewModel(
 
             is DiagnosticsAction.LogSingleMessage -> logSingleMessage()
             is DiagnosticsAction.LogManyMessages -> logManyMessages()
+            is DiagnosticsAction.LogStructuredField -> logStructuredField()
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
             is DiagnosticsAction.TriggerRandomNativeCrash -> triggerRandomNativeCrash()
             is DiagnosticsAction.TriggerRandomJvmCrash -> triggerRandomJvmCrash()
@@ -334,6 +337,20 @@ class MainViewModel(
                 val message = "Log message $it with level: $level"
                 sdkRepository.logMessage(level, message)
             }
+        }
+    }
+
+    private fun logStructuredField() {
+        Logger.logInfo(
+            structuredFields = structuredFieldsOf(
+                "request_id" to StructuredFieldValue.StringField("r_456"),
+                "myField" to
+                    StructuredFieldValue.Json(
+                        """{"user":{"id":"user_123","plan":"basic"},"items":[{"id":"shirt","inStock":true}]}""",
+                    ),
+            ),
+        ) {
+            "Structured field example"
         }
     }
 

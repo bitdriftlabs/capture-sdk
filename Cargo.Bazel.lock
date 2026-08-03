@@ -1,5 +1,5 @@
 {
-  "checksum": "3a9b83425f5da01bf8132e691e7c62f2ad5db7b13488abd45358435802646525",
+  "checksum": "e8cb24bb56003f0eb1c6979597b1cad8b71171fcf23f87e1b73d1234cac29673",
   "crates": {
     "addr2line 0.25.1": {
       "name": "addr2line",
@@ -7086,6 +7086,10 @@
         "deps": {
           "common": [
             {
+              "id": "ahash 0.8.12",
+              "target": "ahash"
+            },
+            {
               "id": "android_logger 0.15.1",
               "target": "android_logger"
             },
@@ -7120,6 +7124,10 @@
             {
               "id": "bd-key-value 1.0.0",
               "target": "bd_key_value"
+            },
+            {
+              "id": "bd-log-primitives 1.0.0",
+              "target": "bd_log_primitives"
             },
             {
               "id": "bd-logger 1.0.0",
@@ -7164,6 +7172,10 @@
             {
               "id": "memmap2 0.9.11",
               "target": "memmap2"
+            },
+            {
+              "id": "ordered-float 5.3.0",
+              "target": "ordered_float"
             },
             {
               "id": "protobuf 4.0.0-alpha.0",
@@ -22570,6 +22582,10 @@
               "target": "objc"
             },
             {
+              "id": "ordered-float 5.3.0",
+              "target": "ordered_float"
+            },
+            {
               "id": "parking_lot 0.12.5",
               "target": "parking_lot"
             },
@@ -30538,6 +30554,7 @@
     "objc-foundation 0.1.1",
     "objc2 0.6.4",
     "objc2-foundation 0.3.2",
+    "ordered-float 5.3.0",
     "parking_lot 0.12.5",
     "protobuf 4.0.0-alpha.0",
     "regex 1.13.0",

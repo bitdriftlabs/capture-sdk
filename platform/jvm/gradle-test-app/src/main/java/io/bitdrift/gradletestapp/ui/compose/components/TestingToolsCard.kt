@@ -31,6 +31,7 @@ fun TestingToolsCard(
     onLogLevelChange: (LogLevel) -> Unit,
     onLogSingleMessage: () -> Unit,
     onLogManyMessages: () -> Unit,
+    onLogStructuredField: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -84,6 +85,18 @@ fun TestingToolsCard(
                     ),
             ) {
                 Text("Log Many Messages")
+            }
+
+            Button(
+                onClick = onLogStructuredField,
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = BitdriftColors.Primary.copy(alpha = 0.8f),
+                        contentColor = Color.White,
+                    ),
+            ) {
+                Text("Log Structured Field")
             }
         }
     }

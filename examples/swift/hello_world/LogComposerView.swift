@@ -87,6 +87,18 @@ struct LogComposerView: View {
                             foreground: Theme.textPrimary
                         )
                     )
+
+                    Button(action: {
+                        self.loggerCustomer.logStructuredField()
+                    }) {
+                        Text("Log Structured Field")
+                    }
+                    .buttonStyle(
+                        FilledButtonStyle(
+                            fill: Theme.primary,
+                            foreground: Theme.textPrimary
+                        )
+                    )
                 }
             }
 
