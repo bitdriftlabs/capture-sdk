@@ -21,6 +21,18 @@ static NSString *trimmed_value_after_prefix(NSString *line, NSString *prefix) {
 
 @implementation MetricKitDiagnosticParsing
 
+- (NSString *)nameForReportType:(ReportType)reportType {
+  switch (reportType) {
+    case ReportTypeNativeCrash:
+      return @"crash";
+    case ReportTypeAppNotResponding:
+      return @"anr";
+    case ReportTypeNone:
+    default:
+      return @"unknown";
+  }
+}
+
 #define print_case(name) case name: return @#name
 
 - (NSString *)nameForExceptionType:(int32_t)exceptionType {

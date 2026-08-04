@@ -10,21 +10,6 @@
 
 #import <signal.h>
 
-// SDK identifier used in generated files.
-static NSString *const SDK_ID = @"io.bitdrift.capture-apple";
-
-static const char *name_for_diagnostic_type(ReportType type) {
-  switch (type) {
-    case ReportTypeNativeCrash:
-      return "crash";
-    case ReportTypeAppNotResponding:
-      return "anr";
-    case ReportTypeNone:
-    default:
-      return "unknown";
-  }
-}
-
 @implementation MetricKitReportFrame
 
 - (instancetype)initWithAddress:(uint64_t)address
@@ -125,7 +110,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
                       environment:(MetricKitReportEnvironment *)environment
                         timestamp:(NSTimeInterval)timestamp {
   const void *handle = 0;
-  bdrw_create_buffer_handle(&handle, reportType, cstring_from(SDK_ID), cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
+  bdrw_create_buffer_handle(&handle, reportType, SDK_ID, cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
 
   [self serializeErrorThreads:&handle threads:threads name:name reason:reason order:FrameOrderInnerToOuter];
   [self serializeCrashInfoWithHandle:&handle
@@ -147,7 +132,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
                                    environment:(MetricKitReportEnvironment *)environment
                                      timestamp:(NSTimeInterval)timestamp {
   const void *handle = 0;
-  bdrw_create_buffer_handle(&handle, ReportTypeNativeCrash, cstring_from(SDK_ID), cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
+  bdrw_create_buffer_handle(&handle, ReportTypeNativeCrash, SDK_ID, cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
 
   [self serializeErrorThreads:&handle threads:threads name:name reason:reason order:FrameOrderOuterToInner];
   [self serializeAppMetrics:&handle environment:environment];
@@ -510,8 +495,8 @@ static const char *name_for_diagnostic_type(ReportType type) {
 
   NSData *data = [NSData dataWithBytes:contents length:length];
   NSString *identifier = [[NSUUID UUID] UUIDString];
-  NSString *filename = [NSString stringWithFormat:@"%lld_%s_%@.cap",
-                          (long long)timestamp, name_for_diagnostic_type(reportType), identifier];
+  NSString *filename = [NSString stringWithFormat:@"%Lf_%@_%@.cap",
+                          truncl(timestamp), [self.parsing nameForReportType:reportType], identifier];
   NSString *path = [[self.outputDir URLByAppendingPathComponent:filename] path];
   [self.fileManager createFileAtPath:path contents:data attributes:0];
   bdrw_dispose_buffer_handle(handle);

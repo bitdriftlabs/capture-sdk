@@ -22,8 +22,6 @@
 static NSString *const OS_VERSION_MATCHER = @"^(?<osName>.*)\\s+(?<osVersion>\\d+.*)\\s+\\((?<buildNumber>.*)\\)$";
 // Name to use for `MXHangDiagnostic` and 0x8badf00d events if no better name is detected
 static NSString *const DEFAULT_HANG_NAME = @"App Hang";
-// SDK identifier used in generated files
-static const char *const SDK_ID = "io.bitdrift.capture-apple";
 
 // MARK: - Static helpers (pure utilities, no instance state)
 
@@ -39,18 +37,6 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
 #define number_for_key(dict, key) object_for_key(dict, key, [NSNumber class])
 #define array_for_key(dict, key) object_for_key(dict, key, [NSArray class])
 #define dict_for_key(dict, key) object_for_key(dict, key, [NSDictionary class])
-
-static const char *name_for_diagnostic_type(ReportType type) {
-  switch (type) {
-    case ReportTypeNativeCrash:
-      return "crash";
-    case ReportTypeAppNotResponding:
-      return "anr";
-    case ReportTypeNone:
-    default:
-      return "unknown";
-  }
-}
 
 // MARK: - BDOSBuild
 
@@ -178,7 +164,7 @@ static const char *name_for_diagnostic_type(ReportType type) {
     const uint8_t *contents = bdrw_get_completed_buffer(&handle, &length);
     NSData *data = [NSData dataWithBytes:contents length:length];
     NSString *identifier = [[NSUUID UUID] UUIDString];
-    NSString *filename = [NSString stringWithFormat:@"%Lf_%s_%@.cap", truncl(timestamp), name_for_diagnostic_type(report_type), identifier];
+    NSString *filename = [NSString stringWithFormat:@"%Lf_%@_%@.cap", truncl(timestamp), [self.parsing nameForReportType:report_type], identifier];
     NSString *path = [[self.dir URLByAppendingPathComponent:filename] path];
     [[NSFileManager defaultManager] createFileAtPath:path contents:data attributes:0];
     bdrw_dispose_buffer_handle(&handle);

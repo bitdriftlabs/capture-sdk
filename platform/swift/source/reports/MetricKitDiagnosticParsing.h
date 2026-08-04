@@ -24,6 +24,9 @@ static inline BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_st
   return (BDCrashInfoThreadDetailsStorage){0};
 }
 
+/// SDK identifier used in generated report files.
+static const char *const SDK_ID = "io.bitdrift.capture-apple";
+
 typedef NS_ENUM(int8_t, ReportType) {
   ReportTypeNone = 0,
   ReportTypeAppNotResponding = 1,
@@ -56,6 +59,9 @@ typedef NS_ENUM(NSUInteger, FrameOrder) {
 /// `NSDictionary`-shaped MetricKit payloads, only primitives and plain strings, so unlike the
 /// enrichment/matching logic, there's no payload-shape reason to duplicate them.
 @interface MetricKitDiagnosticParsing : NSObject
+
+/// Returns the file-name component used for a given `reportType` (e.g. `"crash"`, `"anr"`).
+- (NSString *)nameForReportType:(ReportType)reportType;
 
 /// Returns the C constant name for a Mach exception type (e.g. `EXC_BAD_ACCESS`), or nil if
 /// `exceptionType` doesn't match a known constant.
