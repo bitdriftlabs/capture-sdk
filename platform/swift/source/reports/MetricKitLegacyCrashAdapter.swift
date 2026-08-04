@@ -8,6 +8,8 @@
 import Foundation
 import MetricKit
 
+#if compiler(>=6.4)
+
 @available(iOS 27.0, *)
 class MetricKitLegacyCrashAdapter {
     /// This method transforms MetricKit's v2 crash payload into the old one.
@@ -66,3 +68,5 @@ class MetricKitLegacyCrashAdapter {
         return dict
     }
 }
+
+#endif

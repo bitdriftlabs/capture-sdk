@@ -25,11 +25,6 @@ static NSString *const DEFAULT_HANG_NAME = @"App Hang";
 // SDK identifier used in generated files
 static const char *const SDK_ID = "io.bitdrift.capture-apple";
 
-typedef struct {
-  BDCrashInfoThreadDetails details;
-  BDCrashInfoThread *threads;
-} BDCrashInfoThreadDetailsStorage;
-
 // MARK: - Static helpers (pure utilities, no instance state)
 
 static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
@@ -45,10 +40,6 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
 #define array_for_key(dict, key) object_for_key(dict, key, [NSArray class])
 #define dict_for_key(dict, key) object_for_key(dict, key, [NSDictionary class])
 
-static inline const char * cstring_from(NSString *str) {
-  return [str cStringUsingEncoding:NSUTF8StringEncoding];
-}
-
 static const char *name_for_diagnostic_type(ReportType type) {
   switch (type) {
     case ReportTypeNativeCrash:
@@ -59,10 +50,6 @@ static const char *name_for_diagnostic_type(ReportType type) {
     default:
       return "unknown";
   }
-}
-
-static BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(void) {
-  return (BDCrashInfoThreadDetailsStorage){0};
 }
 
 // MARK: - BDOSBuild

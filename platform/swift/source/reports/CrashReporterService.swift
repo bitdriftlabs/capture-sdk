@@ -104,6 +104,7 @@ private struct RuntimeFileState {
 
             lastRunResult = didCrashLastLaunch()
 
+            #if compiler(>=6.4)
             if #available(iOS 27.0, *) {
                 let manager = makeMetricKitDiagnosticManager(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
                 manager.start()
@@ -111,6 +112,9 @@ private struct RuntimeFileState {
             } else {
                 diagnosticReporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
             }
+            #else
+            diagnosticReporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
+            #endif
 
             return .initialized(reporterInitResolution ?? .monitoring)
         }
@@ -263,47 +267,6 @@ private extension CrashReporterService {
         }
     }
 
-    @available(iOS 27.0, *)
-    func makeMetricKitDiagnosticManager(
-        sdkBaseURL: URL,
-        underlyingLogger: CoreLogging
-    ) -> MetricKitDiagnosticManager {
-        let useStackOverlapMatching = underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
-        let fileSizeOptimizationEnabled = underlyingLogger.runtimeValue(.optimizeFatalIssueReportSize)
-        let memoryPressureLevel = underlyingLogger.previousMemoryPressureLevel()
-        let outputDir = sdkBaseURL.appendingPathComponent(Constants.reportCollectionDirectory, isDirectory: true)
-        return MetricKitDiagnosticManager(
-            outputDir: outputDir,
-            sdkVersion: capture_get_sdk_version(),
-            memoryPressureLevel: memoryPressureLevel,
-            fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
-            useStackOverlapMatching: useStackOverlapMatching,
-            crashReporting: self,
-            crashEnrichmentSummaryHandler: { [weak underlyingLogger] summary in
-                let matcherMode = useStackOverlapMatching ? "base" : "exact"
-                guard let underlyingLogger,
-                      let summary,
-                      let outcome = summary["outcome"],
-                      let reason = summary["reason"]
-                else {
-                    return
-                }
-
-                underlyingLogger.logInternal(
-                    level: .debug,
-                    message: "[CrashEnrichment] MetricKit crash enrichment summary",
-                    fields: [
-                        "outcome": outcome,
-                        "reason": reason,
-                        "matcher_mode": matcherMode,
-                    ]
-                )
-            }
-        ) { [weak underlyingLogger] in
-            underlyingLogger?.processIssueReports(reportProcessingSession: .previousRun)
-        }
-    }
-
     func resolveRuntimeState(from baseURL: URL) -> RuntimeFileState {
         let configPath = baseURL.appendingPathComponent(
             Constants.configCSV,
@@ -346,3 +309,48 @@ private extension CrashReporterService {
         return RuntimeFileState(resolution: resolution, bitdriftCrashReporterEnabled: bitdriftCrashReporterEnabled)
     }
 }
+
+#if compiler(>=6.4)
+extension CrashReporterService {
+    @available(iOS 27.0, *)
+    func makeMetricKitDiagnosticManager(
+        sdkBaseURL: URL,
+        underlyingLogger: CoreLogging
+    ) -> MetricKitDiagnosticManager {
+        let useStackOverlapMatching = underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
+        let fileSizeOptimizationEnabled = underlyingLogger.runtimeValue(.optimizeFatalIssueReportSize)
+        let memoryPressureLevel = underlyingLogger.previousMemoryPressureLevel()
+        let outputDir = sdkBaseURL.appendingPathComponent(Constants.reportCollectionDirectory, isDirectory: true)
+        return MetricKitDiagnosticManager(
+            outputDir: outputDir,
+            sdkVersion: capture_get_sdk_version(),
+            memoryPressureLevel: memoryPressureLevel,
+            fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
+            useStackOverlapMatching: useStackOverlapMatching,
+            crashReporting: self,
+            crashEnrichmentSummaryHandler: { [weak underlyingLogger] summary in
+                let matcherMode = useStackOverlapMatching ? "base" : "exact"
+                guard let underlyingLogger,
+                      let summary,
+                      let outcome = summary["outcome"],
+                      let reason = summary["reason"]
+                else {
+                    return
+                }
+                
+                underlyingLogger.logInternal(
+                    level: .debug,
+                    message: "[CrashEnrichment] MetricKit crash enrichment summary",
+                    fields: [
+                        "outcome": outcome,
+                        "reason": reason,
+                        "matcher_mode": matcherMode,
+                    ]
+                )
+            }
+        ) { [weak underlyingLogger] in
+            underlyingLogger?.processIssueReports(reportProcessingSession: .previousRun)
+        }
+    }
+}
+#endif
