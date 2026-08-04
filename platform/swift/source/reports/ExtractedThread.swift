@@ -5,8 +5,11 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CaptureLoggerBridge
 import Foundation
 import MetricKit
+
+#if compiler(>=6.4)
 
 @available(iOS 27.0, *)
 struct ExtractedThread {
@@ -58,6 +61,14 @@ struct ExtractedThread {
         return callStacks.map { thread in
             ExtractedThread(dictionary: thread)
         }
+    }
+
+    func makeReportThread() -> MetricKitReportThread {
+        MetricKitReportThread(
+            name: self.name,
+            attributed: self.attributed,
+            frames: self.frames.map { $0.makeReportFrame() }
+        )
     }
 }
 
@@ -118,4 +129,15 @@ struct ExtractedFrame {
     let binaryUUID: String
     let binaryName: String
     let offsetIntoBinaryTextSegment: UInt64
+
+    func makeReportFrame() -> MetricKitReportFrame {
+        MetricKitReportFrame(
+            address: self.address,
+            binaryUUID: self.binaryUUID,
+            binaryName: self.binaryName,
+            offsetIntoBinaryTextSegment: self.offsetIntoBinaryTextSegment
+        )
+    }
 }
+
+#endif
