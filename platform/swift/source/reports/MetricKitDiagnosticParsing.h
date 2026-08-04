@@ -7,7 +7,22 @@
 
 #import <Foundation/Foundation.h>
 
+#import "bd-report-writer/ffi.h"
+
 NS_ASSUME_NONNULL_BEGIN
+
+static inline const char *cstring_from(NSString *_Nullable str) {
+  return [str cStringUsingEncoding:NSUTF8StringEncoding];
+}
+
+typedef struct {
+  BDCrashInfoThreadDetails details;
+  BDCrashInfoThread *threads;
+} BDCrashInfoThreadDetailsStorage;
+
+static inline BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_storage(void) {
+  return (BDCrashInfoThreadDetailsStorage){0};
+}
 
 typedef NS_ENUM(int8_t, ReportType) {
   ReportTypeNone = 0,
