@@ -2,23 +2,6 @@ load("@rules_cc//cc:objc_library.bzl", "objc_library")
 
 objc_library(
     name = "kscrash_mini",
-    # Prefer binary size in prod. -Os is the recommended value from Apple.
-    copts = select({
-        "@capture-sdk//bazel:opt_build": ["-Os"],
-        "//conditions:default": [],
-    }),
-    defines = [
-        "KSCRASH_NAMESPACE=_bitdrift",
-        ],
-    includes = [
-        "Sources/KSCrashCore/include",
-        "Sources/KSCrashRecording/include",
-        "Sources/KSCrashRecording/Monitors",
-        "Sources/KSCrashRecordingCore/include",
-        ],
-    hdrs = glob(
-        include = ["Sources/KSCrashRecording*/**/*.h", "Sources/KSCrashCore/**/*.h"]
-    ),
     srcs = [
         "Sources/KSCrashRecording/KSThreadCache.c",
         "Sources/KSCrashRecording/Monitors/KSCrashMonitor_CPPException.cpp",
@@ -51,6 +34,21 @@ objc_library(
         "Sources/KSCrashRecordingCore/KSString.c",
         "Sources/KSCrashRecordingCore/KSSymbolicator.c",
         "Sources/KSCrashRecordingCore/KSThread.c",
+    ],
+    hdrs = glob(
+        include = [
+            "Sources/KSCrashRecording*/**/*.h",
+            "Sources/KSCrashCore/**/*.h",
         ],
+    ),
+    defines = [
+        "KSCRASH_NAMESPACE=_bitdrift",
+    ],
+    includes = [
+        "Sources/KSCrashCore/include",
+        "Sources/KSCrashRecording/Monitors",
+        "Sources/KSCrashRecording/include",
+        "Sources/KSCrashRecordingCore/include",
+    ],
     visibility = ["//visibility:public"],
 )

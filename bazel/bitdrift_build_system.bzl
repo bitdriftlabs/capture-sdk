@@ -89,9 +89,9 @@ def bitdrift_rust_library(
         test_deps = [],
         tags = [],
         data = [],
-    crate_aliases = None,
-    test_crate_aliases = None,
-    **args):
+        crate_aliases = None,
+        test_crate_aliases = None,
+        **args):
     if crate_aliases == None:
         crate_aliases = _crate_aliases()
     if test_crate_aliases == None:
