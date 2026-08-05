@@ -96,12 +96,19 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             issueReportCallback: CustomerIssueReportCallback()
         )
 
+        let sessionStrategy: SessionStrategy
+        if Configuration.storedFixedSessionStrategy {
+            sessionStrategy = .fixed()
+        } else {
+            sessionStrategy = .activityBased(inactivityThresholdMins: 30, onSessionIDChanged: { sessionID in
+                print("Session changed: \(sessionID)")
+            })
+        }
+
         Logger
             .start(
                 withAPIKey: Configuration.storedAPIKey ?? "",
-                sessionStrategy: .activityBased(inactivityThresholdMins: 30, onSessionIDChanged: { sessionId in
-                    print("Session changed: \(sessionId)")
-                }),
+                sessionStrategy: sessionStrategy,
                 configuration: Capture.Configuration(
                     apiURL: apiURL,
                     issueCallbackConfiguration: issueCallbackConfiguration

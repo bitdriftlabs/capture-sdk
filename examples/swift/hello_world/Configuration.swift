@@ -11,6 +11,7 @@ import Foundation
 final class Configuration: ObservableObject {
     @Published var apiURL: String
     @Published var apiKey: String
+    @Published var fixedSessionStrategy: Bool
     @Published var webViewManualInstrumentation: Bool
 
     private var subscriptions = Set<AnyCancellable>()
@@ -30,9 +31,15 @@ final class Configuration: ObservableObject {
         set { UserDefaults.standard.setValue(newValue, forKey: "webViewManualInstrumentation") }
     }
 
+    static var storedFixedSessionStrategy: Bool {
+        get { UserDefaults.standard.bool(forKey: "fixedSessionStrategy") }
+        set { UserDefaults.standard.setValue(newValue, forKey: "fixedSessionStrategy") }
+    }
+
     init() {
         self.apiURL = Self.storedAPIURL
         self.apiKey = Self.storedAPIKey ?? ""
+        self.fixedSessionStrategy = Self.storedFixedSessionStrategy
         self.webViewManualInstrumentation = Self.storedWebViewManualInstrumentation
 
         $apiURL
@@ -40,6 +47,9 @@ final class Configuration: ObservableObject {
             .store(in: &self.subscriptions)
         $apiKey
             .sink(receiveValue: { Self.storedAPIKey = $0 })
+            .store(in: &self.subscriptions)
+        $fixedSessionStrategy
+            .sink(receiveValue: { Self.storedFixedSessionStrategy = $0 })
             .store(in: &self.subscriptions)
         $webViewManualInstrumentation
             .sink(receiveValue: { Self.storedWebViewManualInstrumentation = $0 })
