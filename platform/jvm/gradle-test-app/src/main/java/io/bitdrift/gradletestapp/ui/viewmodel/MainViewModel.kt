@@ -114,6 +114,7 @@ class MainViewModel(
 
             is DiagnosticsAction.LogSingleMessage -> logSingleMessage()
             is DiagnosticsAction.LogManyMessages -> logManyMessages()
+            is DiagnosticsAction.LogJsonField -> logJsonField()
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
             is DiagnosticsAction.TriggerRandomNativeCrash -> triggerRandomNativeCrash()
             is DiagnosticsAction.TriggerRandomJvmCrash -> triggerRandomJvmCrash()
@@ -335,6 +336,22 @@ class MainViewModel(
                 sdkRepository.logMessage(level, message)
             }
         }
+    }
+
+    private fun logJsonField() {
+        val jsonField = mapOf(
+            "myJsonFieldKey" to
+                """
+                {
+                    "users": [
+                        {"id": "user_123", "plan": "top"},
+                        {"id": "user_456", "plan": "pro"},
+                        {"id": "user_789", "plan": "basic"}
+                    ]
+                }
+                """.trimIndent(),
+        )
+        Logger.logInfo(jsonField) { "JSON field to match upon." }
     }
 
     private fun setSleepModeEnabled(enabled: Boolean) {
