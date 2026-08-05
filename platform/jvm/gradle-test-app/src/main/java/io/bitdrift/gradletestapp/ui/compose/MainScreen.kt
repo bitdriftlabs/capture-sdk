@@ -315,6 +315,10 @@ private fun SdkApisTabContent(
                     onAction(DiagnosticsAction.LogManyMessages)
                     Toast.makeText(context, toasterText, Toast.LENGTH_SHORT).show()
                 },
+                onLogJsonField = {
+                    onAction(DiagnosticsAction.LogJsonField)
+                    Toast.makeText(context, "Logged JSON field", Toast.LENGTH_SHORT).show()
+                },
             )
         }
         item {

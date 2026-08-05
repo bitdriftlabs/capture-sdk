@@ -25,6 +25,19 @@ private struct EncodableExampleStruct: Encodable {
     private let dFieldStruct = InternalEncodableExampleStruct()
 }
 
+private struct JSONFieldExample: Encodable {
+    struct User: Encodable {
+        let id: String
+        let plan: String
+    }
+
+    let users = [
+        User(id: "user_123", plan: "top"),
+        User(id: "user_456", plan: "pro"),
+        User(id: "user_789", plan: "basic"),
+    ]
+}
+
 final class LoggerCustomer: NSObject, URLSessionDelegate {
     private(set) static var webViewManualInstrumentationEnabled = false
 
@@ -239,6 +252,13 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         case .trace:
             Logger.logTrace(resolvedMessage, fields: fields)
         }
+    }
+
+    func logJSONField() {
+        Logger.logInfo(
+            "JSON field to match upon.",
+            fields: ["myJsonFieldKey": JSONFieldExample()]
+        )
     }
 
     func logAppLaunchTTI() {

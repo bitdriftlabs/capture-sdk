@@ -87,6 +87,18 @@ struct LogComposerView: View {
                             foreground: Theme.textPrimary
                         )
                     )
+
+                    Button(action: {
+                        self.loggerCustomer.logJSONField()
+                    }) {
+                        Text("Log JSON Field")
+                    }
+                    .buttonStyle(
+                        FilledButtonStyle(
+                            fill: Theme.primary,
+                            foreground: Theme.textPrimary
+                        )
+                    )
                 }
             }
 
