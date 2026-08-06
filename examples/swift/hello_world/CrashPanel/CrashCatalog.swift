@@ -74,7 +74,7 @@ final class CrashRegistry {
         ReleasedObjectCrash(),
         CorruptMallocCrash(),
         OOMKillCrash(),
-        BackgroundOOMKillCrash()
+        BackgroundOOMKillCrash(),
     ]
 
     init(startupStorage: StartupCrashStorage = .init()) {

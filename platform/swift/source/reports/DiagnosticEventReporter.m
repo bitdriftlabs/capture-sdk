@@ -10,9 +10,6 @@
 #import "DiagnosticReportWriter.h"
 #import "MetricKitDiagnosticParsing.h"
 
-#import <mach/exception_types.h>
-#import <signal.h>
-
 // Name to use for `MXHangDiagnostic` and 0x8badf00d events if no better name is detected
 static NSString *const DEFAULT_HANG_NAME = @"App Hang";
 
@@ -152,12 +149,10 @@ static NSString *const DEFAULT_HANG_NAME = @"App Hang";
 }
 
 - (BOOL)crashIsHangTermination:(MXCrashDiagnostic *)event API_AVAILABLE(ios(14.0), macos(12.0)) {
-  // if its a watchdog termination
-  return [event.exceptionType isEqualToNumber:@EXC_CRASH] && [event.signal isEqualToNumber:@SIGKILL]
-  // and the termination context indicates an 0x8BADF00D (ate bad food) watchdog kill
-  && ([[event.terminationReason lowercaseString] containsString:@"0x8badf00d"]
-      // or no context is provided
-      || (event.terminationReason == nil && [event.exceptionCode isEqualToNumber:@0]));
+  return [self.parsing isWatchdogHangTerminationWithExceptionType:event.exceptionType
+                                                              signal:event.signal
+                                                   terminationReason:event.terminationReason
+                                                       exceptionCode:event.exceptionCode];
 }
 
 // MARK: - Crash type helpers
