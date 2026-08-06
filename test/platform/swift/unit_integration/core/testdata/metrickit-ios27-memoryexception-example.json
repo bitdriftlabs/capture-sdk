@@ -1,0 +1,39 @@
+{
+  "timeRange": { "begin": 200.0, "end": 200.0 },
+  "memoryExceptionDiagnostic": {
+    "callStackTree": {
+      "callStackThreads": [
+        {
+          "rootFrames": [
+            {
+              "binaryUUID": "22222222-2222-2222-2222-222222222222",
+              "address": 4295000020,
+              "offsetIntoBinaryTextSegment": 20,
+              "subFrames": []
+            }
+          ],
+          "threadAttributed": true
+        }
+      ],
+      "callStackPerThread": true,
+      "binaryInfo": [
+        { "uuid": "22222222-2222-2222-2222-222222222222", "name": "TestBinary" }
+      ]
+    }
+  },
+  "environment": {
+    "platformArchitecture": "arm64e",
+    "signpostData": [],
+    "states": [],
+    "isTestFlightApp": false,
+    "bundleIdentifier": "com.example.app",
+    "osVersion": { "platform": "iPhone OS", "number": "27.0", "buildNumber": "24A5380h" },
+    "deviceType": "iPhone17,2",
+    "applicationBuildVersion": "1",
+    "pid": 12345,
+    "regionFormat": "US",
+    "lowPowerModeEnabled": false,
+    "applicationVersion": "1.0"
+  },
+  "version": "2.0.0"
+}
