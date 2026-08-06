@@ -106,9 +106,7 @@ private struct RuntimeFileState {
 
             #if compiler(>=6.4)
             if #available(iOS 27.0, *) {
-                let manager = makeMetricKitDiagnosticManager(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
-                manager.start()
-                self.metricKitDiagnosticManager = manager
+                self.metricKitDiagnosticManager = makeMetricKitDiagnosticManager(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
             } else {
                 diagnosticReporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
             }
@@ -144,6 +142,15 @@ private struct RuntimeFileState {
         self.metricManager.add(reporter)
     }
 
+    /// Starts consuming MetricKit diagnostic reports via the manager created in
+    /// `setup(sdkBaseURL:underlyingLogger:)`.
+    ///
+    /// - Warning: Must be called after the result of `setup(sdkBaseURL:underlyingLogger:)`
+    /// has been applied to shared state, for the same reason `activate(reporter:)` is deferred.
+    func activateMetricKitDiagnosticManager() {
+        self.metricKitDiagnosticManager?.start()
+    }
+
     /// Stops all active crash handlers. Called on logger teardown.
     func stop() {
         self.ksCrashHandler.stopCrashReporter()
@@ -151,6 +158,7 @@ private struct RuntimeFileState {
             self.bitdriftCrashHandler.stopCrashReporter()
         }
         self.metricKitDiagnosticManager?.stop()
+        self.metricKitDiagnosticManager = nil
     }
 }
 

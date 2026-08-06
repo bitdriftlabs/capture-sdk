@@ -145,6 +145,15 @@ final class CrashReporterServiceTests: XCTestCase {
         thenBitdriftCrashHandlerStopsCrashReporter()
     }
 
+    func testStopClearsMetricKitDiagnosticManagerToBreakRetainCycle() throws {
+        try XCTSkipUnless(supportsIOS27())
+        givenCrashReporterService()
+        whenInvokingSetup()
+        XCTAssertNotNil(sut.metricKitDiagnosticManager)
+        whenInvokingStop()
+        XCTAssertNil(sut.metricKitDiagnosticManager)
+    }
+
     // MARK: - cachedPreviousCrash
 
     func testCachedPreviousCrashWhenBitdriftDisabledReturnsNilWithoutCallingBitdriftHandler() {
@@ -282,6 +291,13 @@ private extension CrashReporterServiceTests {
         )
     }
 
+    func supportsIOS27() -> Bool {
+        if #available(iOS 27.0, *) {
+            return true
+        }
+        return false
+    }
+
     func givenKSCrashDidCrashLastLaunch(_ crashed: Bool) {
         ksCrashHandler.didCrashLastLaunchValue = NSNumber(value: crashed)
     }
@@ -388,7 +404,13 @@ private extension CrashReporterServiceTests {
     }
 
     func thenDiagnosticReporterIsCreated() {
-        XCTAssertNotNil(setupResult?.diagnosticReporter)
+        // On iOS 27+, setup() takes the MetricKitDiagnosticManager path instead and
+        // diagnosticReporter stays nil by design; assert whichever path this OS actually runs.
+        if #available(iOS 27.0, *) {
+            XCTAssertNotNil(sut.metricKitDiagnosticManager)
+        } else {
+            XCTAssertNotNil(setupResult?.diagnosticReporter)
+        }
     }
 
     func thenPreviousRunInfoIs(_ expected: PreviousRunInfo) {
