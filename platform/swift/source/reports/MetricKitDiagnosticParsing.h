@@ -53,47 +53,57 @@ typedef NS_ENUM(NSUInteger, FrameOrder) {
   FrameOrderInnerToOuter,
 };
 
-/// Pure, payload-shape-agnostic parsing helpers shared between `DiagnosticEventReporter` (the
-/// `MXMetricManager`/`NSDictionary`-based path, iOS <27) and `MetricKitDiagnosticManager` (the
-/// `MetricManager`/native-struct-based path, iOS 27+). None of these take or return
-/// `NSDictionary`-shaped MetricKit payloads, only primitives and plain strings, so unlike the
-/// enrichment/matching logic, there's no payload-shape reason to duplicate them.
+/// Shared parsing helpers for MetricKit crash/diagnostic data that will help to both v1 and v2
+/// payloads of MetricKit
 @interface MetricKitDiagnosticParsing : NSObject
 
-/// Returns the file-name component used for a given `reportType` (e.g. `"crash"`, `"anr"`).
+/// Returns the filename component used for a given report type.
+///
+/// - parameter reportType: The report type.
+///
+/// - returns: The filename component
 - (NSString *)nameForReportType:(ReportType)reportType;
 
-/// Returns the C constant name for a Mach exception type (e.g. `EXC_BAD_ACCESS`), or nil if
-/// `exceptionType` doesn't match a known constant.
+/// Returns the actual name for a Mach exception type.
+///
+/// - parameter exceptionType: The Mach exception type code
+///
+/// - returns: The exception type's name, or nil if `exceptionType` doesn't match a known
+///   constant.
 - (nullable NSString *)nameForExceptionType:(int32_t)exceptionType;
 
-/// Returns the C constant name for a POSIX signal (e.g. `SIGSEGV`), or nil if `signal` doesn't
-/// match a known constant.
+/// Returns the name for a POSIX signal.
+///
+/// - parameter signal: The POSIX signal code.
+///
+/// - returns: The signal's constant name, or nil if `signal` doesn't match a known constant.
 - (nullable NSString *)nameForSignal:(int32_t)signal;
 
-/// Returns the display name for a crash: the Mach exception type's constant name, falling back to
-/// the POSIX signal's constant name if the exception type isn't recognized.
+/// Generates a name based on the exception type, and uses the signal in case the exception type
+/// is not enough.
 ///
-/// - Parameters:
-///   - exceptionType: The Mach exception type (e.g. `EXC_BAD_ACCESS`).
-///   - signal: The POSIX signal (e.g. `SIGSEGV`), used as a fallback.
-/// - Returns: The exception type's name, or the signal's name, or nil if neither is recognized.
+/// - parameter exceptionType: The Mach exception type
+/// - parameter signal: The POSIX signal, used as a fallback.
+///
+/// - returns: The exception type's name, or the signal's name, or nil if neither is recognized.
 - (nullable NSString *)nameForExceptionType:(int32_t)exceptionType signal:(int32_t)signal;
 
-/// Builds the human-readable crash reason from whichever sources are available.
+/// Builds the crash reason from the sources are available.
 ///
-/// - Parameters:
-///   - name: The crash's display name (from `nameForExceptionType:signal:`), used to suppress a
-///     redundant fallback reason that would just repeat it.
-///   - exceptionReasonName: MetricKit's exception reason name, if available.
-///   - exceptionReasonComposedMessage: MetricKit's composed exception message, if available.
-///   - capturedCrashName: The name of a captured in-process `NSException`, if one was recorded.
-///   - capturedCrashReason: The reason of a captured in-process `NSException`, if one was recorded.
-///   - terminationReason: The OS-provided termination reason string, if any.
-///   - vmRegionInfo: The OS-provided virtual memory region info string, if any.
-///   - exceptionCode: The exception code, used in the fallback `"code: ..., signal: ..."` reason.
-///   - signal: The POSIX signal, used in the fallback reason.
-/// - Returns: The composed reason string, or nil if there's nothing to report beyond `name` itself.
+/// - parameter name: The crash's display name.
+/// - parameter exceptionReasonName: MetricKit's exception reason name, if available.
+/// - parameter exceptionReasonComposedMessage: MetricKit's composed exception message, if
+///   available.
+/// - parameter capturedCrashName: The name of a captured in-process `NSException`, if one was
+///   recorded.
+/// - parameter capturedCrashReason: The reason of a captured in-process `NSException`, if one was
+///   recorded.
+/// - parameter terminationReason: The OS-provided termination reason string, if any.
+/// - parameter vmRegionInfo: The OS-provided virtual memory region info string, if any.
+/// - parameter exceptionCode: The exception code (fallback).
+/// - parameter signal: The POSIX signal (fallback).
+///
+/// - returns: The composed reason string, or nil if there's nothing to report beyond `name` itself.
 - (nullable NSString *)reasonForCrashWithName:(nullable NSString *)name
                           metricKitReasonName:(nullable NSString *)exceptionReasonName
                metricKitReasonComposedMessage:(nullable NSString *)exceptionReasonComposedMessage
@@ -104,19 +114,45 @@ typedef NS_ENUM(NSUInteger, FrameOrder) {
                                 exceptionCode:(nullable NSNumber *)exceptionCode
                                        signal:(int32_t)signal;
 
-/// Parses a `terminationReason` string (as reported by MetricKit for `SIGKILL` terminations) into
-/// its component fields: `domain`, `code`, `explanation`, `process_visibility`, `process_state`,
-/// `watchdog_event`, `watchdog_visibility`. Any field not present in `terminationReason` is
-/// omitted from the result. Returns an empty dictionary for a nil or empty `terminationReason`.
-- (NSDictionary<NSString *, NSString *> *)parseTerminationContext:(nullable NSString *)terminationReason;
+/// Returns whether a crash termination is a watchdog kill due to a hang or not.
+///
+/// - parameter exceptionType: The Mach exception type.
+/// - parameter signal: The POSIX signal.
+/// - parameter terminationReason: MetricKit's termination reason string, if any.
+/// - parameter exceptionCode: The exception code.
+///
+/// - returns: Whether this termination was due to a hang or not.
+- (BOOL)isWatchdogHangTerminationWithExceptionType:(nullable NSNumber *)exceptionType
+                                            signal:(nullable NSNumber *)signal
+                                 terminationReason:(nullable NSString *)terminationReason
+                                     exceptionCode:(nullable NSNumber *)exceptionCode;
+
+/// Parses a termination reason string (as reported by MetricKit for `SIGKILL` terminations) into
+/// its component fields.
+///
+/// - parameter terminationReason: The termination reason string to parse.
+///
+/// - returns: A dictionary containing whichever of `domain`, `code`, `explanation`,
+///   `process_visibility`, `process_state`, `watchdog_event`, `watchdog_visibility` are present in
+///   `terminationReason`. Empty if `terminationReason` is nil or empty.
+- (NSDictionary<NSString *, NSString *> *)parseTerminationContext:
+    (nullable NSString *)terminationReason;
 
 /// Splits a Unix timestamp into whole seconds and the remaining nanoseconds.
+///
+/// - parameter timestamp: The Unix timestamp to split.
+/// - parameter seconds: Out-parameter set to the whole-second component of `timestamp`.
+/// - parameter nanos: Out-parameter set to the remaining component of `timestamp`, in nanoseconds.
 - (void)timestampComponentsFor:(NSTimeInterval)timestamp
-                        seconds:(uint64_t *)seconds
-                          nanos:(uint32_t *)nanos;
+                       seconds:(uint64_t *)seconds
+                         nanos:(uint32_t *)nanos;
 
-/// Maps a platform architecture string (e.g. `"arm64e"`) to the `Architecture` enum raw value the
-/// report writer expects. Returns `Architecture.Unknown` (0) for a nil or unrecognized value.
+/// Maps a platform architecture string to the raw value the report writer expects.
+///
+/// - parameter platformArchitecture: The platform architecture string (e.g. `"arm64e"`).
+///
+/// - returns: The corresponding `Architecture` raw value, or `Architecture.Unknown` (0) for a nil
+///   or unrecognized value.
 - (int8_t)architectureConstantFor:(nullable NSString *)platformArchitecture;
 
 @end

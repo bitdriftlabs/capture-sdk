@@ -15,10 +15,11 @@ class MetricKitLegacyCrashAdapter {
     /// This method transforms MetricKit's v2 crash payload into the old one.
     /// The result of this method is going to be used in the rust bridge to avoid duplicating logic
     /// (and preventing any issues while doing so).
-    /// - Parameters:
-    ///   - diagnostic: the information related to the crash.
-    ///   - environment: the context where the crash happened.
-    /// - Returns: a dictionary in the shape of a crash reported by MetricKit in v1
+    ///
+    /// - parameter diagnostic:  the information related to the crash.
+    /// - parameter environment: the context where the crash happened.
+    ///
+    /// - returns: a dictionary in the shape of a crash reported by MetricKit in v1
     static func makeCrashDict(
         diagnostic: CrashDiagnostic,
         environment: DiagnosticReport.Environment
@@ -31,14 +32,17 @@ class MetricKitLegacyCrashAdapter {
         return dict
     }
 
-    /// - Parameter diagnostic: the memory exception information.
-    /// - Returns: a dictionary in the shape of a crash reported by MetricKit in v1
-    static func makeMemoryExceptionDict(diagnostic: MemoryExceptionDiagnostic) -> [String: Any] {
+    /// - parameter diagnostic: the memory exception information.
+    ///
+    /// - returns: a dictionary in the shape of a crash reported by MetricKit in v1
+    static func makeMemoryExceptionDict(diagnostic: MemoryExceptionDiagnostic) -> [String: Any]
+    {
         self.makeCallStackTreeDict(diagnostic.callStackTree)
     }
 
-    /// - Parameter environment: the context where the diagnostic happened.
-    /// - Returns: a dictionary in the shape of `MXMetadata.dictionaryRepresentation()`.
+    /// - parameter environment: the context where the diagnostic happened.
+    ///
+    /// - returns: a dictionary in the shape of `MXMetadata.dictionaryRepresentation()`.
     static func makeMetadataDict(environment: DiagnosticReport.Environment) -> [String: Any] {
         [
             "bundleIdentifier": environment.bundleIdentifier,
@@ -46,7 +50,8 @@ class MetricKitLegacyCrashAdapter {
             "regionFormat": environment.regionFormat,
             "deviceType": environment.deviceType,
             "platformArchitecture": environment.platformArchitecture,
-            "osVersion": "\(environment.osVersion.platform) \(environment.osVersion.number) (\(environment.osVersion.buildNumber))",
+            "osVersion":
+                "\(environment.osVersion.platform) \(environment.osVersion.number) (\(environment.osVersion.buildNumber))",
             "lowPowerModeEnabled": environment.lowPowerModeEnabled,
         ]
     }
@@ -62,12 +67,14 @@ class MetricKitLegacyCrashAdapter {
 
         return [
             "callStackTree": [
-                "callStacks": threads,
+                "callStacks": threads
             ],
         ]
     }
 
-    private static func frameDict(_ frame: CallStackFrame?, tree: CallStackTree) -> [String: Any]? {
+    private static func frameDict(_ frame: CallStackFrame?, tree: CallStackTree) -> [String:
+        Any]?
+    {
         guard
             let frame,
             let address = frame.address,

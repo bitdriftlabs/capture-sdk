@@ -337,7 +337,7 @@ extension CrashReporterService {
                 else {
                     return
                 }
-                
+
                 underlyingLogger.logInternal(
                     level: .debug,
                     message: "[CrashEnrichment] MetricKit crash enrichment summary",
