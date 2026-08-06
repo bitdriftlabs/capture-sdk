@@ -60,7 +60,8 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         useStackOverlapMatching: Bool,
         crashReporting: any CrashReporting,
         parsing: MetricKitDiagnosticParsing = MetricKitDiagnosticParsing(),
-        diagnosticSource: any MetricDiagnosticReportSource = LiveMetricDiagnosticReportSource(metricManager: MetricManager()),
+        diagnosticSource: any MetricDiagnosticReportSource = LiveMetricDiagnosticReportSource(
+            metricManager: MetricManager()),
         fileManager: FileManager = .default,
         crashEnrichmentSummaryHandler: (([String: String]?) -> Void)? = nil,
         completionHandler: (() -> Void)? = nil
@@ -109,7 +110,7 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         let timestamp = report.timeRange.end.timeIntervalSince1970
 
         switch report.result {
-        case let .crash(diagnostic):
+        case .crash(let diagnostic):
             let capturedCrash = self.crashReporting.cachedPreviousCrash()
             self.processCrash(
                 diagnostic,
@@ -117,8 +118,9 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
                 timestamp: timestamp,
                 capturedCrash: capturedCrash
             )
-        case let .memoryException(diagnostic):
-            self.processMemoryException(diagnostic, environment: report.environment, timestamp: timestamp)
+        case .memoryException(let diagnostic):
+            self.processMemoryException(
+                diagnostic, environment: report.environment, timestamp: timestamp)
         default:
             // Everything else (.hang, .cpuException, .diskWriteException, .appLaunch) isn't
             // captured here; hangs are categorized as watchdog SIGKILLs in processCrash instead.
@@ -153,17 +155,21 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         timestamp: TimeInterval,
         capturedCrash: BitdriftPreviousCrash?
     ) {
-        // The new MetricKit API exposes watchdog terminations directly via `terminationCategory`,
-        // unlike the old API where this had to be inferred from exceptionType/signal/terminationReason
-        // heuristics (see DiagnosticEventReporter.crashIsHangTermination:). Prefer the clean signal.
-        let isHang = diagnostic.terminationCategory == .watchdog
+        let isHang = self.parsing.isWatchdogHangTermination(
+            withExceptionType: diagnostic.exceptionType.map { NSNumber(value: $0) },
+            signal: diagnostic.signal.map { NSNumber(value: $0) },
+            terminationReason: diagnostic.terminationReason?.rawValue,
+            exceptionCode: diagnostic.exceptionCode.map { NSNumber(value: $0) }
+        )
         let effectiveCapturedCrash = isHang ? nil : capturedCrash
         let reportType: ReportType = isHang ? .appNotResponding : .nativeCrash
 
         let name = isHang ? Constants.defaultHangName : self.name(forCrash: diagnostic)
-        let reason = self.reason(forCrash: diagnostic, name: name, capturedCrash: effectiveCapturedCrash)
+        let reason = self.reason(
+            forCrash: diagnostic, name: name, capturedCrash: effectiveCapturedCrash)
 
-        let adapterDict = MetricKitLegacyCrashAdapter.makeCrashDict(diagnostic: diagnostic, environment: environment)
+        let adapterDict = MetricKitLegacyCrashAdapter.makeCrashDict(
+            diagnostic: diagnostic, environment: environment)
         var summaryOut: NSDictionary?
         let enhanced = self.crashReporting.enhancedMetricKitReport(
             adapterDict,
@@ -225,7 +231,9 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
     ) -> String? {
         var capturedCrashName: String?
         var capturedCrashReason: String?
-        if capturedCrash?.kind == .nsException, let nsexception = capturedCrash?.nsexception, let reason = nsexception.reason {
+        if capturedCrash?.kind == .nsException, let nsexception = capturedCrash?.nsexception,
+           let reason = nsexception.reason
+        {
             capturedCrashName = nsexception.name
             capturedCrashReason = reason
         }

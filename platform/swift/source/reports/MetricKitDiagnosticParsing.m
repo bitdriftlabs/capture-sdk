@@ -130,6 +130,15 @@ static NSString *trimmed_value_after_prefix(NSString *line, NSString *prefix) {
   return [reason isEqualToString:name] ? nil : reason;
 }
 
+- (BOOL)isWatchdogHangTerminationWithExceptionType:(NSNumber *)exceptionType
+                                             signal:(NSNumber *)signal
+                                  terminationReason:(NSString *)terminationReason
+                                      exceptionCode:(NSNumber *)exceptionCode {
+  return [exceptionType isEqualToNumber:@EXC_CRASH] && [signal isEqualToNumber:@SIGKILL]
+      && ([[terminationReason lowercaseString] containsString:@"0x8badf00d"]
+          || (terminationReason == nil && [exceptionCode isEqualToNumber:@0]));
+}
+
 - (NSDictionary<NSString *, NSString *> *)parseTerminationContext:(NSString *)terminationReason {
   if (terminationReason.length == 0) {
     return @{};
