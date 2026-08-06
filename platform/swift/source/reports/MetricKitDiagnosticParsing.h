@@ -71,6 +71,39 @@ typedef NS_ENUM(NSUInteger, FrameOrder) {
 /// match a known constant.
 - (nullable NSString *)nameForSignal:(int32_t)signal;
 
+/// Returns the display name for a crash: the Mach exception type's constant name, falling back to
+/// the POSIX signal's constant name if the exception type isn't recognized.
+///
+/// - Parameters:
+///   - exceptionType: The Mach exception type (e.g. `EXC_BAD_ACCESS`).
+///   - signal: The POSIX signal (e.g. `SIGSEGV`), used as a fallback.
+/// - Returns: The exception type's name, or the signal's name, or nil if neither is recognized.
+- (nullable NSString *)nameForExceptionType:(int32_t)exceptionType signal:(int32_t)signal;
+
+/// Builds the human-readable crash reason from whichever sources are available.
+///
+/// - Parameters:
+///   - name: The crash's display name (from `nameForExceptionType:signal:`), used to suppress a
+///     redundant fallback reason that would just repeat it.
+///   - exceptionReasonName: MetricKit's exception reason name, if available.
+///   - exceptionReasonComposedMessage: MetricKit's composed exception message, if available.
+///   - capturedCrashName: The name of a captured in-process `NSException`, if one was recorded.
+///   - capturedCrashReason: The reason of a captured in-process `NSException`, if one was recorded.
+///   - terminationReason: The OS-provided termination reason string, if any.
+///   - vmRegionInfo: The OS-provided virtual memory region info string, if any.
+///   - exceptionCode: The exception code, used in the fallback `"code: ..., signal: ..."` reason.
+///   - signal: The POSIX signal, used in the fallback reason.
+/// - Returns: The composed reason string, or nil if there's nothing to report beyond `name` itself.
+- (nullable NSString *)reasonForCrashWithName:(nullable NSString *)name
+                          metricKitReasonName:(nullable NSString *)exceptionReasonName
+               metricKitReasonComposedMessage:(nullable NSString *)exceptionReasonComposedMessage
+                            capturedCrashName:(nullable NSString *)capturedCrashName
+                          capturedCrashReason:(nullable NSString *)capturedCrashReason
+                            terminationReason:(nullable NSString *)terminationReason
+                      virtualMemoryRegionInfo:(nullable NSString *)vmRegionInfo
+                                exceptionCode:(nullable NSNumber *)exceptionCode
+                                       signal:(int32_t)signal;
+
 /// Parses a `terminationReason` string (as reported by MetricKit for `SIGKILL` terminations) into
 /// its component fields: `domain`, `code`, `explanation`, `process_visibility`, `process_state`,
 /// `watchdog_event`, `watchdog_visibility`. Any field not present in `terminationReason` is

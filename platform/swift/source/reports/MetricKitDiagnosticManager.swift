@@ -48,7 +48,7 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
     private let completionHandler: (() -> Void)?
     private let diagnosticSource: any MetricDiagnosticReportSource
     private let fileManager: FileManager
-    private let writer: MetricKitReportWriter
+    private let writer: DiagnosticReportWriter
 
     private var task: Task<Void, Never>?
 
@@ -73,7 +73,7 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         self.fileManager = fileManager
         self.crashEnrichmentSummaryHandler = crashEnrichmentSummaryHandler
         self.completionHandler = completionHandler
-        self.writer = MetricKitReportWriter(
+        self.writer = DiagnosticReportWriter(
             outputDir: outputDir,
             sdkVersion: sdkVersion,
             fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
@@ -132,7 +132,7 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         if self.fileManager.fileExists(atPath: self.outputDir.path) {
             return true
         }
-        
+
         do {
             try self.fileManager.createDirectory(
                 at: self.outputDir,
@@ -141,7 +141,7 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         } catch {
             return false
         }
-        
+
         return true
     }
 
@@ -174,11 +174,9 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
             self.crashEnrichmentSummaryHandler?(summary)
         }
 
-        let threads = ExtractedThread.create(fromThreadsDictionary: enhanced).map { $0.makeReportThread() }
-
         self.writer.writeCrashReport(
             with: reportType,
-            threads: threads,
+            dict: enhanced,
             name: name,
             reason: reason,
             machExceptionType: diagnostic.exceptionType.map { NSNumber(value: $0) },
@@ -186,7 +184,8 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
             signal: diagnostic.signal.map { NSNumber(value: $0) },
             terminationReason: diagnostic.terminationReason?.rawValue,
             capturedCrash: effectiveCapturedCrash,
-            environment: environment.asMetricKitReportEnvironment(),
+            metadata: MetricKitLegacyCrashAdapter.makeMetadataDict(environment: environment),
+            applicationVersion: environment.applicationVersion,
             timestamp: timestamp
         )
     }
@@ -198,13 +197,14 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         environment: DiagnosticReport.Environment,
         timestamp: TimeInterval
     ) {
-        let threads = ExtractedThread.create(fromCallStackTree: diagnostic.callStackTree).map { $0.makeReportThread() }
-
-        self.writer.writeMemoryExceptionReport(
-            with: threads,
+        self.writer.writeNonCrashReport(
+            with: .nativeCrash,
+            dict: MetricKitLegacyCrashAdapter.makeMemoryExceptionDict(diagnostic: diagnostic),
             name: Constants.defaultOOMExceptionName,
             reason: Constants.defaultOOMDescription,
-            environment: environment.asMetricKitReportEnvironment(),
+            order: .outerToInner,
+            metadata: MetricKitLegacyCrashAdapter.makeMetadataDict(environment: environment),
+            applicationVersion: environment.applicationVersion,
             timestamp: timestamp
         )
     }
@@ -212,8 +212,10 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
     // MARK: - Crash naming
 
     private func name(forCrash diagnostic: CrashDiagnostic) -> String? {
-        self.parsing.name(forExceptionType: Int32(diagnostic.exceptionType ?? 0))
-            ?? self.parsing.name(forSignal: Int32(diagnostic.signal ?? 0))
+        self.parsing.name(
+            forExceptionType: Int32(diagnostic.exceptionType ?? 0),
+            signal: Int32(diagnostic.signal ?? 0)
+        )
     }
 
     private func reason(
@@ -221,57 +223,23 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         name: String?,
         capturedCrash: BitdriftPreviousCrash?
     ) -> String? {
-        var components: [String] = []
-        var hasMetricKitExceptionReason = false
-
-        if let exceptionReason = diagnostic.exceptionReason {
-            hasMetricKitExceptionReason = true
-            components.append("\(exceptionReason.exceptionName): \(exceptionReason.composedMessage)")
+        var capturedCrashName: String?
+        var capturedCrashReason: String?
+        if capturedCrash?.kind == .nsException, let nsexception = capturedCrash?.nsexception, let reason = nsexception.reason {
+            capturedCrashName = nsexception.name
+            capturedCrashReason = reason
         }
 
-        if !hasMetricKitExceptionReason,
-           capturedCrash?.kind == .nsException,
-           let nsexception = capturedCrash?.nsexception,
-           let reason = nsexception.reason {
-            components.append("\(nsexception.name): \(reason)")
-        }
-
-        if let terminationReason = diagnostic.terminationReason?.rawValue, !terminationReason.isEmpty {
-            components.append(terminationReason)
-        }
-
-        if let vmRegionInfo = diagnostic.virtualMemoryRegionInfo {
-            components.append(vmRegionInfo)
-        }
-
-        if !components.isEmpty {
-            return components.joined(separator: ".\n")
-        }
-
-        let signalName = self.parsing.name(forSignal: Int32(diagnostic.signal ?? 0))
-        if let exceptionCode = diagnostic.exceptionCode {
-            return "code: \(exceptionCode), signal: \(signalName ?? "unknown")"
-        }
-
-        let reason = signalName ?? "unknown"
-        return reason == name ? nil : reason
-    }
-}
-
-@available(iOS 27.0, *)
-private extension DiagnosticReport.Environment {
-    func asMetricKitReportEnvironment() -> MetricKitReportEnvironment {
-        MetricKitReportEnvironment(
-            bundleIdentifier: self.bundleIdentifier,
-            applicationVersion: self.applicationVersion,
-            applicationBuildVersion: self.applicationBuildVersion,
-            regionFormat: self.regionFormat,
-            deviceType: self.deviceType,
-            osVersionName: self.osVersion.platform,
-            osVersionNumber: self.osVersion.number,
-            osVersionBuildNumber: self.osVersion.buildNumber,
-            platformArchitecture: self.platformArchitecture,
-            lowPowerModeEnabled: self.lowPowerModeEnabled
+        return self.parsing.reasonForCrash(
+            withName: name,
+            metricKitReasonName: diagnostic.exceptionReason?.exceptionName,
+            metricKitReasonComposedMessage: diagnostic.exceptionReason?.composedMessage,
+            capturedCrashName: capturedCrashName,
+            capturedCrashReason: capturedCrashReason,
+            terminationReason: diagnostic.terminationReason?.rawValue,
+            virtualMemoryRegionInfo: diagnostic.virtualMemoryRegionInfo,
+            exceptionCode: diagnostic.exceptionCode.map { NSNumber(value: $0) },
+            signal: Int32(diagnostic.signal ?? 0)
         )
     }
 }
