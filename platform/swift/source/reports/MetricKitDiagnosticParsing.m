@@ -92,6 +92,44 @@ static NSString *trimmed_value_after_prefix(NSString *line, NSString *prefix) {
 
 #undef print_case
 
+- (NSString *)nameForExceptionType:(int32_t)exceptionType signal:(int32_t)signal {
+  return [self nameForExceptionType:exceptionType] ?: [self nameForSignal:signal];
+}
+
+- (NSString *)reasonForCrashWithName:(NSString *)name
+                  metricKitReasonName:(NSString *)exceptionReasonName
+       metricKitReasonComposedMessage:(NSString *)exceptionReasonComposedMessage
+                    capturedCrashName:(NSString *)capturedCrashName
+                  capturedCrashReason:(NSString *)capturedCrashReason
+                    terminationReason:(NSString *)terminationReason
+              virtualMemoryRegionInfo:(NSString *)vmRegionInfo
+                        exceptionCode:(NSNumber *)exceptionCode
+                               signal:(int32_t)signal {
+  NSMutableArray<NSString *> *components = [NSMutableArray new];
+  BOOL hasMetricKitExceptionReason = exceptionReasonName != nil;
+  if (hasMetricKitExceptionReason) {
+    [components addObject:[NSString stringWithFormat:@"%@: %@", exceptionReasonName, exceptionReasonComposedMessage]];
+  }
+  if (!hasMetricKitExceptionReason && capturedCrashName != nil && capturedCrashReason != nil) {
+    [components addObject:[NSString stringWithFormat:@"%@: %@", capturedCrashName, capturedCrashReason]];
+  }
+  if (terminationReason != nil) {
+    [components addObject:terminationReason];
+  }
+  if (vmRegionInfo != nil) {
+    [components addObject:vmRegionInfo];
+  }
+  if (components.count > 0) {
+    return [components componentsJoinedByString:@".\n"];
+  }
+  if (exceptionCode != nil) {
+    return [NSString stringWithFormat:@"code: %ld, signal: %@", exceptionCode.longValue, [self nameForSignal:signal]];
+  }
+
+  NSString *reason = [self nameForSignal:signal];
+  return [reason isEqualToString:name] ? nil : reason;
+}
+
 - (NSDictionary<NSString *, NSString *> *)parseTerminationContext:(NSString *)terminationReason {
   if (terminationReason.length == 0) {
     return @{};

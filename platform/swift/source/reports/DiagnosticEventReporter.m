@@ -7,82 +7,27 @@
 
 #import "DiagnosticEventReporter.h"
 #import "BitdriftCrashHandler.h"
+#import "DiagnosticReportWriter.h"
 #import "MetricKitDiagnosticParsing.h"
-#import "bd-report-writer/ffi.h"
 
 #import <mach/exception_types.h>
-#include <stdlib.h>
-#include <stdint.h>
 #import <signal.h>
 
-// Unpack version numbers formatted as "iPhone OS 16.7.11 (20H360)"
-// - `osName` is everything before the version number ("iPhone OS")
-// - `osVersion` is the dot-delimited numbers
-// - `buildNumber` is the parenthesized letters and numbers
-static NSString *const OS_VERSION_MATCHER = @"^(?<osName>.*)\\s+(?<osVersion>\\d+.*)\\s+\\((?<buildNumber>.*)\\)$";
 // Name to use for `MXHangDiagnostic` and 0x8badf00d events if no better name is detected
 static NSString *const DEFAULT_HANG_NAME = @"App Hang";
-
-// MARK: - Static helpers (pure utilities, no instance state)
-
-static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
-  if ([dict isKindOfClass:[NSDictionary class]]) {
-    id value = dict[key];
-    return [value isKindOfClass:klass] ? value : nil;
-  }
-  return nil;
-}
-
-#define string_for_key(dict, key) object_for_key(dict, key, [NSString class])
-#define number_for_key(dict, key) object_for_key(dict, key, [NSNumber class])
-#define array_for_key(dict, key) object_for_key(dict, key, [NSArray class])
-#define dict_for_key(dict, key) object_for_key(dict, key, [NSDictionary class])
-
-// MARK: - BDOSBuild
-
-@interface BDOSBuild : NSObject
-@property (strong, nonatomic) NSString *name;
-@property (strong, nonatomic) NSString *version;
-@property (strong, nonatomic) NSString *kernversion;
-@end
-
-@implementation BDOSBuild
-- (instancetype)initWithVersion:(NSString *)version {
-  if (!version) {
-    return nil;
-  }
-  NSRegularExpression *matcher = [NSRegularExpression regularExpressionWithPattern:OS_VERSION_MATCHER options:0 error:nil];
-  NSTextCheckingResult *match = [[matcher matchesInString:version options:0 range:NSMakeRange(0, version.length)] firstObject];
-  NSRange nameRange = [match rangeWithName:@"osName"];
-  NSRange versionRange = [match rangeWithName:@"osVersion"];
-  NSRange buildRange = [match rangeWithName:@"buildNumber"];
-  if (self = [super init]) {
-    if (!nameRange.length || !versionRange.length || !buildRange.length) {
-      self.version = version; // pathological case where there's a match but the captures don't hit
-    } else {
-      self.name = [version substringWithRange:nameRange];
-      self.version = [version substringWithRange:versionRange];
-      self.kernversion = [version substringWithRange:buildRange];
-    }
-  }
-  return self;
-}
-@end
 
 // MARK: - DiagnosticEventReporter
 
 @interface DiagnosticEventReporter ()
 @property (nonnull, strong) NSURL *dir;
-@property (nonnull, strong) NSString *sdkVersion;
 @property (nonnull, strong, nonatomic) NSMeasurement <NSUnitDuration *> *minimumHangDuration;
 @property (nullable, strong, nonatomic) void (^completionHandler)();
 @property (nullable, copy, nonatomic) CAPCrashEnrichmentSummaryHandler crashEnrichmentSummaryHandler;
 @property CAPDiagnosticType diagnosticTypes;
-@property BOOL fileSizeOptimizationEnabled;
 @property BOOL useStackOverlapMatching;
-@property CAPMemoryPressureLevel memoryPressureLevel;
 @property (nonnull, strong, nonatomic) id<CrashReporting> crashReporting;
 @property (nonnull, strong, nonatomic) MetricKitDiagnosticParsing *parsing;
+@property (nonnull, strong, nonatomic) DiagnosticReportWriter *writer;
 @end
 
 @implementation DiagnosticEventReporter
@@ -99,15 +44,17 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
                          completionHandler:(void (^_Nullable)())completionHandler {
   if (self = [super init]) {
     self.dir = dir;
-    self.sdkVersion = sdkVersion;
     self.diagnosticTypes = types;
     self.completionHandler = completionHandler;
-    self.fileSizeOptimizationEnabled = fileSizeOptimizationEnabled;
     self.useStackOverlapMatching = useStackOverlapMatching;
     self.crashReporting = crashReporting;
     self.crashEnrichmentSummaryHandler = crashEnrichmentSummaryHandler;
-    self.memoryPressureLevel = memoryPressureLevel;
     self.parsing = [MetricKitDiagnosticParsing new];
+    self.writer = [[DiagnosticReportWriter alloc] initWithOutputDir:dir
+                                                           sdkVersion:sdkVersion
+                                         fileSizeOptimizationEnabled:fileSizeOptimizationEnabled
+                                                  memoryPressureLevel:memoryPressureLevel
+                                                          fileManager:[NSFileManager defaultManager]];
     [self setMinimumHangSeconds:seconds];
   }
   return self;
@@ -156,36 +103,15 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
 
 - (void)processDiagnostic:(MXDiagnostic *)event
               atTimestamp:(NSTimeInterval)timestamp
-            capturedCrash:(BitdriftPreviousCrash *)capturedCrash {
-  const void *handle = 0;
-  ReportType report_type = [self serializeDiagnostic:event atTimestamp:timestamp capturedCrash:capturedCrash intoHandle:&handle];
-  if (report_type != ReportTypeNone && handle != 0) {
-    uint64_t length = 0;
-    const uint8_t *contents = bdrw_get_completed_buffer(&handle, &length);
-    NSData *data = [NSData dataWithBytes:contents length:length];
-    NSString *identifier = [[NSUUID UUID] UUIDString];
-    NSString *filename = [NSString stringWithFormat:@"%Lf_%@_%@.cap", truncl(timestamp), [self.parsing nameForReportType:report_type], identifier];
-    NSString *path = [[self.dir URLByAppendingPathComponent:filename] path];
-    [[NSFileManager defaultManager] createFileAtPath:path contents:data attributes:0];
-    bdrw_dispose_buffer_handle(&handle);
-  }
-}
+            capturedCrash:(BitdriftPreviousCrash *)capturedCrash API_AVAILABLE(ios(14.0), macos(12.0)) {
+  NSDictionary *metadata = event.metaData.dictionaryRepresentation;
 
-// MARK: - Serialization
-
-
-- (ReportType)serializeDiagnostic:(MXDiagnostic *)event
-                      atTimestamp:(NSTimeInterval)timestamp
-                    capturedCrash:(BitdriftPreviousCrash *)capturedCrash
-                       intoHandle:(BDProcessorHandle)handle API_AVAILABLE(ios(14.0), macos(12.0)) {
-  ReportType report_type = ReportTypeNone;
   if ([event isKindOfClass:[MXCrashDiagnostic class]]) {
     MXCrashDiagnostic *mxCrash = (MXCrashDiagnostic *)event;
     // Watchdog terminations arrive as MXCrashDiagnostic but should be reported as ANRs.
     BOOL is_hang = [self crashIsHangTermination:mxCrash];
     capturedCrash = is_hang ? nil : capturedCrash;
-    report_type = is_hang ? ReportTypeAppNotResponding : ReportTypeNativeCrash;
-    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
+    ReportType report_type = is_hang ? ReportTypeAppNotResponding : ReportTypeNativeCrash;
     NSString *name = is_hang ? DEFAULT_HANG_NAME : [self nameForCrash:mxCrash];
     NSString *reason = [self reasonForCrash:mxCrash name:name capturedCrash:capturedCrash];
     NSDictionary<NSString *, NSString *> *summary = nil;
@@ -195,29 +121,34 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
     if (summary != nil && self.crashEnrichmentSummaryHandler != nil) {
       self.crashEnrichmentSummaryHandler(summary);
     }
-    [self serializeErrorThreads:handle crash:dictReport name:name reason:reason order:FrameOrderInnerToOuter];
-    [self serializeCrashInfo:handle
-                   crashDict:dictReport
-                     mxCrash:mxCrash
-               capturedCrash:capturedCrash
-                  metricTime:timestamp];
+    [self.writer writeCrashReportWithType:report_type
+                                       dict:dictReport
+                                       name:name
+                                     reason:reason
+                          machExceptionType:mxCrash.exceptionType
+                              exceptionCode:mxCrash.exceptionCode
+                                     signal:mxCrash.signal
+                          terminationReason:mxCrash.terminationReason
+                              capturedCrash:capturedCrash
+                                   metadata:metadata
+                         applicationVersion:event.applicationVersion
+                                  timestamp:timestamp];
   } else if ([event isKindOfClass:[MXHangDiagnostic class]]) {
-    report_type = ReportTypeAppNotResponding;
-    bdrw_create_buffer_handle(handle, report_type, SDK_ID, cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
     MXHangDiagnostic *hang = (MXHangDiagnostic *)event;
     NSMeasurementFormatter *formatter = [NSMeasurementFormatter new];
     NSString *duration = [formatter stringFromMeasurement:hang.hangDuration];
     NSString *reason = [NSString stringWithFormat:@"app was unresponsive for %@", duration];
     NSDictionary *representation = event.dictionaryRepresentation;
     NSString *name = representation[@"hangType"] ?: DEFAULT_HANG_NAME;
-    [self serializeErrorThreads:handle crash:representation name:name reason:reason order:FrameOrderOuterToInner];
-  } else {
-    return report_type;
+    [self.writer writeNonCrashReportWithType:ReportTypeAppNotResponding
+                                          dict:representation
+                                          name:name
+                                        reason:reason
+                                         order:FrameOrderOuterToInner
+                                      metadata:metadata
+                            applicationVersion:event.applicationVersion
+                                     timestamp:timestamp];
   }
-  NSDictionary *metadata = event.metaData.dictionaryRepresentation;
-  [self serializeAppMetrics:handle appVersion:event.applicationVersion metadata:metadata];
-  [self serializeDeviceMetrics:handle metadata:metadata timestamp:timestamp];
-  return report_type;
 }
 
 - (BOOL)crashIsHangTermination:(MXCrashDiagnostic *)event API_AVAILABLE(ios(14.0), macos(12.0)) {
@@ -229,445 +160,44 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
       || (event.terminationReason == nil && [event.exceptionCode isEqualToNumber:@0]));
 }
 
-// Writes every thread in `crash`'s call stack tree to the in-progress report buffer `handle` via
-// `bdrw_add_thread`, registering each frame's owning binary image along the way, and additionally
-// writes `bdrw_add_error` for the crashed thread. Threads with no frames are skipped unless
-// they're the crashed thread (so a crash with no captured stack still produces an error entry). A
-// thread whose walk hits an invalid frame (missing binary/address fields) stops early rather than
-// failing the whole call.
-- (void)serializeErrorThreads:(BDProcessorHandle)handle
-                        crash:(NSDictionary *)crash
-                         name:(NSString *)name
-                       reason:(NSString *)reason
-                        order:(FrameOrder)order API_AVAILABLE(ios(14.0), macos(12.0)) {
-  NSMutableSet <NSString *>* images = [NSMutableSet new];
-  NSArray *call_stacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
-  uint32_t crashed_index = [self crashedThreadIndex:call_stacks];
-
-  for (uint32_t thread_index = 0; thread_index < call_stacks.count; thread_index++) {
-    NSDictionary *thread = call_stacks[thread_index];
-    NSString *threadName = string_for_key(thread, @"name");
-    NSDictionary *frame = [self threadRootFrame:thread];
-    uint64_t frame_count = [self countFrames:frame];
-    if (frame_count == 0 && thread_index != crashed_index) {
-      continue;
-    }
-    BDStackFrame *stack = frame_count
-      ? (BDStackFrame *)calloc(frame_count, sizeof(BDStackFrame))
-      : 0;
-
-    uint32_t frame_index = 0;
-    while ([frame isKindOfClass:[NSDictionary class]] && frame_index < frame_count) {
-      NSString *binary_name = string_for_key(frame, @"binaryName");
-      NSString *binary_uuid = string_for_key(frame, @"binaryUUID");
-      NSNumber *address = number_for_key(frame, @"address");
-      NSNumber *offset = number_for_key(frame, @"offsetIntoBinaryTextSegment");
-      if (binary_name && binary_uuid && address && offset) {
-        if (![images containsObject:binary_uuid]) {
-          BDBinaryImage image = {
-            .id = cstring_from(binary_uuid),
-            .path = cstring_from(binary_name),
-            .load_address = [address unsignedLongLongValue] - [offset unsignedLongLongValue],
-          };
-          bdrw_add_binary_image(handle, &image);
-          [images addObject:binary_uuid];
-        }
-      } else {
-        break; // if the frame is invalid, it's time to leave
-      }
-
-      // Handle differing frame ordering for MXDiagnostic types (FB18377370)
-      // insertion order is most recent to oldest
-      uint64_t insert_at = order == FrameOrderInnerToOuter
-        ? frame_index // the "root" frame (dyld or pthread start) is the furthest from index 0
-        : (frame_count - frame_index - 1); // the root frame is index 0
-      stack[insert_at] = (BDStackFrame) {
-        .image_id = cstring_from(binary_uuid),
-        .frame_address = [address unsignedLongLongValue],
-        .type_ = 2, // FrameType.DWARF
-      };
-      frame = [array_for_key(frame, @"subFrames") firstObject];
-      frame_index++;
-    }
-    BDThread bdthread = { .index = thread_index, .quality_of_service = -1, .name = cstring_from(threadName), .active = (thread_index == crashed_index) };
-    bdrw_add_thread(handle, [call_stacks count], &bdthread, frame_index, stack);
-    if (thread_index == crashed_index) {
-      bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, frame_index, stack);
-    }
-    free(stack);
-  }
-  // handle case where there are no threads
-  if (call_stacks.count == 0) {
-    bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, 0, 0);
-  }
-}
-
-// Walks the same call stack tree as `serializeErrorThreads:`, but into a `BDCrashInfoThreadDetails`
-// (the shape `bdrw_add_apple_crash_info` expects) instead of writing directly to the report buffer.
-- (BDCrashInfoThreadDetailsStorage)buildCrashInfoThreadDetails:(NSDictionary *)crash
-                                                         order:(FrameOrder)order API_AVAILABLE(ios(14.0), macos(12.0)) {
-  NSArray *call_stacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
-  if (call_stacks.count == 0) {
-    return empty_crash_info_thread_details_storage();
-  }
-
-  uint32_t crashed_index = [self crashedThreadIndex:call_stacks];
-  BDCrashInfoThread *threads = (BDCrashInfoThread *)calloc(call_stacks.count, sizeof(BDCrashInfoThread));
-  uint16_t thread_count = 0;
-
-  for (uint32_t thread_index = 0; thread_index < call_stacks.count; thread_index++) {
-    NSDictionary *thread = call_stacks[thread_index];
-    NSString *threadName = string_for_key(thread, @"name");
-    NSDictionary *frame = [self threadRootFrame:thread];
-    uint64_t frame_count = [self countFrames:frame];
-    if (frame_count == 0) {
-      // Unlike serializeErrorThreads:, there's no crashed-thread exception here: this data
-      // isn't used to report an error, so an empty crashed thread just doesn't contribute frames.
-      continue;
-    }
-
-    // Binary images aren't registered here: this always runs right after serializeErrorThreads:
-    // over the same `crash` dict, which already registered every image in this tree.
-    BDStackFrame *stack = (BDStackFrame *)calloc(frame_count, sizeof(BDStackFrame));
-    uint32_t frame_index = 0;
-    while ([frame isKindOfClass:[NSDictionary class]] && frame_index < frame_count) {
-      NSString *binary_uuid = string_for_key(frame, @"binaryUUID");
-      NSNumber *address = number_for_key(frame, @"address");
-      if (binary_uuid == nil || address == nil) {
-        break;
-      }
-
-      uint64_t insert_at = order == FrameOrderInnerToOuter
-        ? frame_index
-        : (frame_count - frame_index - 1);
-      stack[insert_at] = (BDStackFrame) {
-        .image_id = cstring_from(binary_uuid),
-        .frame_address = [address unsignedLongLongValue],
-        .type_ = 2,
-      };
-      frame = [array_for_key(frame, @"subFrames") firstObject];
-      frame_index++;
-    }
-
-    if (frame_index == 0) {
-      free(stack);
-      continue;
-    }
-
-    threads[thread_count++] = (BDCrashInfoThread) {
-      .thread =
-        (BDThread){
-          .index = thread_index,
-          .quality_of_service = -1,
-          .name = cstring_from(threadName),
-          .active = (thread_index == crashed_index),
-        },
-      .stack_count = frame_index,
-      .stack = stack,
-    };
-  }
-
-  if (thread_count == 0) {
-    free(threads);
-    return empty_crash_info_thread_details_storage();
-  }
-
-  return (BDCrashInfoThreadDetailsStorage){
-    .details =
-      (BDCrashInfoThreadDetails){
-        .count = (uint16_t)call_stacks.count,
-        .threads_count = thread_count,
-        .threads = threads,
-      },
-    .threads = threads,
-  };
-}
-
-- (BDCrashInfoThreadDetailsStorage)buildCrashInfoThreadDetailsFromCapturedFrames:(NSArray *)frames {
-  if (frames.count == 0) {
-    return empty_crash_info_thread_details_storage();
-  }
-
-  BDCrashInfoThread *threads = (BDCrashInfoThread *)calloc(1, sizeof(BDCrashInfoThread));
-  BDStackFrame *stack = (BDStackFrame *)calloc(frames.count, sizeof(BDStackFrame));
-  uint32_t frame_count = 0;
-
-  for (BitdriftCrashStackFrame *frame in frames) {
-    if (frame.imageID == nil) {
-      continue;
-    }
-    stack[frame_count++] = (BDStackFrame) {
-      .type_ = 2,
-      .frame_address = frame.frameAddress,
-      .image_id = cstring_from(frame.imageID),
-    };
-  }
-
-  if (frame_count == 0) {
-    free(stack);
-    free(threads);
-    return empty_crash_info_thread_details_storage();
-  }
-
-  threads[0] = (BDCrashInfoThread) {
-    .thread =
-      (BDThread){
-        .index = 0,
-        .quality_of_service = -1,
-        .active = true,
-      },
-    .stack_count = frame_count,
-    .stack = stack,
-  };
-  return (BDCrashInfoThreadDetailsStorage){
-    .details =
-      (BDCrashInfoThreadDetails){
-        .count = 1,
-        .threads_count = 1,
-        .threads = threads,
-      },
-    .threads = threads,
-  };
-}
-
-- (void)addCapturedCrashBinaryImages:(BDProcessorHandle)handle frames:(NSArray *)frames {
-  NSMutableSet<NSString *> *seenImages = [NSMutableSet set];
-  for (BitdriftCrashStackFrame *frame in frames) {
-    if (frame.imageID == nil || frame.binaryName == nil || [seenImages containsObject:frame.imageID]) {
-      continue;
-    }
-
-    BDBinaryImage image = {
-      .id = cstring_from(frame.imageID),
-      .path = cstring_from(frame.binaryName),
-      .load_address = frame.imageLoadAddress,
-    };
-    bdrw_add_binary_image(handle, &image);
-    [seenImages addObject:frame.imageID];
-  }
-}
-
-- (void)freeCrashInfoThreadDetails:(BDCrashInfoThreadDetailsStorage)threadDetails API_AVAILABLE(ios(14.0), macos(12.0)) {
-  for (uintptr_t thread_index = 0; thread_index < threadDetails.details.threads_count; thread_index++) {
-    free((void *)threadDetails.threads[thread_index].stack);
-  }
-  free(threadDetails.threads);
-}
-
-// Builds the MetricKit-derived BDAppleCrashInfoPayload: mach exception, posix signal, and (for
-// SIGKILL watchdog terminations) the parsed termination context.
-- (BDAppleCrashInfoPayload)buildMetricKitPayload:(MXCrashDiagnostic *)mxCrash API_AVAILABLE(ios(14.0), macos(12.0)) {
-  BDAppleCrashInfoPayload payload = {0};
-  if (mxCrash.exceptionType != nil) {
-    payload.has_mach_exception = true;
-    payload.mach_exception = (BDMachException) {
-      .type_ = mxCrash.exceptionType.unsignedIntValue,
-      .code = mxCrash.exceptionCode.unsignedLongLongValue,
-      .subcode = 0,
-    };
-  }
-
-  if (mxCrash.signal != nil) {
-    payload.has_posix_signal = true;
-    payload.posix_signal = (BDPosixSignal) {
-      .number = mxCrash.signal.intValue,
-      .code = 0,
-      .errno_value = 0,
-      .has_fault_address = false,
-      .fault_address = 0,
-    };
-  }
-
-  NSDictionary<NSString *, NSString *> *terminationContext = @{};
-  if ([mxCrash.signal isEqualToNumber:@SIGKILL]) {
-    terminationContext = [self.parsing parseTerminationContext:mxCrash.terminationReason];
-  }
-  if ([mxCrash.signal isEqualToNumber:@SIGKILL] && (mxCrash.terminationReason.length > 0 || terminationContext.count > 0)) {
-    payload.has_termination = true;
-    payload.termination = (BDAppleTermination) {
-      .domain = cstring_from(terminationContext[@"domain"]),
-      .code = cstring_from(terminationContext[@"code"]),
-      .explanation = cstring_from(terminationContext[@"explanation"]),
-      .process_visibility = cstring_from(terminationContext[@"process_visibility"]),
-      .process_state = cstring_from(terminationContext[@"process_state"]),
-      .watchdog_event = cstring_from(terminationContext[@"watchdog_event"]),
-      .watchdog_visibility = cstring_from(terminationContext[@"watchdog_visibility"]),
-    };
-  }
-
-  return payload;
-}
-
-// Writes two independent BDAppleCrashInfo entries to `handle` when available: one from the
-// out-of-process MetricKit report (always, if `crash` has thread data), and one from bitdrift's
-// own in-process crash capture (only when `capturedCrash` carries one). They're independent
-// sources of the same underlying crash, so both get written rather than one replacing the other.
-- (void)serializeCrashInfo:(BDProcessorHandle)handle
-                 crashDict:(NSDictionary *)crash
-                   mxCrash:(MXCrashDiagnostic *)mxCrash
-             capturedCrash:(BitdriftPreviousCrash *)capturedCrash
-                metricTime:(NSTimeInterval)metricTime API_AVAILABLE(ios(14.0), macos(12.0)) {
-  BDCrashInfoThreadDetailsStorage metricKitThreadDetails =
-    [self buildCrashInfoThreadDetails:crash order:FrameOrderInnerToOuter];
-  BDAppleCrashInfoPayload payload = [self buildMetricKitPayload:mxCrash];
-
-  uint64_t seconds = 0;
-  uint32_t nanos = 0;
-  [self.parsing timestampComponentsFor:metricTime seconds:&seconds nanos:&nanos];
-  bdrw_add_apple_crash_info(handle,
-                            CrashReporterScopeValueOutOfProcess,
-                            CrashReporterValueAppleMetricKit,
-                            seconds,
-                            nanos,
-                            &payload,
-                            metricKitThreadDetails.details.threads_count > 0
-                              ? &metricKitThreadDetails.details
-                              : NULL);
-  [self freeCrashInfoThreadDetails:metricKitThreadDetails];
-
-  if (capturedCrash.kind == BitdriftPreviousCrashKindNSException && capturedCrash.nsexception != nil) {
-    BDCrashInfoThreadDetailsStorage capturedThreadDetails =
-      [self buildCrashInfoThreadDetailsFromCapturedFrames:capturedCrash.nsexception.frames];
-    [self addCapturedCrashBinaryImages:handle frames:capturedCrash.nsexception.frames];
-    BDAppleCrashInfoPayload capturedPayload = {0};
-    capturedPayload.has_nsexception = true;
-    capturedPayload.nsexception = (BDNSException) {
-      .name = cstring_from(capturedCrash.nsexception.name),
-      .reason = cstring_from(capturedCrash.nsexception.reason),
-    };
-
-    [self.parsing timestampComponentsFor:capturedCrash.crashDate.timeIntervalSince1970 seconds:&seconds nanos:&nanos];
-    bdrw_add_apple_crash_info(handle,
-                              CrashReporterScopeValueInProcess,
-                              CrashReporterValueAppleBitdriftCrashReporter,
-                              seconds,
-                              nanos,
-                              &capturedPayload,
-                              capturedThreadDetails.details.threads_count > 0
-                                ? &capturedThreadDetails.details
-                                : NULL);
-    [self freeCrashInfoThreadDetails:capturedThreadDetails];
-  }
-}
-
-- (NSDictionary *)threadRootFrame:(NSDictionary *)thread {
-  return [array_for_key(thread, @"callStackRootFrames") firstObject];
-}
-
-- (uint64_t)countFrames:(NSDictionary *)rootFrame {
-  uint64_t count = 0;
-  NSDictionary *frame = rootFrame;
-  while ([frame isKindOfClass:[NSDictionary class]]) {
-    count++;
-    frame = [array_for_key(frame, @"subFrames") firstObject];
-  }
-  return count;
-}
-
-- (uint32_t)crashedThreadIndex:(NSArray *)stacks {
-  for (uint32_t index = 0; index < stacks.count; index++) {
-    if ([number_for_key(stacks[index], @"threadAttributed") boolValue]) {
-      if ([self countFrames:[self threadRootFrame:stacks[index]]] > 0) {
-        // match only if thread contains frames (FB18302500)
-        return index;
-      }
-      break;
-    }
-  }
-  for (uint32_t index = 0; index < stacks.count; index++) {
-    if ([self countFrames:[self threadRootFrame:stacks[index]]] > 0) {
-      // grab first thread with frames if none attributed or attributed to empty
-      return index;
-    }
-  }
-  return 0; // first thread is crashed thread if none contain frames
-}
-
-- (void)serializeDeviceMetrics:(BDProcessorHandle)handle
-                      metadata:(NSDictionary *)metadata
-                     timestamp:(NSTimeInterval)timestamp API_AVAILABLE(ios(14.0), macos(12.0)) {
-  BDOSBuild *os_build_info = [[BDOSBuild alloc] initWithVersion:string_for_key(metadata, @"osVersion")];
-  long double seconds = truncl(timestamp);
-  long double nanoseconds = (timestamp - seconds) * NSEC_PER_SEC;
-
-  BDDeviceMetrics device = {
-    .model = cstring_from(string_for_key(metadata, @"deviceType")),
-    .architecture = [self.parsing architectureConstantFor:string_for_key(metadata, @"platformArchitecture")],
-    .os_kernversion = cstring_from(os_build_info.kernversion),
-    .os_version = cstring_from(os_build_info.version),
-    .os_brand = cstring_from(os_build_info.name),
-    .time_nanos = nanoseconds,
-    .time_seconds = seconds,
-    .low_power_mode_enabled = [metadata[@"lowPowerModeEnabled"] boolValue],
-  };
-  bdrw_add_device(handle, &device);
-}
-
-- (void)serializeAppMetrics:(BDProcessorHandle)handle
-                 appVersion:(NSString *)app_version
-                   metadata:(NSDictionary *)metadata API_AVAILABLE(ios(14.0), macos(12.0)) {
-  NSString *bundle_version = [NSString stringWithFormat:@"%@.%@", app_version, string_for_key(metadata, @"appBuildVersion")];
-  BDAppMetrics app = {
-    .app_id = cstring_from(string_for_key(metadata, @"bundleIdentifier")),
-    .region_format = cstring_from(string_for_key(metadata, @"regionFormat")),
-    .version = cstring_from(app_version),
-    .cf_bundle_version = cstring_from(bundle_version),
-    .memory_pressure_level = self.memoryPressureLevel,
-  };
-  bdrw_add_app(handle, &app);
-}
-
 // MARK: - Crash type helpers
 
-- (NSString *)nameForSignal:(NSNumber *)signal {
-  return [self.parsing nameForSignal:signal.intValue];
-}
-
 - (NSString *)nameForCrash:(MXCrashDiagnostic *)event API_AVAILABLE(ios(14.0), macos(12.0)) {
-  return [self.parsing nameForExceptionType:event.exceptionType.intValue] ?: [self nameForSignal:event.signal];
+  return [self.parsing nameForExceptionType:event.exceptionType.intValue signal:event.signal.intValue];
 }
 
 - (NSString *)reasonForCrash:(MXCrashDiagnostic *)event
                         name:(NSString *)name
                 capturedCrash:(BitdriftPreviousCrash *)capturedCrash API_AVAILABLE(ios(14.0), macos(12.0)) {
-  NSMutableArray <NSString *> *components = [NSMutableArray new];
-  BOOL hasMetricKitExceptionReason = NO;
+  NSString *exceptionReasonName = nil;
+  NSString *exceptionReasonComposedMessage = nil;
   if (@available(iOS 17, macOS 14, *)) {
     if (event.exceptionReason) {
-      hasMetricKitExceptionReason = YES;
-      // exception name included here instead of in the name_for_crash
-      // to avoid cases where devices on iOS <17 have a different name
-      // and thus a different issue grouping
-      [components addObject:[NSString stringWithFormat:@"%@: %@",
-                               event.exceptionReason.exceptionName,
-                               event.exceptionReason.composedMessage]];
+      // exception name included here instead of in nameForCrash: to avoid cases where devices on
+      // iOS <17 have a different name and thus a different issue grouping
+      exceptionReasonName = event.exceptionReason.exceptionName;
+      exceptionReasonComposedMessage = event.exceptionReason.composedMessage;
     }
   }
-  if (!hasMetricKitExceptionReason
-      && capturedCrash.kind == BitdriftPreviousCrashKindNSException
+
+  NSString *capturedCrashName = nil;
+  NSString *capturedCrashReason = nil;
+  if (capturedCrash.kind == BitdriftPreviousCrashKindNSException
       && capturedCrash.nsexception.name != nil
       && capturedCrash.nsexception.reason != nil) {
-    [components addObject:[NSString stringWithFormat:@"%@: %@",
-                             capturedCrash.nsexception.name,
-                             capturedCrash.nsexception.reason]];
-  }
-  if (event.terminationReason) {
-    [components addObject:event.terminationReason];
-  }
-  if (event.virtualMemoryRegionInfo) {
-    [components addObject:event.virtualMemoryRegionInfo];
-  }
-  if ([components count]) {
-    return [components componentsJoinedByString:@".\n"];
-  }
-  if (event.exceptionCode) {
-    return [NSString stringWithFormat:@"code: %ld, signal: %@",
-            event.exceptionCode.longValue,
-            [self nameForSignal:event.signal]];
+    capturedCrashName = capturedCrash.nsexception.name;
+    capturedCrashReason = capturedCrash.nsexception.reason;
   }
 
-  NSString *reason = [NSString stringWithFormat:@"%@", [self nameForSignal:event.signal]];
-  return [reason isEqualToString:name] ? nil : reason;
+  return [self.parsing reasonForCrashWithName:name
+                           metricKitReasonName:exceptionReasonName
+                metricKitReasonComposedMessage:exceptionReasonComposedMessage
+                             capturedCrashName:capturedCrashName
+                           capturedCrashReason:capturedCrashReason
+                             terminationReason:event.terminationReason
+                       virtualMemoryRegionInfo:event.virtualMemoryRegionInfo
+                                 exceptionCode:event.exceptionCode
+                                        signal:event.signal.intValue];
 }
 
 @end
