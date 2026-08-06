@@ -157,7 +157,7 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
 
 pub(crate) fn persist_anr(
   env: &mut JNIEnv<'_>,
-  source_stream: &JObject<'_>,
+  source_stream: Option<&JObject<'_>>,
   timestamp_millis: jlong,
   destination: &str,
   attributes: &JObject<'_>,
@@ -167,9 +167,16 @@ pub(crate) fn persist_anr(
   is_file_size_optimization_enabled: bool,
 ) -> anyhow::Result<()> {
   let mut builder = FlatBufferBuilder::new();
-  let source_file = read_stream_to_file(env, source_stream)?;
-  let source_memmap = unsafe { memmap2::Mmap::map(&source_file)? };
-  let source_view = bd_report_parsers::MemmapView::new(&source_memmap);
+  let source_file = source_stream
+    .map(|stream| read_stream_to_file(env, stream))
+    .transpose()?;
+  let source_memmap = source_file
+    .as_ref()
+    .map(|file| unsafe { memmap2::Mmap::map(file) })
+    .transpose()?;
+  let source_view = source_memmap
+    .as_ref()
+    .map(bd_report_parsers::MemmapView::new);
   let timestamp = Timestamp::new(
     u64::try_from(timestamp_millis / 1_000).unwrap_or_default(),
     u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default(),
@@ -182,15 +189,14 @@ pub(crate) fn persist_anr(
     running_state,
     memory_pressure_level,
   )?;
-  let (_, report_offset) = bd_report_parsers::android::build_anr(
+  let report_offset = bd_report_parsers::android::build_anr_from_app_exit(
     &mut builder,
     &mut app_info,
     &mut device_info,
     source_view,
     app_exit_description,
     is_file_size_optimization_enabled,
-  )
-  .map_err(|e| anyhow::anyhow!("failed to parse ANR report: {e}"))?;
+  );
 
   builder.finish(report_offset, None);
   std::fs::write(destination, builder.finished_data())?;

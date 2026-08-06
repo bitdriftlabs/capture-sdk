@@ -1595,10 +1595,15 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
       .map(|s| s.to_string_lossy().to_string())
       .filter(|s| !s.is_empty())
   };
+  let stream = if stream.is_null() {
+    None
+  } else {
+    Some(&stream)
+  };
 
   match report_processing::persist_anr(
     &mut env,
-    &stream,
+    stream,
     timestamp,
     &destination,
     &attributes,
