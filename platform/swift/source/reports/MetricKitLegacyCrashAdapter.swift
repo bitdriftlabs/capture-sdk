@@ -23,19 +23,44 @@ class MetricKitLegacyCrashAdapter {
         diagnostic: CrashDiagnostic,
         environment: DiagnosticReport.Environment
     ) -> [String: Any] {
-        let threads = diagnostic.callStackTree.callStackThreads.map { thread -> [String: Any] in
+        var dict = self.makeCallStackTreeDict(diagnostic.callStackTree)
+        dict["diagnosticMetaData"] = [
+            "signal": diagnostic.signal ?? 0,
+            "pid": environment.pid.map(Int.init) ?? 0,
+        ]
+        return dict
+    }
+
+    /// - Parameter diagnostic: the memory exception information.
+    /// - Returns: a dictionary in the shape of a crash reported by MetricKit in v1
+    static func makeMemoryExceptionDict(diagnostic: MemoryExceptionDiagnostic) -> [String: Any] {
+        self.makeCallStackTreeDict(diagnostic.callStackTree)
+    }
+
+    /// - Parameter environment: the context where the diagnostic happened.
+    /// - Returns: a dictionary in the shape of `MXMetadata.dictionaryRepresentation()`.
+    static func makeMetadataDict(environment: DiagnosticReport.Environment) -> [String: Any] {
+        [
+            "bundleIdentifier": environment.bundleIdentifier,
+            "appBuildVersion": environment.applicationBuildVersion,
+            "regionFormat": environment.regionFormat,
+            "deviceType": environment.deviceType,
+            "platformArchitecture": environment.platformArchitecture,
+            "osVersion": "\(environment.osVersion.platform) \(environment.osVersion.number) (\(environment.osVersion.buildNumber))",
+            "lowPowerModeEnabled": environment.lowPowerModeEnabled,
+        ]
+    }
+
+    private static func makeCallStackTreeDict(_ tree: CallStackTree) -> [String: Any] {
+        let threads = tree.callStackThreads.map { thread -> [String: Any] in
             [
                 "threadAttributed": thread.threadAttributed ?? false,
-                "callStackRootFrames": [self.frameDict(thread.rootFrames.first, tree: diagnostic.callStackTree)]
+                "callStackRootFrames": [self.frameDict(thread.rootFrames.first, tree: tree)]
                     .compactMap { $0 },
             ]
         }
 
         return [
-            "diagnosticMetaData": [
-                "signal": diagnostic.signal ?? 0,
-                "pid": environment.pid.map(Int.init) ?? 0,
-            ],
             "callStackTree": [
                 "callStacks": threads,
             ],
