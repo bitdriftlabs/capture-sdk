@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.10...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.11...HEAD
 
 ### Both
 
@@ -21,7 +21,7 @@
 
 **Added**
 
-- Added Datadog trace propagation support for automatic network tracing.
+- Nothing yet!
 
 **Changed**
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Improving performance of Capture.Logger.start call
+- Nothing yet!
 
 ### iOS
 
@@ -44,6 +44,25 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.11]
+[0.23.11]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.11
+
+### Android
+
+**Added**
+
+- Added Datadog trace propagation support for automatic network tracing.
+
+**Fixed**
+
+- Improving performance of Capture.Logger.start call
+
+### iOS
+
+**Added**
+
+- Provided manual and automatic experimental support for WebView instrumentation.
 
 ## [0.23.10]
 [0.23.10]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.10
