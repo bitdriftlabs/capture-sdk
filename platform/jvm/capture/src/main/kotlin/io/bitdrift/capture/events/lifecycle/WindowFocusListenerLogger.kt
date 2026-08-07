@@ -10,6 +10,7 @@ package io.bitdrift.capture.events.lifecycle
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.annotation.UiThread
@@ -32,6 +33,10 @@ import java.util.WeakHashMap
  *
  * Window focus is lost the instant the app switcher, the Home screen or any other window takes
  * over, which is the earliest signal available globally without any integrator side changes.
+ *
+ * Focus is also lost for reasons that have nothing to do with the app leaving the foreground, so
+ * the number of currently resumed activities is used to tell the whole-app case apart from those.
+ * See [onWindowFocusChanged].
  *
  * This will be a no-op when the `client_feature.android.window_focus_flushing` kill switch is
  * disabled.
@@ -74,6 +79,17 @@ internal class WindowFocusListenerLogger(
      * the thread that owns the view hierarchy. The work done here is cheap enough to run inline
      * (a runtime snapshot lookup and a non-blocking send over to the Rust logger), and doing so
      * avoids losing the race against the process being killed that a thread hop would introduce.
+     *
+     * Losing focus on its own doesn't prove the app is leaving the foreground: it also happens when
+     * another activity of the same app is launched, when a dialog or the IME opens and when the
+     * notification shade is pulled down. Those can't be filtered out here, because the window loses
+     * focus *before* `onPause` is dispatched, so at this point there is no way to tell yet whether
+     * another activity is about to take over or the app is going away entirely. Waiting for that
+     * answer gives up the head start this listener exists to buy.
+     *
+     * Flushing unconditionally is the deliberate trade: a redundant flush costs a non-blocking send
+     * over to the Rust logger, a missed one costs the logs of a process killed from the app
+     * switcher.
      */
     @UiThread
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -81,13 +97,16 @@ internal class WindowFocusListenerLogger(
             return
         }
 
-        // TODO(murki): BIT-XXXX Debounce these flushes. Window focus is also lost for transient
-        //  reasons (notification shade, permission dialogs, in-app dialogs, multi-window) so
-        //  without a rate limit a single session can trigger a lot of redundant flushes.
+        // TODO(murki): BIT-XXXX Rate limit these flushes. Note a resumed-activity count does not
+        //  work as a filter here (verified on device): focus loss is dispatched before `onPause`,
+        //  so backgrounding still looks like it has a resumed activity at this point. A time based
+        //  limit that flushes first and suppresses repeats afterwards is the workable shape.
         if (!runtime.isEnabled(RuntimeFeature.WINDOW_FOCUS_FLUSHING)) {
+            Log.w(DEBUG_TAG, "window focus lost but the kill switch is disabled, skipping flush")
             return
         }
 
+        Log.w(DEBUG_TAG, "window focus lost, flushing logger")
         logger.flush(false)
     }
 
@@ -124,15 +143,15 @@ internal class WindowFocusListenerLogger(
     }
 
     override fun onActivityResumed(activity: Activity) {
-        // no-op
+        Log.w(DEBUG_TAG, "onActivityResumed ${activity.javaClass.simpleName}")
     }
 
     override fun onActivityPaused(activity: Activity) {
-        // no-op
+        Log.w(DEBUG_TAG, "onActivityPaused ${activity.javaClass.simpleName}")
     }
 
     override fun onActivityStopped(activity: Activity) {
-        // no-op
+        Log.w(DEBUG_TAG, "onActivityStopped ${activity.javaClass.simpleName}")
     }
 
     override fun onActivitySaveInstanceState(
@@ -148,6 +167,12 @@ internal class WindowFocusListenerLogger(
         if (viewTreeObserver.isAlive) {
             viewTreeObserver.removeOnWindowFocusChangeListener(this@WindowFocusListenerLogger)
         }
+    }
+
+    private companion object {
+        // TODO(murki): BIT-XXXX Remove this temporary on-device debugging aid, and the lifecycle
+        //  logging in the callbacks above, before shipping.
+        private const val DEBUG_TAG = "miguel-flush-focus"
     }
 }
 

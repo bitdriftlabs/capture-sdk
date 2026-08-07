@@ -21,6 +21,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
@@ -93,6 +94,17 @@ class WindowFocusListenerLoggerTest {
     }
 
     @Test
+    fun onWindowFocusChanged_withSameActivityStartedTwice_shouldFlushLoggerOnce() {
+        windowFocusListenerLogger.start()
+        val controller = buildActivity()
+        controller.pause().stop().start()
+
+        controller.windowFocusChanged(false)
+
+        verify(logger, times(1)).flush(eq(false))
+    }
+
+    @Test
     fun onActivityDestroyed_withTrackedActivity_shouldStopTrackingActivity() {
         windowFocusListenerLogger.start()
         val controller = buildActivity()
@@ -113,8 +125,13 @@ class WindowFocusListenerLoggerTest {
         assertThat(windowFocusListenerLogger.trackedRootViews).isEmpty()
     }
 
+    /**
+     * The window loses focus before `onPause` runs, so the activity is still resumed at this point.
+     * Flushing has to happen anyway: this is the app switcher / Home case, and anything that waits
+     * for `onPause` to confirm it gives up the head start this listener exists to buy.
+     */
     @Test
-    fun onWindowFocusChanged_withRealActivityFocusLoss_shouldFlushLogger() {
+    fun onWindowFocusChanged_withStillResumedActivity_shouldFlushLogger() {
         windowFocusListenerLogger.start()
         val controller = buildActivity()
 

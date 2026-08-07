@@ -10,6 +10,7 @@ package io.bitdrift.capture.events.lifecycle
 import android.app.ActivityManager
 import android.app.ApplicationStartInfo
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -62,6 +63,7 @@ internal class AppLifecycleListenerLogger(
         source: LifecycleOwner,
         event: Lifecycle.Event,
     ) {
+        Log.w("miguel-flush-lc", "onStateChanged=$event")
         executor.execute {
             if (!runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)) {
                 return@execute
@@ -80,7 +82,9 @@ internal class AppLifecycleListenerLogger(
                 fields.toFields(),
             ) { "${lifecycleEventNames[event]}" }
 
+            // TODO(murki): BIT-XXXX Consider removing this flush altogether in lieu of [WindowFocusLListenerLogger] logic
             if (event == Lifecycle.Event.ON_STOP) {
+                Log.w("miguel-flush-lc", "Performing FLUSH")
                 logger.flush(false)
             }
         }
