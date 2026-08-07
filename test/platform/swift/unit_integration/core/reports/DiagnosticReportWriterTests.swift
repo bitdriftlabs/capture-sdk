@@ -191,7 +191,7 @@ private extension DiagnosticReportWriterTests {
                 "binaryName": "TestBinary",
                 "address": UInt64(7_170_766_264),
                 "subFrames": [],
-            ],],
+            ], ],
         ]
     }
 
