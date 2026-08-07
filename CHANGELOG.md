@@ -62,7 +62,7 @@
 
 **Added**
 
-- TBF
+- Provide manual and automatic experimental support for WebView instrumentation.
 
 ## [0.23.10]
 [0.23.10]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.10
