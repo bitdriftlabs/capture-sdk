@@ -29,6 +29,7 @@ import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
 import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
+import io.bitdrift.capture.events.lifecycle.WindowFocusListenerLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.JankStatsMonitor
@@ -290,6 +291,8 @@ internal class LoggerImpl(
         )
 
         addJankStatsMonitorTarget(windowManager, context)
+
+        addWindowFocusListenerTarget(context)
 
         appExitLogger =
             AppExitLogger(
@@ -768,6 +771,20 @@ internal class LoggerImpl(
             }
         } else {
             errorHandler.handleError("Couldn't start JankStatsMonitor. Invalid application provided")
+        }
+    }
+
+    private fun addWindowFocusListenerTarget(context: Context) {
+        if (context is Application) {
+            eventsListenerTarget.add(
+                WindowFocusListenerLogger(
+                    context,
+                    this,
+                    runtime,
+                ),
+            )
+        } else {
+            errorHandler.handleError("Couldn't start WindowFocusListenerLogger. Invalid application provided")
         }
     }
 

@@ -44,6 +44,11 @@ sealed class RuntimeFeature(
     data object APP_EXIT_EVENTS : RuntimeFeature("client_feature.android.application_exit_reporting", defaultValue = true)
 
     /**
+     * Whether the logger should be flushed when the app's window loses focus.
+     */
+    data object WINDOW_FOCUS_FLUSHING : RuntimeFeature("client_feature.android.window_focus_flushing", defaultValue = true)
+
+    /**
      * Whether data disk usage should be reported as part of resource utilization logs.
      */
     data object DISK_USAGE_FIELDS : RuntimeFeature("client_feature.android.disk_usage_reporting", defaultValue = true)

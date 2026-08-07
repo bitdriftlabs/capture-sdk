@@ -21,7 +21,9 @@
 
 **Added**
 
-- Nothing yet!
+- Flush the logger as soon as the app's window loses focus, so that logs are persisted before the
+  app switcher transition completes instead of waiting for the debounced `ON_STOP` lifecycle event.
+  Controlled by the `client_feature.android.window_focus_flushing` kill switch.
 
 **Changed**
 
