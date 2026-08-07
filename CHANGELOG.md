@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Start ingesting ANR reports that don't have a full stacktrace available (e.g. Having a null traceInputStream from ApplicationExitInfo)
 
 ### iOS
 
