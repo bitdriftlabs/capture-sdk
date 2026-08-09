@@ -56,7 +56,7 @@ Useful Bazel targets for this folder:
 iOS:
 
 ```bash
-./bazelw test //test/platform/swift/unit_integration/core:test --config ios
+./bazelw test //test/platform/swift/unit_integration/core:test
 make xcframework
 ```
 
