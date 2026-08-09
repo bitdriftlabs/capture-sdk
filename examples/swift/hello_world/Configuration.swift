@@ -12,6 +12,7 @@ final class Configuration: ObservableObject {
     @Published var apiURL: String
     @Published var apiKey: String
     @Published var fixedSessionStrategy: Bool
+    @Published var inactivityThresholdMins: String
     @Published var webViewManualInstrumentation: Bool
 
     private var subscriptions = Set<AnyCancellable>()
@@ -36,10 +37,20 @@ final class Configuration: ObservableObject {
         set { UserDefaults.standard.setValue(newValue, forKey: "fixedSessionStrategy") }
     }
 
+    static var storedInactivityThresholdMins: String {
+        get { UserDefaults.standard.string(forKey: "inactivityThresholdMins") ?? "30" }
+        set { UserDefaults.standard.setValue(newValue, forKey: "inactivityThresholdMins") }
+    }
+
+    static var resolvedInactivityThresholdMins: Int {
+        Int(Self.storedInactivityThresholdMins) ?? 30
+    }
+
     init() {
         self.apiURL = Self.storedAPIURL
         self.apiKey = Self.storedAPIKey ?? ""
         self.fixedSessionStrategy = Self.storedFixedSessionStrategy
+        self.inactivityThresholdMins = Self.storedInactivityThresholdMins
         self.webViewManualInstrumentation = Self.storedWebViewManualInstrumentation
 
         $apiURL
@@ -50,6 +61,9 @@ final class Configuration: ObservableObject {
             .store(in: &self.subscriptions)
         $fixedSessionStrategy
             .sink(receiveValue: { Self.storedFixedSessionStrategy = $0 })
+            .store(in: &self.subscriptions)
+        $inactivityThresholdMins
+            .sink(receiveValue: { Self.storedInactivityThresholdMins = $0 })
             .store(in: &self.subscriptions)
         $webViewManualInstrumentation
             .sink(receiveValue: { Self.storedWebViewManualInstrumentation = $0 })

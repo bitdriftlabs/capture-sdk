@@ -100,7 +100,7 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
         if Configuration.storedFixedSessionStrategy {
             sessionStrategy = .fixed()
         } else {
-            sessionStrategy = .activityBased(inactivityThresholdMins: 30, onSessionIDChanged: { sessionID in
+            sessionStrategy = .activityBased(inactivityThresholdMins: Configuration.resolvedInactivityThresholdMins, onSessionIDChanged: { sessionID in
                 print("Session changed: \(sessionID)")
             })
         }

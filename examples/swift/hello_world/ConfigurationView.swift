@@ -44,7 +44,16 @@ struct ConfigurationView: View {
                         .font(.footnote)
                         .foregroundColor(Theme.textSecondary)
                 } else {
-                    Text("The session ID changes after 30 minutes without SDK activity and persists across app restarts.")
+                    PanelCard {
+                        PanelInputField(
+                            title: "Inactivity threshold (minutes)",
+                            placeholder: "30",
+                            text: self.$configuration.inactivityThresholdMins
+                        )
+                        .keyboardType(.numberPad)
+                    }
+
+                    Text("The session ID changes after \(Configuration.resolvedInactivityThresholdMins) minutes without SDK activity and persists across app restarts.")
                         .font(.footnote)
                         .foregroundColor(Theme.textSecondary)
                 }

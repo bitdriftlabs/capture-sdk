@@ -35,7 +35,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added a configurable inactivity threshold to the Swift hello-world app's activity-based session strategy.
 
 **Changed**
 
