@@ -42,7 +42,7 @@ void capture_report_error(const char *message);
 logger_id capture_create_logger(
     const char *_Nullable path,
     const char *api_key,
-    id<SessionStrategyProvider> session_strategy_provider,
+    id session_configuration_provider,
     id<MetadataProvider> metadata_provider,
     id<ResourceUtilizationTarget> resource_utilization_target,
     id<SessionReplayTarget> session_replay_target,
@@ -201,7 +201,7 @@ void capture_write_screen_view_log(
  *
  * @param logger_id the logger to use.
  */
-void capture_start_new_session(logger_id logger_id);
+void capture_start_new_session(logger_id logger_id, const void * _Nullable session_id);
 
 /*
  * Returns currently active session id.

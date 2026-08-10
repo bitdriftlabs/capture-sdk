@@ -16,7 +16,7 @@ public protocol Logging {
     var sessionURL: String { get }
 
     /// Initializes a new session within the currently configured logger.
-    func startNewSession()
+    func startNewSession(sessionID: String?)
 
     /// A canonical identifier for a device that remains consistent as long as an application
     /// is not reinstalled.

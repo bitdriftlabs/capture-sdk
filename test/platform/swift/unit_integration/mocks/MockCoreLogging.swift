@@ -89,7 +89,7 @@ extension MockCoreLogging: CoreLogging {
 
     public func start() {}
 
-    public func startNewSession() {}
+    public func startNewSession(sessionID _: String?) {}
 
     public func getSessionID() -> String { "foo" }
 

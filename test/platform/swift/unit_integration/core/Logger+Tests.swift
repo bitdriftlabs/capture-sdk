@@ -14,6 +14,7 @@ extension Logger {
     static func testLogger(
         withAPIKey apiKey: String = "",
         sessionStrategy: SessionStrategy = .fixed(),
+        sessionConfiguration: SessionConfiguration? = nil,
         dateProvider: DateProvider? = nil,
         fieldProviders: [FieldProvider] = [],
         configuration: Configuration = .testConfiguration,
@@ -25,7 +26,7 @@ extension Logger {
                 withAPIKey: apiKey,
                 remoteErrorReporter: nil,
                 configuration: configuration,
-                sessionStrategy: sessionStrategy,
+                sessionStrategy: sessionConfiguration.map(SessionStrategy.configuration) ?? sessionStrategy,
                 dateProvider: dateProvider,
                 fieldProviders: fieldProviders,
                 storageProvider: MockStorageProvider(),

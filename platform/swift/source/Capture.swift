@@ -68,6 +68,29 @@ extension Logger {
         )
     }
 
+    /// Initializes Capture with the canonical session configuration API.
+    ///
+    /// The default configuration starts with an SDK-created UUID and does not rotate sessions due
+    /// to inactivity. See ``SessionConfiguration`` for the session-ID lifecycle contract.
+    @discardableResult
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration = .init(),
+        configuration: Configuration = .init(),
+        fieldProviders: [FieldProvider] = [],
+        dateProvider: DateProvider? = nil,
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
+    ) -> LoggerIntegrator? {
+        self.start(
+            withAPIKey: apiKey,
+            sessionStrategy: .configuration(sessionConfiguration),
+            configuration: configuration,
+            fieldProviders: fieldProviders,
+            dateProvider: dateProvider,
+            startResult: startResult
+        )
+    }
+
     @discardableResult
     static func start(
         withAPIKey apiKey: String,
@@ -104,10 +127,14 @@ extension Logger {
         return Self.getShared()?.sessionURL
     }
 
-    /// Initializes a new session within the currently configured logger.
-    /// The logger must be started before this operation for it to take effect.
-    public static func startNewSession() {
-        Self.getShared()?.startNewSession()
+    /// Creates a new session within the currently configured logger.
+    ///
+    /// A non-`nil` `sessionID` becomes the new session ID. When `sessionID` is `nil`, Capture
+    /// generates a UUID regardless of how the previous session was established. This always
+    /// creates a session boundary, even if `sessionID` equals the current ID. The logger must be
+    /// started before this operation for it to take effect.
+    public static func startNewSession(sessionID: String? = nil) {
+        Self.getShared()?.startNewSession(sessionID: sessionID)
     }
 
     /// A canonical identifier for a device that remains consistent as long as an application

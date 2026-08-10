@@ -1,32 +1,48 @@
 // capture-sdk - bitdrift's client SDK
 // Copyright Bitdrift, Inc. All rights reserved.
-//
-// Use of this source code is governed by a source available license that can be found in the
-// LICENSE file or at:
-// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.capture.providers.session
 
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
 
-internal sealed class SessionStrategyConfiguration {
-    data class Fixed(
-        val sessionStrategy: SessionStrategy.Fixed,
-    ) : SessionStrategyConfiguration() {
+/** JNI-facing representation of [SessionConfiguration]. */
+internal open class SessionStrategyConfiguration(
+    private val initialSessionId: String?,
+    private val inactivityTimeoutMins: Long?,
+    private val onSessionIdChanged: ((String) -> Unit)?,
+    private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+) {
+    fun initialSessionId(): String? = initialSessionId
+
+    /** A negative value means activity-based refresh is disabled. */
+    fun inactivityTimeoutMins(): Long = inactivityTimeoutMins ?: -1L
+
+    fun sessionIdChanged(sessionId: String) {
+        mainThreadHandler.run {
+            onSessionIdChanged.invokeCatchingOrThrowOnDebug(sessionId)
+        }
+    }
+
+    /** Deprecated bridge adapter retained for source compatibility. */
+    class Fixed(
+        private val sessionStrategy: SessionStrategy.Fixed,
+    ) : SessionStrategyConfiguration(
+        initialSessionId = null,
+        inactivityTimeoutMins = null,
+        onSessionIdChanged = null,
+    ) {
         fun generateSessionId(): String = sessionStrategy.sessionIdGenerator()
     }
 
-    data class ActivityBased(
-        val sessionStrategy: SessionStrategy.ActivityBased,
-        val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-    ) : SessionStrategyConfiguration() {
-        fun inactivityThresholdMins(): Long = sessionStrategy.inactivityThresholdMins
-
-        fun sessionIdChanged(sessionId: String) {
-            mainThreadHandler.run {
-                sessionStrategy.onSessionIdChanged.invokeCatchingOrThrowOnDebug(sessionId)
-            }
-        }
-    }
+    /** Deprecated bridge adapter retained for source compatibility. */
+    class ActivityBased(
+        private val sessionStrategy: SessionStrategy.ActivityBased,
+        mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    ) : SessionStrategyConfiguration(
+        initialSessionId = null,
+        inactivityTimeoutMins = sessionStrategy.inactivityThresholdMins,
+        onSessionIdChanged = sessionStrategy.onSessionIdChanged,
+        mainThreadHandler = mainThreadHandler,
+    )
 }

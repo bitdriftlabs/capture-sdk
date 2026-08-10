@@ -11,6 +11,7 @@ import Foundation
 
 /// Describes the strategy to use for session management.
 public enum SessionStrategy {
+    case configuration(SessionConfiguration)
     /// A session strategy that never expires the session ID but does not survive process restart.
     ///
     /// The initial session ID is retrieved by calling the passed closure.
@@ -42,8 +43,18 @@ public enum SessionStrategy {
 }
 
 extension SessionStrategy {
-    func makeSessionStrategyProvider() -> SessionStrategyProvider {
-        SessionStrategyConfiguration(sessionStrategy: self)
+    func makeSessionConfiguration() -> SessionConfiguration {
+        switch self {
+        case let .configuration(configuration):
+            configuration
+        case let .fixed(sessionIDGenerator):
+            SessionConfiguration(initialSessionID: sessionIDGenerator())
+        case let .activityBased(inactivityThresholdMins, onSessionIDChanged):
+            SessionConfiguration(
+                inactivityTimeout: TimeInterval(inactivityThresholdMins * 60),
+                onSessionIDChanged: onSessionIDChanged
+            )
+        }
     }
 }
 
@@ -60,6 +71,10 @@ extension SessionStrategyConfiguration: SessionStrategyProvider {
     @objc
     func sessionIDChanged(_ sessionID: String) {
         switch self.underlyingSessionStrategy {
+        case let .configuration(configuration):
+            DispatchQueue.main.async {
+                configuration.onSessionIDChanged?(sessionID)
+            }
         case .fixed:
             assertionFailure("sessionChanged should not be called on fixed session strategy")
         case let .activityBased(_, onSessionChanged):
@@ -72,6 +87,9 @@ extension SessionStrategyConfiguration: SessionStrategyProvider {
     @objc
     func generateSessionID() -> String {
         switch self.underlyingSessionStrategy {
+        case .configuration:
+            assertionFailure("generateSessionID should not be called on SessionConfiguration")
+            return UUID().uuidString
         case let .fixed(sessionIDGenerator):
             return sessionIDGenerator()
         case .activityBased:
@@ -83,6 +101,8 @@ extension SessionStrategyConfiguration: SessionStrategyProvider {
     @objc
     func inactivityThresholdMins() -> Int {
         switch self.underlyingSessionStrategy {
+        case let .configuration(configuration):
+            return Int((configuration.inactivityTimeout ?? 0) / 60)
         case .fixed:
             assertionFailure("inactivityThresholdMins should not be called on fixed session strategy")
             return 30
@@ -93,7 +113,11 @@ extension SessionStrategyConfiguration: SessionStrategyProvider {
 
     @objc
     func sessionStrategyType() -> CapturePassable.SessionStrategyType {
-        switch self.underlyingSessionStrategy {
+        return switch self.underlyingSessionStrategy {
+        case let .configuration(configuration):
+            configuration.inactivityTimeout == nil
+                ? CapturePassable.SessionStrategyType.fixed
+                : CapturePassable.SessionStrategyType.activityBased
         case .fixed:
             CapturePassable.SessionStrategyType.fixed
         case .activityBased:

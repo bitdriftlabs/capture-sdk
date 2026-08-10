@@ -88,6 +88,24 @@ public final class Logger {
         )
     }
 
+    convenience init?(
+        withAPIKey apiKey: String,
+        configuration: Configuration,
+        sessionConfiguration: SessionConfiguration = .init(),
+        dateProvider: DateProvider?,
+        fieldProviders: [FieldProvider],
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
+    ) {
+        self.init(
+            withAPIKey: apiKey,
+            configuration: configuration,
+            sessionStrategy: .configuration(sessionConfiguration),
+            dateProvider: dateProvider,
+            fieldProviders: fieldProviders,
+            loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+        )
+    }
+
     // swiftlint:disable function_body_length
     /// Internal constructor shared between the public convenience initializers and tests. Generally
     /// production apps would not pass in a bufferDirectory, it would default to the Capture default.
@@ -419,8 +437,13 @@ extension Logger: Logging {
         (self.underlyingLogger as? CoreLogger)?.isTracingActive == true
     }
 
-    public func startNewSession() {
-        self.underlyingLogger.startNewSession()
+    /// Creates a new session.
+    ///
+    /// A non-`nil` `sessionID` becomes the new session ID. When `sessionID` is `nil`, Capture
+    /// generates a UUID regardless of how the previous session was established. This always
+    /// creates a session boundary, even if `sessionID` equals the current ID.
+    public func startNewSession(sessionID: String? = nil) {
+        self.underlyingLogger.startNewSession(sessionID: sessionID)
     }
 
     public var deviceID: String {

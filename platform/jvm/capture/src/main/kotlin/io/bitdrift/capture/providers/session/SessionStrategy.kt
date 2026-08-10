@@ -13,6 +13,9 @@ import java.util.UUID
  * Describes the strategy to use for session management.
  */
 sealed class SessionStrategy {
+    internal data class Configuration(
+        val configuration: SessionConfiguration,
+    ) : SessionStrategy()
     /**
      * A session strategy that never expires the session ID but does not survive process restart.
      *
@@ -53,7 +56,18 @@ sealed class SessionStrategy {
 
     internal fun createSessionStrategyConfiguration(): SessionStrategyConfiguration =
         when (this) {
-            is Fixed -> SessionStrategyConfiguration.Fixed(this)
-            is ActivityBased -> SessionStrategyConfiguration.ActivityBased(this)
+            is Configuration -> configuration.createSessionStrategyConfiguration()
+            is Fixed ->
+                SessionStrategyConfiguration(
+                    initialSessionId = sessionIdGenerator(),
+                    inactivityTimeoutMins = null,
+                    onSessionIdChanged = null,
+                )
+            is ActivityBased ->
+                SessionStrategyConfiguration(
+                    initialSessionId = null,
+                    inactivityTimeoutMins = inactivityThresholdMins,
+                    onSessionIdChanged = onSessionIdChanged,
+                )
         }
 }

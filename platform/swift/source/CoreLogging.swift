@@ -118,7 +118,7 @@ protocol CoreLogging: AnyObject {
     func logScreenView(screenName: String)
 
     /// Stars new session using configured session strategy.
-    func startNewSession()
+    func startNewSession(sessionID: String?)
 
     /// Returns currently active session ID.
     ///

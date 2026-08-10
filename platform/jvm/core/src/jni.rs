@@ -957,11 +957,21 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_destroyLogger(
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSession(
-  _env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
+  session_id: JString<'_>,
 ) {
-  with_handle_unexpected(|| logger_id.start_new_session(), "jni start new session");
+  with_handle_unexpected(
+    || {
+      let session_id = (!session_id.is_null())
+        .then(|| unsafe { env.get_string_unchecked(&session_id) })
+        .transpose()?
+        .map(Into::into);
+      logger_id.start_new_session_with_id(session_id)
+    },
+    "jni start new session",
+  );
 }
 
 #[unsafe(no_mangle)]

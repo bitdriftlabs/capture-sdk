@@ -10,7 +10,6 @@ package io.bitdrift.capture.providers.session
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
-import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ContextHolder
@@ -24,6 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.util.UUID
+import kotlin.time.Duration.Companion.minutes
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
@@ -36,36 +36,43 @@ class SessionStrategyTest {
     }
 
     @Test
-    fun fixedSessionStrategy() {
-        val generatedSessionIds = mutableListOf<String>()
+    fun sessionConfigurationUsesSeededAndSdkGeneratedIds() {
+        val observedSessionIds = mutableListOf<String>()
+        val initialSessionId = "initial-session"
+        val explicitSessionId = "explicit-session"
 
-        Capture.Logger.start(
+        val logger =
+            LoggerImpl(
             apiKey = "test",
             apiUrl = testServerUrl(),
             fieldProviders = listOf(),
             dateProvider = mock(),
             context = ContextHolder.APP_CONTEXT,
             sessionStrategy =
-                SessionStrategy.Fixed {
-                    val sessionId = UUID.randomUUID().toString()
-                    generatedSessionIds.add(sessionId)
-                    sessionId
-                },
+                SessionStrategy.Configuration(
+                    SessionConfiguration(
+                        initialSessionId = initialSessionId,
+                        onSessionIdChanged = observedSessionIds::add,
+                    ),
+                ),
             configuration = Configuration(),
+            preferences = mock(),
         )
 
-        val logger = Capture.logger()
-        val sessionId = logger?.sessionId
+        assertThat(logger.sessionId).isEqualTo(initialSessionId)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(observedSessionIds).containsExactly(initialSessionId)
 
-        assertThat(generatedSessionIds.count()).isEqualTo(1)
-        assertThat(generatedSessionIds[0]).isEqualTo(sessionId)
+        logger.startNewSession(explicitSessionId)
+        assertThat(logger.sessionId).isEqualTo(explicitSessionId)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(observedSessionIds).containsExactly(initialSessionId, explicitSessionId)
 
-        logger?.startNewSession()
-        val newSessionId = logger?.sessionId
-
-        assertThat(generatedSessionIds.count()).isEqualTo(2)
-        assertThat(generatedSessionIds[1]).isEqualTo(newSessionId)
-        assertThat(sessionId).isNotEqualTo(newSessionId)
+        logger.startNewSession()
+        val sdkGeneratedSessionId = logger.sessionId
+        UUID.fromString(sdkGeneratedSessionId)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(observedSessionIds).containsExactly(initialSessionId, explicitSessionId, sdkGeneratedSessionId)
     }
 
     @Test
@@ -80,9 +87,12 @@ class SessionStrategyTest {
                 dateProvider = mock(),
                 context = ContextHolder.APP_CONTEXT,
                 sessionStrategy =
-                    SessionStrategy.ActivityBased {
-                        observedSessionId = it
-                    },
+                    SessionStrategy.Configuration(
+                        SessionConfiguration(
+                            inactivityTimeout = 30.minutes,
+                            onSessionIdChanged = { observedSessionId = it },
+                        ),
+                    ),
                 configuration = Configuration(),
                 preferences = mock(),
             )
@@ -110,9 +120,12 @@ class SessionStrategyTest {
                 dateProvider = mock(),
                 context = ContextHolder.APP_CONTEXT,
                 sessionStrategy =
-                    SessionStrategy.ActivityBased {
-                        callbackLooper = Looper.myLooper()
-                    },
+                    SessionStrategy.Configuration(
+                        SessionConfiguration(
+                            inactivityTimeout = 30.minutes,
+                            onSessionIdChanged = { callbackLooper = Looper.myLooper() },
+                        ),
+                    ),
                 configuration = Configuration(),
                 preferences = mock(),
             )
@@ -127,17 +140,17 @@ class SessionStrategyTest {
         var observedSessionId: String? = null
         var callbackLooper: Looper? = null
         val newSessionId = "test-session-123"
-        val activityBasedConfig =
-            SessionStrategyConfiguration.ActivityBased(
-                sessionStrategy =
-                    SessionStrategy.ActivityBased { sessionId ->
-                        observedSessionId = sessionId
-                        callbackLooper = Looper.myLooper()
-                    },
+        val sessionConfiguration =
+            SessionConfiguration(
+                onSessionIdChanged = { sessionId ->
+                    observedSessionId = sessionId
+                    callbackLooper = Looper.myLooper()
+                },
             )
+        val bridgeConfiguration = sessionConfiguration.createSessionStrategyConfiguration()
 
         // Call from a background thread to simulate the bd-tokio/JNI thread invoking the callback.
-        Thread { activityBasedConfig.sessionIdChanged(newSessionId) }.apply {
+        Thread { bridgeConfiguration.sessionIdChanged(newSessionId) }.apply {
             start()
             join()
         }

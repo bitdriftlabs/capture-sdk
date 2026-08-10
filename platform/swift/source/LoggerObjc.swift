@@ -114,6 +114,20 @@ public final class LoggerObjc: NSObject {
             )
     }
 
+    /// Initializes Capture with the canonical session configuration API.
+    ///
+    /// See `CAPSessionConfiguration` for the session-ID lifecycle and callback guarantees.
+    @objc(startWithAPIKey:sessionConfiguration:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfigurationObjc
+    ) {
+        Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration.underlyingConfiguration
+        )
+    }
+
     /// Initializes the Capture SDK with the specified API key and session strategy.
     /// Calling other SDK methods has no effect unless the logger has been initialized.
     /// Subsequent calls to this function will have no effect.
@@ -284,11 +298,18 @@ public final class LoggerObjc: NSObject {
         return Capture.Logger.getSdkStatus()
     }
 
-    /// Defines the initialization of a new session within the current configured logger.
+    /// Creates a new session with an SDK-created UUID within the current configured logger.
     /// If no logger is configured, this is a no-op.
     @objc
     public static func startNewSession() {
         Capture.Logger.startNewSession()
+    }
+
+    /// Creates a new session with the supplied ID. This always creates a session boundary, even
+    /// when the ID equals the current one.
+    @objc(startNewSessionWithSessionID:)
+    public static func startNewSession(sessionID: String?) {
+        Capture.Logger.startNewSession(sessionID: sessionID)
     }
 
     /// Logs a trace level message to the default logger instance.

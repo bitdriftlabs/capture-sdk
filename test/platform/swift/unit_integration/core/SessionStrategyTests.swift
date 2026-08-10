@@ -15,40 +15,48 @@ final class SessionStrategyTests: XCTestCase {
         Storage.shared.clear()
     }
 
-    func testFixedSessionStrategy() throws {
-        var generatedSessionIDs = [String]()
+    func testSessionConfigurationUsesSeededAndSDKGeneratedIDs() throws {
+        let initialSessionID = "initial-session"
+        let explicitSessionID = "explicit-session"
+        var observedSessionIDs = [String]()
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            sessionStrategy: SessionStrategy.fixed {
-                let sessionID = UUID().uuidString
-                generatedSessionIDs.append(sessionID)
-                return sessionID
-            }
+            sessionConfiguration: SessionConfiguration(
+                initialSessionID: initialSessionID,
+                onSessionIDChanged: { observedSessionIDs.append($0) }
+            )
         )
 
-        let sessionID = logger.sessionID
+        XCTAssertEqual(initialSessionID, logger.sessionID)
+        let initialCallback = expectation(description: "initial callback")
+        DispatchQueue.main.async {
+            XCTAssertEqual([initialSessionID], observedSessionIDs)
+            initialCallback.fulfill()
+        }
+        wait(for: [initialCallback], timeout: 1)
 
-        XCTAssertEqual(1, generatedSessionIDs.count)
-        XCTAssertEqual(sessionID, generatedSessionIDs[0])
+        logger.startNewSession(sessionID: explicitSessionID)
+        XCTAssertEqual(explicitSessionID, logger.sessionID)
 
         logger.startNewSession()
-
-        XCTAssertEqual(2, generatedSessionIDs.count)
-        XCTAssertEqual(logger.sessionID, generatedSessionIDs[1])
+        XCTAssertNotNil(UUID(uuidString: logger.sessionID))
     }
 
-    func testActivityBasedSessionStrategy() throws {
+    func testActivityBasedSessionConfiguration() throws {
         let expectation = self.expectation(description: "onSessionIDChange called")
         var observedSessionID: String?
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            sessionStrategy: SessionStrategy.activityBased { sessionID in
-                dispatchPrecondition(condition: .onQueue(.main))
-                observedSessionID = sessionID
-                expectation.fulfill()
-            }
+            sessionConfiguration: SessionConfiguration(
+                inactivityTimeout: 30 * 60,
+                onSessionIDChanged: { sessionID in
+                    dispatchPrecondition(condition: .onQueue(.main))
+                    observedSessionID = sessionID
+                    expectation.fulfill()
+                }
+            )
         )
 
         let sessionID = logger.sessionID

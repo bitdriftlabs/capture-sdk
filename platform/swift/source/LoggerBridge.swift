@@ -98,7 +98,7 @@ final class LoggerBridge: LoggerBridging {
         let loggerID = capture_create_logger(
             bufferDirectoryPath,
             apiKey,
-            sessionStrategy.makeSessionStrategyProvider(),
+            sessionStrategy.makeSessionConfiguration().makeSessionConfigurationProvider(),
             metadataProvider,
             resourceUtilizationTarget,
             sessionReplayTarget,
@@ -234,8 +234,8 @@ final class LoggerBridge: LoggerBridging {
         capture_write_screen_view_log(self.loggerID, screenName)
     }
 
-    func startNewSession() {
-        capture_start_new_session(self.loggerID)
+    func startNewSession(sessionID: String? = nil) {
+        capture_start_new_session(self.loggerID, sessionID)
     }
 
     func getSessionID() -> String {
