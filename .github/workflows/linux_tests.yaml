@@ -20,6 +20,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure BuildBuddy cache
+        uses: ./.github/actions/configure-buildbuddy-cache
+        with:
+          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       - name: Set cores to get stored in /cores
         run: |
           sudo mkdir /cores
@@ -30,7 +35,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}
           repository-cache: true
       - name: Attempt to free up runner disk space
         run: |

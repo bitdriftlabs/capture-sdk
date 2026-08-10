@@ -11,6 +11,7 @@
 .claude/settings.local.json
 
 .bazelrc.local
+.buildrc.bb
 
 compile_commands.json
 .DS_Store

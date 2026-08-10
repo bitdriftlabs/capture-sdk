@@ -27,6 +27,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure BuildBuddy cache
+        uses: ./.github/actions/configure-buildbuddy-cache
+        with:
+          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       - name: Check for Bazel build file changes
         id: bazel_check
         run: |
@@ -77,11 +82,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configure BuildBuddy cache
+        uses: ./.github/actions/configure-buildbuddy-cache
+        with:
+          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-${{ github.job }}
           repository-cache: true
 
       - name: "Install dependencies"
@@ -116,11 +125,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configure BuildBuddy cache
+        uses: ./.github/actions/configure-buildbuddy-cache
+        with:
+          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-${{ github.job }}
           repository-cache: true
 
       - name: "Install dependencies"
@@ -143,11 +156,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure BuildBuddy cache
+        uses: ./.github/actions/configure-buildbuddy-cache
+        with:
+          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-${{ github.job }}
           repository-cache: true
 
       - name: Install dependencies
