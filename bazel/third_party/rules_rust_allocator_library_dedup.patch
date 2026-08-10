@@ -1,0 +1,28 @@
+diff --git a/rust/private/rust_allocator_libraries.bzl b/rust/private/rust_allocator_libraries.bzl
+index c23de6a..7645635 100644
+--- a/rust/private/rust_allocator_libraries.bzl
++++ b/rust/private/rust_allocator_libraries.bzl
+@@ -215,6 +215,21 @@ def make_libstd_and_allocator_ccinfo(
+        if std == "std":
++            std_and_allocator_inputs = test_inputs
++            if allocator_library_inputs:
++                # A Rust static allocator library embeds the standard library
++                # built by this toolchain. Preserve any test-specific inputs,
++                # but do not link the individual rlibs too: downstream archive
++                # actions otherwise flatten every custom stdlib member twice.
++                std_and_allocator_inputs = depset(
++                    [
++                        _ltl(f, actions, cc_toolchain, feature_configuration)
++                        for f in rust_stdlib_info.test_files
++                    ],
++                    transitive = allocator_library_inputs,
++                    order = "topological",
++                )
++
+             link_inputs = cc_common.create_linker_input(
+                 owner = rust_std.label,
+-                libraries = test_inputs,
++                libraries = std_and_allocator_inputs,
+             )
+         elif std == "no_std_with_alloc":
+             link_inputs = cc_common.create_linker_input(

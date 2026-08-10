@@ -35,7 +35,7 @@ jobs:
       - name: Check for workflow file changes
         id: workflow_check
         run: |
-          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock ci/ios_app_size_report.sh ci/parse_ios_app_thinning_report.py ci/capture_ios_binary_size.sh ci/extract_embedded_profile_plist.py
+          ./ci/files_changed.sh .github/workflows/ios.yaml MODULE.bazel MODULE.bazel.lock ci/ios_app_size_report.sh ci/parse_ios_app_thinning_report.py ci/capture_ios_binary_size.sh ci/check_ios_xcframework_archive_members.sh ci/extract_embedded_profile_plist.py
         continue-on-error: true
       - name: Determine if tests should run
         id: check_changes_separate
@@ -238,6 +238,8 @@ jobs:
           IOS_CAPTURE_BINARY_PATH: ios_capture_size/Capture.xcframework/ios-arm64/Capture.framework/Capture
         run: |
           set -euo pipefail
+          IOS_CAPTURE_XCFRAMEWORK_ROOT=ios_capture_size/Capture.xcframework \
+            ./ci/check_ios_xcframework_archive_members.sh
           ./ci/capture_ios_binary_size.sh | tee ios_capture_binary_size_output.log
           IOS_CAPTURE_BINARY_SIZE_KB=$(grep '^IOS_CAPTURE_BINARY_SIZE_KB=' ios_capture_binary_size_output.log | cut -d'=' -f2 || true)
           if [ -z "$IOS_CAPTURE_BINARY_SIZE_KB" ]; then

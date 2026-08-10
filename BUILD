@@ -3,6 +3,7 @@ load("@rules_java//java:defs.bzl", "java_binary")
 load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugin", "kt_kotlinc_options")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
 load("@rules_pkg//:pkg.bzl", "pkg_zip")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
     "top_level_targets",
@@ -29,6 +30,13 @@ rewrite_xcframework(
     rewrite_tool = "//bazel/ios:rewrite_symbols",
     visibility = ["//visibility:public"],
     xcframework = "//platform/swift/source:Capture",
+)
+
+sh_test(
+    name = "ios_xcframework_archive_deduplication_test",
+    srcs = ["ci/check_ios_xcframework_archive_members.sh"],
+    data = [":ios_xcframework_with_rust_symbols"],
+    tags = ["macos_only"],
 )
 
 pkg_zip(

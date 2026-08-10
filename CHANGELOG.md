@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Removed duplicate Rust standard-library archive members from the distributed XCFramework.
 
 ## [0.23.11]
 [0.23.11]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.11
