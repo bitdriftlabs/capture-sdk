@@ -35,7 +35,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}
           repository-cache: true
       - name: Attempt to free up runner disk space
         run: |

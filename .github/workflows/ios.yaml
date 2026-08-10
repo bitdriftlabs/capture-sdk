@@ -91,7 +91,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-${{ github.job }}
           repository-cache: true
 
       - name: "Install dependencies"
@@ -135,7 +134,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-${{ github.job }}
           repository-cache: true
 
       - name: "Install dependencies"
@@ -167,7 +165,6 @@ jobs:
         uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-${{ github.job }}
           repository-cache: true
 
       - name: Install dependencies
