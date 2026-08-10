@@ -175,9 +175,7 @@ kt_compiler_plugin(
 xcodeproj(
     name = "xcodeproj",
     bazel_path = "./bazelw",
-    build_mode = "bazel",
     default_xcode_configuration = "Debug",
-    generation_mode = "incremental",
     project_name = "Capture",
     tags = ["manual"],
     top_level_targets = [
