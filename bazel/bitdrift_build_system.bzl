@@ -71,10 +71,7 @@ def bitdrift_rust_library_only(name, srcs, deps = []):
     rust_library(
         name = name,
         srcs = srcs,
-        deps = [
-            # This dependency is required in order to allow clang to link the final binaries. Normally rustc would inject this.
-            "//core/alloc:alloc",
-        ] + deps + all_crate_deps(normal = True),
+        deps = deps + all_crate_deps(normal = True),
         proc_macro_deps = all_crate_deps(
             proc_macro = True,
         ),
@@ -104,10 +101,7 @@ def bitdrift_rust_library(
 
     rust_library(
         name = name,
-        deps = [
-            # This dependency is required in order to allow clang to link the final binaries. Normally rustc would inject this.
-            "//core/alloc:alloc",
-        ] + deps + all_crate_deps(normal = True),
+        deps = deps + all_crate_deps(normal = True),
         srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
         proc_macro_deps = all_crate_deps(
             proc_macro = True,
