@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Include pre-desugar AAR classes in published Android artifacts.
 
 ### iOS
 
