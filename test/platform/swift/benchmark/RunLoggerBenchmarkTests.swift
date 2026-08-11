@@ -11,7 +11,7 @@ import XCTest
 
 final class BenchmarkTests: XCTestCase {
     func testRunBenchmarks() {
-        let profiler = ClockTimeProfiler()
-        profiler.run()
+        let profilder = ClockTimeProfiler()
+        profilder.run()
     }
 }
