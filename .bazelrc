@@ -139,6 +139,10 @@ build:asan --config=fake-nightly
 build:asan --features=address
 build:asan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
 
+# Tweaks what we rely on remote caching for per buidlbuddy instructions
+build --modify_execution_info=^(AppleLipo|BitcodeSymbolsCopy|BundleApp|BundleTreeApp|DsymDwarf|DsymLipo|GenerateAppleSymbolsFile|ObjcBinarySymbolStrip|CppArchive|CppLink|ObjcLink|ProcessAndSign|SignBinary|SwiftArchive|SwiftStdlibCopy)$=+no-remote,^(BundleResources|ImportedDynamicFrameworkProcessor)$=+no-remote-exec
+
+
 try-import %workspace%/tmp/ci-bazelrc
 try-import %workspace%/.bazelrc.local
 try-import %workspace%/.buildrc.bb
