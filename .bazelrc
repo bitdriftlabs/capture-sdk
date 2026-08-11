@@ -11,6 +11,7 @@ build --action_env=CXX --host_action_env=CXX
 build --action_env=LLVM_CONFIG --host_action_env=LLVM_CONFIG
 build --action_env=PATH --host_action_env=PATH
 build --experimental_repository_downloader_retries=3
+build --@protobuf//bazel/flags:prefer_prebuilt_protoc
 
 build --features=debug_prefix_map_pwd_is_dot
 build --features=oso_prefix_is_pwd
@@ -26,12 +27,6 @@ build --features=swift.use_global_module_cache
 # Gate the references to androidndk behind a flag to support building on arm linux.
 build:android --android_crosstool_top=@androidndk//:toolchain
 
-build:ios --config=fake-nightly
-build:ios --config=abort-panic
-# The mangled allocator-libraries mode republishes Rust's stdlib into static framework archives.
-# :rust_allocator_shim emits the same allocator symbols without another stdlib.
-build:_rules_xcodeproj_build --config=ios
-
 build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
 build --@rules_rust//rust/settings:clippy.toml=//:.clippy.toml
 
@@ -45,6 +40,9 @@ build:compdb --config=noclippy
 
 build:noclippy --output_groups=-clippy_checks
 
+# `bazel test //...` should discover and build tests, not every build target that the wildcard
+# happens to match. Targets that are not tests remain available through `bazel build`.
+test --build_tests_only
 test --test_env=RUST_BACKTRACE=full --java_runtime_version=remotejdk_11
 
 # Shared configuration for all CI tasks.
@@ -52,28 +50,17 @@ build:ci --config=clippy
 build:ci --config=force-xcode-version
 build:ci --define build_config=ci
 
-# Common debug configuration for iOS/Android. Used when building examples apps.
-build:dbg-common --compilation_mode=opt
-build:dbg-common --config=abort-panic
-
-build:dbg-ios --config=ios
-build:dbg-ios --config=dbg-common
-
 # Ensure that the output of the `ios_static_framework` rule is a zip as opposed to an unzipped
 # framework. Without this, the output of `ios_static_framework` is a zip when invoked with the use of
 # command line tool and an unzipped framework when invoked with the use of Xcode UI.
 # Ideally we should allow for an unzipped output of `ios_static_framework` so that we can avoid having
 # to zip/unzip framework when building it but for simplicity purposes, we force the output to be always
 # zipped.
-build:rules_xcodeproj --config=dbg-ios
 build:rules_xcodeproj --define=apple.experimental.tree_artifact_outputs=0
 
 # Common release configuration for iOS/Android
 # TODO(mattklein123): Should we be compiling the rust code size optimized?
 build:release-common --compilation_mode=opt
-# TODO(mattklein123): This doesn't work for whatever reason when building tests, but we should be
-# running tests with release settings.
-build:release-common --config=abort-panic
 
 # Size optimizations, codegen-units=1 go along side LTO, which accounts for
 # about 10% reduction; -z has a non-zero smaller impact (a few pp).
@@ -95,7 +82,6 @@ build:release-android --linkopt=-fuse-ld=lld
 build:force-xcode-version --ios_simulator_device="iPhone 17"
 build:force-xcode-version --ios_simulator_version=26.2
 build:force-xcode-version --xcode_version=26.0.1
-build:release-ios --config=ios
 build:release-ios --config=release-common --config=force-xcode-version
 build:release-ios --features=swift.enable_library_evolution
 build:release-ios --features=swift.emit_swiftinterface
@@ -118,12 +104,13 @@ build:nomacos --test_tag_filters=-macos_only --build_tag_filters=-macos_only
 build:benchmark --config=release-common
 build:benchmark-profile --config=benchmark --@rules_rust//rust/settings:extra_rustc_flag='-Cdebuginfo=2' --force_pic
 
-# Specifies that panics should use immediate-abort to match rust-std-mobile's prebuilt std.
-# This requires RUSTC_BOOTSTRAP=1 and -Zunstable-options since immediate-abort is a nightly-only option.
-build:abort-panic --action_env=RUSTC_BOOTSTRAP=1
-build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-Zunstable-options
-build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-C
-build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=immediate-abort
+# Keep bootstrap global, but leave nightly flags opt-in at the individual Rust toolchain. Mobile
+# toolchains receive immediate-abort in MODULE.bazel because their custom std is built that way.
+build --action_env=RUSTC_BOOTSTRAP=1
+
+# Rust 1.95+ mangles the allocator symbols needed when a C++/ObjC linker performs the final link.
+# Use rules_rust's Rust-based shim for every target instead of the obsolete C++ shim.
+build --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
 
 # This attempts to match what cargo-fuzz does, but it's likely a moving target with many options.
 # Occasionally check back to see if anything has changed over there.
