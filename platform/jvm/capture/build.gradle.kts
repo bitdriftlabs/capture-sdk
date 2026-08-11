@@ -68,10 +68,16 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_1_8
-            apiVersion = KotlinVersion.KOTLIN_1_9
-            languageVersion = KotlinVersion.KOTLIN_1_9
+            apiVersion = KotlinVersion.fromVersion("1.9")
+            languageVersion = KotlinVersion.fromVersion("1.9")
             allWarningsAsErrors = true
-            freeCompilerArgs.addAll(listOf("-Xdont-warn-on-error-suppression")) // needed for suppressing INVISIBLE_REFERENCE etc
+            freeCompilerArgs.addAll(
+                listOf(
+                    "-Xdont-warn-on-error-suppression", // needed for suppressing INVISIBLE_REFERENCE etc
+                    // Kotlin 2.3 warns when compiling the SDK's supported 1.9 language level.
+                    "-Xsuppress-version-warnings",
+                ),
+            )
         }
     }
 

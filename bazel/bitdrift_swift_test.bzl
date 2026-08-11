@@ -33,6 +33,9 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
         minimum_os_version = MINIMUM_IOS_VERSION_TESTS,
         timeout = "long",
         tags = tags + [
+            # CI reuses one global simulator; parallel xcodebuild test runs can
+            # cause a runner to exit before it establishes its test connection.
+            "exclusive",
             "no-cache",
             "no-remote",
         ],
