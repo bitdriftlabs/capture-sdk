@@ -2,6 +2,11 @@ load("@rules_cc//cc:objc_library.bzl", "objc_library")
 
 objc_library(
     name = "kscrash_mini",
+    # Prefer binary size in prod. -Os is the recommended value from Apple.
+    copts = select({
+        "@capture-sdk//bazel:opt_build": ["-Os"],
+        "//conditions:default": [],
+    }),
     defines = [
         "KSCRASH_NAMESPACE=_bitdrift",
         ],
