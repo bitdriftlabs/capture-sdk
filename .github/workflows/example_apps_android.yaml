@@ -25,6 +25,11 @@ jobs:
       with:
         ref: ${{ inputs.release-ref || github.ref_name }}
 
+    - name: Configure BuildBuddy cache
+      uses: ./.github/actions/configure-buildbuddy-cache
+      with:
+        api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
     - name: Install JDK 17
       uses: actions/setup-java@v4
       with:

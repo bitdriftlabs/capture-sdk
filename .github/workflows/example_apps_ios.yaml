@@ -29,6 +29,11 @@ jobs:
           ref: ${{ inputs.release-ref || github.ref_name }}
           fetch-depth: 0
 
+      - name: Configure BuildBuddy cache
+        uses: ./.github/actions/configure-buildbuddy-cache
+        with:
+          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh
       - name: Build iOS example apps

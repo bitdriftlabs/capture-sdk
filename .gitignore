@@ -38,4 +38,3 @@ rust-project.json
 /perf.data
 /perf.data.old
 vendor
-platform/jvm/capture/src/main/jniLibs/

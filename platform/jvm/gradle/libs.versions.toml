@@ -25,7 +25,6 @@ performance             = "1.0.0"
 protobufKotlinLite      = "4.31.1"
 retrofit                = "3.0.0"
 robolectric             = "4.13"
-rustAndroidPlugin       = "0.3.4"
 startupRuntime          = "1.2.0"
 timber                  = "5.0.1"
 truth                   = "1.1.4"
@@ -70,4 +69,3 @@ dokka               = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" 
 kotlin              = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-android      = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 maven-publish       = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin" }
-rust-android        = { id = "com.github.willir.rust.cargo-ndk-android", version.ref = "rustAndroidPlugin" }
