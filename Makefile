@@ -105,3 +105,9 @@ test-ts:
 .PHONY: install-ts-deps
 install-ts-deps:
 	npm --prefix ./platform/webview ci
+
+.PHONY: swap-local
+swap-local:
+	./tools/swap_local.sh
+	cargo update
+	./bazelw mod tidy
