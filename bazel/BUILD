@@ -28,6 +28,7 @@ alias(
 )
 
 exports_files([
+    "local_cargo_config.bzl",
     "pom_template.xml",
     "run_fuzzer.sh",
     "test_fuzzer.sh",

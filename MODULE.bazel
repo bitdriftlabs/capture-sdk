@@ -391,6 +391,12 @@ use_repo(rust, "rust_toolchains")
 register_toolchains("@rust_toolchains//:all")
 
 crate = use_extension("@rules_rs//rs:extensions.bzl", "crate")
+
+local_cargo_config = use_repo_rule("//bazel:local_cargo_config.bzl", "local_cargo_config")
+
+local_cargo_config(name = "capture_sdk_local_cargo_config")
+
+crate.config(cargo_config_toml = "@capture_sdk_local_cargo_config//:config.toml")
 crate.from_cargo(
     name = "crates",
     cargo_lock = "//:Cargo.lock",

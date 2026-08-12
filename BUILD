@@ -182,6 +182,7 @@ kt_compiler_plugin(
 
 xcodeproj(
     name = "xcodeproj",
+    bazel_env = {"CAPTURE_SDK_SHARED_CORE": None},
     bazel_path = "./bazelw",
     default_xcode_configuration = "Debug",
     project_name = "Capture",
