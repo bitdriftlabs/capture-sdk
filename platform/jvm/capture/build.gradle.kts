@@ -1,9 +1,10 @@
+import org.gradle.api.Task
+import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.rust.android)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.detekt)
 
@@ -96,71 +97,86 @@ android {
     }
 }
 
-// Rust cargo build toolchain for production library
-cargoNdk {
-    librariesNames = arrayListOf("libcapture.so")
-    extraCargoBuildArguments = arrayListOf("--package", "capture")
+val bazelWorkspace = file("../../..")
+val bazelCaptureLibrary = "//platform/jvm:capture_shared"
 
-    buildTypes {
-        getByName("release") {
-            buildType = "release"
-            extraCargoBuildArguments =
-                arrayListOf(
-                    "--package",
-                    "capture",
-                    "-Z",
-                    "build-std=std,panic_abort",
-                    "-Z",
-                    "build-std-features=optimize_for_size",
-                )
-            // Annoyingly we have to repeat all the flags for the release build as
-            // the RUSTFLAGS values are not added together.
-            // TODO(snowp): See if we can make this a bit better
-            // enable 16 KB ELF alignment on Android to support API 35+
-            extraCargoEnv =
-                mapOf(
-                    "RUSTFLAGS" to
-                            "-Zunstable-options -Cpanic=immediate-abort -C link-args=-Wl,-z,max-page-size=16384,--build-id -C codegen-units=1 -C embed-bitcode -C lto=fat -C opt-level=z",
-                    "RUSTC_BOOTSTRAP" to "1", // Required for using unstable features in the Rust compiler
-                    "SKIP_PROTO_GEN" to "1",
-                )
-        }
-
-        getByName("debug") {
-            buildType = "dev"
-        }
-    }
-
-    module = "../.."
-    targetDirectory = "./target"
-    // Default set for local dev on ARM-based macos
-    targets = arrayListOf("arm64")
-    // enable 16 KB ELF alignment on Android to support API 35+
-    extraCargoEnv =
-        mapOf(
-            "RUSTFLAGS" to "-C link-args=-Wl,-z,max-page-size=16384,--build-id",
-            "RUSTC_BOOTSTRAP" to "1", // Required for using unstable features in the Rust compiler
-            "SKIP_PROTO_GEN" to "1",
-        )
-}
-
-// Detect the current platform and architecture for building the test JNI library
-val osName = System.getProperty("os.name").lowercase()
-val osArch = System.getProperty("os.arch").lowercase()
-
-data class PlatformConfig(
-    val rustTarget: String,
-    val libExtension: String,
+// Keep Gradle's historical cargo-ndk target names so existing local and CI invocations select
+// the corresponding Bazel platform and APK JNI directory together.
+data class BazelAndroidTarget(
+    val platform: String,
+    val abi: String,
 )
 
-val platformConfig =
-    when {
-        osName.contains("mac") && osArch.contains("aarch64") -> PlatformConfig("aarch64-apple-darwin", "dylib")
-        osName.contains("mac") -> PlatformConfig("x86_64-apple-darwin", "dylib")
-        osName.contains("linux") && osArch.contains("aarch64") -> PlatformConfig("aarch64-unknown-linux-gnu", "so")
-        osName.contains("linux") -> PlatformConfig("x86_64-unknown-linux-gnu", "so")
-        else -> throw GradleException("Unsupported platform: $osName $osArch")
+val bazelAndroidTarget =
+    when (val rustTarget = providers.gradleProperty("rust-target").getOrElse("arm64")) {
+        "arm64", "arm64-v8a" -> BazelAndroidTarget("@rules_android//:arm64-v8a", "arm64-v8a")
+        "arm", "armv7", "armeabi-v7a" ->
+            BazelAndroidTarget("@rules_android//:armeabi-v7a", "armeabi-v7a")
+        "x86" -> BazelAndroidTarget("@rules_android//:x86", "x86")
+        "x86_64" -> BazelAndroidTarget("@rules_android//:x86_64", "x86_64")
+        else -> throw GradleException("Unsupported Rust Android target: $rustTarget")
     }
+
+fun registerBazelRustBuild(buildType: String, release: Boolean) =
+    tasks.register<Exec>("buildBazel${buildType.replaceFirstChar(Char::uppercase)}Rust") {
+        description = "Build the $buildType Android Rust library with Bazel"
+        workingDir = bazelWorkspace
+        commandLine(
+            "./bazelw",
+            "build",
+            bazelCaptureLibrary,
+            "--platforms=${bazelAndroidTarget.platform}",
+        )
+        if (release) {
+            args("--config=release-android")
+        }
+    }
+
+fun registerBazelRustCopy(buildType: String, buildTask: TaskProvider<out Task>) =
+    tasks.register<Copy>("copyBazel${buildType.replaceFirstChar(Char::uppercase)}Rust") {
+        dependsOn(buildTask)
+        from(bazelWorkspace.resolve("bazel-bin/platform/jvm/libcapture.so"))
+        into(layout.buildDirectory.dir("generated/jniLibs/$buildType/${bazelAndroidTarget.abi}"))
+
+        // Bazel outputs are read-only. Keep Gradle's generated copy writable so that a later
+        // invocation can replace it after Bazel rebuilds the library.
+        doFirst {
+            destinationDir.resolve("libcapture.so").setWritable(true)
+        }
+        filePermissions {
+            user {
+                read = true
+                write = true
+                execute = true
+            }
+            group {
+                read = true
+                execute = true
+            }
+            other {
+                read = true
+                execute = true
+            }
+        }
+    }
+
+val buildBazelDebugRust = registerBazelRustBuild("debug", release = false)
+val buildBazelReleaseRust = registerBazelRustBuild("release", release = true)
+val copyBazelDebugRust = registerBazelRustCopy("debug", buildBazelDebugRust)
+val copyBazelReleaseRust = registerBazelRustCopy("release", buildBazelReleaseRust)
+
+android.sourceSets {
+    getByName("debug").jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/debug"))
+    getByName("release").jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/release"))
+}
+
+tasks.matching { it.name == "mergeDebugJniLibFolders" }.configureEach {
+    dependsOn(copyBazelDebugRust)
+}
+
+tasks.matching { it.name == "mergeReleaseJniLibFolders" }.configureEach {
+    dependsOn(copyBazelReleaseRust)
+}
 
 // Task to build the test JNI library (combines production + test code)
 // This mirrors the Bazel setup where //test/platform/jvm:capture builds a
@@ -168,28 +184,20 @@ val platformConfig =
 tasks.register<Exec>("buildTestJni") {
     description = "Build the combined test JNI library (production + test helpers)"
 
-    workingDir = file("../../..")
+    workingDir = bazelWorkspace
 
-    // Build the test_jni package which depends on capture-core (rlib) and adds test helpers
+    // Build the Bazel test target, which adds test helpers to the production JNI library.
     commandLine(
-        "cargo",
+        "./bazelw",
         "build",
-        "--package",
-        "test_jni",
-        "--target",
-        platformConfig.rustTarget,
+        "//test/platform/jvm:capture",
     )
-
-    // Clear RUSTFLAGS to use default flags for debug builds
-    environment("RUSTFLAGS", "")
-
-    // Output goes to target/${rustTarget}/debug/libcapture.${libExtension}
 }
 
 // Configure tests to use the test JNI library and build it first
 afterEvaluate {
     tasks.named<Test>("testDebugUnitTest") {
-        val testJniLib = file("../../../target/${platformConfig.rustTarget}/debug")
+        val testJniLib = bazelWorkspace.resolve("bazel-bin/test/platform/jvm")
 
         // Set java.library.path to the test library location
         systemProperty("java.library.path", testJniLib.absolutePath)
@@ -223,7 +231,7 @@ afterEvaluate {
     }
 
     tasks.named<Test>("testReleaseUnitTest") {
-        val testJniLib = file("../../../target/${platformConfig.rustTarget}/debug")
+        val testJniLib = bazelWorkspace.resolve("bazel-bin/test/platform/jvm")
 
         // Set java.library.path to the test library location
         systemProperty("java.library.path", testJniLib.absolutePath)

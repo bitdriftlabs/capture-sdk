@@ -20,6 +20,11 @@ jobs:
       - name: Checkout project sources
         uses: actions/checkout@v4
 
+      - name: Configure BuildBuddy cache
+        uses: ./.github/actions/configure-buildbuddy-cache
+        with:
+          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       - name: 'Install dependencies'
         run: ./ci/mac_ci_setup.sh
       - name: Build CaptureExtensions.xcframework
