@@ -98,8 +98,24 @@ android {
 }
 
 val bazelWorkspace = file("../../..")
-val bazelAndroidPlatform = "@rules_android//:arm64-v8a"
 val bazelCaptureLibrary = "//platform/jvm:capture_shared"
+
+// Keep Gradle's historical cargo-ndk target names so existing local and CI invocations select
+// the corresponding Bazel platform and APK JNI directory together.
+data class BazelAndroidTarget(
+    val platform: String,
+    val abi: String,
+)
+
+val bazelAndroidTarget =
+    when (val rustTarget = providers.gradleProperty("rust-target").getOrElse("arm64")) {
+        "arm64", "arm64-v8a" -> BazelAndroidTarget("@rules_android//:arm64-v8a", "arm64-v8a")
+        "arm", "armv7", "armeabi-v7a" ->
+            BazelAndroidTarget("@rules_android//:armeabi-v7a", "armeabi-v7a")
+        "x86" -> BazelAndroidTarget("@rules_android//:x86", "x86")
+        "x86_64" -> BazelAndroidTarget("@rules_android//:x86_64", "x86_64")
+        else -> throw GradleException("Unsupported Rust Android target: $rustTarget")
+    }
 
 fun registerBazelRustBuild(buildType: String, release: Boolean) =
     tasks.register<Exec>("buildBazel${buildType.replaceFirstChar(Char::uppercase)}Rust") {
@@ -109,7 +125,7 @@ fun registerBazelRustBuild(buildType: String, release: Boolean) =
             "./bazelw",
             "build",
             bazelCaptureLibrary,
-            "--platforms=$bazelAndroidPlatform",
+            "--platforms=${bazelAndroidTarget.platform}",
         )
         if (release) {
             args("--config=release-android")
@@ -120,7 +136,7 @@ fun registerBazelRustCopy(buildType: String, buildTask: TaskProvider<out Task>) 
     tasks.register<Copy>("copyBazel${buildType.replaceFirstChar(Char::uppercase)}Rust") {
         dependsOn(buildTask)
         from(bazelWorkspace.resolve("bazel-bin/platform/jvm/libcapture.so"))
-        into(layout.buildDirectory.dir("generated/jniLibs/$buildType/arm64-v8a"))
+        into(layout.buildDirectory.dir("generated/jniLibs/$buildType/${bazelAndroidTarget.abi}"))
 
         // Bazel outputs are read-only. Keep Gradle's generated copy writable so that a later
         // invocation can replace it after Bazel rebuilds the library.

@@ -393,9 +393,6 @@ jobs:
     - name: Check Licenses for modules
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense
-    - name: Build Microbenchmark target
-      working-directory: ./platform/jvm
-      run: ./gradlew microbenchmark:assembleAndroidTest
     - name: Instrumentation Tests
       uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
       with:
