@@ -119,3 +119,42 @@ index 9baee0e..c7d5aaa 100644
 +    if path_metadata_packages == None:
 +        path_metadata_packages = cargo_metadata["packages"]
 +    dep_paths_by_name = _cargo_metadata_dep_paths_by_name(path_metadata_packages, repo_root)
+diff --git rs/private/cfg_parser.bzl rs/private/cfg_parser.bzl
+--- rs/private/cfg_parser.bzl
++++ rs/private/cfg_parser.bzl
+@@ -157,6 +157,10 @@ def _normalize_arch(arch_raw):
+     if arch_raw.startswith("riscv64"):
+         return "riscv64"
++    if arch_raw == "armv7":
++        return "arm"
++    if arch_raw in ["i386", "i586", "i686"]:
++        return "x86"
+     return arch_raw
+ 
+ def _family_for_os(os_name):
+@@ -221,10 +225,22 @@ def triple_to_cfg_attrs(triple):
+ def triple_to_cfg_attrs(triple):
+    parts = triple.split("-")
+     arch_part = _normalize_arch(_get(parts, 0, ""))
+-    vendor_part = _get(parts, 1, "unknown")
+-    os_raw_part = _get(parts, 2, "none")
+-    env_part = "-".join(parts[3:])
++    # Rust permits triples without a vendor, for example
++    # armv7-linux-androideabi. Treat the OS as the second component in that
++    # form; otherwise cfg(unix) is incorrectly false for Android armv7.
++    known_os = ["linux", "android", "darwin", "ios", "windows", "freebsd", "netbsd", "openbsd", "dragonfly", "solaris", "illumos", "aix", "haiku", "hurd"]
++    if _get(parts, 1, "") in known_os:
++        vendor_part = "unknown"
++        os_raw_part = _get(parts, 1, "none")
++        env_part = "-".join(parts[2:])
++    else:
++        vendor_part = _get(parts, 1, "unknown")
++        os_raw_part = _get(parts, 2, "none")
++        env_part = "-".join(parts[3:])
+     os_norm = _normalize_os(os_raw_part)
++    if os_norm == "linux" and env_part in ["android", "androideabi"]:
++        os_norm = "android"
++        env_part = ""
+     fam = _family_for_arch_and_os(arch_part, os_norm)
+     width = _pointer_width_for_arch(arch_part)
+     endian = _endian_for_arch(arch_part)
