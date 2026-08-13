@@ -8,6 +8,7 @@ build:libunwind --action_env=PATH=/usr/bin
 
 build --experimental_repository_downloader_retries=3
 build --@protobuf//bazel/flags:prefer_prebuilt_protoc
+buidl --experimental_remote_cache_compression
 
 build --features=debug_prefix_map_pwd_is_dot
 build --features=oso_prefix_is_pwd
