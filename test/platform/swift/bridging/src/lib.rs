@@ -25,7 +25,7 @@ mod conversion_tests;
 
 #[ctor::ctor(unsafe)]
 fn setup() {
-  bd_test_helpers::test_global_init();
+  bd_test_helpers_core::test_global_init();
 }
 
 #[no_mangle]

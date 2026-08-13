@@ -29,6 +29,21 @@ make xcframework                    # Build iOS release artifact
 - Android is often easier to run through Gradle but sometimes issues only reproduce through Bazel. platform/jvm/gradlew can be invoked directly (use -p to target the correct directory).
 - `test --build_tests_only` is configured in `.bazelrc`, so wildcard test commands build only test targets rather than unrelated build targets.
 
+### Running One iOS XCTest With Rust Logs
+
+Use `--test_filter` with the XCTest `ClassName/testMethod` identifier. Pass `RUST_LOG` with
+`--test_env`; Bazel forwards it to the simulator test process.
+
+```bash
+./bazelw test //test/platform/swift/unit_integration/core:test \
+	--test_filter='CaptureNetworkTests/testHappyPathWithTimeoutAndReconnect' \
+	--test_env=RUST_LOG='info,bd_api=debug,bd_test_helpers=debug' \
+	--test_output=streamed \
+	--build_tests_only \
+	--config ios \
+	--ios_simulator_device="iPhone 17"
+```
+
 ### Cross-Repo Changes
 
 When a change touches both `shared-core` and `capture-sdk`, use this workflow:
