@@ -17,10 +17,20 @@ use parking_lot::Mutex;
 use std::fs;
 use std::path::Path;
 
-struct NamedThread {
+const KSCRASH_REGISTERS_KEY: &str = "registers";
+const METRICKIT_REGISTERS_KEY: &str = "bitdriftRegisters";
+
+#[derive(Clone)]
+struct CpuRegister {
   name: String,
+  value: u64,
+}
+
+struct NamedThread {
+  name: Option<String>,
   call_stack: Vec<u64>,
   crashed: bool,
+  registers: Vec<CpuRegister>,
 }
 
 type MetricKitThread<'a> = (&'a mut AHashMap<String, Value>, Vec<u64>);
@@ -560,14 +570,16 @@ fn named_threads_from_kscrash_report(
     let Some(call_stack) = call_stack else {
       continue;
     };
+    let registers = extract_registers_from_kscrash_thread(thread)?;
 
-    let Some(Value::String(thread_name)) = thread.get("name") else {
-      continue;
-    };
     named_threads.push(NamedThread {
-      name: thread_name.clone(),
+      name: thread.get("name").and_then(|value| match value {
+        Value::String(name) => Some(name.clone()),
+        _ => None,
+      }),
       call_stack,
       crashed,
+      registers,
     });
   }
 
@@ -598,9 +610,10 @@ fn exact_named_threads_from_kscrash_report(
       continue;
     };
     named_threads.push(NamedThread {
-      name: thread_name.clone(),
+      name: Some(thread_name.clone()),
       call_stack,
       crashed: false,
+      registers: Vec::new(),
     });
   }
 
@@ -642,6 +655,44 @@ fn extract_call_stack_from_kcrash_thread(
   } else {
     Ok(Some(call_stack))
   }
+}
+
+fn extract_registers_from_kscrash_thread(
+  kscrash_thread: &AHashMap<String, Value>,
+) -> anyhow::Result<Vec<CpuRegister>> {
+  let Some(Value::Object(registers)) = kscrash_thread.get(KSCRASH_REGISTERS_KEY) else {
+    return Ok(Vec::new());
+  };
+
+  registers
+    .iter()
+    .map(|(name, value)| {
+      Ok(CpuRegister {
+        name: name.clone(),
+        value: parse_address_value(value)?,
+      })
+    })
+    .collect()
+}
+
+fn inject_registers_into_metrickit_thread(
+  thread: &mut AHashMap<String, Value>,
+  named_thread: &NamedThread,
+) {
+  if named_thread.registers.is_empty() {
+    return;
+  }
+
+  thread.insert(
+    METRICKIT_REGISTERS_KEY.to_string(),
+    Value::Object(
+      named_thread
+        .registers
+        .iter()
+        .map(|register| (register.name.clone(), Value::Unsigned(register.value)))
+        .collect(),
+    ),
+  );
 }
 
 fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
@@ -695,10 +746,9 @@ fn inject_thread_names_into_metrickit_exact(
 
     let matching_thread = &named_threads[matching_thread_index];
     used_named_threads[matching_thread_index] = true;
-    thread.insert(
-      "name".to_string(),
-      Value::String(matching_thread.name.clone()),
-    );
+    if let Some(name) = &matching_thread.name {
+      thread.insert("name".to_string(), Value::String(name.clone()));
+    }
   }
 
   Ok(metrickit_report)
@@ -720,6 +770,7 @@ fn inject_thread_names_into_metrickit_from_base(
 
     if try_assign_crash_thread_name(
       thread,
+      &call_stack,
       named_threads,
       &mut used_named_threads,
       metrickit_crash_threads,
@@ -805,6 +856,7 @@ fn get_metrickit_thread(thread: &mut Value) -> anyhow::Result<Option<MetricKitTh
 
 fn try_assign_crash_thread_name(
   thread: &mut AHashMap<String, Value>,
+  metrickit_call_stack: &[u64],
   named_threads: &[NamedThread],
   used_named_threads: &mut [bool],
   metrickit_crash_threads: usize,
@@ -815,6 +867,14 @@ fn try_assign_crash_thread_name(
 
   let crashed_candidates = crashed_candidate_indices(named_threads, used_named_threads);
   if crashed_candidates.len() != 1 {
+    return false;
+  }
+
+  // Comparing only if the thread is attributed is not enough. Recrashes can end up with two
+  // different threads attributed as the crashing one, so KSCrash will have one and MetricKit will
+  // show another. The address overlap is what confirms the pair.
+  let crashed_thread = &named_threads[crashed_candidates[0]];
+  if !compare_call_stacks_from_base(metrickit_call_stack, &crashed_thread.call_stack).viable() {
     return false;
   }
 
@@ -882,11 +942,12 @@ fn assign_thread_name(
   used_named_threads: &mut [bool],
   matching_thread_index: usize,
 ) {
+  let named_thread = &named_threads[matching_thread_index];
   used_named_threads[matching_thread_index] = true;
-  thread.insert(
-    "name".to_string(),
-    Value::String(named_threads[matching_thread_index].name.clone()),
-  );
+  if let Some(name) = &named_thread.name {
+    thread.insert("name".to_string(), Value::String(name.clone()));
+  }
+  inject_registers_into_metrickit_thread(thread, named_thread);
 }
 
 fn extract_call_stack_from_metrickit_thread(
@@ -1129,6 +1190,88 @@ mod tests {
         Value::String(value) => Some(value.as_str()),
         _ => None,
       })
+  }
+
+  #[test]
+  fn injects_crashed_thread_registers_into_matching_metrickit_thread() {
+    let mut kscrash_thread = make_kscrash_thread(0, Some("main"), &[1, 2, 3], true);
+    kscrash_thread.insert(
+      KSCRASH_REGISTERS_KEY.to_string(),
+      Value::Object(AHashMap::from([
+        ("pc".to_string(), Value::Unsigned(0x1234)),
+        ("sp".to_string(), Value::Unsigned(0x5678)),
+      ])),
+    );
+    let kscrash_report = make_kscrash_report(6, 1, vec![kscrash_thread]);
+    let named_threads = named_threads_from_kscrash_report(&kscrash_report)
+      .unwrap()
+      .unwrap();
+    let metrickit_report =
+      make_metrickit_report(6, 1, vec![make_metrickit_thread(&[1, 2, 3], true)]);
+
+    let enriched =
+      inject_thread_names_into_metrickit_from_base(metrickit_report, &named_threads).unwrap();
+    let registers = enriched
+      .get("callStackTree")
+      .and_then(|value| value.as_object().ok())
+      .and_then(|tree| tree.get("callStacks"))
+      .and_then(|value| value.as_array().ok())
+      .and_then(|threads| threads.first())
+      .and_then(|thread| thread.as_object().ok())
+      .and_then(|thread| thread.get(METRICKIT_REGISTERS_KEY))
+      .and_then(|value| value.as_object().ok())
+      .unwrap();
+
+    assert_eq!(Some(&Value::Unsigned(0x1234)), registers.get("pc"));
+    assert_eq!(Some(&Value::Unsigned(0x5678)), registers.get("sp"));
+  }
+
+  #[test]
+  fn matches_crashing_thread_sharing_stack_base_despite_extra_kscrash_frames() {
+    let kscrash_report = make_kscrash_report(
+      6,
+      1,
+      vec![make_kscrash_thread(
+        0,
+        Some("main"),
+        &[0xAA, 0xBB, 1, 2, 3, 4],
+        true,
+      )],
+    );
+    let named_threads = named_threads_from_kscrash_report(&kscrash_report)
+      .unwrap()
+      .unwrap();
+    let metrickit_report =
+      make_metrickit_report(6, 1, vec![make_metrickit_thread(&[1, 2, 3, 4], true)]);
+
+    let enriched =
+      inject_thread_names_into_metrickit_from_base(metrickit_report, &named_threads).unwrap();
+
+    assert_eq!(Some("main"), metrickit_thread_name(&enriched, 0));
+  }
+
+  #[test]
+  fn rejects_crashing_thread_attributed_to_a_different_stack() {
+    let kscrash_report = make_kscrash_report(
+      6,
+      1,
+      vec![make_kscrash_thread(
+        0,
+        Some("main"),
+        &[90, 91, 92, 93],
+        true,
+      )],
+    );
+    let named_threads = named_threads_from_kscrash_report(&kscrash_report)
+      .unwrap()
+      .unwrap();
+    let metrickit_report =
+      make_metrickit_report(6, 1, vec![make_metrickit_thread(&[1, 2, 3, 4], true)]);
+
+    let enriched =
+      inject_thread_names_into_metrickit_from_base(metrickit_report, &named_threads).unwrap();
+
+    assert_eq!(None, metrickit_thread_name(&enriched, 0));
   }
 
   fn with_cached_report<T>(
