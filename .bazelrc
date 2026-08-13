@@ -6,10 +6,6 @@ mobile-install --config=android
 # We need access to ld in order to build libunwind on Linux
 build:libunwind --action_env=PATH=/usr/bin
 
-build --action_env=CC --host_action_env=CC
-build --action_env=CXX --host_action_env=CXX
-build --action_env=LLVM_CONFIG --host_action_env=LLVM_CONFIG
-build --action_env=PATH --host_action_env=PATH
 build --experimental_repository_downloader_retries=3
 build --@protobuf//bazel/flags:prefer_prebuilt_protoc
 
