@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-archive_tool=$(xcrun --find llvm-ar)
+# This check only lists archive members; use Xcode's supported archive tool.
+archive_tool=$(xcrun --find ar)
 if [[ -n "${IOS_CAPTURE_XCFRAMEWORK_ROOT:-}" ]]; then
   framework_root="$IOS_CAPTURE_XCFRAMEWORK_ROOT"
 else
