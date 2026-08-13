@@ -30,6 +30,7 @@
 **Fixed**
 
 - Include pre-desugar AAR classes in published Android artifacts.
+- Prevent duplicate JVM crash reports when fatal issue reporting initializes after app exit logging.
 
 ### iOS
 
