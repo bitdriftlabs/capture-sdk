@@ -88,15 +88,6 @@ bazel_dep(name = "aspect_rules_js", version = "2.3.8")
 bazel_dep(name = "aspect_rules_ts", version = "3.10.0")
 bazel_dep(name = "llvm", version = "0.8.9")
 
-# The minimal LLVM archive exports its binaries as source files. Make those files visible to the
-# iOS archive-rewrite action while retaining the upstream module's pinned archive definitions.
-single_version_override(
-    module_name = "llvm",
-    patch_strip = 1,
-    patches = ["//bazel/third_party/patches:llvm-public-tool-binaries.patch"],
-    version = "0.8.9",
-)
-
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
