@@ -71,7 +71,6 @@ $(REPORT_KT): ../api/src/bitdrift_public/fbs/issue-reporting/v1/report.fbs ../ap
 .PHONY: xcframework
 xcframework:
 	echo "NOTE: --xcode_version is overridden in .bazelrc"
-	echo "NOTE: Make sure you brew install llvm, and follow its instructions to add it to your PATH."
 	./bazelw build //:ios_dist
 	echo "XCFramework is archived at bazel-bin/Capture.ios.zip"
 

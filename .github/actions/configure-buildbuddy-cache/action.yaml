@@ -29,5 +29,6 @@ runs:
           echo "build --remote_cache=grpcs://remote.buildbuddy.io"
           echo "build --remote_upload_local_results"
           echo "build --remote_cache_compression"
+          echo "startup --experimental_remote_repo_contents_cache"
           printf "build --remote_header=x-buildbuddy-api-key=%s\\n" "$BUILDBUDDY_API_KEY"
         } > .buildrc.bb
