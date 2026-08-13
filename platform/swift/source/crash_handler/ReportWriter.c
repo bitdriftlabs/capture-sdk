@@ -8,6 +8,7 @@
 #include "ReportWriter.h"
 
 #include "KSCrashMonitorContext.h"
+#include "KSCPU.h"
 #include "KSMachineContext.h"
 #include "KSLogger.h"
 #include "KSStackCursor.h"
@@ -106,6 +107,22 @@ static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KS
     return bdcrw_write_container_end(writer);
 }
 
+static bool writeRegisters(BDCrashWriterHandle writer,
+                           const struct KSMachineContext *const machineContext) {
+    RETURN_ON_FAIL(writeKVObjectBegin(writer, "registers"));
+    {
+        const int registerCount = kscpu_numRegisters();
+        for (int index = 0; index < registerCount; index++) {
+            const char *const name = kscpu_registerName(index);
+            if (name == NULL) {
+                continue;
+            }
+            RETURN_ON_FAIL(writeKVUnsigned(writer, name, kscpu_registerValue(machineContext, index)));
+        }
+    }
+    return bdcrw_write_container_end(writer);
+}
+
 static bool writeThread(BDCrashWriterHandle writer,
                         const int threadIndex,
                         const ReportContext* ctx,
@@ -122,6 +139,7 @@ static bool writeThread(BDCrashWriterHandle writer,
         if (hasBacktrace) {
             RETURN_ON_FAIL(writeBacktrace(writer, KSCrashField_Backtrace, &stackCursor));
         }
+        RETURN_ON_FAIL(writeRegisters(writer, machineContext));
         RETURN_ON_FAIL(writeKVSigned(writer, KSCrashField_Index, threadIndex));
         const char *name = kstc_getThreadName(thread);
         if (name != NULL) {

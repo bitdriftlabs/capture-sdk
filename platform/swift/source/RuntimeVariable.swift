@@ -34,13 +34,16 @@ extension RuntimeVariable {
     func load(loggerID: LoggerID) -> T {
         if T.self == Bool.self {
             // swiftlint:disable:next force_cast
-            capture_runtime_bool_variable_value(loggerID, self.name, self.defaultValue as! Bool) as! T
+            capture_runtime_bool_variable_value(loggerID, self.name, self.defaultValue as! Bool)
+                as! T
         } else if T.self == UInt32.self {
             // swiftlint:disable:next force_cast
-            capture_runtime_uint32_variable_value(loggerID, self.name, self.defaultValue as! UInt32) as! T
+            capture_runtime_uint32_variable_value(loggerID, self.name, self.defaultValue as! UInt32)
+                as! T
         } else if T.self == String.self {
             // swiftlint:disable:next force_cast
-            capture_runtime_string_variable_value(loggerID, self.name, self.defaultValue as! String) as! T
+            capture_runtime_string_variable_value(loggerID, self.name, self.defaultValue as! String)
+                as! T
         } else {
             fatalError("unsupported runtime variable type")
         }
@@ -121,7 +124,7 @@ extension RuntimeVariable<Bool> {
 
     static let crashThreadMatchingByStackOverlap = RuntimeVariable(
         name: "client_feature.ios.crash_thread_matching_by_stack_overlap",
-        defaultValue: false
+        defaultValue: true
     )
 
     /// Whether iOS fatal issue report size optimizations are enabled.
