@@ -203,11 +203,17 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
       frame = [array_for_key(frame, @"subFrames") firstObject];
       frame_index++;
     }
+    BDCPURegisterStorage registers = [self registersForThread:thread];
+    if (frame_index > 0) {
+      stack[0].reg_count = registers.count;
+      stack[0].regs = registers.regs;
+    }
     BDThread bdthread = { .index = thread_index, .quality_of_service = -1, .name = cstring_from(threadName), .active = (thread_index == crashed_index) };
     bdrw_add_thread(handle, [call_stacks count], &bdthread, frame_index, stack);
     if (thread_index == crashed_index) {
       bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, frame_index, stack);
     }
+    free(registers.regs);
     free(stack);
   }
   // handle case where there are no threads
@@ -247,6 +253,33 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
     }
   }
   return 0; // first thread is crashed thread if none contain frames
+}
+
+- (BDCPURegisterStorage)registersForThread:(NSDictionary *)thread {
+  NSDictionary *registers = dict_for_key(thread, @"bitdriftRegisters");
+  if (registers.count == 0) {
+    return (BDCPURegisterStorage){0};
+  }
+
+  NSArray<NSString *> *names = [registers.allKeys sortedArrayUsingSelector:@selector(compare:)];
+  BDCPURegister *regs = (BDCPURegister *)calloc(names.count, sizeof(BDCPURegister));
+  if (regs == NULL) {
+    return (BDCPURegisterStorage){0};
+  }
+
+  uintptr_t count = 0;
+  for (NSString *name in names) {
+    NSNumber *value = number_for_key(registers, name);
+    if (value == nil) {
+      continue;
+    }
+    regs[count++] = (BDCPURegister) {
+      .name = cstring_from(name),
+      .value = value.unsignedLongLongValue,
+    };
+  }
+
+  return (BDCPURegisterStorage){ .regs = regs, .count = count };
 }
 
 // MARK: - BDAppleCrashInfo (MetricKit side + bitdrift in-process side)

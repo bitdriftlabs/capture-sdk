@@ -109,7 +109,7 @@ static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KS
 
 static bool writeRegisters(BDCrashWriterHandle writer,
                            const struct KSMachineContext *const machineContext) {
-    RETURN_ON_FAIL(writeKVObjectBegin(writer, "registers"));
+    RETURN_ON_FAIL(writeKVObjectBegin(writer, KSCrashField_Registers));
     {
         const int registerCount = kscpu_numRegisters();
         for (int index = 0; index < registerCount; index++) {
