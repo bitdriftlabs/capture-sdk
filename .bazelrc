@@ -28,6 +28,10 @@ build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
 build --@rules_rust//rust/settings:clippy.toml=//:.clippy.toml
 
 build --ios_minimum_os=15.0
+# Avoid rules_apple's obsolete iPhone 6s Plus fallback, which cannot run the
+# installed iOS 26.4 simulator runtime.
+build --ios_simulator_device="iPhone 17"
+build --ios_simulator_version=26.4
 
 build:clippy --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
 build:clippy --output_groups=+clippy_checks
@@ -125,13 +129,13 @@ build:fuzz --@rules_rust//rust/toolchain/channel=nightly
 
 build:fake-nightly --action_env=RUSTC_BOOTSTRAP=1
 
-# Enables TSAN for all targets. This does not currently work when targeting platforms where TSAN is not enabled in the Rust toolchain (e.g. ios-sim).
-build:tsan --config=fake-nightly
+# Enables TSan for platforms supported by their native toolchains. iOS Simulator
+# targets select a TSan Rust sysroot through the dedicated toolchain below.
+# Android does not support Rust TSan; native macOS/Linux Rust TSan requires a
+# matching TSan sysroot for that target before it can be enabled here.
 build:tsan --features=tsan
-build:tsan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=thread
-
-# Enables using TSAN with iOS tests. This does not enable tsan in Rust and may therefore result in false positivies.
-build:ios-tsan --features=tsan
+build:tsan --define=ios_tsan=true
+build:tsan --extra_toolchains=//bazel/ios:ios_tsan_rust_toolchain
 
 build:asan --config=fake-nightly
 build:asan --features=address
