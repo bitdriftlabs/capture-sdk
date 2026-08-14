@@ -20,6 +20,7 @@ typedef struct BDBinaryImage {
   const char *id;
   const char *path;
   uint64_t load_address;
+  uint64_t length;
 } BDBinaryImage;
 
 typedef struct BDThread {
@@ -87,6 +88,11 @@ typedef struct BDAppMetrics {
   uint64_t memory_total;
   int8_t memory_pressure_level;
   const char *region_format;
+  uint64_t launch_time_seconds;
+  uint32_t launch_time_nanos;
+  int8_t environment;
+  const char *team_identifier;
+  const char *bundle_path;
 } BDAppMetrics;
 
 typedef struct BDNSException {
