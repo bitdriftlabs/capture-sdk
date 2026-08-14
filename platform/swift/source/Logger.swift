@@ -144,10 +144,7 @@ public final class Logger {
 
         let client = APIClient(apiURL: configuration.apiURL, apiKey: apiKey)
         self.remoteErrorReporter = remoteErrorReporter
-            ?? RemoteErrorReportingClient(
-                client: client,
-                fieldProviders: [appStateAttributes, clientAttributes]
-            )
+            ?? RemoteErrorReportingClient(client: client)
 
         guard let directoryURL = configuration.rootFileURL ?? Logger.captureSDKDirectory() else {
             return nil

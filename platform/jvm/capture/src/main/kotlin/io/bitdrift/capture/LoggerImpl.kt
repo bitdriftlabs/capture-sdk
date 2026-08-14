@@ -189,7 +189,6 @@ internal class LoggerImpl(
 
         val localErrorReporter =
             errorReporter ?: ErrorReporterService(
-                listOf(clientAttributes),
                 apiClient,
             )
 
