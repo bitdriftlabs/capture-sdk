@@ -60,7 +60,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
         self.storage = MockStorageProvider()
 
         // Use instance-based server for test isolation
-        self.server = TestApiServer()
+        self.server = try TestApiServer()
 
         let logger = try XCTUnwrap(
             Logger(
@@ -92,8 +92,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
     func testSessionReplay() async throws {
         _ = try self.setUpLogger()
 
-        let streamID = await self.server.nextStream()
-        guard streamID != -1 else { XCTFail("Timed out waiting for API stream"); return }
+        let streamID = try await self.server.waitForStream(testName: #function)
         try await self.server.configureAggressiveUploads(streamId: streamID)
 
         // Collect logs until we've seen all expected initial logs.
@@ -140,8 +139,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
         // Add a field prefixed with "_", it should be dropped and not present.
         logger.addField(withKey: "_dar", value: "value_dar")
 
-        let streamID = await self.server.nextStream()
-        guard streamID != -1 else { XCTFail("Timed out waiting for API stream"); return }
+        let streamID = try await self.server.waitForStream(testName: #function)
         try await self.server.configureAggressiveUploads(streamId: streamID)
 
         // TODO(Augustyniak): Do `replayScreenshotLog.hasFields` in here after figuring out how to figure out
@@ -247,8 +245,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
 
         _ = try self.setUpLogger(fieldProviders: fieldProviders)
 
-        let streamID = await self.server.nextStream()
-        guard streamID != -1 else { XCTFail("Timed out waiting for API stream"); return }
+        let streamID = try await self.server.waitForStream(testName: #function)
         try await self.server.configureAggressiveUploads(streamId: streamID)
 
         self.logger.log(level: .debug, message: "test field provider failure")

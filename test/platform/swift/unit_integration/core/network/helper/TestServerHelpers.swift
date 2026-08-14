@@ -30,10 +30,27 @@ private func checkError(_ errorPtr: UnsafePointer<CChar>?) throws {
 public final class TestApiServer: @unchecked Sendable {
     private let handle: UnsafeMutableRawPointer
     public let port: Int32
+    private let tls: Bool
 
-    public init(tls: Bool = true, pingIntervalMs: Int32 = -1) {
-        self.handle = create_test_api_server_instance(tls, pingIntervalMs)
-        self.port = server_instance_port(self.handle)
+    /// The Rust server constructor waits for its listener to start before returning. Verify that it
+    /// supplied a usable port here so tests fail at setup rather than later as a stream timeout.
+    ///
+    /// - parameter tls:            Whether the test server uses TLS.
+    /// - parameter pingIntervalMs: The interval, in milliseconds, between server pings.
+    public init(tls: Bool = true, pingIntervalMs: Int32 = -1) throws {
+        guard let handle = create_test_api_server_instance(tls, pingIntervalMs) else {
+            throw TestServerError("Test API server did not return a server handle")
+        }
+        let port = server_instance_port(handle)
+        guard port > 0 else {
+            destroy_test_api_server_instance(handle)
+            throw TestServerError("Test API server did not report a listening port")
+        }
+
+        self.handle = handle
+        self.port = port
+        self.tls = tls
+        NSLog("[TestApiServer] ready: \(self.readinessDescription)")
     }
 
     deinit {
@@ -42,6 +59,10 @@ public final class TestApiServer: @unchecked Sendable {
 
     public var baseURL: URL {
         URL(string: "https://localhost:\(port)")!
+    }
+
+    public var readinessDescription: String {
+        "url=\(self.baseURL.absoluteString), tls=\(self.tls), port=\(self.port)"
     }
 
     // MARK: - Public async API
@@ -53,12 +74,40 @@ public final class TestApiServer: @unchecked Sendable {
     /// - returns: The stream ID, or -1 on timeout.
     public func nextStream(timeout: TimeInterval = 15) async -> Int32 {
         let deadline = Date().addingTimeInterval(timeout)
+        var attempts = 0
         var streamID = await awaitNextStream()
+        attempts += 1
 
         while streamID == -1, Date() < deadline {
             streamID = await awaitNextStream()
+            attempts += 1
         }
 
+        if streamID == -1 {
+            NSLog(
+                "[TestApiServer] stream wait timed out after \(timeout)s and \(attempts) attempts; "
+                    + self.readinessDescription
+            )
+        }
+
+        return streamID
+    }
+
+    /// Waits until the SDK has connected to this test server. The test name and listener details
+    /// make simulator or URLSession connection failures actionable from the XCTest log.
+    ///
+    /// - parameter testName: The name of the test waiting for a stream.
+    /// - parameter timeout:  The maximum amount of time to wait before failing.
+    ///
+    /// - returns: The connected stream ID.
+    public func waitForStream(testName: String, timeout: TimeInterval = 15) async throws -> Int32 {
+        let streamID = await self.nextStream(timeout: timeout)
+        guard streamID != -1 else {
+            throw TestServerError(
+                "Timed out waiting for API stream in \(testName) after \(timeout)s; "
+                    + self.readinessDescription
+            )
+        }
         return streamID
     }
 
