@@ -18,6 +18,7 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.databinding.ActivityMainBinding
+import io.bitdrift.gradletestapp.diagnostics.lifecycle.LifecycleEventLogger
 
 class MainActivity : AppCompatActivity() {
     private lateinit var appBarConfiguration: AppBarConfiguration
@@ -64,6 +65,11 @@ class MainActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        LifecycleEventLogger.onWindowFocusChanged(this, hasFocus)
     }
 
     override fun onSupportNavigateUp(): Boolean =

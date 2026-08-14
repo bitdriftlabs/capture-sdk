@@ -78,10 +78,6 @@ apple_static_framework_import(
 framework_imports_extractor(
     name = "capture_ios_framework_imports",
     framework = "//platform/swift/source:capture_ios_static_framework",
-    tags = [
-        "no-cache",
-        "no-remote",
-    ],
 )
 
 filegroup(

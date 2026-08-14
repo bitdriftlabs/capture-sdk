@@ -36,10 +36,6 @@ bitdrift_rust_shared_library(
         ],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
-    tags = [
-        "no-cache",
-        "no-remote",
-    ],
     visibility = ["//visibility:public"],
     deps = [
         "//platform/jvm/core:capture_core",

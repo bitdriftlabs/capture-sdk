@@ -12,6 +12,7 @@ import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.ThirdPartyCrashReportersInitializer
 import io.bitdrift.gradletestapp.diagnostics.lifecycle.ActivitySpanCallbacks
+import io.bitdrift.gradletestapp.diagnostics.lifecycle.LifecycleEventLogger
 import io.bitdrift.gradletestapp.diagnostics.papa.PapaTelemetry
 import io.bitdrift.gradletestapp.diagnostics.startup.AppStartInfoLogger
 import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
@@ -26,6 +27,8 @@ import timber.log.Timber
 class GradleTestApp : Application() {
     override fun onCreate() {
         super.onCreate()
+
+        LifecycleEventLogger.install()
 
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
 
