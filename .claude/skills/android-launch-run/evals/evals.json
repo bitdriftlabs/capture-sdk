@@ -1,0 +1,26 @@
+{
+  "skill_name": "android-launch-run",
+  "evals": [
+    {
+      "id": 0,
+      "name": "background-flush-verification",
+      "prompt": "I want to know whether the capture SDK's stats upload actually makes it out when the app goes to the background on my connected Android devices. Install the debug test app, run it, background it with the home button, and tell me whether the stats got written to disk and whether the upload was acked before anything blocked it. Give me the timings.",
+      "expected_output": "Installs debug app, sets a bd_client_stats + bd_logger RUST_LOG filter, waits >30s in foreground to clear the upload debounce, backgrounds via HOME, captures main+events, reports FG vs BG phases separately, distinguishes 'writing snapshot' (disk) from the upload ack, reports the ~5s firewall cutoff, and resets device state.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "doze-comparison",
+      "prompt": "Does deep doze stop the SDK from uploading stats in the background? Check it on every device I have connected and tell me if the emulator and my phone behave differently.",
+      "expected_output": "Pre-arms doze before launch, applies force-idle only after screen-off (documenting the race), runs on all connected devices, verifies doze actually engaged via dumpsys deviceidle get deep, compares per-device results, resets state afterwards.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "recents-no-flush",
+      "prompt": "Something looks off when I leave the app using the app switcher instead of the home button — I don't think the SDK is doing its background work. Can you check what actually happens in each case?",
+      "expected_output": "Runs both recents and home, discovers that recents never fires process ON_STOP (so no flush runs at all) while window focus does drop, and does not misreport the absence as a harness failure.",
+      "files": []
+    }
+  ]
+}

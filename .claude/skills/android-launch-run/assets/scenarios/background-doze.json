@@ -1,0 +1,15 @@
+{
+  "name": "background-doze",
+  "description": "Background then force deep doze, pre-armed so force-idle lands ~0.3s after ON_STOP rather than ~2s.",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug",
+  "modes_before_launch": ["doze-prearm"],
+  "steps": [
+    {"action": "launch"},
+    {"action": "wait", "seconds": 35, "why": "clear the 30s stats upload debounce"},
+    {"action": "screen-off"},
+    {"action": "mode", "name": "doze-deep",
+     "why": "doze needs the screen off, so it can only be applied after backgrounding; it therefore races any in-flight upload"},
+    {"action": "wait", "seconds": 40}
+  ],
+  "reference_event": "process ON_STOP"
+}
