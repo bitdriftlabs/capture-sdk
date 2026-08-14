@@ -63,6 +63,18 @@ class ClientAttributesTest {
     }
 
     @Test
+    fun dynamic_fields_exclude_static_attributes() {
+        val fields =
+            ClientAttributes(
+                appContext,
+                obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED),
+            ).dynamicFields()
+
+        assertThat(fields).containsKey("foreground")
+        assertThat(fields).doesNotContainKeys("app_version", "_app_version_code")
+    }
+
+    @Test
     fun app_id() {
         val packageName = "my.bitdrift.test"
         val context = spy(appContext)

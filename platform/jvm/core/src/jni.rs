@@ -21,7 +21,7 @@ use crate::{
   session,
 };
 use anyhow::{anyhow, bail};
-use bd_api::{Platform, PlatformNetworkStream, StreamEvent};
+use bd_api::{PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::InvariantError;
 use bd_crash_handler::CrashReportHook;
 use bd_error_reporter::reporter::{
@@ -62,8 +62,8 @@ use jni::sys::{
   jvalue,
 };
 use jni::{JNIEnv, JavaVM};
-use platform_shared::metadata::Mobile;
-use platform_shared::{LoggerHolder, LoggerId, date_to_unix_milliseconds};
+use platform_shared::metadata::{AndroidStaticFields, Mobile};
+use platform_shared::{date_to_unix_milliseconds, LoggerHolder, LoggerId};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
@@ -743,6 +743,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   os_version: JString<'_>,
   manufacturer: JString<'_>,
   model: JString<'_>,
+  app_version_code: jlong,
+  os_api_level: jint,
+  architecture: JString<'_>,
   network: JObject<'_>,
   preferences: JObject<'_>,
   error_reporter: JObject<'_>,
@@ -772,20 +775,22 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let session_strategy = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
 
       let device = Arc::new(bd_device::Device::new(store.clone()));
-      let static_metadata = Arc::new(Mobile {
-        app_id: Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
-        app_version: Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
-        platform: Platform::Android,
-        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
-        // Further, "os" as sent as a log tag is hard coded as "Android" so we have a casing
-        // mismatch. We need to untangle all of this but we can do that when we send all fixed
-        // fields as metadata and only use the fixed fields on logs for matching.
-        os: "android".to_string(),
-        device: device.clone(),
-        os_version: Some(unsafe { env.get_string_unchecked(&os_version) }?.into()),
-        manufacturer: Some(unsafe { env.get_string_unchecked(&manufacturer) }?.into()),
-        model: unsafe { env.get_string_unchecked(&model) }?.into(),
-      });
+      let static_metadata = Arc::new(Mobile::android(
+        Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
+        Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
+        Some(unsafe { env.get_string_unchecked(&os_version) }?.into()),
+        device.clone(),
+        unsafe { env.get_string_unchecked(&model) }?.into(),
+        AndroidStaticFields {
+          manufacturer: unsafe { env.get_string_unchecked(&manufacturer) }?.into(),
+          app_version_code,
+          os_api_level,
+          architecture: unsafe { env.get_string_unchecked(&architecture) }?
+            .to_string_lossy()
+            .to_string(),
+        },
+      ));
+      let initial_ootb_fields = static_metadata.static_log_fields();
 
       let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
       let error_reporter = MetadataErrorReporter::new(
@@ -835,6 +840,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
         session_strategy,
         metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
+        initial_ootb_fields,
         resource_utilization_target,
         session_replay_target,
         events_listener_target,

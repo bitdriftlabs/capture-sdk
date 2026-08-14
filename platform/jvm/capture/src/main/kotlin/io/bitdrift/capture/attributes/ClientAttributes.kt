@@ -77,8 +77,8 @@ internal class ClientAttributes(
         }
     }
 
-    private val cachedAttributes by lazy {
-        mutableMapOf(
+    private val initialAttributes by lazy {
+        mapOf(
             // The package name which identifies the running app (e.g. me.foobar.android).
             "app_id" to appId,
             // Operating system. Always Android for this code path.
@@ -102,11 +102,15 @@ internal class ClientAttributes(
         )
     }
 
-    override fun invoke(): Fields {
+    private val cachedAttributes = mutableMapOf<String, String>()
+
+    internal fun dynamicFields(): Fields {
         updateForegroundState()
         updateLocaleIfNeeded()
         return cachedAttributes
     }
+
+    override fun invoke(): Fields = initialAttributes + dynamicFields()
 
     private fun updateForegroundState() {
         val currentState = if (isForeground()) ForegroundState.Foreground else ForegroundState.Background

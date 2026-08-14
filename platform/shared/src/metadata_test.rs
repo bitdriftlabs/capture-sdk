@@ -5,8 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use super::Mobile;
-use bd_api::Platform;
+use super::{AndroidStaticFields, AppleStaticFields, Mobile};
 use bd_key_value::{Storage, Store};
 use parking_lot::Mutex;
 use std::collections::HashMap;
@@ -45,38 +44,116 @@ fn test_device() -> Arc<bd_logger::Device> {
 
 #[test]
 fn collect_inner_includes_os_version_and_android_manufacturer() {
-  let metadata = Mobile {
-    app_id: Some("app-id".to_string()),
-    app_version: Some("1.2.3".to_string()),
-    platform: Platform::Android,
-    os: "android".to_string(),
-    device: test_device(),
-    os_version: Some("14".to_string()),
-    manufacturer: Some("Google".to_string()),
-    model: "Pixel".to_string(),
-  };
+  let metadata = Mobile::android(
+    Some("app-id".to_string()),
+    Some("1.2.3".to_string()),
+    Some("14".to_string()),
+    test_device(),
+    "Pixel".to_string(),
+    AndroidStaticFields {
+      manufacturer: "Google".to_string(),
+      app_version_code: 123,
+      os_api_level: 35,
+      architecture: "arm64-v8a".to_string(),
+    },
+  );
 
   let collected = bd_api::Metadata::collect_inner(&metadata);
 
   assert_eq!(collected.get("os_version"), Some(&"14".to_string()));
   assert_eq!(collected.get("_manufacturer"), Some(&"Google".to_string()));
+
+  let initial_fields = metadata.static_log_fields();
+  assert_eq!(
+    initial_fields
+      .get("app_id")
+      .and_then(|value| value.as_str()),
+    Some("app-id")
+  );
+  assert_eq!(
+    initial_fields.get("os").and_then(|value| value.as_str()),
+    Some("Android")
+  );
+  assert_eq!(
+    initial_fields
+      .get("app_version")
+      .and_then(|value| value.as_str()),
+    Some("1.2.3")
+  );
+  assert_eq!(
+    initial_fields
+      .get("os_version")
+      .and_then(|value| value.as_str()),
+    Some("14")
+  );
+  assert_eq!(
+    initial_fields
+      .get("_manufacturer")
+      .and_then(|value| value.as_str()),
+    Some("Google")
+  );
+  assert_eq!(
+    initial_fields.get("model").and_then(|value| value.as_str()),
+    Some("Pixel")
+  );
+  assert_eq!(
+    initial_fields
+      .get("_app_version_code")
+      .and_then(|value| value.as_str()),
+    Some("123")
+  );
+  assert_eq!(
+    initial_fields
+      .get("_os_api_level")
+      .and_then(|value| value.as_str()),
+    Some("35")
+  );
+  assert_eq!(
+    initial_fields
+      .get("_architecture")
+      .and_then(|value| value.as_str()),
+    Some("arm64-v8a")
+  );
 }
 
 #[test]
 fn collect_inner_omits_manufacturer_for_non_android() {
-  let metadata = Mobile {
-    app_id: Some("app-id".to_string()),
-    app_version: Some("1.2.3".to_string()),
-    platform: Platform::Apple,
-    os: "ios".to_string(),
-    device: test_device(),
-    os_version: Some("18.0".to_string()),
-    manufacturer: Some("Apple".to_string()),
-    model: "iPhone".to_string(),
-  };
+  let metadata = Mobile::apple(
+    Some("app-id".to_string()),
+    Some("1.2.3".to_string()),
+    Some("18.0".to_string()),
+    test_device(),
+    "iPhone".to_string(),
+    AppleStaticFields {
+      build_number: "456".to_string(),
+    },
+  );
 
   let collected = bd_api::Metadata::collect_inner(&metadata);
 
   assert_eq!(collected.get("os_version"), Some(&"18.0".to_string()));
   assert!(!collected.contains_key("_manufacturer"));
+
+  let initial_fields = metadata.static_log_fields();
+  assert_eq!(
+    initial_fields
+      .get("app_id")
+      .and_then(|value| value.as_str()),
+    Some("app-id")
+  );
+  assert_eq!(
+    initial_fields.get("os").and_then(|value| value.as_str()),
+    Some("iOS")
+  );
+  assert_eq!(
+    initial_fields.get("model").and_then(|value| value.as_str()),
+    Some("iPhone")
+  );
+  assert!(!initial_fields.contains_key("_manufacturer"));
+  assert_eq!(
+    initial_fields
+      .get("_build_number")
+      .and_then(|value| value.as_str()),
+    Some("456")
+  );
 }
