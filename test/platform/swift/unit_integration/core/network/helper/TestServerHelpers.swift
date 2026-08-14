@@ -34,6 +34,9 @@ public final class TestApiServer: @unchecked Sendable {
 
     /// The Rust server constructor waits for its listener to start before returning. Verify that it
     /// supplied a usable port here so tests fail at setup rather than later as a stream timeout.
+    ///
+    /// - parameter tls:            Whether the test server uses TLS.
+    /// - parameter pingIntervalMs: The interval, in milliseconds, between server pings.
     public init(tls: Bool = true, pingIntervalMs: Int32 = -1) throws {
         guard let handle = create_test_api_server_instance(tls, pingIntervalMs) else {
             throw TestServerError("Test API server did not return a server handle")
@@ -92,6 +95,11 @@ public final class TestApiServer: @unchecked Sendable {
 
     /// Waits until the SDK has connected to this test server. The test name and listener details
     /// make simulator or URLSession connection failures actionable from the XCTest log.
+    ///
+    /// - parameter testName: The name of the test waiting for a stream.
+    /// - parameter timeout:  The maximum amount of time to wait before failing.
+    ///
+    /// - returns: The connected stream ID.
     public func waitForStream(testName: String, timeout: TimeInterval = 15) async throws -> Int32 {
         let streamID = await self.nextStream(timeout: timeout)
         guard streamID != -1 else {
