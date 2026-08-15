@@ -1,0 +1,33 @@
+{
+  "name": "T11-freezer",
+  "description": "Cached-app freezer applied ~10s after backgrounding, matching the OS's own timing.",
+  "rust_log": "info,bd=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 35,
+      "why": "clear the minimum-upload-interval gate; without this the ON_STOP upload is debounced and the run measures the debounce instead of the question"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 10,
+      "why": "matches the ~10s the OS itself waits before freezing a cached process"
+    },
+    {
+      "action": "freeze"
+    },
+    {
+      "action": "wait",
+      "seconds": 30,
+      "why": "after the freeze, timed flushes should stop entirely \u2014 that absence is the signal"
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}

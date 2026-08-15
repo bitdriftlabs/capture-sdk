@@ -1,0 +1,32 @@
+{
+  "name": "T14-force-stop",
+  "description": "Background, then force-stop (SIGKILL) 5s later.",
+  "rust_log": "info,bd=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 35,
+      "why": "clear the minimum-upload-interval gate; without this the ON_STOP upload is debounced and the run measures the debounce instead of the question"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 5,
+      "why": "as T13, but SIGKILL"
+    },
+    {
+      "action": "force-stop"
+    },
+    {
+      "action": "wait",
+      "seconds": 10
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}

@@ -7,6 +7,7 @@ device clock, so sources interleave correctly in a single `-b main,events` captu
 - [2. OS-side lifecycle](#2-os-side-lifecycle-events-buffer)
 - [3. Flush attribution](#3-flush-attribution-bd_logger)
 - [4. Stats](#4-stats-bd_client_stats)
+- [4b. Disk-flush debounce window](#4b-the-disk-flush-debounce-window-c3ba1cba)
 - [5. Transport](#5-transport-bd_api)
 - [6. Ring buffers and log uploads](#6-ring-buffers-and-log-uploads)
 - [7. Network cutoff](#7-network-cutoff-dumpsys-netpolicy)
@@ -88,53 +89,108 @@ spans several modules (`::stats`, `::file_manager`, …) and new lines get added
 grep -E "bd_client_stats[^:]*::" capture.txt
 ```
 
-The lines that carry meaning:
+> ⚠ **This subsystem was substantially reworked in shared-core `c3ba1cba`** (the "more stats
+> changes" bump). Most message text changed, two lines disappeared, and several new ones appeared.
+> `scripts/parse_logs.py` matches **both** wordings, because a pattern that silently stops matching
+> reports *"no upload happened"* rather than *"I can't see it"* — the worst failure mode available
+> here. It cost a false regression report the first time.
 
-| Line | Tag | Meaning |
+### Message text by rev
+
+| Meaning | `c3ba1cba` and later | up to `42637e1f` |
 |---|---|---|
-| `received a signal to flush stats to disk` | `::stats` | A **forced** flush request was dequeued |
-| `processing flush to disk tick` | `::stats` | `flush_to_disk()` entered — fires on **both** forced and timed paths |
-| `updating aggregated snapshot file with N metrics` | `::stats` | Merge, with the metric count |
-| **`writing snapshot: stats_uploads/<uuid>`** | `::file_manager` | **The actual disk write.** Fires on both paths |
-| `stats flushed` | `::stats` | A forced flush ran to completion — **forced path only** |
-| `processing upload from disk` | `::stats` | Upload staging |
-| `sending pending flush upload: <uuid> with N metrics` | `::stats` | Upload dispatched |
-| `skipping flush upload, minimum interval not elapsed` | `::stats` | Debounced by `stats.minimum_upload_interval_ms` (30s) |
-| `flush already in progress, skipping` | `::stats` | Request **dropped entirely** — no disk write, no upload |
-| `stat flush upload attempt complete: UploadResponse { success: <bool>, uuid: "<uuid>" }` | `::stats` | Upload result |
+| Forced flush started | `flushing collected stats to disk` | `received a signal to flush stats to disk` |
+| Merge before write | `updating aggregated snapshot file with N metrics…` | *(same)* |
+| **Disk write** | **`writing snapshot: stats_uploads/<uuid>`** | ***(same)*** |
+| Upload staging | `preparing stats upload from disk: only_if_file_is_old=<bool>, reason=<REASON>` | `processing upload from disk` |
+| Upload enqueued | `prepared <REASON> stats upload: uuid=<uuid>, snapshots=N, metrics=N` | `sending pending flush upload: <uuid> with N metrics` |
+| Upload dispatched | `dispatched <kind> stats upload for N source files` | *(no equivalent)* |
+| Upload result | `<kind> stats upload completed: uuid=<uuid>, success=<bool>, source_files=N` | `stat flush upload attempt complete: UploadResponse { success: <bool>, uuid: "<uuid>" }` |
+| Upload suppressed | `skipping <kind> stats upload: minimum upload interval has not elapsed` | `skipping flush upload, minimum interval not elapsed` |
+| Flush dropped | `flush already in progress, skipping` | *(same)* |
+| Forced flush completed | *(gone)* | `stats flushed` |
+| `flush_to_disk()` entered | *(gone)* | `processing flush to disk tick` |
+
+`<kind>` / `<REASON>` observed so far: `explicit flush` / `UPLOAD_REASON_EVENT_TRIGGERED`,
+`handshake`, `periodic`. **Match the kind loosely** — it is an open set, and pinning it to
+`periodic` alone caused a real misread (an explicit-flush suppression was reported as "no upload
+attempted" instead of "debounced").
+
+### Why an upload was *not* attempted — three distinct reasons
+
+Only the first is a limitation; the rest are deliberate. Reporting them all as "no upload" hides
+the difference between *blocked* and *intentionally skipped because the data is already safe*.
+
+| Line | Means |
+|---|---|
+| `skipping <kind> stats upload: minimum upload interval has not elapsed` | **Debounced.** Backgrounded too soon after the last upload; the run measured the debounce, not the question. Seen with `<kind>` = `periodic` **and** `explicit` |
+| `skipping explicit stats upload: another flush upload is active; stats are durable` | **Coalesced.** An upload is already in flight. *"stats are durable"* is the code stating the disk write is safe regardless — this is what airplane mode now produces, replacing the pre-bump behaviour where the flusher wedged and nothing reached disk at all |
+| `skipping periodic stats upload: another periodic or deferred upload is active` | As above, periodic path |
+
+New in `c3ba1cba`, no pre-bump equivalent:
+
+- `started stats disk flush debounce window: duration=<D>` / `stats disk flush debounce window
+  closed without a trailing flush` — see §4b
+- `handshake stats upload completed: …` — stats now upload on API handshake, not only on flush
+  and timer
+- a durable pending-upload index: `initializing pending aggregation index`,
+  `creating new snapshot in index: <uuid>`, `marking entry as ready to upload: <uuid>`,
+  `deleting pending upload: <uuid>`, `no pending upload: index is empty` /
+  `no pending upload: file is not old enough`
 
 ### Which line proves a disk write
 
-Use **`writing snapshot`**. It is the file write and it fires on both the forced and timed paths.
+Use **`writing snapshot`**. It is the file write, it fires on both the forced and timed paths, and
+it is one of only two stats signals that survived the rework unchanged.
 
-`stats flushed` is *not* the disk-write proof: it only ever appears on the forced path, so a timed
-flush writes to disk while logging nothing of the sort. Reasoning from its absence will produce a
-false "no disk write" conclusion. Observed order on the forced path:
-
-```
-received a signal → processing flush to disk tick → updating aggregated snapshot
-  → writing snapshot   ← the write
-  → stats flushed      ← completion marker, ~9ms later
-  → sending pending flush upload
-```
+`stats flushed` is *not* the disk-write proof, and on `c3ba1cba` it no longer exists at all. On
+older revs it appeared only on the forced path, so a timed flush wrote to disk while logging
+nothing of the sort. Reasoning from its absence produces a false "no disk write" conclusion — this
+happened, and cost a wrong finding until `writing snapshot` was added to the patterns.
 
 ### Classifying a flush
 
 | Kind | Signature |
 |---|---|
-| Platform-triggered | `state flushing initiated`, then `received a signal…` within ~300ms |
-| Internal forced | `received a signal…` with **no** preceding `state flushing initiated` |
-| Timed | `processing flush to disk tick` with **no** `received a signal…` just before |
+| Platform-triggered | `state flushing initiated`, then a forced-flush line within ~300ms |
+| Internal forced | forced-flush line with **no** preceding `state flushing initiated` |
+| Timed | on `c3ba1cba` the forced/timed wording is shared, so lean on `state flushing initiated` to separate them; pre-bump, a `processing flush to disk tick` with no `received a signal…` just before |
 | Dropped | `flush already in progress, skipping` |
-
-Counting `processing flush to disk tick` alone over-counts timed flushes, because forced flushes
-emit it too.
 
 ### Correlating uploads
 
-Match `sending pending flush upload` to `stat flush upload attempt complete` **by uuid, never by
-order**. Acks arrive out of order, can take 475ms–17s, and may reference an upload from a
-*previous process run* recovered from disk at startup.
+Match the enqueue to its result **by uuid, never by order**. Acks arrive out of order, can take
+475ms–17s, and may reference an upload from a *previous process run* recovered from disk at startup.
+Both revs carry a uuid on both lines; only the surrounding text differs.
+
+## 4b. The disk-flush debounce window (`c3ba1cba`+)
+
+A 1s window opens immediately **after** each disk write:
+
+```
+flushing collected stats to disk
+writing snapshot: stats_uploads/<uuid>
+started stats disk flush debounce window: duration=1s
+  … 1.003s later …
+stats disk flush debounce window closed without a trailing flush
+```
+
+Its purpose is to coalesce a second flush arriving inside that span into a single write.
+
+**Validating it is awkward**, because forcing a coalesce needs two flushes landing under 1s apart,
+which is not reliably schedulable from adb. `parse_logs.py` therefore checks the invariant the
+window implies — consecutive `writing snapshot` events should never be closer together than the
+window — and reports:
+
+```
+DISK-FLUSH DEBOUNCE (1000ms window): 5 opened · 5 closed empty · 0 coalesced ·
+  5 write(s), closest 1918ms apart => invariant HELD
+```
+
+Across 8 runs on two devices (36 windows, 36 writes) the closest pair was **1743ms** and the
+invariant held everywhere — but **0 windows ever coalesced**, so the coalescing path itself remains
+untested. The parser says so explicitly rather than implying coverage it doesn't have. Exercising it
+needs something that deliberately issues two flushes inside 1s.
 
 ## 5. Transport (`bd_api`)
 
@@ -187,14 +243,28 @@ has revoked it. Other reasons OR in: `DOZE`, `DATA_SAVER`, `METERED_USER_RESTRIC
 
 ## 8. Traps
 
-1. **`stats flushed` is not a disk-write signal** — forced path only. Use `writing snapshot`.
-2. **`processing flush to disk tick` fires on forced flushes too** — don't count it as "timed".
-3. **"Forced" ≠ platform-triggered** — use `state flushing initiated`.
-4. **Correlate uploads by uuid**, not order; acks can be seconds late or from a prior process.
-5. **The 30s upload debounce hides everything else.** Background sooner than 30s after the last
+1. **Signatures drift with the pinned shared-core rev.** The `c3ba1cba` bump renamed most stats
+   messages; the first run against it reported *zero uploads on both devices*, which looked like a
+   serious regression and was purely stale patterns. Before believing any negative result, confirm
+   the signature still exists in the capture. A missing pattern and a missing behaviour are
+   indistinguishable from the summary alone — always check the raw log for the *shape* of what
+   happened.
+2. **`stats flushed` is not a disk-write signal** — forced path only, and gone entirely on
+   `c3ba1cba`. Use `writing snapshot`.
+3. **`processing flush to disk tick` fires on forced flushes too** (pre-bump) — don't count it as
+   "timed".
+4. **Match the upload `<kind>` loosely.** `skipping periodic stats upload` and
+   `skipping explicit stats upload` are both suppressions; matching only one reports the other as
+   "no upload attempted", which reads as a bug rather than intended behaviour.
+5. **"Forced" ≠ platform-triggered** — use `state flushing initiated`.
+6. **Correlate uploads by uuid**, not order; acks can be seconds late or from a prior process.
+7. **The minimum-upload-interval debounce hides everything else.** Background sooner than 30s after the last
    flush-triggered upload and the upload is suppressed before network or device state matters. A
-   run showing `skipping flush upload, minimum interval not elapsed` measured only the debounce.
-6. **Rust logcat tags are full module paths** (`bd_client_stats::file_manager`). Grepping
+   run showing any `skipping … upload … minimum … interval` line measured only the debounce.
+   **Still true on `c3ba1cba`:** explicit flush uploads remain gated, verified by the
+   `background-no-wait` scenario returning `DEBO` on both devices. The 35s foreground wait is not
+   optional.
+8. **Rust logcat tags are full module paths** (`bd_client_stats::file_manager`). Grepping
    `bd_client_stats:` with a single colon misses submodules — match the prefix.
-7. **A blocked backgrounded app fails DNS**, so the error is `UnknownHostException`, not a connect
+9. **A blocked backgrounded app fails DNS**, so the error is `UnknownHostException`, not a connect
    failure. Don't read it as a DNS misconfiguration.

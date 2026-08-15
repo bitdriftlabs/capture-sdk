@@ -53,7 +53,15 @@ def run_on(serial: str, sc: dict, outdir: str, app: str) -> dict:
     os.makedirs(d, exist_ok=True)
     logf = os.path.join(d, "logcat.txt")
 
-    adbctl.require_unlocked(serial)
+    # A locked device can only produce invalid runs, but that is this device's problem — it must
+    # not abort the whole sweep. Skip it and let the other devices continue.
+    if adbctl.is_locked(serial):
+        print(f"[{serial}] SKIPPED — device is LOCKED; the app would launch behind the keyguard "
+              f"and background itself, so any result would be invalid.", flush=True)
+        return {"skipped": "device locked", "device": {"serial": serial,
+                "api": adbctl.api_level(serial)}, "invalid_run": False,
+                "fg": {}, "bg": {}, "net_cutoff_s": None}
+
     adbctl.mode(serial, "reset", False, pkg)
     adbctl.adb(serial, f"am force-stop {pkg}")
     if sc.get("rust_log"):
@@ -147,6 +155,9 @@ def main() -> None:
             results = {futs[f]: f.result() for f in cf.as_completed(futs)}
 
     for s, r in results.items():
+        if r.get("skipped"):
+            print(f"\n[{s}] SKIPPED — {r['skipped']}")
+            continue
         bg, fg = r["bg"], r["fg"]
         flag = "  *** INVALID (see summary.txt) ***" if r["invalid_run"] else ""
         print(f"\n[{s}] api={r['device']['api']}{flag}")

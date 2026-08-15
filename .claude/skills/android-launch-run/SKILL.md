@@ -111,13 +111,18 @@ off, it fires ~700ms after the activity stops (`ProcessLifecycleOwner` debounces
 *before* the OS's own `wm_on_stop_called`. Measured on a Pixel 10:
 
 ```
-16:10:07.815  bitdrift-lifecycle: window MainActivity focus=false
-16:10:08.889  bitdrift-lifecycle: process ON_STOP           <- reference
-16:10:08.892  bd_logger::logger: state flushing initiated      +3ms
-16:10:08.903  bd_client_stats::stats: received a signal…      +14ms
-16:10:08.907  bd_client_stats::file_manager: writing snapshot +18ms
-16:10:08.917  wm_on_stop_called                              +28ms
+17:28:55.912  ANDROID-RUN: ACTION home
+17:28:57.178  bitdrift-lifecycle: process ON_STOP              <- reference
+17:28:57.182  bd_logger::logger: state flushing initiated         +4ms   [platform asked]
+17:28:57.218  bd_client_stats::stats: flushing collected stats…  +40ms
+17:28:57.234  bd_client_stats::file_manager: writing snapshot    +56ms   <- disk write
+17:28:57.241  bd_client_stats::stats: prepared … stats upload    +63ms   <- enqueued
+17:28:58.215  bd_client_stats::stats: … upload completed …     +1037ms   <- acked
+        …     [netpolicy] background-allow revoked            +4.99s   <- network cut
 ```
+
+(Pixel 10, shared-core `c3ba1cba`. On revs up to `42637e1f` the stats wording differs — see
+`references/log-signatures.md`.)
 
 For what each Rust line means — and which are safe to draw conclusions from — read
 **`references/log-signatures.md`**. Two traps worth knowing before you interpret anything:
@@ -126,8 +131,12 @@ For what each Rust line means — and which are safe to draw conclusions from �
   `flush_state` is reachable only from a platform bridge, so its presence means Kotlin asked;
   its absence means an internal timer did.
 - Log text depends on the **shared-core rev pinned in `Cargo.toml`**, not on any local
-  `../shared-core` checkout. They differ. Always confirm a signature against a real capture
-  before building an argument on it.
+  `../shared-core` checkout, and it **does change across revs** — the `c3ba1cba` bump renamed most
+  of the stats messages. `parse_logs.py` matches known old and new wordings, but after any
+  shared-core bump, treat a *negative* result (no upload, no flush) as unproven until you have
+  confirmed the signature still exists in the raw capture. A stale pattern and an absent behaviour
+  look identical in the summary; the first run against `c3ba1cba` reported "zero uploads on both
+  devices" and was pure pattern rot.
 
 ## Device states
 
@@ -197,6 +206,19 @@ These come from runs that produced clean-looking but meaningless data:
    run. `parse_logs.py` flags this automatically.
 4. **Always restore device state**, even after a failure. A device left in airplane mode or
    battery saver silently corrupts the next run — and it is someone's actual phone.
+5. **Before a full sweep on a physical phone, ask the user to disable auto-lock.** Every screen-off
+   scenario re-locks it, and each re-lock costs a manual unlock mid-run. `svc power stayon true`
+   does *not* help — an explicit `KEYCODE_SLEEP` still sleeps and re-locks.
+6. **One locked device must not abort the sweep.** `run_scenario.py` skips it per-device and
+   continues; an early version called `sys.exit()` and silently stopped *every other* device from
+   running too.
+7. **After fixing the parser, re-derive from the raw logcat.** Summaries written earlier
+   (`state.json`, report tables) still encode the old bug. The capture is the only artifact that
+   cannot be wrong.
+8. **Verify a negative before believing it.** "No upload happened" and "my pattern stopped matching"
+   look identical in a summary. That ambiguity has produced both a false regression report (stale
+   patterns after a shared-core bump) and a false pass (missing reference event). Check the raw
+   capture for the *shape* of what happened.
 
 ## Reference files
 
@@ -209,6 +231,27 @@ Read these as needed rather than upfront:
 - **`references/flush-matrix.md`** — a worked 14-scenario study of stats flushing on backgrounding,
   with results from an emulator and a Pixel 10. Read it as a template for structuring a
   multi-scenario investigation, or when the question is specifically about flush/upload behaviour.
+
+## What the parser reports
+
+`parse_logs.py` prints a timeline then a three-part verdict, split so a foreground success can never
+be mistaken for a backgrounding one:
+
+```
+FOREGROUND (before reference): 3 snapshot write(s) · 1 upload(s) enqueued, 2 acked
+BACKGROUND (after reference):  snapshot written: YES · platform flush: 1 · forced: 2 · …
+  upload ENQ/OK · ack 974ms
+DISK-FLUSH DEBOUNCE (1000ms window): 5 opened · 5 closed empty · 0 coalesced ·
+  5 write(s), closest 1918ms apart => invariant HELD
+```
+
+`upload` is `ENQ` / `DEBO` / `NONE`. **`DEBO` means the run measured the debounce, not the
+question** — idle longer in the foreground and repeat.
+
+The debounce line validates the `c3ba1cba` disk-flush window by the invariant it implies
+(consecutive writes never closer than the window), because forcing an actual coalesce needs two
+flushes under 1s apart and isn't reliably schedulable. When `coalesced` is 0 the coalescing path is
+untested and the output says so — don't read `HELD` as full coverage.
 
 ## Scenario files
 
@@ -228,6 +271,16 @@ Read these as needed rather than upfront:
   "reference_event": "process ON_STOP"
 }
 ```
+
+Bundled scenarios:
+
+| File | Purpose |
+|---|---|
+| `minimal-background.json` | Baseline: launch → clear debounce → HOME → observe |
+| `background-doze.json` | Same, with deep doze forced right after screen-off |
+| `kill-after-background.json` | Background, then kill the process 5s later |
+| `background-no-wait.json` | **Diagnostic**: deliberately skips the debounce wait. Use it to confirm the minimum-upload-interval gate is still active after a shared-core bump — it should report `DEBO`. |
+| `matrix/T01…T14.json` | The full 14-scenario matrix (backgrounding method · restriction modes · exit variants). Run T04/T06/T07 **last** — they use screen-off and re-lock a physical phone. Results and rationale in `references/flush-matrix.md`. |
 
 Add a `why` to any non-obvious wait. A future reader — including you — will otherwise assume it's
 arbitrary and shorten it, which is how the 30s debounce silently invalidated a whole matrix.

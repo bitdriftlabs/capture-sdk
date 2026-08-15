@@ -1,0 +1,25 @@
+{
+  "name": "T01-home",
+  "description": "Baseline. Backgrounding via HOME with no restrictions.",
+  "rust_log": "info,bd=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 35,
+      "why": "clear the minimum-upload-interval gate; without this the ON_STOP upload is debounced and the run measures the debounce instead of the question"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 40,
+      "why": "covers the ~5s background network cutoff plus at least one ~30s timed flush"
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}

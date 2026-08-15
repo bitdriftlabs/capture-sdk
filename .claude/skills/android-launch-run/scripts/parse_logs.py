@@ -19,7 +19,7 @@ import re
 import sys
 
 LINE = re.compile(
-    r"^(?P<ts>\d\d-\d\d \d\d:\d\d:\d\d\.\d\d\d)\s+(?P<pid>\d+)\s+\d+\s+[VDIWEF]\s+(?P<tag>.*?):\s(?P<msg>.*)$"
+    r"^(?P<ts>\d\d-\d\d \d\d:\d\d:\d\d\.\d{3,6})\s+(?P<pid>\d+)\s+\d+\s+[VDIWEF]\s+(?P<tag>.*?):\s(?P<msg>.*)$"
 )
 
 # (kind, tag regex, message regex, human label). Order matters only for first-match-wins.
@@ -44,25 +44,51 @@ PATTERNS: list[tuple[str, str, str, str]] = [
     ("BLOCK_ERR", r"bd_logger::async_log_buffer",
      r"^flush state: received an error when waiting for completion",
      "blocking flush TIMED OUT (500ms JNI cap)"),
-    # stats — match the whole bd_client_stats* prefix, not just ::stats
-    ("FORCED", r"bd_client_stats.*", r"^received a signal to flush stats to disk$",
+    # Stats. Match the whole bd_client_stats* prefix, not just ::stats.
+    #
+    # The message text changed with the shared-core bump to c3ba1cba, so both wordings are matched:
+    # older revs are still in the wild, and a pattern that silently stops matching reports "no
+    # upload happened" rather than "I can't see it" — the worst possible failure mode here.
+    ("FORCED", r"bd_client_stats.*",
+     r"^(received a signal to flush stats to disk|flushing collected stats to disk)$",
      "forced flush requested"),
-    ("TICK", r"bd_client_stats.*", r"^processing flush to disk tick$", "flush_to_disk() entered"),
+    ("TICK", r"bd_client_stats.*", r"^processing flush to disk tick$",
+     "flush_to_disk() entered [pre-c3ba1cba]"),
     ("MERGE", r"bd_client_stats.*", r"^updating aggregated snapshot file with (?P<n>\d+) metrics",
      "merge snapshot ({n} metrics)"),
     ("SNAP", r"bd_client_stats.*", r"^writing snapshot: (?P<path>\S+)$",
      "WROTE SNAPSHOT TO DISK  {path}"),
-    ("FLUSHED", r"bd_client_stats.*", r"^stats flushed$", "stats flushed (forced path complete)"),
+    ("FLUSHED", r"bd_client_stats.*", r"^stats flushed$",
+     "stats flushed (forced path complete) [pre-c3ba1cba]"),
+    ("PREP", r"bd_client_stats.*",
+     r"^preparing stats upload from disk: only_if_file_is_old=(?P<old>\w+), reason=(?P<reason>\S+)",
+     "preparing upload ({reason})"),
     ("ENQ", r"bd_client_stats.*",
-     r"^sending pending flush upload: (?P<uuid>\S+) with (?P<n>\d+) metrics$",
-     "upload enqueued {uuid} ({n} metrics)"),
-    ("DEBO", r"bd_client_stats.*", r"^skipping flush upload, minimum interval not elapsed$",
-     "upload DEBOUNCED (30s window)"),
+     r"^(?:sending pending flush upload: (?P<uuid>\S+) with (?P<n>\d+) metrics"
+     r"|prepared (?P<reason>\S+) stats upload: uuid=(?P<uuid2>[0-9a-f-]+), snapshots=(?P<snaps>\d+), metrics=(?P<n2>\d+))$",
+     "upload enqueued"),
+    ("DISPATCH", r"bd_client_stats.*",
+     r"^dispatched (?P<kind>.+?) stats upload for (?P<n>\d+) source files$",
+     "dispatched {kind} upload ({n} files)"),
+    ("DEBO", r"bd_client_stats.*",
+     r"^(?:skipping flush upload, minimum interval not elapsed"
+     r"|skipping (?P<kind>\S+) stats upload: minimum upload interval has not elapsed)$",
+     "upload DEBOUNCED (minimum interval)"),
+    ("DEBOUNCE_OPEN", r"bd_client_stats.*",
+     r"^started stats disk flush debounce window: duration=(?P<d>\S+)$",
+     "disk-flush debounce window OPENED ({d})"),
+    ("DEBOUNCE_SHUT", r"bd_client_stats.*",
+     r"^stats disk flush debounce window closed without a trailing flush$",
+     "disk-flush debounce window closed, nothing coalesced"),
+    ("DEBOUNCE_COALESCE", r"bd_client_stats.*",
+     r"^stats disk flush debounce window closed(?! without).*$",
+     "disk-flush debounce window closed WITH a coalesced flush"),
     ("DROPPED", r"bd_client_stats.*", r"^flush already in progress, skipping$",
      "flush DROPPED (already in progress)"),
     ("RES", r"bd_client_stats.*",
-     r'^stat flush upload attempt complete: UploadResponse \{ success: (?P<ok>\w+), uuid: "(?P<uuid>[^"]*)"',
-     "upload result success={ok} {uuid}"),
+     r'^(?:stat flush upload attempt complete: UploadResponse \{ success: (?P<ok>\w+), uuid: "(?P<uuid>[^"]*)"'
+     r'|(?P<kind2>.+?) stats upload completed: uuid=(?P<uuid2>[0-9a-f-]+), success=(?P<ok2>\w+), source_files=(?P<files>\d+))',
+     "upload result"),
     # transport
     ("STREAM_UP", r"bd_api.*", r"^received handshake$", "api stream up"),
     ("STREAM_DOWN", r"bd_api.*", r"^stream closed due to '(?P<why>.*)'$", "api stream CLOSED: {why}"),
@@ -74,11 +100,17 @@ COMPILED = [(k, re.compile(t), re.compile(m), lbl) for k, t, m, lbl in PATTERNS]
 
 
 def ts_ms(ts: str) -> int:
+    """Device-clock timestamp to milliseconds.
+
+    Handles both `-v threadtime` (`.345`) and `-v usec` (`.000124`) fractions — padding then
+    truncating to three digits gives ms in either case.
+    """
     date, clock = ts.split(" ")
     mo, dd = (int(x) for x in date.split("-"))
     hh, mm, rest = clock.split(":")
-    ss, ms = rest.split(".")
-    return ((((mo - 1) * 31 + dd) * 24 + int(hh)) * 3600 + int(mm) * 60 + int(ss)) * 1000 + int(ms)
+    ss, frac = rest.split(".")
+    ms = int(frac.ljust(6, "0")[:3])
+    return ((((mo - 1) * 31 + dd) * 24 + int(hh)) * 3600 + int(mm) * 60 + int(ss)) * 1000 + ms
 
 
 def parse(path: str, pkg: str = "io.bitdrift.gradletestapp") -> list[dict]:
@@ -105,9 +137,20 @@ def parse(path: str, pkg: str = "io.bitdrift.gradletestapp") -> list[dict]:
                 if kind.startswith("OS_") and pkg not in msg:
                     break
                 groups = {k: v for k, v in mm.groupdict().items() if v}
-                out.append({"kind": kind, "t": ts_ms(m["ts"]), "ts": m["ts"],
-                            "pid": m["pid"],
-                            "label": label.format(**groups) if groups else label, **groups})
+                # Old/new wordings use different group names for the same field.
+                if "uuid2" in groups:
+                    groups["uuid"] = groups.pop("uuid2")
+                if "ok2" in groups:
+                    groups["ok"] = groups.pop("ok2")
+                if "n2" in groups:
+                    groups["n"] = groups.pop("n2")
+                # Reserved fields must win over regex capture groups. A pattern with a
+                # (?P<kind>…) group would otherwise clobber the event type via the splat and
+                # silently vanish from every downstream count.
+                ev = dict(groups)
+                ev.update({"kind": kind, "t": ts_ms(m["ts"]), "ts": m["ts"], "pid": m["pid"],
+                           "label": label.format(**groups) if groups else label})
+                out.append(ev)
                 break
 
     # Our pid is whichever process emitted the app-side lifecycle logs. Use it to drop bd_* lines
@@ -123,6 +166,38 @@ def fmt(delta: int) -> str:
     a = abs(delta)
     s = "+" if delta >= 0 else "-"
     return f"{s}{a/1000:.3f}s" if a >= 1000 else f"{s}{a}ms"
+
+
+
+def _debounce_report(evs: list[dict]) -> dict:
+    """Validate the c3ba1cba disk-flush debounce window.
+
+    The window opens right after each disk write and lasts `duration`. Its job is to coalesce a
+    second flush arriving inside that span into one write. Rather than trying to force a
+    coalesce — which needs two flushes landing <1s apart and is hard to schedule — check the
+    invariant it implies: consecutive `writing snapshot` events should never be closer together
+    than the window. A violation means writes are slipping through un-debounced.
+    """
+    opens = [e for e in evs if e["kind"] == "DEBOUNCE_OPEN"]
+    shuts = [e for e in evs if e["kind"] == "DEBOUNCE_SHUT"]
+    coal = [e for e in evs if e["kind"] == "DEBOUNCE_COALESCE"]
+    writes = sorted(e["t"] for e in evs if e["kind"] == "SNAP")
+    gaps = [b - a for a, b in zip(writes, writes[1:])]
+
+    dur_ms = None
+    if opens:
+        raw = opens[0].get("d", "")
+        m = re.match(r"([\d.]+)(ms|s)$", raw)
+        if m:
+            dur_ms = float(m.group(1)) * (1 if m.group(2) == "ms" else 1000)
+
+    min_gap = min(gaps) if gaps else None
+    held = None
+    if dur_ms is not None and min_gap is not None:
+        held = min_gap >= dur_ms
+    return {"present": bool(opens), "window_ms": dur_ms, "opened": len(opens),
+            "closed_empty": len(shuts), "closed_coalesced": len(coal),
+            "writes": len(writes), "min_write_gap_ms": min_gap, "invariant_held": held}
 
 
 def summarize(evs: list[dict], ref_label: str) -> dict:
@@ -150,10 +225,13 @@ def summarize(evs: list[dict], ref_label: str) -> dict:
                    and "wait" not in e["label"]), None)
     invalid = bool(ref and action and ref["t"] < action["t"] - 50)
 
+    no_ref = ref is None
     return {
         "ref_t": ref_t,
-        "ref_found": ref is not None,
+        "ref_found": not no_ref,
+        "no_reference": no_ref,
         "invalid_run": invalid,
+        "debounce": _debounce_report(evs),
         "fg": {"snapshots": len(k(before, "SNAP")), "uploads_enqueued": len(k(before, "ENQ")),
                "uploads_ok": len([e for e in k(before, "RES") if e.get("ok") == "true"])},
         "bg": {
@@ -188,8 +266,14 @@ def main() -> None:
         print(json.dumps({"summary": s, "events": evs}, indent=2))
         return
 
-    print(f"reference: {args.ref}" + ("" if s["ref_found"] else "  (NOT FOUND — offsets are from "
-                                                               "the first event)"))
+    print(f"reference: {args.ref}")
+    if s["no_reference"]:
+        print("\n  *** REFERENCE EVENT NEVER FIRED ***"
+              "\n      The foreground/background split is meaningless, so no backgrounding verdict"
+              "\n      is reported below — any counts would be foreground work mislabelled."
+              "\n      If the reference is 'process ON_STOP', the usual cause is that the app never"
+              "\n      actually backgrounded: the app-switcher/recents action leaves the activity"
+              "\n      started, so no backgrounding work runs at all. That absence IS the result.\n")
     if s["invalid_run"]:
         print("\n  *** INVALID RUN: the reference event precedes the action marker. The app was "
               "\n      already backgrounded when the action landed — usually a locked device. "
@@ -201,6 +285,14 @@ def main() -> None:
         print(f"  {fmt(d):>9}  {'#' if strong else '|'} {e['label']}")
 
     fg, bg = s["fg"], s["bg"]
+    if s["no_reference"]:
+        snaps = len([e for e in evs if e["kind"] == "SNAP"])
+        enq = len([e for e in evs if e["kind"] == "ENQ"])
+        ok = len([e for e in evs if e["kind"] == "RES" and e.get("ok") == "true"])
+        print(f"WHOLE RUN (no phase split possible): {snaps} snapshot write(s) · "
+              f"{enq} upload(s) enqueued, {ok} acked")
+        print("BACKGROUNDING FLUSH: none ran — the reference event never fired.")
+        return
     print(f"\nFOREGROUND (before reference): {fg['snapshots']} snapshot write(s) · "
           f"{fg['uploads_enqueued']} upload(s) enqueued, {fg['uploads_ok']} acked")
     print(f"BACKGROUND (after reference):  snapshot written: "
@@ -209,6 +301,16 @@ def main() -> None:
           f"timed: {bg['timed']} · dropped: {bg['dropped']}")
     print(f"  upload {bg['upload']}/{bg['upload_result']}"
           + (f" · ack {bg['ack_ms']}ms" if bg["ack_ms"] is not None else ""))
+    db = s["debounce"]
+    if db["present"]:
+        verdict = ("HELD" if db["invariant_held"] else "VIOLATED") if db["invariant_held"] is not None else "n/a"
+        print(f"DISK-FLUSH DEBOUNCE ({db['window_ms']:.0f}ms window): {db['opened']} opened · "
+              f"{db['closed_empty']} closed empty · {db['closed_coalesced']} coalesced · "
+              f"{db['writes']} write(s), closest {db['min_write_gap_ms']}ms apart "
+              f"=> invariant {verdict}")
+        if db["closed_coalesced"] == 0:
+            print("  NOTE: no window ever coalesced a flush, so the coalescing path is untested "
+                  "here — the invariant only shows writes never landed inside a window.")
     if bg["upload"] == "DEBO":
         print("  NOTE: debounced by the 30s window — this run did not test upload delivery. "
               "Idle >30s in the foreground before backgrounding.")

@@ -1,0 +1,32 @@
+{
+  "name": "T13-am-kill",
+  "description": "Background, then kill the process 5s later.",
+  "rust_log": "info,bd=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 35,
+      "why": "clear the minimum-upload-interval gate; without this the ON_STOP upload is debounced and the run measures the debounce instead of the question"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 5,
+      "why": "lands inside the ~5s network window so the kill competes with the upload"
+    },
+    {
+      "action": "kill"
+    },
+    {
+      "action": "wait",
+      "seconds": 10
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}

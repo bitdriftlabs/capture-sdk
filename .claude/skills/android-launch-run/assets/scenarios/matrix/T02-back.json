@@ -1,0 +1,25 @@
+{
+  "name": "T02-back",
+  "description": "BACK instead of HOME. Revokes network sooner (~3.8s vs ~5.0s), shortening the race.",
+  "rust_log": "info,bd=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 35,
+      "why": "clear the minimum-upload-interval gate; without this the ON_STOP upload is debounced and the run measures the debounce instead of the question"
+    },
+    {
+      "action": "back"
+    },
+    {
+      "action": "wait",
+      "seconds": 40,
+      "why": "covers the ~5s background network cutoff plus at least one ~30s timed flush"
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}

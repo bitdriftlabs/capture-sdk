@@ -1,0 +1,29 @@
+{
+  "name": "T07-doze-light",
+  "description": "As T06 but light doze.",
+  "rust_log": "info,bd=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 35,
+      "why": "clear the minimum-upload-interval gate; without this the ON_STOP upload is debounced and the run measures the debounce instead of the question"
+    },
+    {
+      "action": "screen-off"
+    },
+    {
+      "action": "mode",
+      "name": "doze-light"
+    },
+    {
+      "action": "wait",
+      "seconds": 40,
+      "why": "covers the ~5s background network cutoff plus at least one ~30s timed flush"
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}

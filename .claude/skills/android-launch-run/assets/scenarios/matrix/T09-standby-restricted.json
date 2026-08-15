@@ -1,0 +1,29 @@
+{
+  "name": "T09-standby-restricted",
+  "description": "Standby bucket forced to restricted AFTER backgrounding \u2014 launching the app resets it to ACTIVE, so it cannot be applied earlier. It therefore races the in-flight upload.",
+  "rust_log": "info,bd=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 35,
+      "why": "clear the minimum-upload-interval gate; without this the ON_STOP upload is debounced and the run measures the debounce instead of the question"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "mode",
+      "name": "standby-restricted"
+    },
+    {
+      "action": "wait",
+      "seconds": 40,
+      "why": "covers the ~5s background network cutoff plus at least one ~30s timed flush"
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}
