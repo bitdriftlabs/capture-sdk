@@ -115,10 +115,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.release-ref || github.ref_name }}
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: 'Install dependencies'
@@ -163,10 +163,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.release-ref || github.ref_name }}
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup Android SDK
+        uses: ./.github/actions/android-setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: Add Google Play SDK verification file

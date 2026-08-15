@@ -20,22 +20,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
-        with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
       - name: Set cores to get stored in /cores
         run: |
           sudo mkdir /cores
           sudo chmod 777 /cores
           # Core filenames will be of the form executable.pid.timestamp:
           sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
+      - name: Setup Android SDK
+        uses: ./.github/actions/android-setup
         with:
-          bazelisk-cache: true
-          repository-cache: true
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: Attempt to free up runner disk space
         run: |
           echo "Disk space BEFORE cleanup:"
@@ -59,6 +53,8 @@ jobs:
       - name: Check for Bazel build file changes
         id: bazel_check
         run: ./ci/check_bazel.sh //platform/... //test/...
+        env:
+          BAZEL_DIFF_ARGS: --config ci --config nomacos --config libunwind
         continue-on-error: true
 
       - name: Check for workflow file changes

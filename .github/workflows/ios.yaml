@@ -27,10 +27,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: Check for Bazel build file changes
         id: bazel_check
@@ -82,16 +82,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
-        with:
-          bazelisk-cache: true
-          repository-cache: true
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
@@ -125,16 +119,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
-        with:
-          bazelisk-cache: true
-          repository-cache: true
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
@@ -163,16 +151,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
-        with:
-          bazelisk-cache: true
-          repository-cache: true
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh
