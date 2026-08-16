@@ -78,6 +78,10 @@ build:release-android --linkopt=-fuse-ld=lld
 # Investigate what this is and track when we can use it.
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
+# Use the hermetic LLVM toolchain for Linux CI's LLD linker.
+build:linux-hermetic-llvm --extra_toolchains=@llvm//toolchain:all
+build:linux-hermetic-llvm --@llvm//toolchain:source=prebuilt
+
 # Custom iOS release configuration
 build --ios_simulator_device="iPhone 17"
 build:force-xcode-version --ios_simulator_version=26.2
