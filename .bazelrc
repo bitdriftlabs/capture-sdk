@@ -77,8 +77,7 @@ build:release-android --linkopt=-fuse-ld=lld
 # Investigate what this is and track when we can use it.
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
-# Use the hermetic LLVM C++ toolchain (and its bundled LLD) for Linux CI. Rust continues to
-# delegate linking through the C++ toolchain, preserving the required host-library search paths.
+# Use the hermetic LLVM C++ toolchain and its bundled LLD for Linux CI.
 build:linux-lld --extra_toolchains=@llvm//toolchain:all
 build:linux-lld --@llvm//toolchain:source=prebuilt
 
