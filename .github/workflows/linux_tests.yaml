@@ -79,7 +79,7 @@ jobs:
           echo "Script completed with exit code: $res"
           if [[ $res -ne 0 ]]; then
             set -e
-            ./bazelw test //platform/... //test/... --config ci --config nomacos --config libunwind --test_output=errors --test_env=RUST_LOG=debug
+            ./bazelw test //platform/... //test/... --config ci --config nomacos --config libunwind --remote_download_minimal --test_output=errors --test_env=RUST_LOG=debug
           else
               echo "No changes detected in the version-only change script. Skipping tests."
           fi
