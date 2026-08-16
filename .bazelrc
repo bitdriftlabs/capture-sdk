@@ -77,9 +77,8 @@ build:release-android --linkopt=-fuse-ld=lld
 # Investigate what this is and track when we can use it.
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
-# Use the hermetic LLVM C++ toolchain and its bundled LLD for Linux CI.
-build:linux-lld --extra_toolchains=@llvm//toolchain:all
-build:linux-lld --@llvm//toolchain:source=prebuilt
+# Use Rust's bundled LLD for Linux Rust links.
+build:linux-lld --@rules_rust//rust/settings:toolchain_linker_preference=rust
 
 # Custom iOS release configuration
 build --ios_simulator_device="iPhone 17"
