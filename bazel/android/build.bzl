@@ -72,6 +72,7 @@ def _jvm_lint_support(name, srcs, require_javadocs):
     ktlint_fix(
         name = "_{}_ktlint_fix".format(name),
         srcs = srcs,
+        visibility = ["//visibility:public"],
     )
 
     ktlint_test(
