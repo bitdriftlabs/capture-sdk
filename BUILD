@@ -2,6 +2,7 @@ load("@rules_apple//apple:apple.bzl", "apple_static_framework_import")
 load("@rules_java//java:defs.bzl", "java_binary")
 load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugin", "kt_kotlinc_options")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
+load("@rules_multirun//:defs.bzl", "multirun")
 load("@rules_pkg//:pkg.bzl", "pkg_zip")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(
@@ -12,6 +13,7 @@ load(
 )
 load("//bazel:android_debug_info.bzl", "android_debug_info")
 load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
+load("//bazel:rustfmt.bzl", "rustfmt_runner")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
 load("//bazel/ios:hack.bzl", "rewrite_xcframework")
 
@@ -23,6 +25,23 @@ alias(
 alias(
     name = "android_app",
     actual = "//examples/android:android_app",
+)
+
+multirun(
+    name = "ktlint_fix_all",
+    commands = [
+        "//bazel/android:_test_suite_lib_ktlint_fix",
+        "//platform/jvm/capture:_capture_logger_lib_ktlint_fix",
+        "//platform/jvm/capture:_test_ktlint_fix",
+        "//platform/jvm/common:_lib_ktlint_fix",
+        "//platform/jvm/replay:_lib_ktlint_fix",
+        "//platform/jvm/replay:_test_ktlint_fix",
+    ],
+    jobs = 0,
+)
+
+rustfmt_runner(
+    name = "rustfmt",
 )
 
 rewrite_xcframework(

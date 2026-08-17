@@ -1,6 +1,7 @@
 .ONESHELL: # support multiline commands
 # support loop constructs
 SHELL=bash
+FORMAT_MAKE_FLAGS=--no-print-directory --silent
 
 .PHONY: build
 build:
@@ -8,11 +9,11 @@ build:
 
 .PHONY: ktlint
 ktlint:
-	./bazelw query 'kind(ktlint_fix, //...)' | xargs -n1 ./bazelw run
+	./bazelw run //:ktlint_fix_all
 
 .PHONY: rustfmt
 rustfmt:
-	RUSTFMT_CONFIG=$(pwd)/rustfmt.toml ./bazelw run @rules_rust//:rustfmt
+	./bazelw run //:rustfmt
 
 .PHONY: buildifier
 buildifier:
@@ -20,7 +21,7 @@ buildifier:
 
 .PHONY: lint-yaml
 lint-yaml:
-	taplo lint
+	taplo lint $$(git ls-files -- '*.toml')
 
 .PHONY: lint-shell
 lint-shell:
@@ -30,17 +31,31 @@ lint-shell:
 fix-yaml:
 	taplo fmt
 
-.PHONY: fix-swift
-fix-swift:
+.PHONY: fix-swiftlint
+fix-swiftlint:
 # tools/lint:fix doesn't warn about all docstring violations.
-# For this reason format doc strings first (by running tools/lint:fix) and validate whether
-# any doc string violations are left next (by running tools/lint:lint-docstrings).
 # WebViewBridgeScript.swift is auto-generated; swiftlint's --format flag reindents it via
 # SourceKit regardless of `excluded` in .swiftlint.yml, so it's passed an explicit file list here.
-	swiftlint --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift') && ./bazelw run tools/lint:lint-docstrings
+	swiftlint --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
+
+.PHONY: lint-docstrings
+lint-docstrings:
+# Format doc strings first (by running tools/lint:fix) and validate whether any violations remain.
+	./bazelw run tools/lint:lint-docstrings
+
+.PHONY: fix-swift
+fix-swift: fix-swiftlint lint-docstrings
+
+.PHONY: format-bazel
+format-bazel:
+	+@$(MAKE) $(FORMAT_MAKE_FLAGS) ktlint; \
+	$(MAKE) $(FORMAT_MAKE_FLAGS) rustfmt
 
 .PHONY: format
-format: lint-shell ktlint rustfmt buildifier fix-swift lint-yaml
+format:
+	+@$(MAKE) $(FORMAT_MAKE_FLAGS) buildifier; \
+	$(MAKE) $(FORMAT_MAKE_FLAGS) -j4 format-bazel lint-shell fix-swiftlint lint-yaml; \
+	$(MAKE) $(FORMAT_MAKE_FLAGS) lint-docstrings
 
 # Use repin when you get Error: Digests do not match
 .PHONY: repin
