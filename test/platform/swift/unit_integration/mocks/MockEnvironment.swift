@@ -7,7 +7,7 @@
 
 @testable import Capture
 
-public class MockEnvironment: AppEnvironment {
+public class MockEnvironment: RuntimeEnvironment {
     public var isSimulator: Bool
 
     public init(isSimulator: Bool) {

@@ -233,6 +233,8 @@ private extension DiagnosticReportWriterTests {
             sdkVersion: sdkVersion,
             fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
             memoryPressureLevel: memoryPressureLevel,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             fileManager: .default
         )
     }

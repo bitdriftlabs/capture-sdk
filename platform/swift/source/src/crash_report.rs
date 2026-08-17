@@ -19,6 +19,8 @@ use std::path::Path;
 
 const KSCRASH_REGISTERS_KEY: &str = "registers";
 const METRICKIT_REGISTERS_KEY: &str = "bitdriftRegisters";
+const METRICKIT_BINARY_SIZES_KEY: &str = "bitdriftBinarySizes";
+const METRICKIT_APP_INFO_KEY: &str = "bitdriftAppInfo";
 
 #[derive(Clone)]
 struct CpuRegister {
@@ -453,11 +455,105 @@ fn enhance_report_with_summary(
     });
   }
 
-  if use_stack_overlap_matching {
-    enhance_report_with_base_matching(metrickit_report, kscrash_report)
+  let mut base_report = metrickit_report.clone();
+  let injected_process_info = inject_process_info(&mut base_report, kscrash_report);
+
+  let mut result = if use_stack_overlap_matching {
+    enhance_report_with_base_matching(&base_report, kscrash_report)?
   } else {
-    enhance_report_with_exact_matching(metrickit_report, kscrash_report)
+    enhance_report_with_exact_matching(&base_report, kscrash_report)?
+  };
+
+  if result.report.is_none() && injected_process_info {
+    result.report = Some(base_report);
   }
+
+  Ok(result)
+}
+
+fn inject_process_info(
+  metrickit_report: &mut AHashMap<String, Value>,
+  kscrash_report: &AHashMap<String, Value>,
+) -> bool {
+  let binary_sizes = binary_sizes_from_kscrash_report(kscrash_report);
+  let app_info = app_info_from_kscrash_report(kscrash_report);
+  let injected = !binary_sizes.is_empty() || !app_info.is_empty();
+
+  if !binary_sizes.is_empty() {
+    metrickit_report.insert(
+      METRICKIT_BINARY_SIZES_KEY.to_string(),
+      Value::Object(binary_sizes),
+    );
+  }
+
+  if !app_info.is_empty() {
+    metrickit_report.insert(METRICKIT_APP_INFO_KEY.to_string(), Value::Object(app_info));
+  }
+
+  injected
+}
+
+fn binary_sizes_from_kscrash_report(
+  kscrash_report: &AHashMap<String, Value>,
+) -> AHashMap<String, Value> {
+  let mut sizes = AHashMap::new();
+  let Some(Value::Array(threads)) = kscrash_report.get("threads") else {
+    return sizes;
+  };
+
+  for thread in threads {
+    let Value::Object(thread) = thread else {
+      continue;
+    };
+    let Some(Value::Object(backtrace)) = thread.get("backtrace") else {
+      continue;
+    };
+    let Some(Value::Array(contents)) = backtrace.get("contents") else {
+      continue;
+    };
+
+    for frame in contents {
+      let Value::Object(frame) = frame else {
+        continue;
+      };
+      let Some(Value::String(uuid)) = frame.get("binaryUUID") else {
+        continue;
+      };
+      let Some(size) = frame.get("binaryImageSize").and_then(value_as_u64) else {
+        continue;
+      };
+      if size > 0 {
+        // We uppercase it because MetricKit uses uppercase for binary image UUIDs.
+        sizes.insert(uuid.to_uppercase(), Value::Unsigned(size));
+      }
+    }
+  }
+
+  sizes
+}
+
+fn app_info_from_kscrash_report(
+  kscrash_report: &AHashMap<String, Value>,
+) -> AHashMap<String, Value> {
+  let mut app_info = AHashMap::new();
+  let Some(Value::Object(metadata)) = kscrash_report.get("diagnosticMetaData") else {
+    return app_info;
+  };
+
+  if let Some(seconds) = metadata.get("launchTimeSeconds").and_then(value_as_u64) {
+    let nanos = metadata
+      .get("launchTimeNanos")
+      .and_then(value_as_u64)
+      .unwrap_or_default();
+    app_info.insert("launchTimeSeconds".to_string(), Value::Unsigned(seconds));
+    app_info.insert("launchTimeNanos".to_string(), Value::Unsigned(nanos));
+  }
+
+  if let Some(Value::String(bundle_path)) = metadata.get("bundlePath") {
+    app_info.insert("bundlePath".to_string(), Value::String(bundle_path.clone()));
+  }
+
+  app_info
 }
 
 fn enhance_report_with_exact_matching(
@@ -1225,6 +1321,67 @@ mod tests {
 
     assert_eq!(Some(&Value::Unsigned(0x1234)), registers.get("pc"));
     assert_eq!(Some(&Value::Unsigned(0x5678)), registers.get("sp"));
+  }
+
+  #[test]
+  fn injects_binary_sizes_keyed_by_uppercase_uuid() {
+    let mut thread = make_kscrash_thread(0, Some("main"), &[1, 2], true);
+    let Some(Value::Object(backtrace)) = thread.get_mut("backtrace") else {
+      panic!("expected backtrace object");
+    };
+    let Some(Value::Array(contents)) = backtrace.get_mut("contents") else {
+      panic!("expected contents array");
+    };
+    let Some(Value::Object(frame)) = contents.first_mut() else {
+      panic!("expected frame object");
+    };
+    frame.insert(
+      "binaryUUID".to_string(),
+      Value::String("70b89f27-1634-3580-a695-57cdb41d7743".to_string()),
+    );
+    frame.insert("binaryImageSize".to_string(), Value::Unsigned(4096));
+
+    let sizes = binary_sizes_from_kscrash_report(&make_kscrash_report(6, 1, vec![thread]));
+
+    assert_eq!(
+      Some(&Value::Unsigned(4096)),
+      sizes.get("70B89F27-1634-3580-A695-57CDB41D7743")
+    );
+  }
+
+  #[test]
+  fn extracts_launch_time_and_bundle_path_from_kscrash_metadata() {
+    let mut report = make_kscrash_report(6, 1, vec![]);
+    let Some(Value::Object(metadata)) = report.get_mut("diagnosticMetaData") else {
+      panic!("expected metadata object");
+    };
+    metadata.insert("launchTimeSeconds".to_string(), Value::Unsigned(1_700_000));
+    metadata.insert("launchTimeNanos".to_string(), Value::Unsigned(500));
+    metadata.insert(
+      "bundlePath".to_string(),
+      Value::String("/var/containers/Bundle/Application/App.app".to_string()),
+    );
+
+    let app_info = app_info_from_kscrash_report(&report);
+
+    assert_eq!(
+      Some(&Value::Unsigned(1_700_000)),
+      app_info.get("launchTimeSeconds")
+    );
+    assert_eq!(Some(&Value::Unsigned(500)), app_info.get("launchTimeNanos"));
+    assert_eq!(
+      Some(&Value::String(
+        "/var/containers/Bundle/Application/App.app".to_string()
+      )),
+      app_info.get("bundlePath")
+    );
+  }
+
+  #[test]
+  fn omits_launch_time_when_kscrash_did_not_capture_it() {
+    let app_info = app_info_from_kscrash_report(&make_kscrash_report(6, 1, vec![]));
+
+    assert!(app_info.is_empty());
   }
 
   #[test]

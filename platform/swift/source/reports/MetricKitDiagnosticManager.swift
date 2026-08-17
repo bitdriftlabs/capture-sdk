@@ -63,6 +63,7 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         diagnosticSource: any MetricDiagnosticReportSource = LiveMetricDiagnosticReportSource(
             metricManager: MetricManager()),
         fileManager: FileManager = .default,
+        appDistributionInspector: AppDistributionInspector = AppDistributionInspector(),
         crashEnrichmentSummaryHandler: (([String: String]?) -> Void)? = nil,
         completionHandler: (() -> Void)? = nil
     ) {
@@ -74,11 +75,14 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         self.fileManager = fileManager
         self.crashEnrichmentSummaryHandler = crashEnrichmentSummaryHandler
         self.completionHandler = completionHandler
+        let appDistribution = appDistributionInspector.inspect()
         self.writer = DiagnosticReportWriter(
             outputDir: outputDir,
             sdkVersion: sdkVersion,
             fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
             memoryPressureLevel: memoryPressureLevel,
+            appEnvironment: appDistribution.environment,
+            teamIdentifier: appDistribution.teamIdentifier,
             fileManager: fileManager
         )
     }
