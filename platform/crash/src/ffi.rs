@@ -43,12 +43,13 @@ fn configure_lock() -> MutexGuard<'static, ()> {
 
 /// # Safety
 ///
-/// `state_path` must point to a valid, null-terminated C string for the duration of the call.
+/// `state_path` must point to a valid, immutable, null-terminated C string for the duration of the
+/// call. It must not alias memory that is concurrently modified.
 ///
 /// This function is idempotent for the process: it initializes the persisted crash state store,
 /// snapshots the previous launch's crash state, and prepares the current run's shared record, but
 /// it does not install crash monitors yet.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_char) -> bool {
   if state_path.is_null() {
     log::debug!("capture_bitdrift_crash_configure called with null state path");
@@ -76,14 +77,14 @@ pub unsafe extern "C" fn capture_bitdrift_crash_configure(state_path: *const c_c
 
 /// Activate crash monitor installation for the current process. Returns `false` if the
 /// coordinator has not been configured yet or monitor installation fails.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_start() -> bool {
   COORDINATOR.get().is_some_and(Coordinator::start)
 }
 
 /// Uninstall previously-registered crash monitors for the current process. This does not destroy
 /// the coordinator or clear persisted crash state.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_stop() {
   if let Some(coordinator) = COORDINATOR.get() {
     coordinator.stop();
@@ -92,7 +93,7 @@ pub extern "C" fn capture_bitdrift_crash_stop() {
 
 /// Return whether the cached previous-launch state indicates a crash. Returns `-1` when the
 /// coordinator has not been configured yet.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_did_crash_last_launch() -> i8 {
   if COORDINATOR.get().is_none() {
     return -1;
@@ -102,20 +103,20 @@ pub extern "C" fn capture_bitdrift_crash_did_crash_last_launch() -> i8 {
 }
 
 /// Return the cached previous-launch crash timestamp, or `0` when no crash state is available.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_cached_timestamp() -> u64 {
   previous_crash_state().map_or(0, |state| state.timestamp_secs)
 }
 
 /// Return the cached previous-launch crash kind, or `0` when no crash state is available.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_cached_kind() -> u8 {
   previous_crash_state().map_or(0, |state| state.kind as u8)
 }
 
 /// Return the cached previous-launch exception name as a pointer into process-owned storage, or
 /// null when no `NSException` name is available.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {
     return null();
@@ -134,7 +135,7 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_name() -> *const c_char 
 
 /// Return the cached previous-launch exception reason as a pointer into process-owned storage, or
 /// null when no `NSException` reason is available.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_last_exception_reason() -> *const c_char {
   let Some(previous_state) = previous_crash_state() else {
     return null();
@@ -153,7 +154,7 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_reason() -> *const c_cha
 
 /// Return the number of cached previous-launch `NSException` call stack frames, or `0` when no
 /// `NSException` call stack is available.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_last_exception_call_stack_frame_count() -> u16 {
   let Some(previous_state) = previous_crash_state() else {
     return 0;
@@ -168,7 +169,7 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_call_stack_frame_count()
 
 /// Return a pointer to cached previous-launch `NSException` return addresses, or null when no
 /// `NSException` call stack is available.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_last_exception_call_stack_return_addresses() -> *const u64
 {
   let Some(previous_state) = previous_crash_state() else {
@@ -188,7 +189,7 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_call_stack_return_addres
 
 /// Return the cached previous-launch `NSException` image load address for the requested frame, or
 /// `0` when the frame is unavailable.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_last_exception_call_stack_image_load_address_at(
   frame_index: u16,
 ) -> u64 {
@@ -210,7 +211,7 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_call_stack_image_load_ad
 
 /// Return the cached previous-launch `NSException` binary name for the requested frame, or null
 /// when the frame is unavailable or has no binary name.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_last_exception_call_stack_binary_name_at(
   frame_index: u16,
 ) -> *const c_char {
@@ -237,7 +238,7 @@ pub extern "C" fn capture_bitdrift_crash_last_exception_call_stack_binary_name_a
 
 /// Return the cached previous-launch `NSException` image id for the requested frame, or null when
 /// the frame is unavailable or has no image id.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn capture_bitdrift_crash_last_exception_call_stack_image_id_at(
   frame_index: u16,
 ) -> *const c_char {

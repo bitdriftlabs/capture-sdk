@@ -1,6 +1,6 @@
 [package]
 description  = "test JNI crate"
-edition      = "2021"
+edition      = "2024"
 license-file = "LICENSE"
 name         = "test_jni"
 publish      = false

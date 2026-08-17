@@ -12,7 +12,7 @@ def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], **a
         deps = all_crate_deps(normal = True, cargo_only = True) + deps,
         proc_macro_deps = proc_macro_deps,
         aliases = _crate_aliases(),
-        edition = "2021",
+        edition = "2024",
         rustc_flags = _rustc_flags(),
         **args
     )
@@ -35,7 +35,7 @@ def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps =
         deps = all_crate_deps(normal = True, cargo_only = True) + deps,
         proc_macro_deps = proc_macro_deps,
         aliases = _crate_aliases(),
-        edition = "2021",
+        edition = "2024",
         rustc_flags = rustc_flags + _rustc_flags(),
         **args
     )
@@ -55,7 +55,7 @@ def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], **args):
     rust_test(
         name = name,
         rustc_flags = _rustc_flags(),
-        edition = "2021",
+        edition = "2024",
         deps = all_crate_deps(normal = True, normal_dev = True, cargo_only = True) + deps,
         proc_macro_deps = proc_macro_deps,
         aliases = _crate_aliases(),
@@ -79,7 +79,7 @@ def bitdrift_rust_library_only(name, srcs, deps = []):
         disable_pipelining = True,
         aliases = _crate_aliases(),
         rustc_flags = _rustc_flags(),
-        edition = "2021",
+        edition = "2024",
     )
 
 def bitdrift_rust_library(
@@ -104,7 +104,7 @@ def bitdrift_rust_library(
         disable_pipelining = True,
         aliases = crate_aliases,
         rustc_flags = _rustc_flags(),
-        edition = "2021",
+        edition = "2024",
         tags = tags,
         data = data,
         **args
@@ -121,7 +121,7 @@ def bitdrift_rust_library(
             normal_dev = True,
             cargo_only = True,
         ) + test_deps,
-        edition = "2021",
+        edition = "2024",
     )
 
     rust_clippy(

@@ -10,7 +10,7 @@ use crate::ffi::nsstring_into_string;
 use ahash::AHashMap;
 use anyhow;
 use bd_bonjson::decoder::DecodeError;
-use bd_bonjson::{decoder, Value};
+use bd_bonjson::{Value, decoder};
 use bd_error_reporter::reporter::with_handle_unexpected_or;
 use objc::runtime::Object;
 use parking_lot::Mutex;
@@ -22,6 +22,8 @@ struct NamedThread {
   call_stack: Vec<u64>,
   crashed: bool,
 }
+
+type MetricKitThread<'a> = (&'a mut AHashMap<String, Value>, Vec<u64>);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EnrichmentOutcome {
@@ -271,7 +273,7 @@ fn should_mark_ambiguous_tie(
 
 // API
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Object) -> CacheResult {
   with_handle_unexpected_or(
     || -> anyhow::Result<CacheResult> {
@@ -282,7 +284,7 @@ extern "C" fn capture_cache_kscrash_report(kscrash_report_path_ptr: *const Objec
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_enhance_metrickit_diagnostic_report(
   metrickit_report_ptr: *const Object,
   use_stack_overlap_matching: bool,
@@ -300,7 +302,7 @@ extern "C" fn capture_enhance_metrickit_diagnostic_report(
   result.report_ptr.unwrap_or(metrickit_report_ptr)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_cached_kscrash_timestamp() -> u64 {
   with_handle_unexpected_or(
     || -> anyhow::Result<u64> { cached_kscrash_timestamp_impl() },
@@ -316,17 +318,17 @@ fn capture_cache_kscrash_report_impl(
 ) -> anyhow::Result<CacheResult> {
   let report_path = unsafe { nsstring_into_string(kscrash_report_path_ptr) }
     .map_err(|e| anyhow::anyhow!("Failed to convert KSCrash report path to string: {e}"))?;
-  parse_cached_report(report_path)
+  parse_cached_report(&report_path)
 }
 
-fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
-  if !Path::new(&report_path).exists() {
+fn parse_cached_report(report_path: &str) -> anyhow::Result<CacheResult> {
+  if !Path::new(report_path).exists() {
     return Ok(CacheResult::ReportDoesNotExist);
   }
 
-  let file_contents = fs::read(&report_path)?;
+  let file_contents = fs::read(report_path)?;
 
-  if file_contents.len() == 0 {
+  if file_contents.is_empty() {
     // File is created when the writer is initialized. An empty file should
     // indicate that no error occurred to be written.
     return Ok(CacheResult::ReportDoesNotExist);
@@ -337,7 +339,7 @@ fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
     Ok((..)) => {
       return Err(anyhow::anyhow!(
         "KSCrash report is not a valid object/hashmap"
-      ))
+      ));
     },
     Err(DecodeError::Partial {
       partial_value,
@@ -347,7 +349,7 @@ fn parse_cached_report(report_path: String) -> anyhow::Result<CacheResult> {
       _ => {
         return Err(anyhow::anyhow!(
           "KSCrash report is not a valid object/hashmap"
-        ))
+        ));
       },
     },
     Err(DecodeError::Fatal(_)) => return Err(anyhow::anyhow!("Failed to decode KSCrash report")),
@@ -397,7 +399,7 @@ fn enhance_metrickit_diagnostic_report_impl(
       let enhanced_report = Value::Object(enhanced_hashmap);
       let strong_ptr = unsafe { rust_value_to_objc(&enhanced_report) }
         .map_err(|e| anyhow::anyhow!("Failed to convert enhanced_report to Objective-C: {e}"))?;
-      Some(*strong_ptr as *const Object)
+      Some((*strong_ptr).cast_const())
     },
     None => None,
   };
@@ -654,8 +656,7 @@ fn parse_address_value(address: &Value) -> anyhow::Result<u64> {
       })
       .ok_or_else(|| anyhow::anyhow!("Address value is negative: {address}")),
     _ => Err(anyhow::anyhow!(
-      "Address value is not a valid number (got {:?})",
-      address
+      "Address value is not a valid number (got {address:?})"
     )),
   }
 }
@@ -666,19 +667,18 @@ fn inject_thread_names_into_metrickit_exact(
 ) -> anyhow::Result<AHashMap<String, Value>> {
   let mut used_named_threads = vec![false; named_threads.len()];
 
-  let Some(Value::Object(ref mut call_stack_tree)) = metrickit_report.get_mut("callStackTree")
-  else {
+  let Some(Value::Object(call_stack_tree)) = metrickit_report.get_mut("callStackTree") else {
     return Err(anyhow::anyhow!(
       "MetricKit report missing 'callStackTree' object"
     ));
   };
 
-  let Some(Value::Array(ref mut threads)) = call_stack_tree.get_mut("callStacks") else {
+  let Some(Value::Array(threads)) = call_stack_tree.get_mut("callStacks") else {
     return Err(anyhow::anyhow!("CallStackTree missing 'callStacks' array"));
   };
 
   for thread in threads.iter_mut() {
-    let Value::Object(ref mut thread) = thread else {
+    let Value::Object(thread) = thread else {
       return Err(anyhow::anyhow!("Thread is not a valid object/hashmap"));
     };
 
@@ -747,14 +747,13 @@ fn inject_thread_names_into_metrickit_from_base(
 fn metrickit_threads_mut(
   metrickit_report: &mut AHashMap<String, Value>,
 ) -> anyhow::Result<&mut Vec<Value>> {
-  let Some(Value::Object(ref mut call_stack_tree)) = metrickit_report.get_mut("callStackTree")
-  else {
+  let Some(Value::Object(call_stack_tree)) = metrickit_report.get_mut("callStackTree") else {
     return Err(anyhow::anyhow!(
       "MetricKit report missing 'callStackTree' object"
     ));
   };
 
-  let Some(Value::Array(ref mut threads)) = call_stack_tree.get_mut("callStacks") else {
+  let Some(Value::Array(threads)) = call_stack_tree.get_mut("callStacks") else {
     return Err(anyhow::anyhow!("CallStackTree missing 'callStacks' array"));
   };
 
@@ -792,10 +791,8 @@ fn count_named_metrickit_threads(
   )
 }
 
-fn get_metrickit_thread(
-  thread: &mut Value,
-) -> anyhow::Result<Option<(&mut AHashMap<String, Value>, Vec<u64>)>> {
-  let Value::Object(ref mut thread) = thread else {
+fn get_metrickit_thread(thread: &mut Value) -> anyhow::Result<Option<MetricKitThread<'_>>> {
+  let Value::Object(thread) = thread else {
     return Err(anyhow::anyhow!("Thread is not a valid object/hashmap"));
   };
 
@@ -981,7 +978,7 @@ fn call_stacks_match(call_stack_a: &[u64], call_stack_b: &[u64]) -> bool {
 fn value_as_u64(value: &Value) -> Option<u64> {
   match value {
     Value::Unsigned(value) => Some(*value),
-    Value::Signed(value) => (*value >= 0).then_some(*value as u64),
+    Value::Signed(value) => (*value >= 0).then_some((*value).cast_unsigned()),
     _ => None,
   }
 }
@@ -1019,10 +1016,7 @@ mod tests {
   ) -> AHashMap<String, Value> {
     let mut thread = AHashMap::new();
     thread.insert("index".to_string(), Value::Signed(index));
-    thread.insert(
-      "crashed".to_string(),
-      Value::Unsigned(if crashed { 1 } else { 0 }),
-    );
+    thread.insert("crashed".to_string(), Value::Unsigned(u64::from(crashed)));
 
     if let Some(name) = name {
       thread.insert("name".to_string(), Value::String(name.to_string()));
@@ -1072,7 +1066,7 @@ mod tests {
     );
     thread.insert(
       "threadAttributed".to_string(),
-      Value::Unsigned(if thread_attributed { 1 } else { 0 }),
+      Value::Unsigned(u64::from(thread_attributed)),
     );
     thread
   }
@@ -1154,7 +1148,7 @@ mod tests {
   fn nonexistent_report_path_test() {
     assert_eq!(
       CacheResult::ReportDoesNotExist,
-      parse_cached_report("/sys/nonpath".to_string()).unwrap()
+      parse_cached_report("/sys/nonpath").unwrap()
     );
   }
 
@@ -1167,7 +1161,7 @@ mod tests {
     let report_path = report.path().to_str().unwrap().to_string();
     assert_eq!(
       CacheResult::ReportDoesNotExist,
-      parse_cached_report(report_path).unwrap()
+      parse_cached_report(&report_path).unwrap()
     );
   }
 
@@ -1177,9 +1171,9 @@ mod tests {
       .prefix("report")
       .tempfile()
       .unwrap();
-    report.write("\0\0\0".as_bytes()).unwrap();
+    report.write_all(b"\0\0\0").unwrap();
     let report_path = report.path().to_str().unwrap().to_string();
-    assert!(parse_cached_report(report_path).is_err());
+    assert!(parse_cached_report(&report_path).is_err());
   }
 
   #[test]

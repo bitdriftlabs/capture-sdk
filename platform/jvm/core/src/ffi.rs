@@ -5,13 +5,13 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::jni::{initialize_class, initialize_method_handle, CachedClass, CachedMethod};
+use crate::jni::{CachedClass, CachedMethod, initialize_class, initialize_method_handle};
 use anyhow::bail;
 use bd_client_common::error::InvariantError;
 use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldKind, LogFieldValue, LogFields};
-use jni::objects::{JMap, JObject, JObjectArray, JPrimitiveArray};
-use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
+use jni::objects::{JMap, JObject, JObjectArray, JPrimitiveArray, JString};
+use jni::signature::{Primitive, ReturnType};
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
@@ -97,7 +97,8 @@ fn extract_field(
     .ok_or(InvariantError::Invariant)?
     .call_method(env, field_obj, ReturnType::Object, &[])?
     .l()?;
-  let key = unsafe { env.get_string_unchecked(&key.into()) }?
+  let key = JString::from(key);
+  let key = unsafe { env.get_string_unchecked(&key) }?
     .to_string_lossy()
     .to_string();
 
@@ -123,8 +124,9 @@ fn extract_field(
         .ok_or(InvariantError::Invariant)?
         .call_method(env, field_obj, ReturnType::Object, &[])?
         .l()?;
+      let field_value = JString::from(field_value);
       LogFieldValue::String(
-        unsafe { env.get_string_unchecked(&field_value.into()) }?
+        unsafe { env.get_string_unchecked(&field_value) }?
           .to_string_lossy()
           .to_string(),
       )
@@ -201,10 +203,12 @@ pub fn string_arrays_to_annotated_fields(
       let key_obj = env.get_object_array_element(keys, i)?;
       let value_obj = env.get_object_array_element(values, i)?;
 
-      let key = unsafe { env.get_string_unchecked(&key_obj.into()) }?
+      let key_obj = JString::from(key_obj);
+      let key = unsafe { env.get_string_unchecked(&key_obj) }?
         .to_string_lossy()
         .to_string();
-      let value = unsafe { env.get_string_unchecked(&value_obj.into()) }?
+      let value_obj = JString::from(value_obj);
+      let value = unsafe { env.get_string_unchecked(&value_obj) }?
         .to_string_lossy()
         .to_string();
 

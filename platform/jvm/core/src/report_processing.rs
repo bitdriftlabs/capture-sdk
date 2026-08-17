@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::jni::{initialize_method_handle, CachedMethod, JValueWrapper};
+use crate::jni::{CachedMethod, JValueWrapper, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   AppBuildNumber,
@@ -20,14 +20,14 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   Timestamp,
 };
 use flatbuffers::FlatBufferBuilder;
-use jni::objects::JObject;
+use jni::JNIEnv;
+use jni::objects::{JObject, JString};
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::{jint, jlong};
-use jni::JNIEnv;
 use platform_shared::javascript_error::{
-  persist_javascript_error_report,
   AppMetadata,
   DeviceMetadata,
+  persist_javascript_error_report,
 };
 use std::io::{Seek, Write};
 use std::sync::OnceLock;
@@ -353,8 +353,9 @@ fn read_string(
     .call_method(env, attributes, ReturnType::Object, &[])?
     .l()?;
 
+  let value = JString::from(value);
   Ok(
-    unsafe { env.get_string_unchecked(&value.into())? }
+    unsafe { env.get_string_unchecked(&value)? }
       .to_string_lossy()
       .to_string(),
   )
