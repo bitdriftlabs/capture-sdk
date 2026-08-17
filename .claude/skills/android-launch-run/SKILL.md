@@ -188,7 +188,7 @@ The shape is the same on both revs in circulation; **only the stats message text
 the timeline to whichever rev `Cargo.toml` pins. Both are real HOME-button runs on a Pixel 10:
 
 <details open>
-<summary><b><code>c3ba1cba</code></b> — the <code>bump</code> branch (PR #1107)</summary>
+<summary><b>new-stats wordings</b> — the <code>bump</code> branch, PR #1107 (measured on <code>c3ba1cba</code>; identical on <code>d8ac5975</code>)</summary>
 
 ```
       +0ms  process ON_STOP                                    <- reference
@@ -202,7 +202,7 @@ the timeline to whichever rev `Cargo.toml` pins. Both are real HOME-button runs 
 </details>
 
 <details>
-<summary><b><code>42637e1f</code></b> — <code>main</code></summary>
+<summary><b>legacy-stats wordings</b> — <code>main</code> (measured on <code>42637e1f</code>)</summary>
 
 ```
    -1.302s  >>> home

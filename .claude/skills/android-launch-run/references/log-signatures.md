@@ -33,8 +33,9 @@ device clock, so sources interleave correctly in a single `-b main,events` captu
 >
 > **And check the installed binary, not just the rev.** The APK on the device is whatever was last
 > built; switching branches does not change it. Reinstall (`adbctl.py install`) after moving between
-> `main` and `bump`, or you will be reading `main` behaviour while the tree says `c3ba1cba` — the
-> single most confusing state to debug from.
+> `main` and `bump`, **and after the pinned rev moves within a branch** — a rev bump is exactly
+> when the APK goes stale. Otherwise you read one rev's behaviour while the tree names another,
+> which is the single most confusing state to debug from. `check_signatures.py` detects it.
 
 ---
 
