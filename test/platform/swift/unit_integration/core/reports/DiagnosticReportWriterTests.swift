@@ -65,7 +65,7 @@ final class DiagnosticReportWriterTests: XCTestCase {
                 "sp": 0x5678,
                 "pc": 0x1234,
                 "lr": 0x9ABC,
-            ])]),
+            ]), ]),
             name: "EXC_BAD_ACCESS",
             reason: "SIGSEGV",
             machExceptionType: nil,
