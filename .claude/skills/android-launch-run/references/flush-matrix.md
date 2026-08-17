@@ -15,7 +15,7 @@ Run it yourself: `assets/scenarios/matrix/T01…T14.json`, one scenario per test
 >
 > | If pinned | Branch | The 28/28 results below | The airplane wedge | Debounce window |
 > |---|---|---|---|---|
-> | `c3ba1cba` | `bump` (#1107) | **are** the live behaviour | fixed | present |
+> | `c3ba1cba` / `d8ac5975`+ | `bump` (#1107) | **are** the live behaviour | fixed | present |
 > | `42637e1f` | `main` | describe the *other* rev | **present again** | absent |
 >
 > On `main`, treat "flush produces no disk write in airplane mode with a stalled upload" as expected

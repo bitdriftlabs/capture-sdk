@@ -233,7 +233,7 @@ the stats log regardless of what asked for it. Only the first two are on a clock
 | **Periodic disk timer** | no `state flushing initiated` | anchored at the process's first flush, then every `stats.disk_flush_interval_ms` |
 | **Periodic upload timer** | `prepared UPLOAD_REASON_PERIODIC …` | every `stats.upload_flush_interval_ms` |
 | **Platform flush** (backgrounding) | **`state flushing initiated`** | `ON_STOP` + ~15ms |
-| **Workflow `flush_buffers` action** | `bd_workflows::engine: uploading due to flush buffers action` | **arbitrary** — server-configured, fires on log/event traversals |
+| **Workflow `flush_buffers` action** *(removed in `d8ac5975`)* | `bd_workflows::engine: uploading due to flush buffers action` | **arbitrary** — server-configured, fires on log/event traversals |
 | **API handshake** | `handshake stats upload completed: … source_files=N` | on stream establishment; can sweep a backlog |
 
 The workflow one is the trap. It has no `state flushing initiated` (no platform bridge) and no timer
@@ -249,6 +249,13 @@ bd_client_stats::stats: flushing collected stats to disk          <- 10ms later
 action fans out well beyond stats — it also signals the ring buffers and can trigger sankey uploads.
 Disabling the workflow server-side removes it entirely, which is worth doing when you need a clean
 baseline for timing work.
+
+shared-core `184c3229` (**in `d8ac5975` and later**) deletes this trigger outright: the workflow engine
+no longer calls `flush_trigger.flush()` on log-upload approval. On a recent `bump` build the list is
+therefore four, not five, and an unexplained flush needs a different explanation. The entry stays
+because it is still live on `c3ba1cba` and on any build made before that merge — and because the habit
+generalises: **an off-schedule flush with no `state flushing initiated` originates inside shared-core,
+and widening the filter beats guessing at a client-side cause.**
 
 ### Two different intervals — don't conflate them
 

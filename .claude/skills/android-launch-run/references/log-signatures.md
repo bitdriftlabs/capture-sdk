@@ -24,7 +24,7 @@ device clock, so sources interleave correctly in a single `-b main,events` captu
 >
 > | Rev | Branch | Column |
 > |---|---|---|
-> | `c3ba1cba` | `bump` (PR #1107) | left |
+> | `c3ba1cba`, `d8ac5975` and later | `bump` (PR #1107) | left |
 > | `42637e1f` | `main` | right |
 >
 > Then run `scripts/check_signatures.py <capture>`, which reports `SEEN`/`UNSEEN` per signature family
@@ -218,7 +218,7 @@ Both revs carry a uuid on both lines; only the surrounding text differs.
 
 ## 4b. The disk-flush debounce window (`c3ba1cba`+)
 
-> **Exists on `c3ba1cba` (the `bump` branch); absent on `main`.** Verified on `42637e1f`: zero
+> **Exists on the `bump` branch (`c3ba1cba` onward); absent on `main`.** Verified on `42637e1f`: zero
 > `stats disk flush debounce` lines in any capture, with `check_signatures.py` reporting the
 > `stats-debounce` family as `UNSEEN`. On a rev without the window, a missing `DISK-FLUSH DEBOUNCE`
 > line is the rev, not a regression.

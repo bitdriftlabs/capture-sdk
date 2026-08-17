@@ -51,16 +51,26 @@ NORMALISE = [
 # the tree and the binary can disagree — which is the most confusing state to debug from, because
 # every signature lookup silently consults the wrong column of the reference tables.
 REV_MARKERS = {
-    "c3ba1cba+": [
+    "new-stats": [
         "flushing collected stats to disk",
         "prepared ",
         "started stats disk flush debounce window",
     ],
-    "<=42637e1f": [
+    "legacy-stats": [
         "received a signal to flush stats to disk",
         "sending pending flush upload",
         "stat flush upload attempt complete",
     ],
+}
+
+# Which family a pinned rev belongs to. Keyed by 8-char prefix. Deliberately an explicit table
+# rather than a prefix test: an earlier version asked `pin.startswith("c3ba1cb")`, which silently
+# reported the wrong family the moment the bump branch advanced to d8ac5975 — a tool that lies about
+# staleness is worse than one that admits it doesn't know.
+REV_FAMILY = {
+    "c3ba1cba": "new-stats",    # bump / PR #1107, original tip
+    "d8ac5975": "new-stats",    # bump, after the main merge; bd-client-stats byte-identical
+    "42637e1f": "legacy-stats",  # main
 }
 
 
@@ -124,13 +134,18 @@ def main() -> None:
     detail = " ".join(f"{f}={n}" for f, n in hits.items() if n) or "no rev markers found"
     print(f"binary rev family: {fam or 'INDETERMINATE'}  ({detail})")
     if pin:
-        print(f"Cargo.toml pins:   {pin}")
-        expected = "c3ba1cba+" if pin.startswith("c3ba1cb") else "<=42637e1f"
-        if fam and fam != expected:
+        expected = REV_FAMILY.get(pin)
+        print(f"Cargo.toml pins:   {pin}" + (f"  ({expected})" if expected else "  (rev not in REV_FAMILY)"))
+        if expected is None:
+            print(f"\n  NOTE: {pin} is not a rev this script knows about, so it cannot confirm the"
+                  f"\n  install is current. Add it to REV_FAMILY in check_signatures.py once you know"
+                  f"\n  which wording family it emits — and rebuild before trusting a capture, since a"
+                  f"\n  rev bump is exactly when the APK goes stale.")
+        elif fam and fam != expected:
             print(f"\n  *** STALE INSTALL: the capture looks like {fam}, but the tree pins {pin} "
-                  f"({expected}).\n      The APK is whatever was last built — switching branches does "
-                  f"not reinstall it.\n      Run `adbctl.py install` and re-capture; until then every "
-                  f"signature lookup is\n      consulting the wrong rev.")
+                  f"({expected}).\n      The APK is whatever was last built — switching branches or "
+                  f"bumping a rev does not\n      reinstall it. Run `adbctl.py install` and re-capture; "
+                  f"until then every signature\n      lookup is consulting the wrong rev.")
     print()
 
     unseen_families = []
