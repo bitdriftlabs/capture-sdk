@@ -1,0 +1,53 @@
+reference: process ON_STOP
+
+   -37.442s  # >>> launch
+   -36.952s  | process ON_CREATE
+   -36.864s  | api stream CLOSED: java.net.UnknownHostException: Unable to resolve host "api.bitdrift.io": No address associated with hostname
+   -36.801s  | process ON_START
+   -36.794s  | process ON_RESUME
+   -36.462s  | window focus=true (MainActivity)
+   -36.431s  # >>> wait 35s
+   -36.174s  | api stream CLOSED: java.net.UnknownHostException: Unable to resolve host "api.bitdrift.io": No address associated with hostname
+   -33.112s  | api stream CLOSED: java.net.UnknownHostException: Unable to resolve host "api.bitdrift.io": No address associated with hostname
+   -31.900s  | forced flush requested
+   -31.885s  | merge snapshot (41 metrics)
+   -31.882s  # WROTE SNAPSHOT TO DISK  stats_uploads/25e6954f-07c4-4a12-b1c9-1086536e6703
+   -31.880s  | disk-flush debounce window OPENED (1s)
+   -31.879s  | preparing upload (UPLOAD_REASON_PERIODIC)
+   -31.877s  | upload enqueued
+   -30.877s  | disk-flush debounce window closed, nothing coalesced
+   -26.276s  | api stream CLOSED: java.net.UnknownHostException: Unable to resolve host "api.bitdrift.io": No address associated with hostname
+    -6.894s  | log batch: 21 logs
+    -1.896s  | forced flush requested
+    -1.880s  | merge snapshot (43 metrics)
+    -1.879s  # WROTE SNAPSHOT TO DISK  stats_uploads/25e6954f-07c4-4a12-b1c9-1086536e6703
+    -1.874s  | disk-flush debounce window OPENED (1s)
+    -1.295s  # >>> home
+    -1.067s  | OS: activity onPause
+    -1.044s  | OS: ViewRootImpl focus=false
+    -1.044s  | window focus=false (MainActivity)
+    -1.016s  # >>> wait 40s
+     -873ms  | disk-flush debounce window closed, nothing coalesced
+     -365ms  | process ON_PAUSE
+       +0ms  | process ON_STOP
+      +12ms  # state flushing initiated  [PLATFORM asked]
+      +13ms  | forced flush requested
+      +18ms  | merge snapshot (44 metrics)
+      +22ms  # WROTE SNAPSHOT TO DISK  stats_uploads/25e6954f-07c4-4a12-b1c9-1086536e6703
+      +24ms  | disk-flush debounce window OPENED (1s)
+      +29ms  | OS: activity onStop
+    +1.028s  | disk-flush debounce window closed, nothing coalesced
+   +15.247s  | api stream CLOSED: java.net.UnknownHostException: Unable to resolve host "api.bitdrift.io": No address associated with hostname
+   +28.105s  | forced flush requested
+   +28.139s  | merge snapshot (46 metrics)
+   +28.146s  # WROTE SNAPSHOT TO DISK  stats_uploads/25e6954f-07c4-4a12-b1c9-1086536e6703
+   +28.157s  | disk-flush debounce window OPENED (1s)
+   +29.160s  | disk-flush debounce window closed, nothing coalesced
+   +39.119s  # >>> observe-end
+
+FOREGROUND (before reference): 2 snapshot write(s) · 1 upload(s) enqueued, 0 acked
+BACKGROUND (after reference):  snapshot written: YES · platform flush: 1 · forced: 2 · timed: 0 · dropped: 0
+  upload NONE/NONE
+DISK-FLUSH DEBOUNCE (1000ms window): 4 opened · 4 closed empty · 0 COALESCED (0 trailing flush(es)) · 4 write(s), closest 1901ms apart => invariant HELD
+  NOTE: no window coalesced here — this run simply never had two flushes land inside one
+  window. That is ordinary; flushes usually arrive seconds apart.

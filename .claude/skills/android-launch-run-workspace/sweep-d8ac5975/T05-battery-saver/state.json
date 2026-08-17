@@ -1,0 +1,40 @@
+{
+  "ref_t": 20282402351,
+  "ref_found": true,
+  "no_reference": false,
+  "invalid_run": false,
+  "debounce": {
+    "present": true,
+    "window_ms": 1000.0,
+    "opened": 4,
+    "closed_empty": 4,
+    "closed_coalesced": 0,
+    "trailing_flushes": 0,
+    "writes": 4,
+    "min_write_gap_ms": 2218,
+    "invariant_held": true
+  },
+  "fg": {
+    "snapshots": 2,
+    "uploads_enqueued": 1,
+    "uploads_ok": 1
+  },
+  "bg": {
+    "platform_flush": 1,
+    "forced": 2,
+    "timed": 0,
+    "dropped": 0,
+    "snapshot_written": 2,
+    "stats_flushed": 0,
+    "upload": "ENQ",
+    "upload_result": "NONE",
+    "ack_ms": null
+  },
+  "net_cutoff_s": 4.958,
+  "device": {
+    "serial": "5C050DLCR0001W",
+    "api": 37,
+    "uid": "10304",
+    "state_after": "airplane=disabled low_power=1 doze=ACTIVE/ACTIVE bucket=10 blocked=BATTERY_SAVER|APP_BACKGROUND"
+  }
+}

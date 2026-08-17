@@ -1,0 +1,56 @@
+reference: process ON_STOP
+
+   -37.646s  # >>> launch
+   -37.031s  | process ON_CREATE
+   -36.866s  | process ON_START
+   -36.861s  | process ON_RESUME
+   -36.527s  | window focus=true (MainActivity)
+   -36.442s  # >>> wait 35s
+   -35.890s  | api stream up
+   -35.824s  | log batch: 62 logs
+   -31.977s  | forced flush requested
+   -31.960s  | merge snapshot (51 metrics)
+   -31.958s  # WROTE SNAPSHOT TO DISK  stats_uploads/25e6954f-07c4-4a12-b1c9-1086536e6703
+   -31.952s  | disk-flush debounce window OPENED (1s)
+   -31.952s  | preparing upload (UPLOAD_REASON_PERIODIC)
+   -31.950s  | upload enqueued
+   -31.950s  | dispatched periodic upload (1 files)
+   -31.128s  | server ACK for upload
+   -31.127s  | upload result
+   -31.121s  | preparing upload (UPLOAD_REASON_PERIODIC)
+   -30.951s  | disk-flush debounce window closed, nothing coalesced
+    -6.971s  | log batch: 21 logs
+    -1.975s  | forced flush requested
+    -1.963s  | merge snapshot (51 metrics)
+    -1.962s  # WROTE SNAPSHOT TO DISK  stats_uploads/25e6954f-07c4-4a12-b1c9-1086536e6703
+    -1.958s  | disk-flush debounce window OPENED (1s)
+    -1.290s  # >>> home
+    -1.047s  | OS: activity onPause
+    -1.024s  | OS: ViewRootImpl focus=false
+    -1.024s  | window focus=false (MainActivity)
+     -997ms  # >>> wait 2s
+     -956ms  | disk-flush debounce window closed, nothing coalesced
+     -346ms  | process ON_PAUSE
+       +0ms  | process ON_STOP
+       +3ms  # state flushing initiated  [PLATFORM asked]
+      +12ms  | OS: activity onStop
+      +15ms  | forced flush requested
+      +20ms  | merge snapshot (51 metrics)
+      +21ms  # WROTE SNAPSHOT TO DISK  stats_uploads/25e6954f-07c4-4a12-b1c9-1086536e6703
+      +24ms  | preparing upload (UPLOAD_REASON_EVENT_TRIGGERED)
+      +31ms  | upload enqueued
+      +31ms  | dispatched explicit flush upload (1 files)
+      +45ms  | disk-flush debounce window OPENED (1s)
+     +974ms  | server ACK for upload
+     +976ms  | upload result
+    +1.048s  | disk-flush debounce window closed, nothing coalesced
+    +1.141s  # >>> kill
+    +1.480s  # >>> wait 15s
+   +16.644s  # >>> observe-end
+
+FOREGROUND (before reference): 2 snapshot write(s) · 1 upload(s) enqueued, 1 acked
+BACKGROUND (after reference):  snapshot written: YES · platform flush: 1 · forced: 1 · timed: 0 · dropped: 0
+  upload ENQ/OK · ack 945ms
+DISK-FLUSH DEBOUNCE (1000ms window): 3 opened · 3 closed empty · 0 COALESCED (0 trailing flush(es)) · 3 write(s), closest 1983ms apart => invariant HELD
+  NOTE: no window coalesced here — this run simply never had two flushes land inside one
+  window. That is ordinary; flushes usually arrive seconds apart.

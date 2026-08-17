@@ -1,0 +1,86 @@
+reference: process ON_STOP
+
+   -42.566s  # >>> launch
+   -41.948s  | process ON_CREATE
+   -41.790s  | process ON_START
+   -41.781s  | process ON_RESUME
+   -41.730s  | api stream up
+   -41.668s  | log batch: 10 logs
+   -41.460s  | window focus=true (MainActivity)
+   -41.439s  # >>> wait 40s
+   -36.896s  | forced flush requested
+   -36.883s  | merge snapshot (38 metrics)
+   -36.881s  # WROTE SNAPSHOT TO DISK  stats_uploads/f2f0c4ba-ba84-4a88-9425-8c9fb2f23e20
+   -36.877s  | disk-flush debounce window OPENED (1s)
+   -36.876s  | preparing upload (UPLOAD_REASON_PERIODIC)
+   -36.868s  | upload enqueued
+   -36.868s  | dispatched periodic upload (1 files)
+   -35.874s  | disk-flush debounce window closed, nothing coalesced
+   -35.657s  | server ACK for upload
+   -35.656s  | upload result
+   -35.648s  | preparing upload (UPLOAD_REASON_PERIODIC)
+   -11.895s  | log batch: 43 logs
+    -6.893s  | forced flush requested
+    -6.876s  | merge snapshot (39 metrics)
+    -6.875s  # WROTE SNAPSHOT TO DISK  stats_uploads/f2f0c4ba-ba84-4a88-9425-8c9fb2f23e20
+    -6.871s  | disk-flush debounce window OPENED (1s)
+    -5.868s  | disk-flush debounce window closed, nothing coalesced
+    -1.299s  # >>> home
+    -1.082s  | OS: activity onPause
+    -1.064s  | OS: ViewRootImpl focus=false
+    -1.064s  | window focus=false (MainActivity)
+    -1.014s  # >>> wait 6s
+     -380ms  | process ON_PAUSE
+       +0ms  | process ON_STOP
+       +7ms  # state flushing initiated  [PLATFORM asked]
+      +18ms  | forced flush requested
+      +29ms  | merge snapshot (40 metrics)
+      +31ms  # WROTE SNAPSHOT TO DISK  stats_uploads/f2f0c4ba-ba84-4a88-9425-8c9fb2f23e20
+      +33ms  | preparing upload (UPLOAD_REASON_EVENT_TRIGGERED)
+      +39ms  | upload enqueued
+      +39ms  | dispatched explicit flush upload (1 files)
+      +48ms  | OS: activity onStop
+      +53ms  | disk-flush debounce window OPENED (1s)
+    +1.058s  | disk-flush debounce window closed, nothing coalesced
+    +1.359s  | server ACK for upload
+    +1.361s  | upload result
+    +4.984s  | api stream CLOSED: java.net.SocketException: Software caused connection abort
+    +5.134s  # >>> launch
+    +5.357s  | process ON_START
+    +5.359s  | process ON_RESUME
+    +5.432s  | window focus=true (MainActivity)
+    +5.503s  | api stream up
+    +5.520s  # >>> wait 4s
+    +9.656s  # >>> home
+    +9.866s  | OS: activity onPause
+    +9.887s  | OS: ViewRootImpl focus=false
+    +9.887s  | window focus=false (MainActivity)
+    +9.992s  # >>> wait 25s
+   +10.567s  | process ON_PAUSE
+   +10.923s  | process ON_STOP
+   +10.924s  # state flushing initiated  [PLATFORM asked]
+   +10.937s  | forced flush requested
+   +10.943s  | merge snapshot (27 metrics)
+   +10.944s  # WROTE SNAPSHOT TO DISK  stats_uploads/d7d5f592-7145-447c-8677-b9c45f2c4f96
+   +10.951s  | upload DEBOUNCED (explicit path, minimum interval)
+   +10.951s  | disk-flush debounce window OPENED (1s)
+   +10.958s  | OS: activity onStop
+   +11.954s  | disk-flush debounce window closed, nothing coalesced
+   +15.929s  | api stream CLOSED: java.net.SocketException: Software caused connection abort
+   +18.722s  | log batch: 18 logs
+   +19.150s  | api stream CLOSED: java.net.UnknownHostException: Unable to resolve host "api.bitdrift.io": No address associated with hostname
+   +23.109s  | forced flush requested
+   +23.138s  | merge snapshot (31 metrics)
+   +23.141s  # WROTE SNAPSHOT TO DISK  stats_uploads/d7d5f592-7145-447c-8677-b9c45f2c4f96
+   +23.149s  | disk-flush debounce window OPENED (1s)
+   +23.149s  | upload DEBOUNCED (periodic path, minimum interval)
+   +24.160s  | disk-flush debounce window closed, nothing coalesced
+   +30.365s  | api stream CLOSED: java.net.UnknownHostException: Unable to resolve host "api.bitdrift.io": No address associated with hostname
+   +35.139s  # >>> observe-end
+
+FOREGROUND (before reference): 2 snapshot write(s) · 1 upload(s) enqueued, 1 acked
+BACKGROUND (after reference):  snapshot written: YES · platform flush: 2 · forced: 3 · timed: 0 · dropped: 0
+  upload ENQ/OK · ack 1322ms
+DISK-FLUSH DEBOUNCE (1000ms window): 5 opened · 5 closed empty · 0 COALESCED (0 trailing flush(es)) · 5 write(s), closest 6906ms apart => invariant HELD
+  NOTE: no window coalesced here — this run simply never had two flushes land inside one
+  window. That is ordinary; flushes usually arrive seconds apart.

@@ -1,0 +1,40 @@
+{
+  "ref_t": 20282249043,
+  "ref_found": false,
+  "no_reference": true,
+  "invalid_run": false,
+  "debounce": {
+    "present": true,
+    "window_ms": 1000.0,
+    "opened": 3,
+    "closed_empty": 3,
+    "closed_coalesced": 0,
+    "trailing_flushes": 0,
+    "writes": 3,
+    "min_write_gap_ms": 30005,
+    "invariant_held": true
+  },
+  "fg": {
+    "snapshots": 0,
+    "uploads_enqueued": 0,
+    "uploads_ok": 0
+  },
+  "bg": {
+    "platform_flush": 0,
+    "forced": 3,
+    "timed": 0,
+    "dropped": 0,
+    "snapshot_written": 3,
+    "stats_flushed": 0,
+    "upload": "ENQ",
+    "upload_result": "OK",
+    "ack_ms": 754
+  },
+  "net_cutoff_s": null,
+  "device": {
+    "serial": "5C050DLCR0001W",
+    "api": 37,
+    "uid": "10304",
+    "state_after": "airplane=disabled low_power=0 doze=ACTIVE/ACTIVE bucket=10 blocked=NONE"
+  }
+}
