@@ -55,6 +55,12 @@ python3 $S/parse_logs.py       /tmp/run1/<serial>/logcat.txt --ref "process ON_S
 python3 $S/check_signatures.py /tmp/run1/<serial>/logcat.txt
 ```
 
+Run the whole scenario set and get one table instead of sixteen summaries:
+
+```bash
+python3 $S/sweep.py --out /tmp/sweep --serial <id>        # add --only T01,T05 to subset
+```
+
 Exercise the disk-flush debounce coalescing branch, which ordinary scenarios cannot reach:
 
 ```bash
@@ -511,9 +517,15 @@ arbitrary and shorten it, which is how the 30s interval silently invalidated a w
 |---|---|
 | `adbctl.py` | one step at a time: devices, install, logprop, mode, action, mark, state |
 | `run_scenario.py` | run a declarative scenario end to end, per device, and parse it |
+| `sweep.py` | run **every** scenario in order (screen-off last) and print one comparable table |
 | `parse_logs.py` | timeline + verdict from a capture |
 | `check_signatures.py` | **run before trusting any negative**: SEEN/UNSEEN per family, stale-install detection |
 | `force_coalesce.py` | deliberately land two flushes inside the 1s debounce window |
+
+`sweep.py` orders screen-off scenarios last and resets device state between runs even when one
+raises, so a single bad scenario cannot cost the other fifteen. It reports `no reference event` rather
+than a verdict where the reference never fired — for `T03-recents` that absence is the expected
+result, not a failure.
 
 `force_coalesce.py` works by pre-empting rather than reacting: the periodic tick is predictable
 (anchor + period·k) while a platform flush arrives a fixed ~1.35s after HOME, so it observes one tick
