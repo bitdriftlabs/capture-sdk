@@ -6,17 +6,17 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use bd_buffer::{AggregateRingBuffer, PerRecordCrc32Check, RingBuffer, RingBufferStats};
-use bd_logger::{log_level, Block, CaptureSession, InitParams, LoggerHandle};
+use bd_logger::{Block, CaptureSession, InitParams, LoggerHandle, log_level};
 use bd_noop_network::NoopNetwork;
 use bd_proto::protos::logging::payload::LogType;
-use bd_session::fixed::UUIDCallbacks;
 use bd_session::Strategy;
+use bd_session::fixed::UUIDCallbacks;
 use bd_test_helpers::config_helper;
 use bd_test_helpers::metadata::EmptyMetadata;
 use bd_test_helpers::metadata_provider::LogMetadata;
 use bd_test_helpers::session::InMemoryStorage;
 use config_helper::make_configuration_update_with_workflow_flushing_buffer_on_anything;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use protobuf::Message;
 use std::sync::Arc;
 use std::time::Duration;

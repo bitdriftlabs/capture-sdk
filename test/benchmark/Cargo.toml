@@ -1,6 +1,6 @@
 [package]
 description  = "Logger benchmark runners"
-edition      = "2021"
+edition      = "2024"
 license-file = "LICENSE"
 name         = "logger_benchmark"
 publish      = false

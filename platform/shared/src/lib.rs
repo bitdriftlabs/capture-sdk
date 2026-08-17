@@ -20,12 +20,12 @@ pub mod metadata;
 
 use bd_error_reporter::reporter::handle_unexpected;
 use bd_logger::{
-  log_level,
   AnnotatedLogField,
   LogFieldKind,
   LogFields,
   LoggerBuilder,
   ReportProcessingSession,
+  log_level,
 };
 use bd_proto::protos::logging::payload::LogType;
 use bd_runtime::runtime::Snapshot;
@@ -189,7 +189,7 @@ impl LoggerHolder {
   /// The provided id *must* correspond to the pointer of a valid `LoggerHolder` as returned by
   /// `into_raw`. This function *cannot* be called multiple times for the same id.
   pub unsafe fn destroy(id: i64) {
-    let holder = Box::from_raw(id as *mut Self);
+    let holder = unsafe { Box::from_raw(id as *mut Self) };
     holder.shutdown(false);
     drop(holder);
   }

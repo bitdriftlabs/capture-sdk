@@ -141,6 +141,13 @@ jobs:
       - name: Run iOS tests
         # Bypass rules_apple's hardcoded 60s simulator boot and 150s test-launch timeouts,
         run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)') --test_tag_filters=macos_only --test_output=errors --config ci --test_env=REUSE_GLOBAL_SIMULATOR=1 --test_env=STARTUP_TIMEOUT_SEC=300
+      - name: Upload iOS test failure artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-failure-artifacts
+          path: bazel-testlogs/test/platform/swift/unit_integration/**/test.outputs
+          if-no-files-found: warn
   ios_size_comparison:
     name: iOS size comparison
     timeout-minutes: 40

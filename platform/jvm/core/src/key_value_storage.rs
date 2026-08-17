@@ -6,11 +6,12 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::define_object_wrapper;
-use crate::jni::{initialize_class, initialize_method_handle, CachedMethod, JValueWrapper};
+use crate::jni::{CachedMethod, JValueWrapper, initialize_class, initialize_method_handle};
 use bd_client_common::error::InvariantError;
+use jni::JNIEnv;
+use jni::objects::JString;
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::JNI_TRUE;
-use jni::JNIEnv;
 use std::sync::OnceLock;
 
 // Cached method IDs
@@ -66,8 +67,9 @@ impl bd_key_value::Storage for PreferencesHandle {
         return Ok(None);
       }
 
+      let value = JString::from(value);
       Ok(
-        unsafe { e.get_string_unchecked(&value.into())? }
+        unsafe { e.get_string_unchecked(&value)? }
           .to_str()
           .ok()
           .map(ToString::to_string),

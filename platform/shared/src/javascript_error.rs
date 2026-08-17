@@ -11,9 +11,9 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   Platform,
 };
 use bd_report_parsers::javascript::{
-  build_javascript_error_report_to_file,
   JavaScriptAppMetrics,
   JavaScriptDeviceMetrics,
+  build_javascript_error_report_to_file,
 };
 
 /// Parse JavaScript engine string to enum
