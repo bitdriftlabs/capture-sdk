@@ -68,6 +68,10 @@ struct ProvisioningProfileInspector {
     }
 
     /// Extracts the XML plist we care about from the rest of the profile's contents.
+    ///
+    /// - parameter profileData: the raw contents of the provisioning profile.
+    ///
+    /// - returns: the plist portion, or nil if the profile doesn't contain one.
     static func propertyListPayload(from profileData: Data) -> Data? {
         let start = Data(Constants.plistStart.utf8)
         let end = Data(Constants.plistEnd.utf8)
