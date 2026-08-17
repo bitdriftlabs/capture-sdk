@@ -22,6 +22,8 @@ struct AppDistributionInspector {
     /// stripped during processing, so we fall back to the receipt name to tell them apart. Not
     /// every iOS version hands us a receipt either, and when nothing works we return `.unknown`
     /// rather than guessing.
+    ///
+    /// - returns: the environment the app was built for, and the team identifier when we can get it.
     func inspect() -> AppDistributionInfo {
         if let profileInfo = ProvisioningProfileInspector(bundle: self.bundle).inspect() {
             return profileInfo
