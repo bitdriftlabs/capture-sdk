@@ -37,3 +37,6 @@ uuid.workspace                  = true
 [lib]
 crate-type = ["rlib"]
 name       = "capture_core"
+
+[dev-dependencies]
+jni = { workspace = true, features = ["invocation"] }

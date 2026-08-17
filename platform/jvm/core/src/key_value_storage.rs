@@ -8,7 +8,7 @@
 use crate::define_object_wrapper;
 use crate::jni::{CachedMethod, JValueWrapper, initialize_class, initialize_method_handle};
 use bd_client_common::error::InvariantError;
-use jni::JNIEnv;
+use jni::Env;
 use jni::objects::JString;
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::JNI_TRUE;
@@ -19,18 +19,18 @@ use std::sync::OnceLock;
 static PREFERENCES_GET_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static PREFERENCES_SET_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
+pub(crate) fn initialize(env: &mut Env<'_>) -> anyhow::Result<()> {
   let preferences = initialize_class(env, "io/bitdrift/capture/IPreferences", None)?;
   initialize_method_handle(
     env,
-    &preferences.class,
+    preferences.class.as_ref(),
     "getString",
     "(Ljava/lang/String;)Ljava/lang/String;",
     &PREFERENCES_GET_STRING,
   )?;
   initialize_method_handle(
     env,
-    &preferences.class,
+    preferences.class.as_ref(),
     "setString",
     "(Ljava/lang/String;Ljava/lang/String;Z)V",
     &PREFERENCES_SET_STRING,
@@ -67,13 +67,8 @@ impl bd_key_value::Storage for PreferencesHandle {
         return Ok(None);
       }
 
-      let value = JString::from(value);
-      Ok(
-        unsafe { e.get_string_unchecked(&value)? }
-          .to_str()
-          .ok()
-          .map(ToString::to_string),
-      )
+      let value = e.cast_local::<JString<'_>>(value)?;
+      Ok(value.try_to_string(e).ok())
     })
   }
 
