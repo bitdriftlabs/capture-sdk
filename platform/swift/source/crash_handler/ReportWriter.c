@@ -95,6 +95,7 @@ static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KS
                         KSBinaryImage img = {0};
                         if (ksdl_binaryImageForHeader(info.dli_fbase, info.dli_fname, &img)) {
                             RETURN_ON_FAIL(writeKVUUID(writer, "binaryUUID", img.uuid));
+                            RETURN_ON_FAIL(writeKVUnsigned(writer, "binaryImageSize", img.size));
                         }
                     }
                 }
@@ -181,6 +182,13 @@ static bool writeMetadata(BDCrashWriterHandle writer, const ReportContext* ctx) 
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionType", ctx->monitorContext->mach.type));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionCode", ctx->monitorContext->mach.code));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "signal", ctx->monitorContext->signal.signum));
+    if (ctx->metadata.launchTimeSeconds > 0) {
+        RETURN_ON_FAIL(writeKVUnsigned(writer, "launchTimeSeconds", ctx->metadata.launchTimeSeconds));
+        RETURN_ON_FAIL(writeKVUnsigned(writer, "launchTimeNanos", ctx->metadata.launchTimeNanos));
+    }
+    if (ctx->bundlePath != NULL) {
+        RETURN_ON_FAIL(writeKVString(writer, "bundlePath", ctx->bundlePath));
+    }
     return true;
 }
 

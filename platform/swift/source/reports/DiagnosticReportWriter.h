@@ -20,6 +20,8 @@ NS_ASSUME_NONNULL_BEGIN
                         sdkVersion:(NSString *)sdkVersion
       fileSizeOptimizationEnabled:(BOOL)fileSizeOptimizationEnabled
                memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
+                    appEnvironment:(CAPAppEnvironment)appEnvironment
+                    teamIdentifier:(nullable NSString *)teamIdentifier
                        fileManager:(NSFileManager *)fileManager;
 
 - (void)writeCrashReportWithType:(ReportType)reportType
