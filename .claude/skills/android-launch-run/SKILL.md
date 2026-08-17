@@ -55,6 +55,12 @@ python3 $S/parse_logs.py       /tmp/run1/<serial>/logcat.txt --ref "process ON_S
 python3 $S/check_signatures.py /tmp/run1/<serial>/logcat.txt
 ```
 
+Exercise the disk-flush debounce coalescing branch, which ordinary scenarios cannot reach:
+
+```bash
+python3 $S/force_coalesce.py --out /tmp/coalesce --serial <id> --attempts 3
+```
+
 ## Before you trust any negative result: check the signatures
 
 The most expensive mistake this skill can make is reporting "no upload happened" when the truth is
@@ -117,8 +123,21 @@ Set it **before launching** — it is read once during native library init. It s
 so clear it when you're done. Standard `RUST_LOG` filter syntax applies, and module prefixes work
 (`bd_client_stats=debug` also enables `bd_client_stats::file_manager`).
 
-Pick the narrowest filter that answers the question; `bd=trace` is enormous and will flood the
-buffer, evicting the lines you care about.
+Two ways this silently doesn't take effect, both of which look like "the SDK ignores my log level":
+
+1. **`adb shell` without `-s` aborts when more than one device is attached** — it prints
+   `adb: more than one device/emulator` and does nothing. Among build output that line is easy to
+   miss, and the property just stays empty. Prefer `adbctl.py logprop '<filter>'`, which fans out
+   across every connected device and reports how many it set.
+2. **The property is read once at native init**, so it cannot affect an already-running process.
+   Force-stop and relaunch. `run_scenario.py` does this for you.
+
+If the app really is ignoring a correctly-set property, check it is debuggable
+(`dumpsys package <pkg> | grep flags=` should list `DEBUGGABLE`) — `installDebug` produces one, so a
+missing flag means something other than this skill installed the APK.
+
+Pick the narrowest filter that answers the question — `bd=trace` is enormous and will flood the
+buffer, evicting the very lines you came for.
 
 | Question | Filter |
 |---|---|
@@ -127,6 +146,21 @@ buffer, evicting the lines you care about.
 | …plus *who* triggered the flush | add `,bd_logger=debug` |
 | Log (not stats) uploads | `info,bd_logger=debug` |
 | Ring buffer to disk | `info,bd_buffer::ring_buffer=debug` |
+| **An unexplained flush** | add `,bd_workflows=debug` — server workflows raise their own flushes |
+| Which runtime flags the account overrides | add `,bd_runtime=debug` |
+
+**When you do need `bd=trace`, raise the logcat buffer first** or the volume evicts what you came
+for — roughly 2MB per 35s of foreground app:
+
+```bash
+adb -s <serial> shell logcat -g -b events   # read the device default BEFORE changing anything
+adb -s <serial> shell logcat -G 128M        # -G hits several buffers at once
+# … capture …
+adb -s <serial> shell logcat -b main -G 256K   # and restore each one you changed
+```
+
+Record the original rather than guessing at it. A buffer you did *not* touch is the best witness to
+the default, since `-G` without `-b` does not necessarily cover every buffer.
 
 **Any delivery question needs `bd_api=debug`.** The server ack
 (`received ack for stats upload "<id>", error: ""`) is logged at the transport layer, not by
@@ -189,6 +223,33 @@ the `42637e1f` run: later timed flushes keep writing to disk while backgrounded 
 and there the SDK declined to even try, because of the minimum upload interval rather than the dead
 network. Two different causes that look identical if you only watch for a missing upload.
 
+### Five things trigger a stats flush
+
+Attribution is the most common source of wrong conclusions here, because a flush looks identical in
+the stats log regardless of what asked for it. Only the first two are on a clock:
+
+| Trigger | Signature | Timing |
+|---|---|---|
+| **Periodic disk timer** | no `state flushing initiated` | anchored at the process's first flush, then every `stats.disk_flush_interval_ms` |
+| **Periodic upload timer** | `prepared UPLOAD_REASON_PERIODIC …` | every `stats.upload_flush_interval_ms` |
+| **Platform flush** (backgrounding) | **`state flushing initiated`** | `ON_STOP` + ~15ms |
+| **Workflow `flush_buffers` action** | `bd_workflows::engine: uploading due to flush buffers action` | **arbitrary** — server-configured, fires on log/event traversals |
+| **API handshake** | `handshake stats upload completed: … source_files=N` | on stream establishment; can sweep a backlog |
+
+The workflow one is the trap. It has no `state flushing initiated` (no platform bridge) and no timer
+alignment, so it reads as an unexplained flush — and its timing depends on which workflow matched,
+not on any interval. Chasing one of these cost real time until `bd_workflows=debug` named it:
+
+```
+bd_workflows::engine: uploading due to flush buffers action: "WorkflowActionId(…)"; flush_buffers=true
+bd_client_stats::stats: flushing collected stats to disk          <- 10ms later
+```
+
+**If a flush doesn't fit the timer or the platform, add `bd_workflows=debug` before theorising.** The
+action fans out well beyond stats — it also signals the ring buffers and can trigger sankey uploads.
+Disabling the workflow server-side removes it entirely, which is worth doing when you need a clean
+baseline for timing work.
+
 ### Two different intervals — don't conflate them
 
 One log line names both, which is how they get mixed up:
@@ -201,6 +262,42 @@ stats disk flush interval 30s does not cleanly divide active upload interval 5s;
 |---|---|---|
 | **`active upload interval`** (5s here) | the periodic upload *cadence* — how often an upload is attempted | derived; not the gate |
 | **`stats.minimum_upload_interval_ms`** (30s) | anti-hammer *floor*: refuses any upload, periodic **or** ON_STOP flush, too soon after the last one | shared-core default; **not** in the runtime push |
+
+The full set of flags that decide timing, with defaults on `c3ba1cba`. Read the middle column off
+`bd_runtime=debug` (`updated value of <flag> to <value>`); anything that never appears is at default:
+
+| Flag | Default | Observed on one account | Effect |
+|---|---|---|---|
+| `stats.first_upload_flush_interval_ms` | 5s | not pushed | first flush + upload of each **process** |
+| `stats.disk_flush_interval_ms` | 60s | **→ 30s** | disk write cadence |
+| `stats.upload_flush_interval_ms` | 60s | not pushed | upload cadence |
+| `stats.disk_flush_debounce_ms` | 1s | not pushed | coalesce window after each write |
+| `stats.minimum_upload_interval_ms` | 30s | not pushed | anti-hammer floor on any upload |
+
+Two consequences that surprised the SDK's own authors:
+
+- **The 5s is per process start, not per install.** Both a force-stop+relaunch and a cold start show
+  it, because the flag governs the first upload of a *process*.
+- **`effective_flush_interval()` requires the disk interval to evenly divide the upload interval.**
+  With 30s/5s at startup, 30s > 5s so it collapses to 5s and logs the `does not cleanly divide`
+  warning — a one-time startup artifact, not a misconfiguration. Once the upload interval becomes
+  60s, `60 % 30 == 0` and it settles at 30s. A pairing like 30s/45s would silently collapse to 45s.
+
+Measured on a Pixel 10 with workflows disabled, which is what a clean happy-path run looks like:
+
+| Quantity | Value |
+|---|---|
+| first disk write + upload | t+5.66s |
+| disk write cadence | 30.00, 30.01, 30.00, 30.00 |
+| upload cadence | 60.00, 60.00, 60.01 |
+| debounce windows | 1.002–1.009s |
+| HOME → `ON_STOP` | 1.35s |
+| `ON_STOP` → forced flush | +12ms |
+
+**A forced flush does not reschedule the periodic timer.** After a backgrounding flush the next tick
+still lands on the original anchor — observed as a forced write at t+152.64s followed by the scheduled
+write at t+155.67s (`5.66 + 5×30 = 155.66`). Two writes 3s apart, which the 1s window cannot merge.
+Don't read that pair as a bug, and don't expect backgrounding to shift the cadence.
 
 **The foreground wait exists to clear the 30s floor, not the 5s cadence.** Seeing `5s` in that line
 and shortening the wait is a natural mistake and it silently invalidates the run. Measured on
@@ -328,7 +425,16 @@ These come from runs that produced clean-looking but meaningless data:
    (`state.json`, report tables) still encode the old bug. The capture is the only artifact that
    cannot be wrong.
 8. **Verify a negative before believing it** — run `check_signatures.py`. "No upload happened" and
-   "my pattern stopped matching" look identical in a summary.
+   "my pattern stopped matching" look identical in a summary. This applies with double force to a
+   count that has *always* been zero: the debounce coalescing branch was documented as unexercised
+   across 36 windows when in fact the pattern matched a message that never existed. A detector that
+   has never fired is not evidence of anything.
+9. **Reinstall after switching branches.** The APK is whatever was last built; changing `Cargo.toml`
+   does not change the device. `check_signatures.py` prints a `STALE INSTALL` warning when the
+   capture's rev family disagrees with the pinned rev.
+10. **Attribute a flush before explaining it.** Five things trigger one, and only two are on a clock.
+    An off-schedule flush with no `state flushing initiated` is usually a server workflow — add
+    `bd_workflows=debug` rather than inventing a client-side theory.
 
 ## What the parser reports
 
@@ -386,6 +492,23 @@ Bundled scenarios:
 
 Add a `why` to any non-obvious wait. A future reader — including you — will otherwise assume it's
 arbitrary and shorten it, which is how the 30s interval silently invalidated a whole matrix.
+
+## Scripts
+
+| Script | Use |
+|---|---|
+| `adbctl.py` | one step at a time: devices, install, logprop, mode, action, mark, state |
+| `run_scenario.py` | run a declarative scenario end to end, per device, and parse it |
+| `parse_logs.py` | timeline + verdict from a capture |
+| `check_signatures.py` | **run before trusting any negative**: SEEN/UNSEEN per family, stale-install detection |
+| `force_coalesce.py` | deliberately land two flushes inside the 1s debounce window |
+
+`force_coalesce.py` works by pre-empting rather than reacting: the periodic tick is predictable
+(anchor + period·k) while a platform flush arrives a fixed ~1.35s after HOME, so it observes one tick
+and schedules HOME to make the forced flush land inside the *next* tick's window. Reacting to a tick
+is always too late — the reaction costs more than the window is wide. Its `--home-to-flush` default is
+calibrated against a Pixel 10 including logcat streaming latency; if every attempt lands just outside
+the window, re-measure that value from a real run rather than nudging `--target-offset` blindly.
 
 ## Reference files
 

@@ -223,32 +223,42 @@ Both revs carry a uuid on both lines; only the surrounding text differs.
 > `stats-debounce` family as `UNSEEN`. On a rev without the window, a missing `DISK-FLUSH DEBOUNCE`
 > line is the rev, not a regression.
 
-A 1s window opens immediately **after** each disk write:
+A 1s window (`stats.disk_flush_debounce_ms`) opens immediately **after** each disk write. A flush
+arriving inside it is coalesced and deferred to window expiry.
+
+An **idle** window logs a close:
 
 ```
-flushing collected stats to disk
 writing snapshot: stats_uploads/<uuid>
 started stats disk flush debounce window: duration=1s
   … 1.003s later …
 stats disk flush debounce window closed without a trailing flush
 ```
 
-Its purpose is to coalesce a second flush arriving inside that span into a single write.
-
-**Validating it is awkward**, because forcing a coalesce needs two flushes landing under 1s apart,
-which is not reliably schedulable from adb. `parse_logs.py` therefore checks the invariant the
-window implies — consecutive `writing snapshot` events should never be closer together than the
-window — and reports:
+A **coalescing** window logs **no close line at all** — this is the detail that matters:
 
 ```
-DISK-FLUSH DEBOUNCE (1000ms window): 5 opened · 5 closed empty · 0 coalesced ·
-  5 write(s), closest 1918ms apart => invariant HELD
+15:21:34.266  writing snapshot: stats_uploads/816f592f…        <- first flush writes immediately
+15:21:34.282  started stats disk flush debounce window: duration=1s
+15:21:34.471  coalescing stats disk flush into active debounce window   <- 2nd flush, 189ms in
+15:21:35.286  running debounced trailing stats disk flush: periodic_upload_pending=false
+15:21:35.294  writing snapshot: stats_uploads/762b5430…        <- ONE deferred write, not two
 ```
 
-Across 8 runs on two devices (36 windows, 36 writes) the closest pair was **1743ms** and the
-invariant held everywhere — but **0 windows ever coalesced**, so the coalescing path itself remains
-untested. The parser says so explicitly rather than implying coverage it doesn't have. Exercising it
-needs something that deliberately issues two flushes inside 1s.
+So windows split three ways: `opened == closed_empty + coalesced` (plus any still open at capture
+end). Counting only `closed …` lines undercounts, because coalescing windows never emit one.
+
+**Two ways to misread this.** First, a coalesce produces a trailing write ~1s after the first, so
+consecutive writes about one window apart are the debounce *working* — not evidence it did nothing.
+Second, the invariant "consecutive writes never closer than the window" holds whether or not a
+coalesce happened, so it cannot distinguish the two; read the `coalesced` count for that.
+
+**The count was stuck at 0 for a long time because the detector was wrong**, not because the branch
+was unreachable. The pattern guessed at `"…window closed <with a coalesce>"`, a message that does not
+exist, and was never validated because no coalesce had been observed to validate it against — a
+self-sealing loop. Reaching it needs deliberate scheduling: `scripts/force_coalesce.py` pre-empts a
+periodic tick with a platform flush and lands 3 coalesces per run. Confirmed on a Pixel 10:
+`9 opened · 6 closed empty · 3 COALESCED`.
 
 ## 5. Transport (`bd_api`)
 

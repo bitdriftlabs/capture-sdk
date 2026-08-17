@@ -86,9 +86,17 @@ PATTERNS: list[tuple[str, str, str, str]] = [
     ("DEBOUNCE_SHUT", r"bd_client_stats.*",
      r"^stats disk flush debounce window closed without a trailing flush$",
      "disk-flush debounce window closed, nothing coalesced"),
+    # A coalescing window emits NO "closed" line — it logs the coalesce, then runs a trailing flush
+    # at window expiry. The previous pattern here guessed at "…window closed <with something>" and
+    # could never match, so every run reported `coalesced 0` and the docs concluded the branch was
+    # untested. It was reachable all along; only the detector was wrong. Confirmed against a capture
+    # from scripts/force_coalesce.py, which lands two flushes inside the window on purpose.
     ("DEBOUNCE_COALESCE", r"bd_client_stats.*",
-     r"^stats disk flush debounce window closed(?! without).*$",
-     "disk-flush debounce window closed WITH a coalesced flush"),
+     r"^coalescing stats disk flush into active debounce window$",
+     "disk-flush COALESCED into the open window"),
+    ("DEBOUNCE_TRAILING", r"bd_client_stats.*",
+     r"^running debounced trailing stats disk flush: periodic_upload_pending=(?P<pending>\w+)$",
+     "debounced trailing flush runs (periodic_upload_pending={pending})"),
     ("DROPPED", r"bd_client_stats.*", r"^flush already in progress, skipping$",
      "flush DROPPED (already in progress)"),
     # The server ack, logged one step before the UploadResponse summary. It is the most direct
@@ -190,17 +198,27 @@ def fmt(delta: int) -> str:
 
 
 def _debounce_report(evs: list[dict]) -> dict:
-    """Validate the c3ba1cba disk-flush debounce window.
+    """Report on the disk-flush debounce window (`c3ba1cba`+).
 
-    The window opens right after each disk write and lasts `duration`. Its job is to coalesce a
-    second flush arriving inside that span into one write. Rather than trying to force a
-    coalesce — which needs two flushes landing <1s apart and is hard to schedule — check the
-    invariant it implies: consecutive `writing snapshot` events should never be closer together
-    than the window. A violation means writes are slipping through un-debounced.
+    The window opens right after each disk write and lasts `duration`. A flush arriving inside it is
+    coalesced and deferred to window expiry, so a coalescing window logs
+    `coalescing stats disk flush …` then `running debounced trailing stats disk flush` — and, unlike
+    an idle window, emits **no** "closed" line. Windows therefore split three ways:
+    opened == closed_empty + coalesced (+ any still open when the capture ended).
+
+    Two things follow that are easy to get backwards:
+
+    - A coalesce produces a trailing write ~`duration` after the first, so consecutive writes about
+      one window apart are the debounce *working*, not evidence it did nothing.
+    - The invariant (consecutive writes never closer than the window) holds in both cases, so it
+      cannot distinguish "coalesced correctly" from "never had two flushes close together". Read
+      `coalesced` for that, and note the count was stuck at 0 for a long time purely because this
+      detector was wrong — see scripts/force_coalesce.py for a run that exercises the branch.
     """
     opens = [e for e in evs if e["kind"] == "DEBOUNCE_OPEN"]
     shuts = [e for e in evs if e["kind"] == "DEBOUNCE_SHUT"]
     coal = [e for e in evs if e["kind"] == "DEBOUNCE_COALESCE"]
+    trail = [e for e in evs if e["kind"] == "DEBOUNCE_TRAILING"]
     writes = sorted(e["t"] for e in evs if e["kind"] == "SNAP")
     gaps = [b - a for a, b in zip(writes, writes[1:])]
 
@@ -217,6 +235,7 @@ def _debounce_report(evs: list[dict]) -> dict:
         held = min_gap >= dur_ms
     return {"present": bool(opens), "window_ms": dur_ms, "opened": len(opens),
             "closed_empty": len(shuts), "closed_coalesced": len(coal),
+            "trailing_flushes": len(trail),
             "writes": len(writes), "min_write_gap_ms": min_gap, "invariant_held": held}
 
 
@@ -325,12 +344,16 @@ def main() -> None:
     if db["present"]:
         verdict = ("HELD" if db["invariant_held"] else "VIOLATED") if db["invariant_held"] is not None else "n/a"
         print(f"DISK-FLUSH DEBOUNCE ({db['window_ms']:.0f}ms window): {db['opened']} opened · "
-              f"{db['closed_empty']} closed empty · {db['closed_coalesced']} coalesced · "
+              f"{db['closed_empty']} closed empty · {db['closed_coalesced']} COALESCED "
+              f"({db['trailing_flushes']} trailing flush(es)) · "
               f"{db['writes']} write(s), closest {db['min_write_gap_ms']}ms apart "
               f"=> invariant {verdict}")
-        if db["closed_coalesced"] == 0:
-            print("  NOTE: no window ever coalesced a flush, so the coalescing path is untested "
-                  "here — the invariant only shows writes never landed inside a window.")
+        if db["closed_coalesced"]:
+            print("  A coalesce defers its write to window expiry, so write pairs ~one window apart "
+                  "are the\n  debounce working. Exercised deliberately by scripts/force_coalesce.py.")
+        else:
+            print("  NOTE: no window coalesced here — this run simply never had two flushes land "
+                  "inside one\n  window. That is ordinary; flushes usually arrive seconds apart.")
     if bg["upload"] == "DEBO":
         print("  NOTE: debounced by the 30s window — this run did not test upload delivery. "
               "Idle >30s in the foreground before backgrounding.")

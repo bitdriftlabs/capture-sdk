@@ -183,5 +183,18 @@ Read these before designing a matrix of your own. Every one produced confident, 
 Terminations card), so it was never automated. Given observed ack latencies of 508–1080ms exceed
 500ms, the blocking flush would likely time out; that remains untested.
 
-**The disk-flush debounce coalescing path.** The 1s window (see `log-signatures.md` §4b) never
-coalesced in 36 observed windows, so only its invariant is verified, not its merge behaviour.
+**~~The disk-flush debounce coalescing path.~~ RESOLVED — and the original conclusion was wrong.**
+This entry used to read *"never coalesced in 36 observed windows, so only its invariant is verified"*.
+That was a broken detector, not an unexercised branch: `parse_logs.py` matched an invented message
+(`"…window closed <with a coalesce>"`) that does not exist, so the count could only ever be 0. A
+coalescing window emits no close line at all — it logs `coalescing stats disk flush into active
+debounce window`, then `running debounced trailing stats disk flush` at expiry.
+
+`scripts/force_coalesce.py` now reaches the branch deliberately and it works: **9 windows opened, 6
+closed empty, 3 coalesced** on a Pixel 10, each deferring its write to window expiry.
+
+Worth keeping as a lesson, because the mistake was self-sealing: the pattern was never validated
+*because* no coalesce had been seen, and no coalesce was seen *because* the pattern was wrong. Any
+"never observed" claim about a signature should be checked with `check_signatures.py` before it is
+written down — a detector that has never fired is indistinguishable from a behaviour that never
+happens, and the fix for that is mechanical, not judgemental.
