@@ -26,6 +26,11 @@ on:
         description: Include Google Play SDK verification file from GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS secret in the Android AAR.
         required: false
         default: true
+      dry-run:
+        type: boolean
+        description: Build and validate release artifacts without uploading or creating a GitHub release.
+        required: false
+        default: false
       release-ref:
         type: string
         description: Branch or tag to build/release from. Defaults to main.
@@ -71,6 +76,11 @@ on:
         description: Include Google Play SDK verification file from GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS secret in the Android AAR.
         required: false
         default: true
+      dry-run:
+        type: boolean
+        description: Build and validate release artifacts without uploading or creating a GitHub release.
+        required: false
+        default: false
       release-ref:
         type: string
         description: Branch or tag to build/release from. Defaults to main.
@@ -118,11 +128,15 @@ jobs:
           ./tools/ios_release.sh Capture "${{ inputs.version }}"
           mv ./dist/Capture.ios.zip ./Capture.ios.zip
           mv ./dist/Capture.doccarchive.ios.zip ./Capture.doccarchive.ios.zip
+          unzip -t ./Capture.ios.zip
+          unzip -t ./Capture.doccarchive.ios.zip
       - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.dry-run }}
         with:
           name: Capture.ios.zip
           path: ./Capture.ios.zip
       - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.dry-run }}
         with:
           name: Capture.doccarchive.ios.zip
           path: ./Capture.doccarchive.ios.zip
@@ -135,6 +149,7 @@ jobs:
     uses: ./.github/workflows/example_apps_ios.yaml
     with:
       release-ref: ${{ inputs.release-ref }}
+      dry-run: ${{ inputs.dry-run }}
     secrets: inherit
 
   # The Android release build builds capture.aar and accompanying artifacts, like the .pom xml and the symbols corresponding to the .so.
@@ -181,7 +196,10 @@ jobs:
           VERSION: ${{ inputs.version }}
           CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
           INCLUDE_SDK_VERIFICATION_FILE: ${{ inputs.include-sdk-verification-file }}
+      - name: Verify Android release archive
+        run: unzip -t ./dist/Capture.android.zip
       - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.dry-run }}
         with:
           name: Capture.android.zip
           path: ./dist/Capture.android.zip
@@ -194,6 +212,7 @@ jobs:
     uses: ./.github/workflows/example_apps_android.yaml
     with:
       release-ref: ${{ inputs.release-ref }}
+      dry-run: ${{ inputs.dry-run }}
     secrets: inherit
 
   build-android-integrations:
@@ -206,6 +225,7 @@ jobs:
     with:
       version: ${{ inputs.version }}
       release-ref: ${{ inputs.release-ref }}
+      dry-run: ${{ inputs.dry-run }}
     secrets: inherit
 
   create-release:
@@ -216,7 +236,7 @@ jobs:
     # always() is needed because some dependencies may be conditionally skipped
     # (e.g. iOS jobs when platform=android, integrations when capture-only).
     # Without it, a skipped dependency would also skip this job.
-    if: ${{ always() && !failure() && !cancelled() }}
+    if: ${{ always() && !failure() && !cancelled() && !inputs.dry-run }}
     needs: [
       "ios-release-build",
       "build-ios-example-apps",
@@ -331,3 +351,20 @@ jobs:
           CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
           PLATFORM: ${{ inputs.platform }}
           RELEASE_REF: ${{ inputs.release-ref }}
+
+  dry-run-complete:
+    name: Dry-run complete
+    runs-on: ubuntu-latest
+    if: ${{ always() && !failure() && !cancelled() && inputs.dry-run }}
+    needs: [
+      "ios-release-build",
+      "build-ios-example-apps",
+      "android-release-build",
+      "build-android-example-apps",
+      "build-android-integrations",
+    ]
+    steps:
+      - name: Summarize validated release artifacts
+        run: |
+          echo "Release dry run completed successfully." >> "$GITHUB_STEP_SUMMARY"
+          echo "All selected artifacts were built and archive integrity-checked; no artifacts were uploaded and no GitHub release was created." >> "$GITHUB_STEP_SUMMARY"
