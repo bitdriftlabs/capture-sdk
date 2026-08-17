@@ -14,7 +14,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Upgraded the Android JNI bindings to `jni` 0.22.4.
 
 - Legacy fixed-session strategy generator callbacks have been removed. Use
   `SessionConfiguration` to provide an initial session ID.

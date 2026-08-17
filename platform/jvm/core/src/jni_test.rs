@@ -21,7 +21,7 @@ fn initialize_class_resolves_standard_java_class() -> Result<()> {
 fn initialize_class_clears_failed_lookup_exception() -> Result<()> {
   with_env(|env| -> Result<()> {
     assert!(initialize_class(env, "example/DoesNotExist", None).is_err());
-    assert!(!env.exception_check()?);
+    assert!(!env.exception_check());
     Ok(())
   })
 }

@@ -9,26 +9,26 @@ use crate::define_object_wrapper;
 use crate::jni::{CachedMethod, initialize_class, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
-use jni::JNIEnv;
+use jni::Env;
 use jni::signature::{Primitive, ReturnType};
 use std::sync::OnceLock;
 
 static TARGET_CAPTURE_SCREEN: OnceLock<CachedMethod> = OnceLock::new();
 static TARGET_CAPTURE_SCREENSHOT: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
+pub(crate) fn initialize(env: &mut Env<'_>) -> anyhow::Result<()> {
   let session_replay_target =
     initialize_class(env, "io/bitdrift/capture/ISessionReplayTarget", None)?;
   initialize_method_handle(
     env,
-    &session_replay_target.class,
+    session_replay_target.class.as_ref(),
     "captureScreen",
     "()V",
     &TARGET_CAPTURE_SCREEN,
   )?;
   initialize_method_handle(
     env,
-    &session_replay_target.class,
+    session_replay_target.class.as_ref(),
     "captureScreenshot",
     "()V",
     &TARGET_CAPTURE_SCREENSHOT,

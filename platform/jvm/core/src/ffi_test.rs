@@ -9,23 +9,23 @@ use super::{map_to_jmap, string_arrays_to_annotated_fields};
 use crate::test_jvm::with_env;
 use anyhow::{Result, anyhow};
 use bd_logger::{LogFieldKind, LogFieldValue};
-use jni::JNIEnv;
+use jni::Env;
 use jni::objects::{JMap, JObject, JObjectArray, JString};
 use std::collections::HashMap;
 
 const TEST_ENTRY_COUNT: usize = 65;
 
-fn string_array<'local>(
-  env: &mut JNIEnv<'local>,
-  values: &[String],
-) -> Result<JObjectArray<'local>> {
-  let length = values.len().try_into()?;
-  let array = env.new_object_array(length, "java/lang/String", JObject::null())?;
+fn string_array<'local>(env: &mut Env<'local>, values: &[String]) -> Result<JObjectArray<'local>> {
+  let array = env.new_object_array(
+    values.len().try_into()?,
+    jni::jni_str!("java/lang/String"),
+    JObject::null(),
+  )?;
 
-  env.with_local_frame(i32::try_from(values.len() + 1)?, |env| -> Result<()> {
+  env.with_local_frame(values.len() + 1, |env| -> Result<()> {
     for (index, value) in values.iter().enumerate() {
       let value = env.new_string(value)?;
-      env.set_object_array_element(&array, i32::try_from(index)?, &value)?;
+      array.set_element(env, index, &value)?;
     }
     Ok(())
   })?;
@@ -80,7 +80,7 @@ fn string_arrays_reject_mismatched_lengths() -> Result<()> {
     let values = string_array(env, &[])?;
 
     assert!(string_arrays_to_annotated_fields(env, &keys, &values, LogFieldKind::Custom).is_err());
-    assert!(!env.exception_check()?);
+    assert!(!env.exception_check());
     Ok(())
   })
 }
@@ -90,7 +90,7 @@ fn map_to_jmap_preserves_each_string_mapping() -> Result<()> {
   with_env(|env| -> Result<()> {
     let fields = HashMap::from([("first", "one"), ("second", "two")]);
     let java_map = map_to_jmap(env, &fields)?;
-    let java_map = JMap::from_env(env, &java_map)?;
+    let java_map = env.cast_local::<JMap<'_>>(java_map)?;
 
     for (key, expected_value) in fields {
       let map_key = key;
@@ -98,8 +98,8 @@ fn map_to_jmap_preserves_each_string_mapping() -> Result<()> {
       let value = java_map
         .get(env, &key)?
         .ok_or_else(|| anyhow!("map is missing {map_key:?}"))?;
-      let value = JString::from(value);
-      assert_eq!(env.get_string(&value)?.to_string_lossy(), expected_value);
+      let value = env.cast_local::<JString<'_>>(value)?;
+      assert_eq!(value.try_to_string(env)?, expected_value);
     }
     Ok(())
   })

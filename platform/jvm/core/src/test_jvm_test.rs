@@ -7,7 +7,7 @@
 
 #![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
 
-use jni::{InitArgsBuilder, JNIEnv, JavaVM};
+use jni::{AttachConfig, AttachmentExceptionPolicy, Env, InitArgsBuilder, JavaVM};
 use std::sync::OnceLock;
 
 pub fn java_vm() -> &'static JavaVM {
@@ -23,9 +23,10 @@ pub fn java_vm() -> &'static JavaVM {
   })
 }
 
-pub fn with_env<T>(
-  callback: impl FnOnce(&mut JNIEnv<'_>) -> anyhow::Result<T>,
-) -> anyhow::Result<T> {
-  let mut env = java_vm().attach_current_thread()?;
-  callback(&mut env)
+pub fn with_env<T>(callback: impl FnOnce(&mut Env<'_>) -> anyhow::Result<T>) -> anyhow::Result<T> {
+  java_vm().attach_current_thread_with_config(
+    || AttachConfig::new().exceptions_policy(AttachmentExceptionPolicy::Ignore),
+    None,
+    callback,
+  )
 }

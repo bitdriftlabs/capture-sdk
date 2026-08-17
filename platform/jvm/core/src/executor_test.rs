@@ -13,11 +13,14 @@ use jni::objects::JObject;
 #[test]
 fn check_exception_returns_message_and_clears_pending_exception() -> Result<()> {
   with_env(|env| -> Result<()> {
-    env.throw_new("java/lang/IllegalArgumentException", "invalid input")?;
+    let _ = env.throw_new(
+      jni::jni_str!("java/lang/IllegalArgumentException"),
+      jni::jni_str!("invalid input"),
+    );
 
     let message = check_exception(env)?.ok_or_else(|| anyhow!("exception was not reported"))?;
     assert!(message.contains("IllegalArgumentException: invalid input"));
-    assert!(!env.exception_check()?);
+    assert!(!env.exception_check());
     Ok(())
   })
 }
@@ -30,7 +33,13 @@ fn object_handle_executes_on_another_attached_thread() -> Result<()> {
   })?;
 
   let thread = std::thread::spawn(move || {
-    object_handle.execute(|env, object| Ok(env.call_method(object, "length", "()I", &[])?.i()?))
+    object_handle.execute(|env, object| {
+      Ok(
+        env
+          .call_method(object, jni::jni_str!("length"), jni::jni_sig!("()I"), &[])?
+          .i()?,
+      )
+    })
   });
   let length = thread
     .join()
