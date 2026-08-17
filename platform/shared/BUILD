@@ -18,7 +18,7 @@ cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
     data = [":sdk_version"],
-    edition = "2021",
+    edition = "2024",
 )
 
 filegroup(

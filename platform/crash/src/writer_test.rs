@@ -7,7 +7,7 @@
 
 #![allow(clippy::unwrap_used)]
 
-use super::{prime_shared_record, record_nsexception, NSExceptionFrameRecord, CRASH_RECORD};
+use super::{CRASH_RECORD, NSExceptionFrameRecord, prime_shared_record, record_nsexception};
 use crate::schema::{self, CrashKind, RecordState};
 use crate::test_support::test_crash_record_guard;
 use std::sync::atomic::Ordering;

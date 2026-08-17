@@ -6,11 +6,11 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::define_object_wrapper;
-use crate::jni::{initialize_class, initialize_method_handle, CachedMethod};
+use crate::jni::{CachedMethod, initialize_class, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
-use jni::signature::{Primitive, ReturnType};
 use jni::JNIEnv;
+use jni::signature::{Primitive, ReturnType};
 use std::sync::OnceLock;
 
 // Cached method IDs

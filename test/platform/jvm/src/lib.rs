@@ -17,9 +17,9 @@ use capture_core::key_value_storage::PreferencesHandle;
 use capture_core::new_global;
 use capture_core::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use capture_core::session_replay::TargetHandler as SessionReplayTargetHandler;
+use jni::JNIEnv;
 use jni::objects::{JClass, JMap, JObject, JString};
 use jni::sys::{jint, jlong, jobject};
-use jni::JNIEnv;
 use platform_shared::LoggerId;
 use platform_test_helpers::{
   await_api_server_stream_closed,
@@ -31,15 +31,15 @@ use platform_test_helpers::{
   stop_test_api_server,
 };
 use std::collections::HashMap;
-use time::format_description::well_known::Rfc3339;
 use time::Duration;
+use time::format_description::well_known::Rfc3339;
 
 // See call site for explanation.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[allow(clippy::missing_const_for_fn)]
 pub extern "C" fn link_hack_for_test() {}
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_startTestApiServer(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -53,7 +53,7 @@ fn setup() {
   bd_test_helpers_core::test_global_init();
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_stopTestApiServer(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -61,7 +61,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_stopTestApiServ
   stop_test_api_server();
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitNextApiStream(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -69,7 +69,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitNextApiStr
   await_next_api_stream()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitApiServerReceivedHandshake(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -126,7 +126,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitApiServerR
   })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitApiServerStreamClosed(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -136,7 +136,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitApiServerS
   await_api_server_stream_closed(stream_id, wait_time_ms.into())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[rustfmt::skip]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_configureAggressiveContinuousUploads(
   mut env: JNIEnv<'_>,
@@ -152,7 +152,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_configureAggres
 }
 
 #[allow(clippy::cast_possible_wrap)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog<'a>(
   mut env: JNIEnv<'a>,
   _class: JClass<'_>,
@@ -385,7 +385,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedLog
   })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_sendConfigurationUpdate(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -394,7 +394,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_sendConfigurati
   send_configuration_update(stream_id);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitConfigurationAck(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -408,7 +408,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_awaitConfigurat
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_sendErrorMessage(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -424,7 +424,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_sendErrorMessag
   reporter.report(&message, &None, &HashMap::new());
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runExceptionHandlingTest(
   env: JNIEnv<'_>,
   class: JClass<'_>,
@@ -438,7 +438,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runExceptionHan
   });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runLargeUploadTest(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -452,7 +452,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runLargeUploadT
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runKeyValueStorageTest(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -462,7 +462,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runKeyValueStor
   platform_test_helpers::run_key_value_storage_tests(&storage);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runResourceUtilizationTargetTest(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -472,7 +472,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runResourceUtil
   platform_test_helpers::run_resource_utilization_target_tests(&target);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runSessionReplayTargetTest(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -482,7 +482,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runSessionRepla
   platform_test_helpers::run_session_replay_target_tests(&target);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runEventsListenerTargetTest(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -492,7 +492,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runEventsListen
   platform_test_helpers::run_events_listener_target_tests(&target);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeFeature(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -518,7 +518,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeF
   });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArtifact(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,

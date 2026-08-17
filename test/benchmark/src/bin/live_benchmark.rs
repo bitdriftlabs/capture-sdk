@@ -5,15 +5,15 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use bd_logger::{log_level, AnnotatedLogField, Block, CaptureSession, InitParams};
+use bd_logger::{AnnotatedLogField, Block, CaptureSession, InitParams, log_level};
 use bd_proto::protos::logging::payload::LogType;
-use bd_session::fixed::UUIDCallbacks;
 use bd_session::Strategy;
+use bd_session::fixed::UUIDCallbacks;
 use bd_shutdown::ComponentShutdownTrigger;
 use bd_test_helpers::metadata::EmptyMetadata;
 use bd_test_helpers::metadata_provider::LogMetadata;
 use bd_test_helpers::session::InMemoryStorage;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use std::sync::Arc;
 use std::time::Duration;
 

@@ -12,7 +12,7 @@ mod tests;
 use crate::schema::{self, CrashKind, CrashRecord, RecordState};
 use std::process::id;
 use std::ptr::{addr_of_mut, null_mut};
-use std::sync::atomic::{fence, AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicPtr, Ordering, fence};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 //
