@@ -158,6 +158,19 @@ def main() -> None:
         if r.get("skipped"):
             print(f"\n[{s}] SKIPPED — {r['skipped']}")
             continue
+        # When the reference event never fired, summarize() falls back to the first event in the
+        # capture, which puts the WHOLE run on the "after" side — so bg counts are foreground work
+        # wearing a background label. parse_logs.main() guards this; this console path did not, and
+        # printed `BG: snapshot=YES … upload=ENQ/OK` for recents runs where nothing backgrounded.
+        # A confident false pass is worse than no summary, so refuse to print a verdict here.
+        if r.get("no_reference"):
+            print(f"\n[{s}] api={r['device']['api']}  *** REFERENCE EVENT NEVER FIRED ***")
+            print("  No foreground/background split is possible, so no verdict is shown — any BG")
+            print("  number here would be foreground work mislabelled. If the reference is")
+            print("  'process ON_STOP', the app most likely never backgrounded (recents leaves the")
+            print("  activity started). That absence is itself the result. See summary.txt.")
+            continue
+
         bg, fg = r["bg"], r["fg"]
         flag = "  *** INVALID (see summary.txt) ***" if r["invalid_run"] else ""
         print(f"\n[{s}] api={r['device']['api']}{flag}")

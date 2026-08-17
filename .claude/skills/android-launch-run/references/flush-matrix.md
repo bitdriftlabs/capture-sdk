@@ -9,6 +9,22 @@ Run it yourself: `assets/scenarios/matrix/T01…T14.json`, one scenario per test
 **Latest full run: 28/28 on shared-core `c3ba1cba`.** An earlier 14-scenario pass was made against
 `42637e1f`; where the two disagree, both are given, because the differences are the most useful part.
 
+> ⚠ **`Cargo.toml` currently pins `42637e1f` — the *earlier* rev.** Check before relying on anything
+> here: `grep -m1 'bd-client-common' Cargo.toml`. The headline "28/28" results below were measured on
+> `c3ba1cba`, so on the current pin the **left**-hand/"before" side of every rev comparison is the
+> live behaviour. Two concrete consequences:
+>
+> - **The airplane wedge (§ below) is present again**, since `c3ba1cba` is what fixed it. Treat
+>   "flush produces no disk write in airplane mode with a stalled upload" as expected on this pin,
+>   not as a new regression.
+> - **The disk-flush debounce window does not exist**, so `parse_logs.py` prints no
+>   `DISK-FLUSH DEBOUNCE` line. Confirmed by `check_signatures.py` reporting `stats-debounce` as
+>   `UNSEEN`. That absence is the rev, not a fault.
+>
+> Re-verified on `42637e1f` and still true: the **35s foreground wait is required** (the
+> `stats.minimum_upload_interval_ms` floor is 30s and is not overridden by runtime config), **recents
+> never fires `ON_STOP`**, and **deep doze blocks the upload identically on emulator and phone**.
+
 ## The question
 
 *"When the app is backgrounded, is there enough time for stats to (1) flush to disk and
@@ -29,8 +45,12 @@ upload was **debounced** by the minimum upload interval, because the runs backgr
 launch and the startup upload had already armed the timer. The debounce masked every other variable.
 
 **The fix that made the matrix meaningful: idle ~35s in the foreground before backgrounding.** This
-is still required on `c3ba1cba` — verified by `assets/scenarios/background-no-wait.json`, which
-deliberately skips the wait and returns `DEBO` on both devices.
+is required on **both** revs — verified by `assets/scenarios/background-no-wait.json`, which
+deliberately skips the wait and returns `DEBO` on both devices. Re-confirmed on `42637e1f`: the gate
+is `stats.minimum_upload_interval_ms`, default 30s, and it is *not* among the flags the runtime
+pushes. The 5s figure in the `does not cleanly divide active upload interval 5s` line is the upload
+*cadence*, a different knob — mistaking it for the gate is the obvious way to shorten these waits and
+silently invalidate the whole matrix again.
 
 ## Structure that worked
 
@@ -59,6 +79,21 @@ agrees closely across devices — deep 4.30s vs 4.33s, light 4.28s vs 4.34s.
 Pixel (549ms, 828ms), with the restrictions verifiably in effect. Best explanation: the Pixel's
 faster round trip slips through before the restriction gates the socket — a race the fast device
 wins, not immunity. This divergence is why cross-device agreement elsewhere (doze) is worth stating.
+
+### Whether devices diverge is predictable: races diverge, hard blocks don't
+
+Use this before treating any emulator/phone difference as a finding:
+
+| Mechanism | Shape | Cross-device |
+|---|---|---|
+| Data Saver, standby-restricted | **race** — the restriction gates the socket around the time the upload flies | **diverges**; the faster device wins |
+| deep/light doze, battery saver | **hard block** — a firewall rule already in force when the flush runs | **identical**; there is no window to win |
+
+Doze is the clean case: `force-idle` lands ~1.1–1.2s *before* `ON_STOP` (the `ProcessLifecycleOwner`
+debounce), so the block is established before the flush starts and both devices behave the same —
+deep 4.30s vs 4.33s, and re-confirmed on `42637e1f` with cutoffs within 16ms. **Identical results on
+a hard block are expected, not evidence the emulator is unrealistic**, and reporting them as
+"no difference found" undersells it: the useful statement is *why* there was no difference.
 
 **Recents never fires `ON_STOP`**, so no backgrounding work runs at all — unchanged across both
 revs. The whole-run lifecycle is `ON_CREATE`/`ON_START`/`ON_RESUME`, and the firewall never revokes

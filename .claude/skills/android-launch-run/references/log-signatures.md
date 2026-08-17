@@ -18,6 +18,12 @@ device clock, so sources interleave correctly in a single `-b main,events` captu
 > example: the local tree read `stat upload attempt complete` while the shipped binary logged
 > `stat flush upload attempt complete`. Confirm any signature against a real capture before
 > reasoning from it.
+>
+> **Check the rev, don't assume it:** `grep -m1 'bd-client-common' Cargo.toml`. At the time of
+> writing that is **`42637e1f`** — the *right-hand* column of the tables below. Then run
+> `scripts/check_signatures.py <capture>`, which reports `SEEN`/`UNSEEN` per signature family and
+> lists unrecognised `bd_*` lines. That turns "is my pattern dead or is the behaviour absent?" from a
+> judgement call into a one-command answer, and it is the only reliable guard against the trap in §8.1.
 
 ---
 
@@ -106,7 +112,7 @@ grep -E "bd_client_stats[^:]*::" capture.txt
 | Upload enqueued | `prepared <REASON> stats upload: uuid=<uuid>, snapshots=N, metrics=N` | `sending pending flush upload: <uuid> with N metrics` |
 | Upload dispatched | `dispatched <kind> stats upload for N source files` | *(no equivalent)* |
 | Upload result | `<kind> stats upload completed: uuid=<uuid>, success=<bool>, source_files=N` | `stat flush upload attempt complete: UploadResponse { success: <bool>, uuid: "<uuid>" }` |
-| Upload suppressed | `skipping <kind> stats upload: minimum upload interval has not elapsed` | `skipping flush upload, minimum interval not elapsed` |
+| Upload suppressed | `skipping <kind> stats upload: minimum upload interval has not elapsed` | `skipping <kind> upload, minimum interval not elapsed` — `<kind>` is `periodic` **or** `flush`, from two separate call sites in the same rev |
 | Flush dropped | `flush already in progress, skipping` | *(same)* |
 | Forced flush completed | *(gone)* | `stats flushed` |
 | `flush_to_disk()` entered | *(gone)* | `processing flush to disk tick` |
@@ -127,6 +133,35 @@ the difference between *blocked* and *intentionally skipped because the data is 
 | `skipping explicit stats upload: another flush upload is active; stats are durable` | **Coalesced.** An upload is already in flight. *"stats are durable"* is the code stating the disk write is safe regardless — this is what airplane mode now produces, replacing the pre-bump behaviour where the flusher wedged and nothing reached disk at all |
 | `skipping periodic stats upload: another periodic or deferred upload is active` | As above, periodic path |
 
+#### The minimum-upload-interval gate, precisely
+
+Two intervals get confused because **one log line names both**:
+
+```
+stats disk flush interval 30s does not cleanly divide active upload interval 5s; falling back to upload cadence
+```
+
+- **`active upload interval`** (5s in the observed config) is the periodic upload *cadence* — how
+  often an upload is *attempted*. It is **not** the gate.
+- **`stats.minimum_upload_interval_ms`** (default **30s**) is the gate: an anti-hammer floor that
+  refuses any upload — periodic **or** ON_STOP flush, both call `should_skip_upload()` — that comes
+  too soon after the last one.
+
+Seeing `5s` in that line and shortening the foreground wait to match silently invalidates the run.
+Measured bracket on a Pixel 10: a periodic upload refused at **28.10s** elapsed, the ON_STOP flush
+allowed at **35.06s**; on an emulator a *flush* upload refused at **5.02s**. That pins the gate at
+30s. Confirm what your account actually overrides by adding `bd_runtime=debug` to the filter — it
+logs every `updated value of <flag> to <value>`, and a flag that never appears is at its default.
+Observed pushes: `stats.disk_flush_interval_ms` 60s→30s and `stats.max_dynamic_stats` 500→1000;
+`stats.minimum_upload_interval_ms` is **not** pushed.
+
+**The gate is anchored at enqueue and cleared on failure.** `last_flush_upload_time` is set when the
+upload is handed off, and reset to `None` if that upload fails. So a run whose network is already
+dead has *no* gate armed — the next flush upload sails straight through and reports `ENQ`, which
+looks like a short interval when really nothing was gating. If a short-wait run unexpectedly shows
+`ENQ`, check whether the *preceding* upload actually acked before concluding anything about the
+interval.
+
 New in `c3ba1cba`, no pre-bump equivalent:
 
 - `started stats disk flush debounce window: duration=<D>` / `stats disk flush debounce window
@@ -137,6 +172,13 @@ New in `c3ba1cba`, no pre-bump equivalent:
   `creating new snapshot in index: <uuid>`, `marking entry as ready to upload: <uuid>`,
   `deleting pending upload: <uuid>`, `no pending upload: index is empty` /
   `no pending upload: file is not old enough`
+
+### Which line proves an upload *landed*
+
+Not a `bd_client_stats` line at all — the server ack is logged by the transport
+(`bd_api::api: received ack for stats upload "<uuid>", error: ""`, §5). A stats-only filter such as
+`info,bd_client_stats=debug` therefore **hides the most direct evidence of delivery** and leaves you
+inferring it from the enqueue. Add `bd_api=debug` for any delivery question.
 
 ### Which line proves a disk write
 
@@ -164,6 +206,11 @@ Match the enqueue to its result **by uuid, never by order**. Acks arrive out of 
 Both revs carry a uuid on both lines; only the surrounding text differs.
 
 ## 4b. The disk-flush debounce window (`c3ba1cba`+)
+
+> **Absent on the currently pinned `42637e1f`** — verified: zero `stats disk flush debounce` lines in
+> any capture, and `check_signatures.py` reports the `stats-debounce` family as `UNSEEN`. Everything
+> in this section applies only if you are on `c3ba1cba` or later. Don't read a missing
+> `DISK-FLUSH DEBOUNCE` line as a regression.
 
 A 1s window opens immediately **after** each disk write:
 
@@ -246,9 +293,12 @@ has revoked it. Other reasons OR in: `DOZE`, `DATA_SAVER`, `METERED_USER_RESTRIC
 1. **Signatures drift with the pinned shared-core rev.** The `c3ba1cba` bump renamed most stats
    messages; the first run against it reported *zero uploads on both devices*, which looked like a
    serious regression and was purely stale patterns. Before believing any negative result, confirm
-   the signature still exists in the capture. A missing pattern and a missing behaviour are
-   indistinguishable from the summary alone — always check the raw log for the *shape* of what
-   happened.
+   the signature still exists in the capture — **run `scripts/check_signatures.py <capture>`**, which
+   answers exactly this. A missing pattern and a missing behaviour are indistinguishable from the
+   summary alone. This trap has since recurred *in the parser itself*: the suppression pattern was
+   pinned to the literal word `flush`, so the pinned rev's `skipping periodic upload, …` never
+   matched and four live suppressions were dropped silently. Assume the detector is as likely to be
+   wrong as the SDK.
 2. **`stats flushed` is not a disk-write signal** — forced path only, and gone entirely on
    `c3ba1cba`. Use `writing snapshot`.
 3. **`processing flush to disk tick` fires on forced flushes too** (pre-bump) — don't count it as
@@ -258,12 +308,17 @@ has revoked it. Other reasons OR in: `DOZE`, `DATA_SAVER`, `METERED_USER_RESTRIC
    "no upload attempted", which reads as a bug rather than intended behaviour.
 5. **"Forced" ≠ platform-triggered** — use `state flushing initiated`.
 6. **Correlate uploads by uuid**, not order; acks can be seconds late or from a prior process.
-7. **The minimum-upload-interval debounce hides everything else.** Background sooner than 30s after the last
-   flush-triggered upload and the upload is suppressed before network or device state matters. A
-   run showing any `skipping … upload … minimum … interval` line measured only the debounce.
-   **Still true on `c3ba1cba`:** explicit flush uploads remain gated, verified by the
+7. **The minimum-upload-interval gate hides everything else.** Background sooner than 30s after the
+   last flush-triggered upload and the upload is suppressed before network or device state matters. A
+   run showing a `skipping … upload … minimum … interval` line on the **flush** path measured only the
+   gate. **Still true on `c3ba1cba`:** explicit flush uploads remain gated, verified by the
    `background-no-wait` scenario returning `DEBO` on both devices. The 35s foreground wait is not
-   optional.
+   optional — and it clears the **30s floor**, not the 5s upload cadence; see
+   *The minimum-upload-interval gate, precisely* above before shortening it.
+10. **A `periodic` suppression is normal; a `flush` suppression invalidates the run.** Both use the
+    same message shape, so read the `<kind>`. Periodic uploads are refused constantly by design at a
+    5s cadence against a 30s floor; that is the gate working, not a finding. Only a suppressed
+    *flush* upload means the run failed to test what you asked.
 8. **Rust logcat tags are full module paths** (`bd_client_stats::file_manager`). Grepping
    `bd_client_stats:` with a single colon misses submodules — match the prefix.
 9. **A blocked backgrounded app fails DNS**, so the error is `UnknownHostException`, not a connect

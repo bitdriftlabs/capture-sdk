@@ -53,13 +53,13 @@ PATTERNS: list[tuple[str, str, str, str]] = [
      r"^(received a signal to flush stats to disk|flushing collected stats to disk)$",
      "forced flush requested"),
     ("TICK", r"bd_client_stats.*", r"^processing flush to disk tick$",
-     "flush_to_disk() entered [pre-c3ba1cba]"),
+     "flush to disk tick entered"),
     ("MERGE", r"bd_client_stats.*", r"^updating aggregated snapshot file with (?P<n>\d+) metrics",
      "merge snapshot ({n} metrics)"),
     ("SNAP", r"bd_client_stats.*", r"^writing snapshot: (?P<path>\S+)$",
      "WROTE SNAPSHOT TO DISK  {path}"),
     ("FLUSHED", r"bd_client_stats.*", r"^stats flushed$",
-     "stats flushed (forced path complete) [pre-c3ba1cba]"),
+     "stats flushed (forced path complete)"),
     ("PREP", r"bd_client_stats.*",
      r"^preparing stats upload from disk: only_if_file_is_old=(?P<old>\w+), reason=(?P<reason>\S+)",
      "preparing upload ({reason})"),
@@ -70,10 +70,16 @@ PATTERNS: list[tuple[str, str, str, str]] = [
     ("DISPATCH", r"bd_client_stats.*",
      r"^dispatched (?P<kind>.+?) stats upload for (?P<n>\d+) source files$",
      "dispatched {kind} upload ({n} files)"),
+    # `skipping <kind> upload, …` — kind is flush/periodic/absent depending on rev and call site.
+    # Pinning the word (it used to be a literal "flush") made a live gate invisible: rev 42637e1f
+    # emits "skipping periodic upload", which fell through and reported as upload NONE.
+    # Surface which path was refused: a `periodic` suppression is the gate working as designed (a 5s
+    # cadence against a 30s floor refuses constantly), whereas a `flush` suppression means the
+    # backgrounding upload never went out and the run measured the gate instead of the question.
     ("DEBO", r"bd_client_stats.*",
-     r"^(?:skipping flush upload, minimum interval not elapsed"
+     r"^(?:skipping (?:(?P<kind0>\S+) )?upload, minimum interval not elapsed"
      r"|skipping (?P<kind>\S+) stats upload: minimum upload interval has not elapsed)$",
-     "upload DEBOUNCED (minimum interval)"),
+     "upload DEBOUNCED ({kind} path, minimum interval)"),
     ("DEBOUNCE_OPEN", r"bd_client_stats.*",
      r"^started stats disk flush debounce window: duration=(?P<d>\S+)$",
      "disk-flush debounce window OPENED ({d})"),
@@ -85,6 +91,14 @@ PATTERNS: list[tuple[str, str, str, str]] = [
      "disk-flush debounce window closed WITH a coalesced flush"),
     ("DROPPED", r"bd_client_stats.*", r"^flush already in progress, skipping$",
      "flush DROPPED (already in progress)"),
+    # The server ack, logged one step before the UploadResponse summary. It is the most direct
+    # evidence an upload actually landed, so surface it rather than inferring delivery from RES.
+    # Note the tag is bd_api, not bd_client_stats — the ack is observed at the transport layer,
+    # which is why a stats-only RUST_LOG filter hides it. The id is a uuid on some paths and a
+    # 64-char content hash on others, so match neither shape.
+    ("ACK", r"bd_api.*",
+     r'^received ack for stats upload "(?P<uuid>[^"]*)", error: "(?P<err>[^"]*)"$',
+     "server ACK for upload"),
     ("RES", r"bd_client_stats.*",
      r'^(?:stat flush upload attempt complete: UploadResponse \{ success: (?P<ok>\w+), uuid: "(?P<uuid>[^"]*)"'
      r'|(?P<kind2>.+?) stats upload completed: uuid=(?P<uuid2>[0-9a-f-]+), success=(?P<ok2>\w+), source_files=(?P<files>\d+))',
@@ -144,6 +158,12 @@ def parse(path: str, pkg: str = "io.bitdrift.gradletestapp") -> list[dict]:
                     groups["ok"] = groups.pop("ok2")
                 if "n2" in groups:
                     groups["n"] = groups.pop("n2")
+                if "kind0" in groups:
+                    groups["kind"] = groups.pop("kind0")
+                # Some revs log a bare "skipping upload, …" with no kind. The label still needs the
+                # placeholder filled, and an unnamed path is worth flagging rather than papering over.
+                if kind == "DEBO":
+                    groups.setdefault("kind", "unspecified")
                 # Reserved fields must win over regex capture groups. A pattern with a
                 # (?P<kind>…) group would otherwise clobber the event type via the splat and
                 # silently vanish from every downstream count.

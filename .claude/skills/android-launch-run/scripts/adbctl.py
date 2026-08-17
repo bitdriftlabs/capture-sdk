@@ -155,6 +155,14 @@ def mode(serial: str, name: str, on: bool, pkg: str) -> str:
             adb(serial, f"cmd netpolicy set metered-network {nid} "
                         f"{'true' if on else 'undefined'}")
         adb(serial, f"cmd netpolicy set restrict-background {'true' if on else 'false'}")
+        # The global toggle and the metered-network marks are not the whole story: a per-uid
+        # REJECT_METERED_BACKGROUND policy can also be set, and it survives both of the above.
+        # It then shows up as METERED_USER_RESTRICTED in the effective blocked state and silently
+        # restricts every later run — on someone's real phone. Clearing it is part of turning
+        # data-saver off, not a separate step.
+        uid = app_uid(serial, pkg)
+        if uid and not on:
+            adb(serial, f"cmd netpolicy remove restrict-background-blacklist {uid}")
 
     elif name == "standby-restricted":
         adb(serial, f"am set-standby-bucket {pkg} {'restricted' if on else 'active'}")
@@ -194,10 +202,15 @@ def verify(serial: str, name: str, pkg: str) -> str:
                                  + " " + _grep(adb(serial, "dumpsys netpolicy"), "Restrict power"),
         "doze-deep": lambda: "deep=" + adb(serial, "dumpsys deviceidle get deep").strip(),
         "doze-light": lambda: "light=" + adb(serial, "dumpsys deviceidle get light").strip(),
+        # Three independent switches, all of which must be off for data-saver to really be off.
+        # uid_policy is the one that used to be missed; it reads as METERED_USER_RESTRICTED.
         "data-saver": lambda: adb(serial, "cmd netpolicy get restrict-background").strip()
                               + " | metered=" + str(sum(
                                   1 for ln in adb(serial, "cmd netpolicy list wifi-networks").splitlines()
-                                  if ln.strip().endswith("true"))),
+                                  if ln.strip().endswith("true")))
+                              + " | uid_policy=" + (
+                                  "REJECT_METERED_BACKGROUND" if f"UID={uid} policy=1" in
+                                  adb(serial, "dumpsys netpolicy") else "none"),
         # get-bg-restriction-level returns 'unknown' on API 36/37 — the appop is the usable check.
         "bg-restricted": lambda: _grep(adb(serial, f"cmd appops get {pkg} RUN_ANY_IN_BACKGROUND"),
                                        "RUN_ANY_IN_BACKGROUND"),

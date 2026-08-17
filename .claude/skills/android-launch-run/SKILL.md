@@ -16,35 +16,70 @@ description: >-
 
 # Android launch & run
 
-Drive real devices and emulators to observe what the SDK actually does at runtime, rather than
-inferring it from source. The core loop is always the same:
+Observe what the SDK actually does at runtime instead of guessing. The core loop:
 
-**pick devices → set log levels → apply device state → launch → act → capture → parse**
+**pick devices → set log levels → apply device state → launch → act → capture → verify patterns → parse**
 
-Timing is usually the answer. Most interesting questions here ("did the flush finish before the OS
+Two things make or break a run here.
+
+**Timing is usually the answer.** Most interesting questions ("did the flush finish before the OS
 cut the network?") are races, so every timestamp must come from the **device clock**. Never compare
 a host-side `date` against a logcat timestamp; they drift by seconds.
+
+**Runtime and source answer different halves of the question.** The capture tells you *what*
+happened and *when*. The Kotlin tells you *why* and *where a fix would go*. Neither substitutes for
+the other, and reading the relevant handler is cheap — usually one file. A run that reports "the app
+switcher doesn't flush" is a fact; adding that `AppLifecycleListenerLogger` hangs the flush off
+`ProcessLifecycleOwner`'s `ON_STOP` with no fallback turns it into a diagnosis with an obvious fix
+site. Do the run, then spend two minutes in the handler before you write up a mechanism.
 
 ## Quick start
 
 ```bash
-S=.claude/skills/android-launch-run/scripts
+S=.claude/skills/android-launch-run/scripts     # run from the repo root
+A=.claude/skills/android-launch-run/assets
 
-python3 $S/adbctl.py devices                        # what's connected
-python3 $S/adbctl.py install                        # build + install debug app everywhere
-python3 $S/adbctl.py run --scenario background-home # launch, background, capture, parse
+python3 $S/adbctl.py devices                    # what's connected, and is anything locked
+python3 $S/adbctl.py install                    # build + install debug app everywhere
+python3 $S/run_scenario.py $A/scenarios/minimal-background.json --out /tmp/run1
 ```
 
-Run one declarative scenario across all devices in parallel:
+`run_scenario.py` is the main entry point — it applies state, launches, acts, captures, and parses,
+per device, and writes `<out>/<serial>/{logcat.txt, summary.txt, state.json}`. `adbctl.py` is for
+driving one step at a time when no scenario fits.
+
+Re-parse or re-check a capture you already have:
 
 ```bash
-python3 $S/run_scenario.py assets/scenarios/minimal-background.json --out /tmp/run1
+python3 $S/parse_logs.py       /tmp/run1/<serial>/logcat.txt --ref "process ON_STOP"
+python3 $S/check_signatures.py /tmp/run1/<serial>/logcat.txt
 ```
 
-Parse a capture you already have:
+## Before you trust any negative result: check the signatures
+
+The most expensive mistake this skill can make is reporting "no upload happened" when the truth is
+"my pattern stopped matching". Those are indistinguishable in a summary, and both a false regression
+report and a false pass have already come from exactly that.
+
+`check_signatures.py` settles it mechanically. It asks *can I still see this class of event at all?*
+and prints `SEEN` / `UNSEEN` per family, then lists every `bd_*` line the parser did **not**
+recognise, normalised and grouped:
+
+```
+  SEEN   stats-flush          FORCED=2 TICK=5 MERGE=5 SNAP=5 FLUSHED=2
+  SEEN   stats-upload         PREP=0 ENQ=2 DISPATCH=0 ACK=3 RES=3
+  UNSEEN stats-debounce       DEBOUNCE_OPEN=0 DEBOUNCE_SHUT=0 DEBOUNCE_COALESCE=0
+```
+
+An `UNSEEN` family means a zero elsewhere proves nothing — the detector itself may be dead. A
+renamed message shows up in the unrecognised list immediately.
+
+**Run it once per investigation, and always after a shared-core bump.** Log text is pinned by the
+`rev` in `Cargo.toml`, not by any local `../shared-core` checkout, and it does change across revs —
+one bump renamed most of the stats messages. Check what you're actually on:
 
 ```bash
-python3 $S/parse_logs.py /tmp/run1/<device>/logcat.txt --ref "process ON_STOP"
+grep -m1 'bd-client-common' Cargo.toml     # the rev every log wording follows
 ```
 
 ## Which app
@@ -78,8 +113,8 @@ The SDK reads a system property at startup and converts it to `RUST_LOG`
 adb -s <serial> shell setprop debug.bitdrift.internal_rust_log 'info,bd_client_stats=debug'
 ```
 
-Set it **before launching** — it is read once during native library init. It survives until
-reboot. Standard `RUST_LOG` filter syntax applies, and module prefixes work
+Set it **before launching** — it is read once during native library init. It survives until reboot,
+so clear it when you're done. Standard `RUST_LOG` filter syntax applies, and module prefixes work
 (`bd_client_stats=debug` also enables `bd_client_stats::file_manager`).
 
 Pick the narrowest filter that answers the question; `bd=trace` is enormous and will flood the
@@ -88,10 +123,15 @@ buffer, evicting the lines you care about.
 | Question | Filter |
 |---|---|
 | Stats flush + disk write | `info,bd_client_stats=debug` |
-| …plus *who* triggered the flush | `info,bd_client_stats=debug,bd_logger=debug` |
-| …plus why an upload failed | add `,bd_api=debug` |
+| **Did an upload actually land?** | `info,bd_client_stats=debug,bd_api=debug` |
+| …plus *who* triggered the flush | add `,bd_logger=debug` |
 | Log (not stats) uploads | `info,bd_logger=debug` |
 | Ring buffer to disk | `info,bd_buffer::ring_buffer=debug` |
+
+**Any delivery question needs `bd_api=debug`.** The server ack
+(`received ack for stats upload "<id>", error: ""`) is logged at the transport layer, not by
+`bd_client_stats` — so a stats-only filter hides the most direct evidence that the upload landed and
+leaves you inferring delivery from the enqueue.
 
 ## Reading the logs
 
@@ -107,41 +147,63 @@ Four independent sources, all on the device clock, so they interleave correctly 
 Capture both buffers together — `-b main,events` — or the OS events and app logs can't be correlated.
 
 **`process ON_STOP` is usually the reference point.** It is what the SDK's background flush hangs
-off, it fires ~700ms after the activity stops (`ProcessLifecycleOwner` debounces), and it lands
-*before* the OS's own `wm_on_stop_called`. Measured on a Pixel 10:
+off, it fires ~700ms–1.3s after the activity stops (`ProcessLifecycleOwner` debounces), and it lands
+*before* the OS's own `wm_on_stop_called`. A real HOME-button run (Pixel 10, API 37, shared-core
+`42637e1f`):
 
 ```
-17:28:55.912  ANDROID-RUN: ACTION home
-17:28:57.178  bitdrift-lifecycle: process ON_STOP              <- reference
-17:28:57.182  bd_logger::logger: state flushing initiated         +4ms   [platform asked]
-17:28:57.218  bd_client_stats::stats: flushing collected stats…  +40ms
-17:28:57.234  bd_client_stats::file_manager: writing snapshot    +56ms   <- disk write
-17:28:57.241  bd_client_stats::stats: prepared … stats upload    +63ms   <- enqueued
-17:28:58.215  bd_client_stats::stats: … upload completed …     +1037ms   <- acked
-        …     [netpolicy] background-allow revoked            +4.99s   <- network cut
+   -1.302s  >>> home
+   -1.103s  OS: activity onPause
+    -401ms  process ON_PAUSE
+      +0ms  process ON_STOP                                   <- reference
+      +3ms  bd_logger::logger: state flushing initiated          [platform asked]
+     +18ms  bd_client_stats::file_manager: writing snapshot      <- disk write
+     +25ms  bd_client_stats::stats: sending pending flush upload <- enqueued
+    +620ms  bd_api::api: received ack for stats upload           <- server acked
+   +5.013s  api stream CLOSED: SocketException                   <- network cut
+   +28.12s  writing snapshot … then upload DEBOUNCED             <- stranded on disk
 ```
 
-(Pixel 10, shared-core `c3ba1cba`. On revs up to `42637e1f` the stats wording differs — see
-`references/log-signatures.md`.)
+The flush wins that race by ~8×. Note the last line: later timed flushes keep writing to disk while
+backgrounded but cannot upload — and here the SDK declined to even try, because of the minimum
+upload interval rather than the dead network. Two different causes that look identical if you only
+watch for a missing upload.
+
+### Two different intervals — don't conflate them
+
+One log line names both, which is how they get mixed up:
+
+```
+stats disk flush interval 30s does not cleanly divide active upload interval 5s; falling back to upload cadence
+```
+
+| | What it is | Where it comes from |
+|---|---|---|
+| **`active upload interval`** (5s here) | the periodic upload *cadence* — how often an upload is attempted | derived; not the gate |
+| **`stats.minimum_upload_interval_ms`** (30s) | anti-hammer *floor*: refuses any upload, periodic **or** ON_STOP flush, too soon after the last one | shared-core default; **not** in the runtime push |
+
+**The foreground wait exists to clear the 30s floor, not the 5s cadence.** Seeing `5s` in that line
+and shortening the wait is a natural mistake and it silently invalidates the run. Measured on a
+Pixel 10: a periodic upload was refused at 28.10s elapsed, the ON_STOP flush was allowed at 35.06s,
+and on an emulator a *flush* upload was refused at 5.02s — bracketing the gate at 30s. Confirm what
+your account actually pushes with `bd_runtime=debug` in the filter, which logs every
+`updated value of <flag> to <value>`; a flag that never appears is at its default.
+
+**The gate is anchored at enqueue and cleared on failure.** `last_flush_upload_time` is set when the
+upload is handed off, and reset to `None` if that upload fails. So a run whose network is already
+dead has *no* gate — the next flush upload sails through and reports `ENQ`, which looks like the gate
+is short when really it was never armed. If a short-wait run unexpectedly shows `ENQ`, check whether
+the preceding upload actually acked before concluding anything about the interval.
 
 For what each Rust line means — and which are safe to draw conclusions from — read
-**`references/log-signatures.md`**. Two traps worth knowing before you interpret anything:
-
-- **`state flushing initiated`** is the only durable marker of a *platform-triggered* flush.
-  `flush_state` is reachable only from a platform bridge, so its presence means Kotlin asked;
-  its absence means an internal timer did.
-- Log text depends on the **shared-core rev pinned in `Cargo.toml`**, not on any local
-  `../shared-core` checkout, and it **does change across revs** — the `c3ba1cba` bump renamed most
-  of the stats messages. `parse_logs.py` matches known old and new wordings, but after any
-  shared-core bump, treat a *negative* result (no upload, no flush) as unproven until you have
-  confirmed the signature still exists in the raw capture. A stale pattern and an absent behaviour
-  look identical in the summary; the first run against `c3ba1cba` reported "zero uploads on both
-  devices" and was pure pattern rot.
+**`references/log-signatures.md`**. One trap worth knowing upfront: **`state flushing initiated`** is
+the only durable marker of a *platform-triggered* flush. `flush_state` is reachable only from a
+platform bridge, so its presence means Kotlin asked; its absence means an internal timer did.
 
 ## Device states
 
-Nine states are supported, each with verified setup, teardown, and a *verify* command — because
-several fail silently:
+Nine states, each with verified setup, teardown, and a *verify* command — because several fail
+silently:
 
 ```bash
 python3 $S/adbctl.py mode battery-saver --on
@@ -152,23 +214,39 @@ python3 $S/adbctl.py mode reset          # everything back to default
 `airplane` · `battery-saver` · `doze-deep` · `doze-light` · `data-saver` · `standby-restricted` ·
 `bg-restricted` · `freezer` · `idle-allowlist`
 
-**Read `references/device-modes.md` before using any of them.** Ordering matters more than it
-looks: `standby-restricted` is silently reset by launching the app, `data-saver` does nothing
-unless the network is first marked metered, and `doze` can only be forced after the screen is off.
-The reference documents which modes must be applied *before* launch and which *after*
-backgrounding, with the evidence for each.
+### Ordering is the whole game
+
+**When a mode is applied decides whether the run answers the question at all.** This is the most
+common way a technically-clean run turns out to have measured nothing:
+
+- **A restriction applied *after* the flush already ran tests nothing.** Backgrounding alone kills
+  network within ~5s and freezes the process within ~70s. Force doze a minute later and you will
+  correctly observe "no uploads" — while having isolated nothing, because everything was already
+  dead. Doze must be armed *before* `ON_STOP` to affect the flush-time upload.
+- **`standby-restricted` is silently reset by launching the app**, so it must be applied after.
+- **`data-saver` does nothing** unless the network is first marked metered.
+- **`doze` can only be forced after the screen is off** and the device is unplugged.
+
+Use `modes_before_launch` for anything that must be in force when the flush runs, and a `mode` step
+for anything that must land after. **Read `references/device-modes.md` before using any of them** —
+it documents which is which, with the evidence.
+
+Always pair a restriction with an unrestricted control run. "No upload under doze" only means
+something next to "upload acked in 700ms without it".
 
 ## Actions
 
 ```bash
-python3 $S/adbctl.py action home|back|recents|screen-off|wake|kill|force-stop|freeze|crash-bg
+python3 $S/adbctl.py action launch|home|back|recents|screen-off|wake|kill|force-stop|freeze|unfreeze
 python3 $S/adbctl.py action wait --seconds 35
 ```
 
 `home`, `back`, `recents` and `screen-off` are all different, and not interchangeable:
 
 - **`recents`** does not fire `ON_STOP` at all — the activity stays "started" while the overview is
-  open, so no backgrounding work runs. If a scenario appears to do nothing, check for this first.
+  open (the carousel renders a live tile, so the OS still reports it visible), so no backgrounding
+  work runs. If a scenario appears to do nothing, check for this first. Moving on to another app
+  *does* fire `ON_STOP`, so it defers the flush rather than losing it.
 - **`back`** revokes network sooner than `home` (~3.8s vs ~5.0s), so it shortens any race.
 - **`screen-off`** re-locks a phone with a secure keyguard, which invalidates every later run.
 
@@ -186,71 +264,73 @@ you'll be reduced to guessing when the action landed relative to what the app di
 ## Multi-device
 
 `adbctl.py` and `run_scenario.py` target **every connected device** by default, in parallel, and
-write per-device output directories. Use `--serial <id>` for one device, or `--sequential` when
-the numbers matter: parallel runs add tens of ms of adb and logcat jitter, which is fine for
-pass/fail but can distort sub-second measurements.
+write per-device output directories. Use `--serial <id>` for one device, or `--sequential` when the
+numbers matter: parallel runs add tens of ms of adb and logcat jitter, which is fine for pass/fail
+but can distort sub-second measurements.
 
-Physical devices and emulators frequently disagree. That is a finding, not a bug — check
-`references/flush-matrix.md` for cases where they diverged and why.
+On `adbctl.py`, `--serial`, `--app` and `--sequential` are **global** flags and must come *before*
+the subcommand — `adbctl.py --serial X mode doze-deep --on`, not `adbctl.py mode doze-deep --serial X`
+(argparse rejects the latter with a bare usage dump that doesn't say why).
+
+When a physical device and an emulator disagree, the useful question is **whether the mechanism is a
+race or a hard block**:
+
+- **Races diverge.** Data Saver and standby-restricted are won or lost on timing, so the faster
+  device gets a different answer. Divergence here is a real finding.
+- **Hard blocks don't.** Deep doze adds a firewall rule that is already in force when the flush
+  runs, so there is no window to win and both devices behave identically. Identical results here are
+  expected, not a sign the emulator is unrealistic.
+
+`references/flush-matrix.md` records cases where they actually diverged and why.
 
 ## Guard rails that keep runs valid
 
 These come from runs that produced clean-looking but meaningless data:
 
-1. **A locked device invalidates everything.** The app launches behind the keyguard and
-   backgrounds itself during any foreground wait, so the action lands on an already-backgrounded
-   app. `adbctl.py` aborts when `deviceLocked=1`. If the device has a secure lock, ask the user to
-   unlock it; do not attempt to bypass it.
-2. **Screen-off scenarios run last**, since each one re-locks the phone.
+1. **A locked device invalidates everything.** The app launches behind the keyguard and backgrounds
+   itself during any foreground wait, so the action lands on an already-backgrounded app.
+   `adbctl.py` aborts when `deviceLocked=1`. If the device has a secure lock, ask the user to unlock
+   it; do not attempt to bypass it.
+2. **Screen-off scenarios run last**, since each one re-locks the phone. On a phone with a secure
+   keyguard you get *one* screen-off run — spend it on the measurement, and run any screen-off
+   control on the emulator instead.
 3. **Check for premature `process ON_STOP`.** If it appears *before* the action marker, discard the
    run. `parse_logs.py` flags this automatically.
-4. **Always restore device state**, even after a failure. A device left in airplane mode or
-   battery saver silently corrupts the next run — and it is someone's actual phone.
+4. **Always restore device state**, even after a failure. A device left in airplane mode or battery
+   saver silently corrupts the next run — and it is someone's actual phone. Clear
+   `debug.bitdrift.internal_rust_log` too; it survives until reboot.
 5. **Before a full sweep on a physical phone, ask the user to disable auto-lock.** Every screen-off
    scenario re-locks it, and each re-lock costs a manual unlock mid-run. `svc power stayon true`
    does *not* help — an explicit `KEYCODE_SLEEP` still sleeps and re-locks.
 6. **One locked device must not abort the sweep.** `run_scenario.py` skips it per-device and
-   continues; an early version called `sys.exit()` and silently stopped *every other* device from
-   running too.
+   continues; an early version called `sys.exit()` and silently stopped *every other* device.
 7. **After fixing the parser, re-derive from the raw logcat.** Summaries written earlier
    (`state.json`, report tables) still encode the old bug. The capture is the only artifact that
    cannot be wrong.
-8. **Verify a negative before believing it.** "No upload happened" and "my pattern stopped matching"
-   look identical in a summary. That ambiguity has produced both a false regression report (stale
-   patterns after a shared-core bump) and a false pass (missing reference event). Check the raw
-   capture for the *shape* of what happened.
-
-## Reference files
-
-Read these as needed rather than upfront:
-
-- **`references/log-signatures.md`** — every log line worth matching, by subsystem, with what it
-  proves and what it doesn't. Read before interpreting any capture.
-- **`references/device-modes.md`** — the nine states: setup, teardown, verification, when each must
-  be applied, and the silent-failure traps.
-- **`references/flush-matrix.md`** — a worked 14-scenario study of stats flushing on backgrounding,
-  with results from an emulator and a Pixel 10. Read it as a template for structuring a
-  multi-scenario investigation, or when the question is specifically about flush/upload behaviour.
+8. **Verify a negative before believing it** — run `check_signatures.py`. "No upload happened" and
+   "my pattern stopped matching" look identical in a summary.
 
 ## What the parser reports
 
-`parse_logs.py` prints a timeline then a three-part verdict, split so a foreground success can never
-be mistaken for a backgrounding one:
+`parse_logs.py` prints a timeline then a verdict, split so a foreground success can never be
+mistaken for a backgrounding one:
 
 ```
 FOREGROUND (before reference): 3 snapshot write(s) · 1 upload(s) enqueued, 2 acked
-BACKGROUND (after reference):  snapshot written: YES · platform flush: 1 · forced: 2 · …
-  upload ENQ/OK · ack 974ms
-DISK-FLUSH DEBOUNCE (1000ms window): 5 opened · 5 closed empty · 0 coalesced ·
-  5 write(s), closest 1918ms apart => invariant HELD
+BACKGROUND (after reference):  snapshot written: YES · platform flush: 1 · forced: 1 · timed: 3
+  upload ENQ/OK · ack 596ms
 ```
 
-`upload` is `ENQ` / `DEBO` / `NONE`. **`DEBO` means the run measured the debounce, not the
-question** — idle longer in the foreground and repeat.
+`upload` is `ENQ` / `DEBO` / `NONE`. **`DEBO` means the run measured the 30s minimum upload
+interval, not the question** — idle longer in the foreground and repeat.
 
-The debounce line validates the `c3ba1cba` disk-flush window by the invariant it implies
-(consecutive writes never closer than the window), because forcing an actual coalesce needs two
-flushes under 1s apart and isn't reliably schedulable. When `coalesced` is 0 the coalescing path is
+If the reference event never fired, both `parse_logs.py` and `run_scenario.py` refuse to print a
+verdict and say so. That absence is usually itself the answer (see `recents` above) — treat it as a
+result, not a harness failure.
+
+A `DISK-FLUSH DEBOUNCE` line appears only on revs that have the disk-flush debounce window; it is
+absent on `42637e1f`. When it does appear, it validates the window by the invariant it implies
+(consecutive writes never closer than the window). When `coalesced` is 0 the coalescing path is
 untested and the output says so — don't read `HELD` as full coverage.
 
 ## Scenario files
@@ -259,12 +339,12 @@ untested and the output says so — don't read `HELD` as full coverage.
 
 ```json
 {
-  "name": "background-home",
-  "rust_log": "info,bd_client_stats=debug,bd_logger=debug",
+  "name": "minimal-background",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug",
   "modes_before_launch": [],
   "steps": [
     {"action": "launch"},
-    {"action": "wait", "seconds": 35, "why": "clear the 30s stats upload debounce"},
+    {"action": "wait", "seconds": 35, "why": "clear the 30s minimum upload interval"},
     {"action": "home"},
     {"action": "wait", "seconds": 40}
   ],
@@ -276,11 +356,23 @@ Bundled scenarios:
 
 | File | Purpose |
 |---|---|
-| `minimal-background.json` | Baseline: launch → clear debounce → HOME → observe |
+| `minimal-background.json` | Baseline: launch → clear the interval → HOME → observe |
 | `background-doze.json` | Same, with deep doze forced right after screen-off |
 | `kill-after-background.json` | Background, then kill the process 5s later |
-| `background-no-wait.json` | **Diagnostic**: deliberately skips the debounce wait. Use it to confirm the minimum-upload-interval gate is still active after a shared-core bump — it should report `DEBO`. |
+| `background-no-wait.json` | **Diagnostic**: deliberately skips the 35s wait. Use it to confirm the minimum-upload-interval gate is still active after a shared-core bump — it should report `DEBO`. |
 | `matrix/T01…T14.json` | The full 14-scenario matrix (backgrounding method · restriction modes · exit variants). Run T04/T06/T07 **last** — they use screen-off and re-lock a physical phone. Results and rationale in `references/flush-matrix.md`. |
 
 Add a `why` to any non-obvious wait. A future reader — including you — will otherwise assume it's
-arbitrary and shorten it, which is how the 30s debounce silently invalidated a whole matrix.
+arbitrary and shorten it, which is how the 30s interval silently invalidated a whole matrix.
+
+## Reference files
+
+Read these as needed rather than upfront:
+
+- **`references/device-modes.md`** — the nine states: setup, teardown, verification, when each must
+  be applied, and the silent-failure traps. Read before using any mode.
+- **`references/log-signatures.md`** — every log line worth matching, by subsystem, with what it
+  proves and what it doesn't. Read before interpreting any capture.
+- **`references/flush-matrix.md`** — a worked 14-scenario study of stats flushing on backgrounding,
+  with results from an emulator and a Pixel 10. Read it as a template for structuring a
+  multi-scenario investigation, or when the question is specifically about flush/upload behaviour.

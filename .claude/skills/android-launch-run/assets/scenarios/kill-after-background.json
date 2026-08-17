@@ -1,11 +1,11 @@
 {
   "name": "kill-after-background",
   "description": "Background, then kill the process 5s later. Tests whether backgrounding work completes before process death.",
-  "rust_log": "info,bd_client_stats=debug,bd_logger=debug",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug",
   "modes_before_launch": [],
   "steps": [
     {"action": "launch"},
-    {"action": "wait", "seconds": 35, "why": "clear the 30s stats upload debounce"},
+    {"action": "wait", "seconds": 35, "why": "clear the stats.minimum_upload_interval_ms floor (30s default, not the 5s upload cadence). Shorter and the ON_STOP upload is refused, so the run measures the gate instead of the question."},
     {"action": "home"},
     {"action": "wait", "seconds": 5, "why": "roughly matches the OS background network cutoff, so the kill lands in the same window"},
     {"action": "kill"},
