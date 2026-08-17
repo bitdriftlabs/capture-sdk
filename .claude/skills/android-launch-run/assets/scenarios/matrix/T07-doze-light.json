@@ -1,7 +1,7 @@
 {
   "name": "T07-doze-light",
   "description": "As T06 but light doze.",
-  "rust_log": "info,bd=debug",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
   "modes_before_launch": [],
   "steps": [
     {

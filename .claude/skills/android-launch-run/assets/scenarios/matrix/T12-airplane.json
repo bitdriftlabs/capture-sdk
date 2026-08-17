@@ -1,7 +1,7 @@
 {
   "name": "T12-airplane",
   "description": "Airplane mode from before launch, so the startup upload stalls and can never complete. Precondition for the pre-bump 'wedged flusher' behaviour.",
-  "rust_log": "info,bd=debug",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
   "modes_before_launch": [
     "airplane"
   ],

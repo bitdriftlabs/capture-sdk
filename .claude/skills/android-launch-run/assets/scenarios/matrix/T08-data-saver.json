@@ -1,7 +1,7 @@
 {
   "name": "T08-data-saver",
   "description": "Data Saver + wifi marked metered, both from before launch.",
-  "rust_log": "info,bd=debug",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
   "modes_before_launch": [
     "data-saver"
   ],

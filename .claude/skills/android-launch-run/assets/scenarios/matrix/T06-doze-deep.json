@@ -1,7 +1,7 @@
 {
   "name": "T06-doze-deep",
   "description": "Screen off, then deep doze forced immediately after. Pre-armed so force-idle lands ~0.3s after ON_STOP rather than ~2s.",
-  "rust_log": "info,bd=debug",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
   "modes_before_launch": [
     "doze-prearm"
   ],

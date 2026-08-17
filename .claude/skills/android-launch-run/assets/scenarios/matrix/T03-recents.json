@@ -1,7 +1,7 @@
 {
   "name": "T03-recents",
   "description": "App switcher. Pre-bump this never fired ON_STOP, so no backgrounding work ran at all.",
-  "rust_log": "info,bd=debug",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
   "modes_before_launch": [],
   "steps": [
     {

@@ -1,0 +1,40 @@
+{
+  "name": "timing-double-background",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 40,
+      "why": "clear any prior flush-upload gate"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 6,
+      "why": "let the first forced flush upload go out - this ARMS the 30s floor"
+    },
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 4,
+      "why": "brief foreground, deliberately well inside the 30s floor"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 25,
+      "why": "second forced flush: the disk write should still happen while the upload is refused"
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}

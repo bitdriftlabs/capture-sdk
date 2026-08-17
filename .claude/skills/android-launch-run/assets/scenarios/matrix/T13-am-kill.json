@@ -1,7 +1,7 @@
 {
   "name": "T13-am-kill",
   "description": "Background, then kill the process 5s later.",
-  "rust_log": "info,bd=debug",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
   "modes_before_launch": [],
   "steps": [
     {
@@ -10,22 +10,23 @@
     {
       "action": "wait",
       "seconds": 35,
-      "why": "clear the minimum-upload-interval gate; without this the ON_STOP upload is debounced and the run measures the debounce instead of the question"
+      "why": "clear the stats.minimum_upload_interval_ms floor (30s)"
     },
     {
       "action": "home"
     },
     {
       "action": "wait",
-      "seconds": 5,
-      "why": "lands inside the ~5s network window so the kill competes with the upload"
+      "seconds": 2,
+      "why": "ON_STOP lands at ~1.35s and the ack at ~+700ms after that, so a kill here falls INSIDE the ack window. At the old 5s the kill could never race the upload, which is why every past run reported the same non-finding."
     },
     {
       "action": "kill"
     },
     {
       "action": "wait",
-      "seconds": 10
+      "seconds": 15,
+      "why": "long enough to see whether the snapshot is recovered on the next process start"
     }
   ],
   "reference_event": "process ON_STOP"

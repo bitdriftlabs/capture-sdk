@@ -4,7 +4,14 @@ A 14-scenario study of what happens to **stats flushing** when an app is backgro
 emulator (API 36) and a Pixel 10 (API 37). Read it as a template for structuring a multi-scenario
 investigation, or when the question is specifically about flush/upload behaviour.
 
-Run it yourself: `assets/scenarios/matrix/T01…T14.json`, one scenario per test.
+Run it yourself: `assets/scenarios/matrix/`, one scenario per test.
+
+> **The set has since been condensed.** `T14-force-stop` was dropped — it, `T13-am-kill` and
+> `T11-freezer` all fired at +5s/+10s against uploads that acked in 624–847ms, so all three
+> produced a single finding and force-stop added no distinct observable. `T13` has been retimed to
+> kill at HOME+2s, *inside* the ack window, so it probes the actual deadline rather than
+> re-confirming that a late kill is harmless. Four standalone duplicates of matrix entries were
+> also removed. Results below for T14, and for T13 at its old timing, describe the old set.
 
 **Latest full run: 28/28 on shared-core `c3ba1cba`.** An earlier 14-scenario pass was made against
 `42637e1f`; where the two disagree, both are given, because the differences are the most useful part.

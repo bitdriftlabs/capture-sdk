@@ -1,7 +1,7 @@
 {
   "name": "T01-home",
   "description": "Baseline. Backgrounding via HOME with no restrictions.",
-  "rust_log": "info,bd=debug",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
   "modes_before_launch": [],
   "steps": [
     {

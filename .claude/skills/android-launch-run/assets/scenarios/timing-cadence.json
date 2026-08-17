@@ -1,0 +1,24 @@
+{
+  "name": "timing-cadence",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 150,
+      "why": "long enough for the ~5s first flush, the transition to the recurrent cadence, and >=4 recurrent ticks - this is what pins the 30s disk / 60s upload model"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 45,
+      "why": "forced flush plus at least one post-background tick, which shows the forced flush does NOT reschedule the periodic timer"
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}

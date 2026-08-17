@@ -41,7 +41,7 @@ A=.claude/skills/android-launch-run/assets
 
 python3 $S/adbctl.py devices                    # what's connected, and is anything locked
 python3 $S/adbctl.py install                    # build + install debug app everywhere
-python3 $S/run_scenario.py $A/scenarios/minimal-background.json --out /tmp/run1
+python3 $S/run_scenario.py $A/scenarios/matrix/T01-home.json --out /tmp/run1
 ```
 
 `run_scenario.py` is the main entry point — it applies state, launches, acts, captures, and parses,
@@ -474,7 +474,7 @@ untested and the output says so — don't read `HELD` as full coverage.
 
 ```json
 {
-  "name": "minimal-background",
+  "name": "T01-home",
   "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug",
   "modes_before_launch": [],
   "steps": [
@@ -491,11 +491,16 @@ Bundled scenarios:
 
 | File | Purpose |
 |---|---|
-| `minimal-background.json` | Baseline: launch → clear the interval → HOME → observe |
-| `background-doze.json` | Same, with deep doze forced right after screen-off |
-| `kill-after-background.json` | Background, then kill the process 5s later |
-| `background-no-wait.json` | **Diagnostic**: deliberately skips the 35s wait. Use it to confirm the minimum-upload-interval gate is still active after a shared-core bump — it should report `DEBO`. |
-| `matrix/T01…T14.json` | The full 14-scenario matrix (backgrounding method · restriction modes · exit variants). Run T04/T06/T07 **last** — they use screen-off and re-lock a physical phone. Results and rationale in `references/flush-matrix.md`. |
+| `matrix/T01…T04` | **Backgrounding method**: home · back · recents · screen-off. `T01-home` is the baseline every other scenario varies from. |
+| `matrix/T05…T12` | **Restriction modes**, HOME held constant: battery-saver · doze-deep · doze-light · data-saver · standby-restricted · bg-restricted · airplane. |
+| `matrix/T11`, `matrix/T13` | **Exit variants**: cached-app freeze, and a process kill timed to land *inside* the upload ack window. |
+| `timing-cadence.json` | Measures the flush/upload timers: the ~5s first flush, the recurrent disk and upload cadences, and that a forced flush does **not** reschedule the periodic tick. |
+| `timing-double-background.json` | Two backgroundings inside 30s — the only way to show a forced flush still writes to disk while its upload is refused by the minimum-interval floor. |
+| `background-no-wait.json` | **Diagnostic**: deliberately skips the wait, so it *should* report `DEBO` on the flush path. Use it to confirm the gate is still active after a shared-core bump. |
+
+Run `T04`, `T06` and `T07` last — they use screen-off. On a device whose
+`lock_screen_lock_after_timeout` is short this re-locks the phone and invalidates everything after;
+check that setting rather than assuming either way.
 
 Add a `why` to any non-obvious wait. A future reader — including you — will otherwise assume it's
 arbitrary and shorten it, which is how the 30s interval silently invalidated a whole matrix.
