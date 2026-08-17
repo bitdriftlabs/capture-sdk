@@ -46,6 +46,56 @@ NORMALISE = [
     (re.compile(r"\b\d+\b"), "N"),
 ]
 
+# Wordings unique to one rev family, used to tell which binary actually produced a capture.
+# The APK on the device is whatever was last built; switching branches does not reinstall it, so
+# the tree and the binary can disagree — which is the most confusing state to debug from, because
+# every signature lookup silently consults the wrong column of the reference tables.
+REV_MARKERS = {
+    "c3ba1cba+": [
+        "flushing collected stats to disk",
+        "prepared ",
+        "started stats disk flush debounce window",
+    ],
+    "<=42637e1f": [
+        "received a signal to flush stats to disk",
+        "sending pending flush upload",
+        "stat flush upload attempt complete",
+    ],
+}
+
+
+def infer_rev_family(path: str) -> tuple[str | None, dict[str, int]]:
+    """Guess which shared-core rev family produced this capture, from message wording."""
+    hits = {fam: 0 for fam in REV_MARKERS}
+    with open(path, errors="replace") as fh:
+        for raw in fh:
+            for fam, marks in REV_MARKERS.items():
+                if any(m in raw for m in marks):
+                    hits[fam] += 1
+    seen = [f for f, n in hits.items() if n]
+    return (seen[0] if len(seen) == 1 else None), hits
+
+
+def pinned_rev(start: str) -> str | None:
+    """Short pinned rev from the nearest Cargo.toml.
+
+    Walks up from the capture first, then from the cwd — captures are routinely written to a scratch
+    dir outside the repo, and giving up in that case would silently skip the staleness check, which
+    is the one check most worth not skipping.
+    """
+    for origin in (os.path.abspath(start), os.path.abspath(os.getcwd() + "/x")):
+        d = origin
+        for _ in range(10):
+            d = os.path.dirname(d)
+            if not d or d == "/":
+                break
+            f = os.path.join(d, "Cargo.toml")
+            if os.path.exists(f):
+                m = re.search(r'bd-client-common.*?rev = "([0-9a-f]{7,})"', open(f).read(), re.S)
+                if m:
+                    return m.group(1)[:8]
+    return None
+
 
 def normalise(msg: str) -> str:
     for rx, rep in NORMALISE:
@@ -65,7 +115,23 @@ def main() -> None:
     counts = Counter(e["kind"] for e in evs)
 
     print(f"capture: {args.capture}")
-    print(f"recognised events: {len(evs)}\n")
+    print(f"recognised events: {len(evs)}")
+
+    # Which binary produced this, and does it match the tree? Catching a stale APK here is the
+    # difference between "the behaviour changed" and "I am testing last week's build".
+    fam, hits = infer_rev_family(args.capture)
+    pin = pinned_rev(args.capture)
+    detail = " ".join(f"{f}={n}" for f, n in hits.items() if n) or "no rev markers found"
+    print(f"binary rev family: {fam or 'INDETERMINATE'}  ({detail})")
+    if pin:
+        print(f"Cargo.toml pins:   {pin}")
+        expected = "c3ba1cba+" if pin.startswith("c3ba1cb") else "<=42637e1f"
+        if fam and fam != expected:
+            print(f"\n  *** STALE INSTALL: the capture looks like {fam}, but the tree pins {pin} "
+                  f"({expected}).\n      The APK is whatever was last built — switching branches does "
+                  f"not reinstall it.\n      Run `adbctl.py install` and re-capture; until then every "
+                  f"signature lookup is\n      consulting the wrong rev.")
+    print()
 
     unseen_families = []
     for fam, kinds in FAMILIES.items():
