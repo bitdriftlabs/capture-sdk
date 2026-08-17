@@ -11,6 +11,11 @@ on:
         description: Branch or tag to build from. Defaults to main.
         required: false
         default: main
+      dry-run:
+        type: boolean
+        description: Build and validate archives without uploading them.
+        required: false
+        default: false
   workflow_dispatch:
     inputs:
       version:
@@ -22,6 +27,11 @@ on:
         description: Branch or tag to build from. Defaults to main.
         required: false
         default: main
+      dry-run:
+        type: boolean
+        description: Build and validate archives without uploading them.
+        required: false
+        default: false
 jobs:
   build-gradle-libraries:
     name: Build Gradle Libraries
@@ -75,25 +85,34 @@ jobs:
       run: |
         readonly dir=$(pwd)
         (cd capture-plugin/build/repos/releases/io/bitdrift/capture-plugin/io.bitdrift.capture-plugin.gradle.plugin/${{ inputs.version }} && zip -r "$dir/capture-plugin-marker-${{ inputs.version }}.android.zip" ./*)
+    - name: Verify integration archives
+      run: |
+        for archive in capture-timber-${{ inputs.version }}.android.zip capture-apollo-${{ inputs.version }}.android.zip capture-plugin-${{ inputs.version }}.android.zip capture-plugin-marker-${{ inputs.version }}.android.zip; do
+          unzip -t "$archive"
+        done
     - name: Upload Timber artifacts
+      if: ${{ !inputs.dry-run }}
       uses: actions/upload-artifact@v4
       with:
         name: capture-timber-${{ inputs.version }}.android.zip
         path: platform/jvm/capture-timber-${{ inputs.version }}.android.zip
         if-no-files-found: error
     - name: Upload Apollo artifacts
+      if: ${{ !inputs.dry-run }}
       uses: actions/upload-artifact@v4
       with:
         name: capture-apollo-${{ inputs.version }}.android.zip
         path: platform/jvm/capture-apollo-${{ inputs.version }}.android.zip
         if-no-files-found: error        
     - name: Upload Gradle Plugin artifacts
+      if: ${{ !inputs.dry-run }}
       uses: actions/upload-artifact@v4
       with:
         name: capture-plugin-${{ inputs.version }}.android.zip
         path: platform/jvm/capture-plugin-${{ inputs.version }}.android.zip
         if-no-files-found: error
     - name: Upload Gradle Plugin marker
+      if: ${{ !inputs.dry-run }}
       uses: actions/upload-artifact@v4
       with:
         name: capture-plugin-marker-${{ inputs.version }}.android.zip
