@@ -19,11 +19,22 @@ device clock, so sources interleave correctly in a single `-b main,events` captu
 > `stat flush upload attempt complete`. Confirm any signature against a real capture before
 > reasoning from it.
 >
-> **Check the rev, don't assume it:** `grep -m1 'bd-client-common' Cargo.toml`. At the time of
-> writing that is **`42637e1f`** — the *right-hand* column of the tables below. Then run
-> `scripts/check_signatures.py <capture>`, which reports `SEEN`/`UNSEEN` per signature family and
-> lists unrecognised `bd_*` lines. That turns "is my pattern dead or is the behaviour absent?" from a
-> judgement call into a one-command answer, and it is the only reliable guard against the trap in §8.1.
+> **Check the rev, don't assume it:** `grep -m1 'bd-client-common' Cargo.toml`. Two revs are in
+> circulation while PR #1107 is open, and the tables below give a column for each:
+>
+> | Rev | Branch | Column |
+> |---|---|---|
+> | `c3ba1cba` | `bump` (PR #1107) | left |
+> | `42637e1f` | `main` | right |
+>
+> Then run `scripts/check_signatures.py <capture>`, which reports `SEEN`/`UNSEEN` per signature family
+> and lists unrecognised `bd_*` lines. That turns "is my pattern dead or is the behaviour absent?"
+> from a judgement call into a one-command answer, and it is the only reliable guard against §8.1.
+>
+> **And check the installed binary, not just the rev.** The APK on the device is whatever was last
+> built; switching branches does not change it. Reinstall (`adbctl.py install`) after moving between
+> `main` and `bump`, or you will be reading `main` behaviour while the tree says `c3ba1cba` — the
+> single most confusing state to debug from.
 
 ---
 
@@ -207,10 +218,10 @@ Both revs carry a uuid on both lines; only the surrounding text differs.
 
 ## 4b. The disk-flush debounce window (`c3ba1cba`+)
 
-> **Absent on the currently pinned `42637e1f`** — verified: zero `stats disk flush debounce` lines in
-> any capture, and `check_signatures.py` reports the `stats-debounce` family as `UNSEEN`. Everything
-> in this section applies only if you are on `c3ba1cba` or later. Don't read a missing
-> `DISK-FLUSH DEBOUNCE` line as a regression.
+> **Exists on `c3ba1cba` (the `bump` branch); absent on `main`.** Verified on `42637e1f`: zero
+> `stats disk flush debounce` lines in any capture, with `check_signatures.py` reporting the
+> `stats-debounce` family as `UNSEEN`. On a rev without the window, a missing `DISK-FLUSH DEBOUNCE`
+> line is the rev, not a regression.
 
 A 1s window opens immediately **after** each disk write:
 

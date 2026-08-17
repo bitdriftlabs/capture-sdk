@@ -9,21 +9,25 @@ Run it yourself: `assets/scenarios/matrix/T01…T14.json`, one scenario per test
 **Latest full run: 28/28 on shared-core `c3ba1cba`.** An earlier 14-scenario pass was made against
 `42637e1f`; where the two disagree, both are given, because the differences are the most useful part.
 
-> ⚠ **`Cargo.toml` currently pins `42637e1f` — the *earlier* rev.** Check before relying on anything
-> here: `grep -m1 'bd-client-common' Cargo.toml`. The headline "28/28" results below were measured on
-> `c3ba1cba`, so on the current pin the **left**-hand/"before" side of every rev comparison is the
-> live behaviour. Two concrete consequences:
+> ⚠ **Check which rev you are on before relying on anything here:**
+> `grep -m1 'bd-client-common' Cargo.toml`. Two are in circulation while PR #1107 is open, and the
+> results below split by rev.
 >
-> - **The airplane wedge (§ below) is present again**, since `c3ba1cba` is what fixed it. Treat
->   "flush produces no disk write in airplane mode with a stalled upload" as expected on this pin,
->   not as a new regression.
-> - **The disk-flush debounce window does not exist**, so `parse_logs.py` prints no
->   `DISK-FLUSH DEBOUNCE` line. Confirmed by `check_signatures.py` reporting `stats-debounce` as
->   `UNSEEN`. That absence is the rev, not a fault.
+> | If pinned | Branch | The 28/28 results below | The airplane wedge | Debounce window |
+> |---|---|---|---|---|
+> | `c3ba1cba` | `bump` (#1107) | **are** the live behaviour | fixed | present |
+> | `42637e1f` | `main` | describe the *other* rev | **present again** | absent |
 >
-> Re-verified on `42637e1f` and still true: the **35s foreground wait is required** (the
+> On `main`, treat "flush produces no disk write in airplane mode with a stalled upload" as expected
+> for that rev rather than a new regression, and expect no `DISK-FLUSH DEBOUNCE` line from
+> `parse_logs.py` — `check_signatures.py` will report `stats-debounce` as `UNSEEN`.
+>
+> **Rev-independent, verified on both:** the **35s foreground wait is required** (the
 > `stats.minimum_upload_interval_ms` floor is 30s and is not overridden by runtime config), **recents
 > never fires `ON_STOP`**, and **deep doze blocks the upload identically on emulator and phone**.
+>
+> Also: the APK on the device is whatever was last built. Switching branches does not reinstall it —
+> run `adbctl.py install` after moving between `main` and `bump`.
 
 ## The question
 

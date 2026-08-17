@@ -148,26 +148,46 @@ Capture both buffers together — `-b main,events` — or the OS events and app 
 
 **`process ON_STOP` is usually the reference point.** It is what the SDK's background flush hangs
 off, it fires ~700ms–1.3s after the activity stops (`ProcessLifecycleOwner` debounces), and it lands
-*before* the OS's own `wm_on_stop_called`. A real HOME-button run (Pixel 10, API 37, shared-core
-`42637e1f`):
+*before* the OS's own `wm_on_stop_called`.
+
+The shape is the same on both revs in circulation; **only the stats message text differs**, so match
+the timeline to whichever rev `Cargo.toml` pins. Both are real HOME-button runs on a Pixel 10:
+
+<details open>
+<summary><b><code>c3ba1cba</code></b> — the <code>bump</code> branch (PR #1107)</summary>
+
+```
+      +0ms  process ON_STOP                                    <- reference
+      +4ms  bd_logger::logger: state flushing initiated           [platform asked]
+     +40ms  bd_client_stats::stats: flushing collected stats…
+     +56ms  bd_client_stats::file_manager: writing snapshot       <- disk write
+     +63ms  bd_client_stats::stats: prepared … stats upload       <- enqueued
+   +1.037s  bd_client_stats::stats: … upload completed …          <- acked
+    +4.99s  [netpolicy] background-allow revoked                  <- network cut
+```
+</details>
+
+<details>
+<summary><b><code>42637e1f</code></b> — <code>main</code></summary>
 
 ```
    -1.302s  >>> home
    -1.103s  OS: activity onPause
     -401ms  process ON_PAUSE
-      +0ms  process ON_STOP                                   <- reference
-      +3ms  bd_logger::logger: state flushing initiated          [platform asked]
-     +18ms  bd_client_stats::file_manager: writing snapshot      <- disk write
-     +25ms  bd_client_stats::stats: sending pending flush upload <- enqueued
-    +620ms  bd_api::api: received ack for stats upload           <- server acked
-   +5.013s  api stream CLOSED: SocketException                   <- network cut
-   +28.12s  writing snapshot … then upload DEBOUNCED             <- stranded on disk
+      +0ms  process ON_STOP                                    <- reference
+      +3ms  bd_logger::logger: state flushing initiated           [platform asked]
+     +18ms  bd_client_stats::file_manager: writing snapshot       <- disk write
+     +25ms  bd_client_stats::stats: sending pending flush upload  <- enqueued
+    +620ms  bd_api::api: received ack for stats upload            <- server acked
+   +5.013s  api stream CLOSED: SocketException                    <- network cut
+   +28.12s  writing snapshot … then upload DEBOUNCED              <- stranded on disk
 ```
+</details>
 
-The flush wins that race by ~8×. Note the last line: later timed flushes keep writing to disk while
-backgrounded but cannot upload — and here the SDK declined to even try, because of the minimum
-upload interval rather than the dead network. Two different causes that look identical if you only
-watch for a missing upload.
+Either way the flush wins the race against the network cutoff by roughly 5–8×. Note the last line of
+the `42637e1f` run: later timed flushes keep writing to disk while backgrounded but cannot upload —
+and there the SDK declined to even try, because of the minimum upload interval rather than the dead
+network. Two different causes that look identical if you only watch for a missing upload.
 
 ### Two different intervals — don't conflate them
 
@@ -183,11 +203,11 @@ stats disk flush interval 30s does not cleanly divide active upload interval 5s;
 | **`stats.minimum_upload_interval_ms`** (30s) | anti-hammer *floor*: refuses any upload, periodic **or** ON_STOP flush, too soon after the last one | shared-core default; **not** in the runtime push |
 
 **The foreground wait exists to clear the 30s floor, not the 5s cadence.** Seeing `5s` in that line
-and shortening the wait is a natural mistake and it silently invalidates the run. Measured on a
-Pixel 10: a periodic upload was refused at 28.10s elapsed, the ON_STOP flush was allowed at 35.06s,
-and on an emulator a *flush* upload was refused at 5.02s — bracketing the gate at 30s. Confirm what
-your account actually pushes with `bd_runtime=debug` in the filter, which logs every
-`updated value of <flag> to <value>`; a flag that never appears is at its default.
+and shortening the wait is a natural mistake and it silently invalidates the run. Measured on
+`42637e1f` — a periodic upload refused at 28.10s elapsed, the ON_STOP flush allowed at 35.06s, and on
+an emulator a *flush* upload refused at 5.02s — bracketing the gate at 30s, its shared-core default.
+The flag is not rev-specific, but re-confirm rather than assume: put `bd_runtime=debug` in the filter
+and it logs every `updated value of <flag> to <value>`; a flag that never appears is at its default.
 
 **The gate is anchored at enqueue and cleared on failure.** `last_flush_upload_time` is set when the
 upload is handed off, and reset to `None` if that upload fails. So a run whose network is already
@@ -328,8 +348,10 @@ If the reference event never fired, both `parse_logs.py` and `run_scenario.py` r
 verdict and say so. That absence is usually itself the answer (see `recents` above) — treat it as a
 result, not a harness failure.
 
-A `DISK-FLUSH DEBOUNCE` line appears only on revs that have the disk-flush debounce window; it is
-absent on `42637e1f`. When it does appear, it validates the window by the invariant it implies
+A `DISK-FLUSH DEBOUNCE` line appears only on revs that **have** the disk-flush debounce window —
+`c3ba1cba` and later, i.e. present on the `bump` branch and absent on `main`. Its absence is the rev,
+not a regression; `check_signatures.py` reports the `stats-debounce` family as `UNSEEN` when you are
+on a rev without it. When it does appear it validates the window by the invariant it implies
 (consecutive writes never closer than the window). When `coalesced` is 0 the coalescing path is
 untested and the output says so — don't read `HELD` as full coverage.
 
