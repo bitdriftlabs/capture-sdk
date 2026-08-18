@@ -44,7 +44,6 @@ use jni::objects::{
   JObjectArray,
   JPrimitiveArray,
   JString,
-  JValue,
   JValueOwned,
 };
 use jni::signature::{Primitive, ReturnType};
@@ -61,7 +60,7 @@ use jni::sys::{
   jstring,
   jvalue,
 };
-use jni::{Env, EnvUnowned, JavaVM};
+use jni::{AttachConfig, Env, EnvUnowned, JavaVM};
 use platform_shared::metadata::Mobile;
 use platform_shared::{LoggerHolder, LoggerId, date_to_unix_milliseconds};
 use protobuf::Enum as _;
@@ -885,16 +884,23 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
               logger,
               async move {
                 handle_unexpected(
-                  java_vm.attach_current_thread(|env| {
-                    // When we first attach the runtime thread the JVM will rename the thread
-                    // since the jni crate won't let us pass a thread name
-                    // through to the attach function. To work around this
-                    // we attach and then immediately rename the thread again.
-                    set_thread_name(env, "bd-tokio")
-                  }),
-                  "jni set thread name",
+                  java_vm.attach_current_thread_with_config(
+                    || AttachConfig::new().thread_name(jni::jni_str!("bd-tokio")),
+                    None,
+                    |_| Ok::<(), jni::errors::Error>(()),
+                  ),
+                  "jni attach logger thread",
                 );
-                future.await
+
+                let result = future.await;
+
+                // The logger runtime owns this dedicated OS thread. Keep the JVM attachment for
+                // its lifetime so JNI callbacks do not repeatedly attach on every log, but detach
+                // before the thread begins TLS teardown. This clears jni-rs' attach guard while
+                // Rust's logging TLS is still available.
+                handle_unexpected(java_vm.detach_current_thread(), "jni detach logger thread");
+
+                result
               }
               .boxed(),
             )
@@ -907,25 +913,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       ))
     })
     .resolve::<jni::errors::LogErrorAndDefault>()
-}
-
-fn set_thread_name(env: &mut Env<'_>, name: &str) -> anyhow::Result<()> {
-  let thread = env.call_static_method(
-    jni::jni_str!("java/lang/Thread"),
-    jni::jni_str!("currentThread"),
-    jni::jni_sig!("()Ljava/lang/Thread;"),
-    &[],
-  )?;
-
-  let name = env.new_string(name)?;
-  env.call_method(
-    thread.l()?,
-    jni::jni_str!("setName"),
-    jni::jni_sig!("(Ljava/lang/String;)V"),
-    &[JValue::Object(&name)],
-  )?;
-
-  Ok(())
 }
 
 #[unsafe(no_mangle)]

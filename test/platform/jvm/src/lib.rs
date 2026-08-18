@@ -563,11 +563,12 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runExceptionHan
       let handle = ObjectHandle::new(env, class.into()).unwrap();
       let result =
         handle.execute(|e, _| Ok(e.find_class(jni::jni_str!("doesntexist")).map(|_| ())?));
-      assert_matches!(result,
-      Err(e) => {
-          assert_eq!(e.to_string(), "An unexpected error occurred: failed to execute Java \
-              method due to exception: java.lang.NoClassDefFoundError: doesntexist");
-      });
+      assert_matches!(result, Err(_));
+
+      // jni 0.22 reports a missing class directly instead of retaining a pending Java exception.
+      // Either representation is valid; ObjectHandle's contract is that it clears any exception
+      // before returning to Java.
+      assert!(!env.exception_check());
 
       Ok(())
     })
