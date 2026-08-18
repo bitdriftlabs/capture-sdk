@@ -176,13 +176,6 @@ final class LoggerBridge: LoggerBridging {
         blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     ) {
-        let (blocking, blockingTimeoutMs): (Bool, UInt32) = switch blockingBehavior {
-        case .nonBlocking:
-            (false, 0)
-        case .blocking(let timeoutMs):
-            (true, timeoutMs)
-        }
-
         capture_write_log(
             self.loggerID,
             level.rawValue,
@@ -190,10 +183,11 @@ final class LoggerBridge: LoggerBridging {
             message(),
             fields,
             matchingFields,
-            blocking,
-            blockingTimeoutMs,
             occurredAtOverride.map { Int64($0.timeIntervalSince1970 * 1_000) } ?? 0
         )
+        if case .blocking = blockingBehavior {
+            self.flush(blocking: true)
+        }
     }
 
     func logSessionReplayScreen(fields: [CapturePassable.Field], duration: TimeInterval) {

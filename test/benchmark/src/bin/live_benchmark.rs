@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use bd_logger::{AnnotatedLogField, Block, CaptureSession, InitParams, log_level};
+use bd_logger::{AnnotatedLogField, CaptureSession, InitParams, log_level};
 use bd_proto::protos::logging::payload::LogType;
 use bd_session::Strategy;
 use bd_session::fixed::UUIDCallbacks;
@@ -66,7 +66,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
       handle.log(
@@ -76,7 +75,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
       handle.log(
@@ -86,7 +84,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
       handle.log(
@@ -96,7 +93,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
       handle.log(
@@ -106,7 +102,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
     });
@@ -129,7 +124,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         .into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
     });

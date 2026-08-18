@@ -716,8 +716,6 @@ extern "C" fn capture_write_log(
   log: *const c_char,
   fields: *const Object,
   matching_fields: *const Object,
-  blocking: bool,
-  blocking_timeout_ms: u32,
   override_occurred_at_unix_milliseconds: i64,
 ) {
   with_handle_unexpected(
@@ -745,14 +743,6 @@ extern "C" fn capture_write_log(
         fields,
         matching_fields,
         attributes_overrides,
-        if blocking {
-          Block::Yes {
-            timeout: std::time::Duration::from_millis(u64::from(blocking_timeout_ms)),
-            poll_callback: None,
-          }
-        } else {
-          Block::No
-        },
         &CaptureSession::default(),
       );
 

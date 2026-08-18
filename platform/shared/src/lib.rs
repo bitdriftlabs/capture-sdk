@@ -220,7 +220,6 @@ impl LoggerHolder {
         fields,
         [].into(),
         None,
-        bd_logger::Block::No,
         &bd_logger::CaptureSession::default(),
       );
     });
@@ -250,7 +249,6 @@ impl LoggerHolder {
       fields,
       [].into(),
       None,
-      bd_logger::Block::No,
       &bd_logger::CaptureSession::default(),
     );
   }

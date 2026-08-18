@@ -1134,7 +1134,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   matching_field_values: JObjectArray<'_>,
   use_previous_process_session_id: jboolean,
   override_occurred_at_unix_milliseconds: jlong,
-  blocking: jboolean,
 ) {
   // This should only fail if the JVM is in a bad state.
   with_handle_unexpected(
@@ -1179,14 +1178,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
         fields,
         matching_fields,
         attributes_overrides,
-        if blocking == JNI_TRUE {
-          Block::Yes {
-            timeout: std::time::Duration::from_millis(500),
-            poll_callback: None,
-          }
-        } else {
-          Block::No
-        },
         &CaptureSession::default(),
       );
 
