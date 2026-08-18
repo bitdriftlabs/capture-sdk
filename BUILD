@@ -129,6 +129,31 @@ android_artifacts(
     visibility = ["//visibility:public"],
 )
 
+# Measures the compressed x86_64 native library as it is packaged for Android.
+# capture_aar uses android_debug_info under the release configuration, so the
+# library in the AAR has already been stripped by Bazel's NDK toolchain.
+genrule(
+    name = "capture_aar_so_size_x86_64",
+    srcs = [":capture_aar"],
+    outs = ["capture_aar_so_size_x86_64_kb.txt"],
+    cmd = """
+set -euo pipefail
+
+work_dir="$(@D)/capture_aar_so_size_x86_64"
+mkdir -p "$$work_dir"
+zipper="$(location @bazel_tools//tools/zip:zipper)"
+
+"$$zipper" x "$(location :capture_aar)" -d "$$work_dir" jni/x86_64/libcapture.so
+"$$zipper" cC "$$work_dir/libcapture.so.zip" \
+    "jni/x86_64/libcapture.so=$$work_dir/jni/x86_64/libcapture.so"
+
+size_bytes=$$(wc -c < "$$work_dir/libcapture.so.zip")
+echo $$((($$size_bytes + 1023) / 1024)) > "$@"
+""",
+    tools = ["@bazel_tools//tools/zip:zipper"],
+    visibility = ["//visibility:public"],
+)
+
 android_debug_info(
     name = "capture.debug_info",
     dep = "//platform/jvm:capture_shared",

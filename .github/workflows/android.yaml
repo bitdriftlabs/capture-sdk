@@ -103,7 +103,7 @@ jobs:
         run: |
           # Make both artifacts top-level outputs so Bazel materializes the AAR
           # without a separate invocation or executing the shared actions twice.
-          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar
+          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar :capture_aar_so_size_x86_64
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
@@ -121,9 +121,8 @@ jobs:
           APK_SIZE_FILE=ci/baseline_binary_size.txt
           stat -c%s "$APK_PATH" > "$APK_SIZE_FILE"
 
-          # Get AAR SO size
-          ./tools/capture_so_size.sh --aar ./bazel-bin/capture_aar_local.aar x86_64 > so_size_output.txt
-          SO_SIZE_KB=$(grep "SO_SIZE_KB=" so_size_output.txt | cut -d'=' -f2)
+          # Get the Bazel-generated compressed x86_64 SO size.
+          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
           SO_SIZE_FILE=ci/baseline_so_size_x86_64_kb.txt
           echo "$SO_SIZE_KB" > "$SO_SIZE_FILE"
 
@@ -191,9 +190,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: so_size
         run: |
-          # Reuse the AAR materialized by the Bazel build to get the current SO size.
-          ./tools/capture_so_size.sh --aar ./bazel-bin/capture_aar_local.aar x86_64 > so_size_output.txt
-          SO_SIZE_KB=$(grep "SO_SIZE_KB=" so_size_output.txt | cut -d'=' -f2)
+          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
           BASELINE_PATH=ci/baseline_so_size_x86_64_kb.txt
 
           if [ -z "$SO_SIZE_KB" ]; then
