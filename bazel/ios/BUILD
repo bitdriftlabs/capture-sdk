@@ -18,8 +18,8 @@ sh_binary(
 alias(
     name = "llvm_ar",
     actual = select({
-        "@llvm//platforms/config:macos_aarch64_prebuilt": "@llvm-toolchain-minimal-22.1.7-darwin-arm64//:bin/llvm-ar",
-        "@llvm//platforms/config:macos_x86_64_prebuilt": "@llvm-toolchain-minimal-22.1.7-darwin-amd64//:bin/llvm-ar",
+        "@llvm//platforms/config:macos_aarch64": "@llvm-toolchain-minimal-darwin-arm64//:bin/llvm-ar",
+        "@llvm//platforms/config:macos_x86_64": "@llvm-toolchain-minimal-darwin-amd64//:bin/llvm-ar",
     }),
     visibility = ["//visibility:public"],
 )
@@ -27,8 +27,8 @@ alias(
 alias(
     name = "llvm_lipo",
     actual = select({
-        "@llvm//platforms/config:macos_aarch64_prebuilt": "@llvm-toolchain-minimal-22.1.7-darwin-arm64//:bin/llvm-lipo",
-        "@llvm//platforms/config:macos_x86_64_prebuilt": "@llvm-toolchain-minimal-22.1.7-darwin-amd64//:bin/llvm-lipo",
+        "@llvm//platforms/config:macos_aarch64": "@llvm-toolchain-minimal-darwin-arm64//:bin/llvm-lipo",
+        "@llvm//platforms/config:macos_x86_64": "@llvm-toolchain-minimal-darwin-amd64//:bin/llvm-lipo",
     }),
     visibility = ["//visibility:public"],
 )
@@ -36,8 +36,8 @@ alias(
 alias(
     name = "llvm_ranlib",
     actual = select({
-        "@llvm//platforms/config:macos_aarch64_prebuilt": "@llvm-toolchain-minimal-22.1.7-darwin-arm64//:bin/llvm-ranlib",
-        "@llvm//platforms/config:macos_x86_64_prebuilt": "@llvm-toolchain-minimal-22.1.7-darwin-amd64//:bin/llvm-ranlib",
+        "@llvm//platforms/config:macos_aarch64": "@llvm-toolchain-minimal-darwin-arm64//:bin/llvm-ranlib",
+        "@llvm//platforms/config:macos_x86_64": "@llvm-toolchain-minimal-darwin-amd64//:bin/llvm-ranlib",
     }),
     visibility = ["//visibility:public"],
 )

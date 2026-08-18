@@ -11,7 +11,7 @@ build:libunwind --action_env=PATH=/usr/bin
 
 build --experimental_repository_downloader_retries=3
 build --@protobuf//bazel/flags:prefer_prebuilt_protoc
-buidl --experimental_remote_cache_compression
+build --experimental_remote_cache_compression
 
 build --features=debug_prefix_map_pwd_is_dot
 build --features=oso_prefix_is_pwd
@@ -80,7 +80,6 @@ build:release-android --linkopt=-fuse-ld=lld
 
 # Use the hermetic LLVM toolchain for Linux CI's LLD linker.
 build:linux-hermetic-llvm --extra_toolchains=@llvm//toolchain:all
-build:linux-hermetic-llvm --@llvm//toolchain:source=prebuilt
 
 # Custom iOS release configuration
 build --ios_simulator_device="iPhone 17"
