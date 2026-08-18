@@ -744,7 +744,7 @@
     },
     "@@aspect_tools_telemetry+//:extension.bzl%telemetry": {
       "general": {
-        "bzlTransitiveDigest": "4w9RM0xjdKo1crk5zL20a/TuhqO0P1z1LsuXDneBXD4=",
+        "bzlTransitiveDigest": "jRONMZP+HLH3piu2f7kAK9qXs8JwzoZ/Qmz8STvUGzk=",
         "usagesDigest": "QlSnHSU3Stmd2mnlMzmy+yGMGNebz9/0r/Iir40CWDY=",
         "recordedInputs": [
           "REPO_MAPPING:aspect_tools_telemetry+,bazel_lib bazel_lib+",
@@ -760,7 +760,7 @@
                 "aspect_rules_ts": "3.10.0",
                 "aspect_tools_telemetry": "0.4.2"
               },
-              "last_notice": 0
+              "last_notice": 1
             }
           }
         },
