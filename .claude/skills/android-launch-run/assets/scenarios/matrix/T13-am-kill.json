@@ -9,16 +9,16 @@
     },
     {
       "action": "wait",
-      "seconds": 35,
-      "why": "clear the stats.minimum_upload_interval_ms floor (30s)"
+      "seconds": 8,
+      "why": "settle and let one foreground disk flush land (~5s, stats.first_upload_flush_interval_ms) so the FG/BG split has a positive control. This used to be 35s to clear the 30s stats.minimum_upload_interval_ms floor, but that floor is armed ONLY by a flush-path upload (stats.rs: last_flush_upload_time), and shared-core 184c3229 removed the workflow trigger that used to fire one at launch. A fresh process now reaches ON_STOP unarmed, so the long wait gated nothing. Verified: ON_STOP upload allowed 1.88s after a periodic upload."
     },
     {
       "action": "home"
     },
     {
       "action": "wait",
-      "seconds": 2,
-      "why": "ON_STOP lands at ~1.35s and the ack at ~+700ms after that, so a kill here falls INSIDE the ack window. At the old 5s the kill could never race the upload, which is why every past run reported the same non-finding."
+      "seconds": 1.2,
+      "why": "kill lands at ~ON_STOP+390ms, reliably BEFORE the ack. Bracketed on a Pixel 10: +390ms and +865ms both beat the ack, while +1.32s lost to a 974ms ack. Ack latency ranges 633-1535ms, so no wait reliably lands on the ack's side -- aim at the side that reliably tests something. This exercises the recovery path: the disk write survives (+25ms) and the snapshot is re-uploaded on next launch, verified by uuid."
     },
     {
       "action": "kill"

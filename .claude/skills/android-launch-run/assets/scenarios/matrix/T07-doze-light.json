@@ -9,8 +9,8 @@
     },
     {
       "action": "wait",
-      "seconds": 35,
-      "why": "clear the minimum-upload-interval gate; without this the ON_STOP upload is debounced and the run measures the debounce instead of the question"
+      "seconds": 8,
+      "why": "settle and let one foreground disk flush land (~5s, stats.first_upload_flush_interval_ms) so the FG/BG split has a positive control. This used to be 35s to clear the 30s stats.minimum_upload_interval_ms floor, but that floor is armed ONLY by a flush-path upload (stats.rs: last_flush_upload_time), and shared-core 184c3229 removed the workflow trigger that used to fire one at launch. A fresh process now reaches ON_STOP unarmed, so the long wait gated nothing. Verified: ON_STOP upload allowed 1.88s after a periodic upload."
     },
     {
       "action": "screen-off"

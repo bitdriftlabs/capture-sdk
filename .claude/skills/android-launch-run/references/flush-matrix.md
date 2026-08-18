@@ -120,8 +120,26 @@ a hard block are expected, not evidence the emulator is unrealistic**, and repor
 revs. The whole-run lifecycle is `ON_CREATE`/`ON_START`/`ON_RESUME`, and the firewall never revokes
 either. Window focus *does* drop, which is the only way to observe the state.
 
-**Kill, force-stop and freeze do not beat the upload.** All fired at +5s or +10s; uploads had acked
-at 624–847ms and the disk write had been durable for ~5s.
+**Kill, force-stop and freeze do not beat the upload — at +5s or +10s.** Uploads had acked at
+624–847ms and the disk write had been durable for ~5s. That was never a property of the SDK, though,
+only of the timing chosen: a kill 4s after the ack cannot lose a race it was never in.
+
+### Where the kill/ack boundary actually is (Pixel 10, `d8ac5975`)
+
+| kill lands at | ack | outcome |
+|---|---|---|
+| `ON_STOP` + **390ms** | none | **kill wins** |
+| `ON_STOP` + **865ms** | none | **kill wins** |
+| `ON_STOP` + **1.32s** | 974ms | ack wins |
+
+Ack latency ranges **633–1535ms**, so no fixed wait reliably lands on the ack's side — which is why
+`T13-am-kill` now aims at `ON_STOP+~390ms`, the side that reliably tests something.
+
+**What a lost race costs is the upload attempt, not the data.** The disk write lands at +25ms and
+survives the kill. Traced by uuid across a process boundary: snapshot `acc129cc…` written before the
+kill, then on the next launch `prepared … stats upload: uuid=acc129cc…, metrics=43` →
+`received ack … error: ""` → `deleting pending upload: acc129cc…`. So the exposure from a kill inside
+the ack window is delay, not loss.
 
 ### The airplane wedge — present on `42637e1f`, FIXED on `c3ba1cba`
 
