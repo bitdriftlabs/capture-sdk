@@ -335,7 +335,10 @@ use_repo(maven, "maven")
 
 single_version_override(
     module_name = "rules_rs",
-    patches = ["//bazel/third_party/patches:rules_rs_external_path_dependencies.patch"],
+    patches = [
+        "//bazel/third_party/patches:rules_rs_android_cfg_arch.patch",
+        "//bazel/third_party/patches:rules_rs_external_path_dependencies.patch",
+    ],
 )
 
 rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")

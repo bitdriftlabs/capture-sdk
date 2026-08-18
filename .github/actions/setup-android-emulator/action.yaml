@@ -1,0 +1,89 @@
+name: Setup Android emulator
+description: Restores or creates an Android emulator snapshot and saves it from main
+
+inputs:
+  buildbuddy-api-key:
+    description: BuildBuddy API key.
+    required: false
+  api-level:
+    description: Android API level for the emulator.
+    required: true
+  target:
+    description: Android system-image target.
+    required: true
+  arch:
+    description: Android system-image architecture.
+    required: true
+  cache-key:
+    description: GitHub Actions cache key for the AVD snapshot.
+    required: true
+  ram-size:
+    description: Emulator RAM size.
+    required: false
+    default: 2048M
+  disk-size:
+    description: Emulator disk size.
+    required: false
+    default: 6144M
+  profile:
+    description: Emulator hardware profile.
+    required: false
+    default: Nexus 6
+  disable-animations:
+    description: Whether to disable Android animations.
+    required: false
+    default: "true"
+  emulator-options:
+    description: Options passed to the emulator while creating the snapshot.
+    required: false
+    default: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Android SDK
+      uses: ./.github/actions/android-setup
+      with:
+        buildbuddy-api-key: ${{ inputs.buildbuddy-api-key }}
+        setup-emulator: "true"
+        emulator-api-level: ${{ inputs.api-level }}
+        emulator-target: ${{ inputs.target }}
+        emulator-arch: ${{ inputs.arch }}
+
+    - name: Restore AVD cache
+      id: avd-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: ${{ inputs.cache-key }}
+
+    - name: Kill ADB server to ensure cached keys are used
+      shell: bash
+      run: adb kill-server || true
+
+    - name: Create AVD and generate snapshot for caching
+      if: steps.avd-cache.outputs.cache-hit != 'true'
+      uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
+      with:
+        channel: stable
+        force-avd-creation: false
+        api-level: ${{ inputs.api-level }}
+        target: ${{ inputs.target }}
+        ram-size: ${{ inputs.ram-size }}
+        arch: ${{ inputs.arch }}
+        disk-size: ${{ inputs.disk-size }}
+        profile: ${{ inputs.profile }}
+        disable-animations: ${{ inputs.disable-animations }}
+        emulator-options: ${{ inputs.emulator-options }}
+        script: echo "Generated AVD snapshot for caching."
+
+    - name: Save AVD cache
+      if: github.ref == 'refs/heads/main' && steps.avd-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: ${{ inputs.cache-key }}

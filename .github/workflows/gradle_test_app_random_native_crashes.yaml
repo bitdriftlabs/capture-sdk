@@ -20,15 +20,14 @@ jobs:
       - name: Checkout project sources
         uses: actions/checkout@v4
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
-        with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
       - name: Setup Android cmd line tools + NDK
-        uses: ./.github/actions/common-android-setup
+        uses: ./.github/actions/android-setup
         with:
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
           setup-emulator: 'true'
+          emulator-api-level: '31'
+          emulator-target: google_apis
+          emulator-arch: x86_64
 
       - name: Build gradle-test-app debug APK
         timeout-minutes: 45

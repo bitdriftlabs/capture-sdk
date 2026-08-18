@@ -31,6 +31,14 @@ workspace_path=$(pwd)
 # Path to your Bazel executable
 bazel_path=$(pwd)/bazelw
 
+# Optional Bazel command options for building bazel-diff. Linux CI uses this
+# to leave Bazel's server configured identically to the test command that
+# follows.
+bazel_diff_args=()
+if [[ -n "${BAZEL_DIFF_ARGS:-}" ]]; then
+  read -r -a bazel_diff_args <<< "$BAZEL_DIFF_ARGS"
+fi
+
 # If the only file that changed was .sdk_version, we don't need to run bazel-diff and just mark it as no changes detected.
 if ./ci/version_only_change.sh; then
   echo "Only change was platform/shared/.sdk-version, no Bazel changes detected."
@@ -43,7 +51,7 @@ final_hashes_json="/tmp/final_hashes.json"
 impacted_targets_path="/tmp/impacted_targets.txt"
 bazel_diff="/tmp/bazel_diff"
 
-"$bazel_path" run :bazel-diff --script_path="$bazel_diff"
+"$bazel_path" run "${bazel_diff_args[@]}" :bazel-diff --script_path="$bazel_diff"
 
 git -C "$workspace_path" checkout "$previous_revision" --quiet
 

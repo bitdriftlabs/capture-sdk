@@ -28,10 +28,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       # Check for Bazel build file changes
       - name: Check for Bazel build file changes
@@ -93,16 +93,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup Android SDK
+        uses: ./.github/actions/android-setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
-        with:
-          bazelisk-cache: true
-          repository-cache: true
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: Cache llvm-strip Installation
         uses: actions/cache@v4
@@ -348,42 +342,14 @@ jobs:
     - name: Checkout project sources
       uses: actions/checkout@v4
 
-    - name: Configure BuildBuddy cache
-      uses: ./.github/actions/configure-buildbuddy-cache
+    - name: Setup Android emulator
+      uses: ./.github/actions/setup-android-emulator
       with:
-        api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-    - name: Setup Android cmd line tools + NDK
-      uses: ./.github/actions/common-android-setup
-      with:
-        setup-emulator: 'true'
-
-    - name: AVD cache
-      uses: actions/cache@v4
-      id: avd-cache
-      with:
-        path: |
-          ~/.android/avd/*
-          ~/.android/adb*
-        key: ${{ runner.os }}-avd-api-23-2
-    - name: Kill ADB server to ensure cached keys are used
-      run: adb kill-server || true
-    - name: Create AVD and generate snapshot for caching
-      if: steps.avd-cache.outputs.cache-hit != 'true'
-      timeout-minutes: 30
-      uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
-      with:
-        channel: stable
-        force-avd-creation: false
-        api-level: 23
+        buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+        api-level: '23'
         target: default
-        ram-size: 2048M
         arch: x86_64
-        disk-size: 6144M
-        profile: Nexus 6
-        disable-animations: true
-        emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        script: echo "Generated AVD snapshot for caching."
+        cache-key: ${{ runner.os }}-avd-api-23-2
     - name: Gradle capture-timber unit tests
       working-directory: ./platform/jvm
       run: ./gradlew capture-timber:testReleaseUnitTest --info
@@ -421,43 +387,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup Android emulator
+        uses: ./.github/actions/setup-android-emulator
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Setup Android cmd line tools + NDK
-        uses: ./.github/actions/common-android-setup
-        with:
-          setup-emulator: 'true'
-
-      - name: AVD cache
-        uses: actions/cache@v4
-        id: avd-cache
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: ${{ runner.os }}-avd-api31-benchmark
-      - name: Kill ADB server to ensure cached keys are used
-        run: adb kill-server || true
-
-      - name: Create AVD and generate snapshot for caching
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 30
-        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
-        with:
-          channel: stable
-          force-avd-creation: false
-          api-level: 31
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          api-level: '31'
           target: default
-          ram-size: 2048M
           arch: x86_64
-          disk-size: 6144M
-          profile: Nexus 6
-          disable-animations: true
-          emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: echo "Generated AVD snapshot for caching."
+          cache-key: ${{ runner.os }}-avd-api31-benchmark
 
       - name: Run Microbenchmarks
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
@@ -632,40 +569,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
-      - name: Enable KVM group perms
-        run: |
-            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-            sudo udevadm control --reload-rules
-            sudo udevadm trigger --name-match=kvm
       - uses: actions/download-artifact@v4
         with:
           name: android_app.apk
           path: .
-      - name: AVD cache
-        uses: actions/cache@v3
-        id: avd-cache
+      - name: Setup Android emulator
+        uses: ./.github/actions/setup-android-emulator
         with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: ${{ runner.os }}-avd-api${{ matrix.api-level }}-1
-      - name: Kill ADB server to ensure cached keys are used
-        run: adb kill-server || true
-      - name: Create AVD and generate snapshot for caching
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 30
-        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
-        with:
-          channel: stable
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
           api-level: ${{ matrix.api-level }}
           target: google_apis
-          ram-size: 2048M
           arch: x86_64
-          disk-size: 6144M
-          profile: Nexus 6
-          emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: echo "Generated AVD snapshot for caching."
+          cache-key: ${{ runner.os }}-avd-api${{ matrix.api-level }}-1
       - name: run tests
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         timeout-minutes: 15

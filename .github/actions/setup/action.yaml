@@ -1,0 +1,57 @@
+name: Setup
+description: Restores the Bazelisk launcher and Android SDK used by bazelw
+
+inputs:
+  buildbuddy-api-key:
+    description: BuildBuddy API key.
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set Bazelisk cache location
+      shell: bash
+      run: echo "BAZELISK_HOME=${{ github.workspace }}/tmp/bazel" >> "$GITHUB_ENV"
+
+    - name: Configure BuildBuddy cache
+      uses: ./.github/actions/configure-buildbuddy-cache
+      with:
+        api-key: ${{ inputs.buildbuddy-api-key }}
+
+    - name: Restore Bazelisk and Bazel cache
+      if: github.ref != 'refs/heads/main'
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ github.workspace }}/tmp/bazel
+        key: ${{ runner.os }}-${{ runner.arch }}-bazelisk-${{ hashFiles('bazelw') }}
+
+    - name: Cache Bazelisk and Bazel on main
+      if: github.ref == 'refs/heads/main'
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/tmp/bazel
+        key: ${{ runner.os }}-${{ runner.arch }}-bazelisk-${{ hashFiles('bazelw') }}
+
+    - name: Restore Android SDK cache
+      id: android-sdk-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.androidbin/bitdrift-android-sdk/android-sdk-4333796-unarchived
+        key: ${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh') }}
+
+    - name: Set up Android SDK
+      shell: bash
+      run: ./tools/setup_android_sdk.sh
+
+    - name: Save Android SDK cache
+      if: github.ref == 'refs/heads/main' && steps.android-sdk-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.androidbin/bitdrift-android-sdk/android-sdk-4333796-unarchived
+        key: ${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh') }}
+
+    - name: Add Android SDK tools to PATH
+      shell: bash
+      run: |
+        echo "$ANDROID_HOME/cmdline-tools/6.0/bin" >> "$GITHUB_PATH"
+        echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"

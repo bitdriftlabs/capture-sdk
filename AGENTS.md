@@ -40,7 +40,6 @@ Use `--test_filter` with the XCTest `ClassName/testMethod` identifier. Pass `RUS
 	--test_env=RUST_LOG='info,bd_api=debug,bd_test_helpers=debug' \
 	--test_output=streamed \
 	--build_tests_only \
-	--config ios \
 	--ios_simulator_device="iPhone 17"
 ```
 
