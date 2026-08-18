@@ -115,6 +115,14 @@ def main() -> None:
         ack = f"{bg['ack_ms']}ms" if bg["ack_ms"] is not None else "-"
         cut = f"{s['net_cutoff_s']}s" if s.get("net_cutoff_s") else "-"
         flag = " *INVALID*" if s.get("invalid_run") else ""
+        # A flush-path DEBO means this scenario measured the minimum-upload-interval floor instead of
+        # the question it was written to ask. That used to be impossible to miss because the floor was
+        # armed at launch and the fix was a long wait; now the waits are short precisely because the
+        # floor is normally unarmed. If it ever gets armed again -- the workflow trigger returning, or
+        # any new flush-path upload near startup -- every scenario silently starts measuring the gate.
+        # One quiet column among 15 rows is not enough warning for that.
+        if bg["upload"] == "DEBO":
+            flag += "  <<< measured the upload floor, NOT the scenario"
         print(f"{name:<30} {'ok':<5} {'YES' if bg['snapshot_written'] else 'NO':<8} "
               f"{bg['upload'] + '/' + bg['upload_result']:<12} {ack:>8}  {cut:>8}{flag}")
 
@@ -123,6 +131,13 @@ def main() -> None:
         tot_c = sum(d["closed_coalesced"] for _, d in db)
         tot_o = sum(d["opened"] for _, d in db)
         print(f"\ndisk-flush debounce across sweep: {tot_o} window(s) opened, {tot_c} coalesced")
+    debo = [n for n, s, e in results if s and s.get("bg", {}).get("upload") == "DEBO"]
+    if debo:
+        print(f"\n  *** {len(debo)} scenario(s) hit the minimum-upload-interval floor: "
+              f"{', '.join(debo)}\n      Those runs measured the gate, not their subject. The floor is"
+              f" armed only by a flush-path\n      upload; if one is now happening near startup, the"
+              f" short foreground waits are no longer\n      safe and need raising back. See"
+              f" references/flush-matrix.md.")
     print(f"\nper-scenario artifacts in {args.out}/<scenario>/{serial}/")
 
 

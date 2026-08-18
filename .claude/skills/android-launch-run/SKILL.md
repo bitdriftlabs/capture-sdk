@@ -86,7 +86,21 @@ recognise, normalised and grouped:
 An `UNSEEN` family means a zero elsewhere proves nothing — the detector itself may be dead. A
 renamed message shows up in the unrecognised list immediately.
 
-**Run it once per investigation, and always after a shared-core bump.** Log text is pinned by the
+Pair it with `selftest.py`, which comes at the same problem from the other side. `check_signatures.py`
+asks whether *this capture* still contains each family; `selftest.py` asks whether each pattern still
+matches a known-good line at all, needs no device, and exits non-zero — so it can fail a build:
+
+```bash
+python3 $S/selftest.py                       # 30 patterns vs stored real samples
+python3 $S/selftest.py --capture <logcat.txt> # plus an end-to-end parse
+```
+
+It exists because the parser has been wrong four separate times, each found by accident after it had
+already produced a wrong answer. It also fails when a *new* pattern is added without a sample, since
+an unsampled pattern is untested by construction — which is precisely how a coalesce pattern that
+matched a nonexistent message survived long enough to be written up as a finding.
+
+**Run `check_signatures.py` once per investigation, and both after a shared-core bump.** Log text is pinned by the
 `rev` in `Cargo.toml`, not by any local `../shared-core` checkout, and it does change across revs —
 one bump renamed most of the stats messages. Check what you're actually on:
 
@@ -520,6 +534,7 @@ arbitrary and shorten it, which is how the 30s interval silently invalidated a w
 | `parse_logs.py` | timeline + verdict from a capture |
 | `check_signatures.py` | **run before trusting any negative**: SEEN/UNSEEN per family, stale-install detection |
 | `force_coalesce.py` | deliberately land two flushes inside the 1s debounce window |
+| `selftest.py` | **run after any shared-core bump**: asserts every log pattern still matches a real line |
 
 `sweep.py` orders screen-off scenarios last and resets device state between runs even when one
 raises, so a single bad scenario cannot cost the other fifteen. It reports `no reference event` rather
