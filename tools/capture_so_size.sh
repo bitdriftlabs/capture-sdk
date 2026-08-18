@@ -73,7 +73,20 @@ else
     JNI_PATH="jni/arm64-v8a"
 fi
 
-llvm-strip "$JNI_PATH/libcapture.so"
+# The Android SDK setup used by bazelw provisions the NDK. Use its matching
+# host tool rather than downloading a separate LLVM package for this one step.
+if [[ -z "${ANDROID_NDK_HOME:-}" ]]; then
+    echo "error: ANDROID_NDK_HOME is required to locate the NDK llvm-strip" >&2
+    exit 1
+fi
+
+NDK_LLVM_STRIP=("$ANDROID_NDK_HOME"/toolchains/llvm/prebuilt/*/bin/llvm-strip)
+if [[ ! -x "${NDK_LLVM_STRIP[0]}" ]]; then
+    echo "error: NDK llvm-strip not found under $ANDROID_NDK_HOME" >&2
+    exit 1
+fi
+
+"${NDK_LLVM_STRIP[0]}" "$JNI_PATH/libcapture.so"
 zip -r aar.zip "$JNI_PATH/libcapture.so"
 # Print size in KiB for higher granularity.
 du -k aar.zip
