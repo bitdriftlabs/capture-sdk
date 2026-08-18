@@ -89,6 +89,12 @@ bazel_dep(name = "aspect_rules_js", version = "2.3.8")
 bazel_dep(name = "aspect_rules_ts", version = "3.10.0")
 bazel_dep(name = "llvm", version = "0.8.18")
 
+# @llvm 0.8.18 otherwise raises Gazelle's Go requirement above the version in CI.
+single_version_override(
+    module_name = "gazelle",
+    version = "0.47.0",
+)
+
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
