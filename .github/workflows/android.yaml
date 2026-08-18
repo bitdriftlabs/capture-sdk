@@ -101,9 +101,9 @@ jobs:
       - name: Build Bazel APK and AAR
         timeout-minutes: 30
         run: |
-          # Make both artifacts top-level outputs so Bazel materializes the AAR
-          # without a separate invocation or executing the shared actions twice.
-          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar :capture_aar_so_size_x86_64
+          # The size target depends on the AAR, so it is built without being a
+          # separate top-level output.
+          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_x86_64
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
