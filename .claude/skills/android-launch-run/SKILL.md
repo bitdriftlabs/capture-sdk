@@ -204,140 +204,17 @@ Capture both buffers together — `-b main,events` — or the OS events and app 
 off, it fires ~700ms–1.3s after the activity stops (`ProcessLifecycleOwner` debounces), and it lands
 *before* the OS's own `wm_on_stop_called`.
 
-The shape is the same on both revs in circulation; **only the stats message text differs**, so match
-the timeline to whichever rev `Cargo.toml` pins. Both are real HOME-button runs on a Pixel 10:
+**`references/flush-matrix.md`** has the worked timeline for both revs, the trigger inventory, the
+timer model and the flag defaults. Two things from it are worth carrying into any run:
 
-<details open>
-<summary><b>new-stats wordings</b> — the <code>bump</code> branch, PR #1107 (measured on <code>c3ba1cba</code>; identical on <code>d8ac5975</code>)</summary>
-
-```
-      +0ms  process ON_STOP                                    <- reference
-      +4ms  bd_logger::logger: state flushing initiated           [platform asked]
-     +40ms  bd_client_stats::stats: flushing collected stats…
-     +56ms  bd_client_stats::file_manager: writing snapshot       <- disk write
-     +63ms  bd_client_stats::stats: prepared … stats upload       <- enqueued
-   +1.037s  bd_client_stats::stats: … upload completed …          <- acked
-    +4.99s  [netpolicy] background-allow revoked                  <- network cut
-```
-</details>
-
-<details>
-<summary><b>legacy-stats wordings</b> — <code>main</code> (measured on <code>42637e1f</code>)</summary>
-
-```
-   -1.302s  >>> home
-   -1.103s  OS: activity onPause
-    -401ms  process ON_PAUSE
-      +0ms  process ON_STOP                                    <- reference
-      +3ms  bd_logger::logger: state flushing initiated           [platform asked]
-     +18ms  bd_client_stats::file_manager: writing snapshot       <- disk write
-     +25ms  bd_client_stats::stats: sending pending flush upload  <- enqueued
-    +620ms  bd_api::api: received ack for stats upload            <- server acked
-   +5.013s  api stream CLOSED: SocketException                    <- network cut
-   +28.12s  writing snapshot … then upload DEBOUNCED              <- stranded on disk
-```
-</details>
-
-Either way the flush wins the race against the network cutoff by roughly 5–8×. Note the last line of
-the `42637e1f` run: later timed flushes keep writing to disk while backgrounded but cannot upload —
-and there the SDK declined to even try, because of the minimum upload interval rather than the dead
-network. Two different causes that look identical if you only watch for a missing upload.
-
-### Five things trigger a stats flush
-
-Attribution is the most common source of wrong conclusions here, because a flush looks identical in
-the stats log regardless of what asked for it. Only the first two are on a clock:
-
-| Trigger | Signature | Timing |
-|---|---|---|
-| **Periodic disk timer** | no `state flushing initiated` | anchored at the process's first flush, then every `stats.disk_flush_interval_ms` |
-| **Periodic upload timer** | `prepared UPLOAD_REASON_PERIODIC …` | every `stats.upload_flush_interval_ms` |
-| **Platform flush** (backgrounding) | **`state flushing initiated`** | `ON_STOP` + ~15ms |
-| **Workflow `flush_buffers` action** *(removed in `d8ac5975`)* | `bd_workflows::engine: uploading due to flush buffers action` | **arbitrary** — server-configured, fires on log/event traversals |
-| **API handshake** | `handshake stats upload completed: … source_files=N` | on stream establishment; can sweep a backlog |
-
-The workflow one is the trap. It has no `state flushing initiated` (no platform bridge) and no timer
-alignment, so it reads as an unexplained flush — and its timing depends on which workflow matched,
-not on any interval. Chasing one of these cost real time until `bd_workflows=debug` named it:
-
-```
-bd_workflows::engine: uploading due to flush buffers action: "WorkflowActionId(…)"; flush_buffers=true
-bd_client_stats::stats: flushing collected stats to disk          <- 10ms later
-```
-
-**If a flush doesn't fit the timer or the platform, add `bd_workflows=debug` before theorising.** The
-action fans out well beyond stats — it also signals the ring buffers and can trigger sankey uploads.
-Disabling the workflow server-side removes it entirely, which is worth doing when you need a clean
-baseline for timing work.
-
-shared-core `184c3229` (**in `d8ac5975` and later**) deletes this trigger outright: the workflow engine
-no longer calls `flush_trigger.flush()` on log-upload approval. On a recent `bump` build the list is
-therefore four, not five, and an unexplained flush needs a different explanation. The entry stays
-because it is still live on `c3ba1cba` and on any build made before that merge — and because the habit
-generalises: **an off-schedule flush with no `state flushing initiated` originates inside shared-core,
-and widening the filter beats guessing at a client-side cause.**
-
-### Two different intervals — don't conflate them
-
-One log line names both, which is how they get mixed up:
-
-```
-stats disk flush interval 30s does not cleanly divide active upload interval 5s; falling back to upload cadence
-```
-
-| | What it is | Where it comes from |
-|---|---|---|
-| **`active upload interval`** (5s here) | the periodic upload *cadence* — how often an upload is attempted | derived; not the gate |
-| **`stats.minimum_upload_interval_ms`** (30s) | anti-hammer *floor*: refuses any upload, periodic **or** ON_STOP flush, too soon after the last one | shared-core default; **not** in the runtime push |
-
-The full set of flags that decide timing, with defaults on `c3ba1cba`. Read the middle column off
-`bd_runtime=debug` (`updated value of <flag> to <value>`); anything that never appears is at default:
-
-| Flag | Default | Observed on one account | Effect |
-|---|---|---|---|
-| `stats.first_upload_flush_interval_ms` | 5s | not pushed | first flush + upload of each **process** |
-| `stats.disk_flush_interval_ms` | 60s | **→ 30s** | disk write cadence |
-| `stats.upload_flush_interval_ms` | 60s | not pushed | upload cadence |
-| `stats.disk_flush_debounce_ms` | 1s | not pushed | coalesce window after each write |
-| `stats.minimum_upload_interval_ms` | 30s | not pushed | anti-hammer floor on any upload |
-
-Two consequences that surprised the SDK's own authors:
-
-- **The 5s is per process start, not per install.** Both a force-stop+relaunch and a cold start show
-  it, because the flag governs the first upload of a *process*.
-- **`effective_flush_interval()` requires the disk interval to evenly divide the upload interval.**
-  With 30s/5s at startup, 30s > 5s so it collapses to 5s and logs the `does not cleanly divide`
-  warning — a one-time startup artifact, not a misconfiguration. Once the upload interval becomes
-  60s, `60 % 30 == 0` and it settles at 30s. A pairing like 30s/45s would silently collapse to 45s.
-
-Measured on a Pixel 10 with workflows disabled, which is what a clean happy-path run looks like:
-
-| Quantity | Value |
-|---|---|
-| first disk write + upload | t+5.66s |
-| disk write cadence | 30.00, 30.01, 30.00, 30.00 |
-| upload cadence | 60.00, 60.00, 60.01 |
-| debounce windows | 1.002–1.009s |
-| HOME → `ON_STOP` | 1.35s |
-| `ON_STOP` → forced flush | +12ms |
-
-**A forced flush does not reschedule the periodic timer.** After a backgrounding flush the next tick
-still lands on the original anchor — observed as a forced write at t+152.64s followed by the scheduled
-write at t+155.67s (`5.66 + 5×30 = 155.66`). Two writes 3s apart, which the 1s window cannot merge.
-Don't read that pair as a bug, and don't expect backgrounding to shift the cadence.
-
-**The foreground wait exists to clear the 30s floor, not the 5s cadence.** Seeing `5s` in that line
-and shortening the wait is a natural mistake and it silently invalidates the run. Measured on
-`42637e1f` — a periodic upload refused at 28.10s elapsed, the ON_STOP flush allowed at 35.06s, and on
-an emulator a *flush* upload refused at 5.02s — bracketing the gate at 30s, its shared-core default.
-The flag is not rev-specific, but re-confirm rather than assume: put `bd_runtime=debug` in the filter
-and it logs every `updated value of <flag> to <value>`; a flag that never appears is at its default.
-
-**The gate is anchored at enqueue and cleared on failure.** `last_flush_upload_time` is set when the
-upload is handed off, and reset to `None` if that upload fails. So a run whose network is already
-dead has *no* gate — the next flush upload sails through and reports `ENQ`, which looks like the gate
-is short when really it was never armed. If a short-wait run unexpectedly shows `ENQ`, check whether
-the preceding upload actually acked before concluding anything about the interval.
+- **Five things trigger a flush** (four on a current `bump` build) and only two are on a clock. An
+  off-schedule flush with no `state flushing initiated` comes from inside shared-core — usually a
+  server workflow. Add `bd_workflows=debug` rather than theorising.
+- **`stats.minimum_upload_interval_ms` (a 30s floor) is not the `active upload interval` (a cadence).**
+  Both appear in one log line — `disk flush interval 30s does not cleanly divide active upload
+  interval 5s` — and mistaking the cadence for the floor is how foreground waits get shortened and
+  runs silently invalidated. The floor is armed only by a *flush-path* upload, so it is normally
+  unarmed at launch; `sweep.py` flags a `DEBO` row loudly if that ever changes.
 
 For what each Rust line means — and which are safe to draw conclusions from — read
 **`references/log-signatures.md`**. One trap worth knowing upfront: **`state flushing initiated`** is
@@ -556,6 +433,7 @@ Read these as needed rather than upfront:
   be applied, and the silent-failure traps. Read before using any mode.
 - **`references/log-signatures.md`** — every log line worth matching, by subsystem, with what it
   proves and what it doesn't. Read before interpreting any capture.
-- **`references/flush-matrix.md`** — a worked 14-scenario study of stats flushing on backgrounding,
-  with results from an emulator and a Pixel 10. Read it as a template for structuring a
-  multi-scenario investigation, or when the question is specifically about flush/upload behaviour.
+- **`references/flush-matrix.md`** — the canonical reference for flush/upload behaviour: what triggers
+  a flush, the timer model and flag defaults, what blocks an upload, current per-scenario results, and
+  which behaviour differs by rev. Read it for any flush/upload question, or as a template for
+  structuring a multi-scenario investigation.

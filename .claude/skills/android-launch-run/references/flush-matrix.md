@@ -1,235 +1,246 @@
-# Worked example: the stats-flush matrix
+# Stats flush & upload behaviour
 
-A 14-scenario study of what happens to **stats flushing** when an app is backgrounded, run on an
-emulator (API 36) and a Pixel 10 (API 37). Read it as a template for structuring a multi-scenario
-investigation, or when the question is specifically about flush/upload behaviour.
+The canonical reference for *when* the SDK flushes stats to disk, *when* it uploads, and what stops
+either. Read this when the question is about flush/upload behaviour, or as a template for structuring
+a multi-scenario investigation.
 
-Run it yourself: `assets/scenarios/matrix/`, one scenario per test.
+- [Reproducing it](#reproducing-it)
+- [What triggers a flush](#what-triggers-a-flush)
+- [The timers, and the two intervals people conflate](#the-timers-and-the-two-intervals-people-conflate)
+- [The ON_STOP timeline](#the-on_stop-timeline)
+- [What blocks an upload](#what-blocks-an-upload)
+- [Current results](#current-results)
+- [Behaviour that differs by rev](#behaviour-that-differs-by-rev)
+- [Known gaps](#known-gaps)
 
-> **The set has since been condensed.** `T14-force-stop` was dropped — it, `T13-am-kill` and
-> `T11-freezer` all fired at +5s/+10s against uploads that acked in 624–847ms, so all three
-> produced a single finding and force-stop added no distinct observable. `T13` has been retimed to
-> kill at HOME+2s, *inside* the ack window, so it probes the actual deadline rather than
-> re-confirming that a late kill is harmless. Four standalone duplicates of matrix entries were
-> also removed. Results below for T14, and for T13 at its old timing, describe the old set.
+> **Check the rev first:** `grep -m1 'bd-client-common' Cargo.toml`. Message wording and some
+> behaviour track it. Everything below is measured on **`d8ac5975`** (the `bump` branch, PR #1107)
+> unless a line says otherwise; see [Behaviour that differs by rev](#behaviour-that-differs-by-rev).
+> The APK on the device is whatever was last built — reinstall after a branch switch *or* a rev bump.
 
-**Latest full run: 28/28 on shared-core `c3ba1cba`.** An earlier 14-scenario pass was made against
-`42637e1f`; where the two disagree, both are given, because the differences are the most useful part.
+## Reproducing it
 
-> ⚠ **Check which rev you are on before relying on anything here:**
-> `grep -m1 'bd-client-common' Cargo.toml`. Two are in circulation while PR #1107 is open, and the
-> results below split by rev.
->
-> | If pinned | Branch | The 28/28 results below | The airplane wedge | Debounce window |
-> |---|---|---|---|---|
-> | `c3ba1cba` / `d8ac5975`+ | `bump` (#1107) | **are** the live behaviour | fixed | present |
-> | `42637e1f` | `main` | describe the *other* rev | **present again** | absent |
->
-> On `main`, treat "flush produces no disk write in airplane mode with a stalled upload" as expected
-> for that rev rather than a new regression, and expect no `DISK-FLUSH DEBOUNCE` line from
-> `parse_logs.py` — `check_signatures.py` will report `stats-debounce` as `UNSEEN`.
->
-> **Rev-independent, verified on both:** **recents never fires `ON_STOP`**, and **deep doze blocks the
-> upload identically on emulator and phone**. The `stats.minimum_upload_interval_ms` floor is 30s and
-> is not overridden by runtime config on either rev — but whether the **foreground wait** matters is
-> *not* rev-independent; see "Why the first attempt was wrong" below.
->
-> Also: the APK on the device is whatever was last built. Switching branches does not reinstall it —
-> run `adbctl.py install` after moving between `main` and `bump`.
+```bash
+S=.claude/skills/android-launch-run/scripts
+python3 $S/selftest.py                                  # patterns still match? (no device needed)
+python3 $S/adbctl.py install                             # only if the rev moved since the last build
+python3 $S/sweep.py --out /tmp/sweep --serial <id>       # all 15 scenarios, screen-off last
+python3 $S/check_signatures.py /tmp/sweep/T01-home/<id>/logcat.txt   # confirm nothing is UNSEEN
+```
 
-## The question
+~15 min on one device. `sweep.py` prints one table; anything odd gets read from that scenario's
+`summary.txt` and raw `logcat.txt`.
 
-*"When the app is backgrounded, is there enough time for stats to (1) flush to disk and
-(2) upload?"*
+## What triggers a flush
 
-**Answers, from 28 runs:**
+Attribution is the most common source of wrong conclusions, because a flush looks identical in the
+stats log regardless of what asked for it. Only two are on a clock:
 
-1. **Disk: always yes, ~50ms after `ON_STOP`** — in every run, under every restriction including
-   airplane mode. Roughly 100× headroom against the ~5s budget. Nothing delayed or prevented it.
-2. **Upload: usually, with +3.1s to +4.4s of margin** on unrestricted paths (acks 508–1080ms vs
-   cutoffs 3.86–5.00s). Blocked by battery saver and both doze depths on both devices; blocked by
-   Data Saver and standby-restricted on the emulator only.
-
-## Why the first attempt was wrong
-
-The first four runs all answered *"no upload happened"* — and all four were wrong. The `ON_STOP`
-upload was **debounced** by the minimum upload interval, because the runs backgrounded ~5s after
-launch and the startup upload had already armed the timer. The debounce masked every other variable.
-
-**The fix that made the matrix meaningful: idle ~35s in the foreground before backgrounding.** This
-was required while a flush-path upload happened early in every process. That is no longer true.
-
-shared-core `184c3229` (in `d8ac5975`) removed the workflow trigger that used to fire an
-`UPLOAD_REASON_EVENT_TRIGGERED` upload seconds after launch. `last_flush_upload_time` — the only thing
-`should_skip_upload()` consults — is armed **solely** by flush-path uploads; a periodic upload does not
-arm it. So on a recent `bump` build a fresh process reaches `ON_STOP` with the gate unarmed, and the
-foreground wait gates nothing. Measured on `d8ac5975`: an `ON_STOP` upload allowed **1.88s** after a
-periodic upload.
-
-The gate itself still works when genuinely armed — `timing-double-background` arms it with a first
-`ON_STOP` upload and the second is refused 10.9s later. The waits are retained as insurance in case
-the trigger returns, not because they currently do anything.
-
-The `background-no-wait` diagnostic was **removed**: it existed to prove the gate was live by
-returning `DEBO`, and on this rev it returns `ENQ/OK`, so it could only mislead.
-
-## Structure that worked
-
-Three groups, each isolating one variable:
-
-1. **Backgrounding method** (no restrictions): HOME, BACK, recents, screen-off
-2. **Restriction modes** (HOME constant): battery saver, deep/light doze, Data Saver,
-   standby-restricted, bg-restricted, freezer, airplane
-3. **Exit variants** (backgrounded first): `am kill`, `am force-stop`, JVM crash
-
-Two axes must stay separate in any results table: **which phase** (foreground vs backgrounding) and
-**which artifact** (disk write vs upload). Conflating them is the easiest way to misread everything
-— a foreground disk write says nothing about the backgrounding flush.
-
-## Findings (`c3ba1cba`, 28 runs)
-
-**Unrestricted backgrounding uploads fine.** HOME/BACK/screen-off all acked in 508–1080ms against
-cutoffs of 3.86–5.00s. Every unrestricted run passed on both devices.
-
-**Battery saver and doze block the upload; the disk write still lands.** Six runs (battery saver,
-deep doze, light doze × 2 devices): enqueued, **never acked**, while the firewall revoke still shows
-its usual ~4.3–5.0s. So these bite *earlier and by a different mechanism* than the firewall. Doze
-agrees closely across devices — deep 4.30s vs 4.33s, light 4.28s vs 4.34s.
-
-**Data Saver and standby-restricted diverge by device.** Blocked on the emulator, succeeded on the
-Pixel (549ms, 828ms), with the restrictions verifiably in effect. Best explanation: the Pixel's
-faster round trip slips through before the restriction gates the socket — a race the fast device
-wins, not immunity. This divergence is why cross-device agreement elsewhere (doze) is worth stating.
-
-### Whether devices diverge is predictable: races diverge, hard blocks don't
-
-Use this before treating any emulator/phone difference as a finding:
-
-| Mechanism | Shape | Cross-device |
+| Trigger | Signature | Timing |
 |---|---|---|
-| Data Saver, standby-restricted | **race** — the restriction gates the socket around the time the upload flies | **diverges**; the faster device wins |
-| deep/light doze, battery saver | **hard block** — a firewall rule already in force when the flush runs | **identical**; there is no window to win |
+| **Periodic disk timer** | no `state flushing initiated` | anchored at the process's first flush, then every `stats.disk_flush_interval_ms` |
+| **Periodic upload timer** | `prepared UPLOAD_REASON_PERIODIC …` | every `stats.upload_flush_interval_ms` |
+| **Platform flush** (backgrounding) | **`state flushing initiated`** | `ON_STOP` + ~15ms |
+| **API handshake** | `handshake stats upload completed: … source_files=N` | on stream establishment; can sweep a backlog |
+| **Workflow `flush_buffers`** — *removed in `d8ac5975`* | `bd_workflows::engine: uploading due to flush buffers action` | **arbitrary**, server-configured |
 
-Doze is the clean case: `force-idle` lands ~1.1–1.2s *before* `ON_STOP` (the `ProcessLifecycleOwner`
-debounce), so the block is established before the flush starts and both devices behave the same —
-deep 4.30s vs 4.33s, and re-confirmed on `42637e1f` with cutoffs within 16ms. **Identical results on
-a hard block are expected, not evidence the emulator is unrealistic**, and reporting them as
-"no difference found" undersells it: the useful statement is *why* there was no difference.
+The workflow one was the trap: no `state flushing initiated` (no platform bridge) and no timer
+alignment, so it read as an unexplained flush whose timing depended on which workflow matched.
+shared-core `184c3229` deletes it — the engine no longer calls `flush_trigger.flush()` on log-upload
+approval — so on a current build the list is four. It is kept here because it is still live on
+`c3ba1cba` and earlier, and because the diagnostic habit generalises: **an off-schedule flush with no
+`state flushing initiated` comes from inside shared-core, and widening the filter beats guessing.**
 
-**Recents never fires `ON_STOP`**, so no backgrounding work runs at all — unchanged across both
-revs. The whole-run lifecycle is `ON_CREATE`/`ON_START`/`ON_RESUME`, and the firewall never revokes
-either. Window focus *does* drop, which is the only way to observe the state.
+```bash
+# when a flush fits neither the timer nor the platform
+adb -s <serial> shell setprop debug.bitdrift.internal_rust_log 'info,bd_client_stats=debug,bd_workflows=debug'
+```
 
-**Kill, force-stop and freeze do not beat the upload — at +5s or +10s.** Uploads had acked at
-624–847ms and the disk write had been durable for ~5s. That was never a property of the SDK, though,
-only of the timing chosen: a kill 4s after the ack cannot lose a race it was never in.
+## The timers, and the two intervals people conflate
 
-### Where the kill/ack boundary actually is (Pixel 10, `d8ac5975`)
+One log line names both, which is how they get mixed up:
+
+```
+stats disk flush interval 30s does not cleanly divide active upload interval 5s; falling back to upload cadence
+```
+
+- **`active upload interval`** is the upload *cadence* — how often an upload is attempted. Not a gate.
+- **`stats.minimum_upload_interval_ms`** is the *floor*: it refuses any upload, periodic **or**
+  `ON_STOP` flush, too soon after the last one.
+
+Flags that decide timing, with defaults. Read what your account actually overrides from
+`bd_runtime=debug` (`updated value of <flag> to <value>`); anything absent is at its default:
+
+| Flag | Default | Effect |
+|---|---|---|
+| `stats.first_upload_flush_interval_ms` | 5s | first flush + upload of each **process** |
+| `stats.disk_flush_interval_ms` | 60s | disk write cadence |
+| `stats.upload_flush_interval_ms` | 60s | upload cadence |
+| `stats.disk_flush_debounce_ms` | 1s | coalesce window after each write |
+| `stats.minimum_upload_interval_ms` | 30s | anti-hammer floor on any upload |
+
+**`effective_flush_interval()` requires the disk interval to evenly divide the upload interval.** At
+startup the upload interval is 5s, so a 30s disk interval collapses to 5s and logs the `does not
+cleanly divide` warning — a one-time startup artifact, not a misconfiguration. Once the upload
+interval becomes 60s, `60 % 30 == 0` and it settles at 30s. A pairing like 30s/45s would silently
+collapse to 45s.
+
+Measured on a Pixel 10 with an account pushing `disk_flush_interval_ms` 60s→30s:
+
+| Quantity | Value |
+|---|---|
+| first disk write + upload | t+5.66–5.71s |
+| disk cadence | 30.00, 30.01, 30.01, 29.99 |
+| upload cadence | 60.00, 60.00, 60.03 |
+| debounce windows | 1.002–1.009s |
+
+Two results that surprise people:
+
+- **The 5s first-flush interval is per process start, not per install.** A force-stop and relaunch
+  shows it again.
+- **A forced flush does not reschedule the periodic timer.** After a backgrounding flush the next
+  tick lands on the original anchor — observed as a forced write at t+152.64s then the scheduled one
+  at t+155.67s (`5.66 + 5×30`). Two writes 3s apart, which the 1s window cannot merge. Not a bug.
+
+### The floor must be armed to bite
+
+`last_flush_upload_time` — the only thing `should_skip_upload()` reads — has exactly **one**
+assignment site (`stats.rs:893`, the `EVENT_TRIGGERED` flush path), one clear-on-failure, and
+initialises to `None`. So periodic and handshake uploads never arm it.
+
+Until `184c3229` the workflow trigger fired a flush-path upload seconds after launch, arming the
+floor in every process — which is why scenarios historically needed a ~35s foreground wait, and why
+omitting it once invalidated a whole matrix. **With that trigger gone a fresh process reaches
+`ON_STOP` unarmed**: measured, an `ON_STOP` upload allowed **1.88s** after a periodic upload. The
+scenarios now wait 8s, only so one foreground flush lands as a positive control.
+
+The floor is still real. Two backgroundings inside 30s trip it (`timing-double-background`): a first
+`ON_STOP` upload arms it, and the second is refused 10.9s later with `skipping explicit stats upload`.
+
+⚠ **If a flush-path upload ever reappears near startup, every scenario silently starts measuring the
+floor instead of its subject.** `sweep.py` flags a `DEBO` row loudly for exactly this reason; if you
+see one, the short waits are no longer safe.
+
+## The ON_STOP timeline
+
+`process ON_STOP` is the reference point for backgrounding work: the flush hangs off it, it lags the
+activity's own `onStop` by the `ProcessLifecycleOwner` debounce, and it precedes `wm_on_stop_called`.
+
+```
+   -1.35s  >>> home
+      +0ms  process ON_STOP                                    <- reference
+      +4ms  bd_logger::logger: state flushing initiated           [platform asked]
+     +25ms  bd_client_stats::file_manager: writing snapshot       <- disk write, durable
+     +31ms  bd_client_stats::stats: prepared … stats upload       <- enqueued
+    +974ms  bd_api::api: received ack for stats upload            <- server acked
+    +4.99s  [netpolicy] background-allow revoked                  <- network cut
+```
+
+The flush wins that race by ~5×. Message wording differs on `main`; see
+`log-signatures.md` for the per-rev table.
+
+## What blocks an upload
+
+**The disk write is never the problem.** It lands ~25–56ms after `ON_STOP` in every run, under every
+restriction including airplane mode. Everything below is about the upload.
+
+| Restriction | Effect | Shape |
+|---|---|---|
+| none | acks in 633–1535ms against a ~5s cutoff | — |
+| battery saver | enqueued, **never acked** | hard block |
+| doze deep / light | enqueued, **never acked** | hard block |
+| Data Saver | device-dependent | **race** |
+| standby-restricted | device-dependent | **race** |
+| airplane | upload skipped, `stats are durable` | — |
+| recents | **nothing runs at all** — no `ON_STOP` | — |
+
+### Races diverge across devices; hard blocks do not
+
+Use this before treating an emulator/phone difference as a finding:
+
+- **Races diverge.** Data Saver and standby-restricted gate the socket around the time the upload
+  flies, so the faster device wins. Divergence here is real.
+- **Hard blocks don't.** Doze and battery saver are firewall rules already in force when the flush
+  runs, so there is no window to win. Doze deep vs light agreed within 22ms on one device and within
+  16ms across two. **Identical results on a hard block are expected, not evidence the emulator is
+  unrealistic** — and the useful statement is *why* there was no difference.
+
+Doze must be armed **before** `ON_STOP` to affect the flush at all; with the pre-arm order
+`force-idle` lands ~1.1–1.2s before it. A restriction applied a minute after backgrounding tests
+nothing, because network is already gone and the process frozen. See `device-modes.md`.
+
+### Process death does not cost data
+
+A kill *can* beat the upload — the old "it can't" result was an artifact of killing 4s after the ack:
 
 | kill lands at | ack | outcome |
 |---|---|---|
-| `ON_STOP` + **390ms** | none | **kill wins** |
-| `ON_STOP` + **865ms** | none | **kill wins** |
-| `ON_STOP` + **1.32s** | 974ms | ack wins |
+| `ON_STOP` + 390ms | none | **kill wins** |
+| `ON_STOP` + 865ms | none | **kill wins** |
+| `ON_STOP` + 1.32s | 974ms | ack wins |
 
-Ack latency ranges **633–1535ms**, so no fixed wait reliably lands on the ack's side — which is why
-`T13-am-kill` now aims at `ON_STOP+~390ms`, the side that reliably tests something.
+Ack latency ranges 633–1535ms, so no fixed timing reliably lands on the ack's side; `T13-am-kill`
+aims at ~+390ms, the side that reliably tests something.
 
-**What a lost race costs is the upload attempt, not the data.** The disk write lands at +25ms and
-survives the kill. Traced by uuid across a process boundary: snapshot `acc129cc…` written before the
-kill, then on the next launch `prepared … stats upload: uuid=acc129cc…, metrics=43` →
-`received ack … error: ""` → `deleting pending upload: acc129cc…`. So the exposure from a kill inside
-the ack window is delay, not loss.
+**What a lost race costs is the upload attempt, not the data.** Traced by uuid across a process
+boundary: snapshot `acc129cc…` written +25ms before the kill, then on the next launch
+`prepared … metrics=43` → `received ack … error: ""` → `deleting pending upload: acc129cc…`.
 
-### The airplane wedge — present on `42637e1f`, FIXED on `c3ba1cba`
+## Current results
 
-The sharpest finding of the original study, and the clearest behavioural change between revs.
+15 scenarios, Pixel 10 / API 37, `d8ac5975`, 0 errors. `BG disk` was **YES** in every run that
+backgrounded.
 
-**Before:** in airplane mode with an earlier upload outstanding and undeliverable, the `ON_STOP`
-flush produced **no disk write at all** — no `writing snapshot`, and not even
-`flush already in progress, skipping`. `state flushing initiated` fired, so the request reached
-shared-core and vanished. The flusher was wedged by the stalled upload.
+| Scenario | upload | ack | netcut |
+|---|---|---|---|
+| `T01-home` | ENQ/OK | 1064–1439ms | 4.98s |
+| `T02-back` | ENQ/OK | 662ms | **3.90s** |
+| `T03-recents` | *no reference event* | — | — |
+| `T04-screen-off` | ENQ/OK | 1535ms | 4.31s |
+| `T05-battery-saver` | ENQ/**NONE** | — | 4.96s |
+| `T06-doze-deep` | ENQ/**NONE** | — | 4.30s |
+| `T07-doze-light` | ENQ/**NONE** | — | 4.28s |
+| `T08-data-saver` | ENQ/OK | 976ms | 4.98s |
+| `T09-standby-restricted` | ENQ/OK | 633ms | 4.99s |
+| `T10-bg-restricted` | ENQ/OK | 1004ms | 4.98s |
+| `T11-freezer` | ENQ/OK | 736ms | 4.93s |
+| `T12-airplane` | NONE — skipped, durable | — | 4.96s |
+| `T13-am-kill` | ENQ/**NONE** — kill won | — | 0.5s |
+| `timing-cadence` | ENQ/OK | 878ms | 4.94s |
+| `timing-double-background` | ENQ/OK, 2nd refused | 1322ms | 4.95s |
 
-**After:** the same scenario writes to disk normally and skips only the upload, saying so:
+`T02-back` revokes network ~1.1s sooner than `home`, which shortens every race — worth knowing when
+a result sits near the boundary.
+
+## Behaviour that differs by rev
+
+| | `bump` (`c3ba1cba`, `d8ac5975`+) | `main` (`42637e1f`) |
+|---|---|---|
+| stats message wording | new | legacy — see `log-signatures.md` |
+| disk-flush debounce window | present | **absent** (`stats-debounce` reports `UNSEEN`) |
+| airplane flush | writes to disk, skips upload | **wedges — no disk write at all** |
+| workflow flush trigger | gone in `d8ac5975` | present |
+
+**The airplane wedge is the sharpest difference.** On `main`, in airplane mode with an earlier upload
+outstanding, the `ON_STOP` flush produced *no disk write* — `state flushing initiated` fired and the
+flusher wedged behind the stalled upload. On `bump` the same scenario writes 4 snapshots and says so:
 
 ```
-+5ms   state flushing initiated
-+23ms  flushing collected stats to disk
-+35ms  writing snapshot: stats_uploads/28dca247…            <- WRITE HAPPENED
-+39ms  skipping explicit stats upload: another flush upload is active; stats are durable
+skipping explicit stats upload: another flush upload is active; stats are durable
 ```
 
-The phrase *"stats are durable"* is the implementation stating the disk write is safe regardless.
-Confirmed on both devices.
+*"stats are durable"* is the implementation stating the disk write is safe regardless.
 
-## Timing constants (`c3ba1cba`, both devices)
+## Known gaps
 
-| Hop | Value |
-|---|---|
-| user action → `process ON_STOP` | ~1.26–1.5s (`ProcessLifecycleOwner` debounce) |
-| `ON_STOP` → `state flushing initiated` | 4–7ms |
-| `ON_STOP` → `writing snapshot` (durable) | **30–60ms** |
-| upload enqueue → ack | 508–1080ms (or never, under restriction) |
-| `ON_STOP` → network cutoff | HOME 4.92–5.00s · BACK 3.86–3.96s · screen-off 4.28–4.34s |
+**The JVM-crash path (`flush(blocking=true)`, a hardcoded 500ms JNI wait)** is the only one that runs
+a blocking flush, needs UI interaction, and has never been automated. Given acks of 633–1535ms it
+would likely time out.
 
-`back` cuts the budget by more than a second versus `home`, so "~5s" is a HOME-specific figure.
-Roughly a quarter of the window is spent before the SDK is even told, because of the debounce.
-
-## Mistakes that cost real time
-
-Read these before designing a matrix of your own. Every one produced confident, wrong output.
-
-1. **The upload debounce** invalidated the first four runs, and the failure looked like a real
-   finding. Idle >30s in the foreground first.
-2. **A locked phone** silently invalidated six runs — the app launches behind the keyguard and
-   backgrounds itself during the wait, so the action lands on an already-backgrounded app. Detect by
-   comparing the reference event against the action marker.
-3. **Screen-off tests re-lock the device.** Order them last, and for a full sweep on a physical
-   phone, disable auto-lock first — otherwise each one costs a manual unlock.
-4. **`am set-standby-bucket` is undone by launching the app**, so that row measured nothing until the
-   mode moved to after-backgrounding.
-5. **Reading the wrong shared-core tree.** Log text comes from the rev pinned in `Cargo.toml`, not a
-   local `../shared-core` checkout.
-6. **Grepping `bd_client_stats::stats` only**, which misses `::file_manager` — where
-   `writing snapshot` lives. Match the `bd_client_stats*` prefix.
-7. **Stale patterns after a rev bump** reported *zero uploads on both devices*, which reads as a
-   serious regression and was pure pattern rot. After any bump, treat a negative result as unproven
-   until the signature is confirmed present in the raw capture.
-8. **A missing reference event silently produced a false pass.** With no `ON_STOP`, the
-   foreground/background split fell back to the first log line and counted foreground work as
-   backgrounding work — T03 reported "uploaded in time" when no flush had run at all. The parser now
-   refuses to emit a backgrounding verdict in that case.
-9. **Derived artifacts outlive the bug that produced them.** `state.json` files written before that
-   fix still carried the false pass, and regenerating a summary table from them reintroduced it.
-   After any parser fix, re-derive from the **raw capture** — the logcat is the only artifact that
-   cannot be wrong.
-10. **Don't keep two copies of a report.** Editing the published copy and then re-copying from the
-   working directory silently reverted verified corrections — twice, including rows that had already
-   been checked. Generate reports from data into one canonical location, and if two copies must
-   exist, write both in the same step and `diff` them.
-11. **Assert your edits landed.** A `str.replace` that finds nothing is a silent no-op, so a
-   "successful" patch script can change nothing at all. Assert the match, then grep the result —
-   checking the same output you just wrote is not verification.
-
-## Not covered
-
-**T15, the JVM-crash scenario** — the only path that runs `flush(blocking=true)`, with a hardcoded
-500ms JNI wait. It needs UI interaction (select "JVM crash in background" in the app's App
-Terminations card), so it was never automated. Given observed ack latencies of 508–1080ms exceed
-500ms, the blocking flush would likely time out; that remains untested.
-
-**~~The disk-flush debounce coalescing path.~~ RESOLVED — and the original conclusion was wrong.**
-This entry used to read *"never coalesced in 36 observed windows, so only its invariant is verified"*.
-That was a broken detector, not an unexercised branch: `parse_logs.py` matched an invented message
-(`"…window closed <with a coalesce>"`) that does not exist, so the count could only ever be 0. A
-coalescing window emits no close line at all — it logs `coalescing stats disk flush into active
-debounce window`, then `running debounced trailing stats disk flush` at expiry.
-
-`scripts/force_coalesce.py` now reaches the branch deliberately and it works: **9 windows opened, 6
-closed empty, 3 coalesced** on a Pixel 10, each deferring its write to window expiry.
-
-Worth keeping as a lesson, because the mistake was self-sealing: the pattern was never validated
-*because* no coalesce had been seen, and no coalesce was seen *because* the pattern was wrong. Any
-"never observed" claim about a signature should be checked with `check_signatures.py` before it is
-written down — a detector that has never fired is indistinguishable from a behaviour that never
-happens, and the fix for that is mechanical, not judgemental.
+**The disk-flush coalescing branch is reachable only via `force_coalesce.py`**, never by a scenario —
+it needs two flushes inside 1s, which declarative steps cannot schedule. The script pre-empts a
+periodic tick with a platform flush and lands 3 coalesces per run (9 windows opened, 6 closed empty).
+Worth remembering how this one went: the branch was documented as unexercised across 36 windows when
+in fact the *detector* matched a message that does not exist. Any "never observed" claim about a
+signature should be checked with `check_signatures.py` before it is written down — a detector that has
+never fired is indistinguishable from a behaviour that never happens.

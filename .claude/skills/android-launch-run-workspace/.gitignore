@@ -1,8 +1,0 @@
-# Raw device captures are deliberately not tracked: large (~5M per sweep), specific to whichever
-# devices were attached, and regenerable by re-running. Unfiltered logcat also picks up modem
-# traces, other apps' logs, device serials and real bitdrift session_ids.
-#
-# What IS tracked is the record: REPORT.md, per-scenario summary.txt and state.json, and the sweep
-# console output. That is the evidence for the findings without the bulk.
-**/outputs/captures/
-**/logcat.txt
