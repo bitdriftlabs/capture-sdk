@@ -1377,6 +1377,36 @@ mod tests {
   }
 
   #[test]
+  fn keeps_process_info_when_no_thread_matches() {
+    let mut kscrash_report = make_kscrash_report(
+      6,
+      1,
+      vec![make_kscrash_thread(
+        0,
+        Some("main"),
+        &[90, 91, 92, 93],
+        true,
+      )],
+    );
+    let Some(Value::Object(metadata)) = kscrash_report.get_mut("diagnosticMetaData") else {
+      panic!("expected metadata object");
+    };
+    metadata.insert("launchTimeSeconds".to_string(), Value::Unsigned(1_700_000));
+    metadata.insert(
+      "bundlePath".to_string(),
+      Value::String("/App.app".to_string()),
+    );
+    let metrickit_report =
+      make_metrickit_report(6, 1, vec![make_metrickit_thread(&[1, 2, 3, 4], true)]);
+
+    let result = enhance_report_with_summary(&metrickit_report, &kscrash_report, true).unwrap();
+
+    let report = result.report.expect("process info should survive no match");
+    assert_eq!(None, metrickit_thread_name(&report, 0));
+    assert!(report.get(METRICKIT_APP_INFO_KEY).is_some());
+  }
+
+  #[test]
   fn omits_launch_time_when_kscrash_did_not_capture_it() {
     let app_info = app_info_from_kscrash_report(&make_kscrash_report(6, 1, vec![]));
 
