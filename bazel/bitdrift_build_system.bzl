@@ -93,6 +93,9 @@ def bitdrift_rust_library(
         test_deps = [],
         tags = [],
         data = [],
+        test_data = [],
+        test_name = None,
+        test_tags = None,
         crate_aliases = None,
         test_crate_aliases = None,
         **args):
@@ -100,6 +103,10 @@ def bitdrift_rust_library(
         crate_aliases = _crate_aliases()
     if test_crate_aliases == None:
         test_crate_aliases = _crate_aliases()
+    if test_name == None:
+        test_name = "{}_test".format(name)
+    if test_tags == None:
+        test_tags = tags
 
     clippy_tags = _clippy_tags(tags)
 
@@ -117,12 +124,12 @@ def bitdrift_rust_library(
     )
 
     rust_test(
-        name = "{}_test".format(name),
+        name = test_name,
         crate = name,
-        tags = clippy_tags,
+        tags = _clippy_tags(test_tags),
         rustc_flags = _rustc_flags(),
         aliases = test_crate_aliases,
-        data = data,
+        data = data + test_data,
         deps = all_crate_deps(
             normal_dev = True,
             cargo_only = True,

@@ -14,6 +14,10 @@
   clippy::unwrap_used
 )]
 
+#[cfg(test)]
+#[path = "./test_jvm_test.rs"]
+mod test_jvm;
+
 pub mod events;
 pub mod executor;
 pub mod ffi;
