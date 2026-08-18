@@ -78,6 +78,7 @@ bazel_dep(name = "flatbuffers", version = "25.9.23")
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_kotlin", version = "2.3.20")
 bazel_dep(name = "rules_proto", version = "7.1.0")
+bazel_dep(name = "rules_go", version = "0.62.0", repo_name = "io_bazel_rules_go")
 bazel_dep(name = "protobuf", version = "35.1")
 bazel_dep(name = "grpc-java", version = "1.82.0")
 bazel_dep(name = "rules_rs", version = "0.0.102")
@@ -89,11 +90,13 @@ bazel_dep(name = "aspect_rules_js", version = "2.3.8")
 bazel_dep(name = "aspect_rules_ts", version = "3.10.0")
 bazel_dep(name = "llvm", version = "0.8.18")
 
-# @llvm 0.8.18 otherwise raises Gazelle's Go requirement above the version in CI.
-single_version_override(
-    module_name = "gazelle",
-    version = "0.47.0",
+# Let Bazel provision the Go SDK that Gazelle uses while resolving Go repositories in CI.
+go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.download(
+    name = "go_sdk",
+    version = "1.24.12",
 )
+use_repo(go_sdk, "go_sdk")
 
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 
