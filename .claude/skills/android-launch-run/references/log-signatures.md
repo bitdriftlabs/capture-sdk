@@ -333,10 +333,14 @@ has revoked it. Other reasons OR in: `DOZE`, `DATA_SAVER`, `METERED_USER_RESTRIC
 7. **The minimum-upload-interval gate hides everything else.** Background sooner than 30s after the
    last flush-triggered upload and the upload is suppressed before network or device state matters. A
    run showing a `skipping … upload … minimum … interval` line on the **flush** path measured only the
-   gate. **Still true on `c3ba1cba`:** explicit flush uploads remain gated, verified by the
-   `background-no-wait` scenario returning `DEBO` on both devices. The 35s foreground wait is not
-   optional — and it clears the **30s floor**, not the 5s upload cadence; see
-   *The minimum-upload-interval gate, precisely* above before shortening it.
+   gate. **But the gate must be armed to bite:** `last_flush_upload_time` is set only by flush-path
+   uploads, never by periodic ones. Since shared-core `184c3229` (in `d8ac5975`) removed the workflow
+   trigger that fired an early flush upload in every process, a fresh process now reaches `ON_STOP`
+   with the gate unarmed — measured: an `ON_STOP` upload allowed **1.88s** after a periodic upload.
+   The foreground wait therefore gates nothing on a single-backgrounding run, and is kept only as
+   insurance. Two backgroundings inside 30s still trip it (`timing-double-background`). When it does
+   bite it clears the **30s floor**, not the 5s cadence; see *The minimum-upload-interval gate,
+   precisely* above.
 10. **A `periodic` suppression is normal; a `flush` suppression invalidates the run.** Both use the
     same message shape, so read the `<kind>`. Periodic uploads are refused constantly by design at a
     5s cadence against a 30s floor; that is the gate working, not a finding. Only a suppressed

@@ -502,7 +502,6 @@ Bundled scenarios:
 | `matrix/T11`, `matrix/T13` | **Exit variants**: cached-app freeze, and a process kill timed to land *inside* the upload ack window. |
 | `timing-cadence.json` | Measures the flush/upload timers: the ~5s first flush, the recurrent disk and upload cadences, and that a forced flush does **not** reschedule the periodic tick. |
 | `timing-double-background.json` | Two backgroundings inside 30s — the only way to show a forced flush still writes to disk while its upload is refused by the minimum-interval floor. |
-| `background-no-wait.json` | **Diagnostic**: deliberately skips the wait, so it *should* report `DEBO` on the flush path. Use it to confirm the gate is still active after a shared-core bump. |
 
 Run `T04`, `T06` and `T07` last — they use screen-off. On a device whose
 `lock_screen_lock_after_timeout` is short this re-locks the phone and invalidates everything after;

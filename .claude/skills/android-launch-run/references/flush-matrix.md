@@ -29,9 +29,10 @@ Run it yourself: `assets/scenarios/matrix/`, one scenario per test.
 > for that rev rather than a new regression, and expect no `DISK-FLUSH DEBOUNCE` line from
 > `parse_logs.py` — `check_signatures.py` will report `stats-debounce` as `UNSEEN`.
 >
-> **Rev-independent, verified on both:** the **35s foreground wait is required** (the
-> `stats.minimum_upload_interval_ms` floor is 30s and is not overridden by runtime config), **recents
-> never fires `ON_STOP`**, and **deep doze blocks the upload identically on emulator and phone**.
+> **Rev-independent, verified on both:** **recents never fires `ON_STOP`**, and **deep doze blocks the
+> upload identically on emulator and phone**. The `stats.minimum_upload_interval_ms` floor is 30s and
+> is not overridden by runtime config on either rev — but whether the **foreground wait** matters is
+> *not* rev-independent; see "Why the first attempt was wrong" below.
 >
 > Also: the APK on the device is whatever was last built. Switching branches does not reinstall it —
 > run `adbctl.py install` after moving between `main` and `bump`.
@@ -56,12 +57,21 @@ upload was **debounced** by the minimum upload interval, because the runs backgr
 launch and the startup upload had already armed the timer. The debounce masked every other variable.
 
 **The fix that made the matrix meaningful: idle ~35s in the foreground before backgrounding.** This
-is required on **both** revs — verified by `assets/scenarios/background-no-wait.json`, which
-deliberately skips the wait and returns `DEBO` on both devices. Re-confirmed on `42637e1f`: the gate
-is `stats.minimum_upload_interval_ms`, default 30s, and it is *not* among the flags the runtime
-pushes. The 5s figure in the `does not cleanly divide active upload interval 5s` line is the upload
-*cadence*, a different knob — mistaking it for the gate is the obvious way to shorten these waits and
-silently invalidate the whole matrix again.
+was required while a flush-path upload happened early in every process. That is no longer true.
+
+shared-core `184c3229` (in `d8ac5975`) removed the workflow trigger that used to fire an
+`UPLOAD_REASON_EVENT_TRIGGERED` upload seconds after launch. `last_flush_upload_time` — the only thing
+`should_skip_upload()` consults — is armed **solely** by flush-path uploads; a periodic upload does not
+arm it. So on a recent `bump` build a fresh process reaches `ON_STOP` with the gate unarmed, and the
+foreground wait gates nothing. Measured on `d8ac5975`: an `ON_STOP` upload allowed **1.88s** after a
+periodic upload.
+
+The gate itself still works when genuinely armed — `timing-double-background` arms it with a first
+`ON_STOP` upload and the second is refused 10.9s later. The waits are retained as insurance in case
+the trigger returns, not because they currently do anything.
+
+The `background-no-wait` diagnostic was **removed**: it existed to prove the gate was live by
+returning `DEBO`, and on this rev it returns `ENQ/OK`, so it could only mislead.
 
 ## Structure that worked
 
