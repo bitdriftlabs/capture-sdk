@@ -130,7 +130,7 @@ done
 # Exit code based on whether changes were detected
 if [ "$changes_detected" = true ]; then
   if [[ ${#bazel_diff_args[@]} -gt 0 ]]; then
-    "$bazel_path" test --nobuild "${bazel_diff_args[@]}" "$@"
+    "$bazel_path" build --nobuild --build_tests_only "${bazel_diff_args[@]}" "$@"
   fi
   echo "check_result=0" >> "$GITHUB_OUTPUT"
   exit 0  # Changes found
