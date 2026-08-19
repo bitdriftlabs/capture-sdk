@@ -515,7 +515,7 @@ extern "C" fn capture_create_logger(
       let store = Arc::new(bd_key_value::Store::new(storage));
 
       let session = crate::session::SessionConfiguration::new(session_configuration)
-        .create(sdk_directory.as_ref());
+        .create(sdk_directory.as_ref())?;
       let active_session = session.strategy();
 
       let device: Arc<bd_device::Device> = Arc::new(bd_device::Device::new(store.clone()));

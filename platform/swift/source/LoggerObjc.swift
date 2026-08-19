@@ -131,6 +131,86 @@ public final class LoggerObjc: NSObject {
         )
     }
 
+    /// Initializes Capture with the canonical session configuration API and additional SDK options.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        Additional options for the Capture Logger.
+    @objc(startWithAPIKey:sessionConfiguration:configuration:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfigurationObjc,
+        configuration: CAPConfiguration
+    ) {
+        let logger = Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration.underlyingConfiguration,
+            configuration: configuration.underlyingConfig
+        )
+
+        if let logger, configuration.enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
+    /// Initializes Capture with the canonical session configuration API and reports its result.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter startResult:          Receives nil on success, or an error on failure.
+    @objc(startWithAPIKey:sessionConfiguration:startResult:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfigurationObjc,
+        startResult: @escaping (Error?) -> Void
+    ) {
+        Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration.underlyingConfiguration,
+            startResult: { result in
+                switch result {
+                case .success:
+                    startResult(nil)
+                case .failure(let error):
+                    startResult(error)
+                }
+            }
+        )
+    }
+
+    /// Initializes Capture with the canonical session configuration API, additional SDK options,
+    /// and a result callback.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        Additional options for the Capture Logger.
+    /// - parameter startResult:          Receives nil on success, or an error on failure.
+    @objc(startWithAPIKey:sessionConfiguration:configuration:startResult:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfigurationObjc,
+        configuration: CAPConfiguration,
+        startResult: @escaping (Error?) -> Void
+    ) {
+        let logger = Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration.underlyingConfiguration,
+            configuration: configuration.underlyingConfig,
+            startResult: { result in
+                switch result {
+                case .success:
+                    startResult(nil)
+                case .failure(let error):
+                    startResult(error)
+                }
+            }
+        )
+
+        if let logger, configuration.enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
     /// Initializes the Capture SDK with the specified API key and session strategy.
     /// Calling other SDK methods has no effect unless the logger has been initialized.
     /// Subsequent calls to this function will have no effect.

@@ -68,8 +68,9 @@ final class SessionStrategyTests: XCTestCase {
     }
 
     func testActivityBasedSessionConfiguration() throws {
-        let expectation = self.expectation(description: "onSessionIDChange called")
-        var observedSessionID: String?
+        let callbackExpectation = self.expectation(description: "onSessionIDChange called")
+        callbackExpectation.expectedFulfillmentCount = 2
+        var observedSessionIDs = [String]()
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
@@ -77,20 +78,18 @@ final class SessionStrategyTests: XCTestCase {
                 inactivityTimeout: 30 * 60,
                 onSessionIDChanged: { sessionID in
                     dispatchPrecondition(condition: .onQueue(.main))
-                    observedSessionID = sessionID
-                    expectation.fulfill()
+                    observedSessionIDs.append(sessionID)
+                    callbackExpectation.fulfill()
                 }
             )
         )
 
         let sessionID = logger.sessionID
-
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 1))
-        XCTAssertEqual(observedSessionID, sessionID)
-
         logger.startNewSession()
         let newSessionID = logger.sessionID
 
+        XCTAssertEqual(.completed, XCTWaiter().wait(for: [callbackExpectation], timeout: 1))
+        XCTAssertEqual([sessionID, newSessionID], observedSessionIDs)
         XCTAssertNotEqual(sessionID, newSessionID)
     }
 
