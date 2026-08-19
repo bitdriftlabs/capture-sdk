@@ -197,7 +197,6 @@ class MainViewModel(
             is NavigationAction.NavigateToXml -> {}
             is NavigationAction.NavigateToDialogAndModals -> {}
             is NavigationAction.NavigateToStressTest -> {}
-            // Navigation is performed by the Fragment; the ViewModel only needs to stay exhaustive.
             is NavigationAction.NavigateToFocusMatrix -> {}
             is NavigationAction.InvokeService -> {}
 

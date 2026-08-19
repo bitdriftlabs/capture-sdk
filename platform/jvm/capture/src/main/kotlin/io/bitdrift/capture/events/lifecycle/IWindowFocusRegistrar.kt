@@ -10,35 +10,22 @@ package io.bitdrift.capture.events.lifecycle
 import android.app.Activity
 
 /**
- * Observes window focus for an [Activity].
- *
- * Exists as an interface for two reasons. It keeps the *mechanism* of observing focus separate from
- * the *reaction* to losing it, so the reacting logger can be unit tested by driving focus changes
- * directly instead of standing up a real `Window` and `ViewTreeObserver`. And it leaves room for a
- * different mechanism later without touching the caller.
+ * Observes window focus for an [Activity], decoupling the focus mechanism from the reaction to it
+ * so the latter can be unit tested by driving focus changes directly.
  */
 internal interface IWindowFocusRegistrar {
     /**
-     * Starts observing focus for [activity], invoking [onFocusChanged] with the new focus state.
-     *
-     * Implementations must tolerate being called more than once for the same [activity] without
-     * registering duplicate observers, because activity callbacks can legitimately repeat.
+     * Starts observing focus for [activity]. Must be idempotent per activity — lifecycle callbacks
+     * can repeat.
      */
     fun register(
         activity: Activity,
         onFocusChanged: (hasFocus: Boolean) -> Unit,
     )
 
-    /**
-     * Stops observing focus for [activity]. Must be safe to call for an activity that was never
-     * registered, or whose window has already been torn down.
-     */
+    /** Stops observing focus for [activity]. Safe to call for an activity that was never registered. */
     fun unregister(activity: Activity)
 
-    /**
-     * Stops observing focus for every activity currently registered. Needed when the owning event
-     * listener stops: once its lifecycle callbacks are unregistered, per-activity unregistration can
-     * never happen again, so anything still registered would keep firing.
-     */
+    /** Stops observing focus for every registered activity. */
     fun unregisterAll()
 }

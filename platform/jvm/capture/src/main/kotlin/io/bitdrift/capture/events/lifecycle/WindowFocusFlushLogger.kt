@@ -18,25 +18,13 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
 
 /**
- * Makes buffered data durable when the app's window loses focus.
+ * Flushes the logger when the app's window loses focus — the only signal that fires for the app
+ * switcher, where `ON_STOP` never does because the activity stays visible. Focus loss also fires for
+ * transient cases (IME, dialogs, transitions); over-calling is fine since flushes are debounced
+ * downstream.
  *
- * The gap this closes: the SDK's backgrounding flush hangs off `ProcessLifecycleOwner`'s `ON_STOP`,
- * and `ON_STOP` never fires for the app switcher — while the overview is showing, the recents
- * carousel renders a live tile of the activity, so the OS still reports it visible and the process is
- * genuinely not backgrounded. An app swiped away from the overview therefore loses whatever had not
- * yet reached disk. Window focus *does* drop in that case, which makes it the only observable signal.
- *
- * Focus loss is deliberately a broader signal than backgrounding. It also fires for an Activity
- * transition, rotation, the IME, a permission dialog and the notification shade. That is acceptable
- * because the flush is non-blocking and shared-core already gates what it costs: the stats upload sits
- * behind a minimum-interval floor and disk writes behind a debounce window. Over-calling is cheap;
- * missing the swipe-away is not.
- *
- * Note the asymmetry that follows from that: this flushes on focus *loss* only. Regaining focus needs
- * no durability action, and flushing on it would double the work for no benefit.
- *
- * Disabled remotely via [RuntimeFeature.LOGGER_FLUSHING_ON_WINDOW_FOCUS_LOSS]. The flag is re-read on
- * every callback rather than cached at [start], so a kill switch takes effect without a restart.
+ * This will be a no-op when the `client_feature.android.logger_flushing_on_window_focus_loss` kill
+ * switch is disabled.
  */
 internal class WindowFocusFlushLogger(
     private val application: Application,
@@ -47,22 +35,14 @@ internal class WindowFocusFlushLogger(
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) : IEventListenerLogger,
     Application.ActivityLifecycleCallbacks {
-    /**
-     * Main-thread confined, like everything else in this class: [start] and [stop] mutate it inside
-     * [mainThreadHandler], and the focus callback that reads it is dispatched on the main thread.
-     * Without it, a focus listener registered before [stop] would keep flushing a logger that is
-     * being torn down — the runtime kill switch is independent of this listener's own lifecycle.
-     */
+    // Main-thread confined. Gates flushes from focus listeners that outlive stop().
     private var isStarted = false
 
     override fun start() {
         mainThreadHandler.run {
             isStarted = true
             application.registerActivityLifecycleCallbacks(this)
-            // An activity already started before the SDK initialised will never see
-            // onActivityStarted, so it would never get a listener and its focus loss would be
-            // missed entirely. Found by testing: the same scenario flushed when the SDK happened to
-            // start first and silently did nothing when it did not.
+            // An activity started before the SDK never sees onActivityStarted; pick it up here.
             windowManager.findFirstValidActivity()?.let(::registerFocusObserver)
         }
     }
@@ -71,17 +51,12 @@ internal class WindowFocusFlushLogger(
         mainThreadHandler.run {
             isStarted = false
             application.unregisterActivityLifecycleCallbacks(this)
-            // The per-activity unregistrations ride on the callbacks just removed, so anything still
-            // registered here would otherwise stay registered for the lifetime of its window.
+            // Per-activity unregistration rides on the callbacks just removed.
             focusRegistrar.unregisterAll()
         }
     }
 
-    /**
-     * Registered from `onActivityStarted` rather than `onActivityCreated`: the decor view is
-     * guaranteed to exist by then, and an activity that is created but never started cannot lose
-     * focus, so there is nothing to observe yet.
-     */
+    // Registered on start rather than create: the decor view is guaranteed to exist by then.
     override fun onActivityStarted(activity: Activity) {
         registerFocusObserver(activity)
     }
@@ -99,8 +74,7 @@ internal class WindowFocusFlushLogger(
     }
 
     override fun onActivityDestroyed(activity: Activity) {
-        // Defensive: a stopped activity is already unregistered, but an activity destroyed without a
-        // matching stop would otherwise keep a listener alive on a dead window.
+        // Defensive: covers an activity destroyed without a matching stop.
         focusRegistrar.unregister(activity)
     }
 
@@ -108,8 +82,7 @@ internal class WindowFocusFlushLogger(
         if (!isStarted || !runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_WINDOW_FOCUS_LOSS)) {
             return
         }
-        // Non-blocking: this runs on the main thread, so waiting on the flush would risk an ANR at
-        // exactly the moment the user is navigating away.
+        // Non-blocking: this runs on the main thread.
         logger.flush(blocking = false)
     }
 

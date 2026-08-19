@@ -11,10 +11,7 @@ import android.app.Activity
 import android.view.View
 import io.bitdrift.capture.common.IWindowManager
 
-/**
- * [IWindowManager] fake. Tests that need an "activity was already started before the SDK" state
- * assign [firstValidActivity]; everything else reads as an app with no windows.
- */
+/** [IWindowManager] fake; set [firstValidActivity] to simulate an already-started activity. */
 internal class FakeWindowManager(
     var firstValidActivity: Activity? = null,
 ) : IWindowManager {

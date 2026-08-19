@@ -12,10 +12,7 @@ import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.RuntimeStringConfig
 
-/**
- * [Runtime] fake that answers with each flag's declared default unless a test overrides it, which
- * mirrors production more closely than a mock: a test only has to state what it changes.
- */
+/** [Runtime] fake that answers with each flag's declared default unless a test overrides it. */
 internal class FakeRuntime : Runtime {
     private val overrides = mutableMapOf<RuntimeFeature, Boolean>()
 

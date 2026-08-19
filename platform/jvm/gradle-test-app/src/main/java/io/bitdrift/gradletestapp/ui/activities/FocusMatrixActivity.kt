@@ -22,28 +22,9 @@ import io.bitdrift.gradletestapp.diagnostics.lifecycle.LifecycleEventLogger
 import timber.log.Timber
 
 /**
- * A second Activity that exists purely to exercise every way an app window can lose focus, so the
- * SDK's flush-on-focus-loss can be verified end to end.
- *
- * Reaching it is itself one of the cases under test (an Activity transition drops focus on the
- * activity being left). The rest are driven from here:
- *
- *  - **IME** — focusing the text field raises the keyboard, which takes window focus.
- *  - **Permission dialog** — a system dialog takes focus without the activity stopping. Uses
- *    READ_PHONE_STATE, which the app already declares: adding a permission purely for this would
- *    drag in a `uses-feature` hardware declaration and the lint that enforces it, for no benefit.
- *    Revoke it first so the dialog actually appears on repeat runs:
- *    `adb shell pm revoke io.bitdrift.gradletestapp android.permission.READ_PHONE_STATE`
- *  - **Rotation** — `adb shell settings put system user_rotation 1` recreates the activity.
- *  - **Recents / home / kill** — driven entirely over adb, no UI needed.
- *
- * Built with views rather than Compose on purpose: the point is to observe `ViewTreeObserver` window
- * focus with as little between the harness and the platform as possible, and this app already mixes
- * both so it is not out of place.
- *
- * Focus changes go through the same [LifecycleEventLogger] helper `MainActivity` uses, so a focus
- * change and the SDK's resulting flush interleave in one capture on the device clock. That is what
- * makes the assertion "focus dropped, then a flush happened" possible at all.
+ * Exercises window-focus-loss cases for verifying the SDK's flush-on-focus-loss: reaching it is an
+ * Activity transition, the text field raises the IME, and the button opens a permission dialog.
+ * Recents/home/rotation are driven over adb.
  */
 class FocusMatrixActivity : AppCompatActivity() {
     private val requestPermission =
@@ -72,7 +53,6 @@ class FocusMatrixActivity : AppCompatActivity() {
             },
         )
 
-        // Tapping this raises the IME, which takes window focus without stopping the activity.
         root.addView(
             EditText(this).apply {
                 id = ID_INPUT
@@ -80,9 +60,8 @@ class FocusMatrixActivity : AppCompatActivity() {
             },
         )
 
-        // A system permission dialog also takes focus without an activity stop. Already-granted
-        // permissions return instantly with no dialog and therefore no focus loss, so revoke it
-        // before testing (see the class doc).
+        // An already-granted permission shows no dialog (and so no focus loss); revoke first:
+        // `adb shell pm revoke io.bitdrift.gradletestapp android.permission.READ_PHONE_STATE`
         root.addView(
             Button(this).apply {
                 id = ID_REQUEST_PERMISSION
@@ -96,8 +75,6 @@ class FocusMatrixActivity : AppCompatActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        // Same helper MainActivity uses, so both activities emit one consistent focus line that the
-        // logcat harness already parses.
         LifecycleEventLogger.onWindowFocusChanged(this, hasFocus)
     }
 

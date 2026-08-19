@@ -24,9 +24,8 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Drives [WindowFocusFlushLogger] through [FakeWindowFocusRegistrar], so window-focus changes are
- * plain function calls — no `Window`, no `ViewTreeObserver`. The real focus mechanism is covered
- * separately by `ViewTreeWindowFocusRegistrarTest`.
+ * Drives [WindowFocusFlushLogger] through [FakeWindowFocusRegistrar]; the real focus mechanism is
+ * covered by [ViewTreeWindowFocusRegistrarTest].
  */
 class WindowFocusFlushLoggerTest {
     private val application: Application = mock()
@@ -99,8 +98,6 @@ class WindowFocusFlushLoggerTest {
 
     @Test
     fun registersAnActivityThatWasAlreadyStartedBeforeTheSdk() {
-        // The launcher activity can be started before the events listener target starts; it never
-        // gets an onActivityStarted, so start() must pick it up from the window manager.
         windowManager.firstValidActivity = activity
 
         windowFocusFlushLogger.start()
@@ -120,9 +117,7 @@ class WindowFocusFlushLoggerTest {
 
     @Test
     fun stopPreventsAnyFurtherFlushes() {
-        // The kill switch stays enabled: stopping the listener itself must be enough. A listener
-        // that was registered before stop() keeps receiving platform focus callbacks (nothing
-        // removed it), and those must not reach a logger that is being torn down.
+        // The kill switch stays enabled: stopping the listener must be enough on its own.
         windowFocusFlushLogger.start()
         windowFocusFlushLogger.onActivityStarted(activity)
 
@@ -134,9 +129,7 @@ class WindowFocusFlushLoggerTest {
 
     @Test
     fun stopUnregistersEveryRemainingFocusObserver() {
-        // After stop() the lifecycle callbacks are gone, so the per-activity unregistration in
-        // onActivityStopped/onActivityDestroyed can never run again — stop() itself is the last
-        // chance to tear these down.
+        // stop() removes the lifecycle callbacks, so it is the last chance to tear these down.
         windowFocusFlushLogger.start()
         windowFocusFlushLogger.onActivityStarted(activity)
         windowFocusFlushLogger.onActivityStarted(secondActivity)

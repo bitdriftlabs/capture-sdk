@@ -757,10 +757,6 @@ internal class LoggerImpl(
         }
     }
 
-    /**
-     * Flushes the logger when the app's window loses focus, which is the only observable signal for
-     * the app switcher — `ProcessLifecycleOwner`'s `ON_STOP` never fires while the overview is open.
-     */
     private fun addWindowFocusFlushTarget(
         context: Context,
         windowManager: IWindowManager,

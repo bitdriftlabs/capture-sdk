@@ -17,9 +17,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Exercises [ViewTreeWindowFocusRegistrar] against a real Robolectric [Activity], so a real decor
- * view and a real `ViewTreeObserver` are in play. Focus changes are driven through
- * `ViewTreeObserver.dispatchOnWindowFocusChange`, the same entry point the framework uses.
+ * Exercises [ViewTreeWindowFocusRegistrar] against a real Robolectric [Activity] and its
+ * [android.view.ViewTreeObserver].
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
@@ -35,9 +34,8 @@ class ViewTreeWindowFocusRegistrarTest {
     }
 
     private fun dispatchFocusChange(hasFocus: Boolean) {
-        // dispatchOnWindowFocusChange is what ViewRootImpl calls on a real window focus change, but
-        // it is package-private and hidden from the SDK stubs — under Robolectric the real framework
-        // class runs, so reflection reaches it.
+        // dispatchOnWindowFocusChange is what ViewRootImpl calls on a focus change, but it is hidden
+        // from the SDK stubs; the real class runs under Robolectric, so reflection reaches it.
         val observer = activity.window.decorView.viewTreeObserver
         observer.javaClass
             .getDeclaredMethod("dispatchOnWindowFocusChange", Boolean::class.javaPrimitiveType)
@@ -57,8 +55,6 @@ class ViewTreeWindowFocusRegistrarTest {
 
     @Test
     fun repeatRegistrationDoesNotDuplicateDelivery() {
-        // Activity callbacks legitimately repeat (stop/start cycles); a duplicate observer would
-        // double every subsequent flush.
         registrar.register(activity) { hasFocus -> receivedFocusChanges.add(hasFocus) }
         registrar.register(activity) { hasFocus -> receivedFocusChanges.add(hasFocus) }
 
@@ -88,8 +84,6 @@ class ViewTreeWindowFocusRegistrarTest {
 
     @Test
     fun registrationSurvivesAStopStartCycle() {
-        // The flush logger unregisters on stop and re-registers on start; the registrar must come
-        // back to a working state on the same activity instance.
         registrar.register(activity) { hasFocus -> receivedFocusChanges.add(hasFocus) }
         registrar.unregister(activity)
         registrar.register(activity) { hasFocus -> receivedFocusChanges.add(hasFocus) }

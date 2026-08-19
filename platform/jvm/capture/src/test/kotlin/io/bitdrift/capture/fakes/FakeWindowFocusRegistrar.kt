@@ -11,12 +11,8 @@ import android.app.Activity
 import io.bitdrift.capture.events.lifecycle.IWindowFocusRegistrar
 
 /**
- * [IWindowFocusRegistrar] fake that lets a test drive window-focus changes directly and observe
- * exactly which activities currently have a focus observer.
- *
- * One behaviour is deliberately mirrored from the real `ViewTreeObserver`: a callback that was
- * registered and never unregistered keeps receiving focus changes — including after the component
- * that registered it has "stopped". That is what makes missing-teardown bugs observable here.
+ * [IWindowFocusRegistrar] fake that lets tests drive focus changes directly. Like a real
+ * `ViewTreeObserver`, a never-unregistered callback keeps receiving changes.
  */
 internal class FakeWindowFocusRegistrar : IWindowFocusRegistrar {
     private val callbacks = LinkedHashMap<Activity, (hasFocus: Boolean) -> Unit>()
@@ -29,7 +25,6 @@ internal class FakeWindowFocusRegistrar : IWindowFocusRegistrar {
         activity: Activity,
         onFocusChanged: (hasFocus: Boolean) -> Unit,
     ) {
-        // Mirrors the real registrar's contract: repeat registration must not duplicate observers.
         if (callbacks.containsKey(activity)) {
             return
         }

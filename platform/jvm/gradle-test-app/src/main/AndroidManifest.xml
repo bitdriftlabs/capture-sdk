@@ -34,8 +34,7 @@
                 />
         </provider>
 
-        <!-- Exists to exercise every route to window-focus loss (IME, permission dialog, rotation,
-             Activity transition). Exported so scenarios can `am start -n` it without driving the UI. -->
+        <!-- Exercises window-focus-loss cases; exported so tests can start it via adb. -->
         <activity
             android:name=".ui.activities.FocusMatrixActivity"
             android:exported="true"

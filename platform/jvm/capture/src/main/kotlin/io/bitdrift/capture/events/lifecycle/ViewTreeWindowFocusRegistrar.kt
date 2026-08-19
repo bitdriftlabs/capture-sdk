@@ -13,24 +13,13 @@ import androidx.annotation.UiThread
 import java.util.WeakHashMap
 
 /**
- * [IWindowFocusRegistrar] backed by [ViewTreeObserver.OnWindowFocusChangeListener].
- *
- * `Application.ActivityLifecycleCallbacks` has no focus callback and `Activity.onWindowFocusChanged`
- * requires subclassing, so neither is usable from inside an SDK. The window's `ViewTreeObserver` is,
- * and it has been available since API 18 — comfortably below this SDK's minSdk — so no version gating
- * is needed.
- *
- * The listener bookkeeping here is modelled on square/papa's `ViewTreeObservers`: hold the wrapper so
- * it can actually be removed later, and check [ViewTreeObserver.isAlive] on both add and remove,
- * because a dead observer throws on mutation. Papa reaches for `curtains` to find windows; this SDK
- * already discovers activities via `ActivityLifecycleCallbacks`, so that dependency is not needed.
+ * [IWindowFocusRegistrar] backed by [ViewTreeObserver.OnWindowFocusChangeListener] (API 18) — the
+ * only focus signal observable from an SDK without subclassing activities. Bookkeeping follows
+ * square/papa's `ViewTreeObservers`: keep the listener instance so it can be removed, and check
+ * [ViewTreeObserver.isAlive] before mutating, since a dead observer throws.
  */
 internal class ViewTreeWindowFocusRegistrar : IWindowFocusRegistrar {
-    /**
-     * Weak keys so a leaked or forgotten activity cannot be retained by this map. The listener is the
-     * value because [ViewTreeObserver.removeOnWindowFocusChangeListener] needs the same instance that
-     * was added — keeping it is the only way to unregister rather than leak.
-     */
+    // Weak keys so the map never retains an activity.
     private val listeners = WeakHashMap<Activity, ViewTreeObserver.OnWindowFocusChangeListener>()
 
     @UiThread
@@ -38,8 +27,7 @@ internal class ViewTreeWindowFocusRegistrar : IWindowFocusRegistrar {
         activity: Activity,
         onFocusChanged: (Boolean) -> Unit,
     ) {
-        // Activity callbacks can repeat for the same instance; registering twice would double every
-        // subsequent flush.
+        // Registering twice would double every flush.
         if (listeners.containsKey(activity)) {
             return
         }
@@ -60,8 +48,7 @@ internal class ViewTreeWindowFocusRegistrar : IWindowFocusRegistrar {
 
     @UiThread
     override fun unregisterAll() {
-        // Copy first: WeakHashMap iteration is not safe against concurrent structural changes, and
-        // clearing up front keeps the map consistent even if a removal throws.
+        // Snapshot first: WeakHashMap iteration is not safe against structural changes.
         val snapshot = listeners.entries.map { it.key to it.value }
         listeners.clear()
         snapshot.forEach { (activity, listener) -> removeListener(activity, listener) }
@@ -71,8 +58,7 @@ internal class ViewTreeWindowFocusRegistrar : IWindowFocusRegistrar {
         activity: Activity,
         listener: ViewTreeObserver.OnWindowFocusChangeListener,
     ) {
-        // peekDecorView avoids forcing a new decor view into existence purely to tear one down, and
-        // the observer is commonly already dead by the time an activity is destroyed.
+        // peekDecorView: don't create a decor view just to tear one down.
         val observer = activity.window?.peekDecorView()?.viewTreeObserver ?: return
         if (observer.isAlive) {
             observer.removeOnWindowFocusChangeListener(listener)
