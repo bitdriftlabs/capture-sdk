@@ -178,8 +178,29 @@ Measured on a Pixel 10, 29ms RTT to the API, in pure-foreground runs with no fir
 | ~12:40 | 8.89, 23.07, 13.09, 3.88s |
 | ~12:52 | 1.26, 8.53, 1.98, 1.94s |
 
-Identical scenario, config and device, 12 minutes apart. **Typical is 1.3–2s; the observed tail is
-23s.** Ruled out as causes: the network (29ms RTT, 93ms full TLS+HTTP), payload size (`snapshots=1,
+Identical scenario, config and device, 12 minutes apart. A later purpose-built 5-cycle probe gives a
+better-controlled sample: `1.24, 1.04, 19.85, 0.93s` — **median 1.14s against a ~974ms baseline**.
+
+**This is a heavy tail, not a regression.** Typical latency never moved; the distribution is a tight
+~1s mode with rare excursions past 20s. An earlier reading of "~2x slower" came from n=4 scraped
+opportunistically out of a sweep and was an artifact of the mean being dragged by tail samples — the
+median is stable, the mean is not. Client-side timings confirm it, across two independent samples on
+the same build:
+
+| metric | cycle probe (n=5) | sweep (n=15) | baseline |
+|---|---|---|---|
+| `ON_STOP` → `state flushing initiated` | 3ms | 3ms | 4ms |
+| `ON_STOP` → disk write | 21ms | 29ms | 25ms |
+| `ON_STOP` → enqueue | 25ms | 35ms | 31ms |
+| HOME → `ON_STOP` | — | 1.31s | 1.35s |
+| `ON_STOP` → network cut | — | 5.00s | 4.99s |
+
+The client contributes ~25ms of the ack interval, so everything above that is transport and backend.
+Sweep outliers are all attributable: the four ~900ms disk writes are `battery-saver`, `doze-deep`,
+`doze-light` and `screen-off` (CPU throttled or dozing), and `T12-airplane`'s 12.36s "cut" is not a
+firewall revoke — there is no network to revoke.
+
+Ruled out as causes of the tail: the network (29ms RTT, 93ms full TLS+HTTP), payload size (`snapshots=1,
 source_files=1` on both the 5s and 30s disk configs — flushes merge into one aggregated snapshot, so a
 faster cadence does *not* produce bigger uploads), and the disk cadence itself (`T01-home` acked in
 1.6–1.7s on the 5s config, matching the 30s config's 1.4–2.0s). Log uploads on the same transport are
