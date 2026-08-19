@@ -10,7 +10,7 @@
     {
       "action": "wait",
       "seconds": 8,
-      "why": "settle and let one foreground disk flush land (~5s, stats.first_upload_flush_interval_ms) so the FG/BG split has a positive control. This used to be 35s to clear the 30s stats.minimum_upload_interval_ms floor, but that floor is armed ONLY by a flush-path upload (stats.rs: last_flush_upload_time), and shared-core 184c3229 removed the workflow trigger that used to fire one at launch. A fresh process now reaches ON_STOP unarmed, so the long wait gated nothing. Verified: ON_STOP upload allowed 1.88s after a periodic upload."
+      "why": "one foreground disk flush lands at ~5s (stats.disk_flush_interval_ms is pushed to 5s), so this gives a positive control before backgrounding. No longer needs to be long: the minimum-upload-interval floor is armed only by a flush-path upload and nothing arms it at launch."
     },
     {
       "action": "home"

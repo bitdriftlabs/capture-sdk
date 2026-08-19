@@ -392,6 +392,7 @@ Bundled scenarios:
 | `matrix/T05…T12` | **Restriction modes**, HOME held constant: battery-saver · doze-deep · doze-light · data-saver · standby-restricted · bg-restricted · airplane. |
 | `matrix/T11`, `matrix/T13` | **Exit variants**: cached-app freeze, and a process kill timed to land *inside* the upload ack window. |
 | `timing-cadence.json` | Measures the flush/upload timers: the ~5s first flush, the recurrent disk and upload cadences, and that a forced flush does **not** reschedule the periodic tick. |
+| `timing-reset-after-flush.json` | An explicit flush **re-anchors** the periodic schedule — the next tick lands one interval after the flush, not on the original anchor. |
 | `timing-double-background.json` | Two backgroundings inside 30s — the only way to show a forced flush still writes to disk while its upload is refused by the minimum-interval floor. |
 
 Run `T04`, `T06` and `T07` last — they use screen-off. On a device whose

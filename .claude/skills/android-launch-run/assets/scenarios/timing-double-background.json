@@ -9,7 +9,7 @@
     {
       "action": "wait",
       "seconds": 8,
-      "why": "settle and let one foreground disk flush land (~5s, stats.first_upload_flush_interval_ms) so the FG/BG split has a positive control. This used to be 35s to clear the 30s stats.minimum_upload_interval_ms floor, but that floor is armed ONLY by a flush-path upload (stats.rs: last_flush_upload_time), and shared-core 184c3229 removed the workflow trigger that used to fire one at launch. A fresh process now reaches ON_STOP unarmed, so the long wait gated nothing. Verified: ON_STOP upload allowed 1.88s after a periodic upload."
+      "why": "one foreground disk flush lands at ~5s (stats.disk_flush_interval_ms is pushed to 5s), so this gives a positive control before backgrounding. No longer needs to be long: the minimum-upload-interval floor is armed only by a flush-path upload and nothing arms it at launch."
     },
     {
       "action": "home"
@@ -32,8 +32,8 @@
     },
     {
       "action": "wait",
-      "seconds": 25,
-      "why": "second forced flush: the disk write should still happen while the upload is refused"
+      "seconds": 15,
+      "why": "covers everything that happens after a forced flush: disk write (+30ms), server ack (0.5-2s), the OS network cutoff (~4-5s), and the RE-ANCHORED disk flush (+5s). shared-core resets the periodic schedule on an explicit flush, so a long tail no longer buys anything - the old 40s was sized for a 30s cadence that no longer exists."
     }
   ],
   "reference_event": "process ON_STOP"

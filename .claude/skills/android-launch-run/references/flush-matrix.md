@@ -26,11 +26,11 @@ a multi-scenario investigation.
 S=.claude/skills/android-launch-run/scripts
 python3 $S/selftest.py                                  # patterns still match? (no device needed)
 python3 $S/adbctl.py install                             # only if the rev moved since the last build
-python3 $S/sweep.py --out /tmp/sweep --serial <id>       # all 15 scenarios, screen-off last
+python3 $S/sweep.py --out /tmp/sweep --serial <id>       # all 16 scenarios, screen-off last
 python3 $S/check_signatures.py /tmp/sweep/T01-home/<id>/logcat.txt   # confirm nothing is UNSEEN
 ```
 
-~15 min on one device. `sweep.py` prints one table; anything odd gets read from that scenario's
+~11 min on one device. `sweep.py` prints one table; anything odd gets read from that scenario's
 `summary.txt` and raw `logcat.txt`.
 
 ## What triggers a flush
@@ -83,26 +83,54 @@ Flags that decide timing, with defaults. Read what your account actually overrid
 
 **`effective_flush_interval()` requires the disk interval to evenly divide the upload interval.** At
 startup the upload interval is 5s, so a 30s disk interval collapses to 5s and logs the `does not
-cleanly divide` warning — a one-time startup artifact, not a misconfiguration. Once the upload
-interval becomes 60s, `60 % 30 == 0` and it settles at 30s. A pairing like 30s/45s would silently
-collapse to 45s.
+cleanly divide` warning — a one-time startup artifact, not a misconfiguration. It can also be stale
+by a second or two: runtime config arrives *after* the schedule is first built, so a capture can show
+the warning computed from the pre-push value. Seen live: the warning quoted 30s at t+0.66 while the
+5s push landed at t+1.6.
 
-Measured on a Pixel 10 with an account pushing `disk_flush_interval_ms` 60s→30s:
+Measured on a Pixel 10 with an account pushing `disk_flush_interval_ms` **5s**:
 
 | Quantity | Value |
 |---|---|
-| first disk write + upload | t+5.66–5.71s |
-| disk cadence | 30.00, 30.01, 30.01, 29.99 |
-| upload cadence | 60.00, 60.00, 60.03 |
+| first disk write + upload | t+5.69–5.71s |
+| disk cadence | 5.00s (gaps 4.99–5.01) |
+| upload cadence | 60.00, 60.00 |
 | debounce windows | 1.002–1.009s |
 
-Two results that surprise people:
+**The 5s first-flush interval is per process start, not per install.** A force-stop and relaunch shows
+it again.
 
-- **The 5s first-flush interval is per process start, not per install.** A force-stop and relaunch
-  shows it again.
-- **A forced flush does not reschedule the periodic timer.** After a backgrounding flush the next
-  tick lands on the original anchor — observed as a forced write at t+152.64s then the scheduled one
-  at t+155.67s (`5.66 + 5×30`). Two writes 3s apart, which the 1s window cannot merge. Not a bug.
+### An explicit flush re-anchors the periodic schedule
+
+This changed, and the old behaviour is worth knowing because the docs asserted it for a while: a
+forced flush used to leave the periodic timer alone, so the next tick landed on the *original* anchor.
+`reset_after_explicit_flush()` → `start_recurring_cycle()` now re-anchors both deadlines at the flush.
+
+Measured — the old anchor predicted a tick at t+125.71 and nothing happened there:
+
+```
+disk: 5.69 … 95.70, 100.70 │ 102.67 FORCED │ 107.84, 112.71, 117.72 …
+      └── 5.0s cadence ────┘               └── re-anchored, 5.0s ────┘
+
+ON_STOP           t+102.64
+forced flush      t+102.67   (+30ms)
+next disk flush   t+107.84   = forced +5.17s
+next periodic upl t+162.71   = forced +60.04s
+```
+
+**Read the reset values as derived, not fixed** — they follow the recurring intervals, never the 5s
+first-upload one, because `start_recurring_cycle()` sets `first_upload_pending = false`:
+
+- **upload** = `stats.upload_flush_interval_ms` (60s default)
+- **disk** = `effective_flush_interval(disk_flush_interval_ms, upload_flush_interval_ms)`
+
+With `disk 5s` pushed: `60 % 5 == 0` → 5s. On an earlier config pushing 30s it was `60 % 30 == 0` →
+30s, and the same probe measured `forced +30.03s / +60.08s`. Both are the same rule with different
+inputs — a config of, say, 45s would silently collapse the disk cadence to 60s, so check the pushed
+value before predicting a number.
+
+Any explicit/platform flush resets it, not just `ON_STOP`; window-focus-loss flushes go through the
+same path.
 
 ### The floor must be armed to bite
 
