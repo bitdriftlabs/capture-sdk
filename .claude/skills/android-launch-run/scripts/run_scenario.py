@@ -87,7 +87,7 @@ def run_on(serial: str, sc: dict, outdir: str, app: str) -> dict:
                 adbctl.mark(serial, f"ACTION mode {step['name']} on")
                 adbctl.mode(serial, step["name"], True, pkg)
             else:
-                adbctl.action(serial, act, pkg, activity)
+                adbctl.action(serial, act, pkg, activity, component=step.get("component"))
     finally:
         adbctl.mark(serial, "ACTION observe-end")
         time.sleep(1)

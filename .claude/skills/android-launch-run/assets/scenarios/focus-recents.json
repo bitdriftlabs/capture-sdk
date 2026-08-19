@@ -1,0 +1,25 @@
+{
+  "name": "focus-recents",
+  "description": "The app switcher. Focus drops while the activity stays started, so ONLY the focus flush can fire.",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 8,
+      "why": "settle and let one foreground disk flush land as a positive control"
+    },
+    {
+      "action": "recents"
+    },
+    {
+      "action": "wait",
+      "seconds": 20,
+      "why": "the case this feature exists for: focus drops but ON_STOP never fires"
+    }
+  ],
+  "reference_event": "window focus=false"
+}

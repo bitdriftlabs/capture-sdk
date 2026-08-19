@@ -1,0 +1,26 @@
+{
+  "name": "focus-navigate-activity",
+  "description": "Activity transition. The app never leaves the foreground, so ON_STOP never fires.",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 8,
+      "why": "settle and let one foreground disk flush land as a positive control"
+    },
+    {
+      "action": "launch-activity",
+      "component": "io.bitdrift.gradletestapp.ui.activities.FocusMatrixActivity",
+      "why": "an Activity transition drops focus on the activity being left, without backgrounding the app"
+    },
+    {
+      "action": "wait",
+      "seconds": 15
+    }
+  ],
+  "reference_event": "window focus=false"
+}

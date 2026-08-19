@@ -7,7 +7,8 @@ Subcommands:
   logprop <filter> [--serial S]    set debug.bitdrift.internal_rust_log
   mode <name> --on|--off           apply/undo a device state; `mode reset` restores everything
   verify <name>                    print the verification output for a mode
-  action <name> [--seconds N]      home|back|recents|screen-off|wake|kill|force-stop|freeze|...
+  action <name> [--seconds N]      launch|home|back|recents|screen-off|wake|kill|force-stop|
+                                   freeze|unfreeze|rotate|rotate-reset|launch-activity|wait
   mark <text>                      stamp a device-clock marker into logcat
   state                            dump the full device state relevant to these runs
 
@@ -186,6 +187,9 @@ def mode(serial: str, name: str, on: bool, pkg: str) -> str:
         adb(serial, "svc power stayon false")
         adb(serial, "input keyevent KEYCODE_WAKEUP")
         adb(serial, "wm dismiss-keyguard")
+        # A device left in forced landscape silently changes layout for every later run.
+        adb(serial, "settings put system user_rotation 0")
+        adb(serial, "settings put system accelerometer_rotation 1")
 
     else:
         sys.exit(f"unknown mode: {name}")
@@ -259,7 +263,14 @@ ACTIONS = {
 }
 
 
-def action(serial: str, name: str, pkg: str, activity: str, seconds: float = 0) -> str:
+def action(
+    serial: str,
+    name: str,
+    pkg: str,
+    activity: str,
+    seconds: float = 0,
+    component: str | None = None,
+) -> str:
     if name == "wait":
         import time
         mark(serial, f"ACTION wait {seconds}s")
@@ -272,6 +283,20 @@ def action(serial: str, name: str, pkg: str, activity: str, seconds: float = 0) 
         adb(serial, ACTIONS[name])
     elif name == "launch":
         adb(serial, f"am start -W -n {pkg}/{activity}", timeout=90)
+    elif name == "launch-activity":
+        # Start a specific component, for cases where the transition itself is under test.
+        if not component:
+            sys.exit("launch-activity needs a `component` in the scenario step")
+        target = component if "/" in component else f"{pkg}/{component}"
+        adb(serial, f"am start -W -n {target}", timeout=90)
+    elif name == "rotate":
+        # user_rotation is ignored while auto-rotate is on, so disable the sensor first or this is a
+        # silent no-op — the same class of trap as data-saver needing a metered network.
+        adb(serial, "settings put system accelerometer_rotation 0")
+        adb(serial, "settings put system user_rotation 1")
+    elif name == "rotate-reset":
+        adb(serial, "settings put system user_rotation 0")
+        adb(serial, "settings put system accelerometer_rotation 1")
     elif name == "kill":
         adb(serial, f"am kill {pkg}")
     elif name == "force-stop":
@@ -319,6 +344,7 @@ def main() -> None:
     g.add_argument("--off", action="store_true")
     p = sub.add_parser("verify"); p.add_argument("name")
     p = sub.add_parser("action"); p.add_argument("name"); p.add_argument("--seconds", type=float, default=0)
+    p.add_argument("--component", help="for launch-activity: Class or pkg/Class")
     p = sub.add_parser("mark"); p.add_argument("text")
 
     args = ap.parse_args()
@@ -361,7 +387,8 @@ def main() -> None:
             for s in targets:
                 require_unlocked(s)
         for s, out in fanout(targets,
-                            lambda s: action(s, args.name, pkg, activity, args.seconds),
+                            lambda s: action(s, args.name, pkg, activity, args.seconds,
+                                             getattr(args, "component", None)),
                             args.sequential).items():
             print(f"[{s}] {out}")
         return

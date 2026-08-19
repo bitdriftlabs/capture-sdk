@@ -1,0 +1,29 @@
+{
+  "name": "focus-rotate",
+  "description": "Configuration change. NOTE: `no reference event` is the EXPECTED result -- measured on a Pixel 10 / API 37, rotation does NOT drop window focus. The activity is destroyed and recreated (5 lifecycle events observed) and the new window gains focus without the old one ever reporting a loss, so no focus=false is emitted and no flush fires. Kept as a regression guard: if a future platform version starts dropping focus on rotation, this row stops reading NONE.",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 8,
+      "why": "settle and let one foreground disk flush land as a positive control"
+    },
+    {
+      "action": "rotate",
+      "why": "rotate the device. Auto-rotate must be disabled first or user_rotation is ignored. Recreates the activity but does NOT produce a focus loss -- see description."
+    },
+    {
+      "action": "wait",
+      "seconds": 15
+    },
+    {
+      "action": "rotate-reset",
+      "why": "leave the device as found; mode reset also restores this"
+    }
+  ],
+  "reference_event": "window focus=false"
+}
