@@ -43,6 +43,21 @@ final class SessionStrategyTests: XCTestCase {
         XCTAssertNotNil(UUID(uuidString: logger.sessionID))
     }
 
+    func testFixedCompatibilityShimDoesNotInvokeSessionIDGenerator() throws {
+        var generatorCalls = 0
+
+        let logger = try Logger.testLogger(
+            withAPIKey: "test_api_key",
+            sessionStrategy: .fixed(sessionIDGenerator: {
+                generatorCalls += 1
+                return "ignored"
+            })
+        )
+
+        XCTAssertEqual(0, generatorCalls)
+        XCTAssertNotNil(UUID(uuidString: logger.sessionID))
+    }
+
     func testActivityBasedSessionConfiguration() throws {
         let expectation = self.expectation(description: "onSessionIDChange called")
         var observedSessionID: String?

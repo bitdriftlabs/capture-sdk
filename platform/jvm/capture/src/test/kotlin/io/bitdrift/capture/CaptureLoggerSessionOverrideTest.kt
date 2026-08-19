@@ -26,6 +26,7 @@ import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldValue
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
@@ -119,7 +120,8 @@ class CaptureLoggerSessionOverrideTest {
                 apiUrl = testServerUrl(),
                 fieldProviders = listOf(),
                 dateProvider = systemDateProvider,
-                sessionStrategy = SessionStrategy.Fixed { "foo" },
+                sessionStrategy =
+                    SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "foo")),
                 configuration = Configuration(sessionReplayConfiguration = null),
                 context = context,
                 preferences = preferences,
@@ -163,7 +165,8 @@ class CaptureLoggerSessionOverrideTest {
                 apiUrl = testServerUrl(),
                 fieldProviders = listOf(),
                 dateProvider = systemDateProvider,
-                sessionStrategy = SessionStrategy.Fixed { "bar" },
+                sessionStrategy =
+                    SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "bar")),
                 configuration = Configuration(sessionReplayConfiguration = null),
                 context = context,
                 preferences = preferences,

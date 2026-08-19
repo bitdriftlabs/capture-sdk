@@ -16,17 +16,13 @@ sealed class SessionStrategy {
     internal data class Configuration(
         val configuration: SessionConfiguration,
     ) : SessionStrategy()
+
     /**
-     * A session strategy that never expires the session ID but does not survive process restart.
+     * Deprecated compatibility shim for a session that never expires across process restarts.
      *
-     * The initial session ID is retrieved by calling the passed closure.
-     *
-     * Whenever a new session is manually started via `startNewSession` method call, the closure is
-     * invoked to generate a new session ID.
-     * @param sessionIdGenerator The callback that will invoked to obtain the session ID to use. Upon the initialization
-     *  of the logger the function is called on the thread that's used to configure the logger.
-     *  Subsequent function calls are performed every time [io.bitdrift.Bitdrift.Logger.startNewSession]
-     *  method is called using the thread on which the method is called.
+     * [sessionIdGenerator] is retained for source compatibility but is no longer invoked. Capture
+     * generates UUIDs for SDK-created sessions; use [SessionConfiguration.initialSessionId] when
+     * an application needs to supply an initial ID.
      */
     data class Fixed
         @JvmOverloads
@@ -59,7 +55,7 @@ sealed class SessionStrategy {
             is Configuration -> configuration.createSessionStrategyConfiguration()
             is Fixed ->
                 SessionStrategyConfiguration(
-                    initialSessionId = sessionIdGenerator(),
+                    initialSessionId = null,
                     inactivityTimeoutMins = null,
                     onSessionIdChanged = null,
                 )

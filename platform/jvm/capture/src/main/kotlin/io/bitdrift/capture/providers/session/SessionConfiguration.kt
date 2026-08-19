@@ -12,8 +12,10 @@ import kotlin.time.Duration
  *
  * Capture creates a session when the SDK starts and whenever
  * [io.bitdrift.capture.Capture.Logger.startNewSession] is called. An SDK-created session ID is a
- * UUID. A caller-supplied ID is used exactly for the initialization or explicit session start in
- * which it is provided; it does not establish an ownership mode for future sessions.
+ * UUID. Without [inactivityTimeout], Capture uses [initialSessionId] whenever the SDK starts; it
+ * never reuses a persisted session. With [inactivityTimeout], [initialSessionId] seeds only the
+ * first session. Later SDK starts reuse the persisted session while it remains active and create
+ * an SDK UUID only after the inactivity period has elapsed.
  *
  * When [inactivityTimeout] is set, a period of inactivity rotates the session to an SDK-created
  * UUID. Calling `startNewSession` with a non-null ID always uses that ID, including with an
@@ -24,8 +26,8 @@ import kotlin.time.Duration
  * session, inactivity-driven rotations, and every explicit session start. It is always invoked
  * asynchronously on the Android main thread.
  *
- * @property initialSessionId Optional ID to use for the initial session. When absent, Capture
- * generates a UUID.
+ * @property initialSessionId Optional ID to use whenever no inactivity timeout is configured, or
+ * to seed the first session when one is configured. When absent, Capture generates a UUID.
  * @property inactivityTimeout Optional inactivity duration after which Capture generates a new
  * UUID session ID. When absent, activity-based rotation is disabled.
  * @property onSessionIdChanged Optional callback that receives each new session ID.

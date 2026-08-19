@@ -599,18 +599,11 @@ public final class SessionStrategyObjc: NSObject {
         return SessionStrategyObjc(sessionStrategy: .fixed())
     }
 
-    /// A session strategy that never expires the session ID but does not survive process restart.
+    /// Compatibility shim for a session that never expires across process restarts.
     ///
-    /// The initial session ID is retrieved by calling the passed closure.
-    ///
-    /// Whenever a new session is manually started via `startNewSession` method call, the closure is
-    /// invoked to generate a new session ID.
-    ///
-    /// - parameter sessionIDGenerator: The closure that returns the session ID to use. Upon the
-    ///                                 initialization of the logger the closure is called on the thread
-    ///                                 that's used to configure the logger. Subsequent closure calls are
-    ///                                 performed every time logger's `startNewSession` method is called
-    ///                                 using the thread on which the method is called.
+    /// `sessionIDGenerator` is retained for source compatibility but is no longer invoked. Capture
+    /// generates UUIDs for SDK-created sessions; use `SessionConfigurationObjc` when an application
+    /// needs to supply an initial ID.
     ///
     /// - returns: The fixed session strategy.
     @objc

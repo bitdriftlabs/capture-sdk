@@ -43,21 +43,21 @@ class SessionStrategyTest {
 
         val logger =
             LoggerImpl(
-            apiKey = "test",
-            apiUrl = testServerUrl(),
-            fieldProviders = listOf(),
-            dateProvider = mock(),
-            context = ContextHolder.APP_CONTEXT,
-            sessionStrategy =
-                SessionStrategy.Configuration(
-                    SessionConfiguration(
-                        initialSessionId = initialSessionId,
-                        onSessionIdChanged = observedSessionIds::add,
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = mock(),
+                context = ContextHolder.APP_CONTEXT,
+                sessionStrategy =
+                    SessionStrategy.Configuration(
+                        SessionConfiguration(
+                            initialSessionId = initialSessionId,
+                            onSessionIdChanged = observedSessionIds::add,
+                        ),
                     ),
-                ),
-            configuration = Configuration(),
-            preferences = mock(),
-        )
+                configuration = Configuration(),
+                preferences = mock(),
+            )
 
         assertThat(logger.sessionId).isEqualTo(initialSessionId)
         shadowOf(Looper.getMainLooper()).idle()

@@ -114,7 +114,10 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      *
      * @param loggerId the logger to start a new session for.
      */
-    external fun startNewSession(loggerId: Long, sessionId: String?)
+    external fun startNewSession(
+        loggerId: Long,
+        sessionId: String?,
+    )
 
     /**
      * Returns currently active session Id.

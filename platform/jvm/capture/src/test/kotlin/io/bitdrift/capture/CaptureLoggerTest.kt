@@ -32,6 +32,7 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -91,7 +92,8 @@ class CaptureLoggerTest {
     private fun <T> withLogger(
         fieldProvider: FieldProvider? = null,
         dateProvider: DateProvider = systemDateProvider,
-        sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+        sessionStrategy: SessionStrategy =
+            SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
         context: android.content.Context = ContextHolder.APP_CONTEXT,
         windowManager: IWindowManager = WindowManager(ErrorHandler()),
         block: (LoggerImpl) -> T,
@@ -376,7 +378,7 @@ class CaptureLoggerTest {
 
     @Test
     @Suppress("TooGenericExceptionThrown")
-    fun `exceptions thrown by session strategy are ignored`() {
+    fun `session generator compatibility callback is not invoked`() {
         val providerLatch = CountDownLatch(1)
 
         val dateProvider = mock<DateProvider>()
@@ -395,7 +397,7 @@ class CaptureLoggerTest {
                 },
         ) { logger ->
             logger.log(LogLevel.DEBUG) { "logging..." }
-            assert(providerLatch.await(1, TimeUnit.SECONDS))
+            assertThat(providerLatch.await(100, TimeUnit.MILLISECONDS)).isFalse()
         }
     }
 
@@ -491,7 +493,8 @@ class CaptureLoggerTest {
     private fun buildLogger(
         fieldProvider: FieldProvider? = null,
         dateProvider: DateProvider = mock<DateProvider>(),
-        sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+        sessionStrategy: SessionStrategy =
+            SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
         context: android.content.Context = ContextHolder.APP_CONTEXT,
         windowManager: IWindowManager = WindowManager(ErrorHandler()),
     ): LoggerImpl {

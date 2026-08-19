@@ -11,38 +11,20 @@ internal open class SessionStrategyConfiguration(
     private val initialSessionId: String?,
     private val inactivityTimeoutMins: Long?,
     private val onSessionIdChanged: ((String) -> Unit)?,
-    private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
+    private val mainThreadHandlerOverride: MainThreadHandler? = null,
 ) {
+    private val mainThreadHandler by lazy { mainThreadHandlerOverride ?: MainThreadHandler() }
+
     fun initialSessionId(): String? = initialSessionId
 
     /** A negative value means activity-based refresh is disabled. */
     fun inactivityTimeoutMins(): Long = inactivityTimeoutMins ?: -1L
 
     fun sessionIdChanged(sessionId: String) {
-        mainThreadHandler.run {
-            onSessionIdChanged.invokeCatchingOrThrowOnDebug(sessionId)
+        onSessionIdChanged?.let { callback ->
+            mainThreadHandler.run {
+                callback.invokeCatchingOrThrowOnDebug(sessionId)
+            }
         }
     }
-
-    /** Deprecated bridge adapter retained for source compatibility. */
-    class Fixed(
-        private val sessionStrategy: SessionStrategy.Fixed,
-    ) : SessionStrategyConfiguration(
-        initialSessionId = null,
-        inactivityTimeoutMins = null,
-        onSessionIdChanged = null,
-    ) {
-        fun generateSessionId(): String = sessionStrategy.sessionIdGenerator()
-    }
-
-    /** Deprecated bridge adapter retained for source compatibility. */
-    class ActivityBased(
-        private val sessionStrategy: SessionStrategy.ActivityBased,
-        mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-    ) : SessionStrategyConfiguration(
-        initialSessionId = null,
-        inactivityTimeoutMins = sessionStrategy.inactivityThresholdMins,
-        onSessionIdChanged = sessionStrategy.onSessionIdChanged,
-        mainThreadHandler = mainThreadHandler,
-    )
 }

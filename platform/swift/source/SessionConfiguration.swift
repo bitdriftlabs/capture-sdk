@@ -7,9 +7,11 @@ import Foundation
 ///
 /// This is the canonical session API. `SessionStrategy` is retained only as a compatibility shim.
 /// Capture creates a session when the SDK starts and whenever `startNewSession` is called. An
-/// SDK-created session ID is a UUID. A supplied ID is used exactly for the initialization or
-/// explicit session start in which it is provided; it does not establish an ownership mode for
-/// future sessions.
+/// SDK-created session ID is a UUID. Without `inactivityTimeout`, Capture uses
+/// `initialSessionID` whenever the SDK starts and never reuses a persisted session. With an
+/// inactivity timeout, `initialSessionID` seeds only the first session; later SDK starts reuse
+/// the persisted session while it remains active and create an SDK UUID only after the inactivity
+/// period has elapsed.
 ///
 /// When `inactivityTimeout` is set, a period of inactivity rotates the session to an SDK-created
 /// UUID. Calling `startNewSession(sessionID:)` with a non-`nil` ID always uses that ID, including
@@ -20,7 +22,8 @@ import Foundation
 /// session, inactivity-driven rotations, and every explicit session start. It is always called
 /// asynchronously on the main queue.
 public struct SessionConfiguration {
-    /// Optional ID to use for the initial session. When `nil`, Capture generates a UUID.
+    /// Optional ID to use whenever no inactivity timeout is configured, or to seed the first
+    /// session when one is configured. When `nil`, Capture generates a UUID.
     public let initialSessionID: String?
     /// Optional inactivity duration after which Capture generates a new UUID session ID. When
     /// `nil`, activity-based rotation is disabled.

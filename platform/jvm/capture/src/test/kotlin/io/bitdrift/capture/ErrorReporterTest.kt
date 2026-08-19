@@ -14,6 +14,7 @@ import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -102,7 +103,8 @@ class ErrorReporterTest {
                 fieldProviders = listOf(),
                 dateProvider = SystemDateProvider(),
                 context = ContextHolder.APP_CONTEXT,
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+                sessionStrategy =
+                    SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
                 configuration = Configuration(),
                 errorReporter = reporter,
             )
