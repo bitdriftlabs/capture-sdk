@@ -54,6 +54,9 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param osVersion the operating system version of the current device, used to identify with the backend
      * @param manufacturer the device manufacturer, used to identify with the backend on Android
      * @param model the host device model, used to identify with the backend
+     * @param appVersionCode the application version code
+     * @param osApiLevel the Android API level
+     * @param architecture the device CPU architecture
      * @param network the network implementation to use to communicate with the backend
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
      * @param errorReporter the error reporter to use for reporting error to bitdrift services.
@@ -72,6 +75,9 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         osVersion: String,
         manufacturer: String,
         model: String,
+        appVersionCode: Long,
+        osApiLevel: Int,
+        architecture: String,
         network: ICaptureNetwork,
         preferences: IPreferences,
         errorReporter: IErrorReporter,

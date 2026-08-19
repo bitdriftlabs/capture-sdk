@@ -14,7 +14,7 @@ use crate::ffi::{make_empty_nsstring, nsstring_into_string};
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
-use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
+use bd_api::{PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_crash_handler::{CrashReportHook, CrashReportInfo};
 use bd_error_reporter::reporter::{
   MetadataErrorReporter,
@@ -43,7 +43,7 @@ use platform_shared::javascript_error::{
   DeviceMetadata,
   persist_javascript_error_report,
 };
-use platform_shared::metadata::{self, Mobile};
+use platform_shared::metadata::{self, AppleStaticFields, Mobile};
 use platform_shared::{LoggerHolder, LoggerId, date_to_unix_milliseconds};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
@@ -493,6 +493,7 @@ extern "C" fn capture_create_logger(
   events_listener_target: *mut Object,
   app_id: *const c_char,
   app_version: *const c_char,
+  build_number: *const c_char,
   os_version: *const c_char,
   model: *const c_char,
   bd_network_nsobject: *mut Object,
@@ -518,21 +519,19 @@ extern "C" fn capture_create_logger(
 
       let device: Arc<bd_device::Device> = Arc::new(bd_device::Device::new(store.clone()));
 
-      let static_metadata = Arc::new(Mobile {
-        // String conversion can fail if the provided string is not UTF-8.
-        app_id: Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
-        app_version: Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
-        platform: Platform::Apple,
-        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
-        // Further, "os" as sent as a log tag is hard coded as "iOS" so we have a casing
-        // mismatch. We need to untangle all of this but we can do that when we send all fixed
-        // fields as metadata and only use the fixed fields on logs for matching.
-        os: "ios".to_string(),
-        device: device.clone(),
-        os_version: Some(unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string()),
-        manufacturer: None,
-        model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
-      });
+      let static_metadata = Arc::new(Mobile::apple(
+        Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
+        Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
+        Some(unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string()),
+        device.clone(),
+        unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
+        AppleStaticFields {
+          build_number: unsafe { CStr::from_ptr(build_number) }
+            .to_str()?
+            .to_string(),
+        },
+      ));
+      let initial_ootb_fields = static_metadata.static_log_fields();
 
       let error_reporter = MetadataErrorReporter::new(
         Arc::new(unsafe { SwiftErrorReporter::new(error_reporter_ns_object) }),
@@ -563,6 +562,7 @@ extern "C" fn capture_create_logger(
         api_key: unsafe { CStr::from_ptr(api_key) }.to_str()?.to_string(),
         session_strategy,
         metadata_provider,
+        initial_ootb_fields,
         resource_utilization_target: Box::new(resource_utilization::Target::new(
           resource_utilization_target,
         )),
