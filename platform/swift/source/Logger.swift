@@ -136,7 +136,8 @@ public final class Logger {
 
         let metadataProvider = MetadataProviderController(
             dateProvider: dateProvider ?? SystemDateProvider(),
-            ootbFieldProviders: [appStateAttributes, deviceAttributes, networkAttributes],
+            ootbFieldProviders: [deviceAttributes, networkAttributes],
+            initialOotbFieldProviders: [appStateAttributes],
             customFieldProviders: fieldProviders
         )
 
@@ -197,6 +198,7 @@ public final class Logger {
         }
 
         self.underlyingLogger = CoreLogger(logger: logger)
+        appStateAttributes.start(with: self.underlyingLogger)
 
         defer {
             let duration = timeProvider.timeIntervalSince(start)

@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added internal support for initializing and updating SDK-owned OOTB log fields.
 
 **Changed**
 

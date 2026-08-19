@@ -101,6 +101,10 @@ final class NetworkTestEnvironment {
             []
         }
 
+        func initialOotbFields() -> [Field] {
+            []
+        }
+
         func customFields() -> [Field] {
             []
         }

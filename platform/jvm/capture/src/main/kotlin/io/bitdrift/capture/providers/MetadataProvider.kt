@@ -15,12 +15,15 @@ internal class MetadataProvider(
     private val dateProvider: DateProvider,
     private val ootbFieldProviders: List<FieldProvider>,
     private val customFieldProviders: List<FieldProvider>,
+    private val initialOotbFieldProviders: List<FieldProvider> = listOf(),
     private val errorHandler: ErrorHandler,
     private val errorLog: ((String, Throwable) -> Unit) = { message, throwable -> Log.w("capture", message, throwable) },
 ) : IMetadataProvider {
     override fun timestamp(): Long = dateProvider.invoke().time
 
     override fun ootbFields(): Array<Field> = fields(ootbFieldProviders)
+
+    override fun initialOotbFields(): Array<Field> = fields(initialOotbFieldProviders)
 
     override fun customFields(): Array<Field> = fields(customFieldProviders)
 

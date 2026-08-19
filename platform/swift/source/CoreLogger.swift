@@ -162,6 +162,10 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.addField(withKey: key, value: value)
     }
 
+    func updateOotbField(withKey key: String, value: String) {
+        self.underlyingLogger.updateOotbField(withKey: key, value: value)
+    }
+
     func removeField(withKey key: String) {
         self.underlyingLogger.removeField(withKey: key)
     }

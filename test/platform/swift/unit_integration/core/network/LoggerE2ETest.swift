@@ -110,6 +110,13 @@ final class CaptureE2ENetworkTests: XCTestCase {
         ])
 
         XCTAssertEqual(logs.count, 3, "Did not find all expected initial logs")
+        for log in logs {
+            XCTAssertEqual(
+                log.field(withKey: "foreground")?.value as? String,
+                "1",
+                "Expected foreground on \(log.message)"
+            )
+        }
     }
 
     // swiftlint:disable:next function_body_length

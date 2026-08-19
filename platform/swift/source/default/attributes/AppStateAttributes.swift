@@ -13,25 +13,25 @@ final class AppStateAttributes {
     var isForeground: Bool { self.underlyingIsForeground.load() }
 
     private let underlyingIsForeground: Atomic<Bool>
+    private weak var logger: CoreLogging?
     private var notificationTokens: [NSObjectProtocol] = []
 
-    init() {
-        let state = if Thread.isMainThread {
+    init(notificationCenter: NotificationCenter = .default) {
+        let appState = if Thread.isMainThread {
             UIApplication.shared.applicationState
         } else {
             DispatchQueue.main.sync {
-                // The a UIKit API needs to be accessed on the main thread/queue.
                 UIApplication.shared.applicationState
             }
         }
 
-        self.underlyingIsForeground = Atomic(state != .background)
+        self.underlyingIsForeground = Atomic(appState != .background)
 
         let appForegrounded = { [weak self] (_: Notification) in
-            _ = self?.underlyingIsForeground.update { $0 = true }
+            self?.updateForeground(true)
+            return
         }
 
-        let notificationCenter = NotificationCenter.default
         self.notificationTokens = [
             notificationCenter.bitdrift_addObserver(
                 forName: UIApplication.willEnterForegroundNotification,
@@ -44,9 +44,13 @@ final class AppStateAttributes {
             notificationCenter.bitdrift_addObserver(
                 forName: UIApplication.didEnterBackgroundNotification
             ) { [weak self] _ in
-                self?.underlyingIsForeground.update { $0 = false }
+                self?.updateForeground(false)
             },
         ]
+    }
+
+    func start(with logger: CoreLogging) {
+        self.logger = logger
     }
 
     deinit {
@@ -60,5 +64,12 @@ extension AppStateAttributes: FieldProvider {
             /// Whether or not the app was in the background by the time the log was fired.
             "foreground": self.isForeground ? "1" : "0",
         ]
+    }
+}
+
+private extension AppStateAttributes {
+    func updateForeground(_ isForeground: Bool) {
+        self.underlyingIsForeground.update { $0 = isForeground }
+        self.logger?.updateOotbField(withKey: "foreground", value: isForeground ? "1" : "0")
     }
 }

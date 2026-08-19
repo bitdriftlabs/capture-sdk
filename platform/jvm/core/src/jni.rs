@@ -790,7 +790,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
             .to_string(),
         },
       ));
-      let initial_ootb_fields = static_metadata.static_log_fields();
+      let mut initial_ootb_fields = static_metadata.static_log_fields();
 
       let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
       let error_reporter = MetadataErrorReporter::new(
@@ -835,11 +835,13 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       };
 
       let executor = jni::Executor::new(Arc::new(env.get_java_vm()?));
+      let metadata_provider = Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?);
+      initial_ootb_fields.extend(metadata_provider.initial_ootb_fields()?);
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
         session,
-        metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
+        metadata_provider,
         initial_ootb_fields,
         resource_utilization_target,
         session_replay_target,

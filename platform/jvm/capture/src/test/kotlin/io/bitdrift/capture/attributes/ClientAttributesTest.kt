@@ -48,7 +48,7 @@ class ClientAttributesTest {
     fun foreground() {
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).dynamicFields()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).initialOotbFields()
 
         assertThat(clientAttributes).containsEntry("foreground", "1")
     }
@@ -57,7 +57,7 @@ class ClientAttributesTest {
     fun not_foreground() {
         val mockedLifecycleOwnerLifecycleStateCreated = obtainMockedLifecycleOwnerWith(Lifecycle.State.CREATED)
 
-        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateCreated).dynamicFields()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateCreated).initialOotbFields()
 
         assertThat(clientAttributes).containsEntry("foreground", "0")
     }
@@ -70,7 +70,7 @@ class ClientAttributesTest {
                 obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED),
             ).dynamicFields()
 
-        assertThat(fields).containsKey("foreground")
+        assertThat(fields).doesNotContainKey("foreground")
         assertThat(fields).doesNotContainKeys("app_id", "app_version", "_app_version_code", "model")
     }
 
