@@ -40,6 +40,7 @@ private struct RuntimeFileState {
     private let previousRunInfoController: PreviousRunInfoController?
 
     private var isBitdriftCrashHandlerEnabled = false
+    var metricKitDiagnosticManager: (any MetricKitDiagnosticManaging)?
 
     init(
         previousRunInfoController: PreviousRunInfoController?,
@@ -102,7 +103,16 @@ private struct RuntimeFileState {
             }
 
             lastRunResult = didCrashLastLaunch()
+
+            #if compiler(>=6.4)
+            if #available(iOS 27.0, *) {
+                self.metricKitDiagnosticManager = makeMetricKitDiagnosticManager(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
+            } else {
+                diagnosticReporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
+            }
+            #else
             diagnosticReporter = makeDiagnosticReporter(sdkBaseURL: sdkBaseURL, underlyingLogger: underlyingLogger)
+            #endif
 
             return .initialized(reporterInitResolution ?? .monitoring)
         }
@@ -132,12 +142,23 @@ private struct RuntimeFileState {
         self.metricManager.add(reporter)
     }
 
+    /// Starts consuming MetricKit diagnostic reports via the manager created in
+    /// `setup(sdkBaseURL:underlyingLogger:)`.
+    ///
+    /// - Warning: Must be called after the result of `setup(sdkBaseURL:underlyingLogger:)`
+    /// has been applied to shared state, for the same reason `activate(reporter:)` is deferred.
+    func activateMetricKitDiagnosticManager() {
+        self.metricKitDiagnosticManager?.start()
+    }
+
     /// Stops all active crash handlers. Called on logger teardown.
     func stop() {
         self.ksCrashHandler.stopCrashReporter()
         if isBitdriftCrashHandlerEnabled {
             self.bitdriftCrashHandler.stopCrashReporter()
         }
+        self.metricKitDiagnosticManager?.stop()
+        self.metricKitDiagnosticManager = nil
     }
 }
 
@@ -296,3 +317,48 @@ private extension CrashReporterService {
         return RuntimeFileState(resolution: resolution, bitdriftCrashReporterEnabled: bitdriftCrashReporterEnabled)
     }
 }
+
+#if compiler(>=6.4)
+extension CrashReporterService {
+    @available(iOS 27.0, *)
+    func makeMetricKitDiagnosticManager(
+        sdkBaseURL: URL,
+        underlyingLogger: CoreLogging
+    ) -> MetricKitDiagnosticManager {
+        let useStackOverlapMatching = underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
+        let fileSizeOptimizationEnabled = underlyingLogger.runtimeValue(.optimizeFatalIssueReportSize)
+        let memoryPressureLevel = underlyingLogger.previousMemoryPressureLevel()
+        let outputDir = sdkBaseURL.appendingPathComponent(Constants.reportCollectionDirectory, isDirectory: true)
+        return MetricKitDiagnosticManager(
+            outputDir: outputDir,
+            sdkVersion: capture_get_sdk_version(),
+            memoryPressureLevel: memoryPressureLevel,
+            fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
+            useStackOverlapMatching: useStackOverlapMatching,
+            crashReporting: self,
+            crashEnrichmentSummaryHandler: { [weak underlyingLogger] summary in
+                let matcherMode = useStackOverlapMatching ? "base" : "exact"
+                guard let underlyingLogger,
+                      let summary,
+                      let outcome = summary["outcome"],
+                      let reason = summary["reason"]
+                else {
+                    return
+                }
+
+                underlyingLogger.logInternal(
+                    level: .debug,
+                    message: "[CrashEnrichment] MetricKit crash enrichment summary",
+                    fields: [
+                        "outcome": outcome,
+                        "reason": reason,
+                        "matcher_mode": matcherMode,
+                    ]
+                )
+            }
+        ) { [weak underlyingLogger] in
+            underlyingLogger?.processIssueReports(reportProcessingSession: .previousRun)
+        }
+    }
+}
+#endif

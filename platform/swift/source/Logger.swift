@@ -265,6 +265,7 @@ public final class Logger {
                 if let reporter = result.diagnosticReporter {
                     self.crashReporterService?.activate(reporter: reporter)
                 }
+                self.crashReporterService?.activateMetricKitDiagnosticManager()
             }
         }
     }
