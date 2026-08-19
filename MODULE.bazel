@@ -53,8 +53,6 @@ SDK_BUILD_TOOLS_VERSION = "36.1.0"
 # Bazel dependencies
 ####################
 
-http_jar = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_jar")
-
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
@@ -108,12 +106,6 @@ use_repo(
     "llvm-toolchain-minimal-22.1.7-linux-arm64",
     "llvm-toolchain-minimal-22.1.7-windows-amd64",
     "llvm-toolchain-minimal-22.1.7-windows-arm64",
-)
-
-http_jar(
-    name = "bazel_diff",
-    integrity = "sha256-Sn3WTHsfsSGbglE4xiwgbSrOdHCqXToHpVRTLnQEiJM=",
-    url = "https://github.com/Tinder/bazel-diff/releases/download/9.0.3/bazel-diff_deploy.jar",
 )
 
 new_git_repository(
