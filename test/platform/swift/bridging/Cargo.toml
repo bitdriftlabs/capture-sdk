@@ -18,7 +18,6 @@ bd-test-helpers           = { workspace = true }
 bd-test-helpers-core      = { workspace = true }
 ctor                      = { workspace = true }
 objc.workspace            = true
-objc-foundation.workspace = true
 platform_test_helpers     = { path = "../../../../platform/test_helpers" }
 protobuf.workspace        = true
 swift_bridge              = { path = "../../../../platform/swift/source" }
