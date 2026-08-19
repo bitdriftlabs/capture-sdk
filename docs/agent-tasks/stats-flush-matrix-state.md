@@ -67,13 +67,26 @@ looks like it guards one invariant may quietly be guarding two.
 
 ## Possible real regression — not test noise
 
-Ack latency has degraded ~5× and it tracks the cadence change:
+Ack latency varies by ~15x, and it tracks **time**, not the code or the config. All figures below come
+from a single install (`5f0f7b29`, installed 11:18) so the binary is constant; only the clock and the
+remote config differ:
 
-| config | ack latency |
-|---|---|
-| 30s disk | **0.6–1.4s** |
-| 5s disk, short check | 2.3–3.6s |
-| 5s disk, full sweep | **1.6–6.8s** (n=11) |
+| capture | time | config | enqueue→ack |
+|---|---|---|---|
+| `probe-reset` | 11:33 | 30s disk | 1.42, 1.52, 2.04s |
+| `T01-home` (sweep) | 12:01 | **5s disk** | 1.60, 1.71s |
+| `ack-probe` | 12:38 | 5s disk | 3.88, 8.89, 13.09, **23.07s** |
+| `ack-probe-2` | 12:50 | 5s disk | 1.94, 1.98, 8.53s |
+
+Config is constant across the last three and code across all four, so neither explains the spread.
+
+⚠ **Do not compare against the earlier `d8ac5975` sweep** (acks 0.6–1.5s) as evidence about the
+config: that was a different *build* as well as a different config, so it confounds the two. An
+earlier version of this doc did exactly that. The rows above are the ones that isolate the variable.
+
+**Not A/B tested across revs.** Nobody has rebuilt `d8ac5975` and run the two revs interleaved on one
+clock. Given how much latency drifts within an hour, sequential single-arm comparisons are worthless
+here — alternate the arms if this ever needs settling.
 
 This matters beyond the harness: the OS firewall cuts background network **~4.9s** after `ON_STOP`
 (HOME; ~3.9s for BACK). At a 6.8s ack the backgrounding upload **structurally cannot land**,
