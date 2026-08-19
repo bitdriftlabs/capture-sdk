@@ -1,16 +1,16 @@
 common --enable_bzlmod
 common --incompatible_disable_native_android_rules
+# Accepted licenses for the pinned hermetic Android SDK and NDK in MODULE.bazel.
+common --repo_env=ACCEPTED_ANDROID_SDK_LICENSE_VERSION=36
+common --repo_env=ACCEPTED_ANDROID_NDK_LICENSE_VERSION=r27c
 
 mobile-install --config=android
 
 # We need access to ld in order to build libunwind on Linux
 build:libunwind --action_env=PATH=/usr/bin
 
-build --action_env=CC --host_action_env=CC
-build --action_env=CXX --host_action_env=CXX
-build --action_env=LLVM_CONFIG --host_action_env=LLVM_CONFIG
-build --action_env=PATH --host_action_env=PATH
 build --experimental_repository_downloader_retries=3
+build --@protobuf//bazel/flags:prefer_prebuilt_protoc
 
 build --features=debug_prefix_map_pwd_is_dot
 build --features=oso_prefix_is_pwd
@@ -26,13 +26,6 @@ build --features=swift.use_global_module_cache
 # Gate the references to androidndk behind a flag to support building on arm linux.
 build:android --android_crosstool_top=@androidndk//:toolchain
 
-# TODO(snowp): Remove this once the below issues are resolved.
-# https://github.com/bazelbuild/rules_rust/issues/3564
-# https://github.com/bazelbuild/rules_rust/issues/3627
-build:ios --config=fake-nightly
-build:ios --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
-build:_rules_xcodeproj_build --config=ios
-
 build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
 build --@rules_rust//rust/settings:clippy.toml=//:.clippy.toml
 
@@ -46,19 +39,15 @@ build:compdb --config=noclippy
 
 build:noclippy --output_groups=-clippy_checks
 
+# `bazel test //...` should discover and build tests, not every build target that the wildcard
+# happens to match. Targets that are not tests remain available through `bazel build`.
+test --build_tests_only
 test --test_env=RUST_BACKTRACE=full --java_runtime_version=remotejdk_11
 
-# Shared configuration for all CI tasks.
-build:ci --config=clippy
+# Shared configuration for all CI tasks. Clippy runs in its dedicated workflow so
+# artifact builds do not pay for lint-aspect analysis.
 build:ci --config=force-xcode-version
 build:ci --define build_config=ci
-
-# Common debug configuration for iOS/Android. Used when building examples apps.
-build:dbg-common --compilation_mode=opt
-build:dbg-common --config=abort-panic
-
-build:dbg-ios --config=ios
-build:dbg-ios --config=dbg-common
 
 # Ensure that the output of the `ios_static_framework` rule is a zip as opposed to an unzipped
 # framework. Without this, the output of `ios_static_framework` is a zip when invoked with the use of
@@ -66,15 +55,11 @@ build:dbg-ios --config=dbg-common
 # Ideally we should allow for an unzipped output of `ios_static_framework` so that we can avoid having
 # to zip/unzip framework when building it but for simplicity purposes, we force the output to be always
 # zipped.
-build:rules_xcodeproj --config=dbg-ios
 build:rules_xcodeproj --define=apple.experimental.tree_artifact_outputs=0
 
 # Common release configuration for iOS/Android
 # TODO(mattklein123): Should we be compiling the rust code size optimized?
 build:release-common --compilation_mode=opt
-# TODO(mattklein123): This doesn't work for whatever reason when building tests, but we should be
-# running tests with release settings.
-build:release-common --config=abort-panic
 
 # Size optimizations, codegen-units=1 go along side LTO, which accounts for
 # about 10% reduction; -z has a non-zero smaller impact (a few pp).
@@ -93,10 +78,9 @@ build:release-android --linkopt=-fuse-ld=lld
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
 
 # Custom iOS release configuration
-build:force-xcode-version --ios_simulator_device="iPhone 17"
+build --ios_simulator_device="iPhone 17"
 build:force-xcode-version --ios_simulator_version=26.2
 build:force-xcode-version --xcode_version=26.0.1
-build:release-ios --config=ios
 build:release-ios --config=release-common --config=force-xcode-version
 build:release-ios --features=swift.enable_library_evolution
 build:release-ios --features=swift.emit_swiftinterface
@@ -111,20 +95,18 @@ build:nocache --bes_results_url=
 build:nocache --bes_backend=
 build:nocache --remote_cache=
 
-# Convenience config for disabling targets that build on macos only (e.g. iOS targets).
-build:nomacos --test_tag_filters=-macos_only --build_tag_filters=-macos_only
-
 # We run this with release-common to be as indicative of production as possible, and add in as much debug information we
 # can to allow using perf to generate flamegraphs.
 build:benchmark --config=release-common
 build:benchmark-profile --config=benchmark --@rules_rust//rust/settings:extra_rustc_flag='-Cdebuginfo=2' --force_pic
 
-# Specifies that panics should use immediate-abort to match rust-std-mobile's prebuilt std.
-# This requires RUSTC_BOOTSTRAP=1 and -Zunstable-options since immediate-abort is a nightly-only option.
-build:abort-panic --action_env=RUSTC_BOOTSTRAP=1
-build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-Zunstable-options
-build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=-C
-build:abort-panic --@rules_rust//rust/settings:extra_rustc_flag=panic=immediate-abort
+# Keep bootstrap global, but leave nightly flags opt-in at the individual Rust toolchain. Mobile
+# toolchains receive immediate-abort in MODULE.bazel because their custom std is built that way.
+build --action_env=RUSTC_BOOTSTRAP=1
+
+# Rust 1.95+ mangles the allocator symbols needed when a C++/ObjC linker performs the final link.
+# Use rules_rust's Rust-based shim for every target instead of the obsolete C++ shim.
+build --@rules_rust//rust/settings:experimental_use_allocator_libraries_with_mangled_symbols
 
 # This attempts to match what cargo-fuzz does, but it's likely a moving target with many options.
 # Occasionally check back to see if anything has changed over there.
@@ -142,17 +124,22 @@ build:fuzz --@rules_rust//rust/toolchain/channel=nightly
 
 build:fake-nightly --action_env=RUSTC_BOOTSTRAP=1
 
-# Enables TSAN for all targets. This does not currently work when targeting platforms where TSAN is not enabled in the Rust toolchain (e.g. ios-sim).
-build:tsan --config=fake-nightly
+# Enables TSan for platforms supported by their native toolchains. iOS Simulator
+# targets select a TSan Rust sysroot through the dedicated toolchain below.
+# Android does not support Rust TSan; native macOS/Linux Rust TSan requires a
+# matching TSan sysroot for that target before it can be enabled here.
 build:tsan --features=tsan
-build:tsan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=thread
-
-# Enables using TSAN with iOS tests. This does not enable tsan in Rust and may therefore result in false positivies.
-build:ios-tsan --features=tsan
+build:tsan --define=ios_tsan=true
+build:tsan --extra_toolchains=//bazel/ios:ios_tsan_rust_toolchain
 
 build:asan --config=fake-nightly
 build:asan --features=address
 build:asan --@rules_rust//rust/settings:extra_rustc_flag=-Zsanitizer=address
 
+# Tweaks what we rely on remote caching for per buidlbuddy instructions
+build --modify_execution_info=^(AppleLipo|BitcodeSymbolsCopy|BundleApp|BundleTreeApp|DsymDwarf|DsymLipo|GenerateAppleSymbolsFile|ObjcBinarySymbolStrip|CppArchive|CppLink|ObjcLink|ProcessAndSign|SignBinary|SwiftArchive|SwiftStdlibCopy)$=+no-remote,^(BundleResources|ImportedDynamicFrameworkProcessor)$=+no-remote-exec
+
+
 try-import %workspace%/tmp/ci-bazelrc
 try-import %workspace%/.bazelrc.local
+try-import %workspace%/.buildrc.bb

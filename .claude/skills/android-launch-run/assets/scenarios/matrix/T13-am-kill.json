@@ -1,0 +1,33 @@
+{
+  "name": "T13-am-kill",
+  "description": "Background, then kill the process 5s later.",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 18,
+      "why": "let the startup upload settle before backgrounding. This wait is load-bearing for TWO things and only one is obvious: the minimum-upload-interval floor (now unarmed at launch, so not the reason) AND letting the ~5s startup upload ACK before the app backgrounds. If it is still in flight it competes with the backgrounding upload and both die at the ~5s firewall cutoff. 18s covers typical ack latency (1.3-2s) and moderate outliers (8.5s observed); the tail reaches 23s, which no wait can cover, so parse_logs flags startup_upload_in_flight per run instead of pretending otherwise."
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 1.2,
+      "why": "kill lands at ~ON_STOP+390ms, reliably BEFORE the ack. Bracketed on a Pixel 10: +390ms and +865ms both beat the ack, while +1.32s lost to a 974ms ack. Ack latency ranges 633-1535ms, so no wait reliably lands on the ack's side -- aim at the side that reliably tests something. This exercises the recovery path: the disk write survives (+25ms) and the snapshot is re-uploaded on next launch, verified by uuid."
+    },
+    {
+      "action": "kill"
+    },
+    {
+      "action": "wait",
+      "seconds": 15,
+      "why": "long enough to see whether the snapshot is recovered on the next process start"
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}

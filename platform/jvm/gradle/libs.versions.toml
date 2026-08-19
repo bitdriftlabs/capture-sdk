@@ -1,6 +1,6 @@
 [versions]
 androidBenchkmarkPlugin = "1.2.4"
-androidGradlePlugin     = "8.12.0"
+androidGradlePlugin     = "8.13.2"
 androidxCore            = "1.13.1"
 androidxTestCore        = "1.6.1"
 androidxWebkit          = "1.14.0"
@@ -13,7 +13,7 @@ flatbuffers             = "25.2.10" # Unfortunately we cannot bump yet to 25.9.2
 gson                    = "2.10.1"
 jsr305                  = "3.0.2"
 junit                   = "4.13.2"
-kotlin                  = "2.1.21"
+kotlin                  = "2.3.20"
 kotlinResultJvm         = "1.1.18"
 lifecycleCommon         = "2.8.7"
 mavenPublishPlugin      = "0.28.0"
@@ -25,7 +25,6 @@ performance             = "1.0.0"
 protobufKotlinLite      = "4.31.1"
 retrofit                = "3.0.0"
 robolectric             = "4.13"
-rustAndroidPlugin       = "0.3.4"
 startupRuntime          = "1.2.0"
 timber                  = "5.0.1"
 truth                   = "1.1.4"
@@ -70,4 +69,3 @@ dokka               = { id = "org.jetbrains.dokka", version.ref = "dokkaPlugin" 
 kotlin              = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-android      = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 maven-publish       = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublishPlugin" }
-rust-android        = { id = "com.github.willir.rust.cargo-ndk-android", version.ref = "rustAndroidPlugin" }

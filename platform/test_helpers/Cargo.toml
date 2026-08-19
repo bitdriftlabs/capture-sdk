@@ -1,6 +1,6 @@
 [package]
 description  = "platform test helpers crate"
-edition      = "2021"
+edition      = "2024"
 license-file = "LICENSE"
 name         = "platform_test_helpers"
 publish      = false

@@ -12,7 +12,7 @@ mod tests;
 use crate::monitors::Monitor;
 use crate::writer::{self, NSExceptionFrameRecord};
 use objc2_foundation::{NSArray, NSException, NSNumber};
-use std::ffi::{c_char, c_int, c_void, CStr};
+use std::ffi::{CStr, c_char, c_int, c_void};
 use std::ptr::{null, null_mut, read_unaligned};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 

@@ -13,25 +13,10 @@ import io.bitdrift.capture.ApiError
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.network.okhttp.HttpApiEndpoint
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
-import io.bitdrift.capture.providers.FieldProvider
 
 internal class ErrorReporterService(
-    private val fieldProviders: List<FieldProvider>,
     private val apiClient: Lazy<OkHttpCaptureApiClient>,
 ) : IErrorReporter {
-    private fun headers(): Map<String, String> {
-        val map = mutableMapOf<String, String>()
-
-        for (fieldProvider in fieldProviders) {
-            for ((key, value) in fieldProvider()) {
-                val updatedKey = "x-" + key.replace("_", "-")
-                map[updatedKey] = value
-            }
-        }
-
-        return map
-    }
-
     override fun reportError(
         message: String,
         details: String?,
@@ -39,16 +24,10 @@ internal class ErrorReporterService(
     ) {
         val typedRequest = ErrorReportRequest(message, details)
 
-        val allFields =
-            buildMap {
-                putAll(headers())
-                putAll(fields)
-            }
-
         apiClient.value.perform<ErrorReportRequest, Unit>(
             HttpApiEndpoint.ReportSdkError,
             typedRequest,
-            allFields,
+            fields,
         ) { result ->
             when (result) {
                 is CaptureResult.Success -> {

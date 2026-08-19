@@ -1,0 +1,25 @@
+{
+  "name": "timing-cadence",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 70,
+      "why": "~14 disk ticks at 5s plus TWO periodic uploads (t+5.7 and t+65.7) - 60s is the minimum window that proves the upload cadence rather than assuming it"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 15,
+      "why": "forced flush, then the re-anchored disk flush at +5s; proves the periodic schedule reset"
+    }
+  ],
+  "reference_event": "process ON_STOP",
+  "description": "Establishes both cadences and the post-flush reset in one capture. 70s of foreground gives ~14 disk ticks at 5s and two periodic uploads 60s apart; the backgrounding then shows the schedule re-anchor on the forced flush."
+}

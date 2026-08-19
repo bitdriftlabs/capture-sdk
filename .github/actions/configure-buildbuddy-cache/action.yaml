@@ -1,0 +1,34 @@
+name: Configure BuildBuddy cache
+description: Configure Bazel to use the authenticated BuildBuddy remote cache.
+
+inputs:
+  api-key:
+    description: BuildBuddy API key.
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Write BuildBuddy configuration
+      shell: bash
+      env:
+        BUILDBUDDY_API_KEY: ${{ inputs.api-key }}
+      run: |
+        set -euo pipefail
+
+        rm -f .buildrc.bb
+        if [[ -z "$BUILDBUDDY_API_KEY" ]]; then
+          echo "BuildBuddy cache disabled: API key unavailable."
+          exit 0
+        fi
+
+        umask 077
+        {
+          echo "build --bes_backend=grpcs://remote.buildbuddy.io"
+          echo "build --bes_results_url=https://app.buildbuddy.io/invocation/"
+          echo "build --remote_cache=grpcs://remote.buildbuddy.io"
+          echo "build --remote_upload_local_results"
+          echo "build --remote_cache_compression"
+          echo "startup --experimental_remote_repo_contents_cache"
+          printf "build --remote_header=x-buildbuddy-api-key=%s\\n" "$BUILDBUDDY_API_KEY"
+        } > .buildrc.bb

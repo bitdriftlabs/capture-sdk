@@ -1,6 +1,6 @@
 [package]
 description  = "Bitdrift objc crate"
-edition      = "2021"
+edition      = "2024"
 license-file = "LICENSE"
 name         = "swift_bridge"
 publish      = false

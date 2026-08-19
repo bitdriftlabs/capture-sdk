@@ -7,9 +7,9 @@
 
 use crate::ffi::{self, make_nsstring};
 use anyhow::bail;
+use bd_session::Strategy;
 use bd_session::activity_based::Callbacks as ActivityBasedStrategyCallbacks;
 use bd_session::fixed::Callbacks as FixedStrategyCallbacks;
-use bd_session::Strategy;
 use objc::runtime::Object;
 use std::path::Path;
 use std::sync::Arc;

@@ -31,6 +31,7 @@ void capture_report_error(const char *message);
  * @param events_listener_target responsible for listening to platform events and emitting logs in response to them.
  * @param app_id the app id to identify the client as a null terminated C string.
  * @param app_version the app version to identify the client as a null terminated C string.
+ * @param build_number the app build number to attach to log metadata.
  * @param os_version the operating system version to identify the client as a null terminated C string.
  * @param model the model of the device to identify the client as a null terminated C string.
  * @param network the Capture Network protocol to use for performing network requests.
@@ -48,6 +49,7 @@ logger_id capture_create_logger(
     id<EventsListenerTarget> events_listener_target,
     const char *app_id,
     const char *app_version,
+    const char *build_number,
     const char *os_version,
     const char *model,
     _Nullable id<Network> network,
@@ -77,8 +79,6 @@ void capture_start_logger(logger_id logger_id);
  *        remote services.
  * @param matching_fields The list of matching fields that can be read when processing a given log but are
  *        not a part of the log itself.
- * @param blocking whether the method should return only after the log is processed.
- * @param blocking_timeout_ms timeout to use when waiting for the log to be processed.
  */
 void capture_write_log(
     logger_id logger_id,
@@ -87,8 +87,6 @@ void capture_write_log(
     const char *message,
     const NSArray<const Field *> *_Nullable fields,
     const NSArray<const Field *> *_Nullable matching_fields,
-    bool blocking,
-    uint32_t blocking_timeout_ms,
     int64_t occurred_at_override
 );
 

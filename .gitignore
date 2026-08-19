@@ -11,6 +11,7 @@
 .claude/settings.local.json
 
 .bazelrc.local
+.buildrc.bb
 
 compile_commands.json
 .DS_Store
@@ -37,4 +38,3 @@ rust-project.json
 /perf.data
 /perf.data.old
 vendor
-platform/jvm/capture/src/main/jniLibs/

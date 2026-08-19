@@ -20,14 +20,14 @@ use swift_bridge::conversion::{objc_value_to_rust, rust_value_to_objc};
 /// # Safety
 /// The caller must ensure that `ns_string` is a valid pointer to an `NSString` object
 /// or null. The returned pointer, if not null, points to a valid `NSString` object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn test_convert_nsstring_to_rust_and_back(
   ns_string: *const Object,
 ) -> *const Object {
   // Dereference the raw pointer and perform conversions
   // This function performs round-trip conversion: NSString -> Rust Value -> NSString
-  objc_value_to_rust(ns_string).map_or(std::ptr::null(), |value| {
-    rust_value_to_objc(&value).map_or(std::ptr::null(), |result| *result)
+  unsafe { objc_value_to_rust(ns_string) }.map_or(std::ptr::null(), |value| {
+    unsafe { rust_value_to_objc(&value) }.map_or(std::ptr::null(), |result| *result)
   })
 }
 
@@ -37,14 +37,14 @@ pub unsafe extern "C" fn test_convert_nsstring_to_rust_and_back(
 /// # Safety
 /// The caller must ensure that `ns_array` is a valid pointer to an `NSArray` object
 /// or null. The returned pointer, if not null, points to a valid `NSArray` object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn test_convert_nsarray_to_rust_and_back(
   ns_array: *const Object,
 ) -> *const Object {
   // Dereference the raw pointer and perform conversions
   // This function performs round-trip conversion: NSArray -> Rust Value -> NSArray
-  objc_value_to_rust(ns_array).map_or(std::ptr::null(), |value| {
-    rust_value_to_objc(&value).map_or(std::ptr::null(), |result| *result)
+  unsafe { objc_value_to_rust(ns_array) }.map_or(std::ptr::null(), |value| {
+    unsafe { rust_value_to_objc(&value) }.map_or(std::ptr::null(), |result| *result)
   })
 }
 
@@ -54,14 +54,14 @@ pub unsafe extern "C" fn test_convert_nsarray_to_rust_and_back(
 /// # Safety
 /// The caller must ensure that `ns_dict` is a valid pointer to an `NSDictionary` object
 /// or null. The returned pointer, if not null, points to a valid `NSDictionary` object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn test_convert_nsdictionary_to_rust_and_back(
   ns_dict: *const Object,
 ) -> *const Object {
   // Dereference the raw pointer and perform conversions
   // This function performs round-trip conversion: NSDictionary -> Rust Value -> NSDictionary
-  objc_value_to_rust(ns_dict).map_or(std::ptr::null(), |value| {
-    rust_value_to_objc(&value).map_or(std::ptr::null(), |result| *result)
+  unsafe { objc_value_to_rust(ns_dict) }.map_or(std::ptr::null(), |value| {
+    unsafe { rust_value_to_objc(&value) }.map_or(std::ptr::null(), |result| *result)
   })
 }
 
@@ -71,25 +71,23 @@ pub unsafe extern "C" fn test_convert_nsdictionary_to_rust_and_back(
 /// # Safety
 /// The caller must ensure that `ns_number` is a valid pointer to an `NSNumber` object
 /// or null. The returned pointer, if not null, points to a valid `NSNumber` object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn test_convert_nsnumber_to_rust_and_back(
   ns_number: *const Object,
 ) -> *const Object {
   // Dereference the raw pointer and perform conversions
   // This function performs round-trip conversion: NSNumber -> Rust Value -> NSNumber
-  objc_value_to_rust(ns_number).map_or(std::ptr::null(), |value| {
-    rust_value_to_objc(&value).map_or(std::ptr::null(), |result| *result)
+  unsafe { objc_value_to_rust(ns_number) }.map_or(std::ptr::null(), |value| {
+    unsafe { rust_value_to_objc(&value) }.map_or(std::ptr::null(), |result| *result)
   })
 }
 
 /// Test helper: Create a simple Rust Value and convert it to Objective-C
 /// Creates { "string": "test", "number": 42, "array": `["a", "b"]`, "bool": true, "null": null }
 ///
-/// # Safety
-/// This function calls unsafe Objective-C runtime functions to create `NSObjects`.
 /// The returned pointer, if not null, points to a valid Objective-C object.
-#[no_mangle]
-pub unsafe extern "C" fn test_create_simple_objc_structure() -> *const Object {
+#[unsafe(no_mangle)]
+pub extern "C" fn test_create_simple_objc_structure() -> *const Object {
   let mut map = AHashMap::new();
   map.insert("string".to_string(), Value::String("test".to_string()));
   map.insert("number".to_string(), Value::Signed(42));
@@ -104,9 +102,9 @@ pub unsafe extern "C" fn test_create_simple_objc_structure() -> *const Object {
   map.insert("null".to_string(), Value::Null);
 
   let value = Value::Object(map);
-  rust_value_to_objc(&value).map_or(std::ptr::null(), |result| *result)
+  unsafe { rust_value_to_objc(&value) }.map_or(std::ptr::null(), |result| *result)
 }
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn test_create_complex_objc_structure() -> *const Object {
   unsafe {
     let mut map = AHashMap::new();
@@ -130,7 +128,7 @@ pub extern "C" fn test_create_complex_objc_structure() -> *const Object {
 
 /// Test helper: Test null pointer handling
 /// Returns 1 if null pointer is properly rejected, 0 otherwise
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn test_null_pointer_handling() -> i32 {
   unsafe {
     match objc_value_to_rust(std::ptr::null()) {
@@ -145,21 +143,21 @@ pub extern "C" fn test_null_pointer_handling() -> i32 {
 /// # Safety
 /// The caller must ensure that `ns_null` is a valid pointer to an `NSNull` object
 /// or null. The returned pointer, if not null, points to a valid `NSNull` object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn test_convert_nsnull_to_rust_and_back(
   ns_null: *const Object,
 ) -> *const Object {
   // Dereference the raw pointer and perform conversions
   // This function performs round-trip conversion: NSNull -> Rust Value -> NSNull
-  objc_value_to_rust(ns_null).map_or(std::ptr::null(), |value| {
-    rust_value_to_objc(&value).map_or(std::ptr::null(), |result| *result)
+  unsafe { objc_value_to_rust(ns_null) }.map_or(std::ptr::null(), |value| {
+    unsafe { rust_value_to_objc(&value) }.map_or(std::ptr::null(), |result| *result)
   })
 }
 
 /// Test helper: Create an extremely complex and deeply nested data structure
 /// This creates a structure with 10+ levels of nesting containing all supported data types
 /// to stress-test the stack-based algorithms
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn test_create_extremely_complex_nested_structure() -> *const Object {
   unsafe {
     let level10_array = Value::Array(vec![
@@ -416,7 +414,7 @@ pub extern "C" fn test_create_extremely_complex_nested_structure() -> *const Obj
 /// Test helper: Round-trip test for the extremely complex nested structure
 /// This creates the complex structure, converts it to Objective-C, then back to Rust
 /// Returns 1 if the round-trip succeeds, 0 if it fails
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn test_complex_nested_round_trip() -> i32 {
   unsafe {
     let objc_structure = test_create_extremely_complex_nested_structure();

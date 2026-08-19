@@ -11,7 +11,9 @@
 
 **Changed**
 
-- Nothing yet!
+- Many changes to metrics reporting reliability including: independent initial flush window after
+  process start, disk flush debounce, and simplifying the events that cause flushes so that flushes
+  are more predictable in response to lifecycle events and easier to reason about.
 
 **Fixed**
 
@@ -31,7 +33,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Include pre-desugar AAR classes in published Android artifacts.
 
 ### iOS
 

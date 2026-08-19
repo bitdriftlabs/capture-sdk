@@ -171,8 +171,8 @@ internal class LoggerImpl(
                 // case of key conflicts.
                 ootbFieldProviders =
                     listOf(
-                        clientAttributes,
                         networkAttributes,
+                        FieldProvider { clientAttributes.dynamicFields() },
                     ),
                 errorHandler = errorHandler,
                 customFieldProviders = fieldProviders,
@@ -190,7 +190,6 @@ internal class LoggerImpl(
 
         val localErrorReporter =
             errorReporter ?: ErrorReporterService(
-                listOf(clientAttributes),
                 apiClient,
             )
 
@@ -241,6 +240,9 @@ internal class LoggerImpl(
                 clientAttributes.osVersion,
                 clientAttributes.manufacturer,
                 clientAttributes.model,
+                clientAttributes.appVersionCode,
+                clientAttributes.osApiLevel,
+                clientAttributes.architecture,
                 network,
                 preferences,
                 localErrorReporter,
@@ -509,8 +511,10 @@ internal class LoggerImpl(
                 matchingArrayFields.values,
                 previousRunSessionId,
                 occurredAtTimestampMs,
-                blocking,
             )
+            if (blocking) {
+                flush(blocking = true)
+            }
         } catch (e: Throwable) {
             errorHandler.handleError("write log", e)
         }

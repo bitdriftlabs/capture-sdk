@@ -20,31 +20,30 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure BuildBuddy cache
+        uses: ./.github/actions/configure-buildbuddy-cache
+        with:
+          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       - name: Check for crash reporter changes
         id: crash_check
-        run: |
-          ./ci/files_changed.sh '^(platform/crash/|Cargo\.toml$|Cargo\.lock$|Cargo\.Bazel\.lock$|MODULE\.bazel$|MODULE\.bazel\.lock$|\.cargo/|\.github/workflows/crash_reporter\.yaml$)'
-        continue-on-error: true
+        uses: ./.github/actions/files-changed
+        with:
+          regex: '^(platform/crash/|Cargo\.toml$|Cargo\.lock$|Cargo\.Bazel\.lock$|MODULE\.bazel$|MODULE\.bazel\.lock$|\.cargo/|\.github/workflows/crash_reporter\.yaml$)'
 
       - name: Determine if tests should run
         id: check_changes
         run: |
-          crash_status="${{ steps.crash_check.outputs.check_result }}"
+          crash_changed="${{ steps.crash_check.outputs.changed }}"
 
-          echo "crash_status: $crash_status"
+          echo "crash_changed: $crash_changed"
 
-          if [[ "$crash_status" == "1" ]]; then
-            echo "An unexpected issue occurred during checks."
-            exit 1
-          elif [[ "$crash_status" == "0" ]]; then
+          if [[ "$crash_changed" == "true" ]]; then
             echo "Changes detected in crash reporter files. Running tests."
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
-          elif [[ "$crash_status" == "2" ]]; then
+          else
             echo "No relevant crash reporter changes found."
             echo "run_tests=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "Unknown issue."
-            exit 1
           fi
         shell: bash
 

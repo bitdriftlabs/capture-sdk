@@ -4,7 +4,7 @@
 load("@google_bazel_common//tools/maven:pom_file.bzl", "pom_file")
 load("@rules_android//android:rules.bzl", "android_binary")
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("@rules_java//java:defs.bzl", "java_binary")
+load("@rules_java//java:defs.bzl", "JavaInfo", "java_binary")
 load("//bazel/android:dokka.bzl", "sources_javadocs")
 
 # This file is based on https://github.com/aj-michael/aar_with_jni which is
@@ -59,7 +59,7 @@ def android_artifacts(name, android_library, manifest, archive_name, native_deps
     """
 
     # Create the aar
-    classes_jar = _create_classes_jar(name, manifest, android_library, sdk_verification_file)
+    classes_jar = _create_classes_jar(name, android_library, sdk_verification_file)
     jni_archive = _create_jni_library(name, native_deps)
     aar_output = _create_aar(name, classes_jar, jni_archive, proguard_rules, manifest, visibility)
 
@@ -213,55 +213,91 @@ def _create_jni_library(name, native_deps = []):
 
     return jni_archive_name + "_unsigned.apk"
 
-def _create_classes_jar(name, manifest, android_library, sdk_verification_file):
+def _create_classes_jar_impl(ctx):
+    runtime_jars = ctx.attr.android_library[JavaInfo].transitive_runtime_jars
+    args = ctx.actions.args()
+    args.add(ctx.outputs.out)
+    args.add(ctx.executable._zipper)
+    args.add_all(runtime_jars)
+    args.add("--sdk-verification-files")
+    args.add_all(ctx.files.sdk_verification_file)
+
+    ctx.actions.run_shell(
+        inputs = depset(
+            direct = ctx.files.sdk_verification_file,
+            transitive = [runtime_jars],
+        ),
+        tools = [ctx.executable._zipper],
+        outputs = [ctx.outputs.out],
+        arguments = [args],
+        command = """
+        set -euo pipefail
+
+        output=$1
+        zipper=$2
+        shift 2
+        original_directory=$PWD
+        classes_dir=$(mktemp -d)
+        trap 'rm -rf "$classes_dir"' EXIT
+
+        # An AAR's classes.jar is an input to the consuming app's R8/desugar invocation.
+        # Previously we built an android_binary and extracted its deploy JAR here. That JAR
+        # has already passed through D8 desugaring, so it can contain intermediate
+        # $$ExternalSyntheticBackport classes and their synthetic context. Newer R8 versions
+        # reject those intermediates when they are supplied again by an AAR consumer.
+        #
+        # Instead, package the SDK classes from the android_library's runtime JARs, before
+        # the Android desugar action. The consuming app now owns the one desugar pass over
+        # these classes and produces any synthetic classes consistently with its own inputs.
+        # Preserve the AAR contents from the previous packaging flow:
+        # - SDK classes, without third-party dependencies;
+        # - SDK Kotlin module metadata under META-INF/platform*; and
+        # - the optional Google Play SDK ownership verification file below.
+        while [[ $1 != "--sdk-verification-files" ]]; do
+          unzip -qq -o "$1" "META-INF/platform*" "io/bitdrift/capture/*" -d "$classes_dir" > /dev/null 2>&1 || true
+          shift
+        done
+        shift
+
+        for sdk_verification_file in "$@"; do
+          mkdir -p "$classes_dir/META-INF/io/bitdrift/capture"
+          cp "$sdk_verification_file" "$classes_dir/META-INF/io/bitdrift/capture/verification.properties"
+        done
+
+        pushd "$classes_dir"
+          "$original_directory/$zipper" Cc "$original_directory/$output" $(find . -type f -print | sed 's#^\\./##' | sort)
+        popd
+        """,
+        mnemonic = "CreateAndroidAarClassesJar",
+        progress_message = "Creating pre-desugar classes.jar for %{label}",
+    )
+
+_create_classes_jar_rule = rule(
+    implementation = _create_classes_jar_impl,
+    attrs = {
+        "android_library": attr.label(mandatory = True, providers = [JavaInfo]),
+        "sdk_verification_file": attr.label_list(allow_files = True),
+        "_zipper": attr.label(
+            default = "//bazel:zipper",
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+    outputs = {"out": "%{name}.jar"},
+)
+
+def _create_classes_jar(name, android_library, sdk_verification_file):
     """Creates the classes.jar which contains all the kotlin/java classes
 
     Args:
         name: The name of the top level macro
-        manifest: The manifest file used to create the initial apk
         android_library: The android library target
         sdk_verification_file: Optional Google Play SDK verification.properties file to include in classes.jar.
     """
-    android_binary_name = name + "_bin"
-
-    # This jar has all the classes needed for our aar and will be our `classes.jar`
-    android_binary(
-        name = android_binary_name,
-        manifest = manifest,
-        custom_package = "does.not.matter",
-        srcs = [],
-        deps = [android_library],
-    )
-
-    # Extract the files we care to propagate from the deploy JAR:
-    # - .class files coming from this project, with no third party dependencies included
-    # - .kotlin_modules pertaining to the project. We filter in only them by looking for
-    #   files that look like META-INF/core_platform_jvm-capture_network_lib.kotlin_module.
-    # - optional Google Play SDK verification file for SDK ownership verification.
-    native.genrule(
-        name = name + "_classes_jar",
-        outs = [name + "_classes.jar"],
-        srcs = [android_binary_name + "_deploy.jar"] + sdk_verification_file,
-        tools = ["//bazel:zipper"],
-        cmd = """
-        set -- $(SRCS)
-        deploy_jar=$$1
-        shift
-
-        ZIPPER="$$PWD/$(execpath //bazel:zipper)"
-        original_directory=$$PWD
-        classes_dir=$$(mktemp -d)
-        echo "Creating classes.jar from $(SRCS)"
-        pushd $$classes_dir
-          unzip $$original_directory/$$deploy_jar "META-INF/platform*" io/bitdrift/capture/* > /dev/null
-          for sdk_verification_file in "$$@"; do
-            mkdir -p META-INF/io/bitdrift/capture
-            cp $$original_directory/$$sdk_verification_file META-INF/io/bitdrift/capture/verification.properties
-          done
-          "$$ZIPPER" Cc classes.jar $$(find . -type f -print | sed 's#^\\./##' | sort)
-        popd
-        cp $$classes_dir/classes.jar $@
-        """,
+    _create_classes_jar_rule(
+        name = name + "_classes",
+        android_library = android_library,
+        sdk_verification_file = sdk_verification_file,
     )
 
     return name + "_classes.jar"

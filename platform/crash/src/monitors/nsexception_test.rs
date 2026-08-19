@@ -8,21 +8,21 @@
 #![allow(clippy::unwrap_used)]
 
 use super::{
+  ExceptionHandler,
+  ExceptionSnapshot,
+  IN_HANDLER,
+  PREVIOUS_HANDLER,
   chain_previous,
   handle_exception_snapshot,
   previous_handler,
   store_previous_handler,
   try_enter_handler,
-  ExceptionHandler,
-  ExceptionSnapshot,
-  IN_HANDLER,
-  PREVIOUS_HANDLER,
 };
 use crate::schema::{self, CrashKind, CrashRecord, RecordState};
 use crate::test_support::test_crash_record_guard;
-use crate::writer::{prime_shared_record, CRASH_RECORD};
+use crate::writer::{CRASH_RECORD, prime_shared_record};
 use objc2_foundation::NSException;
-use std::ptr::{null_mut, NonNull};
+use std::ptr::{NonNull, null_mut};
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
@@ -220,12 +220,14 @@ fn handle_exception_snapshot_records_missing_reason_and_empty_stack() {
   assert_eq!(record.header.record_state, RecordState::Committed);
   assert_eq!(record.nsexception.reason[0], 0);
   assert_eq!(record.nsexception.call_stack.frame_count, 0);
-  assert!(record
-    .nsexception
-    .call_stack
-    .frames
-    .iter()
-    .all(|frame| frame == &schema::RawNSExceptionStackFrame::default()));
+  assert!(
+    record
+      .nsexception
+      .call_stack
+      .frames
+      .iter()
+      .all(|frame| frame == &schema::RawNSExceptionStackFrame::default())
+  );
 }
 
 #[test]

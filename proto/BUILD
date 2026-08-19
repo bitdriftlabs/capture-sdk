@@ -17,7 +17,7 @@ flatbuffer_library_public(
         "buffer_log.schema.json",
     ],
     # This seems crazy hacky
-    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
+    include_paths = ["external/+new_git_repository+bitdrift_api/src"],
     includes = ["@bitdrift_api//:common"],
     language_flag = "--jsonschema",
 )
@@ -31,7 +31,7 @@ flatbuffer_library_public(
         "report_generated.swift",
     ],
     # This seems crazy hacky
-    include_paths = ["external/+_repo_rules3+bitdrift_api/src"],
+    include_paths = ["external/+new_git_repository+bitdrift_api/src"],
     includes = ["@bitdrift_api//:common"],
     language_flag = "--swift",
 )
