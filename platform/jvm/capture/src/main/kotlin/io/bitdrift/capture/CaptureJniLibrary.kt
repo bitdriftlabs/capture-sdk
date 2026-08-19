@@ -226,7 +226,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         matchingFieldKeys: Array<String>,
         matchingFieldValues: Array<String>,
         usePreviousProcessSessionId: Boolean,
-        overrideOccurredAtUnixMilliseconds: Long
+        overrideOccurredAtUnixMilliseconds: Long,
     )
 
     /**

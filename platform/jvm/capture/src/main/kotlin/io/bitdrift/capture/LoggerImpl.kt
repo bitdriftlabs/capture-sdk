@@ -505,7 +505,7 @@ internal class LoggerImpl(
                 matchingArrayFields.keys,
                 matchingArrayFields.values,
                 previousRunSessionId,
-                occurredAtTimestampMs
+                occurredAtTimestampMs,
             )
             if (blocking) {
                 flush(blocking = true)
