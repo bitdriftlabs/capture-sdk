@@ -38,6 +38,21 @@ final class SessionStrategyTests: XCTestCase {
 
         logger.startNewSession(sessionID: explicitSessionID)
         XCTAssertEqual(explicitSessionID, logger.sessionID)
+        let explicitCallback = expectation(description: "explicit callback")
+        DispatchQueue.main.async {
+            XCTAssertEqual([initialSessionID, explicitSessionID], observedSessionIDs)
+            explicitCallback.fulfill()
+        }
+        wait(for: [explicitCallback], timeout: 1)
+
+        logger.startNewSession(sessionID: explicitSessionID)
+        XCTAssertEqual(explicitSessionID, logger.sessionID)
+        let repeatedIDCallback = expectation(description: "repeated ID callback")
+        DispatchQueue.main.async {
+            XCTAssertEqual([initialSessionID, explicitSessionID, explicitSessionID], observedSessionIDs)
+            repeatedIDCallback.fulfill()
+        }
+        wait(for: [repeatedIDCallback], timeout: 1)
 
         logger.startNewSession()
         XCTAssertNotNil(UUID(uuidString: logger.sessionID))

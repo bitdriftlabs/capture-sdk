@@ -301,8 +301,8 @@ object Capture {
          * Creates a new session with an app-provided ID within the currently running logger.
          *
          * A non-empty [sessionId] becomes the new session ID. When [sessionId] is null or empty,
-         * Capture generates a UUID. This always creates a session boundary, even if [sessionId]
-         * equals the current ID. If no logger is started, this is a no-op.
+         * Capture generates a UUID. Every call invokes the configured session-ID callback, even if
+         * [sessionId] equals the current ID. If no logger is started, this is a no-op.
          */
         @JvmStatic
         fun startNewSession(sessionId: String?) {

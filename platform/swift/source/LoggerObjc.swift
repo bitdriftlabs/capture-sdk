@@ -308,8 +308,8 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.startNewSession()
     }
 
-    /// Creates a new session with the supplied ID. This always creates a session boundary, even
-    /// when the ID equals the current one.
+    /// Creates a new session with the supplied ID. This invokes the configured session-ID callback,
+    /// even when the ID equals the current one.
     ///
     /// - parameter sessionID: The optional non-empty ID for the new session.
     @objc(startNewSessionWithSessionID:)
@@ -650,9 +650,9 @@ public final class SessionStrategyObjc: NSObject {
     ///
     /// - parameter inactivityThresholdMins: The amount of minutes of inactivity after which a session ID
     ///                                      changes.
-    /// - parameter onSessionIDChange:       Closure that is invoked with the new value every time the session
-    ///                                      ID changes. This callback is dispatched asynchronously to the
-    ///                                      main queue.
+    /// - parameter onSessionIDChange:       Closure that receives the active session ID after each session
+    ///                                      start or rotation, including explicit starts with the current ID.
+    ///                                      This callback is dispatched asynchronously to the main queue.
     ///
     /// - returns: The activity based session strategy that expires session after a specified duration of time
     ///            without any app activity.

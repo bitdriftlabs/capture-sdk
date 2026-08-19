@@ -34,9 +34,9 @@ public enum SessionStrategy {
     ///
     /// - parameter inactivityThresholdMins: The amount of minutes of inactivity after which a session ID
     ///                                      changes. The default value is 30 minutes.
-    /// - parameter onSessionIDChanged:      Closure that is invoked with the new value every time the session
-    ///                                      ID changes. This callback is dispatched asynchronously to the
-    ///                                      main queue.
+    /// - parameter onSessionIDChanged:      Closure that receives the active session ID after each session
+    ///                                      start or rotation, including explicit starts with the current ID.
+    ///                                      This callback is dispatched asynchronously to the main queue.
     case activityBased(inactivityThresholdMins: Int = 30, onSessionIDChanged: ((String) -> Void)? = nil)
 }
 

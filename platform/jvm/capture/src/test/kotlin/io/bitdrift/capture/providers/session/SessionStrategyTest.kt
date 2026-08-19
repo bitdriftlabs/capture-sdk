@@ -68,11 +68,18 @@ class SessionStrategyTest {
         shadowOf(Looper.getMainLooper()).idle()
         assertThat(observedSessionIds).containsExactly(initialSessionId, explicitSessionId)
 
+        logger.startNewSession(explicitSessionId)
+        assertThat(logger.sessionId).isEqualTo(explicitSessionId)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(observedSessionIds)
+            .containsExactly(initialSessionId, explicitSessionId, explicitSessionId)
+
         logger.startNewSession()
         val sdkGeneratedSessionId = logger.sessionId
         UUID.fromString(sdkGeneratedSessionId)
         shadowOf(Looper.getMainLooper()).idle()
-        assertThat(observedSessionIds).containsExactly(initialSessionId, explicitSessionId, sdkGeneratedSessionId)
+        assertThat(observedSessionIds)
+            .containsExactly(initialSessionId, explicitSessionId, explicitSessionId, sdkGeneratedSessionId)
     }
 
     @Test

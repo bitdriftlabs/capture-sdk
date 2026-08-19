@@ -36,8 +36,9 @@ sealed class SessionStrategy {
      * features - counts as activity
      * @param inactivityThresholdMins the amount of minutes of inactivity after which a new session Id changes.
      * The default value is 30 minutes.
-     * @param onSessionIdChanged optional callback that is invoked with the new value every time the session Id changes.
-     *  This callback is invoked in the main thread.
+     * @param onSessionIdChanged optional callback that receives the active session ID after each
+     *  session start or rotation, including explicit starts with the current ID. This callback is
+     *  invoked on the main thread.
      */
     data class ActivityBased
         @JvmOverloads

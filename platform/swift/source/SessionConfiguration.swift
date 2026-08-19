@@ -19,9 +19,9 @@ import Foundation
 /// discouraged unless the application can handle both forms.
 /// Empty initial and explicit IDs are treated as absent, so Capture generates a UUID instead.
 ///
-/// `onSessionIDChanged` is called after Capture updates its in-memory session ID and schedules
-/// best-effort persistence for the initial session, inactivity-driven rotations, and every
-/// explicit session start. It is always called asynchronously on the main queue.
+/// `onSessionIDChanged` is called after Capture starts the initial session, rotates after
+/// inactivity, and on every explicit session start. An explicit start invokes the callback even
+/// when it supplies the current session ID. It is always called asynchronously on the main queue.
 public struct SessionConfiguration {
     /// Optional non-empty ID to use whenever no inactivity timeout is configured, or to seed the
     /// first session when one is configured. When `nil` or empty, Capture generates a UUID.
@@ -29,7 +29,8 @@ public struct SessionConfiguration {
     /// Optional inactivity duration after which Capture generates a new UUID session ID. When
     /// `nil`, activity-based rotation is disabled.
     public let inactivityTimeout: TimeInterval?
-    /// Optional callback that receives each new session ID.
+    /// Optional callback that receives the active session ID after each session start or rotation,
+    /// including explicit starts with the current ID.
     public let onSessionIDChanged: ((String) -> Void)?
 
     public init(

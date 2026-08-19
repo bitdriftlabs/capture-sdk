@@ -24,16 +24,18 @@ import kotlin.time.Duration.Companion.milliseconds
  * discouraged unless the application can handle both forms.
  * Empty initial and explicit IDs are treated as absent, so Capture generates a UUID instead.
  *
- * [onSessionIdChanged] is invoked after Capture updates its in-memory session ID and schedules
- * best-effort persistence for the initial session, inactivity-driven rotations, and every explicit
- * session start. It is always invoked asynchronously on the Android main thread.
+ * [onSessionIdChanged] is invoked after Capture starts the initial session, rotates after
+ * inactivity, and on every explicit session start. An explicit start invokes the callback even
+ * when it supplies the current session ID. It is always invoked asynchronously on the Android
+ * main thread.
  *
  * @property initialSessionId Optional non-empty ID to use whenever no inactivity timeout is
  * configured, or to seed the first session when one is configured. When absent or empty, Capture
  * generates a UUID.
  * @property inactivityTimeout Optional inactivity duration after which Capture generates a new
  * UUID session ID. When absent, activity-based rotation is disabled.
- * @property onSessionIdChanged Optional callback that receives each new session ID.
+ * @property onSessionIdChanged Optional callback that receives the active session ID after each
+ * session start or rotation, including explicit starts with the current ID.
  */
 data class SessionConfiguration(
     val initialSessionId: String? = null,

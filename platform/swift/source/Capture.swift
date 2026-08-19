@@ -148,8 +148,8 @@ extension Logger {
     ///
     /// A non-empty `sessionID` becomes the new session ID. When `sessionID` is `nil` or empty, Capture
     /// generates a UUID regardless of how the previous session was established. This always
-    /// creates a session boundary, even if `sessionID` equals the current ID. The logger must be
-    /// started before this operation for it to take effect.
+    /// invokes the configured session-ID callback, even if `sessionID` equals the current ID. The
+    /// logger must be started before this operation for it to take effect.
     ///
     /// - parameter sessionID: The optional non-empty ID for the new session.
     public static func startNewSession(sessionID: String?) {

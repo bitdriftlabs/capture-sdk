@@ -52,7 +52,7 @@ interface ILogger {
      *
      * A non-empty [sessionId] becomes the new session ID. When [sessionId] is null or empty,
      * Capture generates a UUID regardless of how the previous session was established. This
-     * always creates a session boundary, even if [sessionId] equals the current ID.
+     * invokes the configured session-ID callback even if [sessionId] equals the current ID.
      */
     fun startNewSession(sessionId: String?) {
         startNewSession()
