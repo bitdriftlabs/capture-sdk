@@ -19,7 +19,10 @@ jobs:
     name: pre_check
     runs-on: ubuntu-latest
     outputs:
-      should_run: ${{ steps.check_changes.outputs.run_tests }}
+      should_run: ${{ github.event_name == 'push' || steps.check_changes.outputs.run_tests }}
+      has_affected_clippy_targets: ${{ steps.bazel_check.outputs.has_affected_clippy_targets }}
+      workflow_changed: ${{ steps.workflow_check.outputs.changed }}
+      clippy_config_changed: ${{ steps.clippy_config_check.outputs.changed }}
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout
@@ -36,34 +39,42 @@ jobs:
         id: bazel_check
         run: |
           ./ci/check_bazel.sh //examples/swift:ios_app //platform/swift //test/platform/swift
-        continue-on-error: true
+        env:
+          BAZEL_DIFF_CLIPPY_TARGETS_QUERY: 'attr("tags", "clippy_macos", //...)'
       - name: Check for workflow file changes
         id: workflow_check
-        run: |
-          ./ci/files_changed.sh '^(\.github/workflows/ios\.yaml|MODULE\.bazel|MODULE\.bazel\.lock|ci/ios_app_size_report\.sh|ci/parse_ios_app_thinning_report\.py|ci/capture_ios_binary_size\.sh|ci/check_ios_xcframework_archive_members\.sh|ci/extract_embedded_profile_plist\.py)$'
-        continue-on-error: true
+        uses: ./.github/actions/files-changed
+        with:
+          files: |
+            .github/workflows/ios.yaml
+            ci/ios_app_size_report.sh
+            ci/parse_ios_app_thinning_report.py
+            ci/capture_ios_binary_size.sh
+            ci/check_ios_xcframework_archive_members.sh
+            ci/extract_embedded_profile_plist.py
+      - name: Check for Clippy configuration changes
+        id: clippy_config_check
+        uses: ./.github/actions/check-clippy-config
+      - name: Upload affected Clippy targets
+        if: ${{ steps.bazel_check.outputs.has_affected_clippy_targets == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-affected-clippy-targets
+          path: /tmp/impacted_clippy_targets.txt
+          if-no-files-found: error
       - name: Determine if tests should run
         id: check_changes_separate
         run: |
-          bazel_status="${{ steps.bazel_check.outputs.check_result }}"
-          workflow_status="${{ steps.workflow_check.outputs.check_result }}"
+          bazel_changed="${{ steps.bazel_check.outputs.changed }}"
+          workflow_changed="${{ steps.workflow_check.outputs.changed }}"
+          clippy_config_changed="${{ steps.clippy_config_check.outputs.changed }}"
 
-          # Log the values of bazel_status and workflow_status for diagnostics
-          echo "bazel_status: $bazel_status"
-          echo "workflow_status: $workflow_status"
-          # Check if any status indicates a relevant change or error
-          if [[ "$bazel_status" == "1" || "$workflow_status" == "1" ]]; then
-            echo "An unexpected issue occurred during checks."
-            exit 1
-          elif [[ "$bazel_status" == "0" || "$workflow_status" == "0" ]]; then
+          if [[ "$bazel_changed" == "true" || "$workflow_changed" == "true" || "$clippy_config_changed" == "true" ]]; then
             echo "Changes detected in one or more checks. Running tests."
             echo "run_tests=true" >> $GITHUB_ENV
-          elif [[ "$bazel_status" == "2" && "$workflow_status" == "2" ]]; then
+          else
             echo "No relevant changes found."
             echo "run_tests=false" >> $GITHUB_ENV
-          else
-            echo "Unknown issue."
-            exit 1
           fi
         shell: bash
 
@@ -126,9 +137,26 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
+
+      - name: Download affected Clippy targets
+        if: ${{ github.event_name == 'pull_request' && needs.pre_check.outputs.has_affected_clippy_targets == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-affected-clippy-targets
+          path: /tmp
+
       - name: Run iOS tests
-        # Bypass rules_apple's hardcoded 60s simulator boot and 150s test-launch timeouts,
-        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)') --test_tag_filters=macos_only --test_output=errors --config ci --remote_download_minimal --test_env=REUSE_GLOBAL_SIMULATOR=1 --test_env=STARTUP_TIMEOUT_SEC=300
+        uses: ./.github/actions/run-bazel-tests
+        with:
+          slice: macos_runner
+          mode: full
+      - name: Run Clippy
+        if: ${{ github.event_name == 'push' || needs.pre_check.outputs.has_affected_clippy_targets == 'true' || needs.pre_check.outputs.workflow_changed == 'true' || needs.pre_check.outputs.clippy_config_changed == 'true' }}
+        uses: ./.github/actions/run-clippy
+        with:
+          slice: macos_runner
+          mode: ${{ (github.event_name == 'push' || needs.pre_check.outputs.workflow_changed == 'true' || needs.pre_check.outputs.clippy_config_changed == 'true') && 'full' || 'affected' }}
+          affected-targets-path: /tmp/impacted_clippy_targets.txt
       - name: Upload iOS test failure artifacts
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
