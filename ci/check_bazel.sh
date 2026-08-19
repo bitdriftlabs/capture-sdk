@@ -97,6 +97,11 @@ git -C "$workspace_path" checkout "$previous_revision" --quiet
 
 "${bazel_diff_command[@]}" generate-hashes -w "$workspace_path" -b "$bazel_path" $starting_hashes_json --excludeExternalTargets
 
+# Bzlmod may regenerate its lockfile while collecting hashes. The generated file is not an input
+# to the comparison after this point, so restore it before changing revisions. This keeps a stale
+# base lockfile from preventing the checkout of the PR revision.
+git -C "$workspace_path" checkout -- MODULE.bazel.lock
+
 git -C "$workspace_path" checkout "$final_revision" --quiet
 
 "${bazel_diff_command[@]}" generate-hashes -w "$workspace_path" -b "$bazel_path" $final_hashes_json --excludeExternalTargets
