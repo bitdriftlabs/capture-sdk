@@ -516,7 +516,7 @@ jobs:
     runs-on: ubuntu-latest-8-cores
     strategy:
       matrix:
-        api-level: [24, 35]
+        api-level: [23, 35]
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout
