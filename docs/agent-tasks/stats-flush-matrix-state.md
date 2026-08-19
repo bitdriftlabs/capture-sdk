@@ -65,7 +65,7 @@ sufficient** (`T02-back` and `T11-freezer` both `ENQ/NONE` → `ENQ/OK`).
 Generalisation: before shortening a wait, enumerate everything it is load-bearing for. A wait that
 looks like it guards one invariant may quietly be guarding two.
 
-## Possible real regression — not test noise
+## Ack latency: no regression, but a heavy tail
 
 Ack latency varies by ~15x, and it tracks **time**, not the code or the config. All figures below come
 from a single install (`5f0f7b29`, installed 11:18) so the binary is constant; only the clock and the
@@ -88,10 +88,33 @@ earlier version of this doc did exactly that. The rows above are the ones that i
 clock. Given how much latency drifts within an hour, sequential single-arm comparisons are worthless
 here — alternate the arms if this ever needs settling.
 
-This matters beyond the harness: the OS firewall cuts background network **~4.9s** after `ON_STOP`
-(HOME; ~3.9s for BACK). At a 6.8s ack the backgrounding upload **structurally cannot land**,
-regardless of test timing. Worth deciding whether that is acceptable product behaviour before tuning
-any more waits around it.
+**Assessed as not a regression.** A purpose-built 5-cycle probe on the current build gives
+enq→ack of `1.24, 1.04, 19.85, 0.93s` — **median 1.14s against a ~974ms baseline**. The typical case
+never moved. An earlier reading of "~2x slower" came from n=4 drawn opportunistically from a sweep and
+was an artifact of averaging across the tail; the median is stable and the mean is not.
+
+The client contributes **~25ms** of that interval (`ON_STOP`→enqueue), so everything above it is
+transport and backend.
+
+What is real is the **shape**: a tight ~1s mode with rare excursions to 20s+, observed on an unchanged
+binary minutes apart. That matters beyond the harness — the OS firewall cuts background network
+**~4.9s** after `ON_STOP` (HOME; ~3.9s for BACK), so a tail sample means the backgrounding upload
+**cannot land**, for real users as much as for tests. Worth deciding whether that is acceptable, but it
+is a tail-latency question, not a regression.
+
+Client-side timings show no regression at all, across two independent samples on the current build:
+
+| metric | cycle probe (n=5) | sweep (n=15) | baseline |
+|---|---|---|---|
+| `ON_STOP` → `state flushing initiated` | 3ms | 3ms | 4ms |
+| `ON_STOP` → disk write | 21ms | 29ms | 25ms |
+| `ON_STOP` → enqueue | 25ms | 35ms | 31ms |
+| HOME → `ON_STOP` | — | 1.31s | 1.35s |
+| `ON_STOP` → network cut | — | 5.00s | 4.99s |
+
+Outliers in the sweep are all attributable: the four ~900ms disk writes are `battery-saver`,
+`doze-deep`, `doze-light` and `screen-off` (CPU throttled or dozing, already recorded as slow on real
+hardware), and `T12-airplane`'s 12.36s "cut" is not a firewall revoke — there is no network to revoke.
 
 Second consequence: the disk-flush **coalescing branch is now reachable in ordinary runs** (5 of 88
 windows in the full sweep; previously 0 without `scripts/force_coalesce.py`). A `coalesced > 0` row is
