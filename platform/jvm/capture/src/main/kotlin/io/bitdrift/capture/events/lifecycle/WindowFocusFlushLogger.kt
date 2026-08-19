@@ -82,7 +82,7 @@ internal class WindowFocusFlushLogger(
         if (!isStarted || !runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_WINDOW_FOCUS_LOSS)) {
             return
         }
-        // Non-blocking: this runs on the main thread.
+        // Focus callbacks are dispatched on the main thread; a blocking flush would stall it.
         logger.flush(blocking = false)
     }
 
