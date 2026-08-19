@@ -42,7 +42,7 @@ jobs:
         id: workflow_check
         uses: ./.github/actions/files-changed
         with:
-          regex: '^(\.github/workflows/android\.yaml|MODULE\.bazel|MODULE\.bazel\.lock)$'
+          regex: '^(\.bazelrc|MODULE\.bazel(\.lock)?|\.github/(workflows/android\.yaml|actions/(setup|android-setup)/.*)|tools/(android_sdk_wrapper|setup_android_sdk|android_toolchain_versions|check_android_toolchain_versions)\.sh)$'
 
       - name: Check for relevant Gradle changes
         id: gradle_check

@@ -5,6 +5,10 @@ inputs:
   buildbuddy-api-key:
     description: BuildBuddy API key.
     required: false
+  setup-local-android-sdk:
+    description: Whether to set up the local Android SDK cache needed by Gradle
+    required: false
+    default: "false"
   java-version:
     description: JDK version to install
     required: false
@@ -29,10 +33,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Bazel and Android SDK
+    - name: Set up Bazel and optional local Android SDK
       uses: ./.github/actions/setup
       with:
         buildbuddy-api-key: ${{ inputs.buildbuddy-api-key }}
+        setup-local-android-sdk: ${{ inputs.setup-local-android-sdk == 'true' || inputs.setup-emulator == 'true' || inputs.emulator-api-level != '' }}
 
     - name: Enable KVM group perms
       if: inputs.setup-emulator == 'true'

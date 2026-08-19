@@ -55,7 +55,7 @@ android {
 
     defaultConfig {
         minSdk = 23
-        ndkVersion = "27"
+        ndkVersion = "27.2.12479018"
         consumerProguardFiles("consumer-rules.pro")
     }
 

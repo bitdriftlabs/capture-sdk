@@ -5,9 +5,11 @@ set -euo pipefail
 readonly android_sdk_version="4333796"
 readonly android_sdk_license_hash="24333f8a63b6825ea9c5514f83c2829b004d1fee"
 readonly cmdline_tools_version="6.0"
-readonly ndk_version="27.2.12479018"
 script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_root
+# shellcheck source=tools/android_toolchain_versions.sh
+source "$script_root/android_toolchain_versions.sh"
+readonly ndk_version="$android_ndk_version"
 repo_root="$(cd "$script_root/.." && pwd)"
 readonly repo_root
 readonly android_sdk_root_dir="$HOME/.androidbin/bitdrift-android-sdk"
@@ -36,8 +38,8 @@ readonly install_android_sdk_packages_command=(
   "--install"
   "platform-tools"
   "ndk;$ndk_version"
-  "platforms;android-36"
-  "build-tools;36.1.0"
+  "platforms;android-$android_sdk_api_level"
+  "build-tools;$android_build_tools_version"
 )
 
 function download_android_sdk() {
@@ -66,8 +68,8 @@ function provision_android_sdk_packages() {
   local -r packages_installed=(
     "$android_sdk_unarchived_dir/platform-tools"
     "$android_sdk_unarchived_dir/ndk/$ndk_version"
-    "$android_sdk_unarchived_dir/platforms/android-36"
-    "$android_sdk_unarchived_dir/build-tools/36.1.0"
+    "$android_sdk_unarchived_dir/platforms/android-$android_sdk_api_level"
+    "$android_sdk_unarchived_dir/build-tools/$android_build_tools_version"
   )
   local package_path
 
@@ -82,7 +84,7 @@ function provision_android_sdk_packages() {
 
     if [[ -x "$cached_sdkmanager" ]]; then
       ANDROID_HOME="$android_sdk_unarchived_dir" "$repo_root/ci/jdk_wrapper.sh" "$cached_sdkmanager" "--install" \
-        "platform-tools" "ndk;$ndk_version" "platforms;android-36" "build-tools;36.1.0" | (grep -v = || true)
+        "platform-tools" "ndk;$ndk_version" "platforms;android-$android_sdk_api_level" "build-tools;$android_build_tools_version" | (grep -v = || true)
     else
       ANDROID_HOME="$android_sdk_unarchived_dir" "$repo_root/ci/jdk_wrapper.sh" "${install_android_cmd_line_tools[@]}" | (grep -v = || true)
       ANDROID_HOME="$android_sdk_unarchived_dir" "$repo_root/ci/jdk_wrapper.sh" "${install_android_sdk_packages_command[@]}" | (grep -v = || true)

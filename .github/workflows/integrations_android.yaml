@@ -53,6 +53,8 @@ jobs:
         cache: gradle
     - name: Setup Android cmd line tools + NDK
       uses: ./.github/actions/android-setup
+      with:
+        setup-local-android-sdk: "true"
     - name: Accept Android SDK licenses
       run: yes | $ANDROID_HOME/cmdline-tools/6.0/bin/sdkmanager --licenses
     - name: Install Rust target
