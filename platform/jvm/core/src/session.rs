@@ -6,12 +6,12 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::define_object_wrapper;
-use crate::jni::{initialize_class, initialize_method_handle, CachedMethod, JValueWrapper};
+use crate::jni::{CachedMethod, JValueWrapper, initialize_class, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
-use bd_session::{configuration, Strategy, StrategyWithWorker};
-use jni::signature::{Primitive, ReturnType};
+use bd_session::{Strategy, StrategyWithWorker, configuration};
 use jni::JNIEnv;
+use jni::signature::{Primitive, ReturnType};
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
@@ -69,7 +69,8 @@ impl SessionStrategyConfigurationHandle {
       let initial_session_id = if initial_session_id.is_null() {
         None
       } else {
-        Some(unsafe { e.get_string_unchecked(&initial_session_id.into())? }.into())
+        let initial_session_id = initial_session_id.into();
+        Some(unsafe { e.get_string_unchecked(&initial_session_id)? }.into())
       };
       let inactivity_timeout_milliseconds = SESSION_CONFIGURATION_INACTIVITY_TIMEOUT_MILLISECONDS
         .get()
