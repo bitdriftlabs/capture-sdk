@@ -268,6 +268,12 @@ SdkStatusFFI capture_get_sdk_status(logger_id logger_id);
 void capture_add_log_field(logger_id logger_id, const char *key, const char *value);
 
 /*
+ * Adds or replaces an SDK-owned OOTB field. OOTB fields take precedence over customer fields and
+ * are reserved for Capture's platform implementation.
+ */
+void capture_update_ootb_log_field(logger_id logger_id, const char *key, const char *value);
+
+/*
  * Removes a field with a given key. This operation does nothing if the field with the given key is not
  * registered with the logger.
  *

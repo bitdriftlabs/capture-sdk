@@ -303,9 +303,13 @@ class CaptureLoggerTest {
 
             val sdkConfiguredLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfiguredLog.message).isEqualTo("SDKConfigured")
+            assertThat(sdkConfiguredLog.fields["foreground"])
+                .isEqualTo(expectedFields["foreground"])
 
             val resourceLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(resourceLog.message).isEqualTo("")
+            assertThat(resourceLog.fields["foreground"])
+                .isEqualTo(expectedFields["foreground"])
 
             val log = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
@@ -542,6 +546,7 @@ class CaptureLoggerTest {
             "_app_version_code" to clientAttributes.appVersionCode.toString(),
             "_architecture" to clientAttributes.architecture,
         ).toFieldValueMap() +
+            clientAttributes.initialOotbFields().toFieldValueMap() +
             clientAttributes.dynamicFields().toFieldValueMap() +
             NetworkAttributes(ContextHolder.APP_CONTEXT).getFields().toFieldValueMap()
     }

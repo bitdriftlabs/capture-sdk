@@ -75,4 +75,17 @@ final class MetadataProviderControllerTests: XCTestCase {
         XCTAssertEqual(errorHandler.errors.count, 1)
         XCTAssertEqual(errorHandler.errors[0].context, "metadata provider, get fields")
     }
+
+    func testProvidesInitialOOTBFields() throws {
+        let provider = MetadataProviderController(
+            dateProvider: MockDateProvider(),
+            ootbFieldProviders: [],
+            initialOotbFieldProviders: [MockFieldProvider { ["_dynamic_key": "dynamic_value"] }],
+            customFieldProviders: []
+        )
+
+        XCTAssertEqual(provider.initialOotbFields(), [
+            try Field.make(key: "_dynamic_key", value: "dynamic_value"),
+        ])
+    }
 }

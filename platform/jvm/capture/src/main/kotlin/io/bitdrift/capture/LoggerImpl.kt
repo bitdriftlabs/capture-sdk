@@ -29,6 +29,7 @@ import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
 import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
+import io.bitdrift.capture.events.lifecycle.ForegroundStateListener
 import io.bitdrift.capture.events.lifecycle.WindowFocusFlushLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
@@ -177,6 +178,10 @@ internal class LoggerImpl(
                         networkAttributes::getFields,
                         clientAttributes::dynamicFields,
                     ),
+                initialOotbFieldProviders =
+                    listOf(
+                        FieldProvider { clientAttributes.initialOotbFields() },
+                    ),
                 errorHandler = errorHandler,
                 customFieldGetters = customFieldGetters,
             )
@@ -265,6 +270,7 @@ internal class LoggerImpl(
         this.loggerId = loggerId
 
         runtime = JniRuntime(this.loggerId)
+        ForegroundStateListener(this, ProcessLifecycleOwner.get()).start()
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime
         }
@@ -454,6 +460,13 @@ internal class LoggerImpl(
         value: String,
     ) {
         CaptureJniLibrary.addLogField(this.loggerId, key, value)
+    }
+
+    override fun updateOotbField(
+        key: String,
+        value: String,
+    ) {
+        CaptureJniLibrary.updateOotbLogField(this.loggerId, key, value)
     }
 
     override fun removeField(key: String) {

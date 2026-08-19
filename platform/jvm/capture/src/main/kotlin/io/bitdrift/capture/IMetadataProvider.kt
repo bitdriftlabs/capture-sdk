@@ -25,6 +25,9 @@ internal interface IMetadataProvider {
      */
     fun ootbFields(): Array<Field>
 
+    /** Returns OOTB fields captured once before the logger accepts logs. */
+    fun initialOotbFields(): Array<Field> = emptyArray()
+
     /**
      * Returns custom fields to be included with emitted logs. Custom fields are fields
      * that come from the SDK customers.

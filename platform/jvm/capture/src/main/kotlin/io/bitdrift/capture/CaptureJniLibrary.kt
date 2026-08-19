@@ -164,6 +164,16 @@ internal object CaptureJniLibrary : IBridge {
     )
 
     /**
+     * Adds or replaces an SDK-owned OOTB field without allowing user-provided fields to override
+     * it. This is reserved for Capture's platform implementations.
+     */
+    external fun updateOotbLogField(
+        loggerId: Long,
+        key: String,
+        value: String,
+    )
+
+    /**
      * Removes a field with a given key. This operation does nothing if the field
      * with the given key is not registered with the logger.
      *

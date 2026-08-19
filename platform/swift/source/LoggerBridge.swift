@@ -266,6 +266,10 @@ final class LoggerBridge: LoggerBridging {
         capture_add_log_field(self.loggerID, key, value)
     }
 
+    func updateOotbField(withKey key: String, value: String) {
+        capture_update_ootb_log_field(self.loggerID, key, value)
+    }
+
     func removeField(withKey key: String) {
         capture_remove_log_field(self.loggerID, key)
     }

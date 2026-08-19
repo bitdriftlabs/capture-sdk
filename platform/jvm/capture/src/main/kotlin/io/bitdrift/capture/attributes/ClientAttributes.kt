@@ -26,7 +26,6 @@ internal class ClientAttributes(
     private val processLifecycleOwner: LifecycleOwner,
 ) : IClientAttributes {
     private val resources = context.resources
-    private var cachedForegroundState: ForegroundState? = null
     private var cachedConfiguration: Configuration = Configuration(resources.configuration)
 
     private var cachedLocale: String? = null
@@ -77,19 +76,18 @@ internal class ClientAttributes(
 
     private val cachedAttributes = mutableMapOf<String, String>()
 
+    /**
+     * Returns the startup foreground snapshot from the logger runtime thread.
+     *
+     * The dynamic field path made this same read for every log before foreground became an OOTB
+     * field. Keep that established background-thread behavior here to avoid a startup main-thread
+     * handoff; subsequent lifecycle events immediately update the OOTB field on the main thread.
+     */
+    internal fun initialOotbFields(): Fields = mapOf(FOREGROUND_KEY to foregroundValue())
+
     internal fun dynamicFields(): Fields {
-        updateForegroundState()
         updateLocaleIfNeeded()
         return cachedAttributes
-    }
-
-    private fun updateForegroundState() {
-        val currentState = if (isForeground()) ForegroundState.Foreground else ForegroundState.Background
-
-        if (cachedForegroundState != currentState) {
-            cachedForegroundState = currentState
-            cachedAttributes["foreground"] = currentState.value
-        }
     }
 
     private fun updateLocaleIfNeeded() {
@@ -118,6 +116,8 @@ internal class ClientAttributes(
             false
         }
     }
+
+    private fun foregroundValue(): String = if (isForeground()) "1" else "0"
 
     private fun PackageManager.getPackageInfoCompat(
         packageName: String,
@@ -160,22 +160,12 @@ internal class ClientAttributes(
             UNKNOWN_FIELD_VALUE
         }
 
-    private sealed interface ForegroundState {
-        val value: String
-
-        object Foreground : ForegroundState {
-            override val value: String = "1"
-        }
-
-        object Background : ForegroundState {
-            override val value: String = "0"
-        }
-    }
-
     /**
      * Holds constants for Client attributes
      */
     companion object {
+        const val FOREGROUND_KEY = "foreground"
+
         // The unique sdk library that can be used for custom reports
         const val SDK_LIBRARY_ID = "io.bitdrift.capture-android"
 

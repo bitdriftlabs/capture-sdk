@@ -62,6 +62,8 @@ protocol LoggerBridging {
 
     func addField(withKey key: String, value: String)
 
+    func updateOotbField(withKey key: String, value: String)
+
     func removeField(withKey key: String)
 
     /// Flushes logger's state to disk.
