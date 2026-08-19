@@ -1,0 +1,25 @@
+{
+  "name": "timing-reset-after-flush",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [],
+  "description": "Asserts the one thing shared-core changed: an explicit flush RE-ANCHORES the periodic schedule. Before, the next tick landed on the original anchor; now it lands one interval after the flush. Deliberately minimal - 12s of foreground is enough for a stable cadence to re-anchor away from. Reset values are derived, not fixed: upload = stats.upload_flush_interval_ms, disk = effective_flush_interval(disk_flush_interval_ms, upload_flush_interval_ms). With this account (disk 5s pushed, upload 60s default) that is 5s disk / 60s upload.",
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 12,
+      "why": "two disk ticks at 5s establish the pre-flush anchor unambiguously"
+    },
+    {
+      "action": "home"
+    },
+    {
+      "action": "wait",
+      "seconds": 15,
+      "why": "the re-anchored flush must land ~5s after the forced flush, NOT on the old anchor"
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}
