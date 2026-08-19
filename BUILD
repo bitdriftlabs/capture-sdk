@@ -1,5 +1,4 @@
 load("@rules_apple//apple:apple.bzl", "apple_static_framework_import")
-load("@rules_java//java:defs.bzl", "java_binary")
 load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugin", "kt_kotlinc_options")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
 load("@rules_multirun//:defs.bzl", "multirun")
@@ -312,10 +311,4 @@ xcodeproj(
             ),
         ),
     ],
-)
-
-java_binary(
-    name = "bazel-diff",
-    main_class = "com.bazel_diff.Main",
-    runtime_deps = ["@bazel_diff//jar"],
 )
