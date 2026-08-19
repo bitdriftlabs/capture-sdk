@@ -14,9 +14,6 @@ inputs:
   arch:
     description: Android system-image architecture.
     required: true
-  cache-key:
-    description: GitHub Actions cache key for the AVD snapshot.
-    required: true
   ram-size:
     description: Emulator RAM size.
     required: false
@@ -50,6 +47,26 @@ runs:
         emulator-target: ${{ inputs.target }}
         emulator-arch: ${{ inputs.arch }}
 
+    - name: Determine AVD cache key
+      id: avd-cache-key
+      shell: bash
+      env:
+        API_LEVEL: ${{ inputs.api-level }}
+        TARGET: ${{ inputs.target }}
+        ARCH: ${{ inputs.arch }}
+        PROFILE: ${{ inputs.profile }}
+        RAM_SIZE: ${{ inputs.ram-size }}
+        DISK_SIZE: ${{ inputs.disk-size }}
+        DISABLE_ANIMATIONS: ${{ inputs.disable-animations }}
+      run: |
+        # Bump snapshot-v1 when changing snapshot creation, its defaults, or
+        # compatible SDK/emulator versions. The remaining fields describe the
+        # AVD configuration and prevent incompatible snapshots from sharing a
+        # cache entry.
+        cache_key="${RUNNER_OS}-${RUNNER_ARCH}-avd-snapshot-v1-api${API_LEVEL}-${TARGET}-${ARCH}-${PROFILE}-ram${RAM_SIZE}-disk${DISK_SIZE}-animations${DISABLE_ANIMATIONS}"
+        cache_key="${cache_key// /-}"
+        echo "key=${cache_key}" >> "$GITHUB_OUTPUT"
+
     - name: Restore AVD cache
       id: avd-cache
       uses: actions/cache/restore@v4
@@ -57,7 +74,7 @@ runs:
         path: |
           ~/.android/avd/*
           ~/.android/adb*
-        key: ${{ inputs.cache-key }}
+        key: ${{ steps.avd-cache-key.outputs.key }}
 
     - name: Kill ADB server to ensure cached keys are used
       shell: bash
@@ -86,4 +103,4 @@ runs:
         path: |
           ~/.android/avd/*
           ~/.android/adb*
-        key: ${{ inputs.cache-key }}
+        key: ${{ steps.avd-cache-key.outputs.key }}
