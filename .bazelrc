@@ -41,8 +41,8 @@ build:noclippy --output_groups=-clippy_checks
 test --build_tests_only
 test --test_env=RUST_BACKTRACE=full --java_runtime_version=remotejdk_11
 
-# Shared configuration for all CI tasks.
-build:ci --config=clippy
+# Shared configuration for all CI tasks. Clippy runs in its dedicated workflow so
+# artifact builds do not pay for lint-aspect analysis.
 build:ci --config=force-xcode-version
 build:ci --define build_config=ci
 
@@ -91,9 +91,6 @@ build:nocache --noremote_upload_local_results
 build:nocache --bes_results_url=
 build:nocache --bes_backend=
 build:nocache --remote_cache=
-
-# Convenience config for disabling targets that build on macos only (e.g. iOS targets).
-build:nomacos --test_tag_filters=-macos_only --build_tag_filters=-macos_only
 
 # We run this with release-common to be as indicative of production as possible, and add in as much debug information we
 # can to allow using perf to generate flamegraphs.

@@ -5,6 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#![allow(clippy::unwrap_used)]
+
 use crate::bridge::{State, StreamWriter, SwiftNetworkStream};
 use bd_api::PlatformNetworkStream;
 use bd_runtime::runtime::FeatureFlag;

@@ -1002,6 +1002,7 @@ fn write_summary_bridge_out(summary_out: *mut *const Object, summary: Enrichment
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
   use super::*;
   use std::io::Write;

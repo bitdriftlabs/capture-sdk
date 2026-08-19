@@ -1,0 +1,21 @@
+name: Run Bazel tests
+description: Runs a runner slice's full or affected Bazel test set.
+
+inputs:
+  slice:
+    description: "Runner slice to test: all, linux_runner, or macos_runner."
+    required: true
+  mode:
+    description: Whether to run the full or affected test slice.
+    required: true
+  affected-targets-path:
+    description: Newline-delimited affected Bazel test labels for affected mode.
+    required: false
+    default: /tmp/impacted_test_targets.txt
+
+runs:
+  using: composite
+  steps:
+    - name: Run Bazel tests
+      shell: bash
+      run: ./ci/run_bazel_tests.sh '${{ inputs.slice }}' '${{ inputs.mode }}' '${{ inputs.affected-targets-path }}'

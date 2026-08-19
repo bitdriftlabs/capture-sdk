@@ -1,14 +1,16 @@
 #!/bin/bash
 
 # Checks whether the files in provided regex via the command line has changed when comparing the HEAD ref and
-# $GITHUB_BASE_REF, i.e. the target branch (usually main). Returns true if the current branch is main.
+# $GITHUB_BASE_REF, i.e. the target branch (usually main). Writes a `changed`
+# boolean to $GITHUB_OUTPUT; a non-zero exit indicates an actual error.
 #
 # Usage: ./ci/files_changed.sh <regex>
+#        ./ci/files_changed.sh --files <path> [<path> ...]
 
 set -euo pipefail
 
-# Trap to handle unexpected errors and log them
-trap 'echo "An unexpected error occurred during file change check."; echo "check_result=1" >> "$GITHUB_OUTPUT"; exit 1' ERR
+# Trap to handle unexpected errors and log them.
+trap 'echo "An unexpected error occurred during file change check."; exit 1' ERR
 
 # Determine the base ref or fallback to HEAD~1 when running on main
 if [[ -z "${GITHUB_BASE_REF:-}" ]]; then
@@ -20,19 +22,32 @@ fi
 
 if git rev-parse --abbrev-ref HEAD | grep -q ^main$ ; then
   echo "Relevant file changes detected!"
-  echo "check_result=0" >> "$GITHUB_OUTPUT"
+  echo "changed=true" >> "$GITHUB_OUTPUT"
   exit 0
 fi
 
 # Run git diff and store output
 diff_output=$(git diff --name-only "$base_ref" || exit 1)  # Ensure git diff failures are caught
 
-# Check for relevant file changes
-if echo "$diff_output" | grep -E "$1" ; then
+# Check for relevant file changes. Exact-file mode prevents callers from
+# maintaining large, escape-heavy regular expressions.
+if [[ "$1" == "--files" ]]; then
+  shift
+  if [[ $# -eq 0 ]]; then
+    echo "--files requires at least one path."
+    exit 2
+  fi
+  change_matches=$(printf '%s\n' "$diff_output" | grep -F -x -f <(printf '%s\n' "$@") || true)
+else
+  change_matches=$(printf '%s\n' "$diff_output" | grep -E "$1" || true)
+fi
+
+if [[ -n "$change_matches" ]]; then
+  echo "$change_matches"
   echo "Relevant file changes detected!"
-  echo "check_result=0" >> "$GITHUB_OUTPUT"
+  echo "changed=true" >> "$GITHUB_OUTPUT"
   exit 0
 else
   echo "No relevant changes found."
-  echo "check_result=2" >> "$GITHUB_OUTPUT"
+  echo "changed=false" >> "$GITHUB_OUTPUT"
 fi

@@ -19,6 +19,7 @@ cargo_build_script(
     srcs = ["build.rs"],
     data = [":sdk_version"],
     edition = "2024",
+    tags = ["clippy"],
 )
 
 filegroup(
