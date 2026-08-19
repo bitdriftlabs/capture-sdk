@@ -42,12 +42,12 @@ public struct SessionConfiguration {
         self.onSessionIDChanged = onSessionIDChanged
     }
 
-    func makeSessionConfigurationProvider() -> SessionConfigurationProvider {
-        SessionConfigurationProvider(configuration: self)
+    func makeSessionConfigurationBridge() -> SessionConfigurationBridge {
+        SessionConfigurationBridge(configuration: self)
     }
 }
 
-final class SessionConfigurationProvider: NSObject {
+final class SessionConfigurationBridge: NSObject {
     private let configuration: SessionConfiguration
 
     init(configuration: SessionConfiguration) {

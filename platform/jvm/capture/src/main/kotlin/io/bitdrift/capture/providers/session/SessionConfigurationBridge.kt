@@ -7,7 +7,7 @@ import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
 
 /** JNI-facing representation of [SessionConfiguration]. */
-internal open class SessionStrategyConfiguration(
+internal open class SessionConfigurationBridge(
     private val initialSessionId: String?,
     private val inactivityTimeoutMilliseconds: Long?,
     private val onSessionIdChanged: ((String) -> Unit)?,
@@ -17,7 +17,7 @@ internal open class SessionStrategyConfiguration(
 
     fun initialSessionId(): String? = initialSessionId
 
-    /** A negative value means activity-based refresh is disabled. */
+    /** A negative value means inactivity-driven rotation is disabled. */
     fun inactivityTimeoutMilliseconds(): Long = inactivityTimeoutMilliseconds ?: -1L
 
     fun sessionIdChanged(sessionId: String) {

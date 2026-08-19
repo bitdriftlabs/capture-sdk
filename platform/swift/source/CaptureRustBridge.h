@@ -24,7 +24,7 @@ void capture_report_error(const char *message);
  *
  * @param path the path to the SDK directory used by the logger for disk persistence.
  * @param api_key the key used to authenticate the application with bitdrift services.
- * @param session_strategy_provider the session strategy provider.
+ * @param session_configuration_provider the session lifecycle configuration provider.
  * @param metadata_provider used to provide the internal logger with logging metadata.
  * @param resource_utilization_target responsible for emitting resource utilization logs in response to provided ticks.
  * @param session_replay_target responsible for emitting session replay logs in response to callbacks.

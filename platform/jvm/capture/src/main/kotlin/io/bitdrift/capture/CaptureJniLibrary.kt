@@ -11,7 +11,7 @@ import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.Field
-import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
+import io.bitdrift.capture.providers.session.SessionConfigurationBridge
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.processor.IStreamingReportProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
@@ -44,7 +44,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      *
      * @param sdkDirectory the directory to use when persisting data and/or configuration
      * @param apiKey the key used to authenticate the application with Bitdrift services.
-     * @param sessionStrategy the session strategy to use.
+     * @param sessionConfiguration the session lifecycle configuration to use.
      * @param metadataProvider used to provide metadata for emitted logs.
      * @param resourceUtilizationTarget used to inform platform layer about a need to emit a resource log.
      * @param sessionReplayTarget used to inform platform layer about a need to emit session replay logs.
@@ -65,7 +65,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     external override fun createLogger(
         sdkDirectory: String,
         apiKey: String,
-        sessionStrategy: SessionStrategyConfiguration,
+        sessionConfiguration: SessionConfigurationBridge,
         metadataProvider: IMetadataProvider,
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,

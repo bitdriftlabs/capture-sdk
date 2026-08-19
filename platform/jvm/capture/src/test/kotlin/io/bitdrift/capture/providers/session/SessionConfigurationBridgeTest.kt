@@ -13,24 +13,24 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import kotlin.time.Duration.Companion.seconds
 
-class SessionStrategyConfigurationTest {
+class SessionConfigurationBridgeTest {
     @Test
     fun fixedCompatibilityShimDoesNotInvokeSessionIdGenerator() {
         var generatorCalls = 0
-        val sessionStrategyConfiguration =
-            SessionStrategy.Fixed { (++generatorCalls).toString() }.createSessionStrategyConfiguration()
+        val sessionConfiguration =
+            SessionStrategy.Fixed { (++generatorCalls).toString() }.createSessionConfigurationBridge()
 
         assertThat(generatorCalls).isZero()
-        assertThat(sessionStrategyConfiguration.initialSessionId()).isNull()
-        assertThat(sessionStrategyConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(-1)
+        assertThat(sessionConfiguration.initialSessionId()).isNull()
+        assertThat(sessionConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(-1)
     }
 
     @Test
     fun preservesSubMinuteInactivityTimeout() {
-        val sessionStrategyConfiguration =
-            SessionConfiguration(inactivityTimeout = 30.seconds).createSessionStrategyConfiguration()
+        val sessionConfiguration =
+            SessionConfiguration(inactivityTimeout = 30.seconds).createSessionConfigurationBridge()
 
-        assertThat(sessionStrategyConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(30_000)
+        assertThat(sessionConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(30_000)
     }
 
     @Test
@@ -49,14 +49,14 @@ class SessionStrategyConfigurationTest {
             ),
         ).isNotNull()
 
-        val sessionStrategyConfiguration =
+        val sessionConfiguration =
             SessionConfiguration
                 .withInactivityTimeout(
                     inactivityTimeoutMilliseconds = 30_000,
                     initialSessionId = "initial",
-                ).createSessionStrategyConfiguration()
+                ).createSessionConfigurationBridge()
 
-        assertThat(sessionStrategyConfiguration.initialSessionId()).isEqualTo("initial")
-        assertThat(sessionStrategyConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(30_000)
+        assertThat(sessionConfiguration.initialSessionId()).isEqualTo("initial")
+        assertThat(sessionConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(30_000)
     }
 }

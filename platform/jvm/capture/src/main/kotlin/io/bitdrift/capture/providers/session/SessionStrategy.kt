@@ -52,17 +52,17 @@ sealed class SessionStrategy {
             val onSessionIdChanged: ((String) -> Unit)? = null,
         ) : SessionStrategy()
 
-    internal fun createSessionStrategyConfiguration(): SessionStrategyConfiguration =
+    internal fun createSessionConfigurationBridge(): SessionConfigurationBridge =
         when (this) {
-            is Configuration -> configuration.createSessionStrategyConfiguration()
+            is Configuration -> configuration.createSessionConfigurationBridge()
             is Fixed ->
-                SessionStrategyConfiguration(
+                SessionConfigurationBridge(
                     initialSessionId = null,
                     inactivityTimeoutMilliseconds = null,
                     onSessionIdChanged = null,
                 )
             is ActivityBased ->
-                SessionStrategyConfiguration(
+                SessionConfigurationBridge(
                     initialSessionId = null,
                     inactivityTimeoutMilliseconds = inactivityThresholdMins.minutes.inWholeMilliseconds,
                     onSessionIdChanged = onSessionIdChanged,

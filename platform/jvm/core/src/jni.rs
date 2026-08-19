@@ -8,7 +8,7 @@
 use crate::events::ListenerTargetHandler as EventsListenerTargetHandler;
 use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
-use crate::session::SessionStrategyConfigurationHandle;
+use crate::session::SessionConfigurationHandle;
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
   define_object_wrapper,
@@ -732,7 +732,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   _class: JClass<'_>,
   directory: JString<'_>,
   api_key: JString<'_>,
-  session_strategy: JObject<'_>,
+  session_configuration: JObject<'_>,
   metadata_provider: JObject<'_>,
   resource_utilization_target: JObject<'_>,
   session_replay_target: JObject<'_>,
@@ -766,12 +766,12 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let preferences = PreferencesHandle::new_global(&env, preferences)?;
       let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
 
-      let session_configuration = Arc::new(SessionStrategyConfigurationHandle::new_global(
+      let session = Arc::new(SessionConfigurationHandle::new_global(
         &env,
-        session_strategy
-      )?);
-      let session = session_configuration.create(session_configuration.clone(), &sdk_directory)?;
-      let session_strategy = session.strategy();
+        session_configuration,
+      )?)
+      .create(&sdk_directory)?;
+      let active_session = session.strategy();
 
       let device = Arc::new(bd_device::Device::new(store.clone()));
       let static_metadata = Arc::new(Mobile::android(
@@ -794,9 +794,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let error_reporter = Arc::new(ErrorReporterHandle::new_global(&env, error_reporter)?);
       let error_reporter = MetadataErrorReporter::new(
         error_reporter,
-        Arc::new(platform_shared::error::SessionProvider::new(
-          session_strategy,
-        )),
+        Arc::new(platform_shared::error::SessionProvider::new(active_session)),
         static_metadata.clone(),
       );
 

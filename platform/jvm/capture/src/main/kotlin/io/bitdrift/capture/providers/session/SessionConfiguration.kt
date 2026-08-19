@@ -56,8 +56,8 @@ data class SessionConfiguration(
             )
     }
 
-    internal fun createSessionStrategyConfiguration() =
-        SessionStrategyConfiguration(
+    internal fun createSessionConfigurationBridge() =
+        SessionConfigurationBridge(
             initialSessionId = initialSessionId,
             inactivityTimeoutMilliseconds = inactivityTimeout?.inWholeMilliseconds,
             onSessionIdChanged = onSessionIdChanged,

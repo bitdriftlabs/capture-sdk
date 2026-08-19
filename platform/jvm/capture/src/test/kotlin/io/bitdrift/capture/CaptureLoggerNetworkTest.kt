@@ -88,7 +88,7 @@ class CaptureLoggerNetworkTest {
         CaptureJniLibrary.createLogger(
             sdkDirectory = directory.newFolder().path,
             apiKey = "abc123",
-            sessionStrategy = SessionStrategy.Fixed().createSessionStrategyConfiguration(),
+            sessionConfiguration = SessionStrategy.Fixed().createSessionConfigurationBridge(),
             metadataProvider = loggerBridge,
             resourceUtilizationTarget = mock(),
             sessionReplayTarget = mock(),

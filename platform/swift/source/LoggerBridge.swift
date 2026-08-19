@@ -98,7 +98,7 @@ final class LoggerBridge: LoggerBridging {
         let loggerID = capture_create_logger(
             bufferDirectoryPath,
             apiKey,
-            sessionStrategy.makeSessionConfiguration().makeSessionConfigurationProvider(),
+            sessionStrategy.makeSessionConfiguration().makeSessionConfigurationBridge(),
             metadataProvider,
             resourceUtilizationTarget,
             sessionReplayTarget,
