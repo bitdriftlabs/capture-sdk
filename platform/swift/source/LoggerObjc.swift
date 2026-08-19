@@ -604,21 +604,6 @@ public final class SessionStrategyObjc: NSObject {
         return SessionStrategyObjc(sessionStrategy: .fixed())
     }
 
-    /// Compatibility shim for a session that does not expire during a process but is replaced
-    /// when the SDK starts in a new process.
-    ///
-    /// `sessionIDGenerator` is retained for source compatibility but is no longer invoked. Capture
-    /// generates UUIDs for SDK-created sessions; use `SessionConfigurationObjc` when an application
-    /// needs to supply an initial ID.
-    ///
-    /// - parameter sessionIDGenerator: Retained for source compatibility and not invoked.
-    ///
-    /// - returns: The fixed session strategy.
-    @objc
-    public static func fixed(sessionIDGenerator: @escaping () -> String) -> SessionStrategyObjc {
-        return SessionStrategyObjc(sessionStrategy: .fixed(sessionIDGenerator: sessionIDGenerator))
-    }
-
     /// A session strategy that generates a new session ID after 30 minutes of app inactivity.
     ///
     /// The inactivity duration is measured by the minutes elapsed since the last log. The session ID is

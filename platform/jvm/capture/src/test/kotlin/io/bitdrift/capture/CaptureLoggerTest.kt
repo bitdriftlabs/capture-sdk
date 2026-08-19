@@ -378,31 +378,6 @@ class CaptureLoggerTest {
 
     @Test
     @Suppress("TooGenericExceptionThrown")
-    fun `session generator compatibility callback is not invoked`() {
-        val providerLatch = CountDownLatch(1)
-
-        val dateProvider = mock<DateProvider>()
-        Mockito.`when`(dateProvider.invoke()).thenReturn(Date())
-
-        val fieldProvider = mock<FieldProvider>()
-        Mockito.`when`(fieldProvider.invoke()).thenReturn(emptyMap())
-
-        withLogger(
-            fieldProvider = fieldProvider,
-            dateProvider = dateProvider,
-            sessionStrategy =
-                SessionStrategy.Fixed {
-                    providerLatch.countDown()
-                    throw RuntimeException()
-                },
-        ) { logger ->
-            logger.log(LogLevel.DEBUG) { "logging..." }
-            assertThat(providerLatch.await(100, TimeUnit.MILLISECONDS)).isFalse()
-        }
-    }
-
-    @Test
-    @Suppress("TooGenericExceptionThrown")
     fun `exceptions thrown by date provider are ignored`() {
         val providerLatch = CountDownLatch(1)
 

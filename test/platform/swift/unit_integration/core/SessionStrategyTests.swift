@@ -43,18 +43,12 @@ final class SessionStrategyTests: XCTestCase {
         XCTAssertNotNil(UUID(uuidString: logger.sessionID))
     }
 
-    func testFixedCompatibilityShimDoesNotInvokeSessionIDGenerator() throws {
-        var generatorCalls = 0
-
+    func testFixedCompatibilityShimUsesSDKGeneratedID() throws {
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            sessionStrategy: .fixed(sessionIDGenerator: {
-                generatorCalls += 1
-                return "ignored"
-            })
+            sessionStrategy: .fixed
         )
 
-        XCTAssertEqual(0, generatorCalls)
         XCTAssertNotNil(UUID(uuidString: logger.sessionID))
     }
 

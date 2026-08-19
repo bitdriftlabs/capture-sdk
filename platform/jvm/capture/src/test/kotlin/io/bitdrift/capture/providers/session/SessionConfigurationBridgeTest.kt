@@ -15,12 +15,10 @@ import kotlin.time.Duration.Companion.seconds
 
 class SessionConfigurationBridgeTest {
     @Test
-    fun fixedCompatibilityShimDoesNotInvokeSessionIdGenerator() {
-        var generatorCalls = 0
+    fun fixedCompatibilityShimDisablesInactivityRotation() {
         val sessionConfiguration =
-            SessionStrategy.Fixed { (++generatorCalls).toString() }.createSessionConfigurationBridge()
+            SessionStrategy.Fixed().createSessionConfigurationBridge()
 
-        assertThat(generatorCalls).isZero()
         assertThat(sessionConfiguration.initialSessionId()).isNull()
         assertThat(sessionConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(-1)
     }

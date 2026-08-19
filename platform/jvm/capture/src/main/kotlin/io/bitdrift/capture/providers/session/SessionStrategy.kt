@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.providers.session
 
-import java.util.UUID
 import kotlin.time.Duration.Companion.minutes
 
 /**
@@ -22,15 +21,10 @@ sealed class SessionStrategy {
      * Deprecated compatibility shim for a session that does not expire during a process but is
      * replaced when the SDK starts in a new process.
      *
-     * [sessionIdGenerator] is retained for source compatibility but is no longer invoked. Capture
-     * generates UUIDs for SDK-created sessions; use [SessionConfiguration.initialSessionId] when
-     * an application needs to supply an initial ID.
+     * Capture generates UUIDs for SDK-created sessions; use [SessionConfiguration.initialSessionId]
+     * when an application needs to supply an initial ID.
      */
-    data class Fixed
-        @JvmOverloads
-        constructor(
-            val sessionIdGenerator: () -> String = { UUID.randomUUID().toString() },
-        ) : SessionStrategy()
+    class Fixed : SessionStrategy()
 
     /**
      * A session strategy that generates a new session ID after a certain period of app inactivity.

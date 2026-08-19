@@ -13,10 +13,16 @@ public enum SessionStrategy {
     /// Deprecated compatibility shim for a session that does not expire during a process but is
     /// replaced when the SDK starts in a new process.
     ///
-    /// `sessionIDGenerator` is retained for source compatibility but is no longer invoked. Capture
-    /// generates UUIDs for SDK-created sessions; use `SessionConfiguration.initialSessionID` when
-    /// an application needs to supply an initial ID.
-    case fixed(sessionIDGenerator: (() -> String) = { UUID().uuidString })
+    /// Capture generates UUIDs for SDK-created sessions; use `SessionConfiguration.initialSessionID`
+    /// when an application needs to supply an initial ID.
+    case fixed
+
+    /// Creates the deprecated fixed-session compatibility shim.
+    ///
+    /// - returns: The fixed-session compatibility shim.
+    public static func fixed() -> Self {
+        .fixed
+    }
 
     /// A session strategy that generates a new session ID after a certain period of app inactivity.
     ///
