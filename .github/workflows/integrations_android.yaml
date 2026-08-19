@@ -52,9 +52,9 @@ jobs:
         java-version: '17'
         cache: gradle
     - name: Setup Android cmd line tools + NDK
-      uses: ./.github/actions/common-android-setup
+      uses: ./.github/actions/android-setup
     - name: Accept Android SDK licenses
-      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses    
+      run: yes | $ANDROID_HOME/cmdline-tools/6.0/bin/sdkmanager --licenses
     - name: Install Rust target
       run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
     - name: Build Timber artifacts with Gradle
