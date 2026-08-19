@@ -47,8 +47,17 @@ internal class WindowFocusFlushLogger(
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) : IEventListenerLogger,
     Application.ActivityLifecycleCallbacks {
+    /**
+     * Main-thread confined, like everything else in this class: [start] and [stop] mutate it inside
+     * [mainThreadHandler], and the focus callback that reads it is dispatched on the main thread.
+     * Without it, a focus listener registered before [stop] would keep flushing a logger that is
+     * being torn down — the runtime kill switch is independent of this listener's own lifecycle.
+     */
+    private var isStarted = false
+
     override fun start() {
         mainThreadHandler.run {
+            isStarted = true
             application.registerActivityLifecycleCallbacks(this)
             // An activity already started before the SDK initialised will never see
             // onActivityStarted, so it would never get a listener and its focus loss would be
@@ -60,7 +69,11 @@ internal class WindowFocusFlushLogger(
 
     override fun stop() {
         mainThreadHandler.run {
+            isStarted = false
             application.unregisterActivityLifecycleCallbacks(this)
+            // The per-activity unregistrations ride on the callbacks just removed, so anything still
+            // registered here would otherwise stay registered for the lifetime of its window.
+            focusRegistrar.unregisterAll()
         }
     }
 
@@ -92,7 +105,7 @@ internal class WindowFocusFlushLogger(
     }
 
     private fun onWindowFocusLost() {
-        if (!runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_WINDOW_FOCUS_LOSS)) {
+        if (!isStarted || !runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_WINDOW_FOCUS_LOSS)) {
             return
         }
         // Non-blocking: this runs on the main thread, so waiting on the flush would risk an ANR at

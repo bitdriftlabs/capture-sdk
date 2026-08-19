@@ -29,11 +29,11 @@ import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.NavigationAction
-import io.bitdrift.gradletestapp.ui.activities.FocusMatrixActivity
 import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
+import io.bitdrift.gradletestapp.ui.activities.FocusMatrixActivity
 import io.bitdrift.gradletestapp.ui.compose.MainScreen
 import io.bitdrift.gradletestapp.ui.service.SendTelemetryService
 import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModel

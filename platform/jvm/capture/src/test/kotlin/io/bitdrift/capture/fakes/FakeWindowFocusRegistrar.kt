@@ -40,9 +40,7 @@ internal class FakeWindowFocusRegistrar : IWindowFocusRegistrar {
         callbacks.remove(activity)
     }
 
-    // Not part of IWindowFocusRegistrar (yet): the production teardown that would need it does not
-    // exist either. When stop()-time teardown lands in the interface this becomes an `override`.
-    fun unregisterAll() {
+    override fun unregisterAll() {
         callbacks.clear()
     }
 

@@ -34,4 +34,11 @@ internal interface IWindowFocusRegistrar {
      * registered, or whose window has already been torn down.
      */
     fun unregister(activity: Activity)
+
+    /**
+     * Stops observing focus for every activity currently registered. Needed when the owning event
+     * listener stops: once its lifecycle callbacks are unregistered, per-activity unregistration can
+     * never happen again, so anything still registered would keep firing.
+     */
+    fun unregisterAll()
 }

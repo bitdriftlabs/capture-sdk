@@ -55,6 +55,22 @@ internal class ViewTreeWindowFocusRegistrar : IWindowFocusRegistrar {
     @UiThread
     override fun unregister(activity: Activity) {
         val listener = listeners.remove(activity) ?: return
+        removeListener(activity, listener)
+    }
+
+    @UiThread
+    override fun unregisterAll() {
+        // Copy first: WeakHashMap iteration is not safe against concurrent structural changes, and
+        // clearing up front keeps the map consistent even if a removal throws.
+        val snapshot = listeners.entries.map { it.key to it.value }
+        listeners.clear()
+        snapshot.forEach { (activity, listener) -> removeListener(activity, listener) }
+    }
+
+    private fun removeListener(
+        activity: Activity,
+        listener: ViewTreeObserver.OnWindowFocusChangeListener,
+    ) {
         // peekDecorView avoids forcing a new decor view into existence purely to tear one down, and
         // the observer is commonly already dead by the time an activity is destroyed.
         val observer = activity.window?.peekDecorView()?.viewTreeObserver ?: return
