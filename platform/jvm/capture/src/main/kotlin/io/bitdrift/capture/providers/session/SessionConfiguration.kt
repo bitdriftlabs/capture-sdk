@@ -58,10 +58,5 @@ data class SessionConfiguration(
             )
     }
 
-    internal fun createSessionConfigurationBridge() =
-        SessionConfigurationBridge(
-            initialSessionId = initialSessionId,
-            inactivityTimeoutMilliseconds = inactivityTimeout?.inWholeMilliseconds,
-            onSessionIdChanged = onSessionIdChanged,
-        )
+    internal fun makeSessionCallback(): SessionCallback? = onSessionIdChanged?.let(::SessionCallback)
 }

@@ -9,14 +9,16 @@ package io.bitdrift.capture
 
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
-import io.bitdrift.capture.providers.session.SessionConfigurationBridge
+import io.bitdrift.capture.providers.session.SessionCallback
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 
 internal interface IBridge {
     fun createLogger(
         sdkDirectory: String,
         apiKey: String,
-        sessionConfiguration: SessionConfigurationBridge,
+        initialSessionId: String?,
+        inactivityTimeoutMilliseconds: Long,
+        sessionCallback: SessionCallback?,
         metadataProvider: IMetadataProvider,
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,

@@ -220,11 +220,14 @@ internal class LoggerImpl(
                 )
             } ?: NoopSessionReplayTarget()
 
+        val sessionConfiguration = sessionStrategy.makeSessionConfiguration()
         val loggerId =
             bridge.createLogger(
                 sdkDirectory,
                 apiKey,
-                sessionStrategy.createSessionConfigurationBridge(),
+                sessionConfiguration.initialSessionId,
+                sessionConfiguration.inactivityTimeout?.inWholeMilliseconds ?: -1L,
+                sessionConfiguration.makeSessionCallback(),
                 metadataProvider,
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.

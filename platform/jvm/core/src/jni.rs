@@ -8,7 +8,7 @@
 use crate::events::ListenerTargetHandler as EventsListenerTargetHandler;
 use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
-use crate::session::SessionConfigurationHandle;
+use crate::session::SessionCallback;
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
   define_object_wrapper,
@@ -34,6 +34,8 @@ use bd_error_reporter::reporter::{
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::MemoryPressureLevel;
 use bd_proto::protos::logging::payload::LogType;
+use bd_session::Strategy;
+use bd_session::configuration::{Callbacks, NoopCallbacks};
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
@@ -732,7 +734,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   _class: JClass<'_>,
   directory: JString<'_>,
   api_key: JString<'_>,
-  session_configuration: JObject<'_>,
+  initial_session_id: JString<'_>,
+  inactivity_timeout_milliseconds: jlong,
+  session_callback: JObject<'_>,
   metadata_provider: JObject<'_>,
   resource_utilization_target: JObject<'_>,
   session_replay_target: JObject<'_>,
@@ -766,11 +770,24 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let preferences = PreferencesHandle::new_global(&env, preferences)?;
       let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
 
-      let session = Arc::new(SessionConfigurationHandle::new_global(
-        &env,
-        session_configuration,
-      )?)
-      .create(&sdk_directory)?;
+      let initial_session_id = if initial_session_id.is_null() {
+        None
+      } else {
+        Some(unsafe { env.get_string_unchecked(&initial_session_id) }?.into())
+      };
+      let callbacks: Arc<dyn Callbacks> = if session_callback.is_null() {
+        Arc::new(NoopCallbacks)
+      } else {
+        Arc::new(SessionCallback::new_global(&env, session_callback)?)
+      };
+      let session = Strategy::configuration(
+        &sdk_directory,
+        initial_session_id,
+        (inactivity_timeout_milliseconds >= 0)
+          .then(|| time::Duration::milliseconds(inactivity_timeout_milliseconds)),
+        callbacks,
+        Arc::new(bd_time::SystemTimeProvider {}),
+      );
       let active_session = session.strategy();
 
       let device = Arc::new(bd_device::Device::new(store.clone()));

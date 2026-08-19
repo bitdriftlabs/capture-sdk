@@ -154,10 +154,10 @@ class SessionStrategyTest {
                     callbackLooper = Looper.myLooper()
                 },
             )
-        val bridgeConfiguration = sessionConfiguration.createSessionConfigurationBridge()
+        val sessionCallback = sessionConfiguration.makeSessionCallback()!!
 
         // Call from a background thread to simulate the bd-tokio/JNI thread invoking the callback.
-        Thread { bridgeConfiguration.sessionIdChanged(newSessionId) }.apply {
+        Thread { sessionCallback.sessionIdChanged(newSessionId) }.apply {
             start()
             join()
         }

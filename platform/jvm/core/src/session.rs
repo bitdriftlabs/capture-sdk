@@ -9,106 +9,46 @@ use crate::define_object_wrapper;
 use crate::jni::{CachedMethod, JValueWrapper, initialize_class, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
-use bd_session::{Strategy, StrategyWithWorker, configuration};
+use bd_session::configuration;
 use jni::JNIEnv;
 use jni::signature::{Primitive, ReturnType};
-use std::path::Path;
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 
 // Cached method IDs
 
-static SESSION_CONFIGURATION_INACTIVITY_TIMEOUT_MILLISECONDS: OnceLock<CachedMethod> =
-  OnceLock::new();
-static SESSION_CONFIGURATION_INITIAL_SESSION_ID: OnceLock<CachedMethod> = OnceLock::new();
-static SESSION_CONFIGURATION_SESSION_ID_CHANGED: OnceLock<CachedMethod> = OnceLock::new();
+static SESSION_CALLBACK_SESSION_ID_CHANGED: OnceLock<CachedMethod> = OnceLock::new();
 
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
-  let session_configuration = initialize_class(
+  let session_callback = initialize_class(
     env,
-    "io/bitdrift/capture/providers/session/SessionConfigurationBridge",
+    "io/bitdrift/capture/providers/session/SessionCallback",
     None,
   )?;
   initialize_method_handle(
     env,
-    &session_configuration.class,
-    "initialSessionId",
-    "()Ljava/lang/String;",
-    &SESSION_CONFIGURATION_INITIAL_SESSION_ID,
-  )?;
-  initialize_method_handle(
-    env,
-    &session_configuration.class,
-    "inactivityTimeoutMilliseconds",
-    "()J",
-    &SESSION_CONFIGURATION_INACTIVITY_TIMEOUT_MILLISECONDS,
-  )?;
-  initialize_method_handle(
-    env,
-    &session_configuration.class,
+    &session_callback.class,
     "sessionIdChanged",
     "(Ljava/lang/String;)V",
-    &SESSION_CONFIGURATION_SESSION_ID_CHANGED,
+    &SESSION_CALLBACK_SESSION_ID_CHANGED,
   )?;
   Ok(())
 }
 
-define_object_wrapper!(SessionConfigurationHandle);
+define_object_wrapper!(SessionCallback);
 
-impl SessionConfigurationHandle {
-  pub(crate) fn create(
-    self: Arc<Self>,
-    sdk_directory: &Path,
-  ) -> anyhow::Result<StrategyWithWorker> {
-    let (initial_session_id, inactivity_timeout_milliseconds) =
-      self.execute(|e, session_configuration| {
-        let initial_session_id = SESSION_CONFIGURATION_INITIAL_SESSION_ID
-          .get()
-          .ok_or(InvariantError::Invariant)?
-          .call_method(e, session_configuration, ReturnType::Object, &[])?
-          .l()?;
-        let initial_session_id = if initial_session_id.is_null() {
-          None
-        } else {
-          let initial_session_id = initial_session_id.into();
-          Some(unsafe { e.get_string_unchecked(&initial_session_id)? }.into())
-        };
-        let inactivity_timeout_milliseconds = SESSION_CONFIGURATION_INACTIVITY_TIMEOUT_MILLISECONDS
-          .get()
-          .ok_or(InvariantError::Invariant)?
-          .call_method(
-            e,
-            session_configuration,
-            ReturnType::Primitive(Primitive::Long),
-            &[],
-          )?
-          .j()?;
-        Ok((initial_session_id, inactivity_timeout_milliseconds))
-      })?;
-
-    Ok(Strategy::configuration(
-      sdk_directory,
-      initial_session_id,
-      (inactivity_timeout_milliseconds >= 0)
-        .then(|| time::Duration::milliseconds(inactivity_timeout_milliseconds)),
-      self,
-      Arc::new(bd_time::SystemTimeProvider {}),
-    ))
-  }
-}
-
-impl configuration::Callbacks for SessionConfigurationHandle {
+impl configuration::Callbacks for SessionCallback {
   fn session_id_changed(&self, session_id: &str) {
     with_handle_unexpected(
       || {
-        self.execute(|e, session_configuration| {
+        self.execute(|e, session_callback| {
           let session_id = e.new_string(session_id)?;
 
-          SESSION_CONFIGURATION_SESSION_ID_CHANGED
+          SESSION_CALLBACK_SESSION_ID_CHANGED
             .get()
             .ok_or(InvariantError::Invariant)?
             .call_method(
               e,
-              session_configuration,
+              session_callback,
               ReturnType::Primitive(Primitive::Void),
               &[JValueWrapper::Object(session_id.into()).into()],
             )
