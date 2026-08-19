@@ -46,7 +46,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: ~/.androidbin/bitdrift-android-sdk/android-sdk-4333796-unarchived
-        key: ${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh', 'tools/android_toolchain_versions.sh') }}
 
     - name: Set up local Android SDK for Gradle
       if: inputs.setup-local-android-sdk == 'true'
@@ -58,7 +58,7 @@ runs:
       uses: actions/cache/save@v4
       with:
         path: ~/.androidbin/bitdrift-android-sdk/android-sdk-4333796-unarchived
-        key: ${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh', 'tools/android_toolchain_versions.sh') }}
 
     - name: Add local Android SDK tools to PATH
       if: inputs.setup-local-android-sdk == 'true'
