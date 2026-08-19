@@ -27,10 +27,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: Check for Bazel build file changes
         id: bazel_check
@@ -82,16 +82,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
-        with:
-          bazelisk-cache: true
-          repository-cache: true
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
@@ -125,22 +119,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
-        with:
-          bazelisk-cache: true
-          repository-cache: true
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
       - name: Run iOS tests
         # Bypass rules_apple's hardcoded 60s simulator boot and 150s test-launch timeouts,
-        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)') --test_tag_filters=macos_only --test_output=errors --config ci --test_env=REUSE_GLOBAL_SIMULATOR=1 --test_env=STARTUP_TIMEOUT_SEC=300
+        run: env -u ANDROID_NDK_HOME ./bazelw test $(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)') --test_tag_filters=macos_only --test_output=errors --config ci --remote_download_minimal --test_env=REUSE_GLOBAL_SIMULATOR=1 --test_env=STARTUP_TIMEOUT_SEC=300
       - name: Upload iOS test failure artifacts
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
@@ -163,16 +151,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
-        with:
-          bazelisk-cache: true
-          repository-cache: true
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh

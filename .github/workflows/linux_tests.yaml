@@ -20,51 +20,49 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
-        with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
       - name: Set cores to get stored in /cores
         run: |
           sudo mkdir /cores
           sudo chmod 777 /cores
           # Core filenames will be of the form executable.pid.timestamp:
           sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
+      - name: Setup Android SDK
+        uses: ./.github/actions/android-setup
         with:
-          bazelisk-cache: true
-          repository-cache: true
-      - name: Attempt to free up runner disk space
-        run: |
-          echo "Disk space BEFORE cleanup:"
-          echo "================================"
-          df -h /
-          echo "Cleaning up disk space:"
-          
-          # Remove large pre-installed packages we don't need
-          sudo rm -rf /usr/share/dotnet           # .NET runtime (~4GB)
-          sudo rm -rf /usr/local/lib/android      # Android SDK (~12GB)
-          sudo rm -rf /usr/share/swift            # Swift toolchain (~3GB)
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"     # GitHub Actions tool cache (~6GB)
-          
-          # Clean up apt packages
-          sudo apt-get autoremove -y
-          
-          echo "Disk space clean-up done."
-          echo "================================"
-          echo "Disk space AFTER cleanup:"
-          df -h /
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: Check for Bazel build file changes
         id: bazel_check
         run: ./ci/check_bazel.sh //platform/... //test/...
+        env:
+          BAZEL_DIFF_ARGS: --config ci --config nomacos --config libunwind
         continue-on-error: true
 
       - name: Check for workflow file changes
         id: workflow_check
         run: ./ci/files_changed.sh .github/workflows/linux_tests.yaml
         continue-on-error: true
+
+      - name: Attempt to free up runner disk space
+        if: ${{ steps.bazel_check.outputs.check_result != '2' || steps.workflow_check.outputs.check_result != '2' }}
+        run: |
+          echo "Disk space BEFORE cleanup:"
+          echo "================================"
+          df -h /
+          echo "Cleaning up disk space:"
+
+          # Remove large pre-installed packages we don't need
+          sudo rm -rf /usr/share/dotnet           # .NET runtime (~4GB)
+          sudo rm -rf /usr/local/lib/android      # Android SDK (~12GB)
+          sudo rm -rf /usr/share/swift            # Swift toolchain (~3GB)
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"     # GitHub Actions tool cache (~6GB)
+
+          # Clean up apt packages
+          sudo apt-get autoremove -y
+
+          echo "Disk space clean-up done."
+          echo "================================"
+          echo "Disk space AFTER cleanup:"
+          df -h /
 
       - name: test
         run: |
@@ -83,7 +81,7 @@ jobs:
           echo "Script completed with exit code: $res"
           if [[ $res -ne 0 ]]; then
             set -e
-            ./bazelw test //platform/... //test/... --config ci --config nomacos --config libunwind --test_output=errors --test_env=RUST_LOG=debug
+            ./bazelw test //platform/... //test/... --config ci --config nomacos --config libunwind --remote_download_minimal --test_output=errors --test_env=RUST_LOG=debug
           else
               echo "No changes detected in the version-only change script. Skipping tests."
           fi

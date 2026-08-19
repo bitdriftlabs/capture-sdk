@@ -31,6 +31,13 @@ workspace_path=$(pwd)
 # Path to your Bazel executable
 bazel_path=$(pwd)/bazelw
 
+# Linux CI uses these options to warm the exact Bazel test configuration that
+# follows a positive affected-targets result.
+bazel_diff_args=()
+if [[ -n "${BAZEL_DIFF_ARGS:-}" ]]; then
+  read -r -a bazel_diff_args <<< "$BAZEL_DIFF_ARGS"
+fi
+
 # If the only file that changed was .sdk_version, we don't need to run bazel-diff and just mark it as no changes detected.
 if ./ci/version_only_change.sh; then
   echo "Only change was platform/shared/.sdk-version, no Bazel changes detected."
@@ -41,19 +48,55 @@ fi
 starting_hashes_json="/tmp/starting_hashes.json"
 final_hashes_json="/tmp/final_hashes.json"
 impacted_targets_path="/tmp/impacted_targets.txt"
-bazel_diff="/tmp/bazel_diff"
 
-"$bazel_path" run :bazel-diff --script_path="$bazel_diff"
+# Keep Bazel out of the launcher path: `generate-hashes` still invokes Bazel for
+# each revision, but downloading the native CLI avoids a third Bazel analysis
+# just to materialize a bazel-diff wrapper.
+bazel_diff_version="v42.0.0"
+bazel_diff_dir="${RUNNER_TEMP:-/tmp}/bazel-diff-$bazel_diff_version"
+mkdir -p "$bazel_diff_dir"
+
+case "$(uname -s)-$(uname -m)" in
+  Linux-x86_64)
+    bazel_diff_asset="bazel-diff-rust-linux-amd64"
+    bazel_diff_sha256="d7bf5c6f74b582fa54b6a6da5b23f7d0e816a4c71af984645ec2d71aa8c37631"
+    bazel_diff_command=("$bazel_diff_dir/$bazel_diff_asset")
+    ;;
+  Darwin-arm64)
+    bazel_diff_asset="bazel-diff-rust-macos-arm64"
+    bazel_diff_sha256="f32b8db587cd42eae59da2bb3055bfead9b650cfc0b4565677db10a7770b19c1"
+    bazel_diff_command=("$bazel_diff_dir/$bazel_diff_asset")
+    ;;
+  *)
+    # The deploy JAR keeps local use working on hosts without a published
+    # native binary, such as Intel macOS.
+    bazel_diff_asset="bazel-diff_deploy.jar"
+    bazel_diff_sha256="0170b70fe2f24477ab056c11f5c3240d8b45a1dca5ab73ad252c096679c5500c"
+    bazel_diff_command=(java -jar "$bazel_diff_dir/$bazel_diff_asset")
+    ;;
+esac
+
+bazel_diff_path="$bazel_diff_dir/$bazel_diff_asset"
+if [[ ! -f "$bazel_diff_path" ]] || [[ "$(shasum -a 256 "$bazel_diff_path" | awk '{print $1}')" != "$bazel_diff_sha256" ]]; then
+  curl --fail --location --retry 3 --retry-all-errors --output "$bazel_diff_path" \
+    "https://github.com/Tinder/bazel-diff/releases/download/$bazel_diff_version/$bazel_diff_asset"
+fi
+
+if [[ "$(shasum -a 256 "$bazel_diff_path" | awk '{print $1}')" != "$bazel_diff_sha256" ]]; then
+  echo "bazel-diff checksum verification failed."
+  exit 1
+fi
+chmod +x "$bazel_diff_path"
 
 git -C "$workspace_path" checkout "$previous_revision" --quiet
 
-$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $starting_hashes_json --excludeExternalTargets
+"${bazel_diff_command[@]}" generate-hashes -w "$workspace_path" -b "$bazel_path" $starting_hashes_json --excludeExternalTargets
 
 git -C "$workspace_path" checkout "$final_revision" --quiet
 
-$bazel_diff generate-hashes -w "$workspace_path" -b "$bazel_path" $final_hashes_json --excludeExternalTargets
+"${bazel_diff_command[@]}" generate-hashes -w "$workspace_path" -b "$bazel_path" $final_hashes_json --excludeExternalTargets
 
-$bazel_diff get-impacted-targets -sh $starting_hashes_json -fh $final_hashes_json -o $impacted_targets_path
+"${bazel_diff_command[@]}" get-impacted-targets -w "$workspace_path" -sh $starting_hashes_json -fh $final_hashes_json -o $impacted_targets_path
 
 # First pretty print the targets for debugging
 
@@ -86,6 +129,9 @@ done
 
 # Exit code based on whether changes were detected
 if [ "$changes_detected" = true ]; then
+  if [[ ${#bazel_diff_args[@]} -gt 0 ]]; then
+    "$bazel_path" build --nobuild --build_tests_only "${bazel_diff_args[@]}" "$@"
+  fi
   echo "check_result=0" >> "$GITHUB_OUTPUT"
   exit 0  # Changes found
 else
