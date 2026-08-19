@@ -44,7 +44,7 @@ use platform_shared::javascript_error::{
   persist_javascript_error_report,
 };
 use platform_shared::metadata::{self, AppleStaticFields, Mobile};
-use platform_shared::{date_to_unix_milliseconds, LoggerHolder, LoggerId};
+use platform_shared::{LoggerHolder, LoggerId, date_to_unix_milliseconds};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
