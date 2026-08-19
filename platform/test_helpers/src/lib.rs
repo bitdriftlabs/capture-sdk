@@ -410,12 +410,13 @@ pub fn run_large_upload_test_impl(
       [].into(),
       [].into(),
       None,
-      Block::Yes {
-        timeout: std::time::Duration::from_secs(5),
-        poll_callback: None,
-      },
       &CaptureSession::default(),
     );
+
+    logger_id.flush_state(Block::Yes {
+      timeout: std::time::Duration::from_secs(5),
+      poll_callback: None,
+    });
   }
 
   let Some(log_upload) = handle.blocking_next_log_upload() else {

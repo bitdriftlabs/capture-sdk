@@ -215,7 +215,6 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param usePreviousProcessSessionId if set to true, this log will be emitted with the session ID
      *        corresponding to the last session ID during the previous process run.
      * @param overrideOccurredAtUnixMilliseconds used to override the timestamp of the log.
-     * @param blocking if true, the call blocks until the log has been processed.
      */
     external fun writeLog(
         loggerId: Long,
@@ -228,7 +227,6 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         matchingFieldValues: Array<String>,
         usePreviousProcessSessionId: Boolean,
         overrideOccurredAtUnixMilliseconds: Long,
-        blocking: Boolean,
     )
 
     /**

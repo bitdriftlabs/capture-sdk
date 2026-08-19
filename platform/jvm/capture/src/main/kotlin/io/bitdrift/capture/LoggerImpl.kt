@@ -506,8 +506,10 @@ internal class LoggerImpl(
                 matchingArrayFields.values,
                 previousRunSessionId,
                 occurredAtTimestampMs,
-                blocking,
             )
+            if (blocking) {
+                flush(blocking = true)
+            }
         } catch (e: Throwable) {
             errorHandler.handleError("write log", e)
         }
