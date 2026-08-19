@@ -138,4 +138,61 @@ class WindowFocusFlushLoggerTest {
 
         assertThat(focusRegistrar.registeredActivities).isEmpty()
     }
+
+    // The tests below mirror the on-device scenario matrix (recents is the plain focus-loss case
+    // covered above).
+
+    @Test
+    fun home_flushesOnFocusLossAndUnregistersOnTheStopThatFollows() {
+        windowFocusFlushLogger.start()
+        windowFocusFlushLogger.onActivityStarted(activity)
+
+        focusRegistrar.changeFocus(activity, hasFocus = false)
+        windowFocusFlushLogger.onActivityStopped(activity)
+        focusRegistrar.changeFocus(activity, hasFocus = false)
+
+        verify(logger, times(1)).flush(false)
+        assertThat(focusRegistrar.registeredActivities).isEmpty()
+    }
+
+    @Test
+    fun activityTransition_flushesForTheLeavingActivityAndKeepsObservingTheNewOne() {
+        windowFocusFlushLogger.start()
+        windowFocusFlushLogger.onActivityStarted(activity)
+
+        windowFocusFlushLogger.onActivityStarted(secondActivity)
+        focusRegistrar.changeFocus(activity, hasFocus = false)
+        windowFocusFlushLogger.onActivityStopped(activity)
+        focusRegistrar.changeFocus(secondActivity, hasFocus = false)
+
+        verify(logger, times(2)).flush(false)
+        assertThat(focusRegistrar.registeredActivities).containsExactly(secondActivity)
+    }
+
+    @Test
+    fun rotation_recreationWithoutFocusLossDoesNotFlush() {
+        // Measured on device: rotation destroys and recreates the activity but never reports a
+        // focus loss on the old window.
+        windowFocusFlushLogger.start()
+        windowFocusFlushLogger.onActivityStarted(activity)
+
+        windowFocusFlushLogger.onActivityStopped(activity)
+        windowFocusFlushLogger.onActivityDestroyed(activity)
+        windowFocusFlushLogger.onActivityStarted(secondActivity)
+
+        verify(logger, never()).flush(false)
+        assertThat(focusRegistrar.registeredActivities).containsExactly(secondActivity)
+    }
+
+    @Test
+    fun imeOrPermissionDialog_flushesOncePerFocusLossAndIgnoresTheRegain() {
+        windowFocusFlushLogger.start()
+        windowFocusFlushLogger.onActivityStarted(activity)
+
+        focusRegistrar.changeFocus(activity, hasFocus = false)
+        focusRegistrar.changeFocus(activity, hasFocus = true)
+        focusRegistrar.changeFocus(activity, hasFocus = false)
+
+        verify(logger, times(2)).flush(false)
+    }
 }
