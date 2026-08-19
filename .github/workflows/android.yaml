@@ -98,7 +98,7 @@ jobs:
         run: |
           # The size target depends on the AAR, so it is built without being a
           # separate top-level output.
-          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_x86_64
+          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_x86_64
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
