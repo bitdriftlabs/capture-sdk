@@ -11,8 +11,8 @@
     },
     {
       "action": "wait",
-      "seconds": 8,
-      "why": "one foreground disk flush lands at ~5s (stats.disk_flush_interval_ms is pushed to 5s), so this gives a positive control before backgrounding. No longer needs to be long: the minimum-upload-interval floor is armed only by a flush-path upload and nothing arms it at launch."
+      "seconds": 18,
+      "why": "let the startup upload settle before backgrounding. This wait is load-bearing for TWO things and only one is obvious: the minimum-upload-interval floor (now unarmed at launch, so not the reason) AND letting the ~5s startup upload ACK before the app backgrounds. If it is still in flight it competes with the backgrounding upload and both die at the ~5s firewall cutoff. 18s covers typical ack latency (1.3-2s) and moderate outliers (8.5s observed); the tail reaches 23s, which no wait can cover, so parse_logs flags startup_upload_in_flight per run instead of pretending otherwise."
     },
     {
       "action": "home"

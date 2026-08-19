@@ -264,8 +264,21 @@ def summarize(evs: list[dict], ref_label: str) -> dict:
                    and "wait" not in e["label"]), None)
     invalid = bool(ref and action and ref["t"] < action["t"] - 50)
 
+    # A pre-reference upload that was enqueued but never acked is still in flight when the
+    # backgrounding happens. It then competes with the backgrounding upload and both die at the
+    # firewall cutoff, so a missing BG ack says nothing about the scenario's subject.
+    #
+    # This is a validity flag, not a result. Ack latency has a heavy tail -- 1.3s typical, 23s
+    # observed on the same device and config minutes apart -- so no foreground wait can rule this
+    # out by construction; it has to be detected per run. A whole 16-scenario sweep was misread as
+    # 9 upload regressions before this existed.
+    pre_enq = [e for e in before if e["kind"] == "ENQ"]
+    pre_ack = [e for e in before if e["kind"] in ("ACK", "RES")]
+    startup_in_flight = bool(pre_enq) and len(pre_ack) < len(pre_enq)
+
     no_ref = ref is None
     return {
+        "startup_upload_in_flight": startup_in_flight,
         "ref_t": ref_t,
         "ref_found": not no_ref,
         "no_reference": no_ref,
@@ -354,6 +367,11 @@ def main() -> None:
         else:
             print("  NOTE: no window coalesced here — this run simply never had two flushes land "
                   "inside one\n  window. That is ordinary; flushes usually arrive seconds apart.")
+    if s.get("startup_upload_in_flight"):
+        print("  *** STARTUP UPLOAD STILL IN FLIGHT at the reference event. It competes with the"
+              "\n      backgrounding upload and both die at the firewall cutoff, so a missing ack here"
+              "\n      is INCONCLUSIVE, not a blocked upload. Ack latency has a heavy tail (1.3s"
+              "\n      typical, 23s observed), so idle longer in the foreground and repeat.")
     if bg["upload"] == "DEBO":
         print("  NOTE: debounced by the 30s window — this run did not test upload delivery. "
               "Idle >30s in the foreground before backgrounding.")

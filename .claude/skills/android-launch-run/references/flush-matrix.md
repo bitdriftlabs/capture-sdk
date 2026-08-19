@@ -169,6 +169,36 @@ activity's own `onStop` by the `ProcessLifecycleOwner` debounce, and it precedes
 The flush wins that race by ~5×. Message wording differs on `main`; see
 `log-signatures.md` for the per-rev table.
 
+## Ack latency has a heavy tail — and it invalidates naive waits
+
+Measured on a Pixel 10, 29ms RTT to the API, in pure-foreground runs with no firewall involved:
+
+| probe | enqueue→ack |
+|---|---|
+| ~12:40 | 8.89, 23.07, 13.09, 3.88s |
+| ~12:52 | 1.26, 8.53, 1.98, 1.94s |
+
+Identical scenario, config and device, 12 minutes apart. **Typical is 1.3–2s; the observed tail is
+23s.** Ruled out as causes: the network (29ms RTT, 93ms full TLS+HTTP), payload size (`snapshots=1,
+source_files=1` on both the 5s and 30s disk configs — flushes merge into one aggregated snapshot, so a
+faster cadence does *not* produce bigger uploads), and the disk cadence itself (`T01-home` acked in
+1.6–1.7s on the 5s config, matching the 30s config's 1.4–2.0s). Log uploads on the same transport are
+also slow, so it sits below the stats layer. Best remaining explanation is backend/account-side
+variability.
+
+Two consequences for any scenario design here:
+
+**A missing ack is not automatically a blocked upload.** `parse_logs` reports
+`startup_upload_in_flight` when a pre-reference upload was enqueued but never acked: that upload is
+still in flight at backgrounding, competes with the backgrounding upload, and both die at the ~5s
+cutoff. The missing ack is then *inconclusive*. `sweep.py` flags those rows. Skipping this check once
+turned a 16-scenario sweep into 9 apparent upload regressions that were nothing of the kind.
+
+**The pre-backgrounding wait is load-bearing for two things.** Clearing the upload floor (no longer
+needed — the floor is unarmed at launch) *and* letting the startup upload ack. 18s covers typical
+latency and moderate outliers; the 23s tail cannot be covered by any wait, which is exactly why the
+per-run flag exists rather than a bigger number.
+
 ## What blocks an upload
 
 **The disk write is never the problem.** It lands ~25–56ms after `ON_STOP` in every run, under every

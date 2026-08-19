@@ -123,6 +123,11 @@ def main() -> None:
         # One quiet column among 15 rows is not enough warning for that.
         if bg["upload"] == "DEBO":
             flag += "  <<< measured the upload floor, NOT the scenario"
+        # Distinguishes "upload blocked" (a finding) from "ack had not arrived yet"
+        # (inconclusive). Without this the two are identical in the table, and a slow-ack window
+        # reads as a wall of upload regressions.
+        if s.get("startup_upload_in_flight"):
+            flag += "  <<< startup upload in flight: missing ack is INCONCLUSIVE"
         print(f"{name:<30} {'ok':<5} {'YES' if bg['snapshot_written'] else 'NO':<8} "
               f"{bg['upload'] + '/' + bg['upload_result']:<12} {ack:>8}  {cut:>8}{flag}")
 
@@ -131,6 +136,12 @@ def main() -> None:
         tot_c = sum(d["closed_coalesced"] for _, d in db)
         tot_o = sum(d["opened"] for _, d in db)
         print(f"\ndisk-flush debounce across sweep: {tot_o} window(s) opened, {tot_c} coalesced")
+    inflight = [n for n, s, e in results if s and s.get("startup_upload_in_flight")]
+    if inflight:
+        print(f"\n  *** {len(inflight)} scenario(s) had the startup upload still in flight at"
+              f" backgrounding:\n      {', '.join(inflight)}\n      Their missing acks are"
+              f" inconclusive, not blocked uploads. Raise the pre-backgrounding wait and re-run"
+              f" those.")
     debo = [n for n, s, e in results if s and s.get("bg", {}).get("upload") == "DEBO"]
     if debo:
         print(f"\n  *** {len(debo)} scenario(s) hit the minimum-upload-interval floor: "
