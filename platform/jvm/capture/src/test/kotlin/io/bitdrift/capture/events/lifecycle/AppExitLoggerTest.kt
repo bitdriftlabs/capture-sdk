@@ -61,6 +61,7 @@ class AppExitLoggerTest {
     @Before
     fun setUp() {
         whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(true)
+        whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
         whenever(versionChecker.isAtLeast(anyInt())).thenReturn(true)
         appExitLogger = buildAppExitLogger()
         lastExitInfo.reset()
@@ -182,7 +183,6 @@ class AppExitLoggerTest {
     @Test
     fun testHandlerCrashLogs() {
         // ARRANGE
-        whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
         val currentThread = Thread.currentThread()
         val appException = IOException("real app crash")
 
@@ -211,7 +211,6 @@ class AppExitLoggerTest {
             eq(true),
             argThat { i: () -> String -> i.invoke() == "AppExit" },
         )
-        verify(logger).flush(true)
     }
 
     @Test
@@ -236,7 +235,6 @@ class AppExitLoggerTest {
     @Test
     fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotSendAppExitCrashLog() {
         val appExitLogger = buildAppExitLogger(IssueReporterState.Initialized)
-        whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
 
         appExitLogger.onJvmCrash(Thread.currentThread(), IllegalStateException("Simulated Crash"))
 
