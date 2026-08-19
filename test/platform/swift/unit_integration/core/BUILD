@@ -6,6 +6,9 @@ bitdrift_mobile_swift_test(
     data = [
         "testdata/lastCrash.bjn",
         "testdata/metrickit-example.json",
+        "testdata/metrickit-ios27-anr-example.json",
+        "testdata/metrickit-ios27-crash-example.json",
+        "testdata/metrickit-ios27-memoryexception-example.json",
     ],
     repository = "@capture",
     tags = ["macos_only"],
