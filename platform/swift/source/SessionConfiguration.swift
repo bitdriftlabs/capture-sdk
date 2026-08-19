@@ -22,6 +22,9 @@ import Foundation
 /// `onSessionIDChanged` is called after Capture starts the initial session, rotates after
 /// inactivity, and on every explicit session start. An explicit start invokes the callback even
 /// when it supplies the current session ID. It is always called asynchronously on the main queue.
+/// When session starts overlap, callbacks can arrive in a different order from their state
+/// transitions. Treat the callback ID as belonging to that individual start; use the logger's
+/// `sessionID` property when the current session ID is required.
 public struct SessionConfiguration {
     /// Optional non-empty ID to use whenever no inactivity timeout is configured, or to seed the
     /// first session when one is configured. When `nil` or empty, Capture generates a UUID.
@@ -30,7 +33,8 @@ public struct SessionConfiguration {
     /// `nil`, activity-based rotation is disabled.
     public let inactivityTimeout: TimeInterval?
     /// Optional callback that receives the active session ID after each session start or rotation,
-    /// including explicit starts with the current ID.
+    /// including explicit starts with the current ID. Calls from overlapping session starts are
+    /// not guaranteed to arrive in transition order.
     public let onSessionIDChanged: ((String) -> Void)?
 
     public init(

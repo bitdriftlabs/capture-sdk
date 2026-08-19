@@ -38,7 +38,9 @@ sealed class SessionStrategy {
      * The default value is 30 minutes.
      * @param onSessionIdChanged optional callback that receives the active session ID after each
      *  session start or rotation, including explicit starts with the current ID. This callback is
-     *  invoked on the main thread.
+     *  invoked on the main thread. Callbacks from overlapping session starts are not guaranteed
+     *  to arrive in transition order; use [io.bitdrift.capture.ILogger.sessionId] for the current
+     *  session ID.
      */
     data class ActivityBased
         @JvmOverloads

@@ -37,6 +37,9 @@ public enum SessionStrategy {
     /// - parameter onSessionIDChanged:      Closure that receives the active session ID after each session
     ///                                      start or rotation, including explicit starts with the current ID.
     ///                                      This callback is dispatched asynchronously to the main queue.
+    ///                                      Calls from overlapping session starts are not guaranteed to
+    ///                                      arrive in transition order; use `Logger.sessionID` for the
+    ///                                      current session ID.
     case activityBased(inactivityThresholdMins: Int = 30, onSessionIDChanged: ((String) -> Void)? = nil)
 }
 

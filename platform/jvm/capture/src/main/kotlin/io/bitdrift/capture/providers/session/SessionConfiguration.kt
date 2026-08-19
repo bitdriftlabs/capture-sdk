@@ -27,7 +27,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * [onSessionIdChanged] is invoked after Capture starts the initial session, rotates after
  * inactivity, and on every explicit session start. An explicit start invokes the callback even
  * when it supplies the current session ID. It is always invoked asynchronously on the Android
- * main thread.
+ * main thread. When session starts overlap, callbacks can arrive in a different order from their
+ * state transitions. Treat the callback ID as belonging to that individual start; use the
+ * logger's [io.bitdrift.capture.ILogger.sessionId] when the current session ID is required.
  *
  * @property initialSessionId Optional non-empty ID to use whenever no inactivity timeout is
  * configured, or to seed the first session when one is configured. When absent or empty, Capture

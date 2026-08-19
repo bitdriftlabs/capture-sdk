@@ -653,6 +653,9 @@ public final class SessionStrategyObjc: NSObject {
     /// - parameter onSessionIDChange:       Closure that receives the active session ID after each session
     ///                                      start or rotation, including explicit starts with the current ID.
     ///                                      This callback is dispatched asynchronously to the main queue.
+    ///                                      Calls from overlapping session starts are not guaranteed to
+    ///                                      arrive in transition order; use `CAPLogger.sessionID()` for
+    ///                                      the current session ID.
     ///
     /// - returns: The activity based session strategy that expires session after a specified duration of time
     ///            without any app activity.
