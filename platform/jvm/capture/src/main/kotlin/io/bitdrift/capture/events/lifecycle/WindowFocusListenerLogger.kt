@@ -14,14 +14,11 @@ import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.annotation.UiThread
-import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.IEventListenerLogger
-import java.lang.ref.WeakReference
-import java.util.WeakHashMap
 
 /**
  * Flushes the logger as soon as the app's window loses focus.
@@ -47,53 +44,79 @@ internal class WindowFocusListenerLogger(
     private val runtime: Runtime,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
 ) : IEventListenerLogger,
-    Application.ActivityLifecycleCallbacks,
-    ViewTreeObserver.OnWindowFocusChangeListener {
-    /**
-     * Root views this listener is currently registered against, keyed by their activity.
-     *
-     * Both the key and the value are weakly held: a root view keeps a hard reference to its
-     * activity through its context, so holding it strongly here would defeat the weak keys.
-     *
-     * Only ever accessed from the main thread.
-     */
-    @VisibleForTesting
-    internal val trackedRootViews = WeakHashMap<Activity, WeakReference<View>>()
+    ViewTreeObserver.OnWindowFocusChangeListener,
+    View.OnAttachStateChangeListener {
+
+    private var isStarted = false
+
+    private val lifecycleCallbacks =
+        object : Application.ActivityLifecycleCallbacks {
+            @UiThread
+            override fun onActivityStarted(activity: Activity) {
+                if (!isStarted) return
+                val rootView = activity.window?.decorView?.rootView ?: return
+
+                rootView.removeOnAttachStateChangeListener(this@WindowFocusListenerLogger)
+                rootView.addOnAttachStateChangeListener(this@WindowFocusListenerLogger)
+
+                rootView.onViewTreeObserverReady { viewTreeObserver ->
+                    viewTreeObserver.removeOnWindowFocusChangeListener(this@WindowFocusListenerLogger)
+                    viewTreeObserver.addOnWindowFocusChangeListener(this@WindowFocusListenerLogger)
+                }
+            }
+
+            override fun onActivityDestroyed(activity: Activity) {
+                // Focus listeners are removed when the view is detached.
+            }
+
+            override fun onActivityCreated(
+                activity: Activity,
+                savedInstanceState: Bundle?,
+            ) {
+                // no-op
+            }
+
+            override fun onActivityResumed(activity: Activity) {
+                Log.w(DEBUG_TAG, "onActivityResumed ${activity.javaClass.simpleName}")
+            }
+
+            override fun onActivityPaused(activity: Activity) {
+                Log.w(DEBUG_TAG, "onActivityPaused ${activity.javaClass.simpleName}")
+            }
+
+            override fun onActivityStopped(activity: Activity) {
+                Log.w(DEBUG_TAG, "onActivityStopped ${activity.javaClass.simpleName}")
+            }
+
+            override fun onActivitySaveInstanceState(
+                activity: Activity,
+                outState: Bundle,
+            ) {
+                // no-op
+            }
+        }
 
     override fun start() {
         mainThreadHandler.run {
-            application.registerActivityLifecycleCallbacks(this)
+            if (!isStarted) {
+                isStarted = true
+                application.registerActivityLifecycleCallbacks(lifecycleCallbacks)
+            }
         }
     }
 
     override fun stop() {
         mainThreadHandler.run {
-            application.unregisterActivityLifecycleCallbacks(this)
-            trackedRootViews.values.forEach { it.get()?.removeWindowFocusListener() }
-            trackedRootViews.clear()
+            if (isStarted) {
+                isStarted = false
+                application.unregisterActivityLifecycleCallbacks(lifecycleCallbacks)
+            }
         }
     }
 
-    /**
-     * Always dispatched on the main thread: `ViewRootImpl.handleWindowFocusChanged` fires this from
-     * the thread that owns the view hierarchy. The work done here is cheap enough to run inline
-     * (a runtime snapshot lookup and a non-blocking send over to the Rust logger), and doing so
-     * avoids losing the race against the process being killed that a thread hop would introduce.
-     *
-     * Losing focus on its own doesn't prove the app is leaving the foreground: it also happens when
-     * another activity of the same app is launched, when a dialog or the IME opens and when the
-     * notification shade is pulled down. Those can't be filtered out here, because the window loses
-     * focus *before* `onPause` is dispatched, so at this point there is no way to tell yet whether
-     * another activity is about to take over or the app is going away entirely. Waiting for that
-     * answer gives up the head start this listener exists to buy.
-     *
-     * Flushing unconditionally is the deliberate trade: a redundant flush costs a non-blocking send
-     * over to the Rust logger, a missed one costs the logs of a process killed from the app
-     * switcher.
-     */
     @UiThread
     override fun onWindowFocusChanged(hasFocus: Boolean) {
-        if (hasFocus) {
+        if (!isStarted || hasFocus) {
             return
         }
 
@@ -110,55 +133,13 @@ internal class WindowFocusListenerLogger(
         logger.flush(false)
     }
 
-    /**
-     * The listener is installed here rather than in [onActivityCreated] on purpose:
-     * `onActivityCreated` is dispatched from `Activity.super.onCreate()`, before the host activity
-     * had a chance to call `requestWindowFeature` or `setContentView`. Reading
-     * `Window.getDecorView()` at that point force-installs the decor view and would break those
-     * calls in the host app.
-     */
-    @UiThread
-    override fun onActivityStarted(activity: Activity) {
-        if (trackedRootViews.containsKey(activity)) {
-            return
-        }
-
-        val rootView = activity.window?.decorView?.rootView ?: return
-        trackedRootViews[activity] = WeakReference(rootView)
-        rootView.onViewTreeObserverReady { viewTreeObserver ->
-            viewTreeObserver.addOnWindowFocusChangeListener(this)
-        }
+    override fun onViewAttachedToWindow(view: View) {
+        // Handled by onViewTreeObserverReady in onActivityStarted
     }
 
-    @UiThread
-    override fun onActivityDestroyed(activity: Activity) {
-        trackedRootViews.remove(activity)?.get()?.removeWindowFocusListener()
-    }
-
-    override fun onActivityCreated(
-        activity: Activity,
-        savedInstanceState: Bundle?,
-    ) {
-        // no-op
-    }
-
-    override fun onActivityResumed(activity: Activity) {
-        Log.w(DEBUG_TAG, "onActivityResumed ${activity.javaClass.simpleName}")
-    }
-
-    override fun onActivityPaused(activity: Activity) {
-        Log.w(DEBUG_TAG, "onActivityPaused ${activity.javaClass.simpleName}")
-    }
-
-    override fun onActivityStopped(activity: Activity) {
-        Log.w(DEBUG_TAG, "onActivityStopped ${activity.javaClass.simpleName}")
-    }
-
-    override fun onActivitySaveInstanceState(
-        activity: Activity,
-        outState: Bundle,
-    ) {
-        // no-op
+    override fun onViewDetachedFromWindow(view: View) {
+        view.removeWindowFocusListener()
+        view.removeOnAttachStateChangeListener(this)
     }
 
     @UiThread

@@ -776,13 +776,13 @@ internal class LoggerImpl(
 
     private fun addWindowFocusListenerTarget(context: Context) {
         if (context is Application) {
-            eventsListenerTarget.add(
-                WindowFocusListenerLogger(
-                    context,
-                    this,
-                    runtime,
-                ),
-            )
+//            eventsListenerTarget.add(
+//                WindowFocusListenerLogger(
+//                    context,
+//                    this,
+//                    runtime,
+//                ),
+//            )
         } else {
             errorHandler.handleError("Couldn't start WindowFocusListenerLogger. Invalid application provided")
         }

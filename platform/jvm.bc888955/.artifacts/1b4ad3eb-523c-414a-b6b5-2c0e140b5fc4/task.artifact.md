@@ -1,0 +1,6 @@
+- [x] Create `WindowFocusListenerLoggerTest.kt` to verify baseline behavior
+- [x] Move `ActivityLifecycleCallbacks` to a private internal listener
+- [x] Replace `trackedRootViews` (Activity-based) with a map-less self-cleaning approach
+- [x] Implement self-cleaning logic using `OnAttachStateChangeListener`
+- [x] Verify changes with `WindowFocusListenerLoggerTest.kt`
+- [x] Create `walkthrough.artifact.md`

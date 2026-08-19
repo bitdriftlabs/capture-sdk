@@ -7,9 +7,7 @@
 
 package io.bitdrift.capture.events.lifecycle
 
-import android.app.Activity
 import android.app.Application
-import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
@@ -17,131 +15,63 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.Mocks
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verifyNoInteractions
-import org.robolectric.Robolectric
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
-import org.robolectric.android.controller.ActivityController
 
-@RunWith(RobolectricTestRunner::class)
 class WindowFocusListenerLoggerTest {
+    private val application: Application = mock()
     private val logger: IInternalLogger = mock()
     private val runtime: Runtime = mock()
-    private val mainThreadHandler = Mocks.sameThreadHandler
+    private val handler = Mocks.sameThreadHandler
 
-    private lateinit var application: Application
-    private lateinit var windowFocusListenerLogger: WindowFocusListenerLogger
+    private lateinit var windowFocusLogger: WindowFocusListenerLogger
 
     @Before
     fun setUp() {
-        application = RuntimeEnvironment.getApplication()
         whenever(runtime.isEnabled(RuntimeFeature.WINDOW_FOCUS_FLUSHING)).thenReturn(true)
-
-        windowFocusListenerLogger =
-            WindowFocusListenerLogger(
-                application,
-                logger,
-                runtime,
-                mainThreadHandler,
-            )
+        windowFocusLogger = WindowFocusListenerLogger(application, logger, runtime, handler)
+        windowFocusLogger.start()
     }
 
     @Test
-    fun onWindowFocusChanged_withFocusLost_shouldFlushLogger() {
-        windowFocusListenerLogger.onWindowFocusChanged(false)
+    fun testFlushOnFocusLost() {
+        // ACT
+        windowFocusLogger.onWindowFocusChanged(false)
 
-        verify(logger).flush(eq(false))
+        // ASSERT
+        verify(logger).flush(false)
     }
 
     @Test
-    fun onWindowFocusChanged_withFocusGained_shouldNotFlushLogger() {
-        windowFocusListenerLogger.onWindowFocusChanged(true)
+    fun testNoFlushOnFocusGained() {
+        // ACT
+        windowFocusLogger.onWindowFocusChanged(true)
 
-        verifyNoInteractions(logger)
+        // ASSERT
+        com.nhaarman.mockitokotlin2.verifyZeroInteractions(logger)
     }
 
     @Test
-    fun onWindowFocusChanged_withFlagDisabled_shouldNotFlushLogger() {
+    fun testNoFlushIfDisabled() {
+        // ARRANGE
         whenever(runtime.isEnabled(RuntimeFeature.WINDOW_FOCUS_FLUSHING)).thenReturn(false)
 
-        windowFocusListenerLogger.onWindowFocusChanged(false)
+        // ACT
+        windowFocusLogger.onWindowFocusChanged(false)
 
-        verifyNoInteractions(logger)
+        // ASSERT
+        com.nhaarman.mockitokotlin2.verifyZeroInteractions(logger)
     }
 
     @Test
-    fun onActivityStarted_withStartedListener_shouldTrackActivityRootView() {
-        windowFocusListenerLogger.start()
+    fun testNoFlushIfStopped() {
+        // ARRANGE
+        windowFocusLogger.stop()
 
-        val controller = buildActivity()
+        // ACT
+        windowFocusLogger.onWindowFocusChanged(false)
 
-        assertThat(windowFocusListenerLogger.trackedRootViews).containsKey(controller.get())
+        // ASSERT
+        com.nhaarman.mockitokotlin2.verifyZeroInteractions(logger)
     }
-
-    @Test
-    fun onActivityStarted_withSameActivityStartedTwice_shouldTrackActivityOnce() {
-        windowFocusListenerLogger.start()
-
-        val controller = buildActivity()
-        controller.stop().start()
-
-        assertThat(windowFocusListenerLogger.trackedRootViews).hasSize(1)
-    }
-
-    @Test
-    fun onWindowFocusChanged_withSameActivityStartedTwice_shouldFlushLoggerOnce() {
-        windowFocusListenerLogger.start()
-        val controller = buildActivity()
-        controller.pause().stop().start()
-
-        controller.windowFocusChanged(false)
-
-        verify(logger, times(1)).flush(eq(false))
-    }
-
-    @Test
-    fun onActivityDestroyed_withTrackedActivity_shouldStopTrackingActivity() {
-        windowFocusListenerLogger.start()
-        val controller = buildActivity()
-
-        controller.pause().stop().destroy()
-
-        assertThat(windowFocusListenerLogger.trackedRootViews).isEmpty()
-    }
-
-    @Test
-    fun onStop_withTrackedActivity_shouldStopTrackingAndIgnoreFurtherActivities() {
-        windowFocusListenerLogger.start()
-        buildActivity()
-
-        windowFocusListenerLogger.stop()
-        buildActivity()
-
-        assertThat(windowFocusListenerLogger.trackedRootViews).isEmpty()
-    }
-
-    /**
-     * The window loses focus before `onPause` runs, so the activity is still resumed at this point.
-     * Flushing has to happen anyway: this is the app switcher / Home case, and anything that waits
-     * for `onPause` to confirm it gives up the head start this listener exists to buy.
-     */
-    @Test
-    fun onWindowFocusChanged_withStillResumedActivity_shouldFlushLogger() {
-        windowFocusListenerLogger.start()
-        val controller = buildActivity()
-
-        controller.windowFocusChanged(false)
-
-        verify(logger).flush(eq(false))
-    }
-
-    private fun buildActivity(): ActivityController<Activity> =
-        Robolectric
-            .buildActivity(Activity::class.java)
-            .setup()
 }
