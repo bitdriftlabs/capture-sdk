@@ -34,7 +34,7 @@ jobs:
         id: bazel_check
         run: ./ci/check_bazel.sh //platform/... //test/...
         env:
-          BAZEL_DIFF_ARGS: --config ci --config libunwind
+          BAZEL_DIFF_ARGS: --config ci --config libunwind --config linux-hermetic-llvm
           BAZEL_DIFF_TEST_TARGETS_QUERY: 'kind(".*_test rule", (//platform/... union //test/...) except attr("tags", "macos_only", //platform/... union //test/...))'
           BAZEL_DIFF_CLIPPY_TARGETS_QUERY: '((attr("tags", "clippy", //...) except attr("tags", "macos_only", //...)) except attr("tags", "manual", //...)) union //platform/shared:build_script_'
 

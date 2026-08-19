@@ -1,0 +1,12 @@
+diff --git a/extension.bzl b/extension.bzl
+index a84d1caf..752f43d7 100644
+--- a/extension.bzl
++++ b/extension.bzl
+@@ -194,6 +194,7 @@ tel_repository = repository_rule(
+         "deps": attr.string_dict(),
+         "last_notice": attr.int(default = 0),
+     },
++    environ = ["DO_NOT_TRACK"],
+ )
+ 
+ def _tel_impl(module_ctx):

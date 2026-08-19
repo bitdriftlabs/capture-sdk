@@ -27,9 +27,10 @@ esac
 run_bazel_tests() {
   local use_ios_test_environment="$1"
   local include_libunwind="$2"
-  local test_tag_filters="$3"
-  local build_tag_filters="$4"
-  shift 4
+  local use_linux_hermetic_llvm="$3"
+  local test_tag_filters="$4"
+  local build_tag_filters="$5"
+  shift 5
 
   local bazel_args=(test --config ci --remote_download_minimal --test_output=errors --test_env=RUST_LOG=debug)
   if [[ -n "$test_tag_filters" ]]; then
@@ -41,6 +42,9 @@ run_bazel_tests() {
   if [[ "$include_libunwind" == "true" ]]; then
     bazel_args+=(--config libunwind)
   fi
+  if [[ "$use_linux_hermetic_llvm" == "true" ]]; then
+    bazel_args+=(--config linux-hermetic-llvm)
+  fi
   if [[ "$use_ios_test_environment" == "true" ]]; then
     bazel_args+=(--test_env=REUSE_GLOBAL_SIMULATOR=1 --test_env=STARTUP_TIMEOUT_SEC=300)
     env -u ANDROID_NDK_HOME ./bazelw "${bazel_args[@]}" "$@"
@@ -51,9 +55,9 @@ run_bazel_tests() {
 
 run_linux_runner() {
   if [[ "$mode" == "full" ]]; then
-    run_bazel_tests false true -macos_only -macos_only //platform/... //test/...
+    run_bazel_tests false true true -macos_only -macos_only //platform/... //test/...
   elif [[ -s "$affected_targets_path" ]]; then
-    run_bazel_tests false true -macos_only -macos_only --target_pattern_file="$affected_targets_path"
+    run_bazel_tests false true true -macos_only -macos_only --target_pattern_file="$affected_targets_path"
   else
     echo "No affected Linux-runner test targets; skipping tests."
   fi
@@ -67,7 +71,7 @@ run_macos_runner() {
   while IFS= read -r target; do
     ios_test_targets+=("$target")
   done < <(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)')
-  run_bazel_tests true false macos_only '' "${ios_test_targets[@]}"
+  run_bazel_tests true false false macos_only '' "${ios_test_targets[@]}"
 }
 
 case "$slice" in
@@ -86,7 +90,7 @@ case "$slice" in
       echo "The all slice is only supported on macOS."
       exit 2
     fi
-    run_bazel_tests true false '' '' //platform/... //test/...
+    run_bazel_tests true false false '' '' //platform/... //test/...
     ;;
   *)
     echo "Unsupported test slice: $slice"

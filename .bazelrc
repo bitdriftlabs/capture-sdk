@@ -1,5 +1,7 @@
 common --enable_bzlmod
 common --incompatible_disable_native_android_rules
+# .bazelversion pins Bazel to 7a3283ce565d7618a9d947465d67ff7ad87f95c0 from the 9.3 release branch.
+# TODO: Update the pin to 9.3.0rc1 when it is available.
 # Accepted licenses for the pinned hermetic Android SDK and NDK in MODULE.bazel.
 common --repo_env=ACCEPTED_ANDROID_SDK_LICENSE_VERSION=36
 common --repo_env=ACCEPTED_ANDROID_NDK_LICENSE_VERSION=r27c
@@ -10,6 +12,7 @@ mobile-install --config=android
 build:libunwind --action_env=PATH=/usr/bin
 
 build --experimental_repository_downloader_retries=3
+common --repo_env=DO_NOT_TRACK=1
 build --@protobuf//bazel/flags:prefer_prebuilt_protoc
 
 build --features=debug_prefix_map_pwd_is_dot
@@ -76,6 +79,9 @@ build:release-android --linkopt=-fuse-ld=lld
 # TODO(snowp): This should do better but requires a certain version of Android.
 # Investigate what this is and track when we can use it.
 # build:release-android --linkopt=-Wl,--use-android-relr-tags
+
+# Use the hermetic LLVM toolchain for Linux CI's LLD linker.
+build:linux-hermetic-llvm --extra_toolchains=@llvm//toolchain:all
 
 # Custom iOS release configuration
 build --ios_simulator_device="iPhone 17"
