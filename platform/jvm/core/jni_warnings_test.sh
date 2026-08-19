@@ -2,12 +2,8 @@
 
 set -euo pipefail
 
-test_binary="$TEST_SRCDIR/$TEST_WORKSPACE/__TEST_BINARY_RUNFILES_PATH__"
-jdk_home="$TEST_SRCDIR/$TEST_WORKSPACE/__JAVA_HOME_RUNFILES_PATH__"
-
-# Bazel resolves this path from JavaRuntimeInfo, without exposing a generated bzlmod repository
-# name. jni 0.21's invocation API finds libjvm through JAVA_HOME.
-export JAVA_HOME="$jdk_home"
+test_binary="$TEST_SRCDIR/$TEST_WORKSPACE/$1"
+shift
 
 output_file="$(mktemp)"
 trap 'rm -f "$output_file"' EXIT
