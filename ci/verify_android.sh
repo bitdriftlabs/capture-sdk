@@ -11,6 +11,8 @@ elapsed=0
 while ! adb logcat -d | grep -q -e 'Capture SDK properly initialized'; do
   if [ "$elapsed" -ge "$timeout_seconds" ]; then
     echo "Timeout after ${timeout_seconds}s waiting for Capture SDK init log"
+    echo "Logcat at timeout:"
+    adb logcat -d -v threadtime || true
     exit 1
   fi
   sleep 1
