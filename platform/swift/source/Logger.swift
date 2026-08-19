@@ -439,9 +439,11 @@ extension Logger: Logging {
 
     /// Creates a new session.
     ///
-    /// A non-`nil` `sessionID` becomes the new session ID. When `sessionID` is `nil`, Capture
+    /// A non-empty `sessionID` becomes the new session ID. When `sessionID` is `nil` or empty, Capture
     /// generates a UUID regardless of how the previous session was established. This always
     /// creates a session boundary, even if `sessionID` equals the current ID.
+    ///
+    /// - parameter sessionID: The optional non-empty ID for the new session.
     public func startNewSession(sessionID: String? = nil) {
         self.underlyingLogger.startNewSession(sessionID: sessionID)
     }

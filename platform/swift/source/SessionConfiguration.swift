@@ -14,16 +14,17 @@ import Foundation
 /// period has elapsed.
 ///
 /// When `inactivityTimeout` is set, a period of inactivity rotates the session to an SDK-created
-/// UUID. Calling `startNewSession(sessionID:)` with a non-`nil` ID always uses that ID, including
+/// UUID. Calling `startNewSession(sessionID:)` with a non-empty ID always uses that ID, including
 /// with an inactivity timeout configured. Mixing supplied IDs with SDK-created IDs is therefore
 /// discouraged unless the application can handle both forms.
+/// Empty initial and explicit IDs are treated as absent, so Capture generates a UUID instead.
 ///
 /// `onSessionIDChanged` is called after Capture updates its in-memory session ID and schedules
 /// best-effort persistence for the initial session, inactivity-driven rotations, and every
 /// explicit session start. It is always called asynchronously on the main queue.
 public struct SessionConfiguration {
-    /// Optional ID to use whenever no inactivity timeout is configured, or to seed the first
-    /// session when one is configured. When `nil`, Capture generates a UUID.
+    /// Optional non-empty ID to use whenever no inactivity timeout is configured, or to seed the
+    /// first session when one is configured. When `nil` or empty, Capture generates a UUID.
     public let initialSessionID: String?
     /// Optional inactivity duration after which Capture generates a new UUID session ID. When
     /// `nil`, activity-based rotation is disabled.
@@ -57,7 +58,7 @@ final class SessionConfigurationProvider: NSObject {
         configuration.initialSessionID
     }
 
-    /// Returns a negative value when the Objective-C bridge should represent an absent timeout.
+    /// - returns: A negative value when the Objective-C bridge should represent an absent timeout.
     @objc func inactivityTimeoutSeconds() -> Double {
         configuration.inactivityTimeout ?? -1
     }

@@ -18,16 +18,18 @@ import kotlin.time.Duration
  * an SDK UUID only after the inactivity period has elapsed.
  *
  * When [inactivityTimeout] is set, a period of inactivity rotates the session to an SDK-created
- * UUID. Calling `startNewSession` with a non-null ID always uses that ID, including with an
+ * UUID. Calling `startNewSession` with a non-empty ID always uses that ID, including with an
  * inactivity timeout configured. Mixing caller-supplied IDs with SDK-created IDs is therefore
  * discouraged unless the application can handle both forms.
+ * Empty initial and explicit IDs are treated as absent, so Capture generates a UUID instead.
  *
  * [onSessionIdChanged] is invoked after Capture updates its in-memory session ID and schedules
  * best-effort persistence for the initial session, inactivity-driven rotations, and every explicit
  * session start. It is always invoked asynchronously on the Android main thread.
  *
- * @property initialSessionId Optional ID to use whenever no inactivity timeout is configured, or
- * to seed the first session when one is configured. When absent, Capture generates a UUID.
+ * @property initialSessionId Optional non-empty ID to use whenever no inactivity timeout is
+ * configured, or to seed the first session when one is configured. When absent or empty, Capture
+ * generates a UUID.
  * @property inactivityTimeout Optional inactivity duration after which Capture generates a new
  * UUID session ID. When absent, activity-based rotation is disabled.
  * @property onSessionIdChanged Optional callback that receives each new session ID.

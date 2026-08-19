@@ -45,7 +45,7 @@ interface ILogger {
     /**
      * Creates a new session within this logger.
      *
-     * A non-null [sessionId] becomes the new session ID. When [sessionId] is null, Capture
+     * A non-empty [sessionId] becomes the new session ID. When [sessionId] is null or empty, Capture
      * generates a UUID regardless of how the previous session was established. This always
      * creates a session boundary, even if [sessionId] equals the current ID.
      */
