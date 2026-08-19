@@ -11,7 +11,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Upgraded the Android JNI bindings to `jni` 0.22.4.
 
 **Fixed**
 

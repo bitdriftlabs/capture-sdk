@@ -17,7 +17,7 @@ use anyhow::anyhow;
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
 use bd_session::{Strategy, activity_based, fixed};
-use jni::JNIEnv;
+use jni::Env;
 use jni::objects::JString;
 use jni::signature::{Primitive, ReturnType};
 use std::path::Path;
@@ -32,7 +32,7 @@ static SESSION_STRATEGY_INACTIVITY_THRESHOLD_MINS: OnceLock<CachedMethod> = Once
 static SESSION_STRATEGY_GENERATE_SESSION_ID: OnceLock<CachedMethod> = OnceLock::new();
 static SESSION_STRATEGY_SESSION_ID_CHANGED: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
+pub(crate) fn initialize(env: &mut Env<'_>) -> anyhow::Result<()> {
   let session_strategy_fixed = initialize_class(
     env,
     "io/bitdrift/capture/providers/session/SessionStrategyConfiguration$Fixed",
@@ -40,7 +40,7 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   )?;
   initialize_method_handle(
     env,
-    &session_strategy_fixed.class,
+    session_strategy_fixed.class.as_ref(),
     "generateSessionId",
     "()Ljava/lang/String;",
     &SESSION_STRATEGY_GENERATE_SESSION_ID,
@@ -53,14 +53,14 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   )?;
   initialize_method_handle(
     env,
-    &session_strategy_activity_based.class,
+    session_strategy_activity_based.class.as_ref(),
     "inactivityThresholdMins",
     "()J",
     &SESSION_STRATEGY_INACTIVITY_THRESHOLD_MINS,
   )?;
   initialize_method_handle(
     env,
-    &session_strategy_activity_based.class,
+    session_strategy_activity_based.class.as_ref(),
     "sessionIdChanged",
     "(Ljava/lang/String;)V",
     &SESSION_STRATEGY_SESSION_ID_CHANGED,
@@ -120,11 +120,10 @@ impl fixed::Callbacks for SessionStrategyConfigurationHandle {
         .call_method(e, session_strategy_configuration, ReturnType::Object, &[])?
         .l()?;
 
-      let session_id = JString::from(session_id);
-      unsafe { e.get_string_unchecked(&session_id)? }
-        .to_str()
+      let session_id = e.cast_local::<JString<'_>>(session_id)?;
+      session_id
+        .try_to_string(e)
         .ok()
-        .map(ToString::to_string)
         .ok_or_else(|| anyhow!("jni: generate_session_id failed to convert session_id to string"))
     })
   }

@@ -36,19 +36,18 @@ use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, Log
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::MemoryPressureLevel;
 use bd_proto::protos::logging::payload::LogType;
 use futures_util::FutureExt;
-use jni::descriptors::Desc;
 use jni::objects::{
-  GlobalRef,
+  Global,
   JClass,
   JMethodID,
   JObject,
   JObjectArray,
   JPrimitiveArray,
   JString,
-  JValueGen,
   JValueOwned,
 };
 use jni::signature::{Primitive, ReturnType};
+use jni::strings::JNIString;
 use jni::sys::{
   JNI_ERR,
   JNI_TRUE,
@@ -61,7 +60,7 @@ use jni::sys::{
   jstring,
   jvalue,
 };
-use jni::{JNIEnv, JavaVM};
+use jni::{AttachConfig, Env, EnvUnowned, JavaVM};
 use platform_shared::metadata::Mobile;
 use platform_shared::{LoggerHolder, LoggerId, date_to_unix_milliseconds};
 use protobuf::Enum as _;
@@ -141,21 +140,20 @@ pub(crate) struct CachedMethod {
 }
 
 impl CachedMethod {
-  fn new<'local, 'other_local, T: Desc<'local, JClass<'other_local>>>(
-    env: &mut JNIEnv<'local>,
-    class: T,
-    name: &str,
-    sig: &str,
-  ) -> anyhow::Result<Self> {
+  fn new(env: &mut Env<'_>, class: &JClass<'_>, name: &str, sig: &str) -> anyhow::Result<Self> {
     Ok(Self {
-      method_id: env.get_method_id(class, name, sig)?,
+      method_id: env.get_method_id(
+        class,
+        JNIString::new(name),
+        jni::signature::RuntimeMethodSignature::from_str(sig)?.method_signature(),
+      )?,
     })
   }
 
   /// Invokes the method using the cached handle.
   pub(crate) fn call_method<'a>(
     &self,
-    env: &mut JNIEnv<'a>,
+    env: &mut Env<'a>,
     object: &JObject<'_>,
     return_type: ReturnType,
     args: &[jvalue],
@@ -170,15 +168,15 @@ impl CachedMethod {
 
 /// A cached global reference to a Class. Used to avoid continuously re-resolving the same class
 /// multiple times and instead perform the lookup once during `JNI_OnLoad`.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct CachedClass {
-  pub(crate) class: GlobalRef,
+  pub(crate) class: Global<JClass<'static>>,
 }
 
 impl CachedClass {
   /// Looks up the class by name from the provided environment.
-  fn new(env: &mut JNIEnv<'_>, class_name: &str) -> jni::errors::Result<Self> {
-    let class = env.find_class(class_name)?;
+  fn new(env: &mut Env<'_>, class_name: &str) -> jni::errors::Result<Self> {
+    let class = env.find_class(JNIString::new(class_name))?;
 
     Ok(Self {
       class: env.new_global_ref(class)?,
@@ -217,13 +215,9 @@ static ISSUE_REPORT_CONSTRUCTOR: OnceLock<CachedMethod> = OnceLock::new();
 static SDK_STATUS_CLASS: OnceLock<CachedClass> = OnceLock::new();
 static SDK_STATUS_CONSTRUCTOR: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize_method_handle<
-  'local,
-  'other_local,
-  T: Desc<'local, JClass<'other_local>>,
->(
-  env: &mut JNIEnv<'local>,
-  class: T,
+pub(crate) fn initialize_method_handle(
+  env: &mut Env<'_>,
+  class: &JClass<'_>,
   method_name: &str,
   signature: &str,
   handle: &OnceLock<CachedMethod>,
@@ -235,9 +229,8 @@ pub(crate) fn initialize_method_handle<
     bail!("failed to resolve method");
   };
 
-  // Safety: As long as this is called from within JNI_OnLoad this is called immediately following
-  // dlopen for this JNI library. This means that it is guaranteed to complete before any other
-  // JNI function from this library is invoked.
+  // JNI_OnLoad runs before any other JNI function from this library, so this OnceLock can only be
+  // initialized once.
   handle
     .set(cached_id)
     .map_err(|_| InvariantError::Invariant)?;
@@ -245,7 +238,7 @@ pub(crate) fn initialize_method_handle<
 }
 
 pub(crate) fn initialize_class(
-  env: &mut JNIEnv<'_>,
+  env: &mut Env<'_>,
   class: &str,
   // Optional reference to `OnceLock` for cases when we don't want to store the cached value using
   // `OnceLock` to limit the number of locks we perform.
@@ -257,19 +250,20 @@ pub(crate) fn initialize_class(
     bail!("failed to find class");
   };
 
-  // Safety: As long as this is called from within JNI_OnLoad this is called immediately following
-  // dlopen for this JNI library. This means that it is guaranteed to complete before any other
-  // JNI function from this library is invoked.
+  // JNI_OnLoad runs before any other JNI function from this library, so this OnceLock can only be
+  // initialized once.
   if let Some(handle) = handle {
+    // Global references are owned and cannot be cloned. Class lookup happens only during library
+    // initialization, so make a second global reference for the caller and the cache.
     handle
-      .set(cached_class.clone())
+      .set(CachedClass::new(env, class)?)
       .map_err(|_| InvariantError::Invariant)?;
   }
 
   Ok(cached_class)
 }
 
-fn check_exception(env: &mut JNIEnv<'_>) {
+fn check_exception(env: &mut Env<'_>) {
   match crate::executor::check_exception(env) {
     Ok(Some(exception)) => log::error!("failed with exception {exception}"),
     Ok(None) => log::error!("no active exception"),
@@ -279,145 +273,158 @@ fn check_exception(env: &mut JNIEnv<'_>) {
   }
 }
 
-fn throw_java_exception(env: &mut JNIEnv<'_>, class: &str, message: &str) {
-  if let Err(e) = env.throw_new(class, message) {
+fn throw_java_exception(env: &mut Env<'_>, class: &str, message: &str) {
+  if let Err(e) = env.throw_new(JNIString::new(class), JNIString::new(message)) {
     log::error!("failed to throw Java exception {class}: {e}; original message: {message}");
     check_exception(env);
   }
 }
 
 fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
-  let mut env = vm.get_env()?;
+  vm.attach_current_thread(|env| {
+    let metadata_provider = initialize_class(env, "io/bitdrift/capture/IMetadataProvider", None)?;
 
-  let metadata_provider =
-    initialize_class(&mut env, "io/bitdrift/capture/IMetadataProvider", None)?;
+    initialize_method_handle(
+      env,
+      metadata_provider.class.as_ref(),
+      "timestamp",
+      "()J",
+      &METADATA_PROVIDER_TIMESTAMP,
+    )?;
+    initialize_method_handle(
+      env,
+      metadata_provider.class.as_ref(),
+      "ootbFields",
+      "()[Lio/bitdrift/capture/providers/Field;",
+      &METADATA_PROVIDER_OOTB_FIELDS,
+    )?;
+    initialize_method_handle(
+      env,
+      metadata_provider.class.as_ref(),
+      "customFields",
+      "()[Lio/bitdrift/capture/providers/Field;",
+      &METADATA_PROVIDER_CUSTOM_FIELDS,
+    )?;
 
-  initialize_method_handle(
-    &mut env,
-    &metadata_provider.class,
-    "timestamp",
-    "()J",
-    &METADATA_PROVIDER_TIMESTAMP,
-  )?;
-  initialize_method_handle(
-    &mut env,
-    &metadata_provider.class,
-    "ootbFields",
-    "()[Lio/bitdrift/capture/providers/Field;",
-    &METADATA_PROVIDER_OOTB_FIELDS,
-  )?;
-  initialize_method_handle(
-    &mut env,
-    &metadata_provider.class,
-    "customFields",
-    "()[Lio/bitdrift/capture/providers/Field;",
-    &METADATA_PROVIDER_CUSTOM_FIELDS,
-  )?;
+    let network_class = initialize_class(env, "io/bitdrift/capture/network/ICaptureNetwork", None)?;
+    initialize_method_handle(
+      env,
+      network_class.class.as_ref(),
+      "startStream",
+      "(JLjava/util/Map;)Lio/bitdrift/capture/network/ICaptureStream;",
+      &NETWORK_START_STREAM,
+    )?;
 
-  initialize_method_handle(
-    &mut env,
-    "io/bitdrift/capture/network/ICaptureNetwork",
-    "startStream",
-    "(JLjava/util/Map;)Lio/bitdrift/capture/network/ICaptureStream;",
-    &NETWORK_START_STREAM,
-  )?;
+    let stream_class = initialize_class(env, "io/bitdrift/capture/network/ICaptureStream", None)?;
 
-  let stream_class =
-    initialize_class(&mut env, "io/bitdrift/capture/network/ICaptureStream", None)?;
+    initialize_method_handle(
+      env,
+      stream_class.class.as_ref(),
+      "sendData",
+      "([B)V",
+      &STREAM_SEND_DATA,
+    )?;
 
-  initialize_method_handle(
-    &mut env,
-    &stream_class.class,
-    "sendData",
-    "([B)V",
-    &STREAM_SEND_DATA,
-  )?;
+    initialize_method_handle(
+      env,
+      stream_class.class.as_ref(),
+      "shutdown",
+      "()V",
+      &STREAM_SHUTDOWN,
+    )?;
 
-  initialize_method_handle(
-    &mut env,
-    &stream_class.class,
-    "shutdown",
-    "()V",
-    &STREAM_SHUTDOWN,
-  )?;
+    let error_reporter_class =
+      initialize_class(env, "io/bitdrift/capture/error/IErrorReporter", None)?;
+    initialize_method_handle(
+      env,
+      error_reporter_class.class.as_ref(),
+      "reportError",
+      "(Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V",
+      &ERROR_REPORTER_REPORT_ERROR,
+    )?;
 
-  initialize_method_handle(
-    &mut env,
-    "io/bitdrift/capture/error/IErrorReporter",
-    "reportError",
-    "(Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V",
-    &ERROR_REPORTER_REPORT_ERROR,
-  )?;
+    let stack_trace_provider_class =
+      initialize_class(env, "io/bitdrift/capture/StackTraceProvider", None)?;
+    initialize_method_handle(
+      env,
+      stack_trace_provider_class.class.as_ref(),
+      "invoke",
+      "()Ljava/lang/String;",
+      &STACK_TRACE_PROVIDER_INVOKE,
+    )?;
 
-  initialize_method_handle(
-    &mut env,
-    "io/bitdrift/capture/StackTraceProvider",
-    "invoke",
-    "()Ljava/lang/String;",
-    &STACK_TRACE_PROVIDER_INVOKE,
-  )?;
+    initialize_class(
+      env,
+      "io/bitdrift/capture/reports/processor/ReportProcessingSession$Current",
+      Some(&REPORT_PROCESSING_SESSION_CURRENT),
+    )?;
+    initialize_class(
+      env,
+      "io/bitdrift/capture/reports/processor/ReportProcessingSession$PreviousRun",
+      Some(&REPORT_PROCESSING_SESSION_PREVIOUS_RUN),
+    )?;
 
-  initialize_class(
-    &mut env,
-    "io/bitdrift/capture/reports/processor/ReportProcessingSession$Current",
-    Some(&REPORT_PROCESSING_SESSION_CURRENT),
-  )?;
-  initialize_class(
-    &mut env,
-    "io/bitdrift/capture/reports/processor/ReportProcessingSession$PreviousRun",
-    Some(&REPORT_PROCESSING_SESSION_PREVIOUS_RUN),
-  )?;
+    let issue_callback_configuration_class = initialize_class(
+      env,
+      "io/bitdrift/capture/reports/IssueCallbackConfiguration",
+      None,
+    )?;
+    initialize_method_handle(
+      env,
+      issue_callback_configuration_class.class.as_ref(),
+      "dispatch",
+      "(Lio/bitdrift/capture/reports/Report;)V",
+      &ISSUE_REPORT_DISPATCHER_DISPATCH,
+    )?;
 
-  initialize_method_handle(
-    &mut env,
-    "io/bitdrift/capture/reports/IssueCallbackConfiguration",
-    "dispatch",
-    "(Lio/bitdrift/capture/reports/Report;)V",
-    &ISSUE_REPORT_DISPATCHER_DISPATCH,
-  )?;
+    let issue_report_class = initialize_class(
+      env,
+      "io/bitdrift/capture/reports/Report",
+      Some(&ISSUE_REPORT_CLASS),
+    )?;
 
-  let issue_report_class = initialize_class(
-    &mut env,
-    "io/bitdrift/capture/reports/Report",
-    Some(&ISSUE_REPORT_CLASS),
-  )?;
+    initialize_method_handle(
+      env,
+      issue_report_class.class.as_ref(),
+      "<init>",
+      "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V",
+      &ISSUE_REPORT_CONSTRUCTOR,
+    )?;
 
-  initialize_method_handle(
-    &mut env,
-    &issue_report_class.class,
-    "<init>",
-    "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V",
-    &ISSUE_REPORT_CONSTRUCTOR,
-  )?;
+    let sdk_status_class = initialize_class(
+      env,
+      "io/bitdrift/capture/SdkStatus",
+      Some(&SDK_STATUS_CLASS),
+    )?;
 
-  let sdk_status_class = initialize_class(
-    &mut env,
-    "io/bitdrift/capture/SdkStatus",
-    Some(&SDK_STATUS_CLASS),
-  )?;
+    initialize_method_handle(
+      env,
+      sdk_status_class.class.as_ref(),
+      "<init>",
+      "(IJJ)V",
+      &SDK_STATUS_CONSTRUCTOR,
+    )?;
 
-  initialize_method_handle(
-    &mut env,
-    &sdk_status_class.class,
-    "<init>",
-    "(IJJ)V",
-    &SDK_STATUS_CONSTRUCTOR,
-  )?;
+    key_value_storage::initialize(env)?;
+    events::initialize(env)?;
+    ffi::initialize(env)?;
+    session::initialize(env)?;
+    report_processing::initialize(env)?;
+    resource_utilization::initialize(env)?;
+    session_replay::initialize(env)?;
 
-  key_value_storage::initialize(&mut env)?;
-  events::initialize(&mut env)?;
-  ffi::initialize(&mut env)?;
-  session::initialize(&mut env)?;
-  report_processing::initialize(&mut env)?;
-  resource_utilization::initialize(&mut env)?;
-  session_replay::initialize(&mut env)?;
-
-  Ok(env.get_version()?.into())
+    Ok(env.version()?.into())
+  })
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
+/// # Safety
+///
+/// The JVM calls this entrypoint with a valid `JavaVM` pointer during native-library loading.
+pub unsafe extern "system" fn JNI_OnLoad(vm: *mut jni::sys::JavaVM, _: *mut c_void) -> jint {
   initialize_logging();
+  // JNI owns the VM for the lifetime of the process and passes a valid pointer here.
+  let vm = unsafe { JavaVM::from_raw(vm) };
   jni_load_inner(&vm)
     .inspect_err(|e| log::error!("JNI_OnLoad failed: {e}"))
     .unwrap_or(JNI_ERR)
@@ -478,7 +485,7 @@ impl bd_api::PlatformNetworkManager<bd_runtime::runtime::ConfigLoader> for Netwo
             JValueWrapper::Object(headers).into(),
           ],
         )
-        .and_then(|v| JValueGen::l(v).map_err(|e| anyhow!(e)))?;
+        .and_then(|v| JValueOwned::l(v).map_err(|e| anyhow!(e)))?;
 
       Ok(Box::new(new_global!(StreamHandle, e, handle)?) as Box<dyn PlatformNetworkStream>)
     });
@@ -531,61 +538,79 @@ impl Drop for StreamHandle {
 #[allow(clippy::cast_sign_loss)]
 #[unsafe(no_mangle)]
 extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiChunkReceived(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   stream_id: jlong,
   data: jbyteArray,
   size: jint,
 ) {
-  let stream_state: &StreamState = unsafe { &*(stream_id as *const StreamState) };
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      let stream_state: &StreamState = unsafe { &*(stream_id as *const StreamState) };
 
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let slice = env.convert_byte_array(unsafe { JPrimitiveArray::from_raw(data) })?;
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let slice = env.convert_byte_array(unsafe { JPrimitiveArray::from_raw(env, data) })?;
 
-      let _ignored = stream_state
-        .event_tx
-        .blocking_send(StreamEvent::Data((&slice[.. (size as usize)]).into()));
+          let _ignored = stream_state
+            .event_tx
+            .blocking_send(StreamEvent::Data((&slice[.. (size as usize)]).into()));
+
+          Ok(())
+        },
+        "jni chunk received",
+      );
 
       Ok(())
-    },
-    "jni chunk received",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiStreamClosed(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   stream_id: jlong,
   reason: JString<'_>,
 ) {
-  let stream_state: &StreamState = unsafe { &*(stream_id as *const StreamState) };
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      let stream_state: &StreamState = unsafe { &*(stream_id as *const StreamState) };
 
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let rust_str = unsafe { env.get_string_unchecked(&reason)? }.into();
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let rust_str = reason.try_to_string(env)?;
 
-      let _ignored = stream_state
-        .event_tx
-        .blocking_send(StreamEvent::StreamClosed(rust_str));
+          let _ignored = stream_state
+            .event_tx
+            .blocking_send(StreamEvent::StreamClosed(rust_str));
+
+          Ok(())
+        },
+        "jni stream closed",
+      );
 
       Ok(())
-    },
-    "jni stream closed",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_network_Jni_releaseApiStream(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   stream_id: jlong,
 ) {
-  unsafe {
-    let stream_state: &mut StreamState = &mut *(stream_id as *mut StreamState);
-    drop(Box::from_raw(stream_state));
-  };
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      unsafe {
+        let stream_state: &mut StreamState = &mut *(stream_id as *mut StreamState);
+        drop(Box::from_raw(stream_state));
+      };
+
+      Ok(())
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 define_object_wrapper!(ErrorReporterHandle);
@@ -650,7 +675,7 @@ impl bd_logger::MetadataProvider for MetadataProvider {
         .ok_or(InvariantError::Invariant)?
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
-      let ootb_fields_array = unsafe { JObjectArray::from_raw(ootb_fields.as_raw()) };
+      let ootb_fields_array = e.cast_local::<JObjectArray<'_>>(ootb_fields)?;
       let ootb_fields = ffi::jarray_to_fields(e, &ootb_fields_array)?;
 
       let custom_fields = METADATA_PROVIDER_CUSTOM_FIELDS
@@ -658,7 +683,7 @@ impl bd_logger::MetadataProvider for MetadataProvider {
         .ok_or(InvariantError::Invariant)?
         .call_method(e, provider, ReturnType::Object, &[])?
         .l()?;
-      let custom_fields_array = unsafe { JObjectArray::from_raw(custom_fields.as_raw()) };
+      let custom_fields_array = e.cast_local::<JObjectArray<'_>>(custom_fields)?;
       let custom_fields = ffi::jarray_to_fields(e, &custom_fields_array)?;
 
       Ok((custom_fields, ootb_fields))
@@ -682,9 +707,10 @@ impl CrashReportHook for IssueCallbackConfigurationHandle {
           let fields = ffi::map_to_jmap(env, &fields_map)?;
 
           let report_class = ISSUE_REPORT_CLASS.get().ok_or(InvariantError::Invariant)?;
+          let report_class: &JClass<'static> = report_class.class.as_ref();
           let report_obj = unsafe {
             env.new_object_unchecked(
-              &report_class.class,
+              report_class,
               ISSUE_REPORT_CONSTRUCTOR
                 .get()
                 .ok_or(InvariantError::Invariant)?
@@ -729,7 +755,7 @@ impl CrashReportHook for IssueCallbackConfigurationHandle {
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   directory: JString<'_>,
   api_key: JString<'_>,
@@ -749,380 +775,426 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   start_in_sleep_mode: jboolean,
   issue_report_callback: JObject<'_>,
 ) -> jlong {
-  with_handle_unexpected_or(
-    || {
-      let sdk_directory = PathBuf::from(
-        unsafe { env.get_string_unchecked(&directory) }?
-          .to_string_lossy()
-          .to_string(),
-      );
-      let network_manager = Box::new(Network {
-        handle: new_global!(NetworkHandle, &mut env, network)?,
-        active_streams: Arc::new(AtomicU32::new(0)),
-      });
+  env
+    .with_env(|mut env| -> jni::errors::Result<_> {
+      Ok(with_handle_unexpected_or(
+        || {
+          let sdk_directory = PathBuf::from(directory.try_to_string(env)?);
+          let network_manager = Box::new(Network {
+            handle: new_global!(NetworkHandle, &mut env, network)?,
+            active_streams: Arc::new(AtomicU32::new(0)),
+          });
 
-      let preferences = new_global!(PreferencesHandle, &mut env, preferences)?;
-      let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
+          let preferences = new_global!(PreferencesHandle, &mut env, preferences)?;
+          let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
 
-      let session_strategy = Arc::new(new_global!(
-        SessionStrategyConfigurationHandle,
-        &mut env,
-        session_strategy
-      )?);
-      let session_strategy = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
+          let session_strategy = Arc::new(new_global!(
+            SessionStrategyConfigurationHandle,
+            &mut env,
+            session_strategy
+          )?);
+          let session_strategy =
+            session_strategy.create(session_strategy.clone(), &sdk_directory)?;
 
-      let device = Arc::new(bd_device::Device::new(store.clone()));
-      let static_metadata = Arc::new(Mobile {
-        app_id: Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
-        app_version: Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
-        platform: Platform::Android,
-        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
-        // Further, "os" as sent as a log tag is hard coded as "Android" so we have a casing
-        // mismatch. We need to untangle all of this but we can do that when we send all fixed
-        // fields as metadata and only use the fixed fields on logs for matching.
-        os: "android".to_string(),
-        device: device.clone(),
-        os_version: Some(unsafe { env.get_string_unchecked(&os_version) }?.into()),
-        manufacturer: Some(unsafe { env.get_string_unchecked(&manufacturer) }?.into()),
-        model: unsafe { env.get_string_unchecked(&model) }?.into(),
-      });
+          let device = Arc::new(bd_device::Device::new(store.clone()));
+          let static_metadata = Arc::new(Mobile {
+            app_id: Some(application_id.try_to_string(env)?),
+            app_version: Some(application_version.try_to_string(env)?),
+            platform: Platform::Android,
+            // TODO(mattklein123): Pass this from the platform layer when we want to support other
+            // OS. Further, "os" as sent as a log tag is hard coded as "Android" so
+            // we have a casing mismatch. We need to untangle all of this but we can
+            // do that when we send all fixed fields as metadata and only use the
+            // fixed fields on logs for matching.
+            os: "android".to_string(),
+            device: device.clone(),
+            os_version: Some(os_version.try_to_string(env)?),
+            manufacturer: Some(manufacturer.try_to_string(env)?),
+            model: model.try_to_string(env)?,
+          });
 
-      let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
-      let error_reporter = MetadataErrorReporter::new(
-        error_reporter,
-        Arc::new(platform_shared::error::SessionProvider::new(
-          session_strategy.clone(),
-        )),
-        static_metadata.clone(),
-      );
+          let error_reporter =
+            Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
+          let error_reporter = MetadataErrorReporter::new(
+            error_reporter,
+            Arc::new(platform_shared::error::SessionProvider::new(
+              session_strategy.clone(),
+            )),
+            static_metadata.clone(),
+          );
 
-      let resource_utilization_target = Box::new(new_global!(
-        ResourceUtilizationTargetHandler,
-        &mut env,
-        resource_utilization_target
-      )?);
+          let resource_utilization_target = Box::new(new_global!(
+            ResourceUtilizationTargetHandler,
+            &mut env,
+            resource_utilization_target
+          )?);
 
-      let session_replay_target = Box::new(new_global!(
-        SessionReplayTargetHandler,
-        &mut env,
-        session_replay_target
-      )?);
+          let session_replay_target = Box::new(new_global!(
+            SessionReplayTargetHandler,
+            &mut env,
+            session_replay_target
+          )?);
 
-      let events_listener_target = Box::new(new_global!(
-        EventsListenerTargetHandler,
-        &mut env,
-        events_listener_target
-      )?);
+          let events_listener_target = Box::new(new_global!(
+            EventsListenerTargetHandler,
+            &mut env,
+            events_listener_target
+          )?);
 
-      // Errors emitted up until this point are not reported to bitdrift remote.
-      // TODO(Augustyniak): Make it more obvious that as much work as possible should be done after
-      // the error reporter is set up.
-      UnexpectedErrorHandler::set_reporter(Arc::new(error_reporter));
+          // Errors emitted up until this point are not reported to bitdrift remote.
+          // TODO(Augustyniak): Make it more obvious that as much work as possible should be done
+          // after the error reporter is set up.
+          UnexpectedErrorHandler::set_reporter(Arc::new(error_reporter));
 
-      let crash_report_hook: Option<Arc<dyn CrashReportHook>> = if issue_report_callback.is_null() {
-        None
-      } else {
-        Some(Arc::new(new_global!(
-          IssueCallbackConfigurationHandle,
-          &mut env,
-          issue_report_callback
-        )?))
-      };
+          let crash_report_hook: Option<Arc<dyn CrashReportHook>> =
+            if issue_report_callback.is_null() {
+              None
+            } else {
+              Some(Arc::new(new_global!(
+                IssueCallbackConfigurationHandle,
+                &mut env,
+                issue_report_callback
+              )?))
+            };
 
-      let executor = jni::Executor::new(Arc::new(env.get_java_vm()?));
-      let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
-        sdk_directory,
-        api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
-        session_strategy,
-        metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
-        resource_utilization_target,
-        session_replay_target,
-        events_listener_target,
-        device,
-        store,
-        network: network_manager,
-        static_metadata,
-        start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
-      })
-      .with_internal_logger(true)
-      .with_crash_report_hook(crash_report_hook)
-      .build()
-      .map(|(logger, _, future, _)| {
-        LoggerHolder::new(
-          logger,
-          async move {
-            handle_unexpected(
-              executor.with_attached(|env| {
-                // When we first attach the runtime thread the JVM will rename the thread since
-                // the jni crate won't let us pass a thread name through to the attach function.
-                // To work around this we attach and then immediately rename the thread again.
-                set_thread_name(env, "bd-tokio")
-              }),
-              "jni set thread name",
-            );
-            future.await
-          }
-          .boxed(),
-        )
-      })?;
+          let java_vm = env.get_java_vm()?;
+          let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
+            sdk_directory,
+            api_key: api_key.try_to_string(env)?,
+            session_strategy,
+            metadata_provider: Arc::new(new_global!(
+              MetadataProvider,
+              &mut env,
+              metadata_provider
+            )?),
+            resource_utilization_target,
+            session_replay_target,
+            events_listener_target,
+            device,
+            store,
+            network: network_manager,
+            static_metadata,
+            start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
+          })
+          .with_internal_logger(true)
+          .with_crash_report_hook(crash_report_hook)
+          .build()
+          .map(|(logger, _, future, _)| {
+            LoggerHolder::new(
+              logger,
+              async move {
+                handle_unexpected(
+                  java_vm.attach_current_thread_with_config(
+                    || AttachConfig::new().thread_name(jni::jni_str!("bd-tokio")),
+                    None,
+                    |_| Ok::<(), jni::errors::Error>(()),
+                  ),
+                  "jni attach logger thread",
+                );
 
-      Ok(logger.into_raw().into())
-    },
-    -1,
-    "jni create logger",
-  )
-}
+                let result = future.await;
 
-fn set_thread_name(env: &mut JNIEnv<'_>, name: &str) -> anyhow::Result<()> {
-  let thread = env.call_static_method(
-    "java/lang/Thread",
-    "currentThread",
-    "()Ljava/lang/Thread;",
-    &[],
-  )?;
+                // The logger runtime owns this dedicated OS thread. Keep the JVM attachment for
+                // its lifetime so JNI callbacks do not repeatedly attach on every log, but detach
+                // before the thread begins TLS teardown. This clears jni-rs' attach guard while
+                // Rust's logging TLS is still available.
+                handle_unexpected(java_vm.detach_current_thread(), "jni detach logger thread");
 
-  let name = env.new_string(name)?;
-  env.call_method(
-    thread.l()?,
-    "setName",
-    "(Ljava/lang/String;)V",
-    &[JValueGen::Object(&name)],
-  )?;
+                result
+              }
+              .boxed(),
+            )
+          })?;
 
-  Ok(())
+          Ok(logger.into_raw().into())
+        },
+        -1,
+        "jni create logger",
+      ))
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startLogger(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
 ) {
-  let logger = unsafe { LoggerId::from_raw(logger_id) };
-  logger.start();
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.start();
+
+      Ok(())
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSdkStatus(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
 ) -> jobject {
-  with_handle_unexpected_or(
-    || {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      let status = logger.get_sdk_status();
+  env
+    .with_env(|env| -> jni::errors::Result<_> {
+      Ok(with_handle_unexpected_or(
+        || {
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          let status = logger.get_sdk_status();
 
-      let initialization_state = status.initialization_state as i32;
-      let last_handshake_time = date_to_unix_milliseconds(status.last_handshake_time);
-      let last_config_delivery_time = date_to_unix_milliseconds(status.last_config_delivery_time);
+          let initialization_state = status.initialization_state as i32;
+          let last_handshake_time = date_to_unix_milliseconds(status.last_handshake_time);
+          let last_config_delivery_time =
+            date_to_unix_milliseconds(status.last_config_delivery_time);
 
-      let sdk_status_class = SDK_STATUS_CLASS.get().ok_or(InvariantError::Invariant)?;
-      let obj = unsafe {
-        env.new_object_unchecked(
-          &sdk_status_class.class,
-          SDK_STATUS_CONSTRUCTOR
-            .get()
-            .ok_or(InvariantError::Invariant)?
-            .method_id,
-          &[
-            jvalue {
-              i: initialization_state,
-            },
-            jvalue {
-              j: last_handshake_time,
-            },
-            jvalue {
-              j: last_config_delivery_time,
-            },
-          ],
-        )?
-      };
+          let sdk_status_class = SDK_STATUS_CLASS.get().ok_or(InvariantError::Invariant)?;
+          let sdk_status_class: &JClass<'static> = sdk_status_class.class.as_ref();
+          let obj = unsafe {
+            env.new_object_unchecked(
+              sdk_status_class,
+              SDK_STATUS_CONSTRUCTOR
+                .get()
+                .ok_or(InvariantError::Invariant)?
+                .method_id,
+              &[
+                jvalue {
+                  i: initialization_state,
+                },
+                jvalue {
+                  j: last_handshake_time,
+                },
+                jvalue {
+                  j: last_config_delivery_time,
+                },
+              ],
+            )?
+          };
 
-      Ok(obj.as_raw())
-    },
-    JObject::null().as_raw(),
-    "jni get_sdk_status",
-  )
+          Ok(obj.as_raw())
+        },
+        JObject::null().as_raw(),
+        "jni get_sdk_status",
+      ))
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_destroyLogger(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
 ) {
-  unsafe { LoggerHolder::destroy(logger_id) }
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      let _: () = unsafe { LoggerHolder::destroy(logger_id) };
+      Ok(())
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSession(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
 ) {
-  with_handle_unexpected(|| logger_id.start_new_session(), "jni start new session");
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      with_handle_unexpected(|| logger_id.start_new_session(), "jni start new session");
+
+      Ok(())
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSessionId<'a>(
-  env: JNIEnv<'a>,
+  mut env: EnvUnowned<'a>,
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
 ) -> JString<'a> {
-  with_handle_unexpected_or(
-    || Ok(env.new_string(logger_id.session_id()?)?),
-    JObject::null().into(),
-    "jni get_session_id",
-  )
+  env
+    .with_env(|env| -> jni::errors::Result<_> {
+      Ok(with_handle_unexpected_or(
+        || Ok(env.new_string(logger_id.session_id()?)?),
+        JString::null(),
+        "jni get_session_id",
+      ))
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getDeviceId<'a>(
-  env: JNIEnv<'a>,
+  mut env: EnvUnowned<'a>,
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
 ) -> JString<'a> {
-  with_handle_unexpected_or(
-    || Ok(env.new_string(logger_id.device_id())?),
-    JObject::null().into(),
-    "jni get_device_id",
-  )
+  env
+    .with_env(|env| -> jni::errors::Result<_> {
+      Ok(with_handle_unexpected_or(
+        || Ok(env.new_string(logger_id.device_id())?),
+        JString::null(),
+        "jni get_device_id",
+      ))
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_isTracingActive(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
 ) -> jboolean {
-  logger_id.is_tracing_active().into()
+  env
+    .with_env(|_| -> jni::errors::Result<_> { Ok(logger_id.is_tracing_active()) })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   key: JString<'_>,
   value: JString<'_>,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let key = unsafe { env.get_string_unchecked(&key) }?
-        .to_string_lossy()
-        .to_string();
-      let value = unsafe { env.get_string_unchecked(&value) }?
-        .to_string_lossy()
-        .to_string();
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let key = key.try_to_string(env)?;
+          let value = value.try_to_string(env)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.add_log_field(key, value.into());
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.add_log_field(key, value.into());
+
+          Ok(())
+        },
+        "jni add log field",
+      );
 
       Ok(())
-    },
-    "jni add log field",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeLogField(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   key: JString<'_>,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let key = unsafe { env.get_string_unchecked(&key) }?
-        .to_string_lossy()
-        .to_string();
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let key = key.try_to_string(env)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.remove_log_field(&key);
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.remove_log_field(&key);
+
+          Ok(())
+        },
+        "jni add log field",
+      );
 
       Ok(())
-    },
-    "jni add log field",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlagExposure(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   key: JString<'_>,
   variant: JString<'_>,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let key = unsafe { env.get_string_unchecked(&key) }?
-        .to_string_lossy()
-        .to_string();
-      let variant = if variant.is_null() {
-        None
-      } else {
-        Some(
-          unsafe { env.get_string_unchecked(&variant) }?
-            .to_string_lossy()
-            .to_string(),
-        )
-      };
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let key = key.try_to_string(env)?;
+          let variant = if variant.is_null() {
+            None
+          } else {
+            Some(variant.try_to_string(env)?)
+          };
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.set_feature_flag_exposure(key, variant);
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.set_feature_flag_exposure(key, variant);
+
+          Ok(())
+        },
+        "jni set feature flag exposure",
+      );
 
       Ok(())
-    },
-    "jni set feature flag exposure",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setEntityId(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   entity_id: JString<'_>,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let entity_id = unsafe { env.get_string_unchecked(&entity_id) }?
-        .to_string_lossy()
-        .to_string();
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let entity_id = entity_id.try_to_string(env)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.register_opaque_entity_id(Some(&entity_id));
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.register_opaque_entity_id(Some(&entity_id));
+
+          Ok(())
+        },
+        "jni set entity id",
+      );
 
       Ok(())
-    },
-    "jni set entity id",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_clearEntityId(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.register_opaque_entity_id(None);
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.register_opaque_entity_id(None);
+
+          Ok(())
+        },
+        "jni clear entity id",
+      );
 
       Ok(())
-    },
-    "jni clear entity id",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 // Java types are always signed, but log level/type are both unsigned.
 #[allow(clippy::cast_sign_loss)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   log_type: jint,
@@ -1136,198 +1208,233 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   override_occurred_at_unix_milliseconds: jlong,
   blocking: jboolean,
 ) {
-  // This should only fail if the JVM is in a bad state.
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let fields = ffi::string_arrays_to_annotated_fields(
-        &mut env,
-        &field_keys,
-        &field_values,
-        LogFieldKind::Ootb,
-      )?;
-      let matching_fields = ffi::string_arrays_to_annotated_fields(
-        &mut env,
-        &matching_field_keys,
-        &matching_field_values,
-        LogFieldKind::Ootb,
-      )?;
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      // This should only fail if the JVM is in a bad state.
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let fields = ffi::string_arrays_to_annotated_fields(
+            env,
+            &field_keys,
+            &field_values,
+            LogFieldKind::Ootb,
+          )?;
+          let matching_fields = ffi::string_arrays_to_annotated_fields(
+            env,
+            &matching_field_keys,
+            &matching_field_values,
+            LogFieldKind::Ootb,
+          )?;
 
-      let attributes_overrides = if use_previous_process_session_id != JNI_TRUE
-        && override_occurred_at_unix_milliseconds <= 0
-      {
-        None
-      } else if use_previous_process_session_id != JNI_TRUE
-        && override_occurred_at_unix_milliseconds > 0
-      {
-        Some(LogAttributesOverrides::OccurredAt(
-          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
-        ))
-      } else {
-        Some(LogAttributesOverrides::PreviousRunSessionID(
-          unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
-        ))
-      };
+          let attributes_overrides = if use_previous_process_session_id != JNI_TRUE
+            && override_occurred_at_unix_milliseconds <= 0
+          {
+            None
+          } else if use_previous_process_session_id != JNI_TRUE
+            && override_occurred_at_unix_milliseconds > 0
+          {
+            Some(LogAttributesOverrides::OccurredAt(
+              unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+            ))
+          } else {
+            Some(LogAttributesOverrides::PreviousRunSessionID(
+              unix_milliseconds_to_date(override_occurred_at_unix_milliseconds)?,
+            ))
+          };
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log(
-        log_level as u32,
-        LogType::from_i32(log_type).unwrap_or(LogType::NORMAL),
-        unsafe { env.get_string_unchecked(&log) }?
-          .to_string_lossy()
-          .to_string()
-          .into(),
-        fields,
-        matching_fields,
-        attributes_overrides,
-        if blocking == JNI_TRUE {
-          Block::Yes {
-            timeout: std::time::Duration::from_millis(500),
-            poll_callback: None,
-          }
-        } else {
-          Block::No
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.log(
+            log_level as u32,
+            LogType::from_i32(log_type).unwrap_or(LogType::NORMAL),
+            log.try_to_string(env)?.into(),
+            fields,
+            matching_fields,
+            attributes_overrides,
+            if blocking == JNI_TRUE {
+              Block::Yes {
+                timeout: std::time::Duration::from_millis(500),
+                poll_callback: None,
+              }
+            } else {
+              Block::No
+            },
+            &CaptureSession::default(),
+          );
+
+          Ok(())
         },
-        &CaptureSession::default(),
+        "jni write log",
       );
 
       Ok(())
-    },
-    "jni write log",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shutdown(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      // NOTE: This performs a blocking shutdown of the logger for use in test and eventual
-      // public API. This needs additional testing before exposing in the public API.
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.shutdown(true);
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          // NOTE: This performs a blocking shutdown of the logger for use in test and eventual
+          // public API. This needs additional testing before exposing in the public API.
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.shutdown(true);
+          Ok(())
+        },
+        "shutdown",
+      );
+
       Ok(())
-    },
-    "shutdown",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenLog(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   fields: JObjectArray<'_>,
   duration_s: jdouble,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let fields = ffi::jarray_to_annotated_fields(env, &fields, LogFieldKind::Ootb)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_session_replay_screen(fields, Duration::seconds_f64(duration_s));
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.log_session_replay_screen(fields, Duration::seconds_f64(duration_s));
+
+          Ok(())
+        },
+        "jni write replay screen log",
+      );
 
       Ok(())
-    },
-    "jni write replay screen log",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenshotLog(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   fields: JObjectArray<'_>,
   duration_s: jdouble,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let fields = ffi::jarray_to_annotated_fields(env, &fields, LogFieldKind::Ootb)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_session_replay_screenshot(fields, Duration::seconds_f64(duration_s));
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.log_session_replay_screenshot(fields, Duration::seconds_f64(duration_s));
+
+          Ok(())
+        },
+        "jni write replay screenshot log",
+      );
 
       Ok(())
-    },
-    "jni write replay screenshot log",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceUtilizationLog(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   fields: JObjectArray<'_>,
   duration_s: jdouble,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let fields = ffi::jarray_to_annotated_fields(env, &fields, LogFieldKind::Ootb)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_resource_utilization(fields, Duration::seconds_f64(duration_s));
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.log_resource_utilization(fields, Duration::seconds_f64(duration_s));
+
+          Ok(())
+        },
+        "jni write resource utilization log",
+      );
 
       Ok(())
-    },
-    "jni write resource utilization log",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartLog(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   fields: JObjectArray<'_>,
   duration_s: jdouble,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let fields = ffi::jarray_to_annotated_fields(env, &fields, LogFieldKind::Ootb)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_sdk_start(fields, Duration::seconds_f64(duration_s));
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.log_sdk_start(fields, Duration::seconds_f64(duration_s));
+
+          Ok(())
+        },
+        "jni write resource utilization log",
+      );
 
       Ok(())
-    },
-    "jni write resource utilization log",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shouldWriteAppUpdateLog(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   app_version: JString<'_>,
   app_version_code: jlong,
 ) -> bool {
-  with_handle_unexpected_or(
-    || {
-      let app_version = unsafe { env.get_string_unchecked(&app_version)? }
-        .to_string_lossy()
-        .to_string();
+  env
+    .with_env(|env| -> jni::errors::Result<_> {
+      Ok(with_handle_unexpected_or(
+        || {
+          let app_version = app_version.try_to_string(env)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      Ok(logger.should_log_app_update(
-        app_version,
-        bd_logger::AppVersionExtra::AppVersionCode(app_version_code),
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          Ok(logger.should_log_app_update(
+            app_version,
+            bd_logger::AppVersionExtra::AppVersionCode(app_version_code),
+          ))
+        },
+        false,
+        "swift should log app update",
       ))
-    },
-    false,
-    "swift should log app update",
-  )
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 // Java types are always signed, but app_install_size_bytes is unsigned.
 #[unsafe(no_mangle)]
 #[allow(clippy::cast_sign_loss)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppUpdateLog(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   app_version: JString<'_>,
@@ -1335,231 +1442,290 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppUpdate
   app_install_size_bytes: jlong,
   duration_s: f64,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let app_version = unsafe { env.get_string_unchecked(&app_version)? }
-        .to_string_lossy()
-        .to_string();
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let app_version = app_version.try_to_string(env)?;
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_app_update(
-        app_version,
-        bd_logger::AppVersionExtra::AppVersionCode(app_version_code),
-        Some(app_install_size_bytes as u64),
-        [].into(),
-        Duration::seconds_f64(duration_s),
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.log_app_update(
+            app_version,
+            bd_logger::AppVersionExtra::AppVersionCode(app_version_code),
+            Some(app_install_size_bytes as u64),
+            [].into(),
+            Duration::seconds_f64(duration_s),
+          );
+
+          Ok(())
+        },
+        "jni write app update log",
       );
 
       Ok(())
-    },
-    "jni write app update log",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppLaunchTTILog(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   duration_s: f64,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_app_launch_tti(Duration::seconds_f64(duration_s));
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.log_app_launch_tti(Duration::seconds_f64(duration_s));
+
+          Ok(())
+        },
+        "jni write app launch TTI log",
+      );
 
       Ok(())
-    },
-    "jni write app launch TTI log",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeScreenViewLog(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   screen_name: JString<'_>,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let screen_name = unsafe { env.get_string_unchecked(&screen_name)? }
-        .to_string_lossy()
-        .to_string();
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_screen_view(screen_name);
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let screen_name = screen_name.try_to_string(env)?;
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.log_screen_view(screen_name);
+
+          Ok(())
+        },
+        "jni write screen view log",
+      );
 
       Ok(())
-    },
-    "jni write screen view log",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   blocking: jboolean,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      let block = if blocking == JNI_TRUE {
-        Block::Yes {
-          timeout: std::time::Duration::from_millis(500),
-          poll_callback: None,
-        }
-      } else {
-        Block::No
-      };
-      logger.flush_state(block);
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          let block = if blocking == JNI_TRUE {
+            Block::Yes {
+              timeout: std::time::Duration::from_millis(500),
+              poll_callback: None,
+            }
+          } else {
+            Block::No
+          };
+          logger.flush_state(block);
+
+          Ok(())
+        },
+        "jni flush",
+      );
 
       Ok(())
-    },
-    "jni flush",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_debugDebug(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   message: JString<'_>,
 ) {
-  if let Ok(message) = unsafe { env.get_string_unchecked(&message) } {
-    log::debug!("jni log: {}", message.to_string_lossy());
-  }
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      let _: () = {
+        if let Ok(message) = message.try_to_string(env) {
+          log::debug!("jni log: {message}");
+        }
+      };
+      Ok(())
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_debugError(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   message: JString<'_>,
 ) {
-  if let Ok(message) = unsafe { env.get_string_unchecked(&message) } {
-    log::error!("jni log: {}", message.to_string_lossy());
-  }
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      let _: () = {
+        if let Ok(message) = message.try_to_string(env) {
+          log::error!("jni log: {message}");
+        }
+      };
+      Ok(())
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportError(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   message: JString<'_>,
   stack_trace_provider: JObject<'_>,
 ) {
-  if let Ok(message) = unsafe { env.get_string_unchecked(&message) } {
-    handle_unexpected_error_with_details(
-      anyhow!(message.to_string_lossy().to_string()),
-      "jni reported",
-      || {
-        exception_stacktrace(&mut env, &stack_trace_provider).unwrap_or_else(|_| {
-          if let Ok(msg) = crate::executor::check_exception(&mut env) {
-            log::warn!("failed to extract stacktrace: {msg:?}");
-          }
-          None
-        })
-      },
-    );
-  }
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      let _: () = {
+        if let Ok(message) = message.try_to_string(env) {
+          handle_unexpected_error_with_details(anyhow!(message), "jni reported", || {
+            exception_stacktrace(env, &stack_trace_provider).unwrap_or_else(|_| {
+              if let Ok(msg) = crate::executor::check_exception(env) {
+                log::warn!("failed to extract stacktrace: {msg:?}");
+              }
+              None
+            })
+          });
+        }
+      };
+      Ok(())
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEnabled(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   enabled: jboolean,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.transition_sleep_mode(enabled == JNI_TRUE);
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.transition_sleep_mode(enabled == JNI_TRUE);
+
+          Ok(())
+        },
+        "jni transition sleep mode",
+      );
 
       Ok(())
-    },
-    "jni transition sleep mode",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeMemoryPressureLevel(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   level: jint,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let level = MemoryPressureLevel(i8::try_from(level).unwrap_or(0));
+  env
+    .with_env(|_| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let level = MemoryPressureLevel(i8::try_from(level).unwrap_or(0));
 
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.notify_memory_pressure(level);
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          logger.notify_memory_pressure(level);
+
+          Ok(())
+        },
+        "jni notify memory pressure level",
+      );
 
       Ok(())
-    },
-    "jni notify memory pressure level",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_previousMemoryPressureLevel(
-  _env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
 ) -> jint {
-  with_handle_unexpected_or(
-    || {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      Ok(logger.previous_memory_pressure_level().0.into())
-    },
-    0,
-    "jni previous memory pressure level",
-  )
+  env
+    .with_env(|_| -> jni::errors::Result<_> {
+      Ok(with_handle_unexpected_or(
+        || {
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          Ok(logger.previous_memory_pressure_level().0.into())
+        },
+        0,
+        "jni previous memory pressure level",
+      ))
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueReports(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   mut logger_id: LoggerId<'_>,
   session: JObject<'_>,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let current_processing_session_type = &REPORT_PROCESSING_SESSION_CURRENT
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .class;
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let current_processing_session_type = &REPORT_PROCESSING_SESSION_CURRENT
+            .get()
+            .ok_or(InvariantError::Invariant)?
+            .class;
 
-      let previous_processing_session_type = &REPORT_PROCESSING_SESSION_PREVIOUS_RUN
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .class;
+          let previous_processing_session_type = &REPORT_PROCESSING_SESSION_PREVIOUS_RUN
+            .get()
+            .ok_or(InvariantError::Invariant)?
+            .class;
 
-      let report_processing_session =
-        if env.is_instance_of(&session, current_processing_session_type)? {
-          bd_logger::ReportProcessingSession::Current
-        } else if env.is_instance_of(&session, previous_processing_session_type)? {
-          bd_logger::ReportProcessingSession::PreviousRun
-        } else {
-          bail!("invalid ReportProcessingSession type: expected Current or PreviousRun");
-        };
+          let report_processing_session =
+            if env.is_instance_of(&session, current_processing_session_type)? {
+              bd_logger::ReportProcessingSession::Current
+            } else if env.is_instance_of(&session, previous_processing_session_type)? {
+              bd_logger::ReportProcessingSession::PreviousRun
+            } else {
+              bail!("invalid ReportProcessingSession type: expected Current or PreviousRun");
+            };
 
-      logger_id
-        .deref_mut()
-        .process_crash_reports(report_processing_session);
+          logger_id
+            .deref_mut()
+            .process_crash_reports(report_processing_session);
+          Ok(())
+        },
+        "jni process issue reports",
+      );
+
       Ok(())
-    },
-    "jni process issue reports",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistANR(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   stream: JObject<'_>,
   timestamp: jlong,
@@ -1570,54 +1736,59 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   memory_pressure_level: jint,
   is_file_size_optimization_enabled: jboolean,
 ) {
-  let destination = match unsafe { env.get_string_unchecked(&destination) } {
-    Ok(destination) => destination.to_string_lossy().to_string(),
-    Err(e) => {
-      let message = format!("jni persist ANR: failed to parse destination: {e}");
-      throw_java_exception(&mut env, "java/lang/IllegalArgumentException", &message);
-      return;
-    },
-  };
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      let _: () = {
+        let destination = match destination.try_to_string(env) {
+          Ok(destination) => destination,
+          Err(e) => {
+            let message = format!("jni persist ANR: failed to parse destination: {e}");
+            throw_java_exception(env, "java/lang/IllegalArgumentException", &message);
+            return Ok(());
+          },
+        };
 
-  let running_state_str = if running_state.is_null() {
-    None
-  } else {
-    unsafe { env.get_string_unchecked(&running_state) }
-      .ok()
-      .map(|s| s.to_string_lossy().to_string())
-  };
+        let running_state_str = if running_state.is_null() {
+          None
+        } else {
+          running_state.try_to_string(env).ok()
+        };
 
-  let app_exit_description_str = if app_exit_description.is_null() {
-    None
-  } else {
-    unsafe { env.get_string_unchecked(&app_exit_description) }
-      .ok()
-      .map(|s| s.to_string_lossy().to_string())
-      .filter(|s| !s.is_empty())
-  };
+        let app_exit_description_str = if app_exit_description.is_null() {
+          None
+        } else {
+          app_exit_description
+            .try_to_string(env)
+            .ok()
+            .filter(|s| !s.is_empty())
+        };
 
-  match report_processing::persist_anr(
-    &mut env,
-    &stream,
-    timestamp,
-    &destination,
-    &attributes,
-    running_state_str.as_deref(),
-    app_exit_description_str.as_deref(),
-    memory_pressure_level,
-    is_file_size_optimization_enabled == JNI_TRUE,
-  ) {
-    Ok(()) => {},
-    Err(e) => {
-      let message = format!("jni persist ANR: {e:#}");
-      throw_java_exception(&mut env, "java/io/IOException", &message);
-    },
-  }
+        match report_processing::persist_anr(
+          env,
+          &stream,
+          timestamp,
+          &destination,
+          &attributes,
+          running_state_str.as_deref(),
+          app_exit_description_str.as_deref(),
+          memory_pressure_level,
+          is_file_size_optimization_enabled == JNI_TRUE,
+        ) {
+          Ok(()) => {},
+          Err(e) => {
+            let message = format!("jni persist ANR: {e:#}");
+            throw_java_exception(env, "java/io/IOException", &message);
+          },
+        }
+      };
+      Ok(())
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistJavaScriptError(
-  mut env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   error_name: JString<'_>,
   error_message: JString<'_>,
@@ -1630,156 +1801,162 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   attributes: JObject<'_>,
   sdk_version: JString<'_>,
 ) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let error_name = unsafe { env.get_string_unchecked(&error_name) }
-        .map_err(|e| anyhow::anyhow!("failed to parse error_name: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let error_message = unsafe { env.get_string_unchecked(&error_message) }
-        .map_err(|e| anyhow::anyhow!("failed to parse error_message: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let stack_trace = unsafe { env.get_string_unchecked(&stack_trace) }
-        .map_err(|e| anyhow::anyhow!("failed to parse stack_trace: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let engine = unsafe { env.get_string_unchecked(&engine) }
-        .map_err(|e| anyhow::anyhow!("failed to parse engine: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let debugger_id = unsafe { env.get_string_unchecked(&debugger_id) }
-        .map_err(|e| anyhow::anyhow!("failed to parse debugger_id: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let destination = unsafe { env.get_string_unchecked(&destination) }
-        .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?
-        .to_string_lossy()
-        .to_string();
-      let sdk_version = unsafe { env.get_string_unchecked(&sdk_version) }
-        .map_err(|e| anyhow::anyhow!("failed to parse sdk_version: {e}"))?
-        .to_string_lossy()
-        .to_string();
+  env
+    .with_env(|env| -> jni::errors::Result<()> {
+      with_handle_unexpected(
+        || -> anyhow::Result<()> {
+          let error_name = error_name
+            .try_to_string(env)
+            .map_err(|e| anyhow::anyhow!("failed to parse error_name: {e}"))?;
+          let error_message = error_message
+            .try_to_string(env)
+            .map_err(|e| anyhow::anyhow!("failed to parse error_message: {e}"))?;
+          let stack_trace = stack_trace
+            .try_to_string(env)
+            .map_err(|e| anyhow::anyhow!("failed to parse stack_trace: {e}"))?;
+          let engine = engine
+            .try_to_string(env)
+            .map_err(|e| anyhow::anyhow!("failed to parse engine: {e}"))?;
+          let debugger_id = debugger_id
+            .try_to_string(env)
+            .map_err(|e| anyhow::anyhow!("failed to parse debugger_id: {e}"))?;
+          let destination = destination
+            .try_to_string(env)
+            .map_err(|e| anyhow::anyhow!("failed to parse destination: {e}"))?;
+          let sdk_version = sdk_version
+            .try_to_string(env)
+            .map_err(|e| anyhow::anyhow!("failed to parse sdk_version: {e}"))?;
 
-      report_processing::persist_javascript_error(
-        &mut env,
-        &error_name,
-        &error_message,
-        &stack_trace,
-        is_fatal != 0,
-        &engine,
-        &debugger_id,
-        timestamp,
-        &destination,
-        &attributes,
-        &sdk_version,
-      )?;
+          report_processing::persist_javascript_error(
+            env,
+            &error_name,
+            &error_message,
+            &stack_trace,
+            is_fatal,
+            &engine,
+            &debugger_id,
+            timestamp,
+            &destination,
+            &attributes,
+            &sdk_version,
+          )?;
+          Ok(())
+        },
+        "jni persist JavaScript error",
+      );
+
       Ok(())
-    },
-    "jni persist JavaScript error",
-  );
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>();
 }
 
 fn exception_stacktrace(
-  env: &mut JNIEnv<'_>,
+  env: &mut Env<'_>,
   stack_trace_provider: &JObject<'_>,
 ) -> anyhow::Result<Option<String>> {
-  let stacktrace = &STACK_TRACE_PROVIDER_INVOKE
+  let stacktrace = STACK_TRACE_PROVIDER_INVOKE
     .get()
     .ok_or(InvariantError::Invariant)?
     .call_method(env, stack_trace_provider, ReturnType::Object, &[])?
-    .l()?
-    .into();
+    .l()?;
+  let stacktrace = env.cast_local::<JString<'_>>(stacktrace)?;
 
-  let stacktrace_str = unsafe { env.get_string_unchecked(stacktrace) }?;
-  Ok(Some(stacktrace_str.to_string_lossy().to_string()))
+  let stacktrace_str = stacktrace.try_to_string(env)?;
+  Ok(Some(stacktrace_str))
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_Jni_isRuntimeEnabled(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   feature: JString<'_>,
   default_value: jboolean,
 ) -> jboolean {
-  with_handle_unexpected_or(
-    || {
-      // We default the feature to default_value to so that we don't require sending anything over
-      // the wire in order to enable a feature (the default), leaving this as a kill switch in
-      // case we need to override what the user configured.
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
+  env
+    .with_env(|env| -> jni::errors::Result<_> {
+      Ok(with_handle_unexpected_or(
+        || {
+          // We default the feature to default_value to so that we don't require sending anything
+          // over the wire in order to enable a feature (the default), leaving this as
+          // a kill switch in case we need to override what the user configured.
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
 
-      Ok(logger.runtime_snapshot().get_bool(
-        unsafe { env.get_string_unchecked(&feature) }?.to_str()?,
+          Ok(logger.runtime_snapshot().get_bool(
+            feature.try_to_string(env)?.as_str(),
+            default_value == JNI_TRUE,
+          ))
+        },
         default_value == JNI_TRUE,
+        "jni isFeatureEnabled",
       ))
-    },
-    default_value == JNI_TRUE,
-    "jni isFeatureEnabled",
-  )
-  .into()
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 // Java/Kotlin types are always signed, but get_integer is unsigned.
 #[allow(clippy::cast_sign_loss)]
 pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: jlong,
   variable_name: JString<'_>,
   default_value: jint,
 ) -> jint {
-  with_handle_unexpected_or(
-    || {
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      let binding = unsafe { env.get_string_unchecked(&variable_name) }?;
-      let variable_name = binding.to_str()?;
-      let integer_value = logger
-        .runtime_snapshot()
-        .get_integer(variable_name, default_value as u32);
+  env
+    .with_env(|env| -> jni::errors::Result<_> {
+      Ok(with_handle_unexpected_or(
+        || {
+          let logger = unsafe { LoggerId::from_raw(logger_id) };
+          let binding = variable_name.try_to_string(env)?;
+          let variable_name = binding.as_str();
+          let integer_value = logger
+            .runtime_snapshot()
+            .get_integer(variable_name, default_value as u32);
 
-      Ok(jint::try_from(integer_value).map_or(default_value, |value| value))
-    },
-    default_value,
-    "jni runtimeValue",
-  )
+          Ok(jint::try_from(integer_value).map_or(default_value, |value| value))
+        },
+        default_value,
+        "jni runtimeValue",
+      ))
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeStringValue(
-  env: JNIEnv<'_>,
+  mut env: EnvUnowned<'_>,
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
   variable_name: JString<'_>,
   default_value: JString<'_>,
 ) -> jstring {
-  with_handle_unexpected_or(
-    || {
-      let (logger, variable_name) =
-        runtime_logger_and_variable_name(&env, logger_id, &variable_name)?;
-      let default_value = unsafe { env.get_string_unchecked(&default_value) }?
-        .to_str()?
-        .to_string();
-      let value = logger
-        .runtime_snapshot()
-        .get_string(&variable_name, default_value);
-      Ok(env.new_string(value)?.into_raw())
-    },
-    JObject::null().into_raw(),
-    "jni runtimeStringValue",
-  )
+  env
+    .with_env(|env| -> jni::errors::Result<_> {
+      Ok(with_handle_unexpected_or(
+        || {
+          let (logger, variable_name) =
+            runtime_logger_and_variable_name(env, logger_id, &variable_name)?;
+          let default_value = default_value.try_to_string(env)?.as_str().to_string();
+          let value = logger
+            .runtime_snapshot()
+            .get_string(&variable_name, default_value);
+          Ok(env.new_string(value)?.into_raw())
+        },
+        JObject::null().into_raw(),
+        "jni runtimeStringValue",
+      ))
+    })
+    .resolve::<jni::errors::LogErrorAndDefault>()
 }
 
 fn runtime_logger_and_variable_name<'a>(
-  env: &JNIEnv<'a>,
+  env: &Env<'a>,
   logger_id: LoggerId<'a>,
   variable_name: &JString<'a>,
 ) -> anyhow::Result<(LoggerId<'a>, String)> {
-  let variable_name = unsafe { env.get_string_unchecked(variable_name) }?
-    .to_str()?
-    .to_string();
+  let variable_name = variable_name.try_to_string(env)?.as_str().to_string();
 
   Ok((logger_id, variable_name))
 }
