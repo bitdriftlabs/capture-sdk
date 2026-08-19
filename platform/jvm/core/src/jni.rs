@@ -766,11 +766,12 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let preferences = PreferencesHandle::new_global(&env, preferences)?;
       let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
 
-      let session_strategy = Arc::new(SessionStrategyConfigurationHandle::new_global(
+      let session_configuration = Arc::new(SessionStrategyConfigurationHandle::new_global(
         &env,
-        session_strategy,
+        session_strategy
       )?);
-      let session = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
+      let session = session_configuration.create(session_configuration.clone(), &sdk_directory)?;
+      let session_strategy = session.strategy();
 
       let device = Arc::new(bd_device::Device::new(store.clone()));
       let static_metadata = Arc::new(Mobile::android(
@@ -794,7 +795,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let error_reporter = MetadataErrorReporter::new(
         error_reporter,
         Arc::new(platform_shared::error::SessionProvider::new(
-          session.strategy(),
+          session_strategy,
         )),
         static_metadata.clone(),
       );
@@ -968,7 +969,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSessio
         .then(|| unsafe { env.get_string_unchecked(&session_id) })
         .transpose()?
         .map(Into::into);
-      logger_id.start_new_session_with_id(session_id)
+      logger_id.start_new_session(session_id)
     },
     "jni start new session",
   );
@@ -1144,6 +1145,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   matching_field_values: JObjectArray<'_>,
   use_previous_process_session_id: jboolean,
   override_occurred_at_unix_milliseconds: jlong,
+  _blocking: jboolean,
 ) {
   // This should only fail if the JVM is in a bad state.
   with_handle_unexpected(

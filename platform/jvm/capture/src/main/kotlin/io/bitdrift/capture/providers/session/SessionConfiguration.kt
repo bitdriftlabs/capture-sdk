@@ -22,9 +22,9 @@ import kotlin.time.Duration
  * inactivity timeout configured. Mixing caller-supplied IDs with SDK-created IDs is therefore
  * discouraged unless the application can handle both forms.
  *
- * [onSessionIdChanged] is invoked after Capture durably updates the session ID for the initial
- * session, inactivity-driven rotations, and every explicit session start. It is always invoked
- * asynchronously on the Android main thread.
+ * [onSessionIdChanged] is invoked after Capture updates its in-memory session ID and schedules
+ * best-effort persistence for the initial session, inactivity-driven rotations, and every explicit
+ * session start. It is always invoked asynchronously on the Android main thread.
  *
  * @property initialSessionId Optional ID to use whenever no inactivity timeout is configured, or
  * to seed the first session when one is configured. When absent, Capture generates a UUID.
