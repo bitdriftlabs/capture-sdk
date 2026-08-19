@@ -2,6 +2,12 @@
 
 set -exuo pipefail
 
+readonly emulator_serial="${ANDROID_SERIAL:-emulator-5554}"
+
+source "$(dirname "${BASH_SOURCE[0]}")/android_emulator.sh"
+
+wait_for_android_emulator_ready "$emulator_serial"
+
 adb uninstall io.bitdrift.capture.helloworld || true
 adb install android_app.apk
 adb shell am start -n io.bitdrift.capture.helloworld/.MainActivity

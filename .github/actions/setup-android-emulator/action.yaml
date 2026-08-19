@@ -69,6 +69,9 @@ runs:
 
     - name: Restore AVD cache
       id: avd-cache
+      # API 23 snapshots can resume while the image is still completing its boot work. Leave
+      # creation to the job's emulator runner so every API 23 run starts from a fresh AVD.
+      if: inputs.api-level != '23'
       uses: actions/cache/restore@v4
       with:
         path: |
@@ -81,7 +84,7 @@ runs:
       run: adb kill-server || true
 
     - name: Create AVD and generate snapshot for caching
-      if: steps.avd-cache.outputs.cache-hit != 'true'
+      if: inputs.api-level != '23' && steps.avd-cache.outputs.cache-hit != 'true'
       uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
       with:
         channel: stable
@@ -97,7 +100,7 @@ runs:
         script: echo "Generated AVD snapshot for caching."
 
     - name: Save AVD cache
-      if: github.ref == 'refs/heads/main' && steps.avd-cache.outputs.cache-hit != 'true'
+      if: github.ref == 'refs/heads/main' && inputs.api-level != '23' && steps.avd-cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
       with:
         path: |
