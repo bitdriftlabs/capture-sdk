@@ -9,6 +9,7 @@ package io.bitdrift.capture.providers.session
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import kotlin.time.Duration.Companion.seconds
 
 class SessionStrategyConfigurationTest {
     @Test
@@ -19,6 +20,14 @@ class SessionStrategyConfigurationTest {
 
         assertThat(generatorCalls).isZero()
         assertThat(sessionStrategyConfiguration.initialSessionId()).isNull()
-        assertThat(sessionStrategyConfiguration.inactivityTimeoutMins()).isEqualTo(-1)
+        assertThat(sessionStrategyConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(-1)
+    }
+
+    @Test
+    fun preservesSubMinuteInactivityTimeout() {
+        val sessionStrategyConfiguration =
+            SessionConfiguration(inactivityTimeout = 30.seconds).createSessionStrategyConfiguration()
+
+        assertThat(sessionStrategyConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(30_000)
     }
 }

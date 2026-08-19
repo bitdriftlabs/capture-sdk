@@ -40,7 +40,7 @@ data class SessionConfiguration(
     internal fun createSessionStrategyConfiguration() =
         SessionStrategyConfiguration(
             initialSessionId = initialSessionId,
-            inactivityTimeoutMins = inactivityTimeout?.inWholeMinutes,
+            inactivityTimeoutMilliseconds = inactivityTimeout?.inWholeMilliseconds,
             onSessionIdChanged = onSessionIdChanged,
         )
 }

@@ -8,6 +8,7 @@
 package io.bitdrift.capture.providers.session
 
 import java.util.UUID
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Describes the strategy to use for session management.
@@ -56,13 +57,13 @@ sealed class SessionStrategy {
             is Fixed ->
                 SessionStrategyConfiguration(
                     initialSessionId = null,
-                    inactivityTimeoutMins = null,
+                    inactivityTimeoutMilliseconds = null,
                     onSessionIdChanged = null,
                 )
             is ActivityBased ->
                 SessionStrategyConfiguration(
                     initialSessionId = null,
-                    inactivityTimeoutMins = inactivityThresholdMins,
+                    inactivityTimeoutMilliseconds = inactivityThresholdMins.minutes.inWholeMilliseconds,
                     onSessionIdChanged = onSessionIdChanged,
                 )
         }
