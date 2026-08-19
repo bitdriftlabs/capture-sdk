@@ -70,7 +70,9 @@ REV_MARKERS = {
 REV_FAMILY = {
     "c3ba1cba": "new-stats",    # bump / PR #1107, original tip
     "d8ac5975": "new-stats",    # bump, after the main merge; bd-client-stats byte-identical
-    "42637e1f": "legacy-stats",  # main
+    "5f0f7b29": "new-stats",    # main, after #1107 merged; wordings and flag defaults verified
+                                # identical to d8ac5975 (only FlushTrigger::flush's signature changed)
+    "42637e1f": "legacy-stats",  # main, before #1107
 }
 
 

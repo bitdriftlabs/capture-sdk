@@ -14,8 +14,10 @@ a multi-scenario investigation.
 - [Known gaps](#known-gaps)
 
 > **Check the rev first:** `grep -m1 'bd-client-common' Cargo.toml`. Message wording and some
-> behaviour track it. Everything below is measured on **`d8ac5975`** (the `bump` branch, PR #1107)
-> unless a line says otherwise; see [Behaviour that differs by rev](#behaviour-that-differs-by-rev).
+> behaviour track it. Everything below is measured on **`d8ac5975`**, and re-verified on **`5f0f7b29`**
+> (`main`, after PR #1107 merged) — stats wordings and flag defaults are identical between the two, so
+> every result carries over. See [Behaviour that differs by rev](#behaviour-that-differs-by-rev) for
+> what changes on the pre-#1107 revs.
 > The APK on the device is whatever was last built — reinstall after a branch switch *or* a rev bump.
 
 ## Reproducing it
