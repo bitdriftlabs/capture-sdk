@@ -2,19 +2,12 @@
 
 set -euo pipefail
 
-test_binary="$TEST_SRCDIR/$TEST_WORKSPACE/$1"
-shift
+test_binary="$TEST_SRCDIR/$TEST_WORKSPACE/__TEST_BINARY_RUNFILES_PATH__"
+jdk_home="$TEST_SRCDIR/$TEST_WORKSPACE/__JAVA_HOME_RUNFILES_PATH__"
 
-# jni 0.21's invocation API locates libjvm from JAVA_HOME. Locate Bazel's selected JDK without
-# coupling the test to a generated bzlmod repository name.
-for jdk_home in "$TEST_SRCDIR"/*; do
-  if [[ -f "$jdk_home/lib/server/libjvm.dylib" || -f "$jdk_home/lib/server/libjvm.so" || -f "$jdk_home/bin/server/jvm.dll" ]]; then
-    export JAVA_HOME="$jdk_home"
-    break
-  fi
-done
-
-: "${JAVA_HOME:?unable to find Bazel JDK in test runfiles}"
+# Bazel resolves this path from JavaRuntimeInfo, without exposing a generated bzlmod repository
+# name. jni 0.21's invocation API finds libjvm through JAVA_HOME.
+export JAVA_HOME="$jdk_home"
 
 output_file="$(mktemp)"
 trap 'rm -f "$output_file"' EXIT
