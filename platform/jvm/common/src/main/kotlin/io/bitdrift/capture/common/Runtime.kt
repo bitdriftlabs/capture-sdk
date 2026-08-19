@@ -59,6 +59,18 @@ sealed class RuntimeFeature(
     data object LOGGER_FLUSHING_ON_CRASH : RuntimeFeature("client_feature.android.logger_flushing_on_force_quit", defaultValue = true)
 
     /**
+     * Whether the logger should be flushed when the app's window loses focus.
+     *
+     * Window focus is lost on the app switcher, an Activity transition, rotation, the IME appearing,
+     * a permission dialog, and the notification shade. Some of those are transient and none of them
+     * imply the process is going away, so this is a best-effort durability hint rather than a
+     * lifecycle signal: it makes buffered data durable at moments the process *might* not survive.
+     * It complements the ON_STOP flush, which never fires for the app switcher at all.
+     */
+    data object LOGGER_FLUSHING_ON_WINDOW_FOCUS_LOSS :
+        RuntimeFeature("client_feature.android.logger_flushing_on_window_focus_loss", defaultValue = true)
+
+    /**
      * Whether Dropped Frames reporting is enabled
      */
     data object DROPPED_EVENTS_MONITORING : RuntimeFeature("client_feature.android.dropped_frames_reporting", defaultValue = true)

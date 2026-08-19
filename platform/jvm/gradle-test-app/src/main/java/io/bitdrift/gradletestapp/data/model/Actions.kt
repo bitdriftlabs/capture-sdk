@@ -102,6 +102,10 @@ sealed class NavigationAction : AppAction {
 
     object NavigateToStressTest : NavigationAction()
 
+    /** Starts [io.bitdrift.gradletestapp.ui.activities.FocusMatrixActivity] — a real Activity
+     * transition, which is itself one of the window-focus-loss cases under test. */
+    object NavigateToFocusMatrix : NavigationAction()
+
     object InvokeService : NavigationAction()
 }
 
