@@ -23,9 +23,7 @@
 
 **Added**
 
-- Flush the logger when the app's window loses focus, so buffered logs are made durable before the
-  app can be swiped away from the app switcher — a case where the `ON_STOP` lifecycle flush never
-  fires. Controlled by the `client_feature.android.logger_flushing_on_window_focus_loss` kill switch.
+- Flush the logger when the app's window loses focus to improve metrics reliability during forece quits.
 
 **Changed**
 
