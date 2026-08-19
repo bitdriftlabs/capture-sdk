@@ -124,4 +124,6 @@ Depends on [shared-core](https://github.com/bitdriftlabs/shared-core) for `bd-lo
 
 ## Changelog
 
-Update `CHANGELOG.md` under `### Both`, `### Android`, or `### iOS` with categories: **Added**, **Changed**, **Fixed**.
+Update `CHANGELOG.md` for every user-facing behavior change under `### Both`, `### Android`,
+or `### iOS` with categories: **Added**, **Changed**, **Fixed**. Do not add an entry for CI,
+build, tooling, test-only, documentation-only, or internal changes that do not affect SDK behavior.
