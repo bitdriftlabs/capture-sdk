@@ -508,7 +508,7 @@ internal class LoggerImpl(
                 occurredAtTimestampMs
             )
             if (blocking) {
-                flush(true)
+                flush(blocking = true)
             }
         } catch (e: Throwable) {
             errorHandler.handleError("write log", e)
