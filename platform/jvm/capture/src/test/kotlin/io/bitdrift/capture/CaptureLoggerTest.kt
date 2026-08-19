@@ -521,12 +521,27 @@ class CaptureLoggerTest {
         return loggerImpl
     }
 
-    private fun getDefaultFields(): Map<String, FieldValue> =
-        ClientAttributes(
-            ContextHolder.APP_CONTEXT,
-            ProcessLifecycleOwner.get(),
-        ).invoke().toFieldValueMap() +
+    private fun getDefaultFields(): Map<String, FieldValue> {
+        val clientAttributes =
+            ClientAttributes(
+                ContextHolder.APP_CONTEXT,
+                ProcessLifecycleOwner.get(),
+            )
+
+        return mapOf(
+            "app_id" to clientAttributes.appId,
+            "os" to "Android",
+            "os_version" to clientAttributes.osVersion,
+            "model" to clientAttributes.model,
+            "_manufacturer" to clientAttributes.manufacturer,
+            "_os_api_level" to clientAttributes.osApiLevel.toString(),
+            "app_version" to clientAttributes.appVersion,
+            "_app_version_code" to clientAttributes.appVersionCode.toString(),
+            "_architecture" to clientAttributes.architecture,
+        ).toFieldValueMap() +
+            clientAttributes.dynamicFields().toFieldValueMap() +
             NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFieldValueMap()
+    }
 
     private fun Map<String, String>.toFieldValueMap(): Map<String, FieldValue> = mapValues { (_, v) -> v.toFieldValue() }
 }
