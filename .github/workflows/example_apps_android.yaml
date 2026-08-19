@@ -45,6 +45,7 @@ jobs:
       uses: ./.github/actions/android-setup
       with:
         buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+        setup-local-android-sdk: "true"
     - name: Accept Android SDK licenses
       run: yes | $ANDROID_HOME/cmdline-tools/6.0/bin/sdkmanager --licenses
     - name: Install Rust target

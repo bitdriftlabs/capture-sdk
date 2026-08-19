@@ -1,5 +1,8 @@
 common --enable_bzlmod
 common --incompatible_disable_native_android_rules
+# Accepted licenses for the pinned hermetic Android SDK and NDK in MODULE.bazel.
+common --repo_env=ACCEPTED_ANDROID_SDK_LICENSE_VERSION=36
+common --repo_env=ACCEPTED_ANDROID_NDK_LICENSE_VERSION=r27c
 
 mobile-install --config=android
 

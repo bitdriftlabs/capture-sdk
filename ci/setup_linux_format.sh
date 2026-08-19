@@ -7,7 +7,7 @@ formatter_dir="$(pwd)/formatters"
 readonly formatter_dir
 
 # buildifier is used for format .bzl / BUILD / WORKSPACE files.
-curl -LSs https://github.com/bazelbuild/buildtools/releases/download/6.0.1/buildifier-linux-amd64 --output "$formatter_dir/buildifier"
+curl -LSs https://github.com/bazelbuild/buildtools/releases/download/v8.5.1/buildifier-linux-amd64 --output "$formatter_dir/buildifier"
 chmod +x "$formatter_dir/buildifier"
 
 # The binaries above dynamically link a library provided by Swift, so download Swift + update the

@@ -69,6 +69,9 @@ bazel_dep(name = "rules_cc", version = "0.2.22")
 bazel_dep(name = "rules_java", version = "9.7.1")
 bazel_dep(name = "rules_android", version = "0.7.3")
 bazel_dep(name = "rules_android_ndk", version = "0.1.5")
+
+bazel_dep(name = "hermetic_android_toolchains", version = "0.0.0", dev_dependency = True)
+
 bazel_dep(name = "rules_jvm_external", version = "7.1")
 bazel_dep(name = "rules_detekt", version = "0.8.1.13")
 bazel_dep(name = "flatbuffers", version = "25.9.23")
@@ -184,17 +187,39 @@ native_binary(
 # Android extensions
 ####################
 
-android_sdk_repository_extension = use_extension("@rules_android//rules/android_sdk_repository:rule.bzl", "android_sdk_repository_extension")
-android_sdk_repository_extension.configure(
-    api_level = SDK_API_LEVEL,
+# Android SDK/NDK inputs are hermetic for Bazel. Gradle deliberately continues to use the
+# cached local SDK installed by tools/setup_android_sdk.sh.
+android = use_extension("@hermetic_android_toolchains//:extensions.bzl", "android", dev_dependency = True)
+android.sdk(
     build_tools_version = SDK_BUILD_TOOLS_VERSION,
+    version = str(SDK_API_LEVEL),
 )
+android.ndk(
+    api_level = NDK_API_LEVEL,
+    version = "r27c",
+)
+use_repo(android, "androidndk", "androidsdk")
 
-android_ndk_repository_extension = use_extension("@rules_android_ndk//:extension.bzl", "android_ndk_repository_extension")
-android_ndk_repository_extension.configure(api_level = NDK_API_LEVEL)
-use_repo(android_ndk_repository_extension, "androidndk")
+# Redirect the repositories normally created by rules_android and rules_android_ndk to
+# the hermetic repositories above.
+rules_android_sdk = use_extension("@rules_android//rules/android_sdk_repository:rule.bzl", "android_sdk_repository_extension")
 
-register_toolchains("@androidndk//:all")
+override_repo(rules_android_sdk, "androidsdk")
+
+rules_android_ndk = use_extension("@rules_android_ndk//:extension.bzl", "android_ndk_repository_extension")
+
+override_repo(rules_android_ndk, "androidndk")
+
+register_toolchains("@androidndk//:all", "@androidsdk//:all")
+
+# The upstream module publishes as 0.0.0. Pin its source archive so toolchain metadata
+# changes only when this override is intentionally updated.
+archive_override(
+    module_name = "hermetic_android_toolchains",
+    integrity = "sha256-9/R5xpQHfZoXUG/JdNnZHg80qaObDYTH49DlunSkAww=",
+    strip_prefix = "hermetic_android_toolchains-9ac990099a55fa9045605666a42d42426da3f099",
+    urls = ["https://github.com/keith/hermetic_android_toolchains/archive/9ac990099a55fa9045605666a42d42426da3f099.tar.gz"],
+)
 
 register_toolchains("//:kotlin_toolchain")
 

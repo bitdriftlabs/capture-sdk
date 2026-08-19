@@ -41,10 +41,12 @@ fi
 # If the only file that changed was .sdk_version, we don't need to run bazel-diff and just mark it as no changes detected.
 if ./ci/version_only_change.sh; then
   echo "Only change was platform/shared/.sdk-version, no Bazel changes detected."
-  echo "has_affected_targets=false" >> "$GITHUB_OUTPUT"
-  echo "has_affected_test_targets=false" >> "$GITHUB_OUTPUT"
-  echo "has_affected_clippy_targets=false" >> "$GITHUB_OUTPUT"
-  echo "changed=false" >> "$GITHUB_OUTPUT"
+  {
+    echo "has_affected_targets=false"
+    echo "has_affected_test_targets=false"
+    echo "has_affected_clippy_targets=false"
+    echo "changed=false"
+  } >> "$GITHUB_OUTPUT"
   exit 0
 fi
 
