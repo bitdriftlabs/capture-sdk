@@ -83,6 +83,8 @@ final class DiagnosticEventReporterTests: XCTestCase {
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: crashReporting,
             crashEnrichmentSummaryHandler: nil
         )
@@ -154,6 +156,8 @@ final class DiagnosticEventReporterTests: XCTestCase {
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
@@ -182,6 +186,8 @@ final class DiagnosticEventReporterTests: XCTestCase {
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
@@ -210,6 +216,8 @@ final class DiagnosticEventReporterTests: XCTestCase {
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
@@ -424,6 +432,8 @@ ThermalInfo: (
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
@@ -560,6 +570,8 @@ WatchdogVisibility: Background
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
@@ -638,6 +650,8 @@ WatchdogVisibility: Background
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
@@ -709,6 +723,8 @@ WatchdogVisibility: Background
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
@@ -738,6 +754,8 @@ WatchdogVisibility: Background
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
@@ -825,6 +843,8 @@ WatchdogVisibility: Background
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )
@@ -864,6 +884,8 @@ WatchdogVisibility: Background
             memoryPressureLevel: .unknown,
             fileSizeOptimizationEnabled: true,
             useStackOverlapMatching: true,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             crashReporting: MockCrashReporting(),
             crashEnrichmentSummaryHandler: nil
         )

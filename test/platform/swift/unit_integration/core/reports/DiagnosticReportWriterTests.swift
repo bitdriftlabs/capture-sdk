@@ -13,6 +13,7 @@ import XCTest
 private typealias FBReport = bitdrift_public_fbs_issue_reporting_v1_Report
 private typealias FBReportType = bitdrift_public_fbs_issue_reporting_v1_ReportType
 private typealias FBArch = bitdrift_public_fbs_issue_reporting_v1_Architecture
+private typealias FBFrame = bitdrift_public_fbs_issue_reporting_v1_Frame
 
 final class DiagnosticReportWriterTests: XCTestCase {
     private var outputDir: URL!
@@ -55,6 +56,60 @@ final class DiagnosticReportWriterTests: XCTestCase {
         XCTAssertEqual(1, report.binaryImagesCount)
         let image = try XCTUnwrap(report.binaryImages(at: 0))
         XCTAssertEqual("TestBinary", image.path!)
+    }
+
+    func testWriteCrashReportAttachesRegistersToInnermostFrame() throws {
+        self.writer.writeCrashReport(
+            with: .nativeCrash,
+            dict: self.makeCrashDict(callStacks: [self.makeThread(registers: [
+                "sp": 0x5678,
+                "pc": 0x1234,
+                "lr": 0x9ABC,
+            ]), ]),
+            name: "EXC_BAD_ACCESS",
+            reason: "SIGSEGV",
+            machExceptionType: nil,
+            exceptionCode: nil,
+            signal: nil,
+            terminationReason: nil,
+            capturedCrash: nil,
+            metadata: self.makeMetadata(),
+            applicationVersion: "1.0",
+            timestamp: 1_700_000_000
+        )
+
+        let report = try self.loadOnlyReport()
+        let errorFrame = try XCTUnwrap(XCTUnwrap(report.errors(at: 0)).stackTrace(at: 0))
+        let threadFrame = try XCTUnwrap(
+            XCTUnwrap(XCTUnwrap(report.threadDetails).threads(at: 0)).stackTrace(at: 0))
+
+        for frame in [errorFrame, threadFrame] {
+            let registers = self.registerPairs(of: frame)
+            XCTAssertEqual(["lr", "pc", "sp"], registers.map(\.0))
+            XCTAssertEqual([0x9ABC, 0x1234, 0x5678], registers.map(\.1))
+        }
+    }
+
+    func testWriteCrashReportWritesNoRegistersWhenThreadHasNone() throws {
+        self.writer.writeCrashReport(
+            with: .nativeCrash,
+            dict: self.makeCrashDict(callStacks: [self.makeThread()]),
+            name: "EXC_BAD_ACCESS",
+            reason: "SIGSEGV",
+            machExceptionType: nil,
+            exceptionCode: nil,
+            signal: nil,
+            terminationReason: nil,
+            capturedCrash: nil,
+            metadata: self.makeMetadata(),
+            applicationVersion: "1.0",
+            timestamp: 1_700_000_000
+        )
+
+        let report = try self.loadOnlyReport()
+        let frame = try XCTUnwrap(XCTUnwrap(report.errors(at: 0)).stackTrace(at: 0))
+
+        XCTAssertEqual(0, frame.registersCount)
     }
 
     func testWriteCrashReportHandlesEmptyThreadsByStillWritingAnError() throws {
@@ -178,12 +233,14 @@ private extension DiagnosticReportWriterTests {
             sdkVersion: sdkVersion,
             fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
             memoryPressureLevel: memoryPressureLevel,
+            appEnvironment: .unknown,
+            teamIdentifier: nil,
             fileManager: .default
         )
     }
 
-    func makeThread() -> [String: Any] {
-        [
+    func makeThread(registers: [String: UInt64]? = nil) -> [String: Any] {
+        var thread: [String: Any] = [
             "threadAttributed": true,
             "callStackRootFrames": [[
                 "binaryUUID": "70B89F27-1634-3580-A695-57CDB41D7743",
@@ -193,6 +250,19 @@ private extension DiagnosticReportWriterTests {
                 "subFrames": [],
             ], ],
         ]
+
+        if let registers {
+            thread["bitdriftRegisters"] = registers
+        }
+
+        return thread
+    }
+
+    func registerPairs(of frame: FBFrame) -> [(String, UInt64)] {
+        (0 ..< frame.registersCount).map { index in
+            let register = frame.registers(at: index)!
+            return (register.name!, register.value)
+        }
     }
 
     func makeCrashDict(callStacks: [[String: Any]]) -> [String: Any] {

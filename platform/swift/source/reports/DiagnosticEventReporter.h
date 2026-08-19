@@ -35,6 +35,15 @@ typedef NS_ENUM(int8_t, CAPMemoryPressureLevel) {
     CAPMemoryPressureLevelCritical = 3,
 } NS_SWIFT_NAME(MemoryPressureLevel);
 
+typedef NS_ENUM(int8_t, CAPAppEnvironment) {
+    CAPAppEnvironmentUnknown = 0,
+    CAPAppEnvironmentDebug = 1,
+    CAPAppEnvironmentAdHoc = 2,
+    CAPAppEnvironmentEnterprise = 3,
+    CAPAppEnvironmentTestFlight = 4,
+    CAPAppEnvironmentProduction = 5,
+} NS_SWIFT_NAME(AppEnvironment);
+
 typedef NS_OPTIONS(NSUInteger, CAPDiagnosticType) {
   CAPDiagnosticTypeNone = 0,
   /** Application termination events */
@@ -64,6 +73,8 @@ typedef void (^CAPCrashEnrichmentSummaryHandler)(
  *                                    is enabled for generated fatal issue reports
  * @param useStackOverlapMatching whether to use the overlap-based thread matcher (finds the best
  * contiguous matching region from the stack base) instead of the exact matcher for crash enrichment
+ * @param appEnvironment the environment the app was built for
+ * @param teamIdentifier Apple developer team identifier, when we can determine it
  * @param crashEnrichmentSummaryHandler block invoked after crash enrichment with the summary fields
  * to log
  * @param completion block to invoke when report processing is completed
@@ -75,6 +86,8 @@ typedef void (^CAPCrashEnrichmentSummaryHandler)(
                        memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
                fileSizeOptimizationEnabled:(BOOL)fileSizeOptimizationEnabled
                    useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                            appEnvironment:(CAPAppEnvironment)appEnvironment
+                            teamIdentifier:(NSString *_Nullable)teamIdentifier
                             crashReporting:(id<CrashReporting> _Nonnull)crashReporting
              crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completion;

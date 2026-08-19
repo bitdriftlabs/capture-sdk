@@ -8,6 +8,7 @@
 #include "ReportWriter.h"
 
 #include "KSCrashMonitorContext.h"
+#include "KSCPU.h"
 #include "KSMachineContext.h"
 #include "KSLogger.h"
 #include "KSStackCursor.h"
@@ -94,6 +95,7 @@ static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KS
                         KSBinaryImage img = {0};
                         if (ksdl_binaryImageForHeader(info.dli_fbase, info.dli_fname, &img)) {
                             RETURN_ON_FAIL(writeKVUUID(writer, "binaryUUID", img.uuid));
+                            RETURN_ON_FAIL(writeKVUnsigned(writer, "binaryImageSize", img.size));
                         }
                     }
                 }
@@ -102,6 +104,22 @@ static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KS
         }
         RETURN_ON_FAIL(bdcrw_write_container_end(writer));
         RETURN_ON_FAIL(writeKVUnsigned(writer, KSCrashField_Skipped, 0));
+    }
+    return bdcrw_write_container_end(writer);
+}
+
+static bool writeRegisters(BDCrashWriterHandle writer,
+                           const struct KSMachineContext *const machineContext) {
+    RETURN_ON_FAIL(writeKVObjectBegin(writer, KSCrashField_Registers));
+    {
+        const int registerCount = kscpu_numRegisters();
+        for (int index = 0; index < registerCount; index++) {
+            const char *const name = kscpu_registerName(index);
+            if (name == NULL) {
+                continue;
+            }
+            RETURN_ON_FAIL(writeKVUnsigned(writer, name, kscpu_registerValue(machineContext, index)));
+        }
     }
     return bdcrw_write_container_end(writer);
 }
@@ -122,6 +140,7 @@ static bool writeThread(BDCrashWriterHandle writer,
         if (hasBacktrace) {
             RETURN_ON_FAIL(writeBacktrace(writer, KSCrashField_Backtrace, &stackCursor));
         }
+        RETURN_ON_FAIL(writeRegisters(writer, machineContext));
         RETURN_ON_FAIL(writeKVSigned(writer, KSCrashField_Index, threadIndex));
         const char *name = kstc_getThreadName(thread);
         if (name != NULL) {
@@ -163,6 +182,13 @@ static bool writeMetadata(BDCrashWriterHandle writer, const ReportContext* ctx) 
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionType", ctx->monitorContext->mach.type));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "exceptionCode", ctx->monitorContext->mach.code));
     RETURN_ON_FAIL(writeKVUnsigned(writer, "signal", ctx->monitorContext->signal.signum));
+    if (ctx->metadata.launchTimeSeconds > 0) {
+        RETURN_ON_FAIL(writeKVUnsigned(writer, "launchTimeSeconds", ctx->metadata.launchTimeSeconds));
+        RETURN_ON_FAIL(writeKVUnsigned(writer, "launchTimeNanos", ctx->metadata.launchTimeNanos));
+    }
+    if (ctx->bundlePath != NULL) {
+        RETURN_ON_FAIL(writeKVString(writer, "bundlePath", ctx->bundlePath));
+    }
     return true;
 }
 

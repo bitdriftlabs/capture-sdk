@@ -36,6 +36,8 @@ static NSString *const DEFAULT_HANG_NAME = @"App Hang";
                        memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
                fileSizeOptimizationEnabled:(BOOL)fileSizeOptimizationEnabled
                    useStackOverlapMatching:(BOOL)useStackOverlapMatching
+                            appEnvironment:(CAPAppEnvironment)appEnvironment
+                            teamIdentifier:(NSString *_Nullable)teamIdentifier
                             crashReporting:(id<CrashReporting> _Nonnull)crashReporting
              crashEnrichmentSummaryHandler:(CAPCrashEnrichmentSummaryHandler _Nullable)crashEnrichmentSummaryHandler
                          completionHandler:(void (^_Nullable)())completionHandler {
@@ -51,6 +53,8 @@ static NSString *const DEFAULT_HANG_NAME = @"App Hang";
                                                            sdkVersion:sdkVersion
                                          fileSizeOptimizationEnabled:fileSizeOptimizationEnabled
                                                   memoryPressureLevel:memoryPressureLevel
+                                                       appEnvironment:appEnvironment
+                                                       teamIdentifier:teamIdentifier
                                                           fileManager:[NSFileManager defaultManager]];
     [self setMinimumHangSeconds:seconds];
   }
