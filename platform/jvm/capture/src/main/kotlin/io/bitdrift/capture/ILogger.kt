@@ -43,13 +43,20 @@ interface ILogger {
     val isTracingActive: Boolean
 
     /**
-     * Creates a new session within this logger.
-     *
-     * A non-empty [sessionId] becomes the new session ID. When [sessionId] is null or empty, Capture
-     * generates a UUID regardless of how the previous session was established. This always
-     * creates a session boundary, even if [sessionId] equals the current ID.
+     * Creates a new session with an SDK-created ID within this logger.
      */
-    fun startNewSession(sessionId: String? = null)
+    fun startNewSession()
+
+    /**
+     * Creates a new session with an app-provided ID.
+     *
+     * A non-empty [sessionId] becomes the new session ID. When [sessionId] is null or empty,
+     * Capture generates a UUID regardless of how the previous session was established. This
+     * always creates a session boundary, even if [sessionId] equals the current ID.
+     */
+    fun startNewSession(sessionId: String?) {
+        startNewSession()
+    }
 
     /**
      * Creates a temporary device code that can be fed into other bitdrift tools to stream logs from a

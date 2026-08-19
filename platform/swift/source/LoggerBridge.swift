@@ -234,7 +234,7 @@ final class LoggerBridge: LoggerBridging {
         capture_write_screen_view_log(self.loggerID, screenName)
     }
 
-    func startNewSession(sessionID: String? = nil) {
+    func startNewSession(sessionID: String?) {
         capture_start_new_session(self.loggerID, sessionID)
     }
 

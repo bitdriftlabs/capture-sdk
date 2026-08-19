@@ -4,6 +4,7 @@
 package io.bitdrift.capture.providers.session
 
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Configures the Capture session lifecycle.
@@ -39,6 +40,22 @@ data class SessionConfiguration(
     val inactivityTimeout: Duration? = null,
     val onSessionIdChanged: ((String) -> Unit)? = null,
 ) {
+    companion object {
+        /**
+         * Creates a session configuration with an inactivity timeout for Java callers.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun withInactivityTimeout(
+            inactivityTimeoutMilliseconds: Long,
+            initialSessionId: String? = null,
+        ): SessionConfiguration =
+            SessionConfiguration(
+                initialSessionId = initialSessionId,
+                inactivityTimeout = inactivityTimeoutMilliseconds.milliseconds,
+            )
+    }
+
     internal fun createSessionStrategyConfiguration() =
         SessionStrategyConfiguration(
             initialSessionId = initialSessionId,

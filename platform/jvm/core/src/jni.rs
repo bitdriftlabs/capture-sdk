@@ -1145,7 +1145,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   matching_field_values: JObjectArray<'_>,
   use_previous_process_session_id: jboolean,
   override_occurred_at_unix_milliseconds: jlong,
-  _blocking: jboolean,
 ) {
   // This should only fail if the JVM is in a bad state.
   with_handle_unexpected(

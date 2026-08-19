@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.providers.session
 
+import io.bitdrift.capture.Capture
+import io.bitdrift.capture.ILogger
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import kotlin.time.Duration.Companion.seconds
@@ -28,6 +30,33 @@ class SessionStrategyConfigurationTest {
         val sessionStrategyConfiguration =
             SessionConfiguration(inactivityTimeout = 30.seconds).createSessionStrategyConfiguration()
 
+        assertThat(sessionStrategyConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(30_000)
+    }
+
+    @Test
+    fun keepsNoArgumentSessionStartMethodsForJava() {
+        assertThat(Capture.Logger::class.java.getMethod("startNewSession")).isNotNull()
+        assertThat(ILogger::class.java.getMethod("startNewSession")).isNotNull()
+    }
+
+    @Test
+    fun createsInactivityConfigurationForJava() {
+        assertThat(
+            SessionConfiguration::class.java.getMethod(
+                "withInactivityTimeout",
+                Long::class.javaPrimitiveType,
+                String::class.java,
+            ),
+        ).isNotNull()
+
+        val sessionStrategyConfiguration =
+            SessionConfiguration
+                .withInactivityTimeout(
+                    inactivityTimeoutMilliseconds = 30_000,
+                    initialSessionId = "initial",
+                ).createSessionStrategyConfiguration()
+
+        assertThat(sessionStrategyConfiguration.initialSessionId()).isEqualTo("initial")
         assertThat(sessionStrategyConfiguration.inactivityTimeoutMilliseconds()).isEqualTo(30_000)
     }
 }

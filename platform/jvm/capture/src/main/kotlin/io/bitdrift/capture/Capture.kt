@@ -288,15 +288,24 @@ object Capture {
             get() = logger()?.isTracingActive
 
         /**
-         * Creates a new session within the currently running logger.
+         * Creates a new session with an SDK-created ID within the currently running logger.
          *
-         * A non-null [sessionId] becomes the new session ID. When [sessionId] is null, Capture
-         * generates a UUID regardless of how the previous session was established. This always
-         * creates a session boundary, even if [sessionId] equals the current ID. If no logger is
-         * started, this is a no-op.
+         * If no logger is started, this is a no-op.
          */
         @JvmStatic
-        fun startNewSession(sessionId: String? = null) {
+        fun startNewSession() {
+            logger()?.startNewSession()
+        }
+
+        /**
+         * Creates a new session with an app-provided ID within the currently running logger.
+         *
+         * A non-empty [sessionId] becomes the new session ID. When [sessionId] is null or empty,
+         * Capture generates a UUID. This always creates a session boundary, even if [sessionId]
+         * equals the current ID. If no logger is started, this is a no-op.
+         */
+        @JvmStatic
+        fun startNewSession(sessionId: String?) {
             logger()?.startNewSession(sessionId)
         }
 

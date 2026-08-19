@@ -10,7 +10,8 @@ import Foundation
 /// Describes the strategy to use for session management.
 public enum SessionStrategy {
     case configuration(SessionConfiguration)
-    /// Deprecated compatibility shim for a session that never expires across process restarts.
+    /// Deprecated compatibility shim for a session that does not expire during a process but is
+    /// replaced when the SDK starts in a new process.
     ///
     /// `sessionIDGenerator` is retained for source compatibility but is no longer invoked. Capture
     /// generates UUIDs for SDK-created sessions; use `SessionConfiguration.initialSessionID` when

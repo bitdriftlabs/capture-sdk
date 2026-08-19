@@ -7,8 +7,8 @@
 
 use bd_logger::{AnnotatedLogField, CaptureSession, InitParams, log_level};
 use bd_proto::protos::logging::payload::LogType;
-use bd_session::Strategy;
-use bd_session::fixed::UUIDCallbacks;
+use bd_session::configuration::NoopCallbacks;
+use bd_session::{Strategy, StrategyWithWorker};
 use bd_shutdown::ComponentShutdownTrigger;
 use bd_test_helpers::metadata::EmptyMetadata;
 use bd_test_helpers::metadata_provider::LogMetadata;
@@ -16,6 +16,16 @@ use bd_test_helpers::session::InMemoryStorage;
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::sync::Arc;
 use std::time::Duration;
+
+fn session() -> StrategyWithWorker {
+  Strategy::configuration(
+    ".",
+    None,
+    None,
+    Arc::new(NoopCallbacks),
+    Arc::new(bd_time::SystemTimeProvider),
+  )
+}
 
 fn test_live_match_performance(c: &mut Criterion) {
   let _ignored = std::fs::remove_file("./config.pb");
@@ -40,7 +50,7 @@ fn test_live_match_performance(c: &mut Criterion) {
     network: Box::new(network),
     static_metadata: Arc::new(EmptyMetadata),
     sdk_directory: ".".into(),
-    session: Strategy::fixed(".", Arc::new(UUIDCallbacks)),
+    session: session(),
     store,
     metadata_provider,
     initial_ootb_fields: [].into(),

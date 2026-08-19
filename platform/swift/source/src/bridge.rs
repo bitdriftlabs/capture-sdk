@@ -717,8 +717,6 @@ extern "C" fn capture_write_log(
   log: *const c_char,
   fields: *const Object,
   matching_fields: *const Object,
-  _blocking: bool,
-  _blocking_timeout_ms: u32,
   override_occurred_at_unix_milliseconds: i64,
 ) {
   with_handle_unexpected(

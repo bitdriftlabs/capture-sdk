@@ -347,6 +347,10 @@ internal class LoggerImpl(
 
     fun getSdkStatus(): SdkStatus = CaptureJniLibrary.getSdkStatus(this.loggerId)
 
+    override fun startNewSession() {
+        this.startNewSession(null)
+    }
+
     override fun startNewSession(sessionId: String?) {
         CaptureJniLibrary.startNewSession(this.loggerId, sessionId)
     }

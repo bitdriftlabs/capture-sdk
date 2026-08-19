@@ -72,6 +72,15 @@ extension Logger {
     ///
     /// The default configuration starts with an SDK-created UUID and does not rotate sessions due
     /// to inactivity. See ``SessionConfiguration`` for the session-ID lifecycle contract.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        The configuration used to set up Capture features.
+    /// - parameter fieldProviders:       Additional field providers for the default logger.
+    /// - parameter dateProvider:         An optional date provider for the default logger.
+    /// - parameter startResult:          An optional callback invoked with the SDK initialization result.
+    ///
+    /// - returns: A logger integrator that can enable SDK integrations.
     @discardableResult
     public static func start(
         withAPIKey apiKey: String,
@@ -127,7 +136,15 @@ extension Logger {
         return Self.getShared()?.sessionURL
     }
 
-    /// Creates a new session within the currently configured logger.
+    /// Creates a new session with an SDK-created ID within the currently configured logger.
+    ///
+    /// The logger must be started before this operation for it to take effect.
+    public static func startNewSession() {
+        Self.getShared()?.startNewSession()
+    }
+
+    /// Creates a new session with an optional app-provided ID within the currently configured
+    /// logger.
     ///
     /// A non-empty `sessionID` becomes the new session ID. When `sessionID` is `nil` or empty, Capture
     /// generates a UUID regardless of how the previous session was established. This always
@@ -135,7 +152,7 @@ extension Logger {
     /// started before this operation for it to take effect.
     ///
     /// - parameter sessionID: The optional non-empty ID for the new session.
-    public static func startNewSession(sessionID: String? = nil) {
+    public static func startNewSession(sessionID: String?) {
         Self.getShared()?.startNewSession(sessionID: sessionID)
     }
 

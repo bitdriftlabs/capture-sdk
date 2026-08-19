@@ -201,7 +201,7 @@ void capture_write_screen_view_log(
  *
  * @param logger_id the logger to use.
  */
-void capture_start_new_session(logger_id logger_id, const void * _Nullable session_id);
+void capture_start_new_session(logger_id logger_id, NSString * _Nullable session_id);
 
 /*
  * Returns currently active session id.

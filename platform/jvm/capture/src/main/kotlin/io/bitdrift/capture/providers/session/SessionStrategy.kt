@@ -19,7 +19,8 @@ sealed class SessionStrategy {
     ) : SessionStrategy()
 
     /**
-     * Deprecated compatibility shim for a session that never expires across process restarts.
+     * Deprecated compatibility shim for a session that does not expire during a process but is
+     * replaced when the SDK starts in a new process.
      *
      * [sessionIdGenerator] is retained for source compatibility but is no longer invoked. Capture
      * generates UUIDs for SDK-created sessions; use [SessionConfiguration.initialSessionId] when

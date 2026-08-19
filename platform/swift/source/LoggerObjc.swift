@@ -117,6 +117,9 @@ public final class LoggerObjc: NSObject {
     /// Initializes Capture with the canonical session configuration API.
     ///
     /// See `CAPSessionConfiguration` for the session-ID lifecycle and callback guarantees.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
     @objc(startWithAPIKey:sessionConfiguration:)
     public static func start(
         withAPIKey apiKey: String,
@@ -307,6 +310,8 @@ public final class LoggerObjc: NSObject {
 
     /// Creates a new session with the supplied ID. This always creates a session boundary, even
     /// when the ID equals the current one.
+    ///
+    /// - parameter sessionID: The optional non-empty ID for the new session.
     @objc(startNewSessionWithSessionID:)
     public static func startNewSession(sessionID: String?) {
         Capture.Logger.startNewSession(sessionID: sessionID)
@@ -599,11 +604,14 @@ public final class SessionStrategyObjc: NSObject {
         return SessionStrategyObjc(sessionStrategy: .fixed())
     }
 
-    /// Compatibility shim for a session that never expires across process restarts.
+    /// Compatibility shim for a session that does not expire during a process but is replaced
+    /// when the SDK starts in a new process.
     ///
     /// `sessionIDGenerator` is retained for source compatibility but is no longer invoked. Capture
     /// generates UUIDs for SDK-created sessions; use `SessionConfigurationObjc` when an application
     /// needs to supply an initial ID.
+    ///
+    /// - parameter sessionIDGenerator: Retained for source compatibility and not invoked.
     ///
     /// - returns: The fixed session strategy.
     @objc

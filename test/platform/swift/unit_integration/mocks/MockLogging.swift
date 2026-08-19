@@ -71,6 +71,8 @@ extension MockLogging: Logging {
     public var sessionURL: String { "fooURL" }
     public var isTracingActive: Bool { false }
 
+    public func startNewSession() {}
+
     public func startNewSession(sessionID _: String?) {}
 
     public var deviceID: String { "deviceID" }

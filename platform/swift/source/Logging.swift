@@ -15,7 +15,13 @@ public protocol Logging {
     /// Retrieves the session URL.
     var sessionURL: String { get }
 
-    /// Initializes a new session within the currently configured logger.
+    /// Initializes a new session with an SDK-created ID within the currently configured logger.
+    func startNewSession()
+
+    /// Initializes a new session with an optional app-provided ID within the currently configured
+    /// logger.
+    ///
+    /// - parameter sessionID: The optional non-empty ID for the new session.
     func startNewSession(sessionID: String?)
 
     /// A canonical identifier for a device that remains consistent as long as an application
@@ -187,6 +193,12 @@ public protocol Logging {
         name: String, level: LogLevel, file: String?, line: Int?, function: String?,
         fields: Fields?, startTimeInterval: TimeInterval?, parentSpanID: UUID?
     ) -> Span
+}
+
+public extension Logging {
+    func startNewSession(sessionID _: String?) {
+        self.startNewSession()
+    }
 }
 
 extension Logging {
