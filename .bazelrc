@@ -12,6 +12,8 @@ mobile-install --config=android
 build:libunwind --action_env=PATH=/usr/bin
 
 build --experimental_repository_downloader_retries=3
+# Keep generated POMs usable in ordinary local Bazel builds. Release tooling overrides this value.
+build --define pom_version=LOCAL-SNAPSHOT
 common --repo_env=DO_NOT_TRACK=1
 build --@protobuf//bazel/flags:prefer_prebuilt_protoc
 
