@@ -14,10 +14,13 @@ final class AppStateAttributes {
     var isForeground: Bool { self.underlyingIsForeground.load() }
 
     private let underlyingIsForeground: Atomic<Bool>
+    private let notificationCenter: NotificationCenter
     private weak var logger: CoreLogging?
     private var notificationTokens: [NSObjectProtocol] = []
 
     init(notificationCenter: NotificationCenter = .default) {
+        self.notificationCenter = notificationCenter
+
         let state = if Thread.isMainThread {
             UIApplication.shared.applicationState
         } else {
@@ -52,6 +55,7 @@ final class AppStateAttributes {
 
     func start(with logger: CoreLogging) {
         self.logger = logger
+        logger.updateOotbField(withKey: "foreground", value: self.isForeground ? "1" : "0")
     }
 
     func initialOotbFields() -> [Field] {
@@ -65,7 +69,7 @@ final class AppStateAttributes {
     }
 
     deinit {
-        self.notificationTokens.forEach(NotificationCenter.default.removeObserver)
+        self.notificationTokens.forEach(self.notificationCenter.removeObserver)
     }
 }
 

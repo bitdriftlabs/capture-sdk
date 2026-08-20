@@ -5,10 +5,6 @@
 
 ### Both
 
-**Added**
-
-- Added internal support for initializing and updating SDK-owned OOTB log fields.
-
 **Changed**
 
 - Many changes to metrics reporting reliability including: independent initial flush window after
