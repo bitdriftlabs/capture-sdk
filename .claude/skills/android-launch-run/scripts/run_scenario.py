@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures as cf
+import glob
 import json
 import os
 import re
@@ -45,6 +46,37 @@ def firewall_revoke(serial: str, uid: str, after_ms: int) -> int | None:
         if st == "default" and t >= after_ms - 500 and (best is None or t < best):
             best = t
     return best
+
+
+def warn_if_build_is_stale(app: str) -> None:
+    """Warn when the built APK predates the pinned shared-core config.
+
+    Compares mtimes of two files in this repo, so there is no device/host clock skew involved and no
+    table of revs to keep current: if Cargo.toml moved after the APK was built, the device cannot be
+    running what the tree describes. Reading one rev's behaviour while the tree names another is the
+    single most confusing state to debug from.
+    """
+    # Walk up to the repo root rather than counting directory levels: a hardcoded count silently
+    # resolved to the wrong directory and made this check a no-op that never fired once.
+    root = os.path.abspath(__file__)
+    while root != os.path.dirname(root):
+        root = os.path.dirname(root)
+        if os.path.exists(os.path.join(root, "Cargo.toml")) and \
+           os.path.isdir(os.path.join(root, "platform")):
+            break
+    else:
+        return
+    cargo = os.path.join(root, "Cargo.toml")
+    apks = glob.glob(os.path.join(root, "platform", "jvm", "*", "build", "outputs", "apk", "debug",
+                                  "*.apk"))
+    if not os.path.exists(cargo) or not apks:
+        return
+    newest = max(apks, key=os.path.getmtime)
+    drift = os.path.getmtime(cargo) - os.path.getmtime(newest)
+    if drift > 60:
+        print(f"  !! STALE BUILD: Cargo.toml is {drift / 60:.0f} min newer than the last built APK.\n"
+              f"     The device runs whatever was last built -- bumping a pinned rev does not\n"
+              f"     reinstall it. Run `adbctl.py install` before trusting this capture.", flush=True)
 
 
 def run_on(serial: str, sc: dict, outdir: str, app: str) -> dict:
@@ -87,7 +119,8 @@ def run_on(serial: str, sc: dict, outdir: str, app: str) -> dict:
                 adbctl.mark(serial, f"ACTION mode {step['name']} on")
                 adbctl.mode(serial, step["name"], True, pkg)
             else:
-                adbctl.action(serial, act, pkg, activity)
+                adbctl.action(serial, act, pkg, activity, component=step.get("component"),
+                              text=step.get("text"), permission=step.get("permission"))
     finally:
         adbctl.mark(serial, "ACTION observe-end")
         time.sleep(1)
@@ -145,6 +178,7 @@ def main() -> None:
 
     print(f"scenario '{sc['name']}' on {len(targets)} device(s)"
           f"{' sequentially' if args.sequential else ' in parallel'}")
+    warn_if_build_is_stale(args.app)
 
     fn = lambda s: run_on(s, sc, args.out, args.app)
     if args.sequential or len(targets) == 1:

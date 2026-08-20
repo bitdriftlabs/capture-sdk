@@ -20,7 +20,7 @@ import io.bitdrift.capture.events.IEventListenerLogger
 /**
  * Flushes the logger when the app's window loses focus — the only signal that fires for the app
  * switcher, where `ON_STOP` never does because the activity stays visible. Focus loss also fires for
- * transient cases (IME, dialogs, transitions); over-calling is fine since flushes are debounced
+ * transient cases (dialogs, transitions); over-calling is fine since flushes are debounced
  * downstream.
  *
  * This will be a no-op when the `client_feature.android.logger_flushing_on_window_focus_loss` kill

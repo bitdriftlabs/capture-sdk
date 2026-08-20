@@ -23,8 +23,9 @@ import timber.log.Timber
 
 /**
  * Exercises window-focus-loss cases for verifying the SDK's flush-on-focus-loss: reaching it is an
- * Activity transition, the text field raises the IME, and the button opens a permission dialog.
- * Recents/home/rotation are driven over adb.
+ * Activity transition and the button opens a permission dialog. The text field raises the IME,
+ * which does not drop window focus (measured on Pixel 10 / API 37). Recents/home/rotation are
+ * driven over adb.
  */
 class FocusMatrixActivity : AppCompatActivity() {
     private val requestPermission =

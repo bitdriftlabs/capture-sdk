@@ -46,8 +46,8 @@ PATTERNS: list[tuple[str, str, str, str]] = [
      "blocking flush TIMED OUT (500ms JNI cap)"),
     # Stats. Match the whole bd_client_stats* prefix, not just ::stats.
     #
-    # The message text changed with the shared-core bump to c3ba1cba, so both wordings are matched:
-    # older revs are still in the wild, and a pattern that silently stops matching reports "no
+    # The message text changed when the stats subsystem was reworked, so both wordings are matched:
+    # older pins are still in the wild, and a pattern that silently stops matching reports "no
     # upload happened" rather than "I can't see it" — the worst possible failure mode here.
     ("FORCED", r"bd_client_stats.*",
      r"^(received a signal to flush stats to disk|flushing collected stats to disk)$",
@@ -70,9 +70,9 @@ PATTERNS: list[tuple[str, str, str, str]] = [
     ("DISPATCH", r"bd_client_stats.*",
      r"^dispatched (?P<kind>.+?) stats upload for (?P<n>\d+) source files$",
      "dispatched {kind} upload ({n} files)"),
-    # `skipping <kind> upload, …` — kind is flush/periodic/absent depending on rev and call site.
-    # Pinning the word (it used to be a literal "flush") made a live gate invisible: rev 42637e1f
-    # emits "skipping periodic upload", which fell through and reported as upload NONE.
+    # `skipping <kind> upload, …` — kind is flush/periodic/absent depending on pin and call site.
+    # Pinning the word (it used to be a literal "flush") made a live gate invisible: the legacy
+    # wording emits "skipping periodic upload", which fell through and reported as upload NONE.
     # Surface which path was refused: a `periodic` suppression is the gate working as designed (a 5s
     # cadence against a 30s floor refuses constantly), whereas a `flush` suppression means the
     # backgrounding upload never went out and the run measured the gate instead of the question.
@@ -198,7 +198,7 @@ def fmt(delta: int) -> str:
 
 
 def _debounce_report(evs: list[dict]) -> dict:
-    """Report on the disk-flush debounce window (`c3ba1cba`+).
+    """Report on the disk-flush debounce window (present on post-rework pins only).
 
     The window opens right after each disk write and lasts `duration`. A flush arriving inside it is
     coalesced and deferred to window expiry, so a coalescing window logs

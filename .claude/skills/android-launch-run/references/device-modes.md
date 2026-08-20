@@ -3,7 +3,8 @@
 Nine states, each with setup, teardown, and a **verify** command. Several fail silently, so always
 verify rather than assuming the setup command worked.
 
-All commands verified on API 36 (emulator) and API 37 (Pixel 10).
+All commands verified on a recent-API emulator and physical hardware. Re-verify on a new API level:
+the setup commands are the part most likely to drift.
 
 ## When each mode can be applied
 
@@ -92,8 +93,8 @@ Requires the screen off. The app must not be on the idle allowlist. Check `effec
 `dumpsys netpolicy` for the `DOZE` reason to confirm it actually reached the app.
 
 **With the pre-arm order there is no race at all** — better than previously documented. Measured on
-a Pixel 10 and an emulator: `force-idle deep` lands **~1.1–1.2s *before* `process ON_STOP`**, because
-`ProcessLifecycleOwner` debounces the stop by ~1.3s. So doze is already in force when the flush runs,
+both physical hardware and an emulator: `force-idle deep` lands **about a second *before*
+`process ON_STOP`**, because `ProcessLifecycleOwner` debounces the stop by roughly that much. So doze is already in force when the flush runs,
 the app's state goes `APP_BACKGROUND` → `DOZE|APP_BACKGROUND`, and the upload is never acked. Pair it
 with a screen-off-*without*-doze control (which acks in ~700ms) and the result is attributable to
 doze rather than to screen-off or to the background firewall.
@@ -130,8 +131,8 @@ survives both of the others. Left behind it shows up as `METERED_USER_RESTRICTED
 `effective=` blocked state and silently restricts every later run — including runs of unrelated
 scenarios, on someone's real phone.
 
-This actually happened: a sweep left `UID=10304 policy=1 (REJECT_METERED_BACKGROUND)` on a Pixel 10,
-and `adbctl.py mode reset` could not clear it because reset only handled the global toggle and the
+This actually happened: a sweep left `UID=<uid> policy=1 (REJECT_METERED_BACKGROUND)` on someone's
+phone, and `adbctl.py mode reset` could not clear it because reset only handled the global toggle and the
 network marks. `mode data-saver --off` (and therefore `mode reset`) now removes the blacklist entry
 too, and `verify data-saver` reports all three switches so a leftover is visible instead of silent:
 
@@ -221,7 +222,7 @@ Data Saver.
 
 Measured, both devices, with no modes applied:
 
-| Hop | Emulator (API 36) | Pixel 10 (API 37) |
+| Hop | Emulator | Physical |
 |---|---|---|
 | `ON_STOP` → firewall allow revoked | +4.962s | +4.950s |
 | revoke → socket aborted | +13ms | +51ms |

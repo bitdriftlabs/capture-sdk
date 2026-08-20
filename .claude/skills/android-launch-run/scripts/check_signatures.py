@@ -63,17 +63,6 @@ REV_MARKERS = {
     ],
 }
 
-# Which family a pinned rev belongs to. Keyed by 8-char prefix. Deliberately an explicit table
-# rather than a prefix test: an earlier version asked `pin.startswith("c3ba1cb")`, which silently
-# reported the wrong family the moment the bump branch advanced to d8ac5975 — a tool that lies about
-# staleness is worse than one that admits it doesn't know.
-REV_FAMILY = {
-    "c3ba1cba": "new-stats",    # bump / PR #1107, original tip
-    "d8ac5975": "new-stats",    # bump, after the main merge; bd-client-stats byte-identical
-    "5f0f7b29": "new-stats",    # main, after #1107 merged; wordings and flag defaults verified
-                                # identical to d8ac5975 (only FlushTrigger::flush's signature changed)
-    "42637e1f": "legacy-stats",  # main, before #1107
-}
 
 
 def infer_rev_family(path: str) -> tuple[str | None, dict[str, int]]:
@@ -129,25 +118,26 @@ def main() -> None:
     print(f"capture: {args.capture}")
     print(f"recognised events: {len(evs)}")
 
-    # Which binary produced this, and does it match the tree? Catching a stale APK here is the
-    # difference between "the behaviour changed" and "I am testing last week's build".
+    # Which wording family produced this capture. Classified from the log text itself, so it stays
+    # correct across rev bumps -- a mapping of rev -> family needs an edit per bump and lies whenever
+    # it is out of date, and a tool that lies about staleness is worse than one that admits it can't
+    # tell. Staleness itself is checked where the device is in hand, by run_scenario.py.
     fam, hits = infer_rev_family(args.capture)
     pin = pinned_rev(args.capture)
-    detail = " ".join(f"{f}={n}" for f, n in hits.items() if n) or "no rev markers found"
-    print(f"binary rev family: {fam or 'INDETERMINATE'}  ({detail})")
+    detail = " ".join(f"{f}={n}" for f, n in hits.items() if n) or "no wording markers found"
+    print(f"stats wording family: {fam or 'INDETERMINATE'}  ({detail})")
     if pin:
-        expected = REV_FAMILY.get(pin)
-        print(f"Cargo.toml pins:   {pin}" + (f"  ({expected})" if expected else "  (rev not in REV_FAMILY)"))
-        if expected is None:
-            print(f"\n  NOTE: {pin} is not a rev this script knows about, so it cannot confirm the"
-                  f"\n  install is current. Add it to REV_FAMILY in check_signatures.py once you know"
-                  f"\n  which wording family it emits — and rebuild before trusting a capture, since a"
-                  f"\n  rev bump is exactly when the APK goes stale.")
-        elif fam and fam != expected:
-            print(f"\n  *** STALE INSTALL: the capture looks like {fam}, but the tree pins {pin} "
-                  f"({expected}).\n      The APK is whatever was last built — switching branches or "
-                  f"bumping a rev does not\n      reinstall it. Run `adbctl.py install` and re-capture; "
-                  f"until then every signature\n      lookup is consulting the wrong rev.")
+        print(f"Cargo.toml pins:      {pin}")
+    seen_families = [f for f, n in hits.items() if n]
+    if len(seen_families) > 1:
+        print(f"\n  *** MIXED WORDING: this capture contains {' and '.join(seen_families)} markers,"
+              f"\n      which one binary cannot emit. Either it spans two installs, or a pattern is"
+              f"\n      matching the wrong family. Re-capture from a single fresh install before"
+              f"\n      drawing any conclusion from it.")
+    elif fam is None:
+        print(f"\n  NOTE: no stats wording markers at all. Either the filter omitted"
+              f"\n  bd_client_stats=debug, or the capture predates SDK init. A zero anywhere below"
+              f"\n  proves nothing until this says otherwise.")
     print()
 
     unseen_families = []

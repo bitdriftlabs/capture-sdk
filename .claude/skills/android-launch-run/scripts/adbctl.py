@@ -7,7 +7,9 @@ Subcommands:
   logprop <filter> [--serial S]    set debug.bitdrift.internal_rust_log
   mode <name> --on|--off           apply/undo a device state; `mode reset` restores everything
   verify <name>                    print the verification output for a mode
-  action <name> [--seconds N]      home|back|recents|screen-off|wake|kill|force-stop|freeze|...
+  action <name> [--seconds N]      launch|home|back|recents|screen-off|wake|kill|force-stop|
+                                   freeze|unfreeze|rotate|rotate-reset|launch-activity|
+                                   tap-text|revoke-permission|wait
   mark <text>                      stamp a device-clock marker into logcat
   state                            dump the full device state relevant to these runs
 
@@ -186,6 +188,9 @@ def mode(serial: str, name: str, on: bool, pkg: str) -> str:
         adb(serial, "svc power stayon false")
         adb(serial, "input keyevent KEYCODE_WAKEUP")
         adb(serial, "wm dismiss-keyguard")
+        # A device left in forced landscape silently changes layout for every later run.
+        adb(serial, "settings put system user_rotation 0")
+        adb(serial, "settings put system accelerometer_rotation 1")
 
     else:
         sys.exit(f"unknown mode: {name}")
@@ -259,19 +264,80 @@ ACTIONS = {
 }
 
 
-def action(serial: str, name: str, pkg: str, activity: str, seconds: float = 0) -> str:
+def find_node_center(serial: str, query: str) -> tuple[int, int]:
+    """Center of the first visible UI node whose text or resource-id matches `query` (a
+    case-insensitive regex). Dialog buttons render a curly apostrophe, so match "Don.t allow",
+    not "Don't allow"."""
+    adb(serial, "uiautomator dump /sdcard/adbctl-ui.xml")
+    xml = adb(serial, "cat /sdcard/adbctl-ui.xml")
+    adb(serial, "rm -f /sdcard/adbctl-ui.xml")
+    pat = re.compile(query, re.IGNORECASE)
+    for node in re.finditer(r"<node[^>]*/>", xml):
+        n = node.group(0)
+        txt = re.search(r'text="([^"]*)"', n)
+        rid = re.search(r'resource-id="([^"]*)"', n)
+        if not ((txt and pat.search(txt.group(1))) or (rid and pat.search(rid.group(1)))):
+            continue
+        b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+        if b:
+            left, top, right, bottom = map(int, b.groups())
+            return (left + right) // 2, (top + bottom) // 2
+    sys.exit(f"tap-text: no visible UI node matches {query!r} (is the screen you expect showing?)")
+
+
+def action(
+    serial: str,
+    name: str,
+    pkg: str,
+    activity: str,
+    seconds: float = 0,
+    component: str | None = None,
+    text: str | None = None,
+    permission: str | None = None,
+) -> str:
     if name == "wait":
         import time
         mark(serial, f"ACTION wait {seconds}s")
         time.sleep(seconds)
         return f"waited {seconds}s"
 
-    mark(serial, f"ACTION {name}")
+    detail = component or text or permission
+    mark(serial, f"ACTION {name}" + (f" {detail}" if detail else ""))
 
     if name in ACTIONS:
         adb(serial, ACTIONS[name])
     elif name == "launch":
         adb(serial, f"am start -W -n {pkg}/{activity}", timeout=90)
+    elif name == "launch-activity":
+        # Start a specific component, for cases where the transition itself is under test.
+        if not component:
+            sys.exit("launch-activity needs a `component` in the scenario step")
+        target = component if "/" in component else f"{pkg}/{component}"
+        adb(serial, f"am start -W -n {target}", timeout=90)
+    elif name == "rotate":
+        # user_rotation is ignored while auto-rotate is on, so disable the sensor first or this is a
+        # silent no-op — the same class of trap as data-saver needing a metered network.
+        adb(serial, "settings put system accelerometer_rotation 0")
+        adb(serial, "settings put system user_rotation 1")
+    elif name == "rotate-reset":
+        adb(serial, "settings put system user_rotation 0")
+        adb(serial, "settings put system accelerometer_rotation 1")
+    elif name == "tap-text":
+        # uiautomator finds the node wherever it is, so taps survive layout and DPI changes.
+        if not text:
+            sys.exit("tap-text needs a `text` in the scenario step")
+        x, y = find_node_center(serial, text)
+        adb(serial, f"input tap {x} {y}")
+    elif name == "revoke-permission":
+        # An already-granted permission returns instantly with no dialog and thus no focus loss.
+        # Clearing the flags matters just as much: two denials set USER_FIXED ("don't ask again"),
+        # after which the OS answers immediately and never renders a dialog, so a run that only
+        # revokes silently stops producing focus loss. Verify with
+        # `dumpsys package <pkg> | grep <PERM>` -- USER_FIXED must be absent.
+        if not permission:
+            sys.exit("revoke-permission needs a `permission` in the scenario step")
+        adb(serial, f"pm clear-permission-flags {pkg} {permission} user-fixed user-set")
+        adb(serial, f"pm revoke {pkg} {permission}")
     elif name == "kill":
         adb(serial, f"am kill {pkg}")
     elif name == "force-stop":
@@ -319,6 +385,7 @@ def main() -> None:
     g.add_argument("--off", action="store_true")
     p = sub.add_parser("verify"); p.add_argument("name")
     p = sub.add_parser("action"); p.add_argument("name"); p.add_argument("--seconds", type=float, default=0)
+    p.add_argument("--component", help="for launch-activity: Class or pkg/Class")
     p = sub.add_parser("mark"); p.add_argument("text")
 
     args = ap.parse_args()
@@ -361,7 +428,8 @@ def main() -> None:
             for s in targets:
                 require_unlocked(s)
         for s, out in fanout(targets,
-                            lambda s: action(s, args.name, pkg, activity, args.seconds),
+                            lambda s: action(s, args.name, pkg, activity, args.seconds,
+                                             getattr(args, "component", None)),
                             args.sequential).items():
             print(f"[{s}] {out}")
         return
