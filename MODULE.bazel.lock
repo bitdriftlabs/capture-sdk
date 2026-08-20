@@ -667,7 +667,7 @@
     },
     "@@aspect_rules_js+//npm:extensions.bzl%pnpm": {
       "general": {
-        "bzlTransitiveDigest": "sp9NgQ94NV5UME9RptYPFlH41wUHpjx7m25pZ/RgK7g=",
+        "bzlTransitiveDigest": "vM3BR5+yXa4yQi2vft9tju0zNrudW0lbYbz3h3mopkM=",
         "usagesDigest": "kbjSw2REjlSC0HtTZDf2p+l/dmiMt3NHLoiWEXYAoQI=",
         "recordedInputs": [
           "REPO_MAPPING:aspect_bazel_lib+,bazel_lib bazel_lib+",
@@ -772,7 +772,7 @@
     },
     "@@bazel_jar_jar+//internal:non_module_deps.bzl%non_module_deps": {
       "general": {
-        "bzlTransitiveDigest": "jWxHNEWO5VISLHrdBHQhXRTKzXFbYVdL+FXWJ9/pp6I=",
+        "bzlTransitiveDigest": "r2Slva766tHYfQiOCJp0Mpqqp3EVfqgx99TzZIHmYNY=",
         "usagesDigest": "yPUJRbCRF7ZBu5lCj2Y0tKOlweQexKh04B+dgm99R3U=",
         "recordedInputs": [
           "REPO_MAPPING:bazel_features+,bazel_features_globals bazel_features++version_extension+bazel_features_globals",
@@ -1361,7 +1361,7 @@
     },
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
-        "bzlTransitiveDigest": "+IdJtwaNFIdAvi4KHnd3O6mwLGS9lW49am5a4bLywbk=",
+        "bzlTransitiveDigest": "ivFauVySRHb2JdkEfQFZsl6HcALiCDuG5Z9EzRglbsI=",
         "usagesDigest": "3M03XhIi/1oRPtWHXCs5R9YQ+nQb9Yb2k0xdzczdmnk=",
         "recordedInputs": [
           "ENV:CARGO_BAZEL_DEBUG \\0",
@@ -1637,7 +1637,7 @@
     },
     "@@rules_rust+//crate_universe/private:internal_extensions.bzl%cu_nr": {
       "general": {
-        "bzlTransitiveDigest": "+YLDxChCunbKcmFhMPM4G5fG+G5/9VAkp/Mzgf/JI5U=",
+        "bzlTransitiveDigest": "I8/SjiyxaVwtMA1Osncsw/dRVfkN0O1KnMgCyLII/i0=",
         "usagesDigest": "tG3p3Nb5XxC7vWY/bcKdb//g0HoAxpxxH3F5/jBVlk4=",
         "recordedInputs": [
           "REPO_MAPPING:bazel_features+,bazel_features_globals bazel_features++version_extension+bazel_features_globals",
