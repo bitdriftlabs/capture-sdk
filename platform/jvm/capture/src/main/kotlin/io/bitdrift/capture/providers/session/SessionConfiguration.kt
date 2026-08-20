@@ -48,6 +48,7 @@ data class SessionConfiguration(
     val inactivityTimeout: Duration? = null,
     val onSessionIdChanged: ((String) -> Unit)? = null,
 ) {
+    /** Factory methods for Java-compatible session configurations. */
     companion object {
         /**
          * Creates a session configuration with an inactivity timeout for Java callers.
