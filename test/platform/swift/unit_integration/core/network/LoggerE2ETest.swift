@@ -176,10 +176,12 @@ final class CaptureE2ENetworkTests: XCTestCase {
             "_build_number": clientAttributes.buildNumber,
             "model": deviceAttributes.hardwareVersion,
         ]
-        let defaultFields = appStateAttributes.getFields()
-            .mergedOverwritingConflictingKeys(deviceAttributes.getFields())
-            .mergedOverwritingConflictingKeys(networkAttributes.getFields())
-            .mergedOverwritingConflictingKeys(staticFields)
+        let defaultFields: [String: Encodable] = [
+            "foreground": appStateAttributes.isForeground ? "1" : "0",
+        ]
+        .mergedOverwritingConflictingKeys(deviceAttributes.getFields())
+        .mergedOverwritingConflictingKeys(networkAttributes.getFields())
+        .mergedOverwritingConflictingKeys(staticFields)
 
         let helloWorldExpectedFields: [String: Encodable] = [
             "bar": "value_bar",

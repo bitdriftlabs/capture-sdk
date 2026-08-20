@@ -17,6 +17,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.FieldValue
 import junit.framework.TestCase.assertEquals
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -50,7 +52,7 @@ class ClientAttributesTest {
 
         val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).initialOotbFields()
 
-        assertThat(clientAttributes).containsEntry("foreground", "1")
+        assertThat(clientAttributes).containsExactly(Field("foreground", FieldValue.StringField("1")))
     }
 
     @Test
@@ -59,7 +61,7 @@ class ClientAttributesTest {
 
         val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateCreated).initialOotbFields()
 
-        assertThat(clientAttributes).containsEntry("foreground", "0")
+        assertThat(clientAttributes).containsExactly(Field("foreground", FieldValue.StringField("0")))
     }
 
     @Test

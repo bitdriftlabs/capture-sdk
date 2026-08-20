@@ -17,6 +17,8 @@ import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.utils.BuildTypeChecker
 import java.util.Locale
@@ -82,7 +84,7 @@ internal class ClientAttributes(
      * Process lifecycle state can be read from the logger runtime thread. Subsequent lifecycle
      * events keep the OOTB field current on the main thread.
      */
-    internal fun initialOotbFields(): Fields = mapOf(FOREGROUND_KEY to foregroundValue())
+    internal fun initialOotbFields(): Array<Field> = arrayOf(Field(FOREGROUND_KEY, FieldValue.StringField(foregroundValue())))
 
     internal fun dynamicFields(): Fields {
         updateLocaleIfNeeded()
