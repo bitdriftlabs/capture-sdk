@@ -33,6 +33,11 @@ mod test {
       "com.squareup.okhttp3:okhttp",
       "org.jetbrains.kotlin:kotlin-stdlib",
     ];
+    let excluded_deps = vec![
+      "androidx.webkit:webkit",
+      "com.google.code.findbugs:jsr305",
+      "com.squareup.retrofit2:retrofit",
+    ];
 
     let root = simple_xml::from_file(runfiles_path("capture_aar_pom_xml.xml")).unwrap();
 
@@ -56,6 +61,33 @@ mod test {
         required_dep.1
       );
     }
+
+    for excluded_dep in into_parts(&excluded_deps) {
+      assert!(
+        !present_deps.contains(&excluded_dep),
+        "compile-only dependency must not be published: {0}:{1}",
+        excluded_dep.0,
+        excluded_dep.1
+      );
+    }
+
+    for dep in deps {
+      let version = &dep["version"][0].content;
+      assert!(
+        !version.contains('@'),
+        "dependency version must not encode its type: {version}"
+      );
+    }
+
+    let appcompat = deps
+      .iter()
+      .find(|dep| {
+        dep["groupId"][0].content == "androidx.appcompat"
+          && dep["artifactId"][0].content == "appcompat"
+      })
+      .unwrap();
+    assert_eq!(appcompat["type"][0].content, "aar");
+    assert_eq!(appcompat["version"][0].content, "1.7.0");
   }
 
   fn into_parts(coords: &[&str]) -> HashSet<(String, String)> {

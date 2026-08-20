@@ -1,10 +1,10 @@
 """Rules for creating an aar for distribution including native libraries"""
 # Copied from https://github.com/envoyproxy/envoy-mobile/blob/main/bazel/android_artifacts.bzl
 
-load("@google_bazel_common//tools/maven:pom_file.bzl", "pom_file")
 load("@rules_android//android:rules.bzl", "android_binary")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_java//java:defs.bzl", "JavaInfo", "java_binary")
+load("@rules_jvm_external//:defs.bzl", "pom_file")
 load("//bazel/android:dokka.bzl", "sources_javadocs")
 
 # This file is based on https://github.com/aj-michael/aar_with_jni which is
@@ -31,7 +31,7 @@ load("//bazel/android:dokka.bzl", "sources_javadocs")
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-def android_artifacts(name, android_library, manifest, archive_name, native_deps = [], proguard_rules = "", visibility = [], excluded_artifacts = [], sdk_verification_file = []):
+def android_artifacts(name, android_library, manifest, archive_name, native_deps = [], proguard_rules = "", visibility = [], sdk_verification_file = []):
     """Create an aar including a native library
 
     NOTE: The bazel android_library's implicit aar output doesn't flatten its transitive
@@ -54,7 +54,6 @@ def android_artifacts(name, android_library, manifest, archive_name, native_deps
         native_deps: The native dependency targets.
         proguard_rules: The proguard rules used for the aar.
         visibility: The visibility of the underlying gen rule.
-        excluded_artifacts: The dependencies to avoid adding to the .pom xml even if they appear as a transitive dependency.
         sdk_verification_file: Optional Google Play SDK verification.properties file to include in classes.jar.
     """
 
@@ -72,7 +71,7 @@ def android_artifacts(name, android_library, manifest, archive_name, native_deps
 
     # Generate other needed files for a maven publish
     sources_name, javadocs_name = _create_sources_javadocs(name, android_library)
-    pom_name = _create_pom_xml(name, android_library, visibility, excluded_artifacts)
+    pom_name = _create_pom_xml(name, android_library, visibility)
     native.genrule(
         name = name + "_with_artifacts",
         srcs = [
@@ -302,7 +301,7 @@ def _create_classes_jar(name, android_library, sdk_verification_file):
 
     return name + "_classes.jar"
 
-def _create_pom_xml(name, android_library, visibility, excluded_artifacts):
+def _create_pom_xml(name, android_library, visibility):
     """Creates a pom xml associated with the android_library target.
 
     Args:
@@ -315,10 +314,9 @@ def _create_pom_xml(name, android_library, visibility, excluded_artifacts):
     # This is for the pom xml. It has a public visibility since this can be accessed in the root BUILD file
     pom_file(
         name = pom_name,
-        targets = [android_library],
+        target = android_library,
         visibility = visibility,
-        template_file = "//bazel:pom_template.xml",
-        excluded_artifacts = excluded_artifacts,
+        pom_template = "//bazel:pom_template.xml",
     )
 
     return pom_name

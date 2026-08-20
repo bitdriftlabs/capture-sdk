@@ -106,9 +106,6 @@ use_repo(go_sdk, "go_sdk")
 
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 
-# Required by android_artifacts for pom_file, it's not in bazel central registry
-bazel_dep(name = "google_bazel_common", version = "0.0.1")
-
 # The iOS archive rewriter needs LLVM's deterministic archive and universal-binary tools.
 # Fetch the minimal, pinned macOS toolchains through Bazel instead of relying on Homebrew.
 llvm_toolchain_minimal = use_extension(
@@ -138,12 +135,6 @@ new_git_repository(
     build_file = "//bazel:BUILD.kscrash",
     commit = "f0241a44f723a6b29c9db2a303917e89256a2557",
     remote = "https://github.com/kstenerud/KSCrash.git",
-)
-
-git_override(
-    module_name = "google_bazel_common",
-    commit = "c35b0339ae7d7ac95761f69f4a0eed033163cc80",
-    remote = "https://github.com/google/bazel-common",
 )
 
 git_override(

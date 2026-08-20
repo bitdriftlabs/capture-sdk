@@ -109,11 +109,6 @@ android_artifacts(
     name = "capture_aar",
     android_library = "//platform/jvm/capture:capture_logger_lib",
     archive_name = "capture",
-    excluded_artifacts = [
-        "com.google.code.findbugs:jsr305",
-        "com.squareup.retrofit2:retrofit",
-        "androidx.webkit:webkit",
-    ],
     manifest = "//platform/jvm:AndroidManifest.xml",
     native_deps = select({
         # When targeting an optimized build, use the stripped binary. The symbols are collected prior to stripping and exposed via capture_symbols below.
