@@ -58,6 +58,13 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
+    buildTypes {
+        create("profileable") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
@@ -114,7 +121,7 @@ val bazelAndroidTarget =
         else -> throw GradleException("Unsupported Rust Android target: $rustTarget")
     }
 
-fun registerBazelRustBuild(buildType: String, release: Boolean) =
+fun registerBazelRustBuild(buildType: String, release: Boolean, stripLevel: String? = null) =
     tasks.register<Exec>("buildBazel${buildType.replaceFirstChar(Char::uppercase)}Rust") {
         description = "Build the $buildType Android Rust library with Bazel"
         workingDir = bazelWorkspace
@@ -126,6 +133,11 @@ fun registerBazelRustBuild(buildType: String, release: Boolean) =
         )
         if (release) {
             args("--config=release-android")
+        }
+        if (stripLevel != null) {
+            // Preserve the Gradle variant's debugSymbolLevel through Bazel, which owns the
+            // Rust linker and does not require Gradle to install the NDK.
+            args("--define=capture_rust_strip_level=$stripLevel")
         }
     }
 
@@ -157,14 +169,17 @@ fun registerBazelRustCopy(buildType: String, buildTask: TaskProvider<out Task>) 
         }
     }
 
-val buildBazelDebugRust = registerBazelRustBuild("debug", release = false)
+val buildBazelDebugRust = registerBazelRustBuild("debug", release = false, stripLevel = "debuginfo")
 val buildBazelReleaseRust = registerBazelRustBuild("release", release = true)
+val buildBazelProfileableRust = registerBazelRustBuild("profileable", release = true, stripLevel = "none")
 val copyBazelDebugRust = registerBazelRustCopy("debug", buildBazelDebugRust)
 val copyBazelReleaseRust = registerBazelRustCopy("release", buildBazelReleaseRust)
+val copyBazelProfileableRust = registerBazelRustCopy("profileable", buildBazelProfileableRust)
 
 android.sourceSets {
     getByName("debug").jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/debug"))
     getByName("release").jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/release"))
+    getByName("profileable").jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/profileable"))
 }
 
 tasks.matching { it.name == "mergeDebugJniLibFolders" }.configureEach {
@@ -173,6 +188,10 @@ tasks.matching { it.name == "mergeDebugJniLibFolders" }.configureEach {
 
 tasks.matching { it.name == "mergeReleaseJniLibFolders" }.configureEach {
     dependsOn(copyBazelReleaseRust)
+}
+
+tasks.matching { it.name == "mergeProfileableJniLibFolders" }.configureEach {
+    dependsOn(copyBazelProfileableRust)
 }
 
 // Task to build the test JNI library (combines production + test code)
