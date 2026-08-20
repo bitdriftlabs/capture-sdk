@@ -26,6 +26,11 @@ on:
         description: Include Google Play SDK verification file from GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS secret in the Android AAR.
         required: false
         default: true
+      include-swift-6-4-xcframework:
+        type: boolean
+        description: Also build the Xcode 27 XCFramework consumed by Package@swift-6.4.swift. Requires a runner with Xcode 27 installed.
+        required: false
+        default: false
       dry-run:
         type: boolean
         description: Build and validate release artifacts without uploading or creating a GitHub release.
@@ -76,6 +81,11 @@ on:
         description: Include Google Play SDK verification file from GOOGLE_PLAY_SDK_VERIFICATION_FILE_CONTENTS secret in the Android AAR.
         required: false
         default: true
+      include-swift-6-4-xcframework:
+        type: boolean
+        description: Also build the Xcode 27 XCFramework consumed by Package@swift-6.4.swift. Requires a runner with Xcode 27 installed.
+        required: false
+        default: false
       dry-run:
         type: boolean
         description: Build and validate release artifacts without uploading or creating a GitHub release.
@@ -108,9 +118,14 @@ jobs:
   # The iOS release build builds the xcframework in release mode and uploads it to the artifact store for later use.
   ios-release-build:
     if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
-    name: Capture.xcframework with artifacts
+    name: Capture.xcframework with artifacts (${{ matrix.variant }})
     needs: ["verify-version"]
-    runs-on: macos-26
+    # The xcode-27 image is a preview image whose only Xcode is 27.0 beta.
+    runs-on: ${{ matrix.variant == 'swift-6.4' && 'xcode-27' || 'macos-26' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ${{ inputs.include-swift-6-4-xcframework && fromJSON('["default", "swift-6.4"]') || fromJSON('["default"]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -123,22 +138,38 @@ jobs:
           cache-key-scope: release-${{ github.workflow }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
+      # tools/ios_release.sh owns the variant -> Xcode version / artifact name mapping.
+      - name: Resolve release plan
+        id: plan
+        run: IOS_RELEASE_DRY_RUN=1 ./tools/ios_release.sh Capture "$VERSION" "$VARIANT" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ inputs.version }}
+          VARIANT: ${{ matrix.variant }}
       - name: 'Install dependencies'
-        run: ./ci/mac_ci_setup.sh
+        run: ./ci/mac_ci_setup.sh "$XCODE_VERSION"
+        env:
+          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
       - name: Build xcframework + artifacts
         run: |
-          ./tools/ios_release.sh Capture "${{ inputs.version }}"
-          mv ./dist/Capture.ios.zip ./Capture.ios.zip
-          mv ./dist/Capture.doccarchive.ios.zip ./Capture.doccarchive.ios.zip
-          unzip -t ./Capture.ios.zip
-          unzip -t ./Capture.doccarchive.ios.zip
+          ./tools/ios_release.sh Capture "$VERSION" "$VARIANT"
+          mv "./dist/$OUTPUT_ZIP" "./$OUTPUT_ZIP"
+          unzip -t "./$OUTPUT_ZIP"
+          if [ "$BUILD_DOCCARCHIVE" = "true" ]; then
+            mv ./dist/Capture.doccarchive.ios.zip ./Capture.doccarchive.ios.zip
+            unzip -t ./Capture.doccarchive.ios.zip
+          fi
+        env:
+          VERSION: ${{ inputs.version }}
+          VARIANT: ${{ matrix.variant }}
+          OUTPUT_ZIP: ${{ steps.plan.outputs.output_zip }}
+          BUILD_DOCCARCHIVE: ${{ steps.plan.outputs.build_doccarchive }}
       - uses: actions/upload-artifact@v4
         if: ${{ !inputs.dry-run }}
         with:
-          name: Capture.ios.zip
-          path: ./Capture.ios.zip
+          name: ${{ steps.plan.outputs.output_zip }}
+          path: ./${{ steps.plan.outputs.output_zip }}
       - uses: actions/upload-artifact@v4
-        if: ${{ !inputs.dry-run }}
+        if: ${{ !inputs.dry-run && steps.plan.outputs.build_doccarchive == 'true' }}
         with:
           name: Capture.doccarchive.ios.zip
           path: ./Capture.doccarchive.ios.zip
@@ -269,6 +300,9 @@ jobs:
         run: |
           mv Capture.ios.zip Capture-$VERSION.ios.zip
           mv Capture.doccarchive.ios.zip Capture-$VERSION.doccarchive.ios.zip
+          if [ -f Capture-swift-6.4.ios.zip ]; then
+            mv Capture-swift-6.4.ios.zip "Capture-swift-6.4-$VERSION.ios.zip"
+          fi
         env:
           VERSION: ${{ inputs.version }}
 
@@ -323,6 +357,9 @@ jobs:
           assets=""
           if [ "$PLATFORM" = "all" ] || [ "$PLATFORM" = "ios" ]; then
             assets="$assets Capture-$VERSION.ios.zip Capture-$VERSION.doccarchive.ios.zip example-apps.ios.zip"
+            if [ -f "Capture-swift-6.4-$VERSION.ios.zip" ]; then
+              assets="$assets Capture-swift-6.4-$VERSION.ios.zip"
+            fi
           fi
           if [ "$PLATFORM" = "all" ] || [ "$PLATFORM" = "android" ]; then
             assets="$assets Capture-$VERSION.android.zip example-apps.android.zip"

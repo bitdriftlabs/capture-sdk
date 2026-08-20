@@ -95,6 +95,11 @@ build:release-ios --features=swift.emit_swiftinterface
 # Make sure __.SYMDEF does not have a timestamp for iOS (for reproducibility)
 build:release-ios --action_env=ZERO_AR_DATE=1
 build:release-ios --repo_env=ZERO_AR_DATE=1
+# Swift 6.4 (embedded in Xcode 27) doesnt emit module interfaces unless the language mode is explicit;
+# so we pin it to the mode the compiler defaults to today (-language-mode 5). Every toolchain we
+# release with gets it, so all the artifacts expose the same interface.
+build:release-ios --@rules_swift//swift:copt=-language-mode
+build:release-ios --@rules_swift//swift:copt=5
 
 # Allows disabling the cache for cases where the cache might be slow, e.g. slow networks.
 build:nocache --remote_accept_cached=false
