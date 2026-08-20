@@ -471,15 +471,6 @@ impl MetadataProvider for LogMetadataProvider {
   }
 }
 
-impl LogMetadataProvider {
-  /// Reads values captured by the platform before construction of the Rust logger.
-  fn initial_ootb_fields(&self) -> anyhow::Result<LogFields> {
-    objc::rc::autoreleasepool(|| unsafe {
-      ffi::convert_fields(msg_send![*self.ptr, initialOotbFields])
-    })
-  }
-}
-
 #[unsafe(no_mangle)]
 extern "C" fn capture_report_error(error_message: *const c_char) {
   let error_message = unsafe { CStr::from_ptr(error_message) }
@@ -497,6 +488,7 @@ extern "C" fn capture_create_logger(
   api_key: *const c_char,
   session_strategy: *mut Object,
   provider: *mut Object,
+  initial_ootb_fields_array: *mut Object,
   resource_utilization_target: *mut Object,
   session_replay_target: *mut Object,
   events_listener_target: *mut Object,
@@ -541,7 +533,7 @@ extern "C" fn capture_create_logger(
         },
       ));
       let mut initial_ootb_fields = static_metadata.static_log_fields();
-      initial_ootb_fields.extend(metadata_provider.initial_ootb_fields()?);
+      initial_ootb_fields.extend(unsafe { ffi::convert_fields(initial_ootb_fields_array) }?);
 
       let error_reporter = MetadataErrorReporter::new(
         Arc::new(unsafe { SwiftErrorReporter::new(error_reporter_ns_object) }),

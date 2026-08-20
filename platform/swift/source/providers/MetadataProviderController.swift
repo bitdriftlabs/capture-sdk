@@ -18,18 +18,15 @@ final class MetadataProviderController {
     let dateProvider: DateProvider
 
     let ootbFieldProviders: [FieldProvider]
-    let initialOotbFieldProviders: [FieldProvider]
     let customFieldProviders: [FieldProvider]
 
     init(
         dateProvider: DateProvider,
         ootbFieldProviders: [FieldProvider],
-        initialOotbFieldProviders: [FieldProvider] = [],
         customFieldProviders: [FieldProvider]
     ) {
         self.dateProvider = dateProvider
         self.ootbFieldProviders = ootbFieldProviders
-        self.initialOotbFieldProviders = initialOotbFieldProviders
         self.customFieldProviders = customFieldProviders
     }
 
@@ -56,10 +53,6 @@ extension MetadataProviderController: CapturePassable.MetadataProvider {
 
     func ootbFields() -> [Field] {
         self.getFields(fieldProviders: self.ootbFieldProviders)
-    }
-
-    func initialOotbFields() -> [Field] {
-        self.getFields(fieldProviders: self.initialOotbFieldProviders)
     }
 
     func customFields() -> [Field] {

@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 internal import CaptureLoggerBridge
+internal import CapturePassable
 
 /// Responsible for creating logger bridging.
 protocol LoggerBridgingFactoryProvider {
@@ -15,6 +16,7 @@ protocol LoggerBridgingFactoryProvider {
     /// - parameter bufferDirectoryPath:        The directory to use for storing files.
     /// - parameter sessionStrategy:            The session strategy to use.
     /// - parameter metadataProvider:           The metadata provider to use.
+    /// - parameter initialOotbFields:          OOTB fields needed before the logger accepts logs.
     /// - parameter resourceUtilizationTarget:  The resource utilization target to use.
     /// - parameter sessionReplayTarget:        The session replay target to use.
     /// - parameter eventsListenerTarget:       The events listener target to use.
@@ -34,6 +36,7 @@ protocol LoggerBridgingFactoryProvider {
         bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
+        initialOotbFields: [CapturePassable.Field],
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
         sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,

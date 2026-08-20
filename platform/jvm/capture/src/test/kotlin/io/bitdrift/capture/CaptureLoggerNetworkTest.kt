@@ -90,6 +90,7 @@ class CaptureLoggerNetworkTest {
             apiKey = "abc123",
             sessionStrategy = SessionStrategy.Fixed().createSessionStrategyConfiguration(),
             metadataProvider = loggerBridge,
+            initialOotbFields = emptyArray(),
             resourceUtilizationTarget = mock(),
             sessionReplayTarget = mock(),
             eventsListenerTarget = mock(),

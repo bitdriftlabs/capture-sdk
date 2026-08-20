@@ -7,6 +7,7 @@
 
 @testable import Capture
 import CaptureLoggerBridge
+import CapturePassable
 import Foundation
 
 public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
@@ -22,6 +23,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         bufferDirectoryPath _: String,
         sessionStrategy _: SessionStrategy,
         metadataProvider _: CaptureLoggerBridge.MetadataProvider,
+        initialOotbFields _: [CapturePassable.Field],
         resourceUtilizationTarget _: CaptureLoggerBridge.ResourceUtilizationTarget,
         sessionReplayTarget _: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget _: CaptureLoggerBridge.EventsListenerTarget,

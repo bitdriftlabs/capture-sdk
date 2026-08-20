@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CapturePassable
 import UIKit
 
 /// Attributes related to app state.
@@ -51,6 +52,16 @@ final class AppStateAttributes {
 
     func start(with logger: CoreLogging) {
         self.logger = logger
+    }
+
+    func initialOotbFields() -> [Field] {
+        [
+            Field(
+                key: "foreground",
+                data: (self.isForeground ? "1" : "0") as NSString,
+                type: .string
+            ),
+        ]
     }
 
     deinit {

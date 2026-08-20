@@ -26,6 +26,7 @@ void capture_report_error(const char *message);
  * @param api_key the key used to authenticate the application with bitdrift services.
  * @param session_strategy_provider the session strategy provider.
  * @param metadata_provider used to provide the internal logger with logging metadata.
+ * @param initial_ootb_fields OOTB fields captured by the platform before logger construction.
  * @param resource_utilization_target responsible for emitting resource utilization logs in response to provided ticks.
  * @param session_replay_target responsible for emitting session replay logs in response to callbacks.
  * @param events_listener_target responsible for listening to platform events and emitting logs in response to them.
@@ -44,6 +45,7 @@ logger_id capture_create_logger(
     const char *api_key,
     id<SessionStrategyProvider> session_strategy_provider,
     id<MetadataProvider> metadata_provider,
+    NSArray<const Field *> *initial_ootb_fields,
     id<ResourceUtilizationTarget> resource_utilization_target,
     id<SessionReplayTarget> session_replay_target,
     id<EventsListenerTarget> events_listener_target,

@@ -48,6 +48,7 @@ import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
@@ -175,10 +176,6 @@ internal class LoggerImpl(
                         networkAttributes,
                         FieldProvider { clientAttributes.dynamicFields() },
                     ),
-                initialOotbFieldProviders =
-                    listOf(
-                        FieldProvider { clientAttributes.initialOotbFields() },
-                    ),
                 errorHandler = errorHandler,
                 customFieldProviders = fieldProviders,
             )
@@ -231,6 +228,10 @@ internal class LoggerImpl(
                 apiKey,
                 sessionStrategy.createSessionStrategyConfiguration(),
                 metadataProvider,
+                clientAttributes
+                    .initialOotbFields()
+                    .map { (key, value) -> Field(key, FieldValue.StringField(value)) }
+                    .toTypedArray(),
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
