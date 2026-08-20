@@ -18,19 +18,19 @@ final class AppStateAttributes {
     private var notificationTokens: [NSObjectProtocol] = []
 
     init(notificationCenter: NotificationCenter = .default) {
-        let appState = if Thread.isMainThread {
+        let state = if Thread.isMainThread {
             UIApplication.shared.applicationState
         } else {
             DispatchQueue.main.sync {
+                // The UIKit API needs to be accessed on the main thread/queue.
                 UIApplication.shared.applicationState
             }
         }
 
-        self.underlyingIsForeground = Atomic(appState != .background)
+        self.underlyingIsForeground = Atomic(state != .background)
 
         let appForegrounded = { [weak self] (_: Notification) in
-            self?.updateForeground(true)
-            return
+            _ = self?.updateForeground(true)
         }
 
         self.notificationTokens = [
@@ -66,15 +66,6 @@ final class AppStateAttributes {
 
     deinit {
         self.notificationTokens.forEach(NotificationCenter.default.removeObserver)
-    }
-}
-
-extension AppStateAttributes {
-    func getFields() -> Fields {
-        return [
-            /// Whether or not the app was in the background by the time the log was fired.
-            "foreground": self.isForeground ? "1" : "0",
-        ]
     }
 }
 
