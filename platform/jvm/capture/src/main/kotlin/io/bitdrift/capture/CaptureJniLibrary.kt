@@ -427,7 +427,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      */
     @Throws(IOException::class, IllegalArgumentException::class)
     external override fun processAndPersistANR(
-        stream: InputStream,
+        stream: InputStream?,
         timestampMillis: Long,
         destinationPath: String,
         attributes: IClientAttributes,

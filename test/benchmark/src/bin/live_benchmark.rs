@@ -40,7 +40,7 @@ fn test_live_match_performance(c: &mut Criterion) {
     network: Box::new(network),
     static_metadata: Arc::new(EmptyMetadata),
     sdk_directory: ".".into(),
-    session_strategy: Arc::new(Strategy::fixed(".", Arc::new(UUIDCallbacks))),
+    session: Strategy::fixed(".", Arc::new(UUIDCallbacks)),
     store,
     metadata_provider,
     initial_ootb_fields: [].into(),

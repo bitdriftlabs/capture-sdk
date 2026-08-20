@@ -16,7 +16,7 @@ use crate::jni::{
 use anyhow::anyhow;
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
-use bd_session::{Strategy, activity_based, fixed};
+use bd_session::{Strategy, StrategyWithWorker, activity_based, fixed};
 use jni::JNIEnv;
 use jni::objects::JString;
 use jni::signature::{Primitive, ReturnType};
@@ -75,9 +75,9 @@ impl SessionStrategyConfigurationHandle {
     &self,
     callbacks: Arc<Self>,
     sdk_directory: &Path,
-  ) -> anyhow::Result<Arc<Strategy>> {
+  ) -> anyhow::Result<StrategyWithWorker> {
     self.execute(|e, session_strategy_configuration| {
-      Ok(Arc::new(
+      Ok(
         if e.is_instance_of(
           session_strategy_configuration,
           &SESSION_STRATEGY_FIXED
@@ -106,7 +106,7 @@ impl SessionStrategyConfigurationHandle {
             Arc::new(bd_time::SystemTimeProvider {}),
           )
         },
-      ))
+      )
     })
   }
 }

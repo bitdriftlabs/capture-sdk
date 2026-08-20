@@ -772,7 +772,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         &mut env,
         session_strategy
       )?);
-      let session_strategy = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
+      let session = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
 
       let device = Arc::new(bd_device::Device::new(store.clone()));
       let static_metadata = Arc::new(Mobile::android(
@@ -796,7 +796,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let error_reporter = MetadataErrorReporter::new(
         error_reporter,
         Arc::new(platform_shared::error::SessionProvider::new(
-          session_strategy.clone(),
+          session.strategy(),
         )),
         static_metadata.clone(),
       );
@@ -838,7 +838,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
-        session_strategy,
+        session,
         metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
         initial_ootb_fields,
         resource_utilization_target,
@@ -1592,10 +1592,15 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
       .map(|s| s.to_string_lossy().to_string())
       .filter(|s| !s.is_empty())
   };
+  let stream = if stream.is_null() {
+    None
+  } else {
+    Some(&stream)
+  };
 
   match report_processing::persist_anr(
     &mut env,
-    &stream,
+    stream,
     timestamp,
     &destination,
     &attributes,

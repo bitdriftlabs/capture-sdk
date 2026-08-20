@@ -117,7 +117,7 @@ internal class IssueReporterProcessor(
         val runningState = applicationExit.importance.toRunningState()
 
         runCatching {
-            if (fatalIssueType == ReportType.AppNotResponding && traceInputStream != null) {
+            if (fatalIssueType == ReportType.AppNotResponding) {
                 streamingReportsProcessor.processAndPersistANR(
                     traceInputStream,
                     timestamp,

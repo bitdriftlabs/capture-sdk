@@ -32,6 +32,7 @@
 **Fixed**
 
 - Include pre-desugar AAR classes in published Android artifacts.
+- Start ingesting ANR reports that don't have a full stacktrace available (e.g. Having a null traceInputStream from ApplicationExitInfo)
 
 ### iOS
 

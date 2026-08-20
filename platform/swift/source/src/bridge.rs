@@ -514,7 +514,7 @@ extern "C" fn capture_create_logger(
       let storage = Box::<UserDefaultsStorage>::default();
       let store = Arc::new(bd_key_value::Store::new(storage));
 
-      let session_strategy =
+      let session =
         crate::session::SessionStrategy::new(session_strategy).create(sdk_directory.as_ref())?;
 
       let device: Arc<bd_device::Device> = Arc::new(bd_device::Device::new(store.clone()));
@@ -536,7 +536,7 @@ extern "C" fn capture_create_logger(
       let error_reporter = MetadataErrorReporter::new(
         Arc::new(unsafe { SwiftErrorReporter::new(error_reporter_ns_object) }),
         Arc::new(platform_shared::error::SessionProvider::new(
-          session_strategy.clone(),
+          session.strategy(),
         )),
         static_metadata.clone(),
       );
@@ -560,7 +560,7 @@ extern "C" fn capture_create_logger(
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory: path.into(),
         api_key: unsafe { CStr::from_ptr(api_key) }.to_str()?.to_string(),
-        session_strategy,
+        session,
         metadata_provider,
         initial_ootb_fields,
         resource_utilization_target: Box::new(resource_utilization::Target::new(

@@ -17,7 +17,7 @@ interface IStreamingReportProcessor {
      * Call to convert a trace input stream into a report file
      */
     fun processAndPersistANR(
-        stream: InputStream,
+        stream: InputStream?,
         timestampMillis: Long,
         destinationPath: String,
         attributes: IClientAttributes,
