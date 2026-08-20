@@ -129,22 +129,14 @@ public final class Logger {
         self.timeProvider = timeProvider
         let start = timeProvider.uptime()
 
-        // Order of providers matters in here, the latter in the list the higher their priority in
-        // case of key conflicts.
         let appStateAttributes = AppStateAttributes()
         let clientAttributes = ClientAttributes()
         let deviceAttributes = DeviceAttributes()
         let networkAttributes = NetworkAttributes()
-        let ootbFieldProviders: [FieldProvider] = [
-            appStateAttributes,
-            clientAttributes,
-            deviceAttributes,
-            networkAttributes,
-        ]
 
         let metadataProvider = MetadataProviderController(
             dateProvider: dateProvider ?? SystemDateProvider(),
-            ootbFieldProviders: ootbFieldProviders,
+            ootbFieldProviders: [appStateAttributes, deviceAttributes, networkAttributes],
             customFieldProviders: fieldProviders
         )
 
@@ -152,10 +144,7 @@ public final class Logger {
 
         let client = APIClient(apiURL: configuration.apiURL, apiKey: apiKey)
         self.remoteErrorReporter = remoteErrorReporter
-            ?? RemoteErrorReportingClient(
-                client: client,
-                fieldProviders: [appStateAttributes, clientAttributes]
-            )
+            ?? RemoteErrorReportingClient(client: client)
 
         guard let directoryURL = configuration.rootFileURL ?? Logger.captureSDKDirectory() else {
             return nil
@@ -194,6 +183,7 @@ public final class Logger {
             eventsListenerTarget: self.eventsListenerTarget,
             appID: clientAttributes.appID,
             releaseVersion: clientAttributes.appVersion,
+            buildNumber: clientAttributes.buildNumber,
             osVersion: clientAttributes.osVersion,
             model: deviceAttributes.hardwareVersion,
             network: network,

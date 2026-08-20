@@ -21,16 +21,16 @@ use crate::{
   session,
 };
 use anyhow::{anyhow, bail};
-use bd_api::{Platform, PlatformNetworkStream, StreamEvent};
+use bd_api::{PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::InvariantError;
 use bd_crash_handler::CrashReportHook;
 use bd_error_reporter::reporter::{
+  MetadataErrorReporter,
+  UnexpectedErrorHandler,
   handle_unexpected,
   handle_unexpected_error_with_details,
   with_handle_unexpected,
   with_handle_unexpected_or,
-  MetadataErrorReporter,
-  UnexpectedErrorHandler,
 };
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::MemoryPressureLevel;
@@ -50,6 +50,8 @@ use jni::objects::{
 };
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::{
+  JNI_ERR,
+  JNI_TRUE,
   jboolean,
   jbyteArray,
   jdouble,
@@ -58,12 +60,10 @@ use jni::sys::{
   jobject,
   jstring,
   jvalue,
-  JNI_ERR,
-  JNI_TRUE,
 };
 use jni::{JNIEnv, JavaVM};
-use platform_shared::metadata::Mobile;
-use platform_shared::{date_to_unix_milliseconds, LoggerHolder, LoggerId};
+use platform_shared::metadata::{AndroidStaticFields, Mobile};
+use platform_shared::{LoggerHolder, LoggerId, date_to_unix_milliseconds};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
@@ -415,7 +415,7 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   Ok(env.get_version()?.into())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn JNI_OnLoad(vm: JavaVM, _: *mut c_void) -> jint {
   initialize_logging();
   jni_load_inner(&vm)
@@ -529,7 +529,7 @@ impl Drop for StreamHandle {
 }
 
 #[allow(clippy::cast_sign_loss)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiChunkReceived(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -553,7 +553,7 @@ extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiChunkReceived(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiStreamClosed(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -576,7 +576,7 @@ pub extern "system" fn Java_io_bitdrift_capture_network_Jni_onApiStreamClosed(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_network_Jni_releaseApiStream(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -727,7 +727,7 @@ impl CrashReportHook for IssueCallbackConfigurationHandle {
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -743,6 +743,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   os_version: JString<'_>,
   manufacturer: JString<'_>,
   model: JString<'_>,
+  app_version_code: jlong,
+  os_api_level: jint,
+  architecture: JString<'_>,
   network: JObject<'_>,
   preferences: JObject<'_>,
   error_reporter: JObject<'_>,
@@ -769,29 +772,31 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         &mut env,
         session_strategy
       )?);
-      let session_strategy = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
+      let session = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
 
       let device = Arc::new(bd_device::Device::new(store.clone()));
-      let static_metadata = Arc::new(Mobile {
-        app_id: Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
-        app_version: Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
-        platform: Platform::Android,
-        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
-        // Further, "os" as sent as a log tag is hard coded as "Android" so we have a casing
-        // mismatch. We need to untangle all of this but we can do that when we send all fixed
-        // fields as metadata and only use the fixed fields on logs for matching.
-        os: "android".to_string(),
-        device: device.clone(),
-        os_version: Some(unsafe { env.get_string_unchecked(&os_version) }?.into()),
-        manufacturer: Some(unsafe { env.get_string_unchecked(&manufacturer) }?.into()),
-        model: unsafe { env.get_string_unchecked(&model) }?.into(),
-      });
+      let static_metadata = Arc::new(Mobile::android(
+        Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
+        Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
+        Some(unsafe { env.get_string_unchecked(&os_version) }?.into()),
+        device.clone(),
+        unsafe { env.get_string_unchecked(&model) }?.into(),
+        AndroidStaticFields {
+          manufacturer: unsafe { env.get_string_unchecked(&manufacturer) }?.into(),
+          app_version_code,
+          os_api_level,
+          architecture: unsafe { env.get_string_unchecked(&architecture) }?
+            .to_string_lossy()
+            .to_string(),
+        },
+      ));
+      let initial_ootb_fields = static_metadata.static_log_fields();
 
       let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
       let error_reporter = MetadataErrorReporter::new(
         error_reporter,
         Arc::new(platform_shared::error::SessionProvider::new(
-          session_strategy.clone(),
+          session.strategy(),
         )),
         static_metadata.clone(),
       );
@@ -833,8 +838,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
-        session_strategy,
+        session,
         metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
+        initial_ootb_fields,
         resource_utilization_target,
         session_replay_target,
         events_listener_target,
@@ -892,7 +898,7 @@ fn set_thread_name(env: &mut JNIEnv<'_>, name: &str) -> anyhow::Result<()> {
   Ok(())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startLogger(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -902,7 +908,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startLogger(
   logger.start();
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSdkStatus(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -946,7 +952,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSdkStatus(
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_destroyLogger(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -955,7 +961,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_destroyLogger(
   unsafe { LoggerHolder::destroy(logger_id) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSession(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -964,7 +970,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSessio
   with_handle_unexpected(|| logger_id.start_new_session(), "jni start new session");
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSessionId<'a>(
   env: JNIEnv<'a>,
   _class: JClass<'_>,
@@ -977,7 +983,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getSessionId<'
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getDeviceId<'a>(
   env: JNIEnv<'a>,
   _class: JClass<'_>,
@@ -990,7 +996,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_getDeviceId<'a
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_isTracingActive(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -999,7 +1005,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_isTracingActiv
   logger_id.is_tracing_active().into()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1025,7 +1031,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeLogField(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1047,7 +1053,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeLogField
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlagExposure(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1079,7 +1085,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setFeatureFlag
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setEntityId(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1101,7 +1107,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setEntityId(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_clearEntityId(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1118,7 +1124,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_clearEntityId(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 // Java types are always signed, but log level/type are both unsigned.
 #[allow(clippy::cast_sign_loss)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
@@ -1134,7 +1140,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   matching_field_values: JObjectArray<'_>,
   use_previous_process_session_id: jboolean,
   override_occurred_at_unix_milliseconds: jlong,
-  blocking: jboolean,
 ) {
   // This should only fail if the JVM is in a bad state.
   with_handle_unexpected(
@@ -1179,14 +1184,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
         fields,
         matching_fields,
         attributes_overrides,
-        if blocking == JNI_TRUE {
-          Block::Yes {
-            timeout: std::time::Duration::from_millis(500),
-            poll_callback: None,
-          }
-        } else {
-          Block::No
-        },
         &CaptureSession::default(),
       );
 
@@ -1196,7 +1193,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shutdown(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1214,7 +1211,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shutdown(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenLog(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1235,7 +1232,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenshotLog(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1256,7 +1253,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceUtilizationLog(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1277,7 +1274,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeResourceU
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartLog(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1298,7 +1295,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSDKStartL
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shouldWriteAppUpdateLog(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1324,7 +1321,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_shouldWriteApp
 }
 
 // Java types are always signed, but app_install_size_bytes is unsigned.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[allow(clippy::cast_sign_loss)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppUpdateLog(
   env: JNIEnv<'_>,
@@ -1356,7 +1353,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppUpdate
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppLaunchTTILog(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1374,7 +1371,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeAppLaunch
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeScreenViewLog(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1395,7 +1392,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeScreenVie
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1421,7 +1418,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_flush(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_debugDebug(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1432,7 +1429,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_debugDebug(
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_debugError(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1443,7 +1440,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_debugError(
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportError(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1466,7 +1463,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_reportError(
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEnabled(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1484,7 +1481,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_setSleepModeEn
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeMemoryPressureLevel(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1504,7 +1501,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeMemoryPre
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_previousMemoryPressureLevel(
   _env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1520,7 +1517,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_previousMemory
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueReports(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1557,7 +1554,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueRe
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistANR(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1620,7 +1617,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistJavaScriptError(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1700,7 +1697,7 @@ fn exception_stacktrace(
   Ok(Some(stacktrace_str.to_string_lossy().to_string()))
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_Jni_isRuntimeEnabled(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
@@ -1726,7 +1723,7 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_isRuntimeEnabled(
   .into()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 // Java/Kotlin types are always signed, but get_integer is unsigned.
 #[allow(clippy::cast_sign_loss)]
 pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
@@ -1752,7 +1749,7 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeStringValue(
   env: JNIEnv<'_>,
   _class: JClass<'_>,

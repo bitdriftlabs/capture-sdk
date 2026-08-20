@@ -169,8 +169,6 @@ ios_static_framework(
     minimum_os_version = MINIMUM_IOS_VERSION,
     tags = [
         "manual",
-        "no-cache",
-        "no-remote",
     ],
     visibility = ["//visibility:public"],
     deps = [":ios_lib"],

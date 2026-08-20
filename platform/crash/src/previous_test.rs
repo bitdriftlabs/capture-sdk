@@ -8,12 +8,12 @@
 #![allow(clippy::unwrap_used)]
 
 use super::{
-  read_previous_state_from_bytes,
   CrashKind,
   NSExceptionCallStack,
   NSExceptionStackFrame,
   PreviousCrashDetails,
   PreviousCrashState,
+  read_previous_state_from_bytes,
 };
 use crate::schema::{self, CrashRecord, CrashRecordHeader, RecordState};
 use std::mem::size_of;

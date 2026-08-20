@@ -9,10 +9,10 @@ package io.bitdrift.capture
 
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.mock
+import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -76,29 +76,37 @@ class CaptureLoggerNetworkTest {
                 okHttpClient = okHttpClient,
             )
 
-        val logger =
-            CaptureJniLibrary.createLogger(
-                directory.newFolder().path,
-                apiKey = "abc123",
-                SessionStrategy.Fixed().createSessionStrategyConfiguration(),
-                loggerBridge,
-                mock(),
-                mock(),
-                mock(),
-                "test",
-                "test",
-                "14",
-                "Google",
-                "test",
-                network,
-                mock(),
-                mock(),
-                false,
-                null,
-            )
+        val logger = createNativeLogger(network)
         CaptureJniLibrary.startLogger(logger)
         return logger
     }
+
+    private fun createNativeLogger(
+        network: ICaptureNetwork,
+        preferences: IPreferences = mock(),
+    ): Long =
+        CaptureJniLibrary.createLogger(
+            sdkDirectory = directory.newFolder().path,
+            apiKey = "abc123",
+            sessionStrategy = SessionStrategy.Fixed().createSessionStrategyConfiguration(),
+            metadataProvider = loggerBridge,
+            resourceUtilizationTarget = mock(),
+            sessionReplayTarget = mock(),
+            eventsListenerTarget = mock(),
+            applicationId = "test",
+            applicationVersion = "test",
+            osVersion = "14",
+            manufacturer = "Google",
+            model = "test",
+            appVersionCode = 0L,
+            osApiLevel = 0,
+            architecture = "test",
+            network = network,
+            preferences = preferences,
+            errorReporter = mock(),
+            startInSleepMode = false,
+            issueCallbackConfiguration = null,
+        )
 
     @Test
     fun `okhttp happy path with timeout`() {
@@ -160,28 +168,7 @@ class CaptureLoggerNetworkTest {
                 timeoutSeconds = 1,
                 okHttpClient = okHttpClient,
             )
-        val loggerId =
-            CaptureJniLibrary.createLogger(
-                directory.newFolder().path,
-                apiKey = "abc123",
-                SessionStrategyConfiguration.Fixed(
-                    sessionStrategy = SessionStrategy.Fixed(),
-                ),
-                loggerBridge,
-                mock(),
-                mock(),
-                mock(),
-                "test",
-                "test",
-                "14",
-                "Google",
-                "test",
-                network,
-                mock(),
-                mock(),
-                false,
-                null,
-            )
+        val loggerId = createNativeLogger(network)
         CaptureJniLibrary.startLogger(loggerId)
         logger = loggerId
 
@@ -199,28 +186,8 @@ class CaptureLoggerNetworkTest {
                 okHttpClient = okHttpClient,
             )
 
-        val logger =
-            CaptureJniLibrary.createLogger(
-                directory.newFolder().path,
-                apiKey = "abc123",
-                SessionStrategy.Fixed().createSessionStrategyConfiguration(),
-                loggerBridge,
-                mock(),
-                mock(),
-                mock(),
-                "test",
-                "test",
-                "14",
-                "Google",
-                "test",
-                network,
-                // this test fails if we pass mock() in here. It has something to do with
-                // jni trying to call methods on Mockito mocks.
-                MockPreferences(),
-                mock(),
-                false,
-                null,
-            )
+        // This test fails if we use a Mockito mock for preferences because JNI invokes it.
+        val logger = createNativeLogger(network, preferences = MockPreferences())
         CaptureJniLibrary.startLogger(logger)
 
         CaptureTestJniLibrary.runLargeUploadTest(logger)

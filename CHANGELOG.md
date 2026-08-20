@@ -11,7 +11,9 @@
 
 **Changed**
 
-- Nothing yet!
+- Many changes to metrics reporting reliability including: independent initial flush window after
+  process start, disk flush debounce, and simplifying the events that cause flushes so that flushes
+  are more predictable in response to lifecycle events and easier to reason about.
 
 **Fixed**
 
@@ -21,7 +23,7 @@
 
 **Added**
 
-- Nothing yet!
+- Flush the logger when the app's window loses focus to improve metrics reliability during forece quits.
 
 **Changed**
 
@@ -29,6 +31,7 @@
 
 **Fixed**
 
+- Include pre-desugar AAR classes in published Android artifacts.
 - Start ingesting ANR reports that don't have a full stacktrace available (e.g. Having a null traceInputStream from ApplicationExitInfo)
 
 ### iOS

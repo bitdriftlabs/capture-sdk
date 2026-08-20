@@ -32,6 +32,34 @@ struct ConfigurationView: View {
             }
 
             PanelSection(
+                title: "Session strategy",
+                subtitle: "Applied on the next app launch."
+            ) {
+                PanelCard {
+                    Toggle("Use fixed session strategy", isOn: self.$configuration.fixedSessionStrategy)
+                }
+
+                if self.configuration.fixedSessionStrategy {
+                    Text("The session ID remains fixed until you start a new session or restart the app.")
+                        .font(.footnote)
+                        .foregroundColor(Theme.textSecondary)
+                } else {
+                    PanelCard {
+                        PanelInputField(
+                            title: "Inactivity threshold (minutes)",
+                            placeholder: "30",
+                            text: self.$configuration.inactivityThresholdMins
+                        )
+                        .keyboardType(.numberPad)
+                    }
+
+                    Text("The session ID changes after \(Configuration.resolvedInactivityThresholdMins) minutes without SDK activity and persists across app restarts.")
+                        .font(.footnote)
+                        .foregroundColor(Theme.textSecondary)
+                }
+            }
+
+            PanelSection(
                 title: "Web view instrumentation",
                 subtitle: "Applied on the next app launch."
             ) {
@@ -51,7 +79,7 @@ struct ConfigurationView: View {
             }
 
             PanelCard {
-                Text("Restart the app after changing configuration so the SDK is recreated with the updated endpoint and API key.")
+                Text("Restart the app after changing configuration so the SDK is recreated with the updated settings.")
                     .font(.footnote)
                     .foregroundColor(Theme.textSecondary)
             }

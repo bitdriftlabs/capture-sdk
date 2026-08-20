@@ -10,40 +10,18 @@ import Foundation
 
 final class RemoteErrorReportingClient: NSObject {
     private let client: APIClient
-    // swiftlint:disable line_length
-    /// Although the interface suggest that we are dealing with a list of field providers in here, in practice it's only
-    /// `ClientAttributes` fields provider that's passed in here. That's due to the fact that the api accepts only a
-    /// few client attributes, so sending any other fields is pointless.
-    private let fieldProviders: [FieldProvider]
 
-    init(client: APIClient, fieldProviders: [FieldProvider]) {
+    init(client: APIClient) {
         self.client = client
-        self.fieldProviders = fieldProviders
     }
 
     // MARK: - Private
 
     private func sendErrorRequest(with message: String, fields: [String: String]) {
-        let extraFields = self.fieldProviders
-            .flatMap { fieldProvider in
-                fieldProvider.getFields().compactMap { key, value -> (String, String)? in
-                    // Ignore encoding errors. We cannot do much if encoding to String fails
-                    // in here as we are already on an error reporting path
-                    if let stringValue = try? value.encodeToString() {
-                        return (key, stringValue)
-                    } else {
-                        return nil
-                    }
-                }
-            }
-            .compactMap { key, value in
-                ("x-" + key.replacingOccurrences(of: "_", with: "-"), value)
-            }
-
         self.client.perform(
             endpoint: .reportError,
             request: ReportErrorRequest(message: message),
-            headers: fields.merging(extraFields) { current, _ in current }
+            headers: fields
         ) { _ in
             // Fire and forget.
         }

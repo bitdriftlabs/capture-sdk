@@ -68,7 +68,7 @@ rewrite_dependency_entry() {
   local line="$1"
 
   if [[ ! "$line" =~ ^(bd-[A-Za-z0-9-]+)[[:space:]]*=[[:space:]]*\{(.*)$ ]]; then
-    printf '%s\n' "$line" >> "$TMP_FILE"
+    printf '%s\n' "$line" >>"$TMP_FILE"
     return
   fi
 
@@ -77,13 +77,13 @@ rewrite_dependency_entry() {
 
   if [[ "$line" == *"}"* ]]; then
     dependency_fields="${dependency_fields%%\}*}"
-    write_dep_single_line "$multiline_crate" "$(clean_fields "$dependency_fields")" >> "$TMP_FILE"
+    write_dep_single_line "$multiline_crate" "$(clean_fields "$dependency_fields")" >>"$TMP_FILE"
     multiline_crate=""
     dependency_fields=""
     return
   fi
 
-  write_dep_start "$multiline_crate" "$(clean_fields "$dependency_fields")" >> "$TMP_FILE"
+  write_dep_start "$multiline_crate" "$(clean_fields "$dependency_fields")" >>"$TMP_FILE"
   in_multiline_dependency=1
 }
 
@@ -94,9 +94,9 @@ rewrite_dependency_continuation() {
 
   if [[ "$line" == *"}"* ]]; then
     if [ -n "$dependency_fields" ]; then
-      printf '%s }\n' "${dependency_fields%%\}*}" >> "$TMP_FILE"
+      printf '%s }\n' "${dependency_fields%%\}*}" >>"$TMP_FILE"
     else
-      printf '}\n' >> "$TMP_FILE"
+      printf '}\n' >>"$TMP_FILE"
     fi
     multiline_crate=""
     dependency_fields=""
@@ -105,7 +105,7 @@ rewrite_dependency_continuation() {
   fi
 
   if [ -n "$dependency_fields" ]; then
-    printf '%s\n' "$dependency_fields" >> "$TMP_FILE"
+    printf '%s\n' "$dependency_fields" >>"$TMP_FILE"
   fi
 }
 
@@ -116,6 +116,9 @@ while IFS= read -r line; do
   fi
 
   rewrite_dependency_continuation "$line"
-done < "$CARGO_TOML"
+done <"$CARGO_TOML"
 
 mv "$TMP_FILE" "$CARGO_TOML"
+
+cargo update
+make repin

@@ -18,6 +18,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       - uses: actions/cache@v4
         id: cache-formatters
         with:
@@ -25,13 +30,8 @@ jobs:
           key: ${{ runner.os }}-formatters-${{ hashFiles('./ci/setup_linux_format.sh') }}
       - run: ./ci/setup_linux_format.sh
         if: steps.cache-formatters.outputs.cache-hit != 'true'
-      - run: |
-          sudo apt-get install -y clang
-          echo "CC=$(which clang)" >> $GITHUB_ENV
-          echo "CXX=$(which clang++)" >> $GITHUB_ENV
-        name: "Install Clang"
       - name: configure bazelrc
-        run: mkdir tmp/ && echo "build --config=ci" > tmp/ci-bazelrc
+        run: mkdir -p tmp/ && echo "build --config=ci" > tmp/ci-bazelrc
       - name: test
         run: PATH=./formatters:$PATH make format
         env:
@@ -40,5 +40,3 @@ jobs:
         run: git --no-pager diff && git diff --quiet
       - name: Check license headers
         run: ci/check_license.sh
-
-

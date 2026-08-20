@@ -48,7 +48,7 @@ class ClientAttributesTest {
     fun foreground() {
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).dynamicFields()
 
         assertThat(clientAttributes).containsEntry("foreground", "1")
     }
@@ -57,9 +57,21 @@ class ClientAttributesTest {
     fun not_foreground() {
         val mockedLifecycleOwnerLifecycleStateCreated = obtainMockedLifecycleOwnerWith(Lifecycle.State.CREATED)
 
-        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateCreated).invoke()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateCreated).dynamicFields()
 
         assertThat(clientAttributes).containsEntry("foreground", "0")
+    }
+
+    @Test
+    fun dynamic_fields_exclude_static_attributes() {
+        val fields =
+            ClientAttributes(
+                appContext,
+                obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED),
+            ).dynamicFields()
+
+        assertThat(fields).containsKey("foreground")
+        assertThat(fields).doesNotContainKeys("app_id", "app_version", "_app_version_code", "model")
     }
 
     @Test
@@ -70,9 +82,9 @@ class ClientAttributesTest {
         val mockedLifecycleOwnerLifecycleStateStarted =
             obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted)
 
-        assertThat(clientAttributes).containsEntry("app_id", packageName)
+        assertThat(clientAttributes.appId).isEqualTo(packageName)
     }
 
     @Test
@@ -82,9 +94,9 @@ class ClientAttributesTest {
         val mockedLifecycleOwnerLifecycleStateStarted =
             obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted)
 
-        assertThat(clientAttributes).containsEntry("app_id", "unknown")
+        assertThat(clientAttributes.appId).isEqualTo("unknown")
     }
 
     @Test
@@ -95,18 +107,18 @@ class ClientAttributesTest {
         mockedPackageInfo.versionName = versionName
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted)
 
-        assertThat(clientAttributes).containsEntry("app_version", versionName)
+        assertThat(clientAttributes.appVersion).isEqualTo(versionName)
     }
 
     @Test
     fun app_version_unknown() {
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted)
 
-        assertThat(clientAttributes).containsEntry("app_version", "?.?.?")
+        assertThat(clientAttributes.appVersion).isEqualTo("?.?.?")
     }
 
     @Test
@@ -117,9 +129,9 @@ class ClientAttributesTest {
         mockedPackageInfo.versionCode = versionCode
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted)
 
-        assertThat(clientAttributes).containsEntry("_app_version_code", versionCode.toString())
+        assertThat(clientAttributes.appVersionCode).isEqualTo(versionCode.toLong())
     }
 
     @Test
@@ -129,9 +141,9 @@ class ClientAttributesTest {
         doReturn(null).`when`(packageManager).getPackageInfo(anyString(), eq(0))
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted)
 
-        assertThat(clientAttributes).containsEntry("_app_version_code", "-1")
+        assertThat(clientAttributes.appVersionCode).isEqualTo(-1)
     }
 
     @Test
@@ -143,9 +155,9 @@ class ClientAttributesTest {
         doReturn(versionCode).`when`(mockedPackageInfo).longVersionCode
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted)
 
-        assertThat(clientAttributes).containsEntry("_app_version_code", versionCode.toString())
+        assertThat(clientAttributes.appVersionCode).isEqualTo(versionCode)
     }
 
     @Test
@@ -156,9 +168,9 @@ class ClientAttributesTest {
         doReturn(null).`when`(packageManager).getPackageInfo(anyString(), eq(0))
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        val clientAttributes = ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted)
 
-        assertThat(clientAttributes).containsEntry("_app_version_code", "-1")
+        assertThat(clientAttributes.appVersionCode).isEqualTo(-1)
     }
 
     @Test
@@ -168,7 +180,7 @@ class ClientAttributesTest {
         val packageManager = obtainMockedPackageManager(context)
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).invoke()
+        ClientAttributes(context, mockedLifecycleOwnerLifecycleStateStarted).appVersion
 
         verify(packageManager).getPackageInfo(anyString(), any(PackageManager.PackageInfoFlags::class.java))
     }
@@ -218,9 +230,7 @@ class ClientAttributesTest {
         val clientAttributes =
             ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
 
-        val fields = clientAttributes.invoke()
-
-        assertThat(fields).containsEntry("_architecture", "armeabi-v7a")
+        assertThat(clientAttributes.architecture).isEqualTo("armeabi-v7a")
     }
 
     @Test
@@ -228,9 +238,7 @@ class ClientAttributesTest {
         val clientAttributes =
             ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
 
-        val fields = clientAttributes.invoke()
-
-        assertThat(fields).containsEntry("os_version", "7.0")
+        assertThat(clientAttributes.osVersion).isEqualTo("7.0")
     }
 
     @Test
@@ -238,9 +246,7 @@ class ClientAttributesTest {
         val clientAttributes =
             ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
 
-        val fields = clientAttributes.invoke()
-
-        assertThat(fields).containsEntry("_os_api_level", "24")
+        assertThat(clientAttributes.osApiLevel).isEqualTo(24)
     }
 
     @Test
@@ -248,9 +254,7 @@ class ClientAttributesTest {
         val clientAttributes =
             ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
 
-        val fields = clientAttributes.invoke()
-
-        assertThat(fields).containsEntry("model", "robolectric")
+        assertThat(clientAttributes.model).isEqualTo("robolectric")
     }
 
     @Test
@@ -258,9 +262,7 @@ class ClientAttributesTest {
         val clientAttributes =
             ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
 
-        val fields = clientAttributes.invoke()
-
-        assertThat(fields).containsEntry("_manufacturer", "unknown")
+        assertThat(clientAttributes.manufacturer).isEqualTo("unknown")
     }
 
     @Test
@@ -268,7 +270,7 @@ class ClientAttributesTest {
         val clientAttributes =
             ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
 
-        val fields = clientAttributes.invoke()
+        val fields = clientAttributes.dynamicFields()
 
         assertThat(fields).containsEntry("_locale", "en_US")
     }

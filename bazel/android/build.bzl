@@ -34,17 +34,26 @@ def bitdrift_kt_android_local_test(name, deps = [], jvm_flags = [], **kwargs):
     lib_deps = native.glob(["src/test/**/*.kt"], exclude = ["src/test/**/*Test.kt"], allow_empty = True)
 
     if len(lib_deps) != 0:
+        lib_name = "_{}_lib".format(name)
+        associates = kwargs.pop("associates", [])
+
         # We want the tests below to be able to depend on non-test files defined within this package,
         # so generate a lib target containing everything that doesn't look like a test and depend on that.
         # This means we get no cross-test file dependency, but test files depend on non-test files.
+        # The lib takes the same associates as the tests so helpers (fakes, utils) can implement
+        # `internal` declarations of the library under test.
         kt_android_library(
-            name = "_{}_lib".format(name),
+            name = lib_name,
             srcs = native.glob(["src/test/**/*.kt"], exclude = ["**/*Test.kt"]),
             deps = deps,
+            associates = associates,
             testonly = True,
         )
 
-        deps = [":_{}_lib".format(name)]
+        # Associating (rather than plain-depending) on the lib keeps the tests in the same Kotlin
+        # module as the helpers, so `internal` helpers are visible from test files.
+        kwargs["associates"] = associates + [":" + lib_name]
+        deps = []
 
     java_test_files = native.glob(["src/test/**/*.java"], allow_empty = True)
 
@@ -72,6 +81,7 @@ def _jvm_lint_support(name, srcs, require_javadocs):
     ktlint_fix(
         name = "_{}_ktlint_fix".format(name),
         srcs = srcs,
+        visibility = ["//visibility:public"],
     )
 
     ktlint_test(

@@ -104,17 +104,14 @@ bitdrift_kt_android_local_test(
     jvm_flags = [
         "-Djava.library.path=test/platform/jvm",
     ],
-    tags = [
-        "exclusive",
-    ],
     deps = [
-        "//platform/jvm/capture:capture_logger_lib",
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
         "@rules_robolectric//bazel:android-all",
         artifact("androidx.test:core"),
         artifact("androidx.webkit:webkit"),
         artifact("org.mockito:mockito-core"),
+        artifact("org.mockito:mockito-inline"),
         artifact("com.nhaarman.mockitokotlin2:mockito-kotlin"),
         artifact("com.squareup.okhttp3:mockwebserver"),
         artifact("com.squareup.retrofit2:retrofit"),

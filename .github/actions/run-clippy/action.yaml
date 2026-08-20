@@ -1,0 +1,21 @@
+name: Run Clippy
+description: Runs the full or affected Bazel Clippy slice for a platform.
+
+inputs:
+  slice:
+    description: "Runner slice to lint: all, linux_runner, or macos_runner."
+    required: true
+  mode:
+    description: Whether to lint all targets or only the affected target file.
+    required: true
+  affected-targets-path:
+    description: Newline-delimited affected Bazel labels for affected mode.
+    required: false
+    default: /tmp/impacted_clippy_targets.txt
+
+runs:
+  using: composite
+  steps:
+    - name: Run Clippy
+      shell: bash
+      run: ./ci/run_clippy.sh '${{ inputs.slice }}' '${{ inputs.mode }}' '${{ inputs.affected-targets-path }}'

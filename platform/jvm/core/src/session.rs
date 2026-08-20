@@ -7,18 +7,19 @@
 
 use crate::define_object_wrapper;
 use crate::jni::{
-  initialize_class,
-  initialize_method_handle,
   CachedClass,
   CachedMethod,
   JValueWrapper,
+  initialize_class,
+  initialize_method_handle,
 };
 use anyhow::anyhow;
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
-use bd_session::{activity_based, fixed, Strategy};
-use jni::signature::{Primitive, ReturnType};
+use bd_session::{Strategy, StrategyWithWorker, activity_based, fixed};
 use jni::JNIEnv;
+use jni::objects::JString;
+use jni::signature::{Primitive, ReturnType};
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use time::Duration;
@@ -74,9 +75,9 @@ impl SessionStrategyConfigurationHandle {
     &self,
     callbacks: Arc<Self>,
     sdk_directory: &Path,
-  ) -> anyhow::Result<Arc<Strategy>> {
+  ) -> anyhow::Result<StrategyWithWorker> {
     self.execute(|e, session_strategy_configuration| {
-      Ok(Arc::new(
+      Ok(
         if e.is_instance_of(
           session_strategy_configuration,
           &SESSION_STRATEGY_FIXED
@@ -105,7 +106,7 @@ impl SessionStrategyConfigurationHandle {
             Arc::new(bd_time::SystemTimeProvider {}),
           )
         },
-      ))
+      )
     })
   }
 }
@@ -119,7 +120,8 @@ impl fixed::Callbacks for SessionStrategyConfigurationHandle {
         .call_method(e, session_strategy_configuration, ReturnType::Object, &[])?
         .l()?;
 
-      unsafe { e.get_string_unchecked(&session_id.into())? }
+      let session_id = JString::from(session_id);
+      unsafe { e.get_string_unchecked(&session_id)? }
         .to_str()
         .ok()
         .map(ToString::to_string)

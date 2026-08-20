@@ -6,17 +6,17 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use bd_buffer::{AggregateRingBuffer, PerRecordCrc32Check, RingBuffer, RingBufferStats};
-use bd_logger::{log_level, Block, CaptureSession, InitParams, LoggerHandle};
+use bd_logger::{CaptureSession, InitParams, LoggerHandle, log_level};
 use bd_noop_network::NoopNetwork;
 use bd_proto::protos::logging::payload::LogType;
-use bd_session::fixed::UUIDCallbacks;
 use bd_session::Strategy;
+use bd_session::fixed::UUIDCallbacks;
 use bd_test_helpers::config_helper;
 use bd_test_helpers::metadata::EmptyMetadata;
 use bd_test_helpers::metadata_provider::LogMetadata;
 use bd_test_helpers::session::InMemoryStorage;
 use config_helper::make_configuration_update_with_workflow_flushing_buffer_on_anything;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use protobuf::Message;
 use std::sync::Arc;
 use std::time::Duration;
@@ -36,7 +36,6 @@ fn do_log(logger: &LoggerHandle) {
     [].into(),
     [].into(),
     None,
-    Block::No,
     &CaptureSession::default(),
   );
 }
@@ -53,11 +52,12 @@ fn simple_log(c: &mut Criterion) {
   let logger = bd_logger::LoggerBuilder::new(InitParams {
     sdk_directory: ".".into(),
     api_key: "foo".to_string(),
-    session_strategy: Arc::new(Strategy::fixed(".", Arc::new(UUIDCallbacks))),
+    session: Strategy::fixed(".", Arc::new(UUIDCallbacks)),
     metadata_provider: Arc::new(LogMetadata {
       timestamp: time::OffsetDateTime::now_utc().into(),
       ..Default::default()
     }),
+    initial_ootb_fields: [].into(),
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),
     session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),
@@ -95,11 +95,12 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
   let logger = bd_logger::LoggerBuilder::new(InitParams {
     sdk_directory: ".".into(),
     api_key: "foo-api-key".to_string(),
-    session_strategy: Arc::new(Strategy::fixed(".", Arc::new(UUIDCallbacks))),
+    session: Strategy::fixed(".", Arc::new(UUIDCallbacks)),
     metadata_provider: Arc::new(LogMetadata {
       timestamp: time::OffsetDateTime::now_utc().into(),
       ..Default::default()
     }),
+    initial_ootb_fields: [].into(),
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),
     session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),

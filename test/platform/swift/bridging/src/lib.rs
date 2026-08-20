@@ -25,10 +25,10 @@ mod conversion_tests;
 
 #[ctor::ctor(unsafe)]
 fn setup() {
-  bd_test_helpers::test_global_init();
+  bd_test_helpers_core::test_global_init();
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn test_null_termination(reporter: *mut Object) {
   let swift_reporter = unsafe { SwiftErrorReporter::new(reporter) };
 
@@ -36,7 +36,7 @@ extern "C" fn test_null_termination(reporter: *mut Object) {
   swift_reporter.report(&long_string[.. 1], &None, &HashMap::new());
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn create_benchmarking_configuration(dir_path: *const c_char) {
   let c_path: &CStr = unsafe { CStr::from_ptr(dir_path) };
   let str_path: &str = c_path.to_str().unwrap();
@@ -60,7 +60,7 @@ unsafe fn make_nsdata(s: &[u8]) -> *mut Object {
   msg_send![data_cls, dataWithBytes:s.as_ptr() length:s.len()]
 }
 
-/// Helper function to populate an UploadedLog object from a server handle.
+/// Helper function to populate an `UploadedLog` object from a server handle.
 /// Returns true if a log was received and populated, false on timeout.
 #[allow(clippy::cast_possible_wrap)]
 unsafe fn populate_uploaded_log_from_server(
@@ -109,7 +109,7 @@ unsafe fn populate_uploaded_log_from_server(
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
       DataValue::Bytes(s) => {
-        let value = make_nsdata(&s);
+        let value = unsafe { make_nsdata(&s) };
 
         let () = msg_send![uploaded_log, addBinaryFieldWithKey:key value:value];
       },
@@ -154,34 +154,34 @@ unsafe fn populate_uploaded_log_from_server(
 ///
 /// # Safety
 /// The handle must be a valid pointer returned by `create_test_api_server_instance`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn server_instance_next_uploaded_log(
   handle: *mut bd_test_helpers::test_api_server::ServerHandle,
   uploaded_log: *mut Object,
 ) -> bool {
   let handle = unsafe { &mut *handle };
-  populate_uploaded_log_from_server(handle, uploaded_log)
+  unsafe { populate_uploaded_log_from_server(handle, uploaded_log) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn run_key_value_storage_test() {
   let storage = UserDefaultsStorage::default();
   platform_test_helpers::run_key_value_storage_tests(&storage);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn run_resource_utilization_target_test(target: *mut Object) {
   let target = swift_bridge::resource_utilization::Target::new(target);
   platform_test_helpers::run_resource_utilization_target_tests(&target);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn run_session_replay_target_test(target: *mut Object) {
   let target = swift_bridge::session_replay::Target::new(target);
   platform_test_helpers::run_session_replay_target_tests(&target);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn run_events_listener_target_test(target: *mut Object) {
   let target = swift_bridge::events::Target::new(target);
   platform_test_helpers::run_events_listener_target_tests(&target);

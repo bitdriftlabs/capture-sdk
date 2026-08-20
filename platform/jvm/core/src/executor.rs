@@ -6,8 +6,8 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use anyhow::anyhow;
-use jni::objects::{GlobalRef, JObject};
 use jni::JNIEnv;
+use jni::objects::{GlobalRef, JObject};
 use std::sync::Arc;
 
 /// Checks whether there is an active exception via the provided executor, clearing it and

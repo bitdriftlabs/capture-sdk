@@ -3,6 +3,13 @@ load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION_TESTS")
 
+# Rust, Swift, ObjC, and C++ TSan instrumentation can exceed ld's compact-unwind
+# personality limit in one XCTest bundle.
+TSAN_LINKOPTS = select({
+    "//bazel/ios:ios_tsan": ["-no_compact_unwind"],
+    "//conditions:default": [],
+})
+
 # Macro providing a way to easily/consistently define Swift unit test targets.
 #
 # - Prevents consumers from having to define both swift_library and ios_unit_test targets
@@ -30,11 +37,13 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
         name = name,
         data = data,
         deps = [test_lib_name],
+        linkopts = TSAN_LINKOPTS,
         minimum_os_version = MINIMUM_IOS_VERSION_TESTS,
         timeout = "long",
         tags = tags + [
-            "no-cache",
-            "no-remote",
+            # CI reuses one global simulator; parallel xcodebuild test runs can
+            # cause a runner to exit before it establishes its test connection.
+            "exclusive",
         ],
         test_host = test_host,
         visibility = visibility,
@@ -54,6 +63,7 @@ def bitdrift_mobile_objc_test(name, srcs, data = [], deps = [], tags = [], visib
         name = name,
         data = data,
         deps = [test_lib_name],
+        linkopts = TSAN_LINKOPTS,
         minimum_os_version = MINIMUM_IOS_VERSION_TESTS,
         tags = tags,
         visibility = visibility,

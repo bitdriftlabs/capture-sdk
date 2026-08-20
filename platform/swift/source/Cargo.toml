@@ -1,6 +1,6 @@
 [package]
 description  = "Bitdrift objc crate"
-edition      = "2021"
+edition      = "2024"
 license-file = "LICENSE"
 name         = "swift_bridge"
 publish      = false
@@ -18,7 +18,6 @@ bd-crash-handler.workspace   = true
 bd-device.workspace          = true
 bd-error-reporter.workspace  = true
 bd-key-value.workspace       = true
-bd-log.workspace             = true
 bd-log-primitives.workspace  = true
 bd-logger.workspace          = true
 bd-noop-network.workspace    = true
@@ -39,9 +38,8 @@ tracing-subscriber.workspace = true
 uuid.workspace               = true
 
 [dev-dependencies]
-bd-test-helpers.workspace   = true
-pretty_assertions.workspace = true
-tempfile.workspace          = true
+bd-test-helpers.workspace = true
+tempfile.workspace        = true
 
 [features]
 cargo-clippy = []

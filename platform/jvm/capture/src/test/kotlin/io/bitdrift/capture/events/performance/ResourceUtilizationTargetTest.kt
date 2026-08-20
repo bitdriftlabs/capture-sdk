@@ -32,7 +32,7 @@ import org.junit.After
 import org.junit.Test
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
-import kotlin.time.Duration
+import kotlin.time.Duration.Companion.nanoseconds
 
 class ResourceUtilizationTargetTest {
     private val memoryMetricsProvider = FakeMemoryMetricsProvider()
@@ -93,7 +93,7 @@ class ResourceUtilizationTargetTest {
             argThat<ArrayFields> { toStringMap() == expectedMap },
             // workaround for Cannot invoke NullPointerException: "kotlin.time.Duration.unbox-impl()"
             // from https://stackoverflow.com/a/57394480
-            Duration(any<Long>()),
+            any<Long>().nanoseconds,
         )
 
         // no AppMemPressure log by default
@@ -154,7 +154,7 @@ class ResourceUtilizationTargetTest {
 
         verify(logger).logResourceUtilization(
             argThat<ArrayFields> { toStringMap() == expectedMap },
-            Duration(any<Long>()),
+            any<Long>().nanoseconds,
         )
     }
 

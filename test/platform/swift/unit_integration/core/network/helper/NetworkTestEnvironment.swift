@@ -30,7 +30,7 @@ final class NetworkTestEnvironment {
         // The logger receives the ping interval to use in its handshake when it connects to the
         // server, so we pass the ping interval to the test server.
         let pingIntervalMs = pingInterval.map { Int32($0 * 1000) } ?? -1
-        self.testServer = TestApiServer(tls: true, pingIntervalMs: pingIntervalMs)
+        self.testServer = try TestApiServer(tls: true, pingIntervalMs: pingIntervalMs)
 
         // For each test we create a unique SDK directory to avoid different tests affecting each
         // other.
@@ -53,6 +53,7 @@ final class NetworkTestEnvironment {
                 eventsListenerTarget: MockEventsListenerTarget(),
                 appID: "io.bitdrift.capture.test",
                 releaseVersion: "",
+                buildNumber: "",
                 osVersion: "",
                 model: "",
                 network: network,

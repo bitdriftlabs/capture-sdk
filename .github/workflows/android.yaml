@@ -28,48 +28,48 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+
       # Check for Bazel build file changes
       - name: Check for Bazel build file changes
         id: bazel_check
         run: ./ci/check_bazel.sh //examples/android:android_app
-        continue-on-error: true
 
       - name: Check for workflow file changes
         id: workflow_check
-        run: ./ci/files_changed.sh .github/workflows/android.yaml MODULE.bazel MODULE.bazel.lock
-        continue-on-error: true
+        uses: ./.github/actions/files-changed
+        with:
+          regex: '^(\.bazelrc|MODULE\.bazel(\.lock)?|\.github/(workflows/android\.yaml|actions/(setup|android-setup)/.*)|tools/(android_sdk_wrapper|setup_android_sdk|android_toolchain_versions|check_android_toolchain_versions)\.sh)$'
 
       - name: Check for relevant Gradle changes
         id: gradle_check
-        run: ./ci/files_changed.sh "^platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)$" && ./ci/files_changed.sh "^platform/jvm/capture/src/test/.*$"
-        continue-on-error: true
+        uses: ./.github/actions/files-changed
+        with:
+          regex: '^(platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)|platform/jvm/capture/src/test/.*)$'
 
       - name: Check for Cargo.toml changes
         id: cargo_check
-        run: ./ci/files_changed.sh Cargo.toml
-        continue-on-error: true
+        uses: ./.github/actions/files-changed
+        with:
+          files: Cargo.toml
 
       - name: Determine if tests should run
         id: check_changes_separate
         run: |
-          bazel_status="${{ steps.bazel_check.outputs.check_result }}"
-          workflow_status="${{ steps.workflow_check.outputs.check_result }}"
-          gradle_status="${{ steps.gradle_check.outputs.check_result }}"
-          cargo_status="${{ steps.cargo_check.outputs.check_result }}"
+          bazel_changed="${{ steps.bazel_check.outputs.changed }}"
+          workflow_changed="${{ steps.workflow_check.outputs.changed }}"
+          gradle_changed="${{ steps.gradle_check.outputs.changed }}"
+          cargo_changed="${{ steps.cargo_check.outputs.changed }}"
 
-          # Check if any status indicates a relevant change or error
-          if [[ "$bazel_status" == "1" || "$workflow_status" == "1" || "$gradle_status" == "1" || "$cargo_status" == "1" ]]; then
-            echo "An unexpected issue occurred during checks."
-            exit 1
-          elif [[ "$bazel_status" == "0" || "$workflow_status" == "0" || "$gradle_status" == "0" || "$cargo_status" == "0" ]]; then
+          if [[ "$bazel_changed" == "true" || "$workflow_changed" == "true" || "$gradle_changed" == "true" || "$cargo_changed" == "true" ]]; then
             echo "Changes detected in one or more checks. Running tests."
             echo "run_tests=true" >> $GITHUB_ENV
-          elif [[ "$bazel_status" == "2" && "$workflow_status" == "2" && "$gradle_status" == "2" && "$cargo_status" == "2" ]]; then
+          else
             echo "No relevant changes found."
             echo "run_tests=false" >> $GITHUB_ENV
-          else
-            echo "Unknown issue."
-            exit 1
           fi
         shell: bash
 
@@ -88,55 +88,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
+      - name: Setup Android SDK
+        uses: ./.github/actions/android-setup
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}
-          repository-cache: true
-
-      - name: Cache llvm-strip Installation
-        uses: actions/cache@v4
-        id: llvm-cache
-        with:
-          path: ${{ runner.temp }}/llvm-bin
-          key: llvm-strip-${{ runner.os }}
-
-      - name: Populate llvm-strip cache if missing
-        if: steps.llvm-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/llvm-bin"
-          if command -v llvm-strip &> /dev/null; then
-            cp -f "$(command -v llvm-strip)" "$RUNNER_TEMP/llvm-bin/"
-          else
-            sudo apt update && sudo apt install -y llvm
-            cp -f "$(command -v llvm-strip)" "$RUNNER_TEMP/llvm-bin/"
-          fi
-
-      - name: Add llvm-strip to PATH
-        run: echo "$RUNNER_TEMP/llvm-bin" >> $GITHUB_PATH
-
-      - name: Install llvm-strip if needed
-        if: steps.llvm-cache.outputs.cache-hit != 'true'
-        run: |
-          if command -v llvm-strip &> /dev/null; then
-            echo "llvm-strip is already installed."
-          else
-            echo "llvm-strip not found. Installing now..."
-            sudo apt update && sudo apt install -y llvm
-          fi
-
-      - name: Verify llvm-strip version
-        run: llvm-strip --version
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: Build Bazel APK and AAR
         timeout-minutes: 30
         run: |
-          # Build APK for x86_64 (this also builds the AAR dependency)
-          ./bazelw build --config ci --config release-android --android_platforms=@rules_android//:x86_64 //examples/android:android_app
-          # Build AAR for x86_64 to match the APK architecture and reuse build artifacts
-          ./bazelw build :capture_aar --config ci --config release-android --android_platforms=@rules_android//:x86_64
+          # The size target depends on the AAR, so it is built without being a
+          # separate top-level output.
+          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_x86_64
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
@@ -154,9 +116,8 @@ jobs:
           APK_SIZE_FILE=ci/baseline_binary_size.txt
           stat -c%s "$APK_PATH" > "$APK_SIZE_FILE"
 
-          # Get AAR SO size
-          ./tools/capture_so_size.sh x86_64 > so_size_output.txt
-          SO_SIZE_KB=$(grep "SO_SIZE_KB=" so_size_output.txt | cut -d'=' -f2)
+          # Get the Bazel-generated compressed x86_64 SO size.
+          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
           SO_SIZE_FILE=ci/baseline_so_size_x86_64_kb.txt
           echo "$SO_SIZE_KB" > "$SO_SIZE_FILE"
 
@@ -224,9 +185,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: so_size
         run: |
-          # Run the capture_so_size script to get the current SO size
-          ./tools/capture_so_size.sh x86_64 > so_size_output.txt
-          SO_SIZE_KB=$(grep "SO_SIZE_KB=" so_size_output.txt | cut -d'=' -f2)
+          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
           BASELINE_PATH=ci/baseline_so_size_x86_64_kb.txt
 
           if [ -z "$SO_SIZE_KB" ]; then
@@ -340,37 +299,13 @@ jobs:
     - name: Checkout project sources
       uses: actions/checkout@v4
 
-    - name: Setup Android cmd line tools + NDK
-      uses: ./.github/actions/common-android-setup
+    - name: Setup Android emulator
+      uses: ./.github/actions/setup-android-emulator
       with:
-        setup-emulator: 'true'
-
-    - name: AVD cache
-      uses: actions/cache@v4
-      id: avd-cache
-      with:
-        path: |
-          ~/.android/avd/*
-          ~/.android/adb*
-        key: ${{ runner.os }}-avd-api-23-2
-    - name: Kill ADB server to ensure cached keys are used
-      run: adb kill-server || true
-    - name: Create AVD and generate snapshot for caching
-      if: steps.avd-cache.outputs.cache-hit != 'true'
-      timeout-minutes: 30
-      uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
-      with:
-        channel: stable
-        force-avd-creation: false
-        api-level: 23
+        buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+        api-level: '23'
         target: default
-        ram-size: 2048M
         arch: x86_64
-        disk-size: 6144M
-        profile: Nexus 6
-        disable-animations: true
-        emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        script: echo "Generated AVD snapshot for caching."
     - name: Gradle capture-timber unit tests
       working-directory: ./platform/jvm
       run: ./gradlew capture-timber:testReleaseUnitTest --info
@@ -380,9 +315,6 @@ jobs:
     - name: Check Licenses for modules
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense
-    - name: Build Microbenchmark target
-      working-directory: ./platform/jvm
-      run: ./gradlew microbenchmark:assembleAndroidTest
     - name: Instrumentation Tests
       uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
       with:
@@ -411,38 +343,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Android cmd line tools + NDK
-        uses: ./.github/actions/common-android-setup
+      - name: Setup Android emulator
+        uses: ./.github/actions/setup-android-emulator
         with:
-          setup-emulator: 'true'
-
-      - name: AVD cache
-        uses: actions/cache@v4
-        id: avd-cache
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: ${{ runner.os }}-avd-api31-benchmark
-      - name: Kill ADB server to ensure cached keys are used
-        run: adb kill-server || true
-
-      - name: Create AVD and generate snapshot for caching
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 30
-        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
-        with:
-          channel: stable
-          force-avd-creation: false
-          api-level: 31
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          api-level: '31'
           target: default
-          ram-size: 2048M
           arch: x86_64
-          disk-size: 6144M
-          profile: Nexus 6
-          disable-animations: true
-          emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: echo "Generated AVD snapshot for caching."
 
       - name: Run Microbenchmarks
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
@@ -609,7 +516,7 @@ jobs:
     runs-on: ubuntu-latest-8-cores
     strategy:
       matrix:
-        api-level: [24, 35]
+        api-level: [23, 35]
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout
@@ -617,40 +524,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      # See https://github.blog/changelog/2023-02-23-hardware-accelerated-android-virtualization-on-actions-windows-and-linux-larger-hosted-runners/
-      - name: Enable KVM group perms
-        run: |
-            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-            sudo udevadm control --reload-rules
-            sudo udevadm trigger --name-match=kvm
       - uses: actions/download-artifact@v4
         with:
           name: android_app.apk
           path: .
-      - name: AVD cache
-        uses: actions/cache@v3
-        id: avd-cache
+      - name: Setup Android emulator
+        uses: ./.github/actions/setup-android-emulator
         with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: ${{ runner.os }}-avd-api${{ matrix.api-level }}-1
-      - name: Kill ADB server to ensure cached keys are used
-        run: adb kill-server || true
-      - name: Create AVD and generate snapshot for caching
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 30
-        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
-        with:
-          channel: stable
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
           api-level: ${{ matrix.api-level }}
           target: google_apis
-          ram-size: 2048M
           arch: x86_64
-          disk-size: 6144M
-          profile: Nexus 6
-          emulator-options: -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: echo "Generated AVD snapshot for caching."
       - name: run tests
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         timeout-minutes: 15
@@ -668,7 +552,17 @@ jobs:
       - name: Cache hint on hello world failure
         if: ${{ failure() }}
         run: |
-          echo "Android hello world verification failed. If this failed due to what appears to be an adb issue, consider blowing away the AVD cache in the GitHub Actions UI for this workflow."
+          echo "Android hello world verification failed. Emulator diagnostics are available as a workflow artifact."
+      - name: Upload emulator diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-emulator-diagnostics-api-${{ matrix.api-level }}
+          path: |
+            ~/.android/avd/**/*.ini
+            ~/.android/avd/**/*.log
+            /tmp/android-runner/**
+          if-no-files-found: warn
 
   # This is a noop job that completes once all the jobs spawned by the previous step completes. By blocking PR merges on this
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.

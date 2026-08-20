@@ -1,6 +1,6 @@
 [package]
 description  = "test JNI crate"
-edition      = "2021"
+edition      = "2024"
 license-file = "LICENSE"
 name         = "test_jni"
 publish      = false
@@ -20,6 +20,7 @@ bd-log                   = { workspace = true }
 bd-logger                = { workspace = true }
 bd-proto                 = { workspace = true }
 bd-test-helpers          = { workspace = true }
+bd-test-helpers-core     = { workspace = true }
 capture-core             = { path = "../../../platform/jvm/core" }
 ctor                     = { workspace = true }
 jni.workspace            = true

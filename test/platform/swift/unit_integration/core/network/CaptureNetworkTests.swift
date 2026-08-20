@@ -15,17 +15,15 @@ final class CaptureNetworkTests: XCTestCase {
     // (pings) are not configured. We set the timeout low, then wait for it to hit and verify that
     // we see the stream re-established afterwards.
     func testHappyPathWithTimeoutAndReconnect() async throws {
-        let env = try NetworkTestEnvironment(networkIdleTimeout: 5)
+        let env = try NetworkTestEnvironment(networkIdleTimeout: 1)
 
-        let streamID = await env.testServer.nextStream()
-        guard streamID != -1 else { XCTFail("Timed out waiting for initial stream"); return }
+        let streamID = try await env.testServer.waitForStream(testName: #function)
 
-        // Server timeout is 1s in tests, waiting up to 3s for the stream to be closed.
-        let streamClosed = await env.testServer.streamClosed(streamId: streamID, waitTimeMs: 10000)
+        // The client timeout is 1s; allow scheduling headroom for the stream to be closed.
+        let streamClosed = await env.testServer.streamClosed(streamId: streamID, waitTimeMs: 3000)
         XCTAssertTrue(streamClosed)
 
-        let streamID2 = await env.testServer.nextStream(timeout: 30)
-        guard streamID2 != -1 else { XCTFail("Timed out waiting for reconnect stream"); return }
+        let streamID2 = try await env.testServer.waitForStream(testName: #function, timeout: 30)
         try await env.testServer.handshake(streamId: streamID2)
     }
 
@@ -33,8 +31,7 @@ final class CaptureNetworkTests: XCTestCase {
     func testHappyPathWithKeepAlives() async throws {
         let env = try NetworkTestEnvironment(pingInterval: 0.1)
 
-        let streamID = await env.testServer.nextStream()
-        guard streamID != -1 else { XCTFail("Timed out waiting for API stream"); return }
+        let streamID = try await env.testServer.waitForStream(testName: #function)
         try await env.testServer.handshake(streamId: streamID)
 
         // Server timeout is 1s in tests, waiting up to 1.5s. This would have closed the

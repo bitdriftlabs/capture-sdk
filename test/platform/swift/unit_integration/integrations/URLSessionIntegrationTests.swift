@@ -235,29 +235,44 @@ final class URLSessionIntegrationTests: XCTestCase {
     func testCustomCaptureSessionTasks() throws {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: false)
+            let delegate = URLSessionCustomTaskDelegate()
+            let session = URLSession(
+                instrumentedSessionWithConfiguration: .default,
+                delegate: delegate
+            )
+
+            defer {
+                // A failed wait can leave URLSession callbacks in flight. Detach their
+                // expectations before invalidating the session so a late callback cannot
+                // over-fulfill an expectation from this iteration.
+                self.logger.logRequestExpectation = nil
+                self.logger.logResponseExpectation = nil
+                delegate.didCreateTaskExpectation = nil
+                delegate.didFinishCollectingMetricsExpectation = nil
+                delegate.didCompleteExpectation = nil
+                session.invalidateAndCancel()
+                self.customTearDown()
+            }
 
             let expectation = self.expectation(description: "delegate callbacks are called")
             expectation.expectedFulfillmentCount = 2
 
             let taskCompletionExpectation = self.expectation(description: "task completed")
 
-            let delegate = URLSessionCustomTaskDelegate()
             delegate.didCreateTaskExpectation = expectation
             delegate.didFinishCollectingMetricsExpectation = expectation
             delegate.didCompleteExpectation = taskCompletionExpectation
-
-            let session = URLSession(
-                instrumentedSessionWithConfiguration: .default,
-                delegate: delegate
-            )
             let task = try taskTestCase(session)
 
-            try self.runCompletedRequestTest(with: task, completionExpectation: taskCompletionExpectation)
+            guard try self.runCompletedRequestTest(with: task, completionExpectation: taskCompletionExpectation) else {
+                return
+            }
 
-            XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 0.1))
-
-            session.invalidateAndCancel()
-            self.customTearDown()
+            let result = XCTWaiter().wait(for: [expectation], timeout: 1)
+            guard result == .completed else {
+                XCTFail("Timed out waiting for URLSession task delegate callbacks: \(result)")
+                return
+            }
         }
     }
 
@@ -649,10 +664,11 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     // MARK: - Parametrized Test Methods
 
+    @discardableResult
     private func runCompletedRequestTest(
         with task: URLSessionTask,
         completionExpectation: XCTestExpectation?
-    ) throws
+    ) throws -> Bool
     {
         let logRequestExpectation = self.expectation(description: "request logged")
         let logResponseExpectation = self.expectation(description: "response logged")
@@ -671,11 +687,15 @@ final class URLSessionIntegrationTests: XCTestCase {
             expectations.append(completionExpectation)
         }
 
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: expectations, timeout: 5, enforceOrder: false))
+        let result = XCTWaiter().wait(for: expectations, timeout: 5, enforceOrder: false)
+        guard result == .completed else {
+            XCTFail("Timed out waiting for request completion and logs: \(result)")
+            return false
+        }
 
-        XCTAssertEqual(2, self.logger.logs.count)
-        guard self.logger.logs.count >= 2 else {
-            return
+        guard self.logger.logs.count == 2 else {
+            XCTFail("Expected exactly 2 request logs, got \(self.logger.logs.count)")
+            return false
         }
 
         let requestInfo = try XCTUnwrap(self.logger.logs[0].request())
@@ -721,6 +741,8 @@ final class URLSessionIntegrationTests: XCTestCase {
             ],
             remainingResponseFields
         )
+
+        return true
     }
 
     private func runCanceledRequestTest(

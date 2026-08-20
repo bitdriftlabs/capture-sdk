@@ -11,7 +11,7 @@ make format
 # Tests
 make test-gradle                    # Android unit tests
 cargo nextest run -p swift_bridge   # Rust bridge tests
-./bazelw test //test/platform/swift/unit_integration/core:test --config ios  # iOS tests
+./bazelw test //test/platform/swift/unit_integration/core:test  # iOS tests
 ./bazelw test //platform/jvm/...    # Android tests via Bazel
 
 # Build example apps
@@ -27,7 +27,21 @@ make xcframework                    # Build iOS release artifact
 
 - iOS tests must be run through Bazel.
 - Android is often easier to run through Gradle but sometimes issues only reproduce through Bazel. platform/jvm/gradlew can be invoked directly (use -p to target the correct directory).
-- When running all iOS tests, make sure to use `--build_tests_only` as wildcard Bazel targets picks up build targets that don't build within the test context.
+- `test --build_tests_only` is configured in `.bazelrc`, so wildcard test commands build only test targets rather than unrelated build targets.
+
+### Running One iOS XCTest With Rust Logs
+
+Use `--test_filter` with the XCTest `ClassName/testMethod` identifier. Pass `RUST_LOG` with
+`--test_env`; Bazel forwards it to the simulator test process.
+
+```bash
+./bazelw test //test/platform/swift/unit_integration/core:test \
+	--test_filter='CaptureNetworkTests/testHappyPathWithTimeoutAndReconnect' \
+	--test_env=RUST_LOG='info,bd_api=debug,bd_test_helpers=debug' \
+	--test_output=streamed \
+	--build_tests_only \
+	--ios_simulator_device="iPhone 17"
+```
 
 ### Cross-Repo Changes
 
@@ -47,7 +61,7 @@ Recommended pre-repin checks for the touched `capture-sdk` slices:
 Standard full verification:
 
 ```bash
-CARGO_BAZEL_REPIN=true ./bazelw test //... --build_tests_only --config ios --ios_simulator_device="iPhone 17"
+CARGO_BAZEL_REPIN=true ./bazelw test //... --ios_simulator_device="iPhone 17"
 ```
 
 After that first repin run, subsequent Bazel reruns can drop `CARGO_BAZEL_REPIN=true`.
@@ -63,7 +77,7 @@ When the repin command fails, use this recovery flow instead of switching betwee
 
 Primary: **Bazel** (`./bazelw`). Secondary: Gradle for Android (`platform/jvm/gradlew`).
 
-Key Bazel configs: `--config ios`, `--config android`, `--config release-ios`, `--config release-android`, `--config ci`
+Key Bazel configs: `--config android`, `--config release-ios`, `--config release-android`, `--config ci`
 
 ## Project Structure
 
@@ -87,10 +101,29 @@ Test locations:
 - Android: JDK 17, NDK 27.2, minSdk 23
 - Rust: 1.95.0
 
+## FFI and ABI Safety
+
+Changes at the Swift C bridge or Android JNI boundary are release-critical. Treat a function
+signature as an ABI contract: its parameter count, order, nullability, and pointer types must
+match exactly across every declaration, generated binding, and Rust export. In particular, never
+add an unused trailing parameter to a Rust C/JNI export, and use Objective-C object types (such as
+nullable `NSString *`) rather than untyped pointers when Swift passes Foundation values.
+
+When changing an FFI entry point, inspect and update every layer together:
+
+- the Rust `extern "C"` or JNI export;
+- `CaptureRustBridge.h` and every Swift call site, or the Kotlin `external` declaration and callers;
+- compatibility overloads exposed to Swift, Objective-C, Kotlin, or Java.
+
+Run focused bridge compilation/tests for every FFI change. Do not rely on Rust-only compilation to
+validate Swift header imports or JNI call signatures.
+
 ## Key Dependencies
 
 Depends on [shared-core](https://github.com/bitdriftlabs/shared-core) for `bd-logger`, `bd-buffer`, `bd-api`, `bd-crash-handler`, `bd-runtime`.
 
 ## Changelog
 
-Update `CHANGELOG.md` under `### Both`, `### Android`, or `### iOS` with categories: **Added**, **Changed**, **Fixed**.
+Update `CHANGELOG.md` for every user-facing behavior change under `### Both`, `### Android`,
+or `### iOS` with categories: **Added**, **Changed**, **Fixed**. Do not add an entry for CI,
+build, tooling, test-only, documentation-only, or internal changes that do not affect SDK behavior.

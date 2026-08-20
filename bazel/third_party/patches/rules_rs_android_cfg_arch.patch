@@ -1,0 +1,23 @@
+diff --git rs/private/cfg_parser.bzl rs/private/cfg_parser.bzl
+index 8ef7e7d..f8b2f24 100644
+--- rs/private/cfg_parser.bzl
++++ rs/private/cfg_parser.bzl
+@@ -147,6 +147,8 @@ def _normalize_os(os_raw):
+     if os_raw == "darwin":
+         return "macos"
++    if os_raw == "androideabi":
++        return "android"
+     return os_raw
+ 
+ def _normalize_arch(arch_raw):
+@@ -153,5 +153,10 @@ def _normalize_os(os_raw):
+ def _normalize_arch(arch_raw):
+     # RISC-V target triples encode the enabled ISA extensions in their first
+     # component, while Rust's cfg(target_arch) exposes only the register width.
++    # Rust exposes all 32-bit x86 targets as `x86`, not their triple spelling
++    # such as `i686`. This matters for target-specific Cargo dependencies such
++    # as sha2's cpufeatures dependency.
++    if arch_raw in ["i386", "i486", "i586", "i686"]:
++        return "x86"
+     if arch_raw.startswith("riscv32"):
+         return "riscv32"
