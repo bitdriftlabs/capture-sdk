@@ -15,6 +15,10 @@ ktlint:
 rustfmt:
 	./bazelw run //:rustfmt
 
+.PHONY: setup-rust-analyzer
+setup-rust-analyzer:
+	./scripts/setup-rust-analyzer.sh
+
 .PHONY: buildifier
 buildifier:
 	buildifier -warnings all -lint=fix -r .

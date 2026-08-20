@@ -3,6 +3,10 @@
 .idea
 .ijwb
 
+# Generated Rust Analyzer setup
+.rules_rust_analyzer
+.vscode/settings.json
+
 # Bazel
 /bazel-*
 **/Bazel Generated/
