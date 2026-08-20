@@ -7,14 +7,6 @@ load(
     "xcode_provisioning_profile",
 )
 
-sh_binary(
-    name = "rewrite_symbols",
-    srcs = [
-        "rewrite_symbols.sh",
-    ],
-    visibility = ["//visibility:public"],
-)
-
 alias(
     name = "llvm_ar",
     actual = select({
