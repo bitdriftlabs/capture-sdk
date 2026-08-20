@@ -53,9 +53,14 @@ final class AppStateAttributes {
         ]
     }
 
+    /// Starts forwarding future foreground-state changes to the logger.
+    ///
+    /// The initial OOTB snapshot is not reconciled with lifecycle transitions during logger
+    /// construction. Avoiding that coordination keeps initialization independent of the main thread.
+    ///
+    /// - parameter logger: The logger that receives future foreground-state changes.
     func start(with logger: CoreLogging) {
         self.logger = logger
-        logger.updateOotbField(withKey: "foreground", value: self.isForeground ? "1" : "0")
     }
 
     func initialOotbFields() -> [Field] {

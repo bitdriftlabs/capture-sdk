@@ -37,18 +37,6 @@ final class AppStateAttributesTests: XCTestCase {
         XCTAssertEqual(logger.ootbFields["foreground"], "1")
     }
 
-    func testStartPublishesForegroundStateChangedBeforeLoggerAttachment() {
-        let notificationCenter = NotificationCenterMock()
-        let attributes = AppStateAttributes(notificationCenter: notificationCenter)
-
-        notificationCenter.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
-
-        let logger = MockCoreLogging()
-        attributes.start(with: logger)
-
-        XCTAssertEqual(logger.ootbFields["foreground"], "0")
-    }
-
     func testDeinitRemovesObserversFromInjectedNotificationCenter() {
         let notificationCenter = NotificationCenterMock()
         weak var weakAttributes: AppStateAttributes?
