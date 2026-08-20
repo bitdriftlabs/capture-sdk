@@ -57,24 +57,4 @@ class MetadataProviderTest {
             Field("key2", FieldValue.StringField("value4")),
         )
     }
-
-    @Test
-    fun metadata_provider_defers_initial_ootb_field_providers() {
-        val dateProvider = mock<DateProvider>()
-        `when`(dateProvider.invoke()).thenReturn(Date())
-        val initialProvider = FieldProvider { mapOf("_dynamic_key" to "dynamic_value") }
-
-        val metadataProvider =
-            MetadataProvider(
-                dateProvider = dateProvider,
-                ootbFieldProviders = emptyList(),
-                customFieldProviders = emptyList(),
-                initialOotbFieldProviders = listOf(initialProvider),
-                errorHandler = mock { },
-            )
-
-        assertThat(metadataProvider.initialOotbFields()).containsExactly(
-            Field("_dynamic_key", FieldValue.StringField("dynamic_value")),
-        )
-    }
 }

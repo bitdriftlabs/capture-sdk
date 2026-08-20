@@ -13,6 +13,17 @@ import XCTest
 @testable import Capture
 
 final class AppStateAttributesTests: XCTestCase {
+    func testInitialOotbFieldsUseTheInitialForegroundSnapshot() {
+        let attributes = AppStateAttributes(notificationCenter: NotificationCenterMock())
+
+        let fields = attributes.initialOotbFields()
+
+        XCTAssertEqual(fields.count, 1)
+        XCTAssertEqual(fields[0].key, "foreground")
+        XCTAssertEqual(fields[0].type, .string)
+        XCTAssertEqual(fields[0].data as? String, attributes.isForeground ? "1" : "0")
+    }
+
     func testLifecycleNotificationsUpdateForegroundOotbField() {
         let notificationCenter = NotificationCenterMock()
         let attributes = AppStateAttributes(notificationCenter: notificationCenter)

@@ -555,7 +555,8 @@ extern "C" fn capture_create_logger(
       let initial_custom_fields = unsafe { ffi::convert_fields(initial_fields) }
         .inspect_err(|error| log::warn!("failed to convert initial fields: {error:#}"))
         .unwrap_or_default();
-      let initial_ootb_fields = static_metadata.static_log_fields();
+      let mut initial_ootb_fields = static_metadata.static_log_fields();
+      initial_ootb_fields.extend(unsafe { ffi::convert_fields(initial_ootb_fields_array) }?);
 
       let error_reporter = MetadataErrorReporter::new(
         Arc::new(unsafe { SwiftErrorReporter::new(error_reporter_ns_object) }),

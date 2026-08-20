@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 internal import CaptureLoggerBridge
+internal import CapturePassable
 import Foundation
 
 typealias LoggerID = Int64
@@ -74,6 +75,7 @@ final class LoggerBridge: LoggerBridging {
         bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
+        initialOotbFields: [CapturePassable.Field],
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
         sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
@@ -106,6 +108,7 @@ final class LoggerBridge: LoggerBridging {
             sessionConfiguration.inactivityTimeout ?? -1,
             sessionConfiguration.makeSessionCallbackBridge(),
             metadataProvider,
+            initialOotbFields,
             resourceUtilizationTarget,
             sessionReplayTarget,
             eventsListenerTarget,
@@ -141,6 +144,7 @@ final class LoggerBridge: LoggerBridging {
         bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
         metadataProvider: CaptureLoggerBridge.MetadataProvider,
+        initialOotbFields: [CapturePassable.Field],
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
         sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
@@ -161,6 +165,7 @@ final class LoggerBridge: LoggerBridging {
             bufferDirectoryPath: bufferDirectoryPath,
             sessionStrategy: sessionStrategy,
             metadataProvider: metadataProvider,
+            initialOotbFields: initialOotbFields,
             resourceUtilizationTarget: resourceUtilizationTarget,
             sessionReplayTarget: sessionReplayTarget,
             eventsListenerTarget: eventsListenerTarget,

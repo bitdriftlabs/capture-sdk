@@ -11,6 +11,8 @@ import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionCallback
+import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
+import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 
 internal interface IBridge {
@@ -22,6 +24,7 @@ internal interface IBridge {
         inactivityTimeoutMilliseconds: Long,
         sessionCallback: SessionCallback?,
         metadataProvider: IMetadataProvider,
+        initialOotbFields: Array<Field>,
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,
         eventsListenerTarget: IEventsListenerTarget,

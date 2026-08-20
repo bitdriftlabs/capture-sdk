@@ -92,6 +92,7 @@ class CaptureLoggerNetworkTest {
             inactivityTimeoutMilliseconds = -1L,
             sessionCallback = null,
             metadataProvider = loggerBridge,
+            initialOotbFields = emptyArray(),
             resourceUtilizationTarget = mock(),
             sessionReplayTarget = mock(),
             eventsListenerTarget = mock(),

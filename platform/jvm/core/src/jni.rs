@@ -815,7 +815,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       ));
       let initial_fields = unsafe { JObjectArray::from_raw(initial_fields.as_raw()) };
       let initial_custom_fields = ffi::jarray_to_fields(&mut env, &initial_fields)?;
-      let initial_ootb_fields = static_metadata.static_log_fields();
+      let mut initial_ootb_fields = static_metadata.static_log_fields();
+      initial_ootb_fields.extend(ffi::jarray_to_fields(&mut env, &initial_ootb_fields_array)?);
       let metadata_provider = Arc::new(MetadataProvider::new_global(&env, metadata_provider)?);
 
       let error_reporter = Arc::new(ErrorReporterHandle::new_global(&env, error_reporter)?);

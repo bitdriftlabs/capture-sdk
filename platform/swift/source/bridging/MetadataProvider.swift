@@ -22,9 +22,6 @@ public protocol MetadataProvider {
     /// - returns: OOTB fields to emit as part of logs.
     func ootbFields() -> [Field]
 
-    /// Returns OOTB fields captured once before the logger accepts logs.
-    func initialOotbFields() -> [Field]
-
     /// Returns custom fields to be included with emitted logs. Custom fields are fields provided by SDK
     /// customers.
     ///

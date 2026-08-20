@@ -60,6 +60,7 @@ final class NetworkTestEnvironment {
                 bufferDirectoryPath: sdkDirectory.path,
                 sessionStrategy: .configuration(.init()),
                 metadataProvider: MockMetadataProvider(),
+                initialOotbFields: [],
                 resourceUtilizationTarget: MockResourceUtilizationTarget(),
                 sessionReplayTarget: MockSessionReplayTarget(),
                 eventsListenerTarget: MockEventsListenerTarget(),
@@ -124,10 +125,6 @@ final class NetworkTestEnvironment {
         }
 
         func ootbFields() -> [Field] {
-            []
-        }
-
-        func initialOotbFields() -> [Field] {
             []
         }
 

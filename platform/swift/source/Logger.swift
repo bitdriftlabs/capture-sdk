@@ -144,7 +144,6 @@ public final class Logger {
         let metadataProvider = MetadataProviderController(
             dateProvider: dateProvider ?? SystemDateProvider(),
             ootbFieldGetters: [
-                appStateAttributes.getFields,
                 deviceAttributes.getFields,
                 networkAttributes.getFields,
             ],
@@ -183,6 +182,7 @@ public final class Logger {
             bufferDirectoryPath: directoryURL.path,
             sessionStrategy: sessionStrategy,
             metadataProvider: metadataProvider,
+            initialOotbFields: appStateAttributes.initialOotbFields(),
             // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
             // and `eventsListenerTarget` as part of the `self.underlyingLogger.start()` method call instead.
             // Pass the event listener target here and finish setting up
