@@ -31,11 +31,12 @@ internal class ViewTreeWindowFocusRegistrar : IWindowFocusRegistrar {
         if (listeners.containsKey(activity)) {
             return
         }
-        val observer = activity.window?.decorView?.viewTreeObserver ?: return
-        if (!observer.isAlive) {
-            return
-        }
-        val listener = ViewTreeObserver.OnWindowFocusChangeListener { hasFocus -> onFocusChanged(hasFocus) }
+        val observer =
+            activity.window
+                ?.decorView
+                ?.viewTreeObserver
+                ?.takeIf { it.isAlive } ?: return
+        val listener = ViewTreeObserver.OnWindowFocusChangeListener(onFocusChanged)
         observer.addOnWindowFocusChangeListener(listener)
         listeners[activity] = listener
     }
@@ -43,25 +44,18 @@ internal class ViewTreeWindowFocusRegistrar : IWindowFocusRegistrar {
     @UiThread
     override fun unregister(activity: Activity) {
         val listener = listeners.remove(activity) ?: return
-        removeListener(activity, listener)
+        // peekDecorView: don't create a decor view just to tear one down.
+        activity.window
+            ?.peekDecorView()
+            ?.viewTreeObserver
+            ?.takeIf { it.isAlive }
+            ?.removeOnWindowFocusChangeListener(listener)
     }
 
     @UiThread
     override fun unregisterAll() {
-        // Snapshot first: WeakHashMap iteration is not safe against structural changes.
-        val snapshot = listeners.entries.map { it.key to it.value }
-        listeners.clear()
-        snapshot.forEach { (activity, listener) -> removeListener(activity, listener) }
-    }
-
-    private fun removeListener(
-        activity: Activity,
-        listener: ViewTreeObserver.OnWindowFocusChangeListener,
-    ) {
-        // peekDecorView: don't create a decor view just to tear one down.
-        val observer = activity.window?.peekDecorView()?.viewTreeObserver ?: return
-        if (observer.isAlive) {
-            observer.removeOnWindowFocusChangeListener(listener)
-        }
+        // toList snapshots the keys: unregister mutates the map, and WeakHashMap iterators are not
+        // structurally safe.
+        listeners.keys.toList().forEach(::unregister)
     }
 }
