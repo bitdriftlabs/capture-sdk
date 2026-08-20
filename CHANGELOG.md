@@ -45,7 +45,7 @@
 
 - Nothing yet!
 
-- ## [0.23.12]
+## [0.23.12]
 [0.23.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.12
 
 ### Both
