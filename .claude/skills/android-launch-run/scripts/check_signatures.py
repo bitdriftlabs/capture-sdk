@@ -72,6 +72,8 @@ REV_FAMILY = {
     "d8ac5975": "new-stats",    # bump, after the main merge; bd-client-stats byte-identical
     "5f0f7b29": "new-stats",    # main, after #1107 merged; wordings and flag defaults verified
                                 # identical to d8ac5975 (only FlushTrigger::flush's signature changed)
+    "4b3ba615": "new-stats",    # main as of 2026-08-19 (flush-kill branch); verified by a fresh
+                                # install whose capture classified as new-stats (11 hits, 0 legacy)
     "42637e1f": "legacy-stats",  # main, before #1107
 }
 

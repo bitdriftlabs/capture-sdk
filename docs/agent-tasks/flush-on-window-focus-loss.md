@@ -44,7 +44,7 @@ Recorded so a replay does not re-litigate them — though a replay is free to di
 | Client-side rate limit? | **No.** Rely on shared-core's existing debounce. Keep trigger and action separated so a policy could be added later. |
 | Kill switch | **New `RuntimeFeature`, `defaultValue = true`** — default-on so it is testable on-device with no server config. |
 | Matrix automation | Automate the adb-drivable cases (recents, recents+kill, background, navigate, rotate); document IME and permission-change as manual steps. |
-| New Activity scope | Minimal and purpose-built: an `EditText` (IME focus loss) and a permission-request button (dialog focus loss). |
+| New Activity scope | Minimal and purpose-built: an `EditText` (IME) and a permission-request button (dialog focus loss); measured on Pixel 10 / API 37 the IME does not drop window focus, so only the dialog row fires. |
 
 ### Lint traps hit while doing this
 
@@ -72,7 +72,7 @@ Recorded so a replay does not re-litigate them — though a replay is free to di
   discovery needs no new dependency. Papa's contribution is the listener *bookkeeping* — hold the
   wrapper so it can be removed, and check `ViewTreeObserver.isAlive` on both add and remove, because a
   dead observer throws on mutation.
-- Focus fires on far more than the app switcher: shade, IME, dialogs, rotation, Activity transitions.
+- Focus fires on more than the app switcher: dialogs and Activity transitions, measured. Not on everything you'd expect, though — on Pixel 10 / API 37 neither the IME nor rotation drops window focus.
 
 ## Codebase map
 
@@ -109,7 +109,7 @@ A focus-loss flush should appear as `window … focus=false` followed by
 ## Definition of done
 
 - Focus-loss flush implemented in `capture`, gated, wired via `LoggerImpl`.
-- New Activity reachable from the test app's navigation UI, exercising IME and permission-dialog focus loss.
+- New Activity reachable from the test app's navigation UI, exercising the IME and permission-dialog rows.
 - Scenarios for the adb-drivable matrix rows; IME/permission documented as manual.
 - Both modules compile; detekt clean.
 - Changes **staged, not committed**.

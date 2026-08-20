@@ -293,6 +293,22 @@ backgrounded.
 `T02-back` revokes network ~1.1s sooner than `home`, which shortens every race — worth knowing when
 a result sits near the boundary.
 
+### Focus-loss flush (`focus-*` scenarios)
+
+Same device, `4b3ba615` (flush-on-window-focus-loss feature branch). In every firing case the flush
+follows `window … focus=false` within 1ms, and `check_signatures.py` shows `OS_STOP=0` alongside
+`PLATFORM_FLUSH=1` for the recents rows — the exact gap the feature closes.
+
+| Scenario | focus flush | upload | ack | notes |
+|---|---|---|---|---|
+| `focus-recents` | fired | ENQ/OK | 656ms | **no `ON_STOP` at all**; only the focus flush ran |
+| `focus-recents-kill` | fired | ENQ/OK | 901ms | ack landed **3.4s before** `am_kill` |
+| `focus-home` | fired | ENQ/OK | 668ms | 2 platform flushes: focus + `ON_STOP`, debounce absorbs |
+| `focus-navigate-activity` | fired | ENQ/OK | 721ms | app never backgrounds; no netcut |
+| `focus-rotate` | **NONE — expected** | — | — | recreation never drops focus; regression guard |
+| `focus-permission-dialog` | fired | ENQ/OK | 593–655ms | scenario drives the UI via `tap-text`; dialog dismiss regains focus, no extra flush |
+| IME (manual probe, `FocusMatrixActivity`) | **NONE** | — | — | keyboard verifiably open (`mInputShown=true`) yet focus never drops on Pixel 10 / API 37 — same class as rotation; not worth a scenario since there is nothing to automate |
+
 ## Behaviour that differs by rev
 
 | | `bump` (`c3ba1cba`, `d8ac5975`+) | `main` (`42637e1f`) |

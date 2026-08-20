@@ -182,7 +182,7 @@ class WindowFocusFlushLoggerTest {
     }
 
     @Test
-    fun imeOrPermissionDialog_flushesOncePerFocusLossAndIgnoresTheRegain() {
+    fun permissionDialog_flushesOncePerFocusLossAndIgnoresTheRegain() {
         windowFocusFlushLogger.start()
         windowFocusFlushLogger.onActivityStarted(activity)
 

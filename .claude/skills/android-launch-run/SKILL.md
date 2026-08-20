@@ -262,6 +262,26 @@ python3 $S/adbctl.py action launch|home|back|recents|screen-off|wake|kill|force-
 python3 $S/adbctl.py action wait --seconds 35
 ```
 
+Two actions drive UI the others can't reach, which is what turned the permission-dialog row from a
+manual step into a scenario:
+
+- **`tap-text`** (scenario step key `text`) — `uiautomator dump`, find the first node whose text or
+  resource-id matches the case-insensitive regex, tap its center. Taps survive layout and DPI
+  changes that hardcoded coordinates don't. Dialog buttons render a **curly apostrophe**, so match
+  `Don.t allow`, never `Don't allow`.
+- **`revoke-permission`** (step key `permission`) — an already-granted permission returns instantly
+  with no dialog and therefore no focus loss, so revoke before driving a permission-dialog run.
+  **`pm revoke` alone is not enough**: two denials set `USER_FIXED` ("don't ask again"), after which
+  the OS answers immediately and never renders a dialog again — so a scenario that only revokes works
+  once and then silently measures nothing. The action clears `user-fixed`/`user-set` first; check with
+  `dumpsys package <pkg> | grep <PERM>`. For the same reason, dismiss a permission dialog with
+  **BACK** (a cancellation) rather than tapping *Don't allow* (a recorded decision).
+
+When a UI probe produces a negative ("the IME never dropped focus"), first prove the UI state
+actually changed — `dumpsys input_method | grep mInputShown` confirms the keyboard is really up.
+That check is how "IME does not drop window focus on Pixel 10 / API 37" became a finding instead
+of a suspected broken tap.
+
 `home`, `back`, `recents` and `screen-off` are all different, and not interchangeable:
 
 - **`recents`** does not fire `ON_STOP` at all — the activity stays "started" while the overview is
@@ -394,6 +414,7 @@ Bundled scenarios:
 | `timing-cadence.json` | Measures the flush/upload timers: the ~5s first flush, the recurrent disk and upload cadences, and that a forced flush does **not** reschedule the periodic tick. |
 | `timing-reset-after-flush.json` | An explicit flush **re-anchors** the periodic schedule — the next tick lands one interval after the flush, not on the original anchor. |
 | `timing-double-background.json` | Two backgroundings inside 30s — the only way to show a forced flush still writes to disk while its upload is refused by the minimum-interval floor. |
+| `focus-*` | **Window-focus-loss flush** (the `WindowFocusFlushLogger` feature): recents · recents+kill · home · navigate-activity · rotate (expected-NONE regression guard) · permission-dialog (drives the UI via `tap-text`). Results in `references/flush-matrix.md`; the IME row is deliberately absent — measured, an open keyboard does not drop window focus. |
 
 Run `T04`, `T06` and `T07` last — they use screen-off. On a device whose
 `lock_screen_lock_after_timeout` is short this re-locks the phone and invalidates everything after;

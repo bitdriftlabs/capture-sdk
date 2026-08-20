@@ -1,0 +1,42 @@
+{
+  "name": "focus-permission-dialog",
+  "description": "A permission dialog over FocusMatrixActivity drops window focus; dismissing it regains focus with no extra flush. NOTE: the sibling IME row is NOT here on purpose -- measured on Pixel 10 / API 37, a verifiably-open keyboard (dumpsys input_method -> mInputShown=true) never drops window focus, so there is nothing to automate.",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [],
+  "steps": [
+    {
+      "action": "revoke-permission",
+      "permission": "android.permission.READ_PHONE_STATE",
+      "why": "an already-granted permission returns with no dialog and therefore no focus loss"
+    },
+    {
+      "action": "launch-activity",
+      "component": "io.bitdrift.gradletestapp.ui.activities.FocusMatrixActivity",
+      "why": "the activity purpose-built for the dialog focus-loss row"
+    },
+    {
+      "action": "wait",
+      "seconds": 8,
+      "why": "settle and let one foreground disk flush land as a positive control"
+    },
+    {
+      "action": "tap-text",
+      "text": "request permission",
+      "why": "the dialog appears and steals window focus"
+    },
+    {
+      "action": "wait",
+      "seconds": 6,
+      "why": "let the focus flush and its upload land while the dialog is up"
+    },
+    {
+      "action": "back",
+      "why": "dismiss; the regain must NOT flush again. BACK rather than tapping 'Don't allow' because a denial records a decision and two of them set USER_FIXED, after which no dialog ever appears again"
+    },
+    {
+      "action": "wait",
+      "seconds": 6
+    }
+  ],
+  "reference_event": "window focus=false"
+}
