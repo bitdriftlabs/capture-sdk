@@ -571,7 +571,7 @@ extern "C" fn capture_create_logger(
         network: network_manager,
         store,
         device,
-        static_metadata,
+        static_metadata: static_metadata.clone(),
         start_in_sleep_mode,
       })
       .with_crash_report_hook(
@@ -585,7 +585,9 @@ extern "C" fn capture_create_logger(
       )
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
+      .map(|(logger, _, future, _)| {
+        LoggerHolder::new_with_static_metadata(logger, future, Some(static_metadata))
+      })?;
 
       Ok(logger.into_raw())
     },

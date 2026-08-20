@@ -15,7 +15,6 @@ import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.doThrow
 import com.nhaarman.mockitokotlin2.eq
-import com.nhaarman.mockitokotlin2.isNull
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
@@ -62,6 +61,8 @@ class IssueReporterProcessorTest {
     private val lifecycleOwner: LifecycleOwner = mock()
     private val issueReportCaptor = argumentCaptor<ByteArray>()
     private val reportTypeCaptor = argumentCaptor<Byte>()
+    private val anrReportCaptor = argumentCaptor<AnrReport>()
+    private val javascriptErrorReportCaptor = argumentCaptor<JavaScriptErrorReport>()
     private val throwableCaptor = argumentCaptor<Throwable>()
     private val logMessageCaptor = argumentCaptor<() -> String>()
 
@@ -275,16 +276,7 @@ class IssueReporterProcessorTest {
                 ),
         )
 
-        verify(streamingReportProcessor).processAndPersistANR(
-            eq(trace),
-            eq(FAKE_TIME_STAMP),
-            eq("/some/path/foo.cap"),
-            eq(attributes),
-            eq("foreground"),
-            isNull(),
-            any(),
-            eq(true),
-        )
+        assertAnrReport(trace, "foreground")
     }
 
     @Test
@@ -301,16 +293,7 @@ class IssueReporterProcessorTest {
                 ),
         )
 
-        verify(streamingReportProcessor).processAndPersistANR(
-            eq(trace),
-            eq(FAKE_TIME_STAMP),
-            eq("/some/path/foo.cap"),
-            eq(attributes),
-            eq("cached"),
-            isNull(),
-            any(),
-            eq(true),
-        )
+        assertAnrReport(trace, "cached")
     }
 
     @Test
@@ -327,16 +310,7 @@ class IssueReporterProcessorTest {
                 ),
         )
 
-        verify(streamingReportProcessor).processAndPersistANR(
-            eq(null),
-            eq(FAKE_TIME_STAMP),
-            eq("/some/path/foo.cap"),
-            eq(attributes),
-            eq("cached"),
-            isNull(),
-            any(),
-            eq(true),
-        )
+        assertAnrReport(null, "cached")
     }
 
     @Test
@@ -353,16 +327,7 @@ class IssueReporterProcessorTest {
                 ),
         )
 
-        verify(streamingReportProcessor).processAndPersistANR(
-            eq(trace),
-            eq(FAKE_TIME_STAMP),
-            eq("/some/path/foo.cap"),
-            eq(attributes),
-            eq("foreground_service"),
-            isNull(),
-            any(),
-            eq(true),
-        )
+        assertAnrReport(trace, "foreground_service")
     }
 
     @Test
@@ -631,7 +596,7 @@ class IssueReporterProcessorTest {
         doReturn(FAKE_FATAL_PATH).`when`(issueReporterStorage).generateFatalIssueFilePath()
         doThrow(RuntimeException("js persist failed"))
             .`when`(streamingReportProcessor)
-            .processAndPersistJavaScriptError(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            .processAndPersistJavaScriptError(any())
 
         persistJavaScriptError(isFatalIssue = true)
 
@@ -649,16 +614,20 @@ class IssueReporterProcessorTest {
     private fun assertJavaScriptArguments(expectedFatalIssue: Boolean) {
         val expectedPath = if (expectedFatalIssue) FAKE_FATAL_PATH else FAKE_NON_FATAL_PATH
         verify(streamingReportProcessor).processAndPersistJavaScriptError(
-            errorName = eq(FAKE_ERROR_NAME),
-            errorMessage = eq(FAKE_ERROR_MESSAGE),
-            stackTrace = eq(FAKE_STACK_TRACE),
-            isFatal = eq(expectedFatalIssue),
-            engine = eq(FAKE_ENGINE_JSC),
-            debugId = eq(FAKE_DEBUG_ID),
-            timestampMillis = eq(DEFAULT_TEST_TIMESTAMP),
-            destinationPath = eq(expectedPath),
-            attributes = eq(attributes),
-            sdkVersion = eq(RN_BITDRIFT_VERSION),
+            javascriptErrorReportCaptor.capture(),
+        )
+        assertThat(javascriptErrorReportCaptor.firstValue).isEqualTo(
+            JavaScriptErrorReport(
+                FAKE_ERROR_NAME,
+                FAKE_ERROR_MESSAGE,
+                FAKE_STACK_TRACE,
+                expectedFatalIssue,
+                FAKE_ENGINE_JSC,
+                FAKE_DEBUG_ID,
+                DEFAULT_TEST_TIMESTAMP,
+                expectedPath,
+                RN_BITDRIFT_VERSION,
+            ),
         )
     }
 
@@ -703,16 +672,25 @@ class IssueReporterProcessorTest {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         doThrow(exception)
             .`when`(streamingReportProcessor)
-            .processAndPersistANR(
-                any(),
-                eq(FAKE_TIME_STAMP),
-                eq("/some/path/foo.cap"),
-                eq(attributes),
-                any(),
-                any(),
-                any(),
-                eq(true),
-            )
+            .processAndPersistANR(any())
+    }
+
+    private fun assertAnrReport(
+        stream: InputStream?,
+        runningState: String,
+    ) {
+        verify(streamingReportProcessor).processAndPersistANR(anrReportCaptor.capture())
+        assertThat(anrReportCaptor.firstValue).isEqualTo(
+            AnrReport(
+                stream,
+                FAKE_TIME_STAMP,
+                "/some/path/foo.cap",
+                runningState,
+                null,
+                MemoryPressureLevel.Warning.nativeValue,
+                true,
+            ),
+        )
     }
 
     private fun createApplicationExitInfo(

@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.reports
 
+import io.bitdrift.capture.LoggerId
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 
@@ -21,6 +22,7 @@ interface IIssueReporter {
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
+        loggerId: LoggerId,
     )
 
     /**

@@ -847,14 +847,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         device,
         store,
         network: network_manager,
-        static_metadata,
+        static_metadata: static_metadata.clone(),
         start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
       })
       .with_internal_logger(true)
       .with_crash_report_hook(crash_report_hook)
       .build()
       .map(|(logger, _, future, _)| {
-        LoggerHolder::new(
+        LoggerHolder::new_with_static_metadata(
           logger,
           async move {
             handle_unexpected(
@@ -869,6 +869,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
             future.await
           }
           .boxed(),
+          Some(static_metadata),
         )
       })?;
 
@@ -1558,6 +1559,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueRe
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistANR(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
+  logger_id: LoggerId<'_>,
   stream: JObject<'_>,
   timestamp: jlong,
   destination: JString<'_>,
@@ -1598,17 +1600,28 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
     Some(&stream)
   };
 
-  match report_processing::persist_anr(
-    &mut env,
-    stream,
-    timestamp,
-    &destination,
-    &attributes,
-    running_state_str.as_deref(),
-    app_exit_description_str.as_deref(),
-    memory_pressure_level,
-    is_file_size_optimization_enabled == JNI_TRUE,
-  ) {
+  let result = logger_id
+    .static_metadata()
+    .ok_or_else(|| anyhow::anyhow!("missing static logger metadata"))
+    .and_then(|metadata| {
+      let mut context = report_processing::AndroidReportContext {
+        env: &mut env,
+        metadata,
+        attributes: &attributes,
+      };
+      let report = report_processing::AnrReport {
+        source_stream: stream,
+        timestamp_millis: timestamp,
+        destination: &destination,
+        running_state: running_state_str.as_deref(),
+        app_exit_description: app_exit_description_str.as_deref(),
+        memory_pressure_level,
+        is_file_size_optimization_enabled: is_file_size_optimization_enabled == JNI_TRUE,
+      };
+      report_processing::persist_anr(&mut context, &report)
+    });
+
+  match result {
     Ok(()) => {},
     Err(e) => {
       let message = format!("jni persist ANR: {e:#}");
@@ -1621,6 +1634,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistJavaScriptError(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
+  logger_id: LoggerId<'_>,
   error_name: JString<'_>,
   error_message: JString<'_>,
   stack_trace: JString<'_>,
@@ -1663,19 +1677,26 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
         .to_string_lossy()
         .to_string();
 
-      report_processing::persist_javascript_error(
-        &mut env,
-        &error_name,
-        &error_message,
-        &stack_trace,
-        is_fatal != 0,
-        &engine,
-        &debugger_id,
-        timestamp,
-        &destination,
-        &attributes,
-        &sdk_version,
-      )?;
+      let metadata = logger_id
+        .static_metadata()
+        .ok_or_else(|| anyhow::anyhow!("missing static logger metadata"))?;
+      let mut context = report_processing::AndroidReportContext {
+        env: &mut env,
+        metadata,
+        attributes: &attributes,
+      };
+      let report = report_processing::JavaScriptErrorReport {
+        error_name: &error_name,
+        error_message: &error_message,
+        stack_trace: &stack_trace,
+        is_fatal: is_fatal != 0,
+        engine: &engine,
+        debugger_id: &debugger_id,
+        timestamp_millis: timestamp,
+        destination: &destination,
+        sdk_version: &sdk_version,
+      };
+      report_processing::persist_javascript_error(&mut context, &report)?;
       Ok(())
     },
     "jni persist JavaScript error",

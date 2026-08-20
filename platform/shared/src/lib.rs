@@ -128,6 +128,7 @@ pub struct LoggerHolder {
   handle: bd_logger::LoggerHandle,
   future: parking_lot::Mutex<Option<LoggerFuture>>,
   app_launch_tti_log: Once,
+  static_metadata: Option<Arc<metadata::Mobile>>,
 }
 
 impl Deref for LoggerHolder {
@@ -140,13 +141,29 @@ impl Deref for LoggerHolder {
 
 impl LoggerHolder {
   pub fn new(logger: bd_logger::Logger, future: LoggerFuture) -> Self {
+    Self::new_with_static_metadata(logger, future, None)
+  }
+
+  #[must_use]
+  pub fn new_with_static_metadata(
+    logger: bd_logger::Logger,
+    future: LoggerFuture,
+    static_metadata: Option<Arc<metadata::Mobile>>,
+  ) -> Self {
     let handle = logger.new_logger_handle();
     Self {
       logger,
       handle,
       future: parking_lot::Mutex::new(Some(future)),
       app_launch_tti_log: Once::new(),
+      static_metadata,
     }
+  }
+
+  /// Returns the immutable client metadata supplied while creating the logger.
+  #[must_use]
+  pub fn static_metadata(&self) -> Option<&metadata::Mobile> {
+    self.static_metadata.as_deref()
   }
 
   pub fn start(&self) {
