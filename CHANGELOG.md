@@ -5,6 +5,10 @@
 
 ### Both
 
+**Added**
+
+- Nothing yet!
+
 **Changed**
 
 - Many changes to metrics reporting reliability including: independent initial flush window after
