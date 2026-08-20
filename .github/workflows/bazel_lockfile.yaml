@@ -1,0 +1,29 @@
+name: Bazel lockfile
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .bazelrc
+      - .bazelversion
+      - MODULE.bazel
+      - MODULE.bazel.lock
+      - bazel/third_party/**
+      - .github/workflows/bazel_lockfile.yaml
+  pull_request:
+    paths:
+      - .bazelrc
+      - .bazelversion
+      - MODULE.bazel
+      - MODULE.bazel.lock
+      - bazel/third_party/**
+      - .github/workflows/bazel_lockfile.yaml
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify MODULE.bazel.lock
+        run: ./bazelw mod graph --lockfile_mode=error

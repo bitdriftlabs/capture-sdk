@@ -26,8 +26,11 @@ if git rev-parse --abbrev-ref HEAD | grep -q ^main$ ; then
   exit 0
 fi
 
-# Run git diff and store output
-diff_output=$(git diff --name-only "$base_ref" || exit 1)  # Ensure git diff failures are caught
+# Compare committed PR changes only. Callers such as check_bazel.sh may generate files while
+# computing their result; a one-argument git diff would include those working-tree side effects.
+final_revision="${GITHUB_SHA:-HEAD}"
+previous_revision=$(git merge-base "$base_ref" "$final_revision")
+diff_output=$(git diff --name-only "$previous_revision" "$final_revision" || exit 1)
 
 # Check for relevant file changes. Exact-file mode prevents callers from
 # maintaining large, escape-heavy regular expressions.

@@ -106,6 +106,10 @@ git -C "$workspace_path" checkout "$final_revision" --quiet
 
 "${bazel_diff_command[@]}" generate-hashes -w "$workspace_path" -b "$bazel_path" $final_hashes_json --excludeExternalTargets
 
+# The final hash collection can also update the lockfile. Restore the checked-in version before
+# later CI gates inspect changed files so this generator side effect is not treated as a PR change.
+git -C "$workspace_path" checkout -- MODULE.bazel.lock
+
 "${bazel_diff_command[@]}" get-impacted-targets -w "$workspace_path" -sh $starting_hashes_json -fh $final_hashes_json -o $impacted_targets_path
 
 # First pretty print the targets for debugging
