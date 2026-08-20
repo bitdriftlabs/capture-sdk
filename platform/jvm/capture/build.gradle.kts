@@ -65,6 +65,14 @@ android {
         }
     }
 
+    packaging {
+        jniLibs {
+            // Bazel already selects libcapture's strip level for each build type. Preserve the
+            // generated library so Android Gradle Plugin does not invoke an NDK strip tool.
+            keepDebugSymbols += "**/libcapture.so"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
