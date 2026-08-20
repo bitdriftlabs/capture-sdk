@@ -105,7 +105,6 @@ bitdrift_kt_android_local_test(
         "-Djava.library.path=test/platform/jvm",
     ],
     deps = [
-        "//platform/jvm/capture:capture_logger_lib",
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
         "@rules_robolectric//bazel:android-all",

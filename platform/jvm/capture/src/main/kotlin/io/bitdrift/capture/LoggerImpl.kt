@@ -29,6 +29,7 @@ import io.bitdrift.capture.events.device.DeviceStateListenerLogger
 import io.bitdrift.capture.events.lifecycle.AppExitLogger
 import io.bitdrift.capture.events.lifecycle.AppLifecycleListenerLogger
 import io.bitdrift.capture.events.lifecycle.EventsListenerTarget
+import io.bitdrift.capture.events.lifecycle.WindowFocusFlushLogger
 import io.bitdrift.capture.events.performance.BatteryMonitor
 import io.bitdrift.capture.events.performance.DiskUsageMonitor
 import io.bitdrift.capture.events.performance.JankStatsMonitor
@@ -292,6 +293,8 @@ internal class LoggerImpl(
         )
 
         addJankStatsMonitorTarget(windowManager, context)
+
+        addWindowFocusFlushTarget(context, windowManager)
 
         appExitLogger =
             AppExitLogger(
@@ -751,6 +754,24 @@ internal class LoggerImpl(
             if (result is CaptureResult.Success) {
                 Log.i("capture", "Temporary device code: ${result.value}")
             }
+        }
+    }
+
+    private fun addWindowFocusFlushTarget(
+        context: Context,
+        windowManager: IWindowManager,
+    ) {
+        if (context is Application) {
+            eventsListenerTarget.add(
+                WindowFocusFlushLogger(
+                    context,
+                    this,
+                    runtime,
+                    windowManager,
+                ),
+            )
+        } else {
+            errorHandler.handleError("Couldn't start WindowFocusFlushLogger. Invalid application provided")
         }
     }
 

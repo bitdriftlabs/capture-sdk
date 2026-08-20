@@ -23,7 +23,7 @@
 
 **Added**
 
-- Nothing yet!
+- Flush the logger when the app's window loses focus to improve metrics reliability during forece quits.
 
 **Changed**
 
