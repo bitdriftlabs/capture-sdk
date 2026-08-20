@@ -11,8 +11,6 @@
   rotation, and receiving main-thread session-ID change callbacks. With an inactivity timeout,
   Capture reuses a persisted session until it expires; without one, it uses the configured initial
   ID at every SDK start.
-- Added internal support for initializing and updating SDK-owned OOTB log fields.
-
 **Changed**
 
 - Nothing yet!
