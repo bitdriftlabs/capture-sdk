@@ -55,11 +55,23 @@ android {
 
     defaultConfig {
         minSdk = 23
-        ndkVersion = "27.2.12479018"
         consumerProguardFiles("consumer-rules.pro")
     }
 
-    ndkVersion = "27.2.12479018"
+    buildTypes {
+        create("profileable") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+        }
+    }
+
+    packaging {
+        jniLibs {
+            // Bazel already selects libcapture's strip level for each build type. Preserve the
+            // generated library so Android Gradle Plugin does not invoke an NDK strip tool.
+            keepDebugSymbols += "**/libcapture.so"
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -100,6 +112,26 @@ android {
 val bazelWorkspace = file("../../..")
 val bazelCaptureLibrary = "//platform/jvm:capture_shared"
 
+/**
+ * Controls the Rust debug information included in a Bazel-built JNI library.
+ *
+ * Gradle does not strip the library because that requires an NDK installation. Instead, this
+ * value selects the equivalent Rust linker behavior in Bazel.
+ */
+enum class BazelRustStripLevel(
+    /** The value supplied to Bazel's `capture_rust_strip_level` define, when one is needed. */
+    val bazelDefineValue: String?,
+) {
+    /** Use Bazel's default stripping behavior for the selected build configuration. */
+    DEFAULT(null),
+
+    /** Strip DWARF debug information while retaining the symbol table. */
+    DEBUG_INFO("debuginfo"),
+
+    /** Preserve all debug information and symbols. */
+    NONE("none"),
+}
+
 // Keep Gradle's historical cargo-ndk target names so existing local and CI invocations select
 // the corresponding Bazel platform and APK JNI directory together.
 data class BazelAndroidTarget(
@@ -117,7 +149,11 @@ val bazelAndroidTarget =
         else -> throw GradleException("Unsupported Rust Android target: $rustTarget")
     }
 
-fun registerBazelRustBuild(buildType: String, release: Boolean) =
+fun registerBazelRustBuild(
+    buildType: String,
+    release: Boolean,
+    stripLevel: BazelRustStripLevel = BazelRustStripLevel.DEFAULT,
+) =
     tasks.register<Exec>("buildBazel${buildType.replaceFirstChar(Char::uppercase)}Rust") {
         description = "Build the $buildType Android Rust library with Bazel"
         workingDir = bazelWorkspace
@@ -129,6 +165,11 @@ fun registerBazelRustBuild(buildType: String, release: Boolean) =
         )
         if (release) {
             args("--config=release-android")
+        }
+        if (stripLevel.bazelDefineValue != null) {
+            // Preserve the Gradle variant's debugSymbolLevel through Bazel, which owns the
+            // Rust linker and does not require Gradle to install the NDK.
+            args("--define=capture_rust_strip_level=${stripLevel.bazelDefineValue}")
         }
     }
 
@@ -160,14 +201,19 @@ fun registerBazelRustCopy(buildType: String, buildTask: TaskProvider<out Task>) 
         }
     }
 
-val buildBazelDebugRust = registerBazelRustBuild("debug", release = false)
+val buildBazelDebugRust =
+    registerBazelRustBuild("debug", release = false, stripLevel = BazelRustStripLevel.DEBUG_INFO)
 val buildBazelReleaseRust = registerBazelRustBuild("release", release = true)
+val buildBazelProfileableRust =
+    registerBazelRustBuild("profileable", release = true, stripLevel = BazelRustStripLevel.NONE)
 val copyBazelDebugRust = registerBazelRustCopy("debug", buildBazelDebugRust)
 val copyBazelReleaseRust = registerBazelRustCopy("release", buildBazelReleaseRust)
+val copyBazelProfileableRust = registerBazelRustCopy("profileable", buildBazelProfileableRust)
 
 android.sourceSets {
     getByName("debug").jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/debug"))
     getByName("release").jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/release"))
+    getByName("profileable").jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/profileable"))
 }
 
 tasks.matching { it.name == "mergeDebugJniLibFolders" }.configureEach {
@@ -176,6 +222,10 @@ tasks.matching { it.name == "mergeDebugJniLibFolders" }.configureEach {
 
 tasks.matching { it.name == "mergeReleaseJniLibFolders" }.configureEach {
     dependsOn(copyBazelReleaseRust)
+}
+
+tasks.matching { it.name == "mergeProfileableJniLibFolders" }.configureEach {
+    dependsOn(copyBazelProfileableRust)
 }
 
 // Task to build the test JNI library (combines production + test code)

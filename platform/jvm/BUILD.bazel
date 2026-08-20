@@ -35,11 +35,30 @@ bitdrift_rust_shared_library(
             "-Clink-args=-Wl,-framework,Security",
         ],
         "//conditions:default": ["@platforms//:incompatible"],
+    }) + select({
+        # Gradle selects this define for variants that previously used
+        # debugSymbolLevel = "SYMBOL_TABLE". Keep the symbol table while
+        # stripping debug information without requiring Gradle's NDK tools.
+        ":strip_debug_info": ["-Cstrip=debuginfo"],
+        # Gradle selects this define for variants that previously used
+        # debugSymbolLevel = "FULL".
+        ":strip_none": ["-Cstrip=none"],
+        "//conditions:default": [],
     }),
     visibility = ["//visibility:public"],
     deps = [
         "//platform/jvm/core:capture_core",
     ],
+)
+
+config_setting(
+    name = "strip_debug_info",
+    values = {"define": "capture_rust_strip_level=debuginfo"},
+)
+
+config_setting(
+    name = "strip_none",
+    values = {"define": "capture_rust_strip_level=none"},
 )
 
 # Concatenate the proguard files from the capture and replay libraries
