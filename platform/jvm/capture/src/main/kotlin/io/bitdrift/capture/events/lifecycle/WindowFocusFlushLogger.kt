@@ -63,8 +63,9 @@ internal class WindowFocusFlushLogger(
 
     private fun registerFocusObserver(activity: Activity) {
         focusRegistrar.register(activity) { hasFocus ->
-            if (!hasFocus) {
-                onWindowFocusLost()
+            if (!hasFocus && isStarted && runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_WINDOW_FOCUS_LOSS)) {
+                // Focus callbacks are dispatched on the main thread; a blocking flush would stall it.
+                logger.flush(blocking = false)
             }
         }
     }
@@ -76,14 +77,6 @@ internal class WindowFocusFlushLogger(
     override fun onActivityDestroyed(activity: Activity) {
         // Defensive: covers an activity destroyed without a matching stop.
         focusRegistrar.unregister(activity)
-    }
-
-    private fun onWindowFocusLost() {
-        if (!isStarted || !runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_WINDOW_FOCUS_LOSS)) {
-            return
-        }
-        // Focus callbacks are dispatched on the main thread; a blocking flush would stall it.
-        logger.flush(blocking = false)
     }
 
     override fun onActivityCreated(
