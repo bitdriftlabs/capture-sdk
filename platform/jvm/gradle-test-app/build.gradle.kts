@@ -121,8 +121,13 @@ android {
         )
     }
 
-    // This needs to be set to access the strip tools to strip the shared libraries.
-    ndkVersion = "27.2.12479018"
+    packaging {
+        jniLibs {
+            // Gradle must preserve the JNI libraries so it does not require the NDK's strip tool.
+            // Bazel controls libcapture stripping through --config=release-android.
+            keepDebugSymbols += "**/*.so"
+        }
+    }
 
     // Run lint checks on every build
     applicationVariants.configureEach {
@@ -150,10 +155,6 @@ android {
 
     buildTypes {
         debug {
-            // This can be enable to test proguard rules while debugging
-            ndk {
-                debugSymbolLevel = "SYMBOL_TABLE" // Using this to reduce output .so size
-            }
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -169,14 +170,6 @@ android {
         create("profileable") {
             initWith(getByName("release"))
             matchingFallbacks += listOf("release")
-            ndk {
-                debugSymbolLevel = "FULL"
-            }
-            packaging {
-                jniLibs {
-                    keepDebugSymbols += "**/*.so"
-                }
-            }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             proguardFiles("profileable-rules.pro")
         }

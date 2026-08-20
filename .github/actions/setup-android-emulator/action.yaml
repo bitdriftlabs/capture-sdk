@@ -5,6 +5,10 @@ inputs:
   buildbuddy-api-key:
     description: BuildBuddy API key.
     required: false
+  setup-gradle-cache:
+    description: Whether to restore Gradle's dependency cache
+    required: false
+    default: "false"
   api-level:
     description: Android API level for the emulator.
     required: true
@@ -42,6 +46,7 @@ runs:
       uses: ./.github/actions/android-setup
       with:
         buildbuddy-api-key: ${{ inputs.buildbuddy-api-key }}
+        setup-gradle-cache: ${{ inputs.setup-gradle-cache }}
         setup-emulator: "true"
         emulator-api-level: ${{ inputs.api-level }}
         emulator-target: ${{ inputs.target }}

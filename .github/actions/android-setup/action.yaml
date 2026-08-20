@@ -9,6 +9,10 @@ inputs:
     description: Whether to set up the local Android SDK cache needed by Gradle
     required: false
     default: "false"
+  setup-gradle-cache:
+    description: Whether to restore Gradle's dependency cache
+    required: false
+    default: "false"
   java-version:
     description: JDK version to install
     required: false
@@ -53,7 +57,7 @@ runs:
       with:
         distribution: 'zulu'
         java-version: ${{ inputs.java-version }}
-        cache: gradle
+        cache: ${{ inputs.setup-gradle-cache == 'true' && 'gradle' || '' }}
 
     - name: Accept Android SDK licenses
       if: inputs.setup-emulator == 'true'

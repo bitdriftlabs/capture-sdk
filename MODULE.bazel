@@ -202,8 +202,8 @@ native_binary(
 # Android extensions
 ####################
 
-# Android SDK/NDK inputs are hermetic for Bazel. Gradle deliberately continues to use the
-# cached local SDK installed by tools/setup_android_sdk.sh.
+# Android SDK/NDK inputs are hermetic for Bazel. Gradle uses only the cached local SDK
+# installed by tools/setup_android_sdk.sh.
 android = use_extension("@hermetic_android_toolchains//:extensions.bzl", "android", dev_dependency = True)
 android.sdk(
     build_tools_version = SDK_BUILD_TOOLS_VERSION,

@@ -303,6 +303,7 @@ jobs:
       uses: ./.github/actions/setup-android-emulator
       with:
         buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+        setup-gradle-cache: "true"
         api-level: '23'
         target: default
         arch: x86_64
@@ -347,6 +348,7 @@ jobs:
         uses: ./.github/actions/setup-android-emulator
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          setup-gradle-cache: "true"
           api-level: '31'
           target: default
           arch: x86_64

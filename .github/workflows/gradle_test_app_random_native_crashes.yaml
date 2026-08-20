@@ -20,10 +20,11 @@ jobs:
       - name: Checkout project sources
         uses: actions/checkout@v4
 
-      - name: Setup Android cmd line tools + NDK
+      - name: Setup Android command-line tools
         uses: ./.github/actions/android-setup
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          setup-gradle-cache: "true"
           setup-emulator: 'true'
           emulator-api-level: '31'
           emulator-target: google_apis
