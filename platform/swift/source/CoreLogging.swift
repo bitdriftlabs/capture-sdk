@@ -143,6 +143,13 @@ protocol CoreLogging: AnyObject {
     /// - parameter value: The value of the field to add.
     func addField(withKey key: String, value: String)
 
+    /// Adds or replaces an SDK-owned OOTB field. This is intended for Capture's platform
+    /// implementation rather than customer-provided fields.
+    ///
+    /// - parameter key:   The OOTB field name.
+    /// - parameter value: The OOTB field value.
+    func updateOotbField(withKey key: String, value: String)
+
     /// Removes a field with a given key. This operation has no effect if a field with the given key
     /// is not registered with the logger.
     ///

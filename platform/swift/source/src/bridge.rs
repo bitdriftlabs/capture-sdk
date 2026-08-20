@@ -488,6 +488,7 @@ extern "C" fn capture_create_logger(
   api_key: *const c_char,
   session_strategy: *mut Object,
   provider: *mut Object,
+  initial_ootb_fields_array: *mut Object,
   resource_utilization_target: *mut Object,
   session_replay_target: *mut Object,
   events_listener_target: *mut Object,
@@ -531,7 +532,8 @@ extern "C" fn capture_create_logger(
             .to_string(),
         },
       ));
-      let initial_ootb_fields = static_metadata.static_log_fields();
+      let mut initial_ootb_fields = static_metadata.static_log_fields();
+      initial_ootb_fields.extend(unsafe { ffi::convert_fields(initial_ootb_fields_array) }?);
 
       let error_reporter = MetadataErrorReporter::new(
         Arc::new(unsafe { SwiftErrorReporter::new(error_reporter_ns_object) }),
@@ -960,6 +962,25 @@ extern "C" fn capture_add_log_field(
       Ok(())
     },
     "swift add field",
+  );
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn capture_update_ootb_log_field(
+  logger_id: LoggerId<'_>,
+  key: *const c_char,
+  value: *const c_char,
+) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
+      let value = unsafe { CStr::from_ptr(value) }.to_str()?.to_string();
+
+      logger_id.update_ootb_log_field(key, value.into());
+
+      Ok(())
+    },
+    "swift update OOTB field",
   );
 }
 

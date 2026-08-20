@@ -17,6 +17,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.FieldValue
 import junit.framework.TestCase.assertEquals
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -48,18 +50,18 @@ class ClientAttributesTest {
     fun foreground() {
         val mockedLifecycleOwnerLifecycleStateStarted = obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED)
 
-        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).dynamicFields()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).initialOotbFields()
 
-        assertThat(clientAttributes).containsEntry("foreground", "1")
+        assertThat(clientAttributes).containsExactly(Field("foreground", FieldValue.StringField("1")))
     }
 
     @Test
     fun not_foreground() {
         val mockedLifecycleOwnerLifecycleStateCreated = obtainMockedLifecycleOwnerWith(Lifecycle.State.CREATED)
 
-        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateCreated).dynamicFields()
+        val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateCreated).initialOotbFields()
 
-        assertThat(clientAttributes).containsEntry("foreground", "0")
+        assertThat(clientAttributes).containsExactly(Field("foreground", FieldValue.StringField("0")))
     }
 
     @Test
@@ -70,7 +72,7 @@ class ClientAttributesTest {
                 obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED),
             ).dynamicFields()
 
-        assertThat(fields).containsKey("foreground")
+        assertThat(fields).doesNotContainKey("foreground")
         assertThat(fields).doesNotContainKeys("app_id", "app_version", "_app_version_code", "model")
     }
 

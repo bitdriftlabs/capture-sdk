@@ -17,6 +17,8 @@ import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.utils.BuildTypeChecker
 import java.util.Locale
@@ -26,7 +28,6 @@ internal class ClientAttributes(
     private val processLifecycleOwner: LifecycleOwner,
 ) : IClientAttributes {
     private val resources = context.resources
-    private var cachedForegroundState: ForegroundState? = null
     private var cachedConfiguration: Configuration = Configuration(resources.configuration)
 
     private var cachedLocale: String? = null
@@ -77,19 +78,17 @@ internal class ClientAttributes(
 
     private val cachedAttributes = mutableMapOf<String, String>()
 
+    /**
+     * Returns the foreground snapshot used to initialize the logger.
+     *
+     * Process lifecycle state can be read from the logger runtime thread. Subsequent lifecycle
+     * events keep the OOTB field current on the main thread.
+     */
+    internal fun initialOotbFields(): Array<Field> = arrayOf(Field(FOREGROUND_KEY, FieldValue.StringField(foregroundValue())))
+
     internal fun dynamicFields(): Fields {
-        updateForegroundState()
         updateLocaleIfNeeded()
         return cachedAttributes
-    }
-
-    private fun updateForegroundState() {
-        val currentState = if (isForeground()) ForegroundState.Foreground else ForegroundState.Background
-
-        if (cachedForegroundState != currentState) {
-            cachedForegroundState = currentState
-            cachedAttributes["foreground"] = currentState.value
-        }
     }
 
     private fun updateLocaleIfNeeded() {
@@ -118,6 +117,8 @@ internal class ClientAttributes(
             false
         }
     }
+
+    private fun foregroundValue(): String = if (isForeground()) "1" else "0"
 
     private fun PackageManager.getPackageInfoCompat(
         packageName: String,
@@ -160,22 +161,12 @@ internal class ClientAttributes(
             UNKNOWN_FIELD_VALUE
         }
 
-    private sealed interface ForegroundState {
-        val value: String
-
-        object Foreground : ForegroundState {
-            override val value: String = "1"
-        }
-
-        object Background : ForegroundState {
-            override val value: String = "0"
-        }
-    }
-
     /**
      * Holds constants for Client attributes
      */
     companion object {
+        const val FOREGROUND_KEY = "foreground"
+
         // The unique sdk library that can be used for custom reports
         const val SDK_LIBRARY_ID = "io.bitdrift.capture-android"
 

@@ -51,6 +51,7 @@ class ConfigurationTest {
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
+                anyOrNull(),
             ),
         ).thenReturn(-1L)
 
@@ -69,6 +70,7 @@ class ConfigurationTest {
 
         // We confirm that we actually tried to configure the logger.
         verify(bridge, times(1)).createLogger(
+            anyOrNull(),
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
@@ -124,6 +126,7 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
+            anyOrNull(),
         )
     }
 
@@ -135,6 +138,7 @@ class ConfigurationTest {
         val bridge: IBridge = mock {}
         whenever(
             bridge.createLogger(
+                anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),

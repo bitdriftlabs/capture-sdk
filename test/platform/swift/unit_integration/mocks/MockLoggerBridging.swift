@@ -125,6 +125,8 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func addField(withKey _: String, value _: String) {}
 
+    public func updateOotbField(withKey _: String, value _: String) {}
+
     public func removeField(withKey _: String) {}
 
     public func flush(blocking _: Bool) {}

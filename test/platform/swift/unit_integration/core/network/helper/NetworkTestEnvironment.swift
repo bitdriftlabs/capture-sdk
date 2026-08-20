@@ -48,6 +48,7 @@ final class NetworkTestEnvironment {
                 bufferDirectoryPath: sdkDirectory.path,
                 sessionStrategy: .fixed(),
                 metadataProvider: MockMetadataProvider(),
+                initialOotbFields: [],
                 resourceUtilizationTarget: MockResourceUtilizationTarget(),
                 sessionReplayTarget: MockSessionReplayTarget(),
                 eventsListenerTarget: MockEventsListenerTarget(),
