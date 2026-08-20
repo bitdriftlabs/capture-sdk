@@ -1,9 +1,16 @@
 load("@ios_signing_overrides//:signing_overrides.bzl", "PROFILE_NAME", "TEAM_ID")
 load("@rules_apple//apple:apple.bzl", "local_provisioning_profile")
 load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
     "xcode_provisioning_profile",
+)
+
+sh_binary(
+    name = "strip_rust_metadata",
+    srcs = ["strip_rust_metadata.sh"],
+    visibility = ["//visibility:public"],
 )
 
 alias(

@@ -33,7 +33,8 @@ exports_files([
 
 config_setting(
     name = "ios_device_build",
-    values = {
-        "cpu": "ios_arm64",
-    },
+    constraint_values = [
+        "@platforms//os:ios",
+        "@build_bazel_apple_support//constraints:device",
+    ],
 )
