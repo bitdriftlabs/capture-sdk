@@ -18,7 +18,7 @@
     {
       "action": "wait",
       "seconds": 1.2,
-      "why": "kill lands at ~ON_STOP+390ms, reliably BEFORE the ack. Bracketed on a Pixel 10: +390ms and +865ms both beat the ack, while +1.32s lost to a 974ms ack. Ack latency ranges 633-1535ms, so no wait reliably lands on the ack's side -- aim at the side that reliably tests something. This exercises the recovery path: the disk write survives (+25ms) and the snapshot is re-uploaded on next launch, verified by uuid."
+      "why": "kill lands a few hundred ms after ON_STOP, reliably BEFORE the ack. Bracketed on one phone: early kills beat the ack while a kill after ~1.3s lost to it. Ack latency spans a wide range with a heavy tail, so no fixed wait reliably lands on the ack's side -- aim at the side that reliably tests something. This exercises the recovery path: the disk write survives and the snapshot is re-uploaded on next launch, verified by uuid."
     },
     {
       "action": "kill"

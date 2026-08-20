@@ -1,6 +1,6 @@
 {
   "name": "focus-permission-dialog",
-  "description": "A permission dialog over FocusMatrixActivity drops window focus; dismissing it regains focus with no extra flush. NOTE: the sibling IME row is NOT here on purpose -- measured on Pixel 10 / API 37, a verifiably-open keyboard (dumpsys input_method -> mInputShown=true) never drops window focus, so there is nothing to automate.",
+  "description": "A permission dialog over FocusMatrixActivity drops window focus; dismissing it regains focus with no extra flush. NOTE: the sibling IME row is NOT here on purpose -- on the hardware measured so far a verifiably-open keyboard (dumpsys input_method -> mInputShown=true) never drops window focus, so there is nothing to automate. Re-check on new hardware before repeating the claim; see references/window-focus-flush.md.",
   "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
   "modes_before_launch": [],
   "steps": [

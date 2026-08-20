@@ -10,10 +10,10 @@ mid-investigation, after it had already produced a wrong answer. A pattern that 
 not error; it silently reports "the behaviour did not happen". That is the single most expensive
 failure mode this tooling has, and until now nothing guarded against it.
 
-Each sample below is a real logcat line, timestamps and pids normalised, taken from captures on a
-Pixel 10 and an emulator. Four are marked SYNTHETIC: they come from paths adb cannot trigger (the
-blocking flush only runs on JVM crash) or that need a flush collision, so they are written from the
-documented wordings rather than witnessed. Treat those as weaker evidence.
+Each sample below is a real logcat line, timestamps and pids normalised, taken from captures on
+physical hardware and an emulator. A few are marked SYNTHETIC: they come from paths adb cannot trigger
+(the blocking flush only runs on JVM crash) or that need a flush collision, so they are written from
+the documented wordings rather than witnessed. Treat those as weaker evidence.
 
 Failure means one of two things, and the difference matters: either a shared-core bump renamed a
 message -- update the pattern and add the new wording as a sample, keeping the old one -- or an edit

@@ -148,7 +148,7 @@ def main() -> None:
               f"{', '.join(debo)}\n      Those runs measured the gate, not their subject. The floor is"
               f" armed only by a flush-path\n      upload; if one is now happening near startup, the"
               f" short foreground waits are no longer\n      safe and need raising back. See"
-              f" references/flush-matrix.md.")
+              f" references/stats-flush.md.")
     print(f"\nper-scenario artifacts in {args.out}/<scenario>/{serial}/")
 
 
