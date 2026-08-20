@@ -1,0 +1,14 @@
+name: Check Clippy configuration
+description: Reports whether files that require a full Clippy run changed.
+
+outputs:
+  changed:
+    description: Whether Clippy configuration changed.
+    value: ${{ steps.check.outputs.changed }}
+
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      run: ./ci/check_clippy_config.sh

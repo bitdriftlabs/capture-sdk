@@ -61,4 +61,22 @@ final class SessionStrategyTests: XCTestCase {
 
         XCTAssertNotEqual(sessionID, newSessionID)
     }
+
+    func testConcurrentSessionReadsAndRotations() throws {
+        let logger = try Logger.testLogger(withAPIKey: "test_api_key")
+
+        // Both public calls enter bd_session::Strategy.state. Mixing them from several caller
+        // threads exercises the iOS PlatformMutex/os_unfair_lock implementation under contention.
+        DispatchQueue.concurrentPerform(iterations: 8) { worker in
+            for iteration in 0 ..< 100 {
+                if (worker + iteration).isMultiple(of: 2) {
+                    logger.startNewSession()
+                } else {
+                    _ = logger.sessionID
+                }
+            }
+        }
+
+        XCTAssertEqual(logger.sessionID.count, UUID().uuidString.count)
+    }
 }

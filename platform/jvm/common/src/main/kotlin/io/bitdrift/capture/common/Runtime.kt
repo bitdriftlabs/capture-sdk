@@ -59,6 +59,12 @@ sealed class RuntimeFeature(
     data object LOGGER_FLUSHING_ON_CRASH : RuntimeFeature("client_feature.android.logger_flushing_on_force_quit", defaultValue = true)
 
     /**
+     * Whether the logger should be flushed when the app's window loses focus.
+     */
+    data object LOGGER_FLUSHING_ON_WINDOW_FOCUS_LOSS :
+        RuntimeFeature("client_feature.android.logger_flushing_on_window_focus_loss", defaultValue = true)
+
+    /**
      * Whether Dropped Frames reporting is enabled
      */
     data object DROPPED_EVENTS_MONITORING : RuntimeFeature("client_feature.android.dropped_frames_reporting", defaultValue = true)

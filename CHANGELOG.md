@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.11...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.12...HEAD
 
 ### Both
 
@@ -29,7 +29,6 @@
 
 **Fixed**
 
-- Include pre-desugar AAR classes in published Android artifacts.
 - Prevent duplicate JVM crash reports when fatal issue reporting initializes after app exit logging.
 
 ### iOS
@@ -45,6 +44,28 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.23.12]
+[0.23.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.12
+
+### Both
+
+**Changed**
+
+- Many changes to metrics reporting reliability including: independent initial flush window after
+  process start, disk flush debounce, and simplifying the events that cause flushes so that flushes
+  are more predictable in response to lifecycle events and easier to reason about.
+
+### Android
+
+**Added**
+
+- Flush the logger when the app's window loses focus to improve metrics reliability during forece quits.
+
+**Fixed**
+
+- Include pre-desugar AAR classes in published Android artifacts.
+- Start ingesting ANR reports that don't have a full stacktrace available (e.g. Having a null traceInputStream from ApplicationExitInfo)
 
 ## [0.23.11]
 [0.23.11]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.11

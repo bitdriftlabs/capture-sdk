@@ -5,15 +5,16 @@ load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("@rules_rust//rust:defs.bzl", "rust_clippy")
 
-def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], **args):
+def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], tags = [], **args):
     rust_binary(
         name = name,
         srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
         deps = all_crate_deps(normal = True, cargo_only = True) + deps,
         proc_macro_deps = proc_macro_deps,
         aliases = _crate_aliases(),
-        edition = "2021",
+        edition = "2024",
         rustc_flags = _rustc_flags(),
+        tags = _clippy_tags(tags),
         **args
     )
 
@@ -28,15 +29,16 @@ def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], **a
         ],
     )
 
-def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps = [], rustc_flags = [], **args):
+def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps = [], rustc_flags = [], tags = [], **args):
     rust_shared_library(
         name = name,
         srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
         deps = all_crate_deps(normal = True, cargo_only = True) + deps,
         proc_macro_deps = proc_macro_deps,
         aliases = _crate_aliases(),
-        edition = "2021",
+        edition = "2024",
         rustc_flags = rustc_flags + _rustc_flags(),
+        tags = _clippy_tags(tags),
         **args
     )
 
@@ -51,14 +53,15 @@ def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps =
         ],
     )
 
-def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], **args):
+def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], **args):
     rust_test(
         name = name,
         rustc_flags = _rustc_flags(),
-        edition = "2021",
+        edition = "2024",
         deps = all_crate_deps(normal = True, normal_dev = True, cargo_only = True) + deps,
         proc_macro_deps = proc_macro_deps,
         aliases = _crate_aliases(),
+        tags = _clippy_tags(tags),
         **args
     )
 
@@ -71,7 +74,7 @@ def bitdrift_rust_integration_test(name, **args):
         **args
     )
 
-def bitdrift_rust_library_only(name, srcs, deps = []):
+def bitdrift_rust_library_only(name, srcs, deps = [], tags = []):
     rust_library(
         name = name,
         srcs = srcs,
@@ -79,7 +82,8 @@ def bitdrift_rust_library_only(name, srcs, deps = []):
         disable_pipelining = True,
         aliases = _crate_aliases(),
         rustc_flags = _rustc_flags(),
-        edition = "2021",
+        edition = "2024",
+        tags = _clippy_tags(tags),
     )
 
 def bitdrift_rust_library(
@@ -97,6 +101,8 @@ def bitdrift_rust_library(
     if test_crate_aliases == None:
         test_crate_aliases = _crate_aliases()
 
+    clippy_tags = _clippy_tags(tags)
+
     rust_library(
         name = name,
         deps = deps + all_crate_deps(normal = True, cargo_only = True),
@@ -104,8 +110,8 @@ def bitdrift_rust_library(
         disable_pipelining = True,
         aliases = crate_aliases,
         rustc_flags = _rustc_flags(),
-        edition = "2021",
-        tags = tags,
+        edition = "2024",
+        tags = clippy_tags,
         data = data,
         **args
     )
@@ -113,7 +119,7 @@ def bitdrift_rust_library(
     rust_test(
         name = "{}_test".format(name),
         crate = name,
-        tags = tags,
+        tags = clippy_tags,
         rustc_flags = _rustc_flags(),
         aliases = test_crate_aliases,
         data = data,
@@ -121,7 +127,7 @@ def bitdrift_rust_library(
             normal_dev = True,
             cargo_only = True,
         ) + test_deps,
-        edition = "2021",
+        edition = "2024",
     )
 
     rust_clippy(
@@ -134,6 +140,12 @@ def bitdrift_rust_library(
             "manual",
         ],
     )
+
+def _clippy_tags(tags):
+    result = tags + ["clippy"]
+    if "macos_only" in tags:
+        result.append("clippy_macos")
+    return result
 
 def _rustc_flags():
     return [

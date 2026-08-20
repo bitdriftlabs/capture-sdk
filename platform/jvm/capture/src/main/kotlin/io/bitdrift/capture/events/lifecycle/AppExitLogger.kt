@@ -118,13 +118,10 @@ internal class AppExitLogger(
             LogType.LIFECYCLE,
             LogLevel.ERROR,
             buildCrashAndMemoryFieldsMap(thread, throwable),
-            blocking = true, // this ensures we block until the log has been persisted to disk
+            // this ensures we block until the log has been persisted to disk
+            blocking = runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH),
         ) {
             APP_EXIT_EVENT_NAME
-        }
-
-        if (runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)) {
-            logger.flush(true) // wait for state to be flushed to disk
         }
     }
 

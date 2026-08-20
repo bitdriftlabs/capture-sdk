@@ -14,14 +14,14 @@ use crate::ffi::{make_empty_nsstring, nsstring_into_string};
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
-use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
+use bd_api::{PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_crash_handler::{CrashReportHook, CrashReportInfo};
 use bd_error_reporter::reporter::{
+  MetadataErrorReporter,
+  UnexpectedErrorHandler,
   handle_unexpected,
   with_handle_unexpected,
   with_handle_unexpected_or,
-  MetadataErrorReporter,
-  UnexpectedErrorHandler,
 };
 use bd_logger::{
   Block,
@@ -39,12 +39,12 @@ use bd_proto::protos::logging::payload::LogType;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::javascript_error::{
-  persist_javascript_error_report,
   AppMetadata,
   DeviceMetadata,
+  persist_javascript_error_report,
 };
-use platform_shared::metadata::{self, Mobile};
-use platform_shared::{date_to_unix_milliseconds, LoggerHolder, LoggerId};
+use platform_shared::metadata::{self, AppleStaticFields, Mobile};
+use platform_shared::{LoggerHolder, LoggerId, date_to_unix_milliseconds};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
 use std::boxed::Box;
@@ -55,10 +55,10 @@ use std::ops::DerefMut;
 use std::os::raw::c_char;
 use std::sync::{Arc, Once};
 use time::{Duration, OffsetDateTime};
+use tracing_subscriber::EnvFilter;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::EnvFilter;
 
 static LOGGING_INIT: Once = Once::new();
 
@@ -270,7 +270,7 @@ impl<W: StreamWriter> Drop for SwiftNetworkStream<W> {
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_api_received_data(stream_id: &StreamState, data: *const u8, size: usize) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
@@ -286,7 +286,7 @@ extern "C" fn capture_api_received_data(stream_id: &StreamState, data: *const u8
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_api_stream_closed(stream_id: &StreamState, reason: *const c_char) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
@@ -304,7 +304,7 @@ extern "C" fn capture_api_stream_closed(stream_id: &StreamState, reason: *const 
 
 // Safety: On the Swift end we ensure that we call this in the deinit function, at which point we
 // are guaranteed exclusive access to the object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_api_release_stream(stream_id: *mut StreamState) {
   // When we're closing the stream, take ownership over the pointer to ensure that it gets cleaned
   // up. The Swift code ensures that this will be called when the stream is dropped, which avoids us
@@ -328,7 +328,7 @@ impl SwiftErrorReporter {
   #[must_use]
   pub unsafe fn new(error_reporter_nsobject: *mut Object) -> Self {
     Self {
-      error_reporter_nsobject: StrongPtr::retain(error_reporter_nsobject),
+      error_reporter_nsobject: unsafe { StrongPtr::retain(error_reporter_nsobject) },
     }
   }
 }
@@ -352,18 +352,18 @@ impl bd_error_reporter::reporter::Reporter for SwiftErrorReporter {
     objc::rc::autoreleasepool(|| {
       // This should never fail in safe code because this only fails when there is an internal null
       // character, but we want to be super safe in this error handler.
-      if let Ok(c_str) = std::ffi::CString::new(message) {
-        if let Ok(fields) = ffi::convert_map::<std::hash::RandomState>(
+      if let Ok(c_str) = std::ffi::CString::new(message)
+        && let Ok(fields) = ffi::convert_map::<std::hash::RandomState>(
           &fields
             .iter()
             .map(|(k, v)| (k.borrow(), v.borrow()))
             .collect(),
-        ) {
-          unsafe {
-            let () =
-              msg_send![*self.error_reporter_nsobject, reportError:c_str.as_ptr() fields:*fields];
-          };
-        }
+        )
+      {
+        unsafe {
+          let () =
+            msg_send![*self.error_reporter_nsobject, reportError:c_str.as_ptr() fields:*fields];
+        };
       }
     });
   }
@@ -471,7 +471,7 @@ impl MetadataProvider for LogMetadataProvider {
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_report_error(error_message: *const c_char) {
   let error_message = unsafe { CStr::from_ptr(error_message) }
     .to_str()
@@ -482,7 +482,7 @@ extern "C" fn capture_report_error(error_message: *const c_char) {
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_create_logger(
   path: *const c_char,
   api_key: *const c_char,
@@ -493,6 +493,7 @@ extern "C" fn capture_create_logger(
   events_listener_target: *mut Object,
   app_id: *const c_char,
   app_version: *const c_char,
+  build_number: *const c_char,
   os_version: *const c_char,
   model: *const c_char,
   bd_network_nsobject: *mut Object,
@@ -513,31 +514,29 @@ extern "C" fn capture_create_logger(
       let storage = Box::<UserDefaultsStorage>::default();
       let store = Arc::new(bd_key_value::Store::new(storage));
 
-      let session_strategy =
+      let session =
         crate::session::SessionStrategy::new(session_strategy).create(sdk_directory.as_ref())?;
 
       let device: Arc<bd_device::Device> = Arc::new(bd_device::Device::new(store.clone()));
 
-      let static_metadata = Arc::new(Mobile {
-        // String conversion can fail if the provided string is not UTF-8.
-        app_id: Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
-        app_version: Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
-        platform: Platform::Apple,
-        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
-        // Further, "os" as sent as a log tag is hard coded as "iOS" so we have a casing
-        // mismatch. We need to untangle all of this but we can do that when we send all fixed
-        // fields as metadata and only use the fixed fields on logs for matching.
-        os: "ios".to_string(),
-        device: device.clone(),
-        os_version: Some(unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string()),
-        manufacturer: None,
-        model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
-      });
+      let static_metadata = Arc::new(Mobile::apple(
+        Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
+        Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
+        Some(unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string()),
+        device.clone(),
+        unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
+        AppleStaticFields {
+          build_number: unsafe { CStr::from_ptr(build_number) }
+            .to_str()?
+            .to_string(),
+        },
+      ));
+      let initial_ootb_fields = static_metadata.static_log_fields();
 
       let error_reporter = MetadataErrorReporter::new(
         Arc::new(unsafe { SwiftErrorReporter::new(error_reporter_ns_object) }),
         Arc::new(platform_shared::error::SessionProvider::new(
-          session_strategy.clone(),
+          session.strategy(),
         )),
         static_metadata.clone(),
       );
@@ -561,8 +560,9 @@ extern "C" fn capture_create_logger(
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory: path.into(),
         api_key: unsafe { CStr::from_ptr(api_key) }.to_str()?.to_string(),
-        session_strategy,
+        session,
         metadata_provider,
+        initial_ootb_fields,
         resource_utilization_target: Box::new(resource_utilization::Target::new(
           resource_utilization_target,
         )),
@@ -594,7 +594,7 @@ extern "C" fn capture_create_logger(
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_start_logger(logger_id: LoggerId<'_>) {
   with_handle_unexpected_or(
     move || {
@@ -606,12 +606,12 @@ extern "C" fn capture_start_logger(logger_id: LoggerId<'_>) {
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_shutdown_logger(logger_id: LoggerId<'_>, blocking: bool) {
   logger_id.shutdown(blocking);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_process_issue_reports(
   mut logger_id: LoggerId<'_>,
   report_processing_session_value: i32,
@@ -636,7 +636,7 @@ extern "C" fn capture_process_issue_reports(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_runtime_bool_variable_value(
   logger_id: LoggerId<'_>,
   variable_name: *const c_char,
@@ -656,12 +656,12 @@ extern "C" fn capture_runtime_bool_variable_value(
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_is_tracing_active(logger_id: LoggerId<'_>) -> bool {
   logger_id.is_tracing_active()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_runtime_uint32_variable_value(
   logger_id: LoggerId<'_>,
   variable_name: *const c_char,
@@ -681,7 +681,7 @@ extern "C" fn capture_runtime_uint32_variable_value(
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_runtime_string_variable_value(
   logger_id: LoggerId<'_>,
   variable_name: *const c_char,
@@ -708,7 +708,7 @@ extern "C" fn capture_runtime_string_variable_value(
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_write_log(
   logger_id: LoggerId<'_>,
   log_level: LogLevel,
@@ -716,8 +716,6 @@ extern "C" fn capture_write_log(
   log: *const c_char,
   fields: *const Object,
   matching_fields: *const Object,
-  blocking: bool,
-  blocking_timeout_ms: u32,
   override_occurred_at_unix_milliseconds: i64,
 ) {
   with_handle_unexpected(
@@ -745,14 +743,6 @@ extern "C" fn capture_write_log(
         fields,
         matching_fields,
         attributes_overrides,
-        if blocking {
-          Block::Yes {
-            timeout: std::time::Duration::from_millis(u64::from(blocking_timeout_ms)),
-            poll_callback: None,
-          }
-        } else {
-          Block::No
-        },
         &CaptureSession::default(),
       );
 
@@ -762,7 +752,7 @@ extern "C" fn capture_write_log(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_write_session_replay_screen_log(
   logger_id: LoggerId<'_>,
   fields: *const Object,
@@ -779,7 +769,7 @@ extern "C" fn capture_write_session_replay_screen_log(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_write_session_replay_screenshot_log(
   logger_id: LoggerId<'_>,
   fields: *const Object,
@@ -796,7 +786,7 @@ extern "C" fn capture_write_session_replay_screenshot_log(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_write_resource_utilization_log(
   logger_id: LoggerId<'_>,
   fields: *const Object,
@@ -813,7 +803,7 @@ extern "C" fn capture_write_resource_utilization_log(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_write_sdk_start_log(
   logger_id: LoggerId<'_>,
   fields: *const Object,
@@ -830,7 +820,7 @@ extern "C" fn capture_write_sdk_start_log(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_should_write_app_update_log(
   logger_id: LoggerId<'_>,
   app_version: *const Object,
@@ -851,7 +841,7 @@ extern "C" fn capture_should_write_app_update_log(
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_write_app_update_log(
   logger_id: LoggerId<'_>,
   app_version: *const Object,
@@ -877,7 +867,7 @@ extern "C" fn capture_write_app_update_log(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration_s: f64) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
@@ -888,7 +878,7 @@ extern "C" fn capture_write_app_launch_tti_log(logger_id: LoggerId<'_>, duration
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name: *const Object) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
@@ -900,12 +890,12 @@ extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>) {
   with_handle_unexpected(|| logger_id.start_new_session(), "swift start new session");
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_get_session_id(logger_id: LoggerId<'_>) -> *const Object {
   with_handle_unexpected_or(
     || {
@@ -921,14 +911,14 @@ extern "C" fn capture_get_session_id(logger_id: LoggerId<'_>) -> *const Object {
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_get_device_id(logger_id: LoggerId<'_>) -> *const Object {
   make_nsstring(&logger_id.device_id())
     .unwrap_or_else(|_| make_empty_nsstring())
     .autorelease()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_get_sdk_version() -> *const Object {
   make_nsstring(&metadata::SDK_VERSION)
     .unwrap_or_else(|_| make_empty_nsstring())
@@ -944,7 +934,7 @@ pub struct SdkStatusFFI {
   pub last_config_delivery_time_ms: i64,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_get_sdk_status(logger_id: LoggerId<'_>) -> SdkStatusFFI {
   let status = logger_id.get_sdk_status();
   SdkStatusFFI {
@@ -954,7 +944,7 @@ extern "C" fn capture_get_sdk_status(logger_id: LoggerId<'_>) -> SdkStatusFFI {
   }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_add_log_field(
   logger_id: LoggerId<'_>,
   key: *const c_char,
@@ -973,7 +963,7 @@ extern "C" fn capture_add_log_field(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_remove_log_field(logger_id: LoggerId<'_>, key: *const c_char) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
@@ -986,7 +976,7 @@ extern "C" fn capture_remove_log_field(logger_id: LoggerId<'_>, key: *const c_ch
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_flush(
   logger_id: LoggerId<'_>,
   blocking: bool,
@@ -1013,7 +1003,7 @@ extern "C" fn capture_flush(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_set_feature_flag_exposure(
   logger_id: LoggerId<'_>,
   flag: *const c_char,
@@ -1038,7 +1028,7 @@ extern "C" fn capture_set_feature_flag_exposure(
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_notify_memory_pressure(logger_id: LoggerId<'_>, level: i8) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
@@ -1049,7 +1039,7 @@ extern "C" fn capture_notify_memory_pressure(logger_id: LoggerId<'_>, level: i8)
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_get_previous_memory_pressure_level(logger_id: LoggerId<'_>) -> i8 {
   with_handle_unexpected_or(
     move || -> anyhow::Result<i8> { Ok(logger_id.previous_memory_pressure_level().0) },
@@ -1058,7 +1048,7 @@ extern "C" fn capture_get_previous_memory_pressure_level(logger_id: LoggerId<'_>
   )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_set_entity_id(logger_id: LoggerId<'_>, entity_id: *const c_char) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
@@ -1070,7 +1060,7 @@ extern "C" fn capture_set_entity_id(logger_id: LoggerId<'_>, entity_id: *const c
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_clear_entity_id(logger_id: LoggerId<'_>) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
@@ -1081,7 +1071,7 @@ extern "C" fn capture_clear_entity_id(logger_id: LoggerId<'_>) {
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
   with_handle_unexpected(
     move || -> anyhow::Result<()> {
@@ -1093,7 +1083,7 @@ extern "C" fn capture_set_sleep_mode(logger_id: LoggerId<'_>, enabled: bool) {
   );
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn capture_persist_javascript_error_report(
   error_name: *const c_char,
   error_message: *const c_char,
@@ -1123,11 +1113,7 @@ extern "C" fn capture_persist_javascript_error_report(
 
       let debug_id = {
         let id = unsafe { CStr::from_ptr(debug_id) }.to_str()?;
-        if id.is_empty() {
-          None
-        } else {
-          Some(id)
-        }
+        if id.is_empty() { None } else { Some(id) }
       };
 
       let manufacturer = unsafe { CStr::from_ptr(manufacturer) }

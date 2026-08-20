@@ -25,6 +25,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
         required: false
         default: ''
+      dry-run:
+        type: boolean
+        description: Validate workflow inputs without publishing artifacts.
+        required: false
+        default: false
       release-ref:
         type: string
         description: Branch or tag to release from. Defaults to main.
@@ -63,6 +68,11 @@ on:
         description: 'Custom Android capture artifact suffix including separator (e.g. "-no-jank-stats" -> io.bitdrift:capture-no-jank-stats). Ignored if platform is ios or react-native. Leave empty for standard "capture".'
         required: false
         default: ''
+      dry-run:
+        type: boolean
+        description: Validate workflow inputs without publishing artifacts.
+        required: false
+        default: false
       release-ref:
         type: string
         description: Branch or tag to release from. Defaults to main.
@@ -70,7 +80,7 @@ on:
         default: main
 jobs:
   release-ios:
-    if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
+    if: ${{ !inputs.dry-run && (inputs.platform == 'all' || inputs.platform == 'ios') }}
     name: Upload iOS artifacts to dl.bitdrift.io
     permissions:
       id-token: write # required to use OIDC authentication
@@ -110,7 +120,7 @@ jobs:
       env:
         VERSION: ${{ inputs.version }}
   release-android:
-    if: ${{ inputs.platform == 'all' || inputs.platform == 'android' }}
+    if: ${{ !inputs.dry-run && (inputs.platform == 'all' || inputs.platform == 'android') }}
     name: Upload Android artifacts to bitdrift maven and maven central
     permissions:
       id-token: write # required to use OIDC authentication (set up aws credentials)

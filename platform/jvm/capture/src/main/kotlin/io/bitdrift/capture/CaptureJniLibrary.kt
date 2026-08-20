@@ -54,6 +54,9 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param osVersion the operating system version of the current device, used to identify with the backend
      * @param manufacturer the device manufacturer, used to identify with the backend on Android
      * @param model the host device model, used to identify with the backend
+     * @param appVersionCode the application version code
+     * @param osApiLevel the Android API level
+     * @param architecture the device CPU architecture
      * @param network the network implementation to use to communicate with the backend
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
      * @param errorReporter the error reporter to use for reporting error to bitdrift services.
@@ -72,6 +75,9 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         osVersion: String,
         manufacturer: String,
         model: String,
+        appVersionCode: Long,
+        osApiLevel: Int,
+        architecture: String,
         network: ICaptureNetwork,
         preferences: IPreferences,
         errorReporter: IErrorReporter,
@@ -215,7 +221,6 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param usePreviousProcessSessionId if set to true, this log will be emitted with the session ID
      *        corresponding to the last session ID during the previous process run.
      * @param overrideOccurredAtUnixMilliseconds used to override the timestamp of the log.
-     * @param blocking if true, the call blocks until the log has been processed.
      */
     external fun writeLog(
         loggerId: Long,
@@ -228,7 +233,6 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         matchingFieldValues: Array<String>,
         usePreviousProcessSessionId: Boolean,
         overrideOccurredAtUnixMilliseconds: Long,
-        blocking: Boolean,
     )
 
     /**
@@ -423,7 +427,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      */
     @Throws(IOException::class, IllegalArgumentException::class)
     external override fun processAndPersistANR(
-        stream: InputStream,
+        stream: InputStream?,
         timestampMillis: Long,
         destinationPath: String,
         attributes: IClientAttributes,

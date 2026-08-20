@@ -7,37 +7,37 @@
 
 use anyhow::bail;
 use bd_key_value::Storage;
-use bd_logger::{log_level, Block, CaptureSession, LogMessage};
+use bd_logger::{Block, CaptureSession, LogMessage, log_level};
 use bd_proto::flatbuffers::buffer_log::bitdrift_public::fbs::logging::v_1::Log;
 use bd_proto::protos::client::api::configuration_update::StateOfTheWorld;
-use bd_proto::protos::config::v1::config::buffer_config::Type;
 use bd_proto::protos::config::v1::config::BufferConfigList;
+use bd_proto::protos::config::v1::config::buffer_config::Type;
 use bd_proto::protos::logging::payload::LogType;
 use bd_runtime::runtime::FeatureFlag;
 use bd_test_helpers::config_helper::make_workflow_matcher_matching_everything_except_internal_logs;
-use bd_test_helpers::runtime::{make_update, ValueKind};
+use bd_test_helpers::runtime::{ValueKind, make_update};
 use bd_test_helpers::test_api_server::ExpectedStreamEvent;
 use bd_test_helpers::{config_helper, test_api_server};
 use config_helper::{
+  BufferConfigBuilder,
   configuration_update,
   make_benchmarking_configuration_update,
   make_benchmarking_configuration_with_workflows_update,
   make_buffer_matcher_matching_everything,
   make_buffer_matcher_matching_everything_except_internal_logs,
   make_configuration_update_with_workflow_flushing_buffer,
-  BufferConfigBuilder,
 };
 use platform_shared::LoggerId;
-use std::ffi::{c_char, CString};
+use std::ffi::{CString, c_char};
 use std::sync::{LazyLock, Mutex, MutexGuard};
+pub use test_api_server::{EventCallback, StreamEvent};
 use test_api_server::{
-  default_configuration_update,
-  start_server,
   ServerHandle,
   StreamAction,
   StreamHandle,
+  default_configuration_update,
+  start_server,
 };
-pub use test_api_server::{EventCallback, StreamEvent};
 use time::Duration;
 
 /// Helper to convert an `anyhow::Result` to a C string for FFI error reporting.
@@ -55,9 +55,9 @@ fn result_to_c_error(result: anyhow::Result<()>) -> *const c_char {
 /// Frees a string allocated by test helper functions.
 ///
 /// # Safety
-/// The pointer must be a valid pointer returned by one of the test helper functions,
-/// or null (in which case this is a no-op).
-#[no_mangle]
+/// `ptr` must either be null or be an unfreed pointer returned by a test helper allocation
+/// function. A non-null pointer must be passed at most once.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn test_helpers_free_string(ptr: *mut c_char) {
   if !ptr.is_null() {
     drop(unsafe { CString::from_raw(ptr) });
@@ -89,7 +89,7 @@ where
 
 /// Creates a new test API server instance and returns an opaque handle.
 /// The caller is responsible for calling `destroy_test_api_server_instance` to clean up.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn create_test_api_server_instance(
   tls: bool,
   ping_interval: i32,
@@ -106,8 +106,9 @@ pub extern "C" fn create_test_api_server_instance(
 /// Returns the port number for a server instance.
 ///
 /// # Safety
-/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
-#[no_mangle]
+/// `handle` must be a non-null, properly aligned pointer returned by
+/// `create_test_api_server_instance` and must remain allocated for the full call.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_instance_port(handle: *mut ServerHandle) -> i32 {
   let handle = unsafe { &*handle };
   handle.port.into()
@@ -116,9 +117,9 @@ pub unsafe extern "C" fn server_instance_port(handle: *mut ServerHandle) -> i32 
 /// Destroys a test API server instance.
 ///
 /// # Safety
-/// The handle must be a valid pointer returned by `create_test_api_server_instance`
-/// and must not be used after this call.
-#[no_mangle]
+/// `handle` must either be null or be an unfreed, properly aligned pointer returned by
+/// `create_test_api_server_instance`. A non-null handle must not be used after this call.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn destroy_test_api_server_instance(handle: *mut ServerHandle) {
   if !handle.is_null() {
     drop(unsafe { Box::from_raw(handle) });
@@ -129,8 +130,9 @@ pub unsafe extern "C" fn destroy_test_api_server_instance(handle: *mut ServerHan
 /// Returns the stream ID or -1 on timeout.
 ///
 /// # Safety
-/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
-#[no_mangle]
+/// `handle` must be a non-null, properly aligned pointer returned by
+/// `create_test_api_server_instance` and must remain allocated for the full call.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_instance_await_next_stream(handle: *mut ServerHandle) -> i32 {
   let handle = unsafe { &*handle };
   handle.blocking_next_stream().map_or(-1, |s| s.id())
@@ -153,8 +155,9 @@ fn server_instance_wait_for_handshake_impl(
 /// Returns null on success, or an error string on failure.
 ///
 /// # Safety
-/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
-#[no_mangle]
+/// `handle` must be a non-null, properly aligned pointer returned by
+/// `create_test_api_server_instance` and must remain allocated for the full call.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_instance_wait_for_handshake(
   handle: *mut ServerHandle,
   stream_id: i32,
@@ -183,8 +186,9 @@ fn server_instance_await_handshake_impl(
 /// Returns null on success, or an error string on failure.
 ///
 /// # Safety
-/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
-#[no_mangle]
+/// `handle` must be a non-null, properly aligned pointer returned by
+/// `create_test_api_server_instance` and must remain allocated for the full call.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_instance_await_handshake(
   handle: *mut ServerHandle,
   stream_id: i32,
@@ -197,8 +201,9 @@ pub unsafe extern "C" fn server_instance_await_handshake(
 /// Returns true if the stream closed within the timeout, false otherwise.
 ///
 /// # Safety
-/// The handle must be a valid pointer returned by `create_test_api_server_instance`.
-#[no_mangle]
+/// `handle` must be a non-null, properly aligned pointer returned by
+/// `create_test_api_server_instance` and must remain allocated for the full call.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_instance_await_stream_closed(
   handle: *mut ServerHandle,
   stream_id: i32,
@@ -212,8 +217,9 @@ pub unsafe extern "C" fn server_instance_await_stream_closed(
 }
 
 /// # Safety
-/// Handle must be valid.
-#[no_mangle]
+/// `handle` must be a non-null, properly aligned pointer returned by
+/// `create_test_api_server_instance` and must remain allocated for the full call.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_instance_send_configuration(
   handle: *mut ServerHandle,
   stream_id: i32,
@@ -238,8 +244,10 @@ fn server_instance_await_configuration_ack_impl(
 /// Returns null on success, or an error string on failure.
 ///
 /// # Safety
-/// Handle must be valid.
-#[no_mangle]
+/// `handle` must be a non-null, properly aligned pointer returned by
+/// `create_test_api_server_instance`. The caller must have exclusive access to it for the full
+/// call.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_instance_await_configuration_ack(
   handle: *mut ServerHandle,
   stream_id: i32,
@@ -322,8 +330,10 @@ pub fn server_instance_configure_aggressive_uploads_impl(
 /// Returns null on success, or an error string on failure.
 ///
 /// # Safety
-/// Handle must be valid.
-#[no_mangle]
+/// `handle` must be a non-null, properly aligned pointer returned by
+/// `create_test_api_server_instance`. The caller must have exclusive access to it for the full
+/// call.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_instance_configure_aggressive_uploads(
   handle: *mut ServerHandle,
   stream_id: i32,
@@ -369,14 +379,16 @@ pub fn run_large_upload_test_impl(
     "version",
     StateOfTheWorld {
       buffer_config_list: Some(BufferConfigList {
-        buffer_config: vec![BufferConfigBuilder {
-          name: "big buffer",
-          buffer_type: Type::CONTINUOUS,
-          filter: make_buffer_matcher_matching_everything().into(),
-          non_volatile_size: 10_100_000,
-          volatile_size: 10_000_000,
-        }
-        .build()],
+        buffer_config: vec![
+          BufferConfigBuilder {
+            name: "big buffer",
+            buffer_type: Type::CONTINUOUS,
+            filter: make_buffer_matcher_matching_everything().into(),
+            non_volatile_size: 10_100_000,
+            volatile_size: 10_000_000,
+          }
+          .build(),
+        ],
         ..Default::default()
       })
       .into(),
@@ -398,12 +410,13 @@ pub fn run_large_upload_test_impl(
       [].into(),
       [].into(),
       None,
-      Block::Yes {
-        timeout: std::time::Duration::from_secs(5),
-        poll_callback: None,
-      },
       &CaptureSession::default(),
     );
+
+    logger_id.flush_state(Block::Yes {
+      timeout: std::time::Duration::from_secs(5),
+      poll_callback: None,
+    });
   }
 
   let Some(log_upload) = handle.blocking_next_log_upload() else {
@@ -421,8 +434,10 @@ pub fn run_large_upload_test_impl(
 /// Returns null on success, or an error string on failure.
 ///
 /// # Safety
-/// Handle must be valid.
-#[no_mangle]
+/// `handle` must be a non-null, properly aligned pointer returned by
+/// `create_test_api_server_instance`. The caller must have exclusive access to it for the full
+/// call. `logger_id` must refer to a live logger created by this process.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_instance_run_large_upload_test(
   handle: *mut ServerHandle,
   logger_id: LoggerId<'_>,
@@ -431,7 +446,7 @@ pub unsafe extern "C" fn server_instance_run_large_upload_test(
   result_to_c_error(run_large_upload_test_impl(handle, logger_id))
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn start_test_api_server(tls: bool, ping_interval: i32) -> i32 {
   let ping = if ping_interval < 0 {
     None
@@ -445,40 +460,40 @@ pub extern "C" fn start_test_api_server(tls: bool, ping_interval: i32) -> i32 {
   port.into()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn stop_test_api_server() {
   let mut l = expected_server_handle();
   *l = None;
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn await_next_api_stream() -> i32 {
   with_expected_server(|h| unsafe { server_instance_await_next_stream(h) })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn wait_for_stream_with_test_api_key(stream_id: i32) {
   with_expected_server(|h| unsafe { server_instance_wait_for_handshake(h, stream_id) });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn await_api_server_received_handshake(stream_id: i32) {
   with_expected_server(|h| unsafe { server_instance_await_handshake(h, stream_id) });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn await_api_server_stream_closed(stream_id: i32, wait_time_ms: i64) -> bool {
   with_expected_server(|h| unsafe {
     server_instance_await_stream_closed(h, stream_id, wait_time_ms)
   })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn send_configuration_update(stream_id: i32) {
   with_expected_server(|h| unsafe { server_instance_send_configuration(h, stream_id) });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn configure_benchmarking_configuration(stream_id: i32) {
   with_expected_server(|h| {
     let stream = StreamHandle::from_stream_id(stream_id, h);
@@ -489,7 +504,7 @@ pub extern "C" fn configure_benchmarking_configuration(stream_id: i32) {
   });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn configure_benchmarking_configuration_with_workflows(stream_id: i32) {
   with_expected_server(|h| {
     let stream = StreamHandle::from_stream_id(stream_id, h);

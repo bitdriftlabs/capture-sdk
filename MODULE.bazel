@@ -10,7 +10,7 @@ use_repo(ios_signing_overrides_ext, "ios_signing_overrides")
 # Constants
 ####################
 
-RUST_VERSION = "1.95.0"
+RUST_VERSION = "1.97.1"
 
 MOBILE_RUST_TARGET_TRIPLES = [
     "aarch64-apple-ios-sim",
@@ -53,8 +53,6 @@ SDK_BUILD_TOOLS_VERSION = "36.1.0"
 # Bazel dependencies
 ####################
 
-http_jar = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_jar")
-
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
@@ -71,12 +69,16 @@ bazel_dep(name = "rules_cc", version = "0.2.22")
 bazel_dep(name = "rules_java", version = "9.7.1")
 bazel_dep(name = "rules_android", version = "0.7.3")
 bazel_dep(name = "rules_android_ndk", version = "0.1.5")
+
+bazel_dep(name = "hermetic_android_toolchains", version = "0.0.0", dev_dependency = True)
+
 bazel_dep(name = "rules_jvm_external", version = "7.1")
 bazel_dep(name = "rules_detekt", version = "0.8.1.13")
 bazel_dep(name = "flatbuffers", version = "25.9.23")
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_kotlin", version = "2.3.20")
 bazel_dep(name = "rules_proto", version = "7.1.0")
+bazel_dep(name = "rules_go", version = "0.62.0", repo_name = "io_bazel_rules_go")
 bazel_dep(name = "protobuf", version = "35.1")
 bazel_dep(name = "grpc-java", version = "1.82.0")
 bazel_dep(name = "rules_rs", version = "0.0.102")
@@ -86,16 +88,42 @@ bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
 bazel_dep(name = "aspect_rules_esbuild", version = "0.25.0")
 bazel_dep(name = "aspect_rules_js", version = "2.3.8")
 bazel_dep(name = "aspect_rules_ts", version = "3.10.0")
+bazel_dep(name = "llvm", version = "0.8.18")
+
+single_version_override(
+    module_name = "aspect_tools_telemetry",
+    patch_strip = 1,
+    patches = ["//bazel/third_party:aspect_tools_telemetry_do_not_track.patch"],
+)
+
+# Let Bazel provision the Go SDK that Gazelle uses while resolving Go repositories in CI.
+go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.download(
+    name = "go_sdk",
+    version = "1.24.12",
+)
+use_repo(go_sdk, "go_sdk")
 
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 
 # Required by android_artifacts for pom_file, it's not in bazel central registry
 bazel_dep(name = "google_bazel_common", version = "0.0.1")
 
-http_jar(
-    name = "bazel_diff",
-    integrity = "sha256-Sn3WTHsfsSGbglE4xiwgbSrOdHCqXToHpVRTLnQEiJM=",
-    url = "https://github.com/Tinder/bazel-diff/releases/download/9.0.3/bazel-diff_deploy.jar",
+# The iOS archive rewriter needs LLVM's deterministic archive and universal-binary tools.
+# Fetch the minimal, pinned macOS toolchains through Bazel instead of relying on Homebrew.
+llvm_toolchain_minimal = use_extension(
+    "@llvm//extensions:llvm_toolchain_minimal.bzl",
+    "llvm_toolchain_minimal",
+)
+llvm_toolchain_minimal.index()
+use_repo(
+    llvm_toolchain_minimal,
+    "llvm-toolchain-minimal-darwin-amd64",
+    "llvm-toolchain-minimal-darwin-arm64",
+    "llvm-toolchain-minimal-linux-amd64",
+    "llvm-toolchain-minimal-linux-arm64",
+    "llvm-toolchain-minimal-windows-amd64",
+    "llvm-toolchain-minimal-windows-arm64",
 )
 
 new_git_repository(
@@ -174,17 +202,39 @@ native_binary(
 # Android extensions
 ####################
 
-android_sdk_repository_extension = use_extension("@rules_android//rules/android_sdk_repository:rule.bzl", "android_sdk_repository_extension")
-android_sdk_repository_extension.configure(
-    api_level = SDK_API_LEVEL,
+# Android SDK/NDK inputs are hermetic for Bazel. Gradle deliberately continues to use the
+# cached local SDK installed by tools/setup_android_sdk.sh.
+android = use_extension("@hermetic_android_toolchains//:extensions.bzl", "android", dev_dependency = True)
+android.sdk(
     build_tools_version = SDK_BUILD_TOOLS_VERSION,
+    version = str(SDK_API_LEVEL),
 )
+android.ndk(
+    api_level = NDK_API_LEVEL,
+    version = "r27c",
+)
+use_repo(android, "androidndk", "androidsdk")
 
-android_ndk_repository_extension = use_extension("@rules_android_ndk//:extension.bzl", "android_ndk_repository_extension")
-android_ndk_repository_extension.configure(api_level = NDK_API_LEVEL)
-use_repo(android_ndk_repository_extension, "androidndk")
+# Redirect the repositories normally created by rules_android and rules_android_ndk to
+# the hermetic repositories above.
+rules_android_sdk = use_extension("@rules_android//rules/android_sdk_repository:rule.bzl", "android_sdk_repository_extension")
 
-register_toolchains("@androidndk//:all")
+override_repo(rules_android_sdk, "androidsdk")
+
+rules_android_ndk = use_extension("@rules_android_ndk//:extension.bzl", "android_ndk_repository_extension")
+
+override_repo(rules_android_ndk, "androidndk")
+
+register_toolchains("@androidndk//:all", "@androidsdk//:all")
+
+# The upstream module publishes as 0.0.0. Pin its source archive so toolchain metadata
+# changes only when this override is intentionally updated.
+archive_override(
+    module_name = "hermetic_android_toolchains",
+    integrity = "sha256-9/R5xpQHfZoXUG/JdNnZHg80qaObDYTH49DlunSkAww=",
+    strip_prefix = "hermetic_android_toolchains-9ac990099a55fa9045605666a42d42426da3f099",
+    urls = ["https://github.com/keith/hermetic_android_toolchains/archive/9ac990099a55fa9045605666a42d42426da3f099.tar.gz"],
+)
 
 register_toolchains("//:kotlin_toolchain")
 
@@ -317,7 +367,10 @@ use_repo(maven, "maven")
 
 single_version_override(
     module_name = "rules_rs",
-    patches = ["//bazel/third_party/patches:rules_rs_external_path_dependencies.patch"],
+    patches = [
+        "//bazel/third_party/patches:rules_rs_android_cfg_arch.patch",
+        "//bazel/third_party/patches:rules_rs_external_path_dependencies.patch",
+    ],
 )
 
 rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
@@ -326,7 +379,10 @@ rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
 # rather than protobuf's unrelated transitive module, to prevent duplicate custom stdlib
 # archive members in the iOS XCFramework.
 rules_rust.patch(
-    patches = ["//bazel/third_party:rules_rust_allocator_library_dedup.patch"],
+    patches = [
+        "//bazel/third_party:rules_rust_allocator_library_dedup.patch",
+        "//bazel/third_party:rules_rust_objcopy_toolchain.patch",
+    ],
     strip = 1,
 )
 use_repo(rules_rust, "rules_rust")
@@ -343,33 +399,42 @@ rust.toolchain(
         target_triple
         for target_triple in MOBILE_RUST_TARGET_TRIPLES
     ],
-    rustfmt_version = "nightly/2025-03-05",
+    rustfmt_version = "nightly/2026-08-12",
     # We need this shas, since these archives are generated by us and we want to make sure we always use these as opposed
     # to the official ones. There is a `rust_std_checksum.sh` script that generates these shas in the `tools` directory.
     # For security reasons, we include all shas here to make sure that a malicious actor with access to rust-std-mobile
     # can't include a compromised tool.
     #
-    # tl;dr; run e.g. $ ./tools/rust_std_checksum.sh 1.82.0
+    # Run ./tools/rust_std_checksum.sh <rust version> after rust-std-mobile
+    # publishes that version. It updates RUST_VERSION and these regular/TSan
+    # checksums together.
     sha256s = {
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "fca15db408d100706648b20982d6a8ea99d6a40d05aec1b64fe68e2b4318b383",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "6a334baff006160430ac4b9f23521699a20ce38e0c84fc72e01c92350f106b32",
-        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "08ea4f3d82dc64ff42253817c164588bca473cd423494b0e6731ef27bd34f30a",
-        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "60b494bd5a96b9188c42b3810f9396baea20361b2433440a5caeb28076a1650d",
-        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "92b311a8ce1e32689803149fea8a296eae589ec662385bb59c6fd4d7c254550b",
-        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "c5ce94413c3fcc381826e3b4c2ebdb3468f00eee75f85088068a50652025fead",
-        "rust-std-" + RUST_VERSION + "-x86_64-linux-android.tar.gz": "d2ee901e593b7640f4a212c16605c36a8f0da32c94b20d49fba17813e4d2008e",
-        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "64f20ce6864040b822b8fbdb7dbfd892e5b04828ca8cbd1e6accef9694da3ebb",
-        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "0421d71bd676f0d38e318bf3eb7cd1a9ca33cf5ccf70f49644950a91fa046de7",
-        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "c8b7851f83d232c2abf5dbca31af43701deca0973ac7eb7cd1741c180396b7db",
-        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "c64f139c2a4f973b3d8b26482673909043545db14f0b1255ed743844e9f9ce99",
-        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "ff1fd77e514985dda551b050f762fb3e54e4b8f49a56bc69788a571d310b8d36",
-        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "f2717da6e862eb570a0b973eeb1034a3b3bb6610e4a8e6da52ce6d256eb2c109",
-        "rustc-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "fef749c4abb4b4bde5ebf773bec550003ce5b4410579cecd69a365e5c0c5106a",
-        "cargo-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "47ebc468721a6ff3fb27dff33e632a4cb6246d0ea061814bcd4fe601d18c69a8",
-        "llvm-tools-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "55b57b2aff59cff2acffa1319513e7c74b0a09ef5a58e1d5f4beba4c8d911f7a",
-        "rust-std-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "edbd20f8fc0a617f85ffb79fa6c22aa6def0e570de3f94be1a6e5ab1f77f763c",
-        "clippy-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "5230c92fb0ae1346ee30a1b4e01413cc3e1ead8ded20391fb2826619775f1ccb",
-        "rustfmt-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "6d3e64adc505ad4bef6935f6e6f5e4c6956d9782607fb8394df3a5d2b30d2733",
+        # BEGIN rust-std checksums. Generated by tools/rust_std_checksum.sh.
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "544c7e30d2d74f86d185e017bb7537c1dd3d264393223ee2ff59c1e0c32ba65b",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-ios.tar.gz": "f6c01a18b59ac99e760c7801df6a04d952a3d276f50aea448d4ff1b95ce34ee7",
+        "rust-std-" + RUST_VERSION + "-x86_64-apple-ios.tar.gz": "6c5b583a578318d39391c2337cf61bcca191a1a5ba7d54a946a9a8724f175caa",
+        "rust-std-" + RUST_VERSION + "-aarch64-linux-android.tar.gz": "dae0ba9f7c161ec8f0db3a78061e6cca7b267a3824a783621571a15e6a702acb",
+        "rust-std-" + RUST_VERSION + "-armv7-linux-androideabi.tar.gz": "9aa77ced610cdf130918bc78d34dba67fe397e7629509370e4958b0fc4986e4e",
+        "rust-std-" + RUST_VERSION + "-i686-linux-android.tar.gz": "a029535a93190df5dc497d55c96f67b46a1449d08553c2facef61254a9fc67e6",
+        "rust-std-" + RUST_VERSION + "-x86_64-linux-android.tar.gz": "2d3a7c930321d96adb363e41c65cbcb0cfd530b557816d6e7f26e1c0d4d303b4",
+        "rust-std-tsan-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz": "45698a30ca3c89bd1454df8ef7a8360f9de194b720af55af55b6baa3327d7331",
+        "rustc-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "b7999e81c1ff2e900e6ba0ecc2ee740654963fd6a26cd7a69b81fd9bdd68a86e",
+        "cargo-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "4c70846fd611a3e390ef149fe757402188f2029010285728bd0b4c53586c3c39",
+        "llvm-tools-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "737b3a212bbe9d0dc99055aa87a3996b6dd4c7cdd83197ef9542020567f99531",
+        "rust-std-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "27b3da11e1adefeba0213aff73587acf0bf50641c774f09103fb7b29a341ed5d",
+        "clippy-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "437d1128199d2e22cc6c07017d741808606d4332fb37869c54e0f7ad959223b1",
+        "rustfmt-" + RUST_VERSION + "-aarch64-apple-darwin.tar.gz": "4b8e06290d5db36f514c5429ba4397b6f7d17f165b94fa8bbce2b200c690199b",
+        "rustc-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "1c441e430c1cca49dff54a8d59c41038bf6f79f7b8756596cb2f36511a015eba",
+        "cargo-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "90cbeb8adfe8ca0fcbe01a18bd9b99d3e5e98fd29c003032828ebf3ffba0e4ed",
+        "llvm-tools-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "056e39b861ad9cba6435cb40eab5095bfb421228c4a20ebf473a9ace238d6245",
+        "rust-std-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "45b927ecf776b9645ca2ed5b287fc6814824a073c30c7c5d5c0ad4425295ecee",
+        "clippy-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "66f93a616bc84939e116e960599b3bc122be7b51f6562bad71011a64a9293dc3",
+        "rustfmt-" + RUST_VERSION + "-x86_64-unknown-linux-gnu.tar.gz": "810f7dcfe64bdaf3e10cbe942274f76cdab2ffca813bfafc75e9d86a6809f039",
+        # END rust-std checksums.
+
+        # rustfmt_version is pinned independently of RUST_VERSION.
+        "2026-08-12/rustfmt-nightly-aarch64-apple-darwin.tar.gz": "9c00f0cedf58042dbe30434fe969117e6a60259e4f9cc416711a33f6bfc970bc",
+        "2026-08-12/rustfmt-nightly-x86_64-unknown-linux-gnu.tar.gz": "46ab019a3153977b0066b27b3a9289690012adc6ebe43844d2711a19a6776d77",
     },
     urls = [
         # NOTE: `urls` are technically mirrors so we want to make sure we always try our own first then the official ones.
@@ -386,7 +451,46 @@ rust.toolchain(
         "nightly/2025-10-02",
     ],
 )
-use_repo(rust, "rust_toolchains")
+
+# BEGIN rust-std-tsan checksum. Generated by tools/rust_std_checksum.sh.
+RUST_IOS_TSAN_STDLIB_SHA256 = "45698a30ca3c89bd1454df8ef7a8360f9de194b720af55af55b6baa3327d7331"
+# END rust-std-tsan checksum.
+
+# rules_rs accepts only rust-std-<version>-<triple> archives. Fetch the separately
+# instrumented sysroot ourselves, then select it only from the iOS TSan toolchain.
+http_archive(
+    name = "rust_std_tsan_aarch64_apple_ios_sim",
+    build_file_content = """
+load("@rules_rust//rust:toolchain.bzl", "rust_stdlib_filegroup")
+
+rust_stdlib_filegroup(
+    name = "rust_std",
+    srcs = glob(
+        [
+            "rust-std-aarch64-apple-ios-sim/lib/rustlib/aarch64-apple-ios-sim/lib/*.rlib",
+            "rust-std-aarch64-apple-ios-sim/lib/rustlib/aarch64-apple-ios-sim/lib/*.rmeta",
+            "rust-std-aarch64-apple-ios-sim/lib/rustlib/aarch64-apple-ios-sim/lib/*.dylib*",
+            "rust-std-aarch64-apple-ios-sim/lib/rustlib/aarch64-apple-ios-sim/lib/*.a",
+            "rust-std-aarch64-apple-ios-sim/lib/rustlib/aarch64-apple-ios-sim/lib/self-contained/**",
+        ],
+        allow_empty = True,
+    ),
+    visibility = ["//visibility:public"],
+)
+""",
+    sha256 = RUST_IOS_TSAN_STDLIB_SHA256,
+    strip_prefix = "rust-std-tsan-" + RUST_VERSION + "-aarch64-apple-ios-sim",
+    urls = [
+        "https://github.com/bitdriftlabs/rust-std-mobile/releases/download/" + RUST_VERSION +
+        "/rust-std-tsan-" + RUST_VERSION + "-aarch64-apple-ios-sim.tar.gz",
+    ],
+)
+
+use_repo(
+    rust,
+    "rust_macos_aarch64__aarch64-apple-ios-sim__stable_tools",
+    "rust_toolchains",
+)
 
 register_toolchains("@rust_toolchains//:all")
 

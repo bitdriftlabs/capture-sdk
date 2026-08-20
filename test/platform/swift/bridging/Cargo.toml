@@ -1,6 +1,6 @@
 [package]
 description  = "test swift crate"
-edition      = "2021"
+edition      = "2024"
 license-file = "LICENSE"
 name         = "test_swift_bridge"
 publish      = false
@@ -15,9 +15,9 @@ bd-key-value              = { workspace = true }
 bd-logger                 = { workspace = true }
 bd-proto                  = { workspace = true }
 bd-test-helpers           = { workspace = true }
+bd-test-helpers-core      = { workspace = true }
 ctor                      = { workspace = true }
 objc.workspace            = true
-objc-foundation.workspace = true
 platform_test_helpers     = { path = "../../../../platform/test_helpers" }
 protobuf.workspace        = true
 swift_bridge              = { path = "../../../../platform/swift/source" }

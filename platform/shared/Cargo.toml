@@ -1,5 +1,5 @@
 [package]
-edition      = "2021"
+edition      = "2024"
 license-file = "LICENSE"
 name         = "platform-shared"
 publish      = false
@@ -24,6 +24,3 @@ parking_lot.workspace           = true
 regex.workspace                 = true
 time.workspace                  = true
 tokio.workspace                 = true
-
-[dev-dependencies]
-pretty_assertions.workspace = true

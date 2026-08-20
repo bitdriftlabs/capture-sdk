@@ -45,7 +45,7 @@ macro_rules! debug_check_class {
 /// contain valid UTF-8.
 ///
 /// # Safety
-/// s must point to a valid `NSString` object.
+/// If `s` is non-null, it must point to a live `NSString` for the duration of this call.
 pub(crate) unsafe fn nsstring_into_string(s: *const Object) -> anyhow::Result<String> {
   debug_check_class!(s, NSString);
   if s.is_null() {
@@ -66,8 +66,9 @@ pub(crate) unsafe fn nsstring_into_string(s: *const Object) -> anyhow::Result<St
 
       let str = {
         let class: *mut Object = msg_send![class!(NSString), alloc];
-        let str =
-          StrongPtr::new(msg_send![class, initWithData: data encoding: NS_ASCII_STRING_ENCODING]);
+        let str = unsafe {
+          StrongPtr::new(msg_send![class, initWithData: data encoding: NS_ASCII_STRING_ENCODING])
+        };
         if str.is_null() {
           anyhow::bail!("Platform UTF-8 error: initWithData:encoding(ASCII) returned null");
         }
@@ -90,7 +91,7 @@ pub(crate) unsafe fn nsstring_into_string(s: *const Object) -> anyhow::Result<St
     cstr
   };
 
-  Ok(CStr::from_ptr(cstr).to_str()?.to_string())
+  Ok(unsafe { CStr::from_ptr(cstr) }.to_str()?.to_string())
 }
 
 /// Converts a Rust `String` into a `NSString`. Returned `StrongPtr` holds a strong reference to
@@ -132,7 +133,7 @@ impl<'a> FromObjcObject<'a> for [u8] {
     let length: usize = msg_send![ptr, length];
     let bytes: *const u8 = msg_send![ptr, bytes];
 
-    Ok(std::slice::from_raw_parts(bytes, length))
+    Ok(unsafe { std::slice::from_raw_parts(bytes, length) })
   }
 }
 
@@ -155,19 +156,19 @@ const FIELD_TYPE_DATA: usize = 1;
 
 /// Converts a `NSArray` into a `AnnotatedLogFields` of references to the underlying data.
 /// # Safety
-/// This assumes that the provided ptr refers to a `NSArray<Field>`.
+/// `ptr` must either be null or point to a live `NSArray<Field>` for the duration of this call.
 pub unsafe fn convert_annotated_fields(
   ptr: *const Object,
   kind: LogFieldKind,
 ) -> anyhow::Result<AnnotatedLogFields> {
-  convert_fields_helper(ptr, |value| AnnotatedLogField { value, kind })
+  unsafe { convert_fields_helper(ptr, |value| AnnotatedLogField { value, kind }) }
 }
 
 /// Converts a `NSArray` into a `LogFields` of references to the underlying data.
 /// # Safety
-/// This assumes that the provided ptr refers to a `NSArray<Field>`.
+/// `ptr` must either be null or point to a live `NSArray<Field>` for the duration of this call.
 pub unsafe fn convert_fields(ptr: *const Object) -> anyhow::Result<LogFields> {
-  convert_fields_helper(ptr, Into::into)
+  unsafe { convert_fields_helper(ptr, Into::into) }
 }
 
 unsafe fn convert_fields_helper<FieldValue>(
@@ -188,18 +189,18 @@ unsafe fn convert_fields_helper<FieldValue>(
     // TODO(snowp): Figure out how to use objc/2 to better model ths.
     let field: *const Object = msg_send![ptr, objectAtIndex: i];
 
-    let field_key: String = ffi::nsstring_into_string(msg_send![field, key])?;
+    let field_key: String = unsafe { ffi::nsstring_into_string(msg_send![field, key]) }?;
     let field_type: usize = msg_send![field, type];
     let field_value: *const Object = msg_send![field, data];
 
     let value = match field_type {
       FIELD_TYPE_STRING => {
-        let string_value: String = ffi::nsstring_into_string(field_value)
+        let string_value: String = unsafe { ffi::nsstring_into_string(field_value) }
           .map_err(|e| e.context(format!("field {field_key:?}")))?;
         DataValue::String(string_value)
       },
       FIELD_TYPE_DATA => {
-        let data_value = FromObjcObject::from_objc(field_value)? as &[u8];
+        let data_value = unsafe { FromObjcObject::from_objc(field_value) }? as &[u8];
         DataValue::Bytes(data_value.to_vec().into())
       },
       _ => bail!("unknown field value type: {field_type:?}"),
@@ -213,8 +214,8 @@ unsafe fn convert_fields_helper<FieldValue>(
 
 /// Converts a `NSArray` of feature flag tuples into a `Vec<(String, Option<String>)>`.
 /// # Safety
-/// This assumes that the provided ptr refers to a `NSArray` of objects with `flag` and `variant`
-/// properties.
+/// `ptr` must either be null or point to a live `NSArray` of objects with `flag` and `variant`
+/// properties for the duration of this call.
 pub unsafe fn convert_feature_flags_array(
   ptr: *const Object,
 ) -> anyhow::Result<Vec<(String, Option<String>)>> {
@@ -233,14 +234,14 @@ pub unsafe fn convert_feature_flags_array(
 
     // Extract flag name
     let flag_obj: *const Object = msg_send![feature_flag, name];
-    let flag = nsstring_into_string(flag_obj)?;
+    let flag = unsafe { nsstring_into_string(flag_obj) }?;
 
     // Extract variant (which can be nil)
     let variant_obj: *const Object = msg_send![feature_flag, variant];
     let variant = if variant_obj.is_null() {
       None
     } else {
-      Some(nsstring_into_string(variant_obj)?)
+      Some(unsafe { nsstring_into_string(variant_obj) }?)
     };
 
     flags.push((flag, variant));

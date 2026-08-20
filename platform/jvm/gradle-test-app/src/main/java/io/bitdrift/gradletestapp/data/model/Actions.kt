@@ -102,6 +102,8 @@ sealed class NavigationAction : AppAction {
 
     object NavigateToStressTest : NavigationAction()
 
+    object NavigateToFocusMatrix : NavigationAction()
+
     object InvokeService : NavigationAction()
 }
 

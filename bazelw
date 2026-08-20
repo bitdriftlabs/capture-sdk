@@ -61,4 +61,4 @@ if [[ ! -x "$bazelisk" ]]; then
   fi
 fi
 
-exec ./tools/android_sdk_wrapper.sh "$bazelisk" "$@"
+exec "$bazelisk" "$@"

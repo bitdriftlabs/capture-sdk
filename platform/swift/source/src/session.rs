@@ -9,7 +9,7 @@ use crate::ffi::{self, make_nsstring};
 use anyhow::bail;
 use bd_session::activity_based::Callbacks as ActivityBasedStrategyCallbacks;
 use bd_session::fixed::Callbacks as FixedStrategyCallbacks;
-use bd_session::Strategy;
+use bd_session::{Strategy, StrategyWithWorker};
 use objc::runtime::Object;
 use std::path::Path;
 use std::sync::Arc;
@@ -31,8 +31,8 @@ impl SessionStrategy {
     }
   }
 
-  pub(crate) fn create(self, sdk_directory: &Path) -> anyhow::Result<Arc<Strategy>> {
-    Ok(Arc::new(match self.session_strategy_type() {
+  pub(crate) fn create(self, sdk_directory: &Path) -> anyhow::Result<StrategyWithWorker> {
+    Ok(match self.session_strategy_type() {
       0 => Strategy::fixed(sdk_directory, Arc::new(self)),
       1 => {
         let inactivity_threshold_mins = self.inactivity_threshold_mins();
@@ -44,7 +44,7 @@ impl SessionStrategy {
         )
       },
       _ => bail!("Invalid session strategy type"),
-    }))
+    })
   }
 }
 

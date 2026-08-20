@@ -39,7 +39,6 @@ class MetadataProviderTest {
             FieldProvider {
                 mapOf("key1" to "value3", "key2" to "value4")
             }
-
         val metadataProvider =
             MetadataProvider(
                 dateProvider = dateProvider,

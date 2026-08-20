@@ -1,0 +1,40 @@
+name: Files changed
+description: Reports whether a regex or exact list of repository files changed.
+
+inputs:
+  regex:
+    description: Extended regular expression matched against changed paths.
+    required: false
+  files:
+    description: Newline-delimited exact file paths to match.
+    required: false
+
+outputs:
+  changed:
+    description: Whether relevant files changed.
+    value: ${{ steps.check.outputs.changed }}
+
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        FILES: ${{ inputs.files }}
+        REGEX: ${{ inputs.regex }}
+      run: |
+        if [[ -n "$FILES" && -n "$REGEX" ]]; then
+          echo "Provide either files or regex, not both."
+          exit 2
+        elif [[ -n "$FILES" ]]; then
+          files=()
+          while IFS= read -r file || [[ -n "$file" ]]; do
+            [[ -n "$file" ]] && files+=("$file")
+          done <<< "$FILES"
+          ./ci/files_changed.sh --files "${files[@]}"
+        elif [[ -n "$REGEX" ]]; then
+          ./ci/files_changed.sh "$REGEX"
+        else
+          echo "Provide files or regex."
+          exit 2
+        fi

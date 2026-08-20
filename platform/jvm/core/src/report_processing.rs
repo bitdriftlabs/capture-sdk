@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::jni::{initialize_method_handle, CachedMethod, JValueWrapper};
+use crate::jni::{CachedMethod, JValueWrapper, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   AppBuildNumber,
@@ -20,14 +20,14 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   Timestamp,
 };
 use flatbuffers::FlatBufferBuilder;
-use jni::objects::JObject;
+use jni::JNIEnv;
+use jni::objects::{JObject, JString};
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::{jint, jlong};
-use jni::JNIEnv;
 use platform_shared::javascript_error::{
-  persist_javascript_error_report,
   AppMetadata,
   DeviceMetadata,
+  persist_javascript_error_report,
 };
 use std::io::{Seek, Write};
 use std::sync::OnceLock;
@@ -157,7 +157,7 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
 
 pub(crate) fn persist_anr(
   env: &mut JNIEnv<'_>,
-  source_stream: &JObject<'_>,
+  source_stream: Option<&JObject<'_>>,
   timestamp_millis: jlong,
   destination: &str,
   attributes: &JObject<'_>,
@@ -167,9 +167,16 @@ pub(crate) fn persist_anr(
   is_file_size_optimization_enabled: bool,
 ) -> anyhow::Result<()> {
   let mut builder = FlatBufferBuilder::new();
-  let source_file = read_stream_to_file(env, source_stream)?;
-  let source_memmap = unsafe { memmap2::Mmap::map(&source_file)? };
-  let source_view = bd_report_parsers::MemmapView::new(&source_memmap);
+  let source_file = source_stream
+    .map(|stream| read_stream_to_file(env, stream))
+    .transpose()?;
+  let source_memmap = source_file
+    .as_ref()
+    .map(|file| unsafe { memmap2::Mmap::map(file) })
+    .transpose()?;
+  let source_view = source_memmap
+    .as_ref()
+    .map(bd_report_parsers::MemmapView::new);
   let timestamp = Timestamp::new(
     u64::try_from(timestamp_millis / 1_000).unwrap_or_default(),
     u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default(),
@@ -182,15 +189,14 @@ pub(crate) fn persist_anr(
     running_state,
     memory_pressure_level,
   )?;
-  let (_, report_offset) = bd_report_parsers::android::build_anr(
+  let report_offset = bd_report_parsers::android::build_anr_from_app_exit(
     &mut builder,
     &mut app_info,
     &mut device_info,
     source_view,
     app_exit_description,
     is_file_size_optimization_enabled,
-  )
-  .map_err(|e| anyhow::anyhow!("failed to parse ANR report: {e}"))?;
+  );
 
   builder.finish(report_offset, None);
   std::fs::write(destination, builder.finished_data())?;
@@ -353,8 +359,9 @@ fn read_string(
     .call_method(env, attributes, ReturnType::Object, &[])?
     .l()?;
 
+  let value = JString::from(value);
   Ok(
-    unsafe { env.get_string_unchecked(&value.into())? }
+    unsafe { env.get_string_unchecked(&value)? }
       .to_string_lossy()
       .to_string(),
   )

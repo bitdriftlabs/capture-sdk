@@ -314,6 +314,32 @@ class IssueReporterProcessorTest {
     }
 
     @Test
+    fun processAppExitReport_whenAnrAndInvalidTrace_withCachedImportance() {
+        doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
+
+        processor.processAppExitReport(
+            applicationExit =
+                createApplicationExitInfo(
+                    timestamp = FAKE_TIME_STAMP,
+                    traceInputStream = null,
+                    reason = ApplicationExitInfo.REASON_ANR,
+                    importance = RunningAppProcessInfo.IMPORTANCE_CACHED,
+                ),
+        )
+
+        verify(streamingReportProcessor).processAndPersistANR(
+            eq(null),
+            eq(FAKE_TIME_STAMP),
+            eq("/some/path/foo.cap"),
+            eq(attributes),
+            eq("cached"),
+            isNull(),
+            any(),
+            eq(true),
+        )
+    }
+
+    @Test
     fun processAppExitReport_whenAnr_withForegroundServiceImportance() {
         doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
         val trace = buildTraceInputStringFromFile("app_exit_anr_deadlock_anr.txt")

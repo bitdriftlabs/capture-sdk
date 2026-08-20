@@ -29,8 +29,6 @@ alias(
 
 exports_files([
     "pom_template.xml",
-    "run_fuzzer.sh",
-    "test_fuzzer.sh",
 ])
 
 config_setting(

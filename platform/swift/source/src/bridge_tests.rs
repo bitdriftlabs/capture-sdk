@@ -5,13 +5,15 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#![allow(clippy::unwrap_used)]
+
 use crate::bridge::{State, StreamWriter, SwiftNetworkStream};
 use bd_api::PlatformNetworkStream;
 use bd_runtime::runtime::FeatureFlag;
-use bd_test_helpers::runtime::ValueKind;
 use bd_test_helpers::RecordingErrorReporter;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use bd_test_helpers::runtime::ValueKind;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 struct TestWriter {
   capacity: Arc<AtomicUsize>,

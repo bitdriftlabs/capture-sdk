@@ -7,6 +7,11 @@ on:
         description: Branch or tag to build from. Defaults to main.
         required: false
         default: main
+      dry-run:
+        type: boolean
+        description: Build and validate the archive without uploading it.
+        required: false
+        default: false
   workflow_call:
     inputs:
       release-ref:
@@ -14,6 +19,11 @@ on:
         description: Branch or tag to build from. Defaults to main.
         required: false
         default: main
+      dry-run:
+        type: boolean
+        description: Build and validate the archive without uploading it.
+        required: false
+        default: false
 
 jobs:
   build:
@@ -29,16 +39,19 @@ jobs:
           ref: ${{ inputs.release-ref || github.ref_name }}
           fetch-depth: 0
 
-      - name: Configure BuildBuddy cache
-        uses: ./.github/actions/configure-buildbuddy-cache
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
 
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh
       - name: Build iOS example apps
         run: ./ci/prepare_example_apps_ios.sh
+      - name: Verify iOS example apps archive
+        run: unzip -t dist/example-apps.ios.zip
       - name: Upload iOS example apps to GH
+        if: ${{ !inputs.dry-run }}
         uses: actions/upload-artifact@v4
         with:
           name: iOS Example Apps

@@ -10,6 +10,7 @@ package io.bitdrift.gradletestapp.ui.fragments
 import android.app.Application
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -32,6 +33,7 @@ import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
+import io.bitdrift.gradletestapp.ui.activities.FocusMatrixActivity
 import io.bitdrift.gradletestapp.ui.compose.MainScreen
 import io.bitdrift.gradletestapp.ui.service.SendTelemetryService
 import io.bitdrift.gradletestapp.ui.viewmodel.MainViewModel
@@ -105,6 +107,11 @@ class FirstFragment : Fragment() {
                                 is NavigationAction.NavigateToDialogAndModals -> {
                                     Logger.logScreenView("dialog_and_modals_fragment")
                                     findNavController().navigate(R.id.action_FirstFragment_to_DialogAndModalsFragment)
+                                }
+
+                                is NavigationAction.NavigateToFocusMatrix -> {
+                                    Logger.logScreenView("focus_matrix_activity")
+                                    startActivity(Intent(requireContext(), FocusMatrixActivity::class.java))
                                 }
 
                                 is NavigationAction.NavigateToStressTest -> {
