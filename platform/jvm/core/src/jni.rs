@@ -1066,6 +1066,32 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
 }
 
 #[unsafe(no_mangle)]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_updateOotbLogField(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  key: JString<'_>,
+  value: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let key = unsafe { env.get_string_unchecked(&key) }?
+        .to_string_lossy()
+        .to_string();
+      let value = unsafe { env.get_string_unchecked(&value) }?
+        .to_string_lossy()
+        .to_string();
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.update_ootb_log_field(key, value.into());
+
+      Ok(())
+    },
+    "jni update OOTB log field",
+  );
+}
+
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_removeLogField(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
