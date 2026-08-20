@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Prevent duplicate JVM crash reports when fatal issue reporting initializes after app exit logging.
 
 ### iOS
 
