@@ -15,7 +15,6 @@ use crate::{
   events,
   ffi,
   key_value_storage,
-  new_global,
   report_processing,
   resource_utilization,
   session,
@@ -480,7 +479,7 @@ impl bd_api::PlatformNetworkManager<bd_runtime::runtime::ConfigLoader> for Netwo
         )
         .and_then(|v| JValueGen::l(v).map_err(|e| anyhow!(e)))?;
 
-      Ok(Box::new(new_global!(StreamHandle, e, handle)?) as Box<dyn PlatformNetworkStream>)
+      Ok(Box::new(StreamHandle::new_global(e, handle)?) as Box<dyn PlatformNetworkStream>)
     });
 
     // At this point we should have allocated a new one but also deallocated the previous one. This
@@ -729,7 +728,7 @@ impl CrashReportHook for IssueCallbackConfigurationHandle {
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
-  mut env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
   directory: JString<'_>,
   api_key: JString<'_>,
@@ -760,17 +759,16 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
           .to_string(),
       );
       let network_manager = Box::new(Network {
-        handle: new_global!(NetworkHandle, &mut env, network)?,
+        handle: NetworkHandle::new_global(&env, network)?,
         active_streams: Arc::new(AtomicU32::new(0)),
       });
 
-      let preferences = new_global!(PreferencesHandle, &mut env, preferences)?;
+      let preferences = PreferencesHandle::new_global(&env, preferences)?;
       let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
 
-      let session_strategy = Arc::new(new_global!(
-        SessionStrategyConfigurationHandle,
-        &mut env,
-        session_strategy
+      let session_strategy = Arc::new(SessionStrategyConfigurationHandle::new_global(
+        &env,
+        session_strategy,
       )?);
       let session = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
 
@@ -792,7 +790,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       ));
       let initial_ootb_fields = static_metadata.static_log_fields();
 
-      let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
+      let error_reporter = Arc::new(ErrorReporterHandle::new_global(&env, error_reporter)?);
       let error_reporter = MetadataErrorReporter::new(
         error_reporter,
         Arc::new(platform_shared::error::SessionProvider::new(
@@ -801,22 +799,19 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         static_metadata.clone(),
       );
 
-      let resource_utilization_target = Box::new(new_global!(
-        ResourceUtilizationTargetHandler,
-        &mut env,
-        resource_utilization_target
+      let resource_utilization_target = Box::new(ResourceUtilizationTargetHandler::new_global(
+        &env,
+        resource_utilization_target,
       )?);
 
-      let session_replay_target = Box::new(new_global!(
-        SessionReplayTargetHandler,
-        &mut env,
-        session_replay_target
+      let session_replay_target = Box::new(SessionReplayTargetHandler::new_global(
+        &env,
+        session_replay_target,
       )?);
 
-      let events_listener_target = Box::new(new_global!(
-        EventsListenerTargetHandler,
-        &mut env,
-        events_listener_target
+      let events_listener_target = Box::new(EventsListenerTargetHandler::new_global(
+        &env,
+        events_listener_target,
       )?);
 
       // Errors emitted up until this point are not reported to bitdrift remote.
@@ -827,10 +822,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let crash_report_hook: Option<Arc<dyn CrashReportHook>> = if issue_report_callback.is_null() {
         None
       } else {
-        Some(Arc::new(new_global!(
-          IssueCallbackConfigurationHandle,
-          &mut env,
-          issue_report_callback
+        Some(Arc::new(IssueCallbackConfigurationHandle::new_global(
+          &env,
+          issue_report_callback,
         )?))
       };
 
@@ -839,7 +833,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
         session,
-        metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
+        metadata_provider: Arc::new(MetadataProvider::new_global(&env, metadata_provider)?),
         initial_ootb_fields,
         resource_utilization_target,
         session_replay_target,
