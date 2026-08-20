@@ -53,7 +53,6 @@
     <string name="restart_warning_summary">Click here to restart and apply your configuration changes</string>
     <string name="log_message_toast">Log message sent with level: %1$s</string>
     <string name="webview_testing">WebView Testing</string>
-    <!-- Debug-only focus-matrix harness strings; not translated. -->
     <string name="focus_matrix" translatable="false">Focus matrix</string>
     <string name="focus_matrix_instructions" translatable="false">Focus matrix\n\nTap the field to raise the IME.\nTap the button for a permission dialog.</string>
     <string name="focus_matrix_input_hint" translatable="false">tap me to raise the IME</string>

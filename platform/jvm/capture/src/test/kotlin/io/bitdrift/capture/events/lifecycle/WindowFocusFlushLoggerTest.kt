@@ -139,9 +139,6 @@ class WindowFocusFlushLoggerTest {
         assertThat(focusRegistrar.registeredActivities).isEmpty()
     }
 
-    // The tests below mirror the on-device scenario matrix (recents is the plain focus-loss case
-    // covered above).
-
     @Test
     fun home_flushesOnFocusLossAndUnregistersOnTheStopThatFollows() {
         windowFocusFlushLogger.start()
