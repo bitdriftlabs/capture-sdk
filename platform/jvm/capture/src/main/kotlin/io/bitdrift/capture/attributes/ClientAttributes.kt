@@ -77,11 +77,10 @@ internal class ClientAttributes(
     private val cachedAttributes = mutableMapOf<String, String>()
 
     /**
-     * Returns the startup foreground snapshot from the logger runtime thread.
+     * Returns the foreground snapshot used to initialize the logger.
      *
-     * The dynamic field path made this same read for every log before foreground became an OOTB
-     * field. Keep that established background-thread behavior here to avoid a startup main-thread
-     * handoff; subsequent lifecycle events immediately update the OOTB field on the main thread.
+     * Process lifecycle state can be read from the logger runtime thread. Subsequent lifecycle
+     * events keep the OOTB field current on the main thread.
      */
     internal fun initialOotbFields(): Fields = mapOf(FOREGROUND_KEY to foregroundValue())
 
