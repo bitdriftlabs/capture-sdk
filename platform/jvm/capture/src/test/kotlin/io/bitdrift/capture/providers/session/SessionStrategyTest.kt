@@ -37,7 +37,6 @@ class SessionStrategyTest {
 
     @Test
     fun sessionConfigurationUsesSeededAndSdkGeneratedIds() {
-        val observedSessionIds = mutableListOf<String>()
         val initialSessionId = "initial-session"
         val explicitSessionId = "explicit-session"
 
@@ -52,7 +51,6 @@ class SessionStrategyTest {
                     SessionStrategy.Configuration(
                         SessionConfiguration(
                             initialSessionId = initialSessionId,
-                            onSessionIdChanged = observedSessionIds::add,
                         ),
                     ),
                 configuration = Configuration(),
@@ -60,32 +58,20 @@ class SessionStrategyTest {
             )
 
         assertThat(logger.sessionId).isEqualTo(initialSessionId)
-        shadowOf(Looper.getMainLooper()).idle()
-        assertThat(observedSessionIds).containsExactly(initialSessionId)
 
         logger.startNewSession(explicitSessionId)
         assertThat(logger.sessionId).isEqualTo(explicitSessionId)
-        shadowOf(Looper.getMainLooper()).idle()
-        assertThat(observedSessionIds).containsExactly(initialSessionId, explicitSessionId)
 
         logger.startNewSession(explicitSessionId)
         assertThat(logger.sessionId).isEqualTo(explicitSessionId)
-        shadowOf(Looper.getMainLooper()).idle()
-        assertThat(observedSessionIds)
-            .containsExactly(initialSessionId, explicitSessionId, explicitSessionId)
 
         logger.startNewSession()
         val sdkGeneratedSessionId = logger.sessionId
         UUID.fromString(sdkGeneratedSessionId)
-        shadowOf(Looper.getMainLooper()).idle()
-        assertThat(observedSessionIds)
-            .containsExactly(initialSessionId, explicitSessionId, explicitSessionId, sdkGeneratedSessionId)
     }
 
     @Test
     fun activityBasedSessionStrategy() {
-        var observedSessionId: String? = null
-
         val logger =
             LoggerImpl(
                 apiKey = "test",
@@ -97,7 +83,6 @@ class SessionStrategyTest {
                     SessionStrategy.Configuration(
                         SessionConfiguration(
                             inactivityTimeout = 30.minutes,
-                            onSessionIdChanged = { observedSessionId = it },
                         ),
                     ),
                 configuration = Configuration(),
@@ -105,9 +90,7 @@ class SessionStrategyTest {
             )
 
         val sessionId = logger.sessionId
-        shadowOf(Looper.getMainLooper()).idle()
-
-        assertThat(sessionId).isEqualTo(observedSessionId)
+        UUID.fromString(sessionId)
 
         logger.startNewSession()
         val newSessionId = logger.sessionId
@@ -116,34 +99,7 @@ class SessionStrategyTest {
     }
 
     @Test
-    fun activityBasedSessionStrategy_callbackRunsOnMainThread() {
-        var callbackLooper: Looper? = null
-
-        val logger =
-            LoggerImpl(
-                apiKey = "test",
-                apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
-                dateProvider = mock(),
-                context = ContextHolder.APP_CONTEXT,
-                sessionStrategy =
-                    SessionStrategy.Configuration(
-                        SessionConfiguration(
-                            inactivityTimeout = 30.minutes,
-                            onSessionIdChanged = { callbackLooper = Looper.myLooper() },
-                        ),
-                    ),
-                configuration = Configuration(),
-                preferences = mock(),
-            )
-
-        logger.sessionId
-        shadowOf(Looper.getMainLooper()).idle()
-        assertThat(callbackLooper).isEqualTo(Looper.getMainLooper())
-    }
-
-    @Test
-    fun activityBasedSessionStrategy_sessionIdChangedEmitsOnMainThread() {
+    fun sessionConfigurationCallbackRunsOnMainThread() {
         var observedSessionId: String? = null
         var callbackLooper: Looper? = null
         val newSessionId = "test-session-123"
