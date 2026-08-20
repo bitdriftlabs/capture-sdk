@@ -74,6 +74,7 @@ final class CrashRegistry {
         ReleasedObjectCrash(),
         CorruptMallocCrash(),
         OOMKillCrash(),
+        BackgroundOOMKillCrash(),
     ]
 
     init(startupStorage: StartupCrashStorage = .init()) {
@@ -428,12 +429,33 @@ final class CorruptMallocCrash: Crash {
 final class OOMKillCrash: Crash {
     let category: CrashCategory = .memory
     let title = "OOM kill (jetsam)"
-    let crashDescription = "Allocates 4 MB chunks in a loop until jetsam terminates the process. This usually appears in MetricKit or jetsam diagnostics, not a classic crash report."
+    let crashDescription = "Allocates 4 MB chunks in a loop until jetsam terminates the process."
 
     func trigger() -> Never {
         var buckets: [[UInt8]] = []
         while true {
             buckets.append(Array(repeating: 0, count: 4 * 1024 * 1024))
         }
+    }
+}
+
+public final class BackgroundOOMKillCrash: Crash, @unchecked Sendable {
+    let category: CrashCategory = .memory
+    let title = "Background OOM kill (jetsam)"
+    let crashDescription = "Allocates 4 MB chunks in background in a loop until jetsam terminates the process."
+
+    init() {}
+
+    func trigger() -> Never {
+        let semaphore = DispatchSemaphore(value: 0)
+        DispatchQueue.global(qos: .background).async {
+            var buckets: [[UInt8]] = []
+            while true {
+                buckets.append(Array(repeating: 0, count: 4 * 1024 * 1024))
+            }
+            semaphore.signal()
+        }
+        semaphore.wait()
+        fatalError("unreachable")
     }
 }
