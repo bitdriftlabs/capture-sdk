@@ -8,6 +8,8 @@ For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sd
 
 ## Rust Analyzer
 
+This section uses [just](https://github.com/casey/just), a modern Make alternative. Install via `brew install just`.
+
 Generate the Bazel-derived Rust crate graph after cloning and whenever Bazel or Rust dependency
 configuration changes:
 
