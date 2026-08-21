@@ -428,14 +428,12 @@ rust.toolchain(
         "2026-08-12/rustfmt-nightly-x86_64-unknown-linux-gnu.tar.gz": "46ab019a3153977b0066b27b3a9289690012adc6ebe43844d2711a19a6776d77",
     },
     urls = [
-        # NOTE: `urls` are technically mirrors so we want to make sure we always try our own first then the official ones.
-        # We'll ensure that the ones we want to serve always come from us by the previous sha256s dictionary. Please ensure
-        # that the extensions on both of these are the same.
-        "https://github.com/bitdriftlabs/rust-std-mobile/releases/download/" + RUST_VERSION + "/{}.tar.gz",
-
-        # We need this because we only serve std for mobile archs but rustc, clippy, cargo, llvm-tools and even std for
-        # apple-darwin/linux are served from the official mirror.
+        # rust-analyzer's rules-rust setup reads only the first URL for rust-src.
+        # It must therefore be the official mirror: the mobile release contains custom target stdlibs,
+        # but no rust-src archive. The custom-stdlib checksums above make Bazel fall back to the
+        # mobile release for those archives.
         "https://static.rust-lang.org/dist/{}.tar.gz",
+        "https://github.com/bitdriftlabs/rust-std-mobile/releases/download/" + RUST_VERSION + "/{}.tar.gz",
     ],
     versions = [
         RUST_VERSION,
