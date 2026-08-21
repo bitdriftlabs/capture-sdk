@@ -27,7 +27,13 @@ esac
 run_clippy() {
   local build_tag_filters="$1"
   shift
-  ./bazelw build --config ci --config clippy --build_tag_filters="$build_tag_filters" "$@"
+
+  local bazel_configs=(--config clippy)
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    bazel_configs=(--config ci "${bazel_configs[@]}")
+  fi
+
+  ./bazelw build "${bazel_configs[@]}" --build_tag_filters="$build_tag_filters" "$@"
 }
 
 run_linux_runner() {
