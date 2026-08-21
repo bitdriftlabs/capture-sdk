@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CaptureLoggerBridge
 import Foundation
 import os
 
@@ -17,6 +18,7 @@ import os
 /// inactivity timeout, `initialSessionID` seeds only the first session; later SDK starts reuse
 /// the persisted session while it remains active and create an SDK UUID only after the inactivity
 /// period has elapsed.
+/// Without an inactivity timeout, Capture does not persist session IDs across SDK restarts.
 ///
 /// When `inactivityTimeout` is set, a period of inactivity rotates the session to an SDK-created
 /// UUID. Calling `startNewSession(sessionID:)` with a non-empty ID always uses that ID, including
@@ -80,7 +82,7 @@ public struct SessionConfiguration {
     }
 }
 
-final class SessionCallbackBridge: NSObject {
+final class SessionCallbackBridge: NSObject, CaptureLoggerBridge.CAPSessionCallbackProvider {
     private let onSessionIDChanged: (String) -> Void
 
     init(onSessionIDChanged: @escaping (String) -> Void) {

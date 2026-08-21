@@ -48,7 +48,8 @@
 
 **Changed**
 
-- Nothing yet!
+- Deprecated legacy `SessionStrategy` and `CAPSessionStrategy` factory APIs in favor of
+  `SessionConfiguration` and `CAPSessionConfiguration`.
 
 **Fixed**
 

@@ -15,6 +15,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class SessionConfigurationTest {
     @Test
+    @Suppress("DEPRECATION")
     fun fixedCompatibilityShimDisablesInactivityRotation() {
         val sessionConfiguration = SessionStrategy.Fixed().makeSessionConfiguration()
 

@@ -679,6 +679,7 @@ public final class SessionStrategyObjc: NSObject {
     /// is generated.
     ///
     /// - returns: The fixed session strategy.
+    @available(*, deprecated, message: "Use CAPSessionConfiguration instead.")
     @objc
     public static func fixed() -> SessionStrategyObjc {
         return SessionStrategyObjc(sessionStrategy: .fixed())
@@ -694,6 +695,7 @@ public final class SessionStrategyObjc: NSObject {
     ///
     /// - returns: The activity based session strategy that expires session after 30 minutes of app
     ///            inactivity.
+    @available(*, deprecated, message: "Use CAPSessionConfiguration instead.")
     @objc
     public static func activityBased() -> SessionStrategyObjc {
         return SessionStrategyObjc(sessionStrategy: .activityBased())
@@ -712,6 +714,7 @@ public final class SessionStrategyObjc: NSObject {
     ///
     /// - returns: The activity based session strategy that expires session after a specified duration of time
     ///            without any app activity.
+    @available(*, deprecated, message: "Use CAPSessionConfiguration instead.")
     @objc
     public static func activityBased(inactivityThresholdMins: Int) -> SessionStrategyObjc {
         return SessionStrategyObjc(sessionStrategy: .activityBased(
@@ -739,6 +742,7 @@ public final class SessionStrategyObjc: NSObject {
     ///
     /// - returns: The activity based session strategy that expires session after a specified duration of time
     ///            without any app activity.
+    @available(*, deprecated, message: "Use CAPSessionConfiguration instead.")
     @objc
     public static func activityBased(
         inactivityThresholdMins: Int,

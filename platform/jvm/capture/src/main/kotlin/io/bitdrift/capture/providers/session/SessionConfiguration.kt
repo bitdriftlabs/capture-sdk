@@ -21,6 +21,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * never reuses a persisted session. With [inactivityTimeout], [initialSessionId] seeds only the
  * first session. Later SDK starts reuse the persisted session while it remains active and create
  * an SDK UUID only after the inactivity period has elapsed.
+ * Without an inactivity timeout, Capture does not persist session IDs across SDK restarts.
  *
  * When [inactivityTimeout] is set, a period of inactivity rotates the session to an SDK-created
  * UUID. Calling `startNewSession` with a non-empty ID always uses that ID, including with an

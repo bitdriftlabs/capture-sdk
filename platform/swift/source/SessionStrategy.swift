@@ -15,11 +15,13 @@ public enum SessionStrategy {
     ///
     /// Capture generates UUIDs for SDK-created sessions; use `SessionConfiguration.initialSessionID`
     /// when an application needs to supply an initial ID.
+    @available(*, deprecated, message: "Use SessionConfiguration() instead.")
     case fixed
 
     /// Creates the deprecated fixed-session compatibility shim.
     ///
     /// - returns: The fixed-session compatibility shim.
+    @available(*, deprecated, message: "Use SessionConfiguration() instead.")
     public static func fixed() -> Self {
         .fixed
     }
@@ -40,6 +42,11 @@ public enum SessionStrategy {
     ///                                      Calls from overlapping session starts are not guaranteed to
     ///                                      arrive in transition order; use `Logger.sessionID` for the
     ///                                      current session ID.
+    @available(
+    *,
+    deprecated,
+    message: "Use SessionConfiguration(inactivityTimeout:onSessionIDChanged:) instead."
+    )
     case activityBased(inactivityThresholdMins: Int = 30, onSessionIDChanged: ((String) -> Void)? = nil)
 }
 

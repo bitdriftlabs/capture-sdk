@@ -15,6 +15,7 @@ final class SessionStrategyTests: XCTestCase {
         Storage.shared.clear()
     }
 
+    @available(*, deprecated, message: "Tests the deprecated compatibility shim.")
     func testInvalidInactivityTimeoutIsDisabled() {
         for timeout in [-1.0, .nan, .infinity, TimeInterval(Int64.max)] {
             XCTAssertNil(SessionConfiguration(inactivityTimeout: timeout).inactivityTimeout)
@@ -68,6 +69,7 @@ final class SessionStrategyTests: XCTestCase {
         XCTAssertNotNil(UUID(uuidString: logger.sessionID))
     }
 
+    @available(*, deprecated, message: "Tests the deprecated compatibility shim.")
     func testFixedCompatibilityShimUsesSDKGeneratedID() throws {
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",

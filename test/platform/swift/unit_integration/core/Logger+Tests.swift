@@ -13,7 +13,7 @@ import XCTest
 extension Logger {
     static func testLogger(
         withAPIKey apiKey: String = "",
-        sessionStrategy: SessionStrategy = .fixed(),
+        sessionStrategy: SessionStrategy = .configuration(.init()),
         sessionConfiguration: SessionConfiguration? = nil,
         dateProvider: DateProvider? = nil,
         fieldProviders: [FieldProvider] = [],

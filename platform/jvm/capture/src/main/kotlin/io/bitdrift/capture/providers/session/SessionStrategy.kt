@@ -24,6 +24,10 @@ sealed class SessionStrategy {
      * Capture generates UUIDs for SDK-created sessions; use [SessionConfiguration.initialSessionId]
      * when an application needs to supply an initial ID.
      */
+    @Deprecated(
+        message = "Use SessionConfiguration instead.",
+        replaceWith = ReplaceWith("SessionConfiguration()"),
+    )
     class Fixed : SessionStrategy()
 
     /**
@@ -42,6 +46,14 @@ sealed class SessionStrategy {
      *  to arrive in transition order; use [io.bitdrift.capture.ILogger.sessionId] for the current
      *  session ID.
      */
+    @Deprecated(
+        message = "Use SessionConfiguration instead.",
+        replaceWith =
+            ReplaceWith(
+                "SessionConfiguration(inactivityTimeout = inactivityThresholdMins.minutes, " +
+                    "onSessionIdChanged = onSessionIdChanged)",
+            ),
+    )
     data class ActivityBased
         @JvmOverloads
         constructor(
@@ -49,6 +61,7 @@ sealed class SessionStrategy {
             val onSessionIdChanged: ((String) -> Unit)? = null,
         ) : SessionStrategy()
 
+    @Suppress("DEPRECATION")
     internal fun makeSessionConfiguration(): SessionConfiguration =
         when (this) {
             is Configuration -> configuration

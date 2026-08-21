@@ -140,7 +140,7 @@ extension Logger {
     ///
     /// The logger must be started before this operation for it to take effect.
     public static func startNewSession() {
-        Self.getShared()?.startNewSession()
+        Self.startNewSession(sessionID: nil)
     }
 
     /// Creates a new session with an optional app-provided ID within the currently configured

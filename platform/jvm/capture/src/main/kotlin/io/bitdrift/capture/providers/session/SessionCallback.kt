@@ -13,9 +13,8 @@ import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
 /** Dispatches session changes from the Rust core to the app callback on the Android main thread. */
 internal class SessionCallback(
     private val onSessionIdChanged: (String) -> Unit,
-    private val mainThreadHandlerOverride: MainThreadHandler? = null,
 ) {
-    private val mainThreadHandler by lazy { mainThreadHandlerOverride ?: MainThreadHandler() }
+    private val mainThreadHandler = MainThreadHandler()
 
     fun sessionIdChanged(sessionId: String) {
         mainThreadHandler.run {

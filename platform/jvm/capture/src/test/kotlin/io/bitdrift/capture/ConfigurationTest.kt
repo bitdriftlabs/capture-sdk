@@ -12,6 +12,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions
 import org.junit.After
@@ -61,7 +62,7 @@ class ConfigurationTest {
 
         Capture.Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             bridge = bridge,
         )
@@ -99,7 +100,7 @@ class ConfigurationTest {
         // consecutive configure calls are no-ops.
         Capture.Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             bridge = bridge,
         )
@@ -170,7 +171,7 @@ class ConfigurationTest {
 
         Capture.Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             bridge = bridge,
         ) { result ->

@@ -14,7 +14,7 @@ import XCTest
 
 // swiftlint:disable:next force_unwrapping
 private let kAPIURL = URL(string: "https://api-tests.bitdrift.io")!
-private let kDefaultSessionStrategy = SessionStrategy.fixed()
+private let kDefaultSessionStrategy = SessionStrategy.configuration(.init())
 private let kLogMessage = "50 characters long test message - 0123456789012345"
 
 // Time measurements for various logger operations such as configurations or logging.

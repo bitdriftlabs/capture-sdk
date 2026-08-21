@@ -13,6 +13,12 @@ typedef uintptr_t stream_id;
 
 NS_ASSUME_NONNULL_BEGIN
 
+@protocol CAPSessionCallbackProvider <NSObject>
+
+- (void)sessionIDChanged:(NSString *)sessionID;
+
+@end
+
 /*
  * Reports an error to the bitdrift backend and log it to the console. Both reporting to remote and logging
  * to the console are throttled to protect against noisy errors.
@@ -47,7 +53,7 @@ logger_id capture_create_logger(
     const char *api_key,
     NSString *_Nullable initial_session_id,
     double inactivity_timeout_seconds,
-    _Nullable id session_callback,
+    _Nullable id<CAPSessionCallbackProvider> session_callback,
     id<MetadataProvider> metadata_provider,
     id<ResourceUtilizationTarget> resource_utilization_target,
     id<SessionReplayTarget> session_replay_target,
