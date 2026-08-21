@@ -79,6 +79,15 @@ Primary: **Bazel** (`./bazelw`). Secondary: Gradle for Android (`platform/jvm/gr
 
 Key Bazel configs: `--config android`, `--config release-ios`, `--config release-android`, `--config ci`
 
+## Release Build Cache Policy
+
+Release workflows must not use the Bazel/BuildBuddy remote cache. Release Bazel invocations include
+`--config=nocache`; configure their shared setup actions with `enable-bazel-cache: "false"` as a
+second safeguard. GitHub Actions dependency caches that remain necessary for a release must use the
+`release-${{ github.workflow }}` cache-key scope, so a release cache is never restored by
+pull-request or ordinary `main` CI builds. Do not enable an unscoped cache (including an
+action-managed Gradle cache) in a release workflow.
+
 ## Project Structure
 
 ```

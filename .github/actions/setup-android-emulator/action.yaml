@@ -5,6 +5,14 @@ inputs:
   buildbuddy-api-key:
     description: BuildBuddy API key.
     required: false
+  enable-bazel-cache:
+    description: Whether to configure the BuildBuddy remote cache.
+    required: false
+    default: "true"
+  cache-key-scope:
+    description: Namespace for GitHub Actions caches. Use a release-only value for release builds.
+    required: false
+    default: ci
   setup-gradle-cache:
     description: Whether to restore Gradle's dependency cache
     required: false
@@ -46,6 +54,8 @@ runs:
       uses: ./.github/actions/android-setup
       with:
         buildbuddy-api-key: ${{ inputs.buildbuddy-api-key }}
+        enable-bazel-cache: ${{ inputs.enable-bazel-cache }}
+        cache-key-scope: ${{ inputs.cache-key-scope }}
         setup-gradle-cache: ${{ inputs.setup-gradle-cache }}
         setup-emulator: "true"
         emulator-api-level: ${{ inputs.api-level }}
@@ -68,7 +78,7 @@ runs:
         # compatible SDK/emulator versions. The remaining fields describe the
         # AVD configuration and prevent incompatible snapshots from sharing a
         # cache entry.
-        cache_key="${RUNNER_OS}-${RUNNER_ARCH}-avd-snapshot-v1-api${API_LEVEL}-${TARGET}-${ARCH}-${PROFILE}-ram${RAM_SIZE}-disk${DISK_SIZE}-animations${DISABLE_ANIMATIONS}"
+        cache_key="${{ inputs.cache-key-scope }}-${RUNNER_OS}-${RUNNER_ARCH}-avd-snapshot-v1-api${API_LEVEL}-${TARGET}-${ARCH}-${PROFILE}-ram${RAM_SIZE}-disk${DISK_SIZE}-animations${DISABLE_ANIMATIONS}"
         cache_key="${cache_key// /-}"
         echo "key=${cache_key}" >> "$GITHUB_OUTPUT"
 

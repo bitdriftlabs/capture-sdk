@@ -40,11 +40,12 @@ jobs:
       with:
         distribution: 'zulu'
         java-version: '17'
-        cache: gradle
     - name: Setup Android cmd line tools + NDK
       uses: ./.github/actions/android-setup
       with:
         buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+        enable-bazel-cache: "false"
+        cache-key-scope: release-${{ github.workflow }}
         setup-local-android-sdk: "true"
     - name: Accept Android SDK licenses
       run: yes | $ANDROID_HOME/cmdline-tools/6.0/bin/sdkmanager --licenses

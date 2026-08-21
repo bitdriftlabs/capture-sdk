@@ -21,6 +21,7 @@ echo "+++ Building Capture.xcframework"
 ./bazelw build \
   --announce_rc \
   --config=ci \
+  --config=nocache \
   --config=release-ios \
   --define ios_produce_framework_plist=true \
   //:ios_dist //:ios_doccarchive

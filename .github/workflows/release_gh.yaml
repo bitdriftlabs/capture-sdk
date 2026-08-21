@@ -119,6 +119,8 @@ jobs:
         uses: ./.github/actions/setup
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          enable-bazel-cache: "false"
+          cache-key-scope: release-${{ github.workflow }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: 'Install dependencies'
@@ -167,6 +169,8 @@ jobs:
         uses: ./.github/actions/android-setup
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          enable-bazel-cache: "false"
+          cache-key-scope: release-${{ github.workflow }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
       - name: Add Google Play SDK verification file

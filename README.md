@@ -6,6 +6,13 @@ See [here](https://docs.bitdrift.io/product/overview) for more information.
 
 For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sdk/wiki)
 
+## Release build cache policy
+
+Release builds do not use the Bazel/BuildBuddy remote cache. GitHub Actions caches used by a
+release are scoped as `release-${{ github.workflow }}` and must not be shared with pull-request or
+ordinary `main` builds. See `AGENTS.md` before changing release commands, workflows, or shared
+setup actions.
+
 ## Rust Analyzer
 
 This section uses [just](https://github.com/casey/just), a modern Make alternative. Install via `brew install just`.
