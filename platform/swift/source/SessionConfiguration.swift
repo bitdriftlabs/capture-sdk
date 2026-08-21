@@ -65,9 +65,9 @@ public final class SessionConfiguration: NSObject {
 
     /// Creates a session configuration from Objective-C.
     ///
-    /// - parameter initialSessionID:          Optional initial session ID.
-    /// - parameter inactivityTimeoutSeconds:  Optional inactivity duration in seconds.
-    /// - parameter onSessionIDChanged:        Optional callback that receives the active session ID.
+    /// - parameter initialSessionID:         Optional initial session ID.
+    /// - parameter inactivityTimeoutSeconds: Optional inactivity duration in seconds.
+    /// - parameter onSessionIDChanged:       Optional callback that receives the active session ID.
     @objc(initWithInitialSessionID:inactivityTimeoutSeconds:onSessionIDChanged:)
     public convenience init(
         initialSessionID: String?,
