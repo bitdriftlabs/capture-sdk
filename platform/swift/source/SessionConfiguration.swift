@@ -51,30 +51,21 @@ public struct SessionConfiguration {
         self.onSessionIDChanged = onSessionIDChanged
     }
 
-    func makeSessionConfigurationBridge() -> SessionConfigurationBridge {
-        SessionConfigurationBridge(configuration: self)
+    func makeSessionCallbackBridge() -> SessionCallbackBridge? {
+        onSessionIDChanged.map(SessionCallbackBridge.init)
     }
 }
 
-final class SessionConfigurationBridge: NSObject {
-    private let configuration: SessionConfiguration
+final class SessionCallbackBridge: NSObject {
+    private let onSessionIDChanged: (String) -> Void
 
-    init(configuration: SessionConfiguration) {
-        self.configuration = configuration
-    }
-
-    @objc func initialSessionID() -> String? {
-        configuration.initialSessionID
-    }
-
-    /// - returns: A negative value when the Objective-C bridge should represent an absent timeout.
-    @objc func inactivityTimeoutSeconds() -> Double {
-        configuration.inactivityTimeout ?? -1
+    init(onSessionIDChanged: @escaping (String) -> Void) {
+        self.onSessionIDChanged = onSessionIDChanged
     }
 
     @objc func sessionIDChanged(_ sessionID: String) {
         DispatchQueue.main.async {
-            self.configuration.onSessionIDChanged?(sessionID)
+            self.onSessionIDChanged(sessionID)
         }
     }
 }

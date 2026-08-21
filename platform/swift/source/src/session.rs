@@ -9,64 +9,35 @@
 #[path = "./session_test.rs"]
 mod tests;
 
-use crate::ffi::{self, make_nsstring};
+use crate::ffi::make_nsstring;
 use anyhow::bail;
 use bd_session::configuration::Callbacks;
-use bd_session::{Strategy, StrategyWithWorker};
 use objc::runtime::Object;
-use std::path::Path;
-use std::sync::Arc;
 use time::Duration;
 
 const MAX_DURATION_SECONDS_EXCLUSIVE: f64 = 9_223_372_036_854_775_808.0;
 
 //
-// SessionConfiguration
+// SessionCallback
 //
 
 #[allow(clippy::non_send_fields_in_send_ty)]
-pub(crate) struct SessionConfiguration {
+pub(crate) struct SessionCallback {
   swift_object: objc::rc::StrongPtr,
 }
 
-unsafe impl Sync for SessionConfiguration {}
-unsafe impl Send for SessionConfiguration {}
+unsafe impl Sync for SessionCallback {}
+unsafe impl Send for SessionCallback {}
 
-impl SessionConfiguration {
+impl SessionCallback {
   pub(crate) fn new(swift_object: *mut Object) -> Self {
     Self {
       swift_object: unsafe { objc::rc::StrongPtr::retain(swift_object) },
     }
   }
-
-  pub(crate) fn create(self, sdk_directory: &Path) -> anyhow::Result<StrategyWithWorker> {
-    Ok(Strategy::configuration(
-      sdk_directory,
-      self.initial_session_id(),
-      self.inactivity_timeout()?,
-      Arc::new(self),
-      Arc::new(bd_time::SystemTimeProvider {}),
-    ))
-  }
-
-  fn initial_session_id(&self) -> Option<String> {
-    objc::rc::autoreleasepool(|| unsafe {
-      let session_id: *const Object = msg_send![*self.swift_object, initialSessionID];
-      (!session_id.is_null())
-        .then(|| ffi::nsstring_into_string(session_id).ok())
-        .flatten()
-    })
-  }
-
-  fn inactivity_timeout(&self) -> anyhow::Result<Option<Duration>> {
-    objc::rc::autoreleasepool(|| unsafe {
-      let seconds: f64 = msg_send![*self.swift_object, inactivityTimeoutSeconds];
-      timeout_from_seconds(seconds)
-    })
-  }
 }
 
-fn timeout_from_seconds(seconds: f64) -> anyhow::Result<Option<Duration>> {
+pub(crate) fn timeout_from_seconds(seconds: f64) -> anyhow::Result<Option<Duration>> {
   if seconds.is_finite() && seconds < 0.0 {
     return Ok(None);
   }
@@ -78,7 +49,7 @@ fn timeout_from_seconds(seconds: f64) -> anyhow::Result<Option<Duration>> {
   Ok(Some(Duration::seconds_f64(seconds)))
 }
 
-impl Callbacks for SessionConfiguration {
+impl Callbacks for SessionCallback {
   fn session_id_changed(&self, session_id: &str) {
     objc::rc::autoreleasepool(|| unsafe {
       let Ok(session_id) = make_nsstring(session_id) else {

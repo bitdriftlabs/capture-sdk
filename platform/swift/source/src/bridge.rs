@@ -12,6 +12,7 @@ mod bridge_tests;
 use crate::bridge::ffi::make_nsstring;
 use crate::ffi::{make_empty_nsstring, nsstring_into_string};
 use crate::key_value_storage::UserDefaultsStorage;
+use crate::session::{SessionCallback, timeout_from_seconds};
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
@@ -36,6 +37,8 @@ use bd_logger::{
 use bd_noop_network::NoopNetwork;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1;
 use bd_proto::protos::logging::payload::LogType;
+use bd_session::Strategy;
+use bd_session::configuration::{Callbacks, NoopCallbacks};
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::javascript_error::{
@@ -486,7 +489,9 @@ extern "C" fn capture_report_error(error_message: *const c_char) {
 extern "C" fn capture_create_logger(
   path: *const c_char,
   api_key: *const c_char,
-  session_configuration: *mut Object,
+  initial_session_id: *const Object,
+  inactivity_timeout_seconds: f64,
+  session_callback: *mut Object,
   provider: *mut Object,
   resource_utilization_target: *mut Object,
   session_replay_target: *mut Object,
@@ -514,8 +519,21 @@ extern "C" fn capture_create_logger(
       let storage = Box::<UserDefaultsStorage>::default();
       let store = Arc::new(bd_key_value::Store::new(storage));
 
-      let session = crate::session::SessionConfiguration::new(session_configuration)
-        .create(sdk_directory.as_ref())?;
+      let initial_session_id = (!initial_session_id.is_null())
+        .then(|| unsafe { nsstring_into_string(initial_session_id) })
+        .transpose()?;
+      let callbacks: Arc<dyn Callbacks> = if session_callback.is_null() {
+        Arc::new(NoopCallbacks)
+      } else {
+        Arc::new(SessionCallback::new(session_callback))
+      };
+      let session = Strategy::configuration(
+        sdk_directory,
+        initial_session_id,
+        timeout_from_seconds(inactivity_timeout_seconds)?,
+        callbacks,
+        Arc::new(bd_time::SystemTimeProvider {}),
+      );
       let active_session = session.strategy();
 
       let device: Arc<bd_device::Device> = Arc::new(bd_device::Device::new(store.clone()));

@@ -95,10 +95,13 @@ final class LoggerBridge: LoggerBridging {
             return nil
         }
 
+        let sessionConfiguration = sessionStrategy.makeSessionConfiguration()
         let loggerID = capture_create_logger(
             bufferDirectoryPath,
             apiKey,
-            sessionStrategy.makeSessionConfiguration().makeSessionConfigurationBridge(),
+            sessionConfiguration.initialSessionID,
+            sessionConfiguration.inactivityTimeout ?? -1,
+            sessionConfiguration.makeSessionCallbackBridge(),
             metadataProvider,
             resourceUtilizationTarget,
             sessionReplayTarget,
