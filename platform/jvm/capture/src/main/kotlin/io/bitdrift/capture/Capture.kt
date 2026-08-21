@@ -25,6 +25,7 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.utils.BuildTypeChecker
@@ -166,6 +167,50 @@ object Capture {
             )
         }
 
+        /**
+         * Initializes Capture with the canonical session configuration API.
+         *
+         * Calling other SDK methods has no effect unless the logger has been initialized.
+         * Subsequent calls to this function have no effect. See [SessionConfiguration] for the
+         * session-ID lifecycle contract.
+         *
+         * @param apiKey The API key provided by bitdrift. This is required.
+         * @param sessionConfiguration Session lifecycle configuration. By default, Capture generates an
+         * SDK UUID for the current process, does not persist it across SDK restarts, and does not rotate it
+         * due to inactivity.
+         * @param configuration A configuration that is used to set up Capture features.
+         * @param fieldProviders List of extra field providers to apply to all logs.
+         * @param dateProvider Optional date provider used to override how the current timestamp is computed.
+         * @param apiUrl The base URL of Capture API.
+         * @param context An optional context reference. Provide it if called from an
+         * `android.content.ContentProvider`.
+         * @param startResult Optional callback invoked with the result of SDK initialization.
+         */
+        @Synchronized
+        @JvmStatic
+        @JvmOverloads
+        fun start(
+            apiKey: String,
+            sessionConfiguration: SessionConfiguration = SessionConfiguration(),
+            configuration: Configuration = Configuration(),
+            fieldProviders: List<FieldProvider> = listOf(),
+            dateProvider: DateProvider? = null,
+            apiUrl: HttpUrl = defaultCaptureApiUrl,
+            context: Context? = null,
+            startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
+        ) {
+            start(
+                apiKey = apiKey,
+                sessionStrategy = SessionStrategy.Configuration(sessionConfiguration),
+                configuration = configuration,
+                fieldProviders = fieldProviders,
+                dateProvider = dateProvider,
+                apiUrl = apiUrl,
+                context = context,
+                startResult = startResult,
+            )
+        }
+
         // Note that we need to use @Synchronized to prevent multiple loggers from being initialized,
         // while subsequent logger access relies on volatile reads.
         @Synchronized
@@ -244,12 +289,16 @@ object Capture {
             get() = logger()?.isTracingActive
 
         /**
-         * Defines the initialization of a new session within the currently running logger
-         * If no logger is started, this is a no-op.
+         * Creates a new session with an optional app-provided ID within the currently running logger.
+         *
+         * A non-empty [sessionId] becomes the new session ID. When [sessionId] is null or empty,
+         * Capture generates a UUID. Every call invokes the configured session-ID callback, even if
+         * [sessionId] equals the current ID. If no logger is started, this is a no-op.
          */
         @JvmStatic
-        fun startNewSession() {
-            logger()?.startNewSession()
+        @JvmOverloads
+        fun startNewSession(sessionId: String? = null) {
+            logger()?.startNewSession(sessionId)
         }
 
         /**

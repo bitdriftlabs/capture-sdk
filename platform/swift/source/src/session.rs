@@ -5,78 +5,42 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::ffi::{self, make_nsstring};
-use anyhow::bail;
-use bd_session::activity_based::Callbacks as ActivityBasedStrategyCallbacks;
-use bd_session::fixed::Callbacks as FixedStrategyCallbacks;
-use bd_session::{Strategy, StrategyWithWorker};
+#[cfg(test)]
+#[path = "./session_test.rs"]
+mod tests;
+
+use crate::ffi::make_nsstring;
+use bd_session::configuration::Callbacks;
 use objc::runtime::Object;
-use std::path::Path;
-use std::sync::Arc;
 use time::Duration;
 
+//
+// SessionCallback
+//
+
 #[allow(clippy::non_send_fields_in_send_ty)]
-pub(crate) struct SessionStrategy {
+pub(crate) struct SessionCallback {
   swift_object: objc::rc::StrongPtr,
 }
 
-unsafe impl Sync for SessionStrategy {}
-unsafe impl Send for SessionStrategy {}
+unsafe impl Sync for SessionCallback {}
+unsafe impl Send for SessionCallback {}
 
-impl SessionStrategy {
-  #[allow(dead_code)]
+impl SessionCallback {
   pub(crate) fn new(swift_object: *mut Object) -> Self {
     Self {
       swift_object: unsafe { objc::rc::StrongPtr::retain(swift_object) },
     }
   }
-
-  pub(crate) fn create(self, sdk_directory: &Path) -> anyhow::Result<StrategyWithWorker> {
-    Ok(match self.session_strategy_type() {
-      0 => Strategy::fixed(sdk_directory, Arc::new(self)),
-      1 => {
-        let inactivity_threshold_mins = self.inactivity_threshold_mins();
-        Strategy::activity_based(
-          sdk_directory,
-          Duration::minutes(inactivity_threshold_mins),
-          Arc::new(self),
-          Arc::new(bd_time::SystemTimeProvider {}),
-        )
-      },
-      _ => bail!("Invalid session strategy type"),
-    })
-  }
 }
 
-impl SessionStrategy {
-  fn session_strategy_type(&self) -> i64 {
-    // Safety: Since we receive `SessionStrategyCallbacks` as a typed protocol, we know that it
-    // responds to `sessionStrategyType` and will return an integer.
-    objc::rc::autoreleasepool(|| unsafe { msg_send![*self.swift_object, sessionStrategyType] })
-  }
-
-  #[allow(clippy::unused_self)]
-  fn inactivity_threshold_mins(&self) -> i64 {
-    // Safety: Since we receive `SessionStrategyCallbacks` as a typed protocol, we know that it
-    // responds to `inactivityThresholdMins` and will return an integer.
-    objc::rc::autoreleasepool(|| unsafe { msg_send![*self.swift_object, inactivityThresholdMins] })
-  }
+// Swift normalizes invalid user input to the negative sentinel before this private bridge call.
+pub(crate) fn timeout_from_seconds(seconds: f64) -> Option<Duration> {
+  (seconds >= 0.0).then(|| Duration::seconds_f64(seconds))
 }
 
-impl FixedStrategyCallbacks for SessionStrategy {
-  // Safety: Since we receive `SessionStrategyCallbacks` as a typed protocol, we know that it
-  // responds to `generateSessionID` and will return an integer.
-  fn generate_session_id(&self) -> anyhow::Result<String> {
-    objc::rc::autoreleasepool(|| unsafe {
-      let session_id: *const Object = msg_send![*self.swift_object, generateSessionID];
-      ffi::nsstring_into_string(session_id)
-    })
-  }
-}
-impl ActivityBasedStrategyCallbacks for SessionStrategy {
+impl Callbacks for SessionCallback {
   fn session_id_changed(&self, session_id: &str) {
-    // Safety: Since we receive `ActivityBasedStrategyCallbacks` as a typed protocol, we know that
-    // it responds to `sessionIdChanged:` and will take a NSString.
     objc::rc::autoreleasepool(|| unsafe {
       let Ok(session_id) = make_nsstring(session_id) else {
         return;

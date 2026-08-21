@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.assertj.core.api.Assertions.assertThat
@@ -77,7 +78,8 @@ class SessionUrlTest {
             fieldProviders = listOf(),
             context = ContextHolder.APP_CONTEXT,
             dateProvider = SystemDateProvider(),
-            sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+            sessionStrategy =
+                SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
         )
         return Capture.logger()
     }

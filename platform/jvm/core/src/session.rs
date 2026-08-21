@@ -6,143 +6,49 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use crate::define_object_wrapper;
-use crate::jni::{
-  CachedClass,
-  CachedMethod,
-  JValueWrapper,
-  initialize_class,
-  initialize_method_handle,
-};
-use anyhow::anyhow;
+use crate::jni::{CachedMethod, JValueWrapper, initialize_class, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
-use bd_session::{Strategy, StrategyWithWorker, activity_based, fixed};
+use bd_session::configuration;
 use jni::JNIEnv;
-use jni::objects::JString;
 use jni::signature::{Primitive, ReturnType};
-use std::path::Path;
-use std::sync::{Arc, OnceLock};
-use time::Duration;
+use std::sync::OnceLock;
 
 // Cached method IDs
 
-static SESSION_STRATEGY_FIXED: OnceLock<CachedClass> = OnceLock::new();
-
-static SESSION_STRATEGY_INACTIVITY_THRESHOLD_MINS: OnceLock<CachedMethod> = OnceLock::new();
-static SESSION_STRATEGY_GENERATE_SESSION_ID: OnceLock<CachedMethod> = OnceLock::new();
-static SESSION_STRATEGY_SESSION_ID_CHANGED: OnceLock<CachedMethod> = OnceLock::new();
+static SESSION_CALLBACK_SESSION_ID_CHANGED: OnceLock<CachedMethod> = OnceLock::new();
 
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
-  let session_strategy_fixed = initialize_class(
+  let session_callback = initialize_class(
     env,
-    "io/bitdrift/capture/providers/session/SessionStrategyConfiguration$Fixed",
-    Some(&SESSION_STRATEGY_FIXED),
-  )?;
-  initialize_method_handle(
-    env,
-    &session_strategy_fixed.class,
-    "generateSessionId",
-    "()Ljava/lang/String;",
-    &SESSION_STRATEGY_GENERATE_SESSION_ID,
-  )?;
-
-  let session_strategy_activity_based = initialize_class(
-    env,
-    "io/bitdrift/capture/providers/session/SessionStrategyConfiguration$ActivityBased",
+    "io/bitdrift/capture/providers/session/SessionCallback",
     None,
   )?;
   initialize_method_handle(
     env,
-    &session_strategy_activity_based.class,
-    "inactivityThresholdMins",
-    "()J",
-    &SESSION_STRATEGY_INACTIVITY_THRESHOLD_MINS,
-  )?;
-  initialize_method_handle(
-    env,
-    &session_strategy_activity_based.class,
+    &session_callback.class,
     "sessionIdChanged",
     "(Ljava/lang/String;)V",
-    &SESSION_STRATEGY_SESSION_ID_CHANGED,
+    &SESSION_CALLBACK_SESSION_ID_CHANGED,
   )?;
   Ok(())
 }
 
-define_object_wrapper!(SessionStrategyConfigurationHandle);
+define_object_wrapper!(SessionCallback);
 
-impl SessionStrategyConfigurationHandle {
-  pub(crate) fn create(
-    &self,
-    callbacks: Arc<Self>,
-    sdk_directory: &Path,
-  ) -> anyhow::Result<StrategyWithWorker> {
-    self.execute(|e, session_strategy_configuration| {
-      Ok(
-        if e.is_instance_of(
-          session_strategy_configuration,
-          &SESSION_STRATEGY_FIXED
-            .get()
-            .ok_or(InvariantError::Invariant)?
-            .class,
-        )? {
-          Strategy::fixed(sdk_directory, callbacks)
-        } else {
-          let inactivity_threshold_mins = SESSION_STRATEGY_INACTIVITY_THRESHOLD_MINS
-            .get()
-            .ok_or(InvariantError::Invariant)?
-            .call_method(
-              e,
-              session_strategy_configuration,
-              ReturnType::Primitive(Primitive::Long),
-              &[],
-            )
-            .map_err(|e| anyhow!(e))?
-            .j()?;
-
-          Strategy::activity_based(
-            sdk_directory,
-            Duration::minutes(inactivity_threshold_mins),
-            callbacks,
-            Arc::new(bd_time::SystemTimeProvider {}),
-          )
-        },
-      )
-    })
-  }
-}
-
-impl fixed::Callbacks for SessionStrategyConfigurationHandle {
-  fn generate_session_id(&self) -> anyhow::Result<String> {
-    self.execute(|e, session_strategy_configuration| {
-      let session_id = SESSION_STRATEGY_GENERATE_SESSION_ID
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .call_method(e, session_strategy_configuration, ReturnType::Object, &[])?
-        .l()?;
-
-      let session_id = JString::from(session_id);
-      unsafe { e.get_string_unchecked(&session_id)? }
-        .to_str()
-        .ok()
-        .map(ToString::to_string)
-        .ok_or_else(|| anyhow!("jni: generate_session_id failed to convert session_id to string"))
-    })
-  }
-}
-
-impl activity_based::Callbacks for SessionStrategyConfigurationHandle {
+impl configuration::Callbacks for SessionCallback {
   fn session_id_changed(&self, session_id: &str) {
     with_handle_unexpected(
       || {
-        self.execute(|e, session_configuration| {
+        self.execute(|e, session_callback| {
           let session_id = e.new_string(session_id)?;
 
-          SESSION_STRATEGY_SESSION_ID_CHANGED
+          SESSION_CALLBACK_SESSION_ID_CHANGED
             .get()
             .ok_or(InvariantError::Invariant)?
             .call_method(
               e,
-              session_configuration,
+              session_callback,
               ReturnType::Primitive(Primitive::Void),
               &[JValueWrapper::Object(session_id.into()).into()],
             )

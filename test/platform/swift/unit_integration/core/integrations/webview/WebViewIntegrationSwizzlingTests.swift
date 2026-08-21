@@ -59,7 +59,7 @@ final class WebViewIntegrationSwizzlingRuntimeFlagTests: XCTestCase {
                     "bitdrift_test_\(UUID().uuidString)"
                 )
             ),
-            sessionStrategy: .fixed(),
+            sessionStrategy: .configuration(.init()),
             dateProvider: nil,
             fieldProviders: [],
             enableNetwork: false,

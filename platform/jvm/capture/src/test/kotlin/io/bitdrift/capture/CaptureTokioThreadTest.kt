@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
@@ -35,7 +36,7 @@ class CaptureTokioThreadTest {
 
         Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             fieldProviders =
                 listOf(

@@ -15,50 +15,104 @@ final class SessionStrategyTests: XCTestCase {
         Storage.shared.clear()
     }
 
-    func testFixedSessionStrategy() throws {
-        var generatedSessionIDs = [String]()
+    @available(*, deprecated, message: "Tests the deprecated compatibility shim.")
+    func testInvalidInactivityTimeoutIsDisabled() {
+        for timeout in [-1.0, .nan, .infinity, TimeInterval(Int64.max)] {
+            XCTAssertNil(SessionConfiguration(inactivityTimeout: timeout).inactivityTimeout)
+        }
 
-        let logger = try Logger.testLogger(
-            withAPIKey: "test_api_key",
-            sessionStrategy: SessionStrategy.fixed {
-                let sessionID = UUID().uuidString
-                generatedSessionIDs.append(sessionID)
-                return sessionID
-            }
-        )
-
-        let sessionID = logger.sessionID
-
-        XCTAssertEqual(1, generatedSessionIDs.count)
-        XCTAssertEqual(sessionID, generatedSessionIDs[0])
-
-        logger.startNewSession()
-
-        XCTAssertEqual(2, generatedSessionIDs.count)
-        XCTAssertEqual(logger.sessionID, generatedSessionIDs[1])
+        let configuration =
+            SessionStrategy.activityBased(inactivityThresholdMins: .max).makeSessionConfiguration()
+        XCTAssertNil(configuration.inactivityTimeout)
     }
 
-    func testActivityBasedSessionStrategy() throws {
-        let expectation = self.expectation(description: "onSessionIDChange called")
-        var observedSessionID: String?
+    func testObjectiveCConfigurationInitializer() {
+        let configuration = SessionConfiguration(
+            initialSessionID: "initial-session",
+            inactivityTimeoutSeconds: NSNumber(value: 30),
+            onSessionIDChanged: nil
+        )
+
+        XCTAssertEqual(configuration.initialSessionID, "initial-session")
+        XCTAssertEqual(configuration.inactivityTimeout, 30)
+    }
+
+    func testSessionConfigurationUsesSeededAndSDKGeneratedIDs() throws {
+        let initialSessionID = "initial-session"
+        let explicitSessionID = "explicit-session"
+        var observedSessionIDs = [String]()
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            sessionStrategy: SessionStrategy.activityBased { sessionID in
-                dispatchPrecondition(condition: .onQueue(.main))
-                observedSessionID = sessionID
-                expectation.fulfill()
-            }
+            sessionConfiguration: SessionConfiguration(
+                initialSessionID: initialSessionID,
+                onSessionIDChanged: { observedSessionIDs.append($0) }
+            )
+        )
+
+        XCTAssertEqual(initialSessionID, logger.sessionID)
+        let initialCallback = expectation(description: "initial callback")
+        DispatchQueue.main.async {
+            XCTAssertEqual([initialSessionID], observedSessionIDs)
+            initialCallback.fulfill()
+        }
+        wait(for: [initialCallback], timeout: 1)
+
+        logger.startNewSession(sessionID: explicitSessionID)
+        XCTAssertEqual(explicitSessionID, logger.sessionID)
+        let explicitCallback = expectation(description: "explicit callback")
+        DispatchQueue.main.async {
+            XCTAssertEqual([initialSessionID, explicitSessionID], observedSessionIDs)
+            explicitCallback.fulfill()
+        }
+        wait(for: [explicitCallback], timeout: 1)
+
+        logger.startNewSession(sessionID: explicitSessionID)
+        XCTAssertEqual(explicitSessionID, logger.sessionID)
+        let repeatedIDCallback = expectation(description: "repeated ID callback")
+        DispatchQueue.main.async {
+            XCTAssertEqual([initialSessionID, explicitSessionID, explicitSessionID], observedSessionIDs)
+            repeatedIDCallback.fulfill()
+        }
+        wait(for: [repeatedIDCallback], timeout: 1)
+
+        logger.startNewSession()
+        XCTAssertNotNil(UUID(uuidString: logger.sessionID))
+    }
+
+    @available(*, deprecated, message: "Tests the deprecated compatibility shim.")
+    func testFixedCompatibilityShimUsesSDKGeneratedID() throws {
+        let logger = try Logger.testLogger(
+            withAPIKey: "test_api_key",
+            sessionStrategy: .fixed
+        )
+
+        XCTAssertNotNil(UUID(uuidString: logger.sessionID))
+    }
+
+    func testActivityBasedSessionConfiguration() throws {
+        let callbackExpectation = self.expectation(description: "onSessionIDChange called")
+        callbackExpectation.expectedFulfillmentCount = 2
+        var observedSessionIDs = [String]()
+
+        let logger = try Logger.testLogger(
+            withAPIKey: "test_api_key",
+            sessionConfiguration: SessionConfiguration(
+                inactivityTimeout: 30 * 60,
+                onSessionIDChanged: { sessionID in
+                    dispatchPrecondition(condition: .onQueue(.main))
+                    observedSessionIDs.append(sessionID)
+                    callbackExpectation.fulfill()
+                }
+            )
         )
 
         let sessionID = logger.sessionID
-
-        XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 1))
-        XCTAssertEqual(observedSessionID, sessionID)
-
         logger.startNewSession()
         let newSessionID = logger.sessionID
 
+        XCTAssertEqual(.completed, XCTWaiter().wait(for: [callbackExpectation], timeout: 1))
+        XCTAssertEqual([sessionID, newSessionID], observedSessionIDs)
         XCTAssertNotEqual(sessionID, newSessionID)
     }
 
