@@ -223,7 +223,7 @@ jobs:
           cp "$PROFILE_PATH" "$XCODE_PROFILE_DIR/"
           cp "$PROFILE_PATH" "$LEGACY_PROFILE_DIR/"
 
-      - name: Build iOS size artifacts
+      - name: Build iOS size artifacts and Capture SDK XCFramework
         env:
           APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
           APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
@@ -233,7 +233,9 @@ jobs:
             --config ci \
             --config release-ios \
             --cpu=ios_arm64 \
-            //examples/swift/hello_world:ios_app_archive
+            --define ios_produce_framework_plist=true \
+            //examples/swift/hello_world:ios_app_archive \
+            //:ios_dist
 
       - name: Export and measure thinned iOS app size
         id: ios_size
@@ -249,15 +251,6 @@ jobs:
             exit 1
           fi
           echo "current_kb=$IOS_APP_SIZE_KB" >> "$GITHUB_OUTPUT"
-
-      - name: Build Capture SDK XCFramework for size measurement
-        run: |
-          set -euo pipefail
-          ./bazelw build \
-            --config ci \
-            --config release-ios \
-            --define ios_produce_framework_plist=true \
-            //:ios_dist
 
       - name: Materialize Capture SDK XCFramework
         run: |

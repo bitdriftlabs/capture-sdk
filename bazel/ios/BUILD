@@ -8,10 +8,8 @@ load(
 )
 
 sh_binary(
-    name = "rewrite_symbols",
-    srcs = [
-        "rewrite_symbols.sh",
-    ],
+    name = "strip_rust_metadata",
+    srcs = ["strip_rust_metadata.sh"],
     visibility = ["//visibility:public"],
 )
 

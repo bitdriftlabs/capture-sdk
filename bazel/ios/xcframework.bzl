@@ -1,19 +1,16 @@
-"""
-This is a workaround to remove lib.rmeta symbols coming from rust that
-are included into the archive.
-"""
+"""Produces a distribution XCFramework without unnecessary Rust compiler metadata."""
 
-def _rewrite_xcframework_impl(ctx):
+def _strip_rust_metadata_xcframework_impl(ctx):
     outdir = ctx.actions.declare_directory(ctx.attr.framwork_name + ".xcframework")
     zip_in = ctx.file.xcframework
-    tool = ctx.executable.rewrite_tool
+    metadata_stripper = ctx.executable.metadata_stripper
     ar = ctx.executable.ar
     lipo = ctx.executable.lipo
     ranlib = ctx.executable.ranlib
 
     ctx.actions.run_shell(
         inputs = [zip_in],
-        tools = [tool, ar, lipo, ranlib],
+        tools = [metadata_stripper, ar, lipo, ranlib],
         outputs = [outdir],
         env = {
             "AR": ar.path,
@@ -27,15 +24,19 @@ set -euo pipefail
 TMP="$(mktemp -d)"
 unzip -q {zip_in} -d "$TMP"
 DIR="$(find "$TMP" -maxdepth 1 -name '*.xcframework' -print -quit)"
-"{tool}" "$DIR"
+"{metadata_stripper}" "$DIR"
 rsync -a "$DIR/" "{outdir}/"
-""".format(zip_in = zip_in.path, tool = tool.path, outdir = outdir.path),
+""".format(
+            zip_in = zip_in.path,
+            metadata_stripper = metadata_stripper.path,
+            outdir = outdir.path,
+        ),
     )
 
     return [DefaultInfo(files = depset([outdir]))]
 
-rewrite_xcframework = rule(
-    implementation = _rewrite_xcframework_impl,
+strip_rust_metadata_xcframework = rule(
+    implementation = _strip_rust_metadata_xcframework_impl,
     attrs = {
         "ar": attr.label(
             allow_single_file = True,
@@ -50,13 +51,17 @@ rewrite_xcframework = rule(
             default = Label("//bazel/ios:llvm_lipo"),
             executable = True,
         ),
+        "metadata_stripper": attr.label(
+            cfg = "exec",
+            executable = True,
+            mandatory = True,
+        ),
         "ranlib": attr.label(
             allow_single_file = True,
             cfg = "exec",
             default = Label("//bazel/ios:llvm_ranlib"),
             executable = True,
         ),
-        "rewrite_tool": attr.label(executable = True, cfg = "exec"),
         "xcframework": attr.label(allow_single_file = [".zip"]),
     },
 )
