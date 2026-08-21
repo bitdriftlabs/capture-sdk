@@ -47,10 +47,12 @@ import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
@@ -84,6 +86,7 @@ internal class LoggerImpl(
     errorReporter: IErrorReporter? = null,
     configuration: Configuration,
     fieldProviders: List<FieldProvider>,
+    initialFields: Fields = emptyMap(),
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
@@ -248,6 +251,9 @@ internal class LoggerImpl(
                 localErrorReporter,
                 configuration.sleepMode == SleepMode.ENABLED,
                 getIssueCallbackConfiguration(configuration),
+                initialFields
+                    .map { (key, value) -> Field(key, value.toFieldValue()) }
+                    .toTypedArray(),
             )
 
         check(loggerId != -1L) { "initialization of the rust logger failed" }

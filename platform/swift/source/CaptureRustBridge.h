@@ -37,6 +37,7 @@ void capture_report_error(const char *message);
  * @param network the Capture Network protocol to use for performing network requests.
  * @param error_reporter the error reported protocol to use for reporting errors.
  * @param start_in_sleep_mode true if sleep mode should initialize now
+ * @param initial_fields fields to seed at SDK startup; they can later be updated with addField.
  * @param issue_callback_configuration optional issue callback configuration.
  */
 logger_id capture_create_logger(
@@ -55,6 +56,7 @@ logger_id capture_create_logger(
     _Nullable id<Network> network,
     _Nullable id<RemoteErrorReporting> error_reporter,
     bool start_in_sleep_mode,
+    const NSArray<const Field *> *_Nonnull initial_fields,
     _Nullable id issue_callback_configuration
 );
 
