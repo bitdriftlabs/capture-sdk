@@ -43,6 +43,8 @@ jobs:
         uses: ./.github/actions/setup
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          enable-bazel-cache: "false"
+          cache-key-scope: release-${{ github.workflow }}
 
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh

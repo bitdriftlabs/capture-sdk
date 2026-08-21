@@ -5,6 +5,10 @@ inputs:
   api-key:
     description: BuildBuddy API key.
     required: false
+  enabled:
+    description: Whether to configure the BuildBuddy remote cache.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -17,6 +21,11 @@ runs:
         set -euo pipefail
 
         rm -f .buildrc.bb
+        if [[ "${{ inputs.enabled }}" != "true" ]]; then
+          echo "BuildBuddy cache disabled by workflow policy."
+          exit 0
+        fi
+
         if [[ -z "$BUILDBUDDY_API_KEY" ]]; then
           echo "BuildBuddy cache disabled: API key unavailable."
           exit 0

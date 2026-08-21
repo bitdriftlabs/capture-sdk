@@ -9,6 +9,7 @@ mkdir -p dist
 ./bazelw build \
   --announce_rc \
   --config=ci \
+  --config=nocache \
   --config release-common \
   //examples/swift/hello_world:hello_world_app
 
@@ -25,6 +26,7 @@ echo "+++ Building iOS Session Replay Previos Example App"
 ./bazelw build \
   --announce_rc \
   --config=ci \
+  --config=nocache \
   --config=release-common \
   //examples/swift/session_replay_preview:session_replay_preview_app
 
