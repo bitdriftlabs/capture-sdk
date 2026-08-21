@@ -1736,7 +1736,7 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
         .runtime_snapshot()
         .get_integer(variable_name, default_value as u32);
 
-      Ok(jint::try_from(integer_value).map_or(default_value, |value| value))
+      Ok(jint::try_from(integer_value).unwrap_or(default_value))
     },
     default_value,
     "jni runtimeValue",
