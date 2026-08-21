@@ -10,6 +10,7 @@ readonly apk_path="platform/jvm/gradle-test-app/build/outputs/apk/debug/gradle-t
 readonly maestro_flow="tools/maestro/native-crash-loop.yaml"
 readonly maestro_retries=3
 
+# shellcheck source=ci/android_emulator.sh
 source "$(dirname "${BASH_SOURCE[0]}")/android_emulator.sh"
 
 if ! [[ "$iterations" =~ ^[0-9]+$ ]] || [[ "$iterations" -lt 1 ]]; then
