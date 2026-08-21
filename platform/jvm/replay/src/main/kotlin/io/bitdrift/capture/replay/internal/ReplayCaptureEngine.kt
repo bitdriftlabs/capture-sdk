@@ -28,12 +28,18 @@ internal class ReplayCaptureEngine(
     windowManager: IWindowManager,
     displayManager: DisplayManagers,
     private val executor: ExecutorService,
-    private val captureParser: ReplayParser = ReplayParser(sessionReplayConfiguration, errorHandler, windowManager),
-    private val captureFilter: ReplayFilter = ReplayFilter(),
-    private val captureDecorations: ReplayDecorations = ReplayDecorations(displayManager, windowManager),
+    private val captureParser: ReplayParser =
+        ReplayParser(
+            sessionReplayConfiguration,
+            errorHandler,
+            windowManager,
+            displayManager,
+        ),
     private val replayEncoder: ReplayEncoder = ReplayEncoder(),
     private val clock: IClock = DefaultClock.getInstance(),
 ) {
+    private var previousCapture: List<ReplayRect>? = null
+
     fun captureScreen(skipReplayComposeViews: Boolean) {
         mainThreadHandler.run {
             captureScreen(skipReplayComposeViews) { byteArray, screen, metrics ->
@@ -44,7 +50,7 @@ internal class ReplayCaptureEngine(
 
     private fun captureScreen(
         skipReplayComposeViews: Boolean,
-        completion: (encodedScreen: ByteArray, screen: FilteredCapture, metrics: ReplayCaptureMetrics) -> Unit,
+        completion: (encodedScreen: ByteArray, screen: List<ReplayRect>, metrics: ReplayCaptureMetrics) -> Unit,
     ) {
         val startTime = clock.elapsedRealtime()
 
@@ -55,16 +61,25 @@ internal class ReplayCaptureEngine(
             }
 
         executor.execute {
-            captureFilter.filter(timedValue.value)?.let { filteredCapture ->
+            filter(timedValue.value)?.let { filteredCapture ->
                 replayCaptureMetrics.parseDuration = timedValue.duration
                 replayCaptureMetrics.viewCountAfterFilter = filteredCapture.size
-                val screen = captureDecorations.addDecorations(filteredCapture)
-                val encodedScreen = replayEncoder.encode(screen)
+                val encodedScreen = replayEncoder.encode(filteredCapture)
                 replayCaptureMetrics.encodingTimeMs =
                     clock.elapsedRealtime() - startTime - replayCaptureMetrics.parseDuration.inWholeMilliseconds
                 SessionReplayController.L.d("Screen Captured: $replayCaptureMetrics")
-                completion(encodedScreen, screen, replayCaptureMetrics)
+                completion(encodedScreen, filteredCapture, replayCaptureMetrics)
             }
+        }
+    }
+
+    private fun filter(capture: List<ReplayRect>): List<ReplayRect>? {
+        // This capture is identical to the previous one, filter it out
+        return if (capture == previousCapture) {
+            null
+        } else {
+            previousCapture = capture
+            capture
         }
     }
 }

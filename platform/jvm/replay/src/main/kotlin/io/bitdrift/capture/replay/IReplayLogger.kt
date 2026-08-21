@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.replay
 
-import io.bitdrift.capture.replay.internal.FilteredCapture
+import io.bitdrift.capture.replay.internal.ReplayRect
 
 /**
  * Screen captures will be received through this interface
@@ -21,7 +21,7 @@ interface IReplayLogger : IReplayInternalLogger {
      */
     fun onScreenCaptured(
         encodedScreen: ByteArray,
-        screen: FilteredCapture,
+        screen: List<ReplayRect>,
         metrics: ReplayCaptureMetrics,
     )
 }
