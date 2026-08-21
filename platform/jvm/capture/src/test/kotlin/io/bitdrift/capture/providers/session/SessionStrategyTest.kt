@@ -99,6 +99,39 @@ class SessionStrategyTest {
     }
 
     @Test
+    fun sessionConfigurationCallbackCrossesJniBoundary() {
+        var observedSessionId: String? = null
+        var callbackLooper: Looper? = null
+
+        val logger =
+            LoggerImpl(
+                apiKey = "test",
+                apiUrl = testServerUrl(),
+                fieldProviders = listOf(),
+                dateProvider = mock(),
+                context = ContextHolder.APP_CONTEXT,
+                sessionStrategy =
+                    SessionStrategy.Configuration(
+                        SessionConfiguration(
+                            onSessionIdChanged = { sessionId ->
+                                observedSessionId = sessionId
+                                callbackLooper = Looper.myLooper()
+                            },
+                        ),
+                    ),
+                configuration = Configuration(),
+                preferences = mock(),
+            )
+
+        val initialSessionId = logger.sessionId
+
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(observedSessionId).isEqualTo(initialSessionId)
+        assertThat(callbackLooper).isEqualTo(Looper.getMainLooper())
+    }
+
+    @Test
     fun sessionConfigurationCallbackRunsOnMainThread() {
         var observedSessionId: String? = null
         var callbackLooper: Looper? = null
