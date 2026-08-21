@@ -60,6 +60,17 @@ fn collect_inner_includes_os_version_and_android_manufacturer() {
 
   let collected = bd_api::Metadata::collect_inner(&metadata);
 
+  let android = metadata.android_static_fields();
+  assert_eq!(
+    android.map(|fields| fields.manufacturer.as_str()),
+    Some("Google")
+  );
+  assert_eq!(android.map(|fields| fields.app_version_code), Some(123));
+  assert_eq!(
+    android.map(|fields| fields.architecture.as_str()),
+    Some("arm64-v8a")
+  );
+
   assert_eq!(collected.get("os_version"), Some(&"14".to_string()));
   assert_eq!(collected.get("_manufacturer"), Some(&"Google".to_string()));
 
@@ -130,6 +141,8 @@ fn collect_inner_omits_manufacturer_for_non_android() {
   );
 
   let collected = bd_api::Metadata::collect_inner(&metadata);
+
+  assert!(metadata.android_static_fields().is_none());
 
   assert_eq!(collected.get("os_version"), Some(&"18.0".to_string()));
   assert!(!collected.contains_key("_manufacturer"));

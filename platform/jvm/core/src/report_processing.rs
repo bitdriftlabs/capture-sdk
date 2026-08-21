@@ -29,23 +29,58 @@ use platform_shared::javascript_error::{
   DeviceMetadata,
   persist_javascript_error_report,
 };
+use platform_shared::metadata::Mobile;
 use std::io::{Seek, Write};
 use std::sync::OnceLock;
 
 const BUFFER_SIZE: i32 = 8192;
 static INPUT_STREAM_READ: OnceLock<CachedMethod> = OnceLock::new();
-static CLIENT_ATTRS_APP_ID: OnceLock<CachedMethod> = OnceLock::new();
-static CLIENT_ATTRS_APP_VERSION: OnceLock<CachedMethod> = OnceLock::new();
-static CLIENT_ATTRS_VERSIONCODE: OnceLock<CachedMethod> = OnceLock::new();
-static CLIENT_ATTRS_MANUFACTURER: OnceLock<CachedMethod> = OnceLock::new();
-static CLIENT_ATTRS_MODEL: OnceLock<CachedMethod> = OnceLock::new();
-static CLIENT_ATTRS_OS_VERSION: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_OS_BRAND: OnceLock<CachedMethod> = OnceLock::new();
-static CLIENT_ATTRS_OS_API_LEVEL: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_SUPPORTED_ABIS: OnceLock<CachedMethod> = OnceLock::new();
-static CLIENT_ATTRS_ARCHITECTURE: OnceLock<CachedMethod> = OnceLock::new();
-static CLIENT_ATTRS_LOCALE: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_LOCALE_COUNTRY_CODE: OnceLock<CachedMethod> = OnceLock::new();
+
+//
+// AndroidReportContext
+//
+
+/// Dependencies shared by Android report builders.
+pub(crate) struct AndroidReportContext<'a, 'env_local, 'metadata, 'attributes, 'object> {
+  pub env: &'a mut JNIEnv<'env_local>,
+  pub metadata: &'metadata Mobile,
+  pub attributes: &'attributes JObject<'object>,
+}
+
+//
+// AnrReport
+//
+
+/// Per-report input used to build an Android ANR report.
+pub(crate) struct AnrReport<'a, 'local> {
+  pub source_stream: Option<&'a JObject<'local>>,
+  pub timestamp_millis: jlong,
+  pub destination: &'a str,
+  pub running_state: Option<&'a str>,
+  pub app_exit_description: Option<&'a str>,
+  pub memory_pressure_level: jint,
+  pub is_file_size_optimization_enabled: bool,
+}
+
+//
+// JavaScriptErrorReport
+//
+
+/// Per-report input used to build an Android JavaScript error report.
+pub(crate) struct JavaScriptErrorReport<'a> {
+  pub error_name: &'a str,
+  pub error_message: &'a str,
+  pub stack_trace: &'a str,
+  pub is_fatal: bool,
+  pub engine: &'a str,
+  pub debugger_id: &'a str,
+  pub timestamp_millis: jlong,
+  pub destination: &'a str,
+  pub sdk_version: &'a str,
+}
 
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   initialize_method_handle(
@@ -59,54 +94,6 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   initialize_method_handle(
     env,
     "io/bitdrift/capture/attributes/IClientAttributes",
-    "getAppId",
-    "()Ljava/lang/String;",
-    &CLIENT_ATTRS_APP_ID,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
-    "getAppVersion",
-    "()Ljava/lang/String;",
-    &CLIENT_ATTRS_APP_VERSION,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
-    "getAppVersionCode",
-    "()J",
-    &CLIENT_ATTRS_VERSIONCODE,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
-    "getManufacturer",
-    "()Ljava/lang/String;",
-    &CLIENT_ATTRS_MANUFACTURER,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
-    "getModel",
-    "()Ljava/lang/String;",
-    &CLIENT_ATTRS_MODEL,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
-    "getOsVersion",
-    "()Ljava/lang/String;",
-    &CLIENT_ATTRS_OS_VERSION,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
     "getOsBrand",
     "()Ljava/lang/String;",
     &CLIENT_ATTRS_OS_BRAND,
@@ -115,33 +102,9 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   initialize_method_handle(
     env,
     "io/bitdrift/capture/attributes/IClientAttributes",
-    "getOsApiLevel",
-    "()I",
-    &CLIENT_ATTRS_OS_API_LEVEL,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
     "getSupportedAbis",
     "()Ljava/util/List;",
     &CLIENT_ATTRS_SUPPORTED_ABIS,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
-    "getArchitecture",
-    "()Ljava/lang/String;",
-    &CLIENT_ATTRS_ARCHITECTURE,
-  )?;
-
-  initialize_method_handle(
-    env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
-    "getLocale",
-    "()Ljava/lang/String;",
-    &CLIENT_ATTRS_LOCALE,
   )?;
 
   initialize_method_handle(
@@ -156,19 +119,13 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
 }
 
 pub(crate) fn persist_anr(
-  env: &mut JNIEnv<'_>,
-  source_stream: Option<&JObject<'_>>,
-  timestamp_millis: jlong,
-  destination: &str,
-  attributes: &JObject<'_>,
-  running_state: Option<&str>,
-  app_exit_description: Option<&str>,
-  memory_pressure_level: jint,
-  is_file_size_optimization_enabled: bool,
+  context: &mut AndroidReportContext<'_, '_, '_, '_, '_>,
+  report: &AnrReport<'_, '_>,
 ) -> anyhow::Result<()> {
   let mut builder = FlatBufferBuilder::new();
-  let source_file = source_stream
-    .map(|stream| read_stream_to_file(env, stream))
+  let source_file = report
+    .source_stream
+    .map(|stream| read_stream_to_file(context.env, stream))
     .transpose()?;
   let source_memmap = source_file
     .as_ref()
@@ -178,134 +135,126 @@ pub(crate) fn persist_anr(
     .as_ref()
     .map(bd_report_parsers::MemmapView::new);
   let timestamp = Timestamp::new(
-    u64::try_from(timestamp_millis / 1_000).unwrap_or_default(),
-    u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default(),
+    u64::try_from(report.timestamp_millis / 1_000).unwrap_or_default(),
+    u32::try_from((report.timestamp_millis % 1_000) * 1_000).unwrap_or_default(),
   );
-  let mut device_info = build_device_metrics(env, &mut builder, attributes, &timestamp)?;
-  let mut app_info = build_app_metrics(
-    env,
-    &mut builder,
-    attributes,
-    running_state,
-    memory_pressure_level,
-  )?;
+  let mut device_info = build_device_metrics(context, &mut builder, &timestamp)?;
+  let mut app_info = build_app_metrics(context, &mut builder, report)?;
   let report_offset = bd_report_parsers::android::build_anr_from_app_exit(
     &mut builder,
     &mut app_info,
     &mut device_info,
     source_view,
-    app_exit_description,
-    is_file_size_optimization_enabled,
+    report.app_exit_description,
+    report.is_file_size_optimization_enabled,
   );
 
   builder.finish(report_offset, None);
-  std::fs::write(destination, builder.finished_data())?;
-  log::trace!("persisted report from {timestamp_millis}");
+  std::fs::write(report.destination, builder.finished_data())?;
+  log::trace!("persisted report from {}", report.timestamp_millis);
   Ok(())
 }
 
 pub(crate) fn persist_javascript_error(
-  env: &mut JNIEnv<'_>,
-  error_name: &str,
-  error_message: &str,
-  stack_trace: &str,
-  is_fatal: bool,
-  engine: &str,
-  debugger_id: &str,
-  timestamp_millis: jlong,
-  destination: &str,
-  attributes: &JObject<'_>,
-  sdk_version: &str,
+  context: &mut AndroidReportContext<'_, '_, '_, '_, '_>,
+  report: &JavaScriptErrorReport<'_>,
 ) -> anyhow::Result<()> {
-  let debug_id = if debugger_id.is_empty() {
+  let debug_id = if report.debugger_id.is_empty() {
     None
   } else {
-    Some(debugger_id)
+    Some(report.debugger_id)
   };
 
-  let timestamp_seconds = u64::try_from(timestamp_millis / 1_000).unwrap_or_default();
-  let timestamp_nanos = u32::try_from((timestamp_millis % 1_000) * 1_000).unwrap_or_default();
+  let timestamp_seconds = u64::try_from(report.timestamp_millis / 1_000).unwrap_or_default();
+  let timestamp_nanos =
+    u32::try_from((report.timestamp_millis % 1_000) * 1_000).unwrap_or_default();
 
-  let manufacturer = read_string(env, attributes, &CLIENT_ATTRS_MANUFACTURER).ok();
-  let model = read_string(env, attributes, &CLIENT_ATTRS_MODEL).ok();
-  let os_brand = read_string(env, attributes, &CLIENT_ATTRS_OS_BRAND).ok();
-  let os_version = read_string(env, attributes, &CLIENT_ATTRS_OS_VERSION).ok();
-  let architecture_str = read_string(env, attributes, &CLIENT_ATTRS_ARCHITECTURE).ok();
-  let architecture = architecture_str
-    .as_ref()
-    .map_or(Architecture::Unknown, |arch| match arch.as_str() {
-      "arm64" | "aarch64" => Architecture::arm64,
-      "x86_64" => Architecture::x86_64,
-      _ => Architecture::Unknown,
-    });
-  let cpu_abis = read_string_list(env, attributes, &CLIENT_ATTRS_SUPPORTED_ABIS).ok();
-
-  let app_id = read_string(env, attributes, &CLIENT_ATTRS_APP_ID).ok();
-  let app_version = read_string(env, attributes, &CLIENT_ATTRS_APP_VERSION).ok();
-  let version_code = CLIENT_ATTRS_VERSIONCODE
-    .get()
-    .ok_or(InvariantError::Invariant)?
-    .call_method(env, attributes, ReturnType::Primitive(Primitive::Long), &[])?
-    .j()
-    .ok();
+  let os_brand = read_string(context.env, context.attributes, &CLIENT_ATTRS_OS_BRAND).ok();
+  let architecture =
+    context
+      .metadata
+      .android_static_fields()
+      .map_or(Architecture::Unknown, |fields| {
+        match fields.architecture.as_str() {
+          "arm64" | "aarch64" => Architecture::arm64,
+          "x86_64" => Architecture::x86_64,
+          _ => Architecture::Unknown,
+        }
+      });
+  let cpu_abis = read_string_list(
+    context.env,
+    context.attributes,
+    &CLIENT_ATTRS_SUPPORTED_ABIS,
+  )
+  .ok();
 
   let device_metadata = DeviceMetadata {
-    manufacturer,
-    model,
-    os_version,
+    manufacturer: context
+      .metadata
+      .android_static_fields()
+      .map(|fields| fields.manufacturer.clone()),
+    model: Some(context.metadata.model.clone()),
+    os_version: context.metadata.os_version.clone(),
     os_brand,
     architecture: Some(architecture),
     cpu_abis,
   };
 
   let app_metadata = AppMetadata {
-    app_id,
-    app_version,
-    version_code,
+    app_id: context.metadata.app_id.clone(),
+    app_version: context.metadata.app_version.clone(),
+    version_code: context
+      .metadata
+      .android_static_fields()
+      .map(|fields| fields.app_version_code),
   };
 
   persist_javascript_error_report(
-    error_name,
-    error_message,
-    stack_trace,
-    is_fatal,
+    report.error_name,
+    report.error_message,
+    report.stack_trace,
+    report.is_fatal,
     debug_id,
     timestamp_seconds,
     timestamp_nanos,
     Platform::Android,
     "io.bitdrift.capture-android",
-    sdk_version,
-    destination,
+    report.sdk_version,
+    report.destination,
     device_metadata,
     app_metadata,
-    engine,
+    report.engine,
   )?;
 
   Ok(())
 }
 
 fn build_device_metrics<'fbb>(
-  env: &mut JNIEnv<'_>,
+  context: &mut AndroidReportContext<'_, '_, '_, '_, '_>,
   builder: &mut FlatBufferBuilder<'fbb>,
-  attributes: &JObject<'_>,
   timestamp: &'fbb Timestamp,
 ) -> anyhow::Result<DeviceMetricsArgs<'fbb>> {
-  let manufacturer = read_string(env, attributes, &CLIENT_ATTRS_MANUFACTURER)
-    .map_err(|e| anyhow::anyhow!("failed to parse manufacturer: {e}"))?;
-  let model = read_string(env, attributes, &CLIENT_ATTRS_MODEL)
-    .map_err(|e| anyhow::anyhow!("failed to parse model: {e}"))?;
-  let os_brand = read_string(env, attributes, &CLIENT_ATTRS_OS_BRAND)
+  let os_brand = read_string(context.env, context.attributes, &CLIENT_ATTRS_OS_BRAND)
     .map_err(|e| anyhow::anyhow!("failed to parse brand: {e}"))?;
-  let os_version = read_string(env, attributes, &CLIENT_ATTRS_OS_VERSION)
-    .map_err(|e| anyhow::anyhow!("failed to parse os version: {e}"))?;
+  let os_version = context
+    .metadata
+    .os_version
+    .as_deref()
+    .ok_or_else(|| anyhow::anyhow!("missing static os version"))?;
+  let manufacturer = context
+    .metadata
+    .android_static_fields()
+    .ok_or_else(|| anyhow::anyhow!("missing Android static metadata"))?
+    .manufacturer
+    .as_str();
   let os_build = OSBuildArgs {
     brand: Some(builder.create_string(&os_brand)),
-    version: Some(builder.create_string(&os_version)),
+    version: Some(builder.create_string(os_version)),
     ..Default::default()
   };
   Ok(DeviceMetricsArgs {
-    manufacturer: Some(builder.create_string(&manufacturer)),
-    model: Some(builder.create_string(&model)),
+    manufacturer: Some(builder.create_string(manufacturer)),
+    model: Some(builder.create_string(&context.metadata.model)),
     os_build: Some(OSBuild::create(builder, &os_build)),
     time: Some(timestamp),
     ..Default::default()
@@ -313,17 +262,15 @@ fn build_device_metrics<'fbb>(
 }
 
 fn build_app_metrics<'fbb>(
-  env: &mut JNIEnv<'_>,
+  context: &mut AndroidReportContext<'_, '_, '_, '_, '_>,
   builder: &mut FlatBufferBuilder<'fbb>,
-  attributes: &JObject<'_>,
-  running_state: Option<&str>,
-  memory_pressure_level: jint,
+  report: &AnrReport<'_, '_>,
 ) -> anyhow::Result<AppMetricsArgs<'fbb>> {
-  let version_code = CLIENT_ATTRS_VERSIONCODE
-    .get()
-    .ok_or(InvariantError::Invariant)?
-    .call_method(env, attributes, ReturnType::Primitive(Primitive::Long), &[])?
-    .j()?;
+  let version_code = context
+    .metadata
+    .android_static_fields()
+    .ok_or_else(|| anyhow::anyhow!("missing Android static metadata"))?
+    .app_version_code;
   let build_number = Some(AppBuildNumber::create(
     builder,
     &AppBuildNumberArgs {
@@ -331,19 +278,32 @@ fn build_app_metrics<'fbb>(
       ..Default::default()
     },
   ));
-  let app_id = read_string(env, attributes, &CLIENT_ATTRS_APP_ID)
-    .map_err(|e| anyhow::anyhow!("failed to parse app_id: {e}"))?;
-  let app_version = read_string(env, attributes, &CLIENT_ATTRS_APP_VERSION)
-    .map_err(|e| anyhow::anyhow!("failed to parse app_version: {e}"))?;
+  let app_id = context
+    .metadata
+    .app_id
+    .as_deref()
+    .ok_or_else(|| anyhow::anyhow!("missing static app id"))?;
+  let app_version = context
+    .metadata
+    .app_version
+    .as_deref()
+    .ok_or_else(|| anyhow::anyhow!("missing static app version"))?;
   // failable/optional value
-  let region_format = read_string(env, attributes, &CLIENT_ATTRS_LOCALE_COUNTRY_CODE).ok();
+  let region_format = read_string(
+    context.env,
+    context.attributes,
+    &CLIENT_ATTRS_LOCALE_COUNTRY_CODE,
+  )
+  .ok();
   Ok(AppMetricsArgs {
-    app_id: Some(builder.create_string(&app_id)),
-    version: Some(builder.create_string(&app_version)),
+    app_id: Some(builder.create_string(app_id)),
+    version: Some(builder.create_string(app_version)),
     build_number,
     region_format: region_format.map(|s| builder.create_string(&s)),
-    running_state: running_state.map(|s| builder.create_string(s)),
-    memory_pressure_level: MemoryPressureLevel(i8::try_from(memory_pressure_level).unwrap_or(0)),
+    running_state: report.running_state.map(|s| builder.create_string(s)),
+    memory_pressure_level: MemoryPressureLevel(
+      i8::try_from(report.memory_pressure_level).unwrap_or(0),
+    ),
     ..Default::default()
   })
 }

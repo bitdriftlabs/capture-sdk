@@ -191,6 +191,15 @@ impl Mobile {
     fields.insert("model".into(), self.model.clone().into());
     fields
   }
+
+  /// Returns Android-specific immutable metadata when this is an Android client.
+  #[must_use]
+  pub const fn android_static_fields(&self) -> Option<&AndroidStaticFields> {
+    match &self.platform_static_fields {
+      PlatformStaticFields::Android(fields) => Some(fields),
+      PlatformStaticFields::Apple(_) | PlatformStaticFields::Electron => None,
+    }
+  }
 }
 
 impl bd_api::Metadata for Mobile {
