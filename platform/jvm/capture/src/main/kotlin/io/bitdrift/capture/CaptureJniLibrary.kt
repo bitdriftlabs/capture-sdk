@@ -61,6 +61,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
      * @param errorReporter the error reporter to use for reporting error to bitdrift services.
      * @param startInSleepMode true to initialize in sleep mode
+     * @param initialFields fields to seed at SDK startup. Later addField calls can update them.
      */
     external override fun createLogger(
         sdkDirectory: String,
@@ -83,6 +84,7 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         errorReporter: IErrorReporter,
         startInSleepMode: Boolean,
         issueCallbackConfiguration: IssueCallbackConfiguration?,
+        initialFields: Array<Field>,
     ): Long
 
     /**

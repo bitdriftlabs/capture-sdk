@@ -24,6 +24,7 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
@@ -128,7 +129,8 @@ object Capture {
          * @param apiKey The API key provided by bitdrift. This is required.
          * @param sessionStrategy session strategy for the management of session id.
          * @param configuration A configuration that is used to set up Capture features.
-         * @param fieldProviders list of extra field providers to apply to all logs.
+         * @param fieldProviders list of extra field providers to apply to all logs. Deprecated; use
+         *                       [initialFields] to seed fields at startup and [addField] to update them.
          * @param dateProvider optional date provider used to override how the current timestamp is computed.
          * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
          *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
@@ -139,6 +141,7 @@ object Capture {
          *                     The callback is always called on the calling thread before [start] returns.
          *                     On success, it receives a [CaptureResult.Success] containing an [ILogger] instance.
          *                     On failure, it receives a [CaptureResult.Failure] with a [SdkStartFailure].
+         * @param initialFields fields to seed at SDK startup. Use [addField] to update their values later.
          */
         @Synchronized
         @JvmStatic
@@ -151,6 +154,7 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
+            initialFields: Fields = emptyMap(),
             startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         ) {
             start(
@@ -162,6 +166,7 @@ object Capture {
                 apiUrl,
                 CaptureJniLibrary,
                 context,
+                initialFields,
                 startResult,
             )
         }
@@ -180,6 +185,7 @@ object Capture {
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
             context: Context? = null,
+            initialFields: Fields = emptyMap(),
             startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         ) {
             // There's nothing we can do if we don't have yet access to the application context.
@@ -202,6 +208,7 @@ object Capture {
                     bridge = bridge,
                     context = context,
                     startResult = startResult,
+                    initialFields = initialFields,
                 )
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
@@ -685,6 +692,7 @@ object Capture {
         bridge: IBridge,
         context: Context?,
         startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
+        initialFields: Fields,
     ) {
         try {
             val startSdkTimer = TimeSource.Monotonic.markNow()
@@ -712,6 +720,7 @@ object Capture {
                         apiUrl = apiUrl,
                         context = appContext,
                         fieldProviders = fieldProviders,
+                        initialFields = initialFields,
                         dateProvider = dateProvider ?: SystemDateProvider(),
                         configuration = configuration,
                         sessionStrategy = sessionStrategy,

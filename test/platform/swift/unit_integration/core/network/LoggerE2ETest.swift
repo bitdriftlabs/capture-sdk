@@ -56,7 +56,10 @@ final class CaptureE2ENetworkTests: XCTestCase {
         self.server = nil
     }
 
-    private func setUpLogger(fieldProviders: [FieldProvider]? = nil) throws -> Logger {
+    private func setUpLogger(
+        fieldProviders: [FieldProvider]? = nil,
+        initialFields: Fields = [:]
+    ) throws -> Logger {
         self.storage = MockStorageProvider()
 
         // Use instance-based server for test isolation
@@ -78,6 +81,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
                         }
                     ),
                 ],
+                initialFields: initialFields,
                 storageProvider: self.storage,
                 timeProvider: SystemTimeProvider(),
                 networkDelegateQueue: .global(qos: .userInteractive)
@@ -110,6 +114,21 @@ final class CaptureE2ENetworkTests: XCTestCase {
         ])
 
         XCTAssertEqual(logs.count, 3, "Did not find all expected initial logs")
+    }
+
+    func testInitialFieldsAreIncludedInLogs() async throws {
+        let logger = try self.setUpLogger(initialFields: ["initial_field": "initial_value"])
+
+        let streamID = try await self.server.waitForStream(testName: #function)
+        try await self.server.configureAggressiveUploads(streamId: streamID)
+
+        logger.addField(withKey: "initial_field", value: "updated_value")
+        logger.log(level: .debug, message: "initial fields")
+
+        let log = await self.server.nextUploadedLogMatching { $0.message == "initial fields" }
+        let uploadedLog = try XCTUnwrap(log, "Did not receive initial fields log")
+
+        XCTAssertEqual(uploadedLog.field(withKey: "initial_field")?.value as? String, "updated_value")
     }
 
     // swiftlint:disable:next function_body_length
