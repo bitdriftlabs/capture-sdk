@@ -33,6 +33,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         network _: Network?,
         errorReporting _: RemoteErrorReporting,
         sleepMode _: Capture.SleepMode,
+        initialFields _: [CapturePassable.Field],
         issueCallbackConfiguration _: IssueCallbackConfiguration?
     ) -> LoggerBridging? {
         self.makeLoggerCallsCount += 1

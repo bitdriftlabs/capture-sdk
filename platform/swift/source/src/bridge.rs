@@ -504,6 +504,7 @@ extern "C" fn capture_create_logger(
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
   start_in_sleep_mode: bool,
+  initial_fields: *const Object,
   issue_callback_configuration: *mut Object,
 ) -> LoggerId<'static> {
   initialize_logging();
@@ -550,6 +551,7 @@ extern "C" fn capture_create_logger(
             .to_string(),
         },
       ));
+      let initial_custom_fields = unsafe { ffi::convert_fields(initial_fields) }?;
       let initial_ootb_fields = static_metadata.static_log_fields();
 
       let error_reporter = MetadataErrorReporter::new(
@@ -604,7 +606,15 @@ extern "C" fn capture_create_logger(
       .with_internal_logger(true)
       .build()
       .map(|(logger, _, future, _)| {
-        LoggerHolder::new_with_static_metadata(logger, future, Some(static_metadata))
+        let logger = LoggerHolder::new(logger, future);
+
+        // Seed the same custom-field state that addField updates so later calls can override
+        // these initial values.
+        for (key, value) in initial_custom_fields {
+          logger.add_log_field(key.into_owned(), value);
+        }
+
+        logger
       })?;
 
       Ok(logger.into_raw())

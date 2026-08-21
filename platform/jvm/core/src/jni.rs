@@ -734,7 +734,7 @@ impl CrashReportHook for IssueCallbackConfigurationHandle {
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
-  env: JNIEnv<'_>,
+  mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   directory: JString<'_>,
   api_key: JString<'_>,
@@ -758,6 +758,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   error_reporter: JObject<'_>,
   start_in_sleep_mode: jboolean,
   issue_report_callback: JObject<'_>,
+  initial_fields: JObject<'_>,
 ) -> jlong {
   with_handle_unexpected_or(
     || {
@@ -810,7 +811,10 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
             .to_string(),
         },
       ));
+      let initial_fields = unsafe { JObjectArray::from_raw(initial_fields.as_raw()) };
+      let initial_custom_fields = ffi::jarray_to_fields(&mut env, &initial_fields)?;
       let initial_ootb_fields = static_metadata.static_log_fields();
+      let metadata_provider = Arc::new(MetadataProvider::new_global(&env, metadata_provider)?);
 
       let error_reporter = Arc::new(ErrorReporterHandle::new_global(&env, error_reporter)?);
       let error_reporter = MetadataErrorReporter::new(
@@ -853,7 +857,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
         session,
-        metadata_provider: Arc::new(MetadataProvider::new_global(&env, metadata_provider)?),
+        metadata_provider,
         initial_ootb_fields,
         initial_custom_fields: [].into(),
         resource_utilization_target,
@@ -869,7 +873,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       .with_crash_report_hook(crash_report_hook)
       .build()
       .map(|(logger, _, future, _)| {
-        LoggerHolder::new_with_static_metadata(
+        let logger = LoggerHolder::new(
           logger,
           async move {
             handle_unexpected(
@@ -885,7 +889,17 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
           }
           .boxed(),
           Some(static_metadata),
-        )
+        );
+
+        );
+
+        // Seed the same custom-field state that addLogField updates so later calls can override
+        // these initial values.
+        for (key, value) in initial_custom_fields {
+          logger.add_log_field(key.into_owned(), value);
+        }
+
+        logger
       })?;
 
       Ok(logger.into_raw().into())

@@ -11,9 +11,12 @@
   rotation, and receiving main-thread session-ID change callbacks. With an inactivity timeout,
   Capture reuses a persisted session until it expires; without one, it uses the configured initial
   ID at every SDK start.
+- Added `initialFields` to seed custom global fields during Capture SDK startup.
 
 **Changed**
 
+- Deprecated `FieldProvider`; use `initialFields` to seed global fields at SDK startup and `addField`
+  to update them.
 - Legacy fixed-session strategy generator callbacks have been removed. Use
   `SessionConfiguration` to provide an initial session ID.
 

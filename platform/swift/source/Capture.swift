@@ -40,7 +40,10 @@ extension Logger {
     /// - parameter sessionStrategy: A session strategy for the management of session ID.
     /// - parameter configuration:   A configuration that used to set up Capture features.
     /// - parameter fieldProviders:  An optional array of additional FieldProviders to include on the default
-    ///                              Logger.
+    ///                              Logger. Deprecated; use `initialFields` to seed fields at startup and
+    ///                              `addField(withKey:value:)` to update them.
+    /// - parameter initialFields:   Fields to seed at SDK startup. `addField(withKey:value:)` can update
+    ///                              their values later.
     /// - parameter dateProvider:    An optional date provider to set on the default logger.
     /// - parameter startResult:     An optional callback invoked with the result of the SDK initialization.
     ///                              The callback is always called on the calling thread before `start` returns.
@@ -53,6 +56,7 @@ extension Logger {
         sessionStrategy: SessionStrategy,
         configuration: Configuration = .init(),
         fieldProviders: [FieldProvider] = [],
+        initialFields: Fields = [:],
         dateProvider: DateProvider? = nil,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator?
@@ -62,6 +66,7 @@ extension Logger {
             sessionStrategy: sessionStrategy,
             configuration: configuration,
             fieldProviders: fieldProviders,
+            initialFields: initialFields,
             dateProvider: dateProvider,
             loggerBridgingFactoryProvider: LoggerBridgingFactory(),
             startResult: startResult
@@ -107,6 +112,7 @@ extension Logger {
         sessionStrategy: SessionStrategy,
         configuration: Configuration,
         fieldProviders: [FieldProvider],
+        initialFields: Fields = [:],
         dateProvider: DateProvider?,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
@@ -119,6 +125,7 @@ extension Logger {
                 sessionStrategy: sessionStrategy,
                 dateProvider: dateProvider,
                 fieldProviders: fieldProviders,
+                initialFields: initialFields,
                 loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
             )
 

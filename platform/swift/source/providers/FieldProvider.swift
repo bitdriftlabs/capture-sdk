@@ -8,6 +8,11 @@
 import Foundation
 
 /// This interface defines the accessors to provide custom fields that will be sent alongside all log lines.
+@available(
+*,
+deprecated,
+message: "Use Logger.start(initialFields:) to seed fields at startup and Logger.addField(withKey:value:) to update them."
+)
 public protocol FieldProvider {
     /// Returns the set of fields that will be included on every log line. Keep in mind this function could be
     /// called multiple times per second so it’s recommended to access expensive fields sporadically.

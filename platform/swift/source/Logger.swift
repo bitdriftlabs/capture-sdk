@@ -72,6 +72,7 @@ public final class Logger {
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
         fieldProviders: [FieldProvider],
+        initialFields: Fields = [:],
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     )
     {
@@ -82,6 +83,7 @@ public final class Logger {
             sessionStrategy: sessionStrategy,
             dateProvider: dateProvider,
             fieldProviders: fieldProviders,
+            initialFields: initialFields,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider(),
             loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
@@ -119,6 +121,7 @@ public final class Logger {
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
         fieldProviders: [FieldProvider],
+        initialFields: Fields = [:],
         enableNetwork: Bool = true,
         storageProvider: StorageProvider,
         timeProvider: TimeProvider,
@@ -189,6 +192,7 @@ public final class Logger {
             network: network,
             errorReporting: self.remoteErrorReporter,
             sleepMode: configuration.sleepMode,
+            initialFields: initialFields.compactMap { try? Field.make(keyValue: $0) },
             issueCallbackConfiguration: configuration.enableFatalIssueReporting
                 ? configuration.issueCallbackConfiguration
                 : nil
