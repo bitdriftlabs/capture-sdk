@@ -11,6 +11,7 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 class SessionConfigurationTest {
@@ -28,6 +29,13 @@ class SessionConfigurationTest {
         val sessionConfiguration = SessionConfiguration(inactivityTimeout = 30.seconds)
 
         assertThat(sessionConfiguration.inactivityTimeout?.inWholeMilliseconds).isEqualTo(30_000)
+    }
+
+    @Test
+    fun disablesInvalidInactivityTimeout() {
+        assertThat(SessionConfiguration(inactivityTimeout = (-1).seconds).inactivityTimeout).isNull()
+        assertThat(SessionConfiguration(inactivityTimeout = Duration.INFINITE).inactivityTimeout).isNull()
+        assertThat(SessionConfiguration.withInactivityTimeout(-1).inactivityTimeout).isNull()
     }
 
     @Test

@@ -28,6 +28,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * inactivity timeout configured. Mixing caller-supplied IDs with SDK-created IDs is therefore
  * discouraged unless the application can handle both forms.
  * Empty initial and explicit IDs are treated as absent, so Capture generates a UUID instead.
+ * Invalid inactivity timeouts are treated as absent, disabling activity-based rotation.
  *
  * [onSessionIdChanged] is invoked after Capture starts the initial session, rotates after
  * inactivity, and on every explicit session start. An explicit start invokes the callback even
@@ -39,20 +40,24 @@ import kotlin.time.Duration.Companion.milliseconds
  * @property initialSessionId Optional non-empty ID to use whenever no inactivity timeout is
  * configured, or to seed the first session when one is configured. When absent or empty, Capture
  * generates a UUID.
- * @property inactivityTimeout Optional inactivity duration after which Capture generates a new
- * UUID session ID. When absent, activity-based rotation is disabled.
+ * @property inactivityTimeout Optional non-negative, finite inactivity duration after which Capture
+ * generates a new UUID session ID. Invalid values are stored as absent, disabling activity-based
+ * rotation.
  * @property onSessionIdChanged Optional callback that receives the active session ID after each
  * session start or rotation, including explicit starts with the current ID.
  */
-data class SessionConfiguration(
+class SessionConfiguration(
     val initialSessionId: String? = null,
-    val inactivityTimeout: Duration? = null,
+    inactivityTimeout: Duration? = null,
     val onSessionIdChanged: ((String) -> Unit)? = null,
 ) {
+    val inactivityTimeout: Duration? = validatedInactivityTimeout(inactivityTimeout)
+
     /** Factory methods for Java-compatible session configurations. */
     companion object {
         /**
-         * Creates a session configuration with an inactivity timeout for Java callers.
+         * Creates a session configuration with an inactivity timeout for Java callers. Negative
+         * values disable activity-based rotation.
          */
         @JvmStatic
         @JvmOverloads
@@ -67,4 +72,16 @@ data class SessionConfiguration(
     }
 
     internal fun makeSessionCallback(): SessionCallback? = onSessionIdChanged?.let(::SessionCallback)
+
+    private fun validatedInactivityTimeout(inactivityTimeout: Duration?): Duration? {
+        if (inactivityTimeout == null) {
+            return null
+        }
+
+        if (inactivityTimeout.isNegative() || !inactivityTimeout.isFinite()) {
+            return null
+        }
+
+        return inactivityTimeout
+    }
 }
