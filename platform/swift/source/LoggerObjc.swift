@@ -123,11 +123,11 @@ public final class LoggerObjc: NSObject {
     @objc(startWithAPIKey:sessionConfiguration:)
     public static func start(
         withAPIKey apiKey: String,
-        sessionConfiguration: SessionConfigurationObjc
+        sessionConfiguration: SessionConfiguration
     ) {
         Capture.Logger.start(
             withAPIKey: apiKey,
-            sessionConfiguration: sessionConfiguration.underlyingConfiguration
+            sessionConfiguration: sessionConfiguration
         )
     }
 
@@ -139,12 +139,12 @@ public final class LoggerObjc: NSObject {
     @objc(startWithAPIKey:sessionConfiguration:configuration:)
     public static func start(
         withAPIKey apiKey: String,
-        sessionConfiguration: SessionConfigurationObjc,
+        sessionConfiguration: SessionConfiguration,
         configuration: CAPConfiguration
     ) {
         let logger = Capture.Logger.start(
             withAPIKey: apiKey,
-            sessionConfiguration: sessionConfiguration.underlyingConfiguration,
+            sessionConfiguration: sessionConfiguration,
             configuration: configuration.underlyingConfig
         )
 
@@ -161,12 +161,12 @@ public final class LoggerObjc: NSObject {
     @objc(startWithAPIKey:sessionConfiguration:startResult:)
     public static func start(
         withAPIKey apiKey: String,
-        sessionConfiguration: SessionConfigurationObjc,
+        sessionConfiguration: SessionConfiguration,
         startResult: @escaping (Error?) -> Void
     ) {
         Capture.Logger.start(
             withAPIKey: apiKey,
-            sessionConfiguration: sessionConfiguration.underlyingConfiguration,
+            sessionConfiguration: sessionConfiguration,
             startResult: { result in
                 switch result {
                 case .success:
@@ -188,13 +188,13 @@ public final class LoggerObjc: NSObject {
     @objc(startWithAPIKey:sessionConfiguration:configuration:startResult:)
     public static func start(
         withAPIKey apiKey: String,
-        sessionConfiguration: SessionConfigurationObjc,
+        sessionConfiguration: SessionConfiguration,
         configuration: CAPConfiguration,
         startResult: @escaping (Error?) -> Void
     ) {
         let logger = Capture.Logger.start(
             withAPIKey: apiKey,
-            sessionConfiguration: sessionConfiguration.underlyingConfiguration,
+            sessionConfiguration: sessionConfiguration,
             configuration: configuration.underlyingConfig,
             startResult: { result in
                 switch result {

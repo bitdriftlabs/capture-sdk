@@ -33,7 +33,8 @@ import os
 /// When session starts overlap, callbacks can arrive in a different order from their state
 /// transitions. Treat the callback ID as belonging to that individual start; use the logger's
 /// `sessionID` property when the current session ID is required.
-public struct SessionConfiguration {
+@objc(CAPSessionConfiguration)
+public final class SessionConfiguration: NSObject {
     private static let logger = os.Logger(
         subsystem: "io.bitdrift.capture.SessionConfiguration",
         category: "configuration"
@@ -59,6 +60,25 @@ public struct SessionConfiguration {
         self.initialSessionID = initialSessionID
         self.inactivityTimeout = Self.validatedInactivityTimeout(inactivityTimeout)
         self.onSessionIDChanged = onSessionIDChanged
+        super.init()
+    }
+
+    /// Creates a session configuration from Objective-C.
+    ///
+    /// - parameter initialSessionID:          Optional initial session ID.
+    /// - parameter inactivityTimeoutSeconds:  Optional inactivity duration in seconds.
+    /// - parameter onSessionIDChanged:        Optional callback that receives the active session ID.
+    @objc(initWithInitialSessionID:inactivityTimeoutSeconds:onSessionIDChanged:)
+    public convenience init(
+        initialSessionID: String?,
+        inactivityTimeoutSeconds: NSNumber?,
+        onSessionIDChanged: ((String) -> Void)?
+    ) {
+        self.init(
+            initialSessionID: initialSessionID,
+            inactivityTimeout: inactivityTimeoutSeconds?.doubleValue,
+            onSessionIDChanged: onSessionIDChanged
+        )
     }
 
     private static func validatedInactivityTimeout(_ inactivityTimeout: TimeInterval?) -> TimeInterval? {
@@ -93,25 +113,5 @@ final class SessionCallbackBridge: NSObject, CaptureLoggerBridge.CAPSessionCallb
         DispatchQueue.main.async {
             self.onSessionIDChanged(sessionID)
         }
-    }
-}
-
-/// Objective-C wrapper for the canonical session configuration API.
-///
-/// This has the same session-ID lifecycle and callback guarantees as `SessionConfiguration`.
-@objc(CAPSessionConfiguration)
-public final class SessionConfigurationObjc: NSObject {
-    let underlyingConfiguration: SessionConfiguration
-
-    @objc public init(
-        initialSessionID: String? = nil,
-        inactivityTimeoutSeconds: NSNumber? = nil,
-        onSessionIDChanged: ((String) -> Void)? = nil
-    ) {
-        self.underlyingConfiguration = SessionConfiguration(
-            initialSessionID: initialSessionID,
-            inactivityTimeout: inactivityTimeoutSeconds?.doubleValue,
-            onSessionIDChanged: onSessionIDChanged
-        )
     }
 }

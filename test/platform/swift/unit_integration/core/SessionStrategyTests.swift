@@ -26,6 +26,17 @@ final class SessionStrategyTests: XCTestCase {
         XCTAssertNil(configuration.inactivityTimeout)
     }
 
+    func testObjectiveCConfigurationInitializer() {
+        let configuration = SessionConfiguration(
+            initialSessionID: "initial-session",
+            inactivityTimeoutSeconds: NSNumber(value: 30),
+            onSessionIDChanged: nil
+        )
+
+        XCTAssertEqual(configuration.initialSessionID, "initial-session")
+        XCTAssertEqual(configuration.inactivityTimeout, 30)
+    }
+
     func testSessionConfigurationUsesSeededAndSDKGeneratedIDs() throws {
         let initialSessionID = "initial-session"
         let explicitSessionID = "explicit-session"
