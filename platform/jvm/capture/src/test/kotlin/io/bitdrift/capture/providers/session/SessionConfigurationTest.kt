@@ -31,9 +31,11 @@ class SessionConfigurationTest {
     }
 
     @Test
-    fun keepsNoArgumentSessionStartMethodsForJava() {
+    fun keepsSessionStartOverloadsForJava() {
         assertThat(Capture.Logger::class.java.getMethod("startNewSession")).isNotNull()
+        assertThat(Capture.Logger::class.java.getMethod("startNewSession", String::class.java)).isNotNull()
         assertThat(ILogger::class.java.getMethod("startNewSession")).isNotNull()
+        assertThat(ILogger::class.java.getMethod("startNewSession", String::class.java)).isNotNull()
     }
 
     @Test

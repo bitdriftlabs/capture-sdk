@@ -175,8 +175,9 @@ object Capture {
          * session-ID lifecycle contract.
          *
          * @param apiKey The API key provided by bitdrift. This is required.
-         * @param sessionConfiguration Session lifecycle configuration. By default, Capture starts
-         * with an SDK-created UUID and does not rotate sessions due to inactivity.
+         * @param sessionConfiguration Session lifecycle configuration. By default, Capture generates an
+         * SDK UUID for the current process, does not persist it across SDK restarts, and does not rotate it
+         * due to inactivity.
          * @param configuration A configuration that is used to set up Capture features.
          * @param fieldProviders List of extra field providers to apply to all logs.
          * @param dateProvider Optional date provider used to override how the current timestamp is computed.
@@ -288,24 +289,15 @@ object Capture {
             get() = logger()?.isTracingActive
 
         /**
-         * Creates a new session with an SDK-created ID within the currently running logger.
-         *
-         * If no logger is started, this is a no-op.
-         */
-        @JvmStatic
-        fun startNewSession() {
-            logger()?.startNewSession()
-        }
-
-        /**
-         * Creates a new session with an app-provided ID within the currently running logger.
+         * Creates a new session with an optional app-provided ID within the currently running logger.
          *
          * A non-empty [sessionId] becomes the new session ID. When [sessionId] is null or empty,
          * Capture generates a UUID. Every call invokes the configured session-ID callback, even if
          * [sessionId] equals the current ID. If no logger is started, this is a no-op.
          */
         @JvmStatic
-        fun startNewSession(sessionId: String?) {
+        @JvmOverloads
+        fun startNewSession(sessionId: String? = null) {
             logger()?.startNewSession(sessionId)
         }
 

@@ -70,8 +70,9 @@ extension Logger {
 
     /// Initializes Capture with the canonical session configuration API.
     ///
-    /// The default configuration starts with an SDK-created UUID and does not rotate sessions due
-    /// to inactivity. See ``SessionConfiguration`` for the session-ID lifecycle contract.
+    /// The default configuration generates an SDK UUID for the current process, does not persist it
+    /// across SDK restarts, and does not rotate it due to inactivity. See ``SessionConfiguration``
+    /// for the session-ID lifecycle contract.
     ///
     /// - parameter apiKey:               The API key provided by bitdrift.
     /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
