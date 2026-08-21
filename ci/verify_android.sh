@@ -4,6 +4,7 @@ set -exuo pipefail
 
 readonly emulator_serial="${ANDROID_SERIAL:-emulator-5554}"
 
+# shellcheck source=ci/android_emulator.sh
 source "$(dirname "${BASH_SOURCE[0]}")/android_emulator.sh"
 
 wait_for_android_emulator_ready "$emulator_serial"

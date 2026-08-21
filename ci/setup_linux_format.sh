@@ -33,7 +33,7 @@ mv "taplo-linux-x86_64" "$formatter_dir/taplo"
 chmod +x "$formatter_dir/taplo"
 
 pushd "$(mktemp -d)"
-scversion="stable"
+scversion="v0.11.0"
 wget -qO- "https://github.com/koalaman/shellcheck/releases/download/${scversion?}/shellcheck-${scversion?}.linux.x86_64.tar.xz" | tar -xJv
 mv "shellcheck-${scversion}/shellcheck" "$formatter_dir/shellcheck"
 "$formatter_dir/shellcheck" --version
