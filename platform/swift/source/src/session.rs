@@ -10,12 +10,9 @@
 mod tests;
 
 use crate::ffi::make_nsstring;
-use anyhow::bail;
 use bd_session::configuration::Callbacks;
 use objc::runtime::Object;
 use time::Duration;
-
-const MAX_DURATION_SECONDS_EXCLUSIVE: f64 = 9_223_372_036_854_775_808.0;
 
 //
 // SessionCallback
@@ -37,16 +34,9 @@ impl SessionCallback {
   }
 }
 
-pub(crate) fn timeout_from_seconds(seconds: f64) -> anyhow::Result<Option<Duration>> {
-  if seconds.is_finite() && seconds < 0.0 {
-    return Ok(None);
-  }
-
-  if !seconds.is_finite() || seconds >= MAX_DURATION_SECONDS_EXCLUSIVE {
-    bail!("session inactivity timeout must be finite and representable");
-  }
-
-  Ok(Some(Duration::seconds_f64(seconds)))
+// Swift normalizes invalid user input to the negative sentinel before this private bridge call.
+pub(crate) fn timeout_from_seconds(seconds: f64) -> Option<Duration> {
+  (seconds >= 0.0).then(|| Duration::seconds_f64(seconds))
 }
 
 impl Callbacks for SessionCallback {

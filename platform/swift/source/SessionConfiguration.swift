@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import Foundation
+import os
 
 /// Configures the Capture session lifecycle.
 ///
@@ -22,6 +23,7 @@ import Foundation
 /// with an inactivity timeout configured. Mixing supplied IDs with SDK-created IDs is therefore
 /// discouraged unless the application can handle both forms.
 /// Empty initial and explicit IDs are treated as absent, so Capture generates a UUID instead.
+/// Invalid inactivity timeouts are treated as absent, disabling activity-based rotation.
 ///
 /// `onSessionIDChanged` is called after Capture starts the initial session, rotates after
 /// inactivity, and on every explicit session start. An explicit start invokes the callback even
@@ -30,11 +32,17 @@ import Foundation
 /// transitions. Treat the callback ID as belonging to that individual start; use the logger's
 /// `sessionID` property when the current session ID is required.
 public struct SessionConfiguration {
+    private static let logger = os.Logger(
+        subsystem: "io.bitdrift.capture.SessionConfiguration",
+        category: "configuration"
+    )
+    private static let largestValidInactivityTimeout = TimeInterval(Int64.max)
+
     /// Optional non-empty ID to use whenever no inactivity timeout is configured, or to seed the
     /// first session when one is configured. When `nil` or empty, Capture generates a UUID.
     public let initialSessionID: String?
     /// Optional inactivity duration after which Capture generates a new UUID session ID. When
-    /// `nil`, activity-based rotation is disabled.
+    /// `nil`, activity-based rotation is disabled. Invalid values are stored as `nil`.
     public let inactivityTimeout: TimeInterval?
     /// Optional callback that receives the active session ID after each session start or rotation,
     /// including explicit starts with the current ID. Calls from overlapping session starts are
@@ -47,8 +55,24 @@ public struct SessionConfiguration {
         onSessionIDChanged: ((String) -> Void)? = nil
     ) {
         self.initialSessionID = initialSessionID
-        self.inactivityTimeout = inactivityTimeout
+        self.inactivityTimeout = Self.validatedInactivityTimeout(inactivityTimeout)
         self.onSessionIDChanged = onSessionIDChanged
+    }
+
+    private static func validatedInactivityTimeout(_ inactivityTimeout: TimeInterval?) -> TimeInterval? {
+        guard let inactivityTimeout else {
+            return nil
+        }
+
+        guard inactivityTimeout.isFinite,
+              inactivityTimeout >= 0,
+              inactivityTimeout < Self.largestValidInactivityTimeout
+        else {
+            Self.logger.warning("Invalid session inactivity timeout; disabling activity-based rotation.")
+            return nil
+        }
+
+        return inactivityTimeout
     }
 
     func makeSessionCallbackBridge() -> SessionCallbackBridge? {

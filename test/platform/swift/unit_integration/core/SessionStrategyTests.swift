@@ -15,6 +15,16 @@ final class SessionStrategyTests: XCTestCase {
         Storage.shared.clear()
     }
 
+    func testInvalidInactivityTimeoutIsDisabled() {
+        for timeout in [-1.0, .nan, .infinity, TimeInterval(Int64.max)] {
+            XCTAssertNil(SessionConfiguration(inactivityTimeout: timeout).inactivityTimeout)
+        }
+
+        let configuration =
+            SessionStrategy.activityBased(inactivityThresholdMins: .max).makeSessionConfiguration()
+        XCTAssertNil(configuration.inactivityTimeout)
+    }
+
     func testSessionConfigurationUsesSeededAndSDKGeneratedIDs() throws {
         let initialSessionID = "initial-session"
         let explicitSessionID = "explicit-session"

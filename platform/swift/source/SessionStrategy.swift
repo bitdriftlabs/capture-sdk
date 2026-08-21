@@ -52,7 +52,7 @@ extension SessionStrategy {
             SessionConfiguration()
         case let .activityBased(inactivityThresholdMins, onSessionIDChanged):
             SessionConfiguration(
-                inactivityTimeout: TimeInterval(inactivityThresholdMins * 60),
+                inactivityTimeout: TimeInterval(inactivityThresholdMins) * 60,
                 onSessionIDChanged: onSessionIDChanged
             )
         }

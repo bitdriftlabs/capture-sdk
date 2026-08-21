@@ -530,7 +530,7 @@ extern "C" fn capture_create_logger(
       let session = Strategy::configuration(
         sdk_directory,
         initial_session_id,
-        timeout_from_seconds(inactivity_timeout_seconds)?,
+        timeout_from_seconds(inactivity_timeout_seconds),
         callbacks,
         Arc::new(bd_time::SystemTimeProvider {}),
       );

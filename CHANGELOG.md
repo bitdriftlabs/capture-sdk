@@ -52,7 +52,8 @@
 
 **Fixed**
 
-- Nothing yet!
+- Invalid inactivity timeouts now disable activity-based session rotation instead of preventing
+  SDK initialization.
 
 ## [0.23.12]
 [0.23.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.12
