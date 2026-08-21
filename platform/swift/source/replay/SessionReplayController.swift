@@ -42,7 +42,7 @@ extension SessionReplayController: CapturePassable.SessionReplayTarget {
     }
 
     func captureScreenshot() {
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [self] in
             guard let window = UIApplication.shared.sessionReplayWindows().first else {
                 self.logger?.logSessionReplayScreenshot(
                     screen: nil,
