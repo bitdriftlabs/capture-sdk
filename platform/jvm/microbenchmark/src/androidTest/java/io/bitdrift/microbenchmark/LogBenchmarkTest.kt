@@ -213,7 +213,7 @@ class LogBenchmarkTest {
     @Test
     fun loggerImplCreation() {
         benchmarkRule.measureRepeated {
-            runWithTimingDisabled {
+            runWithMeasurementDisabled {
                 CaptureJniLibrary.load()
             }
             val logger = LoggerImpl(
@@ -225,7 +225,7 @@ class LogBenchmarkTest {
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
             )
-            runWithTimingDisabled {
+            runWithMeasurementDisabled {
                 CaptureJniLibrary.shutdown(logger.loggerId)
                 CaptureJniLibrary.destroyLogger(logger.loggerId)
             }

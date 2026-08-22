@@ -1,5 +1,5 @@
 [versions]
-androidBenchkmarkPlugin = "1.2.4"
+androidBenchmark        = "1.4.1"
 androidGradlePlugin     = "8.13.2"
 androidxCore            = "1.13.1"
 androidxTestCore        = "1.6.1"
@@ -31,6 +31,7 @@ truth                   = "1.1.4"
 ui                      = "1.7.6"
 
 [libraries]
+androidx-benchmark-junit4  = { module = "androidx.benchmark:benchmark-junit4", version.ref = "androidBenchmark" }
 androidx-appcompat         = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-core              = { group = "androidx.core", name = "core", version.ref = "androidxCore" }
 androidx-lifecycle-common  = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleCommon" }
@@ -60,7 +61,7 @@ truth                      = { module = "com.google.truth:truth", version.ref = 
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
-android-benchmark   = { id = "androidx.benchmark", version.ref = "androidBenchkmarkPlugin" }
+android-benchmark   = { id = "androidx.benchmark", version.ref = "androidBenchmark" }
 android-library     = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 apollo-graphql      = { id = "com.apollographql.apollo", version.ref = "apollo" }
 compose-compiler    = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
