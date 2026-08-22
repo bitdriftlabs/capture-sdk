@@ -565,6 +565,7 @@ extern "C" fn capture_create_logger(
         session,
         metadata_provider,
         initial_ootb_fields,
+        initial_custom_fields,
         resource_utilization_target: Box::new(resource_utilization::Target::new(
           resource_utilization_target,
         )),
@@ -587,17 +588,7 @@ extern "C" fn capture_create_logger(
       )
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| {
-        let logger = LoggerHolder::new(logger, future);
-
-        // Seed the same custom-field state that addField updates so later calls can override
-        // these initial values.
-        for (key, value) in initial_custom_fields {
-          logger.add_log_field(key.into_owned(), value);
-        }
-
-        logger
-      })?;
+      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
 
       Ok(logger.into_raw())
     },

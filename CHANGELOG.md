@@ -7,7 +7,7 @@
 
 **Added**
 
-- Add `initialFields` to seed custom global fields during Capture SDK startup.
+- Add `initialFields` to synchronously seed custom global fields during Capture SDK startup.
 
 **Changed**
 
