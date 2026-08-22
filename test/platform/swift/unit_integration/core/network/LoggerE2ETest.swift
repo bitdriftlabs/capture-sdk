@@ -57,7 +57,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
     }
 
     private func setUpLogger(
-        fieldProviders: [FieldProvider]? = nil,
+        customFieldGetters: [MetadataProviderController.FieldGetter]? = nil,
         initialFields: Fields = [:]
     ) throws -> Logger {
         self.storage = MockStorageProvider()
@@ -72,14 +72,12 @@ final class CaptureE2ENetworkTests: XCTestCase {
                 configuration: .init(apiURL: self.server.baseURL, rootFileURL: NetworkTestEnvironment.makeSDKDirectory()),
                 sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
                 dateProvider: MockDateProvider(),
-                fieldProviders: fieldProviders ?? [
-                    MockFieldProvider(
-                        getFieldsClosure: {
-                            [
-                                "field_provider": "mock_field_provider",
-                            ]
-                        }
-                    ),
+                customFieldGetters: customFieldGetters ?? [
+                    {
+                        [
+                            "field_provider": "mock_field_provider",
+                        ]
+                    },
                 ],
                 initialFields: initialFields,
                 storageProvider: self.storage,
@@ -259,20 +257,18 @@ final class CaptureE2ENetworkTests: XCTestCase {
         thirdLog.assertFieldsEqual(expectedFields)
     }
 
-    func testFieldProviderEncodingFailureIsHandledGracefully() async throws {
-        // Set up logger with a field provider that includes a failing encodable
-        let fieldProviders: [FieldProvider] = [
-            MockFieldProvider(
-                getFieldsClosure: {
-                    [
-                        "valid_field": "valid_value",
-                        "failing_field": MockEncodable(),
-                    ]
-                }
-            ),
+    func testCustomFieldEncodingFailureIsHandledGracefully() async throws {
+        // Set up logger with custom fields that include a failing encodable.
+        let customFieldGetters: [MetadataProviderController.FieldGetter] = [
+            {
+                [
+                    "valid_field": "valid_value",
+                    "failing_field": MockEncodable(),
+                ]
+            },
         ]
 
-        _ = try self.setUpLogger(fieldProviders: fieldProviders)
+        _ = try self.setUpLogger(customFieldGetters: customFieldGetters)
 
         let streamID = try await self.server.waitForStream(testName: #function)
         try await self.server.configureAggressiveUploads(streamId: streamID)

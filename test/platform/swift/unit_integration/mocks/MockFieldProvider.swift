@@ -7,6 +7,11 @@
 
 import Capture
 
+@available(
+*,
+deprecated,
+message: "Use Logger.start(initialFields:) to seed fields at startup and Logger.addField(withKey:value:) to update them."
+)
 public final class MockFieldProvider: FieldProvider {
     public let getFieldsClosure: () -> Fields
 

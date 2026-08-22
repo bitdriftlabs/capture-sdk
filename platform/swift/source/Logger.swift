@@ -62,10 +62,41 @@ public final class Logger {
     /// - parameter sessionStrategy:               The session strategy to use.
     /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to
     ///                                            system date provider if none is provided.
-    /// - parameter fieldProviders:                The field providers to use when querying the list of
-    ///                                            attributes to attach to emitted logs.
+    /// - parameter customFieldGetters:            The functions to use when querying the list of attributes
+    ///                                            to attach to emitted logs.
+    /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
+    ///                                            can update their values later.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
+    convenience init?(
+        withAPIKey apiKey: String,
+        configuration: Configuration,
+        sessionStrategy: SessionStrategy,
+        dateProvider: DateProvider?,
+        customFieldGetters: [MetadataProviderController.FieldGetter] = [],
+        initialFields: Fields = [:],
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
+    )
+    {
+        self.init(
+            withAPIKey: apiKey,
+            remoteErrorReporter: nil,
+            configuration: configuration,
+            sessionStrategy: sessionStrategy,
+            dateProvider: dateProvider,
+            customFieldGetters: customFieldGetters,
+            initialFields: initialFields,
+            storageProvider: Storage.shared,
+            timeProvider: SystemTimeProvider(),
+            loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+        )
+    }
+
+    @available(
+    *,
+    deprecated,
+    message: "Use Logger.start(initialFields:) to seed fields at startup and Logger.addField(withKey:value:) to update them."
+    )
     convenience init?(
         withAPIKey apiKey: String,
         configuration: Configuration,
@@ -78,14 +109,51 @@ public final class Logger {
     {
         self.init(
             withAPIKey: apiKey,
-            remoteErrorReporter: nil,
             configuration: configuration,
             sessionStrategy: sessionStrategy,
             dateProvider: dateProvider,
-            fieldProviders: fieldProviders,
+            customFieldGetters: fieldProviders.map { fieldProvider in
+                { fieldProvider.getFields() }
+            },
             initialFields: initialFields,
-            storageProvider: Storage.shared,
-            timeProvider: SystemTimeProvider(),
+            loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
+        )
+    }
+
+    @available(
+    *,
+    deprecated,
+    message: "Use Logger.start(initialFields:) to seed fields at startup and Logger.addField(withKey:value:) to update them."
+    )
+    convenience init?(
+        withAPIKey apiKey: String,
+        remoteErrorReporter: RemoteErrorReporting?,
+        configuration: Configuration,
+        sessionStrategy: SessionStrategy,
+        dateProvider: DateProvider?,
+        fieldProviders: [FieldProvider],
+        initialFields: Fields = [:],
+        enableNetwork: Bool = true,
+        storageProvider: StorageProvider,
+        timeProvider: TimeProvider,
+        networkDelegateQueue: DispatchQueue = .network,
+        loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
+    )
+    {
+        self.init(
+            withAPIKey: apiKey,
+            remoteErrorReporter: remoteErrorReporter,
+            configuration: configuration,
+            sessionStrategy: sessionStrategy,
+            dateProvider: dateProvider,
+            customFieldGetters: fieldProviders.map { fieldProvider in
+                { fieldProvider.getFields() }
+            },
+            initialFields: initialFields,
+            enableNetwork: enableNetwork,
+            storageProvider: storageProvider,
+            timeProvider: timeProvider,
+            networkDelegateQueue: networkDelegateQueue,
             loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
         )
     }
@@ -103,8 +171,10 @@ public final class Logger {
     /// - parameter sessionStrategy:               The session strategy to use.
     /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to
     ///                                            system date provider if none is provided.
-    /// - parameter fieldProviders:                The field providers to use when querying the list of
-    ///                                            attributes to attach to emitted logs.
+    /// - parameter customFieldGetters:            The functions to use when querying the list of attributes
+    ///                                            to attach to emitted logs.
+    /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
+    ///                                            can update their values later.
     /// - parameter enableNetwork:                 Whether logger should perform network request. If not all
     ///                                            network requests performed by the logger are no-ops.
     /// - parameter storageProvider:               The storage to use by the logger.
@@ -120,7 +190,7 @@ public final class Logger {
         configuration: Configuration,
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
-        fieldProviders: [FieldProvider],
+        customFieldGetters: [MetadataProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
         enableNetwork: Bool = true,
         storageProvider: StorageProvider,
@@ -139,8 +209,12 @@ public final class Logger {
 
         let metadataProvider = MetadataProviderController(
             dateProvider: dateProvider ?? SystemDateProvider(),
-            ootbFieldProviders: [appStateAttributes, deviceAttributes, networkAttributes],
-            customFieldProviders: fieldProviders
+            ootbFieldGetters: [
+                appStateAttributes.getFields,
+                deviceAttributes.getFields,
+                networkAttributes.getFields,
+            ],
+            customFieldGetters: customFieldGetters
         )
 
         self.sessionURLBase = Self.normalizedAPIURL(apiURL: configuration.apiURL)

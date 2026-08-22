@@ -15,7 +15,7 @@ extension Logger {
         withAPIKey apiKey: String = "",
         sessionStrategy: SessionStrategy = .fixed(),
         dateProvider: DateProvider? = nil,
-        fieldProviders: [FieldProvider] = [],
+        customFieldGetters: [MetadataProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
         configuration: Configuration = .testConfiguration,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
@@ -28,7 +28,7 @@ extension Logger {
                 configuration: configuration,
                 sessionStrategy: sessionStrategy,
                 dateProvider: dateProvider,
-                fieldProviders: fieldProviders,
+                customFieldGetters: customFieldGetters,
                 initialFields: initialFields,
                 storageProvider: MockStorageProvider(),
                 timeProvider: SystemTimeProvider(),

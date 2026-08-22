@@ -63,7 +63,7 @@ final class LoggerWarmConfigurationBenchmark: AnyBenchmark {
             configuration: .init(apiURL: kAPIURL),
             sessionStrategy: kDefaultSessionStrategy,
             dateProvider: nil,
-            fieldProviders: [],
+            customFieldGetters: [],
             enableNetwork: false,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider()
@@ -100,7 +100,7 @@ final class LoggerColdConfigurationBenchmark: AnyBenchmark {
             configuration: .init(apiURL: kAPIURL),
             sessionStrategy: kDefaultSessionStrategy,
             dateProvider: nil,
-            fieldProviders: [],
+            customFieldGetters: [],
             enableNetwork: false,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider()
@@ -279,7 +279,7 @@ private extension Logger {
             configuration: .init(apiURL: kAPIURL, rootFileURL: directoryURL ?? directoryURLFallback),
             sessionStrategy: kDefaultSessionStrategy,
             dateProvider: nil,
-            fieldProviders: [],
+            customFieldGetters: [],
             enableNetwork: false,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider()

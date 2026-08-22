@@ -113,7 +113,11 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
                     apiURL: apiURL,
                     issueCallbackConfiguration: issueCallbackConfiguration
                 ),
-                fieldProviders: [CustomFieldProvider()],
+                initialFields: [
+                    "app": "hello_world",
+                    "user_id": UUID().uuidString,
+                    "invalid_utf8": ("abc💇‍♀️" as NSString).substring(with: NSRange(location: 0, length: 4)),
+                ],
                 startResult: { result in
                     switch result {
                     case .success(let logger):
@@ -299,19 +303,6 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
             userInfo: ["level": level]
         )
         Logger.logInfo("Simulated memory pressure: level=\(level)")
-    }
-}
-
-final class CustomFieldProvider: FieldProvider {
-    let userID = UUID().uuidString
-
-    func getFields() -> Fields {
-        let invalidUTF8String = ("abc💇‍♀️" as NSString).substring(with: NSRange(location: 0, length: 4))
-        return [
-            "app": "hello_world",
-            "user_id": self.userID,
-            "invalid_utf8": invalidUTF8String,
-        ]
     }
 }
 

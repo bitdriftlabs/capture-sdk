@@ -90,7 +90,7 @@ final class ResourceProfiler {
             configuration: configuration,
             sessionStrategy: .fixed(),
             dateProvider: nil,
-            fieldProviders: [],
+            customFieldGetters: [],
             enableNetwork: true,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider()
