@@ -5,6 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+@file:Suppress("DEPRECATION")
+
 package io.bitdrift.capture
 
 import android.content.ContextWrapper
@@ -90,13 +92,14 @@ class CaptureLoggerTest {
      */
     private fun <T> withLogger(
         fieldProvider: FieldProvider? = null,
+        initialFields: Map<String, String> = emptyMap(),
         dateProvider: DateProvider = systemDateProvider,
         sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
         context: android.content.Context = ContextHolder.APP_CONTEXT,
         windowManager: IWindowManager = WindowManager(ErrorHandler()),
         block: (LoggerImpl) -> T,
     ): T {
-        val logger = buildLogger(fieldProvider, dateProvider, sessionStrategy, context, windowManager)
+        val logger = buildLogger(fieldProvider, initialFields, dateProvider, sessionStrategy, context, windowManager)
         try {
             return block(logger)
         } finally {
@@ -313,6 +316,23 @@ class CaptureLoggerTest {
         }
 
     @Test
+    fun `initial fields are attached to logs and can be updated`(): Unit =
+        withLogger(initialFields = mapOf("initial_key" to "initial_value")) { logger ->
+            val streamId = CaptureTestJniLibrary.awaitNextApiStream()
+            assertThat(streamId).isNotEqualTo(-1)
+
+            CaptureTestJniLibrary.configureAggressiveContinuousUploads(streamId)
+            logger.addField("initial_key", "updated_value")
+            logger.log(LogLevel.DEBUG) { "test log" }
+
+            CaptureTestJniLibrary.nextUploadedLog()
+            CaptureTestJniLibrary.nextUploadedLog()
+            val log = CaptureTestJniLibrary.nextUploadedLog()
+
+            assertThat(log.fields).containsEntry("initial_key", "updated_value".toFieldValue())
+        }
+
+    @Test
     @Config(qualifiers = "+ar")
     fun `logger works end-to-end with arabic locale`(): Unit =
         withLogger { logger ->
@@ -490,6 +510,7 @@ class CaptureLoggerTest {
 
     private fun buildLogger(
         fieldProvider: FieldProvider? = null,
+        initialFields: Map<String, String> = emptyMap(),
         dateProvider: DateProvider = mock<DateProvider>(),
         sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
         context: android.content.Context = ContextHolder.APP_CONTEXT,
@@ -501,6 +522,7 @@ class CaptureLoggerTest {
                 apiKey = "test",
                 apiUrl = testServerUrl(),
                 fieldProviders = fieldProviders,
+                initialFields = initialFields,
                 sessionStrategy = sessionStrategy,
                 context = context,
                 dateProvider = dateProvider,

@@ -24,6 +24,7 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
         network: Network?,
         errorReporting: RemoteErrorReporting,
         sleepMode: SleepMode,
+        initialFields: [CapturePassable.Field],
         issueCallbackConfiguration: IssueCallbackConfiguration?
     ) -> LoggerBridging? {
         return LoggerBridge(
@@ -42,6 +43,7 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
             network: network,
             errorReporting: errorReporting,
             sleepMode: sleepMode,
+            initialFields: initialFields,
             issueCallbackConfiguration: issueCallbackConfiguration
         )
     }

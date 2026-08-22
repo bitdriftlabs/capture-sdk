@@ -44,6 +44,7 @@ fn test_live_match_performance(c: &mut Criterion) {
     store,
     metadata_provider,
     initial_ootb_fields: [].into(),
+    initial_custom_fields: [].into(),
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),
     session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),

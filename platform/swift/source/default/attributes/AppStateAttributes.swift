@@ -54,7 +54,7 @@ final class AppStateAttributes {
     }
 }
 
-extension AppStateAttributes: FieldProvider {
+extension AppStateAttributes {
     func getFields() -> Fields {
         return [
             /// Whether or not the app was in the background by the time the log was fired.

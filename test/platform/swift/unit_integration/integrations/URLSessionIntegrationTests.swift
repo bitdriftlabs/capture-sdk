@@ -1005,7 +1005,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
             configuration: .init(rootFileURL: FileManager.default.temporaryDirectory.appendingPathComponent("bitdrift_test_\(UUID().uuidString)")),
             sessionStrategy: .fixed(),
             dateProvider: nil,
-            fieldProviders: [],
+            customFieldGetters: [],
             enableNetwork: false,
             storageProvider: MockStorageProvider(),
             timeProvider: MockTimeProvider(),

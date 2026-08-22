@@ -66,7 +66,7 @@ final class ConfigurationTests: XCTestCase {
             withAPIKey: "test",
             sessionStrategy: .fixed(),
             configuration: .init(apiURL: URL(staticString: "https://api.bitdrift.io")),
-            fieldProviders: [],
+            customFieldGetters: [],
             dateProvider: nil,
             loggerBridgingFactoryProvider: factory
         )
@@ -78,7 +78,7 @@ final class ConfigurationTests: XCTestCase {
             withAPIKey: "test",
             sessionStrategy: .fixed(),
             configuration: .init(apiURL: URL(staticString: "https://api.bitdrift.io")),
-            fieldProviders: [],
+            customFieldGetters: [],
             dateProvider: nil,
             loggerBridgingFactoryProvider: factory
         )

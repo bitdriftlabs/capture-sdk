@@ -7,11 +7,11 @@
 
 **Added**
 
-- Nothing yet!
+- Add `initialFields` to synchronously seed custom global fields during Capture SDK startup.
 
 **Changed**
 
-- Nothing yet!
+- Deprecate `FieldProvider`; use `initialFields` to seed global fields and `addField` to update them.
 
 **Fixed**
 

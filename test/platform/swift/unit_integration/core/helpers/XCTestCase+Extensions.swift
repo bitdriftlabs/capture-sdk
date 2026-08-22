@@ -31,7 +31,6 @@ extension XCTestCase {
     /// - parameter apiKey:          The API key for the logger
     /// - parameter sessionStrategy: The session strategy to use
     /// - parameter configuration:   Optional configuration (rootFileURL will be overridden)
-    /// - parameter fieldProviders:  Optional field providers
     /// - parameter dateProvider:    Optional date provider
     ///
     /// - returns: A LoggerIntegrator instance, or nil if logger creation failed
@@ -40,7 +39,6 @@ extension XCTestCase {
         apiKey: String = "test_api_key",
         sessionStrategy: SessionStrategy = .fixed(),
         configuration: Configuration = .init(),
-        fieldProviders: [FieldProvider] = [],
         dateProvider: DateProvider? = nil
     ) -> LoggerIntegrator? {
         var config = configuration
@@ -50,7 +48,6 @@ extension XCTestCase {
             withAPIKey: apiKey,
             sessionStrategy: sessionStrategy,
             configuration: config,
-            fieldProviders: fieldProviders,
             dateProvider: dateProvider
         )
     }
