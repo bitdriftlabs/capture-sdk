@@ -133,13 +133,13 @@ unsafe fn populate_uploaded_log_from_server(
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
-      DataValue::Map(_) => {
-        let value = make_nsstring("<map>").unwrap();
+      DataValue::Map(map_data) => {
+        let value = make_nsstring(&format!("map({})", map_data.entries().len())).unwrap();
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
-      DataValue::Array(_) => {
-        let value = make_nsstring("<array>").unwrap();
+      DataValue::Array(array_data) => {
+        let value = make_nsstring(&format!("array({})", array_data.items().len())).unwrap();
 
         let () = msg_send![uploaded_log, addStringFieldWithKey:key value:value];
       },
