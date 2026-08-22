@@ -25,8 +25,8 @@ final class MetadataProviderControllerTests: XCTestCase {
 
         let provider = MetadataProviderController(
             dateProvider: MockDateProvider(),
-            ootbFieldProviders: [
-                MockFieldProvider {
+            ootbFieldGetters: [
+                {
                     [
                         "foo": FailingEncodable(),
                         "bar": "bar_value",
@@ -34,7 +34,7 @@ final class MetadataProviderControllerTests: XCTestCase {
                     ]
                 },
             ],
-            customFieldProviders: []
+            customFieldGetters: []
         )
 
         provider.errorHandler = errorHandler.handleError
@@ -53,9 +53,9 @@ final class MetadataProviderControllerTests: XCTestCase {
 
         let provider = MetadataProviderController(
             dateProvider: MockDateProvider(),
-            ootbFieldProviders: [],
-            customFieldProviders: [
-                MockFieldProvider {
+            ootbFieldGetters: [],
+            customFieldGetters: [
+                {
                     [
                         "foo": FailingEncodable(),
                         "bar": "bar_value",

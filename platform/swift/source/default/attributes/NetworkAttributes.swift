@@ -92,8 +92,8 @@ final class NetworkAttributes {
     }
 }
 
-extension NetworkAttributes: FieldProvider {
-    public func getFields() -> Fields {
+extension NetworkAttributes {
+    func getFields() -> Fields {
         return [
             /// The cellular network type. Note a given network can support multiple paths. We'll
             /// report the currently used. (e.g. wlan)

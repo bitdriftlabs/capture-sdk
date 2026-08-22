@@ -11,6 +11,7 @@ import android.util.Log
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.IMetadataProvider
 
+@Suppress("DEPRECATION")
 internal class MetadataProvider(
     private val dateProvider: DateProvider,
     private val ootbFieldProviders: List<FieldProvider>,

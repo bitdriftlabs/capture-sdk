@@ -859,7 +859,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         session,
         metadata_provider,
         initial_ootb_fields,
-        initial_custom_fields: [].into(),
+        initial_custom_fields,
         resource_utilization_target,
         session_replay_target,
         events_listener_target,
@@ -873,7 +873,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       .with_crash_report_hook(crash_report_hook)
       .build()
       .map(|(logger, _, future, _)| {
-        let logger = LoggerHolder::new(
+        LoggerHolder::new_with_static_metadata(
           logger,
           async move {
             handle_unexpected(
@@ -889,17 +889,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
           }
           .boxed(),
           Some(static_metadata),
-        );
-
-        );
-
-        // Seed the same custom-field state that addLogField updates so later calls can override
-        // these initial values.
-        for (key, value) in initial_custom_fields {
-          logger.add_log_field(key.into_owned(), value);
-        }
-
-        logger
+        )
       })?;
 
       Ok(logger.into_raw().into())

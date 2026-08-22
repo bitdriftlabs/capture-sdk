@@ -9,9 +9,8 @@ package io.bitdrift.capture
 
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
-import io.bitdrift.capture.providers.session.SessionCallback
-import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
 import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.session.SessionCallback
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 
 internal interface IBridge {

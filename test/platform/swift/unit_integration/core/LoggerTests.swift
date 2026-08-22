@@ -36,15 +36,15 @@ final class LoggerTests: XCTestCase {
         let expectation = self.expectation(description: "'SDKConfigured' log is emitted")
         expectation.expectedFulfillmentCount = 1
 
-        let fieldProvider = MockFieldProvider { [weak logger] in
-            logger?.log(level: .debug, message: "never_logged", type: .normal)
-            expectation.fulfill()
-            return [:]
-        }
-
         logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            fieldProviders: [fieldProvider]
+            customFieldGetters: [
+                {
+                    logger?.log(level: .debug, message: "never_logged", type: .normal)
+                    expectation.fulfill()
+                    return [:]
+                },
+            ]
         )
 
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 1))
@@ -61,14 +61,6 @@ final class LoggerTests: XCTestCase {
         )
         // Called once for OOTB "SDK configured" and once for custom emitted log.
         fieldProviderExpectation.expectedFulfillmentCount = 2
-
-        let fieldProvider = MockFieldProvider {
-            // Tests are evaluated on the main queue so we would expect this to run
-            // on another thread if logs processing happens off the caller thread.
-            dispatchPrecondition(condition: .notOnQueue(.main))
-            fieldProviderExpectation.fulfill()
-            return [:]
-        }
 
         let dateProviderExpectation = self.expectation(
             description: "Date Provider is called on the background thread"
@@ -88,7 +80,15 @@ final class LoggerTests: XCTestCase {
             withAPIKey: "test_api_key",
             sessionStrategy: .configuration(.init()),
             dateProvider: dateProvider,
-            fieldProviders: [fieldProvider]
+            customFieldGetters: [
+                {
+                    // Tests are evaluated on the main queue so we would expect this to run
+                    // on another thread if logs processing happens off the caller thread.
+                    dispatchPrecondition(condition: .notOnQueue(.main))
+                    fieldProviderExpectation.fulfill()
+                    return [:]
+                },
+            ]
         )
 
         let expectations = [
