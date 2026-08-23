@@ -195,12 +195,6 @@ public protocol Logging {
     ) -> Span
 }
 
-public extension Logging {
-    func startNewSession(sessionID _: String?) {
-        self.startNewSession()
-    }
-}
-
 extension Logging {
     /// Logs a message at a specified level to the default logger instance. Provides default values for
     /// `file`, `line`, and `function` parameters.
