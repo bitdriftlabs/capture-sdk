@@ -5,13 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("DEPRECATION")
-
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.Capture.Logger
-import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions.assertThat
@@ -29,7 +26,7 @@ class CaptureTokioThreadTest {
     @Test
     fun `tokio thread is correctly named`() {
         // In order to test that the tokio event loop thread is correctly named, we initialize the logger
-        // with a field provider that captures the thread name of the calling thread.
+        // with a field getter that captures the thread name of the calling thread.
         val latch = CountDownLatch(1)
         val threadName = AtomicReference<String?>(null)
 
@@ -40,14 +37,15 @@ class CaptureTokioThreadTest {
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
-            fieldProviders =
+            customFieldGetters =
                 listOf(
-                    FieldProvider {
+                    {
                         threadName.set(Thread.currentThread().name)
                         latch.countDown()
                         mapOf()
                     },
                 ),
+            bridge = CaptureJniLibrary,
         )
 
         Logger.logInfo { "Test log message" }

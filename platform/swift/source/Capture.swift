@@ -102,6 +102,38 @@ extension Logger {
         )
     }
 
+    /// Initializes Capture with the canonical session configuration API and startup fields.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        The configuration used to set up Capture features.
+    /// - parameter initialFields:        Fields to seed at SDK startup. `addField(withKey:value:)` can update
+    ///                                   their values later.
+    /// - parameter dateProvider:         An optional date provider for the default logger.
+    /// - parameter startResult:          An optional callback invoked with the SDK initialization result.
+    ///
+    /// - returns: A logger integrator that can enable SDK integrations.
+    @discardableResult
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration = .init(),
+        configuration: Configuration = .init(),
+        initialFields: Fields,
+        dateProvider: DateProvider? = nil,
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
+    ) -> LoggerIntegrator? {
+        self.start(
+            withAPIKey: apiKey,
+            sessionStrategy: .configuration(sessionConfiguration),
+            configuration: configuration,
+            customFieldGetters: [],
+            initialFields: initialFields,
+            dateProvider: dateProvider,
+            loggerBridgingFactoryProvider: LoggerBridgingFactory(),
+            startResult: startResult
+        )
+    }
+
     /// Initializes Capture with the canonical session configuration API and legacy field providers.
     ///
     /// - parameter apiKey:               The API key provided by bitdrift.
@@ -148,8 +180,6 @@ extension Logger {
     /// - parameter sessionStrategy: A session strategy for the management of session ID.
     /// - parameter configuration:   A configuration that used to set up Capture features.
     /// - parameter fieldProviders:  An array of additional FieldProviders to include on the default Logger.
-    /// - parameter initialFields:   Fields to seed at SDK startup. `addField(withKey:value:)` can update
-    ///                              their values later.
     /// - parameter dateProvider:    An optional date provider to set on the default logger.
     /// - parameter startResult:     An optional callback invoked with the result of the SDK initialization.
     ///                              The callback is always called on the calling thread before `start` returns.
@@ -161,13 +191,13 @@ extension Logger {
     deprecated,
     message: "Use Logger.start(initialFields:) to seed fields at startup and Logger.addField(withKey:value:) to update them."
     )
+    @_disfavoredOverload
     @discardableResult
     public static func start(
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategy,
         configuration: Configuration = .init(),
-        fieldProviders: [FieldProvider],
-        initialFields: Fields = [:],
+        fieldProviders: [FieldProvider] = [],
         dateProvider: DateProvider? = nil,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator?
@@ -179,7 +209,7 @@ extension Logger {
             customFieldGetters: fieldProviders.map { fieldProvider in
                 { fieldProvider.getFields() }
             },
-            initialFields: initialFields,
+            initialFields: [:],
             dateProvider: dateProvider,
             loggerBridgingFactoryProvider: LoggerBridgingFactory(),
             startResult: startResult
@@ -197,7 +227,6 @@ extension Logger {
         sessionStrategy: SessionStrategy,
         configuration: Configuration,
         fieldProviders: [FieldProvider],
-        initialFields: Fields = [:],
         dateProvider: DateProvider?,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
@@ -210,7 +239,7 @@ extension Logger {
             customFieldGetters: fieldProviders.map { fieldProvider in
                 { fieldProvider.getFields() }
             },
-            initialFields: initialFields,
+            initialFields: [:],
             dateProvider: dateProvider,
             loggerBridgingFactoryProvider: loggerBridgingFactoryProvider,
             startResult: startResult
