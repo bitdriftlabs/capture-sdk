@@ -113,9 +113,9 @@ extension Logger {
     ///
     /// - returns: A logger integrator that can enable SDK integrations.
     @available(
-        *,
-        deprecated,
-        message: "Use Logger.start(initialFields:) to seed fields at startup and Logger.addField(withKey:value:) to update them."
+    *,
+    deprecated,
+    message: "Use Logger.start(initialFields:) to seed fields at startup and Logger.addField(withKey:value:) to update them."
     )
     @discardableResult
     public static func start(
