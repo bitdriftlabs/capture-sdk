@@ -5,8 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("DEPRECATION")
-
 package io.bitdrift.capture
 
 import android.content.ContextWrapper
@@ -30,7 +28,7 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
-import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldGetter
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.fieldsOf
@@ -92,7 +90,7 @@ class CaptureLoggerTest {
      * This prevents file lock conflicts by ensuring loggers are always shut down.
      */
     private fun <T> withLogger(
-        fieldProvider: FieldProvider? = null,
+        fieldGetter: FieldGetter? = null,
         initialFields: Map<String, String> = emptyMap(),
         dateProvider: DateProvider = systemDateProvider,
         sessionStrategy: SessionStrategy =
@@ -101,7 +99,7 @@ class CaptureLoggerTest {
         windowManager: IWindowManager = WindowManager(ErrorHandler()),
         block: (LoggerImpl) -> T,
     ): T {
-        val logger = buildLogger(fieldProvider, initialFields, dateProvider, sessionStrategy, context, windowManager)
+        val logger = buildLogger(fieldGetter, initialFields, dateProvider, sessionStrategy, context, windowManager)
         try {
             return block(logger)
         } finally {
@@ -373,12 +371,12 @@ class CaptureLoggerTest {
 
     @Test
     fun `thread local storage prevents recursive logging`() {
-        // Mock one of the providers so we can tell how many times we're logging.
-        val fieldProvider = mock<FieldProvider>()
-        Mockito.`when`(fieldProvider.invoke()).thenReturn(mapOf("test_key" to "test_value"))
+        // Mock one of the getters so we can tell how many times we're logging.
+        val fieldGetter = mock<FieldGetter>()
+        Mockito.`when`(fieldGetter.invoke()).thenReturn(mapOf("test_key" to "test_value"))
 
         withLogger(
-            fieldProvider = fieldProvider,
+            fieldGetter = fieldGetter,
             dateProvider =
                 DateProvider {
                     // This would perform recursive logging, but should be prevented
@@ -392,7 +390,7 @@ class CaptureLoggerTest {
             logger.log(LogLevel.DEBUG) { "logging..." }
             logger.log(LogLevel.DEBUG) { "logging..." }
 
-            Mockito.verify(fieldProvider, timeout(250).times(3)).invoke()
+            Mockito.verify(fieldGetter, timeout(250).times(3)).invoke()
         }
     }
 
@@ -401,11 +399,11 @@ class CaptureLoggerTest {
     fun `exceptions thrown by date provider are ignored`() {
         val providerLatch = CountDownLatch(1)
 
-        val fieldProvider = mock<FieldProvider>()
-        Mockito.`when`(fieldProvider.invoke()).thenReturn(emptyMap())
+        val fieldGetter = mock<FieldGetter>()
+        Mockito.`when`(fieldGetter.invoke()).thenReturn(emptyMap())
 
         withLogger(
-            fieldProvider = fieldProvider,
+            fieldGetter = fieldGetter,
             dateProvider =
                 DateProvider {
                     // providers are called on a background thread. `countDown` on a latch
@@ -421,15 +419,15 @@ class CaptureLoggerTest {
 
     @Test
     @Suppress("TooGenericExceptionThrown")
-    fun `exceptions thrown by field provider are ignored`() {
+    fun `exceptions thrown by field getter are ignored`() {
         val providerLatch = CountDownLatch(1)
 
         val dateProvider = mock<DateProvider>()
         Mockito.`when`(dateProvider.invoke()).thenReturn(Date())
 
         withLogger(
-            fieldProvider =
-                FieldProvider {
+            fieldGetter =
+                {
                     // providers are called on a background thread. `countDown` on a latch
                     // to inform the test that the provider has been called into.
                     providerLatch.countDown()
@@ -486,7 +484,7 @@ class CaptureLoggerTest {
             .build()
 
     private fun buildLogger(
-        fieldProvider: FieldProvider? = null,
+        fieldGetter: FieldGetter? = null,
         initialFields: Map<String, String> = emptyMap(),
         dateProvider: DateProvider = mock<DateProvider>(),
         sessionStrategy: SessionStrategy =
@@ -494,12 +492,12 @@ class CaptureLoggerTest {
         context: android.content.Context = ContextHolder.APP_CONTEXT,
         windowManager: IWindowManager = WindowManager(ErrorHandler()),
     ): LoggerImpl {
-        val fieldProviders = fieldProvider?.let { listOf(it) }.orEmpty()
+        val customFieldGetters = fieldGetter?.let { listOf(it) }.orEmpty()
         val loggerImpl =
             LoggerImpl(
                 apiKey = "test",
                 apiUrl = testServerUrl(),
-                fieldProviders = fieldProviders,
+                customFieldGetters = customFieldGetters,
                 initialFields = initialFields,
                 sessionStrategy = sessionStrategy,
                 context = context,
@@ -540,7 +538,7 @@ class CaptureLoggerTest {
             "_architecture" to clientAttributes.architecture,
         ).toFieldValueMap() +
             clientAttributes.dynamicFields().toFieldValueMap() +
-            NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFieldValueMap()
+            NetworkAttributes(ContextHolder.APP_CONTEXT).getFields().toFieldValueMap()
     }
 
     private fun Map<String, String>.toFieldValueMap(): Map<String, FieldValue> = mapValues { (_, v) -> v.toFieldValue() }

@@ -100,7 +100,7 @@ class ErrorReporterTest {
             LoggerImpl(
                 apiKey = "test",
                 apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
+                customFieldGetters = emptyList(),
                 dateProvider = SystemDateProvider(),
                 context = ContextHolder.APP_CONTEXT,
                 sessionStrategy =

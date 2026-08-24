@@ -44,7 +44,7 @@ class SessionStrategyTest {
             LoggerImpl(
                 apiKey = "test",
                 apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
+                customFieldGetters = emptyList(),
                 dateProvider = mock(),
                 context = ContextHolder.APP_CONTEXT,
                 sessionStrategy =
@@ -76,7 +76,7 @@ class SessionStrategyTest {
             LoggerImpl(
                 apiKey = "test",
                 apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
+                customFieldGetters = emptyList(),
                 dateProvider = mock(),
                 context = ContextHolder.APP_CONTEXT,
                 sessionStrategy =
@@ -107,7 +107,7 @@ class SessionStrategyTest {
             LoggerImpl(
                 apiKey = "test",
                 apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
+                customFieldGetters = emptyList(),
                 dateProvider = mock(),
                 context = ContextHolder.APP_CONTEXT,
                 sessionStrategy =

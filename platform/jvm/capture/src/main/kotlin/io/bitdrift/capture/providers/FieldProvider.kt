@@ -87,6 +87,8 @@ sealed class FieldValue {
 
 typealias Fields = Map<String, String>
 
+internal typealias FieldGetter = () -> Fields
+
 /**
  * A field provider is used to provide additional fields to each log event.
  *

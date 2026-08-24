@@ -5,8 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("DEPRECATION")
-
 package io.bitdrift.capture
 
 import android.annotation.SuppressLint
@@ -25,7 +23,7 @@ import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
-import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldGetter
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionConfiguration
@@ -161,7 +159,7 @@ object Capture {
                 apiKey = apiKey,
                 sessionStrategy = sessionStrategy,
                 configuration = configuration,
-                fieldProviders = emptyList(),
+                customFieldGetters = emptyList(),
                 dateProvider = dateProvider,
                 apiUrl = apiUrl,
                 bridge = CaptureJniLibrary,
@@ -187,6 +185,7 @@ object Capture {
          * @param initialFields fields to seed at SDK startup. Use [addField] to update their values later.
          * @param startResult an optional callback invoked with the result of the SDK initialization.
          */
+        @Suppress("DEPRECATION")
         @Deprecated(
             message =
                 "Use start(initialFields = ...) to seed fields at startup and addField(...) to update them.",
@@ -198,7 +197,7 @@ object Capture {
             apiKey: String,
             sessionStrategy: SessionStrategy,
             configuration: Configuration = Configuration(),
-            fieldProviders: List<FieldProvider>,
+            fieldProviders: List<io.bitdrift.capture.providers.FieldProvider>,
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
@@ -209,7 +208,7 @@ object Capture {
                 apiKey = apiKey,
                 sessionStrategy = sessionStrategy,
                 configuration = configuration,
-                fieldProviders = fieldProviders,
+                customFieldGetters = fieldProviders.map { fieldProvider -> { fieldProvider() } },
                 dateProvider = dateProvider,
                 apiUrl = apiUrl,
                 bridge = CaptureJniLibrary,
@@ -272,6 +271,7 @@ object Capture {
          * @param context An optional context reference.
          * @param startResult Optional callback invoked with the result of SDK initialization.
          */
+        @Suppress("DEPRECATION")
         @Deprecated(
             message =
                 "Use start(sessionConfiguration = ...) to initialize Capture and addField(...) to update fields.",
@@ -283,7 +283,7 @@ object Capture {
             apiKey: String,
             sessionConfiguration: SessionConfiguration = SessionConfiguration(),
             configuration: Configuration = Configuration(),
-            fieldProviders: List<FieldProvider>,
+            fieldProviders: List<io.bitdrift.capture.providers.FieldProvider>,
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
@@ -310,7 +310,7 @@ object Capture {
             apiKey: String,
             sessionStrategy: SessionStrategy,
             configuration: Configuration = Configuration(),
-            fieldProviders: List<FieldProvider> = listOf(),
+            customFieldGetters: List<FieldGetter> = emptyList(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             bridge: IBridge,
@@ -332,7 +332,7 @@ object Capture {
                     apiKey = apiKey,
                     sessionStrategy = sessionStrategy,
                     configuration = configuration,
-                    fieldProviders = fieldProviders,
+                    customFieldGetters = customFieldGetters,
                     dateProvider = dateProvider,
                     apiUrl = apiUrl,
                     bridge = bridge,
@@ -820,7 +820,7 @@ object Capture {
         apiKey: String,
         sessionStrategy: SessionStrategy,
         configuration: Configuration,
-        fieldProviders: List<FieldProvider>,
+        customFieldGetters: List<FieldGetter>,
         dateProvider: DateProvider? = null,
         apiUrl: HttpUrl,
         bridge: IBridge,
@@ -853,7 +853,7 @@ object Capture {
                         apiKey = apiKey,
                         apiUrl = apiUrl,
                         context = appContext,
-                        fieldProviders = fieldProviders,
+                        customFieldGetters = customFieldGetters,
                         initialFields = initialFields,
                         dateProvider = dateProvider ?: SystemDateProvider(),
                         configuration = configuration,

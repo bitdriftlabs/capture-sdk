@@ -5,8 +5,6 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-@file:Suppress("DEPRECATION")
-
 package io.bitdrift.capture
 
 import android.app.ActivityManager
@@ -48,7 +46,7 @@ import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
-import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldGetter
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.combineFields
@@ -87,7 +85,7 @@ internal class LoggerImpl(
     apiUrl: HttpUrl,
     errorReporter: IErrorReporter? = null,
     configuration: Configuration,
-    fieldProviders: List<FieldProvider>,
+    customFieldGetters: List<FieldGetter>,
     initialFields: Fields = emptyMap(),
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
@@ -174,13 +172,13 @@ internal class LoggerImpl(
                 dateProvider = dateProvider,
                 // order of providers matters in here, the earlier in the list the higher their priority in
                 // case of key conflicts.
-                ootbFieldProviders =
+                ootbFieldGetters =
                     listOf(
-                        networkAttributes,
-                        FieldProvider { clientAttributes.dynamicFields() },
+                        networkAttributes::getFields,
+                        clientAttributes::dynamicFields,
                     ),
                 errorHandler = errorHandler,
-                customFieldProviders = fieldProviders,
+                customFieldGetters = customFieldGetters,
             )
 
         val network =

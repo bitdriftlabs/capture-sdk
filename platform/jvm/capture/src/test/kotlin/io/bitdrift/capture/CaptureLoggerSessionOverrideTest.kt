@@ -118,7 +118,7 @@ class CaptureLoggerSessionOverrideTest {
             LoggerImpl(
                 apiKey = "test",
                 apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
+                customFieldGetters = emptyList(),
                 dateProvider = systemDateProvider,
                 sessionStrategy =
                     SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "foo")),
@@ -163,7 +163,7 @@ class CaptureLoggerSessionOverrideTest {
             LoggerImpl(
                 apiKey = "test",
                 apiUrl = testServerUrl(),
-                fieldProviders = listOf(),
+                customFieldGetters = emptyList(),
                 dateProvider = systemDateProvider,
                 sessionStrategy =
                     SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "bar")),
