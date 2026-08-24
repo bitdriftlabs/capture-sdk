@@ -52,8 +52,16 @@ fi
 
 for binary in $(find $framework_to_rewrite -type f -name $framework_name);
 do
-  # NOTE: Apple broke their bitcode_strip tool and it's trying to open a `strip` file
-  touch strip
+  # bitcode_strip tool tries to find a 'strip' file in the directory to hand it to `ld`
+  # In Xcode 26 an empty file with that name was enough, but in Xcode 27 it fails with:
+  #
+  #    ld: warning: -bitcode_process_mode is no longer supported and will be ignored
+  #    file is empty in 'strip'
+  #    .../usr/bin/bitcode_strip: internal link edit command failed
+  #
+  # Seems that replacing the empty file with an empty `ar` archive works fine and adds no size 
+  # to the final binary.
+  printf '!<arch>\n' > ./strip
   xcrun bitcode_strip -r "$binary" -o "$binary" > /dev/null 2>&1
 
   if file -b -- "$binary" | grep -q 'x86_64'; then
