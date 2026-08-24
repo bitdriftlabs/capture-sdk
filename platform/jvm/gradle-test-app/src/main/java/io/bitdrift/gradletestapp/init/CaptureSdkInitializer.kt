@@ -20,7 +20,6 @@ import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.InitializationState
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
-import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
@@ -98,7 +97,7 @@ object CaptureSdkInitializer {
             apiUrl = settings.apiUrl,
             configuration = settings.configuration,
             sessionStrategy = settings.sessionStrategy,
-            fieldProviders = settings.fieldProviders,
+            initialFields = settings.initialFields,
             context = context,
         ) { startResult ->
             when (startResult) {
@@ -161,9 +160,7 @@ object CaptureSdkInitializer {
                 issueCallbackConfiguration = issueCallbackConfiguration,
                 webViewConfiguration = webViewConfig,
             )
-        val fieldProviders = listOf(FieldProvider {
-            mapOf("user_id" to userUuid)
-        })
+        val initialFields = mapOf("user_id" to userUuid)
 
         val captureSdkInitSettings =
             CaptureSdkInitSettings(
@@ -171,7 +168,7 @@ object CaptureSdkInitializer {
                 apiKey = apiKey,
                 sessionStrategy = sessionStrategy,
                 configuration = configuration,
-                fieldProviders = fieldProviders,
+                initialFields = initialFields,
             )
         return PersistedSdkConfigResult.Success(captureSdkInitSettings)
     }
@@ -300,6 +297,6 @@ object CaptureSdkInitializer {
         val apiKey: String,
         val sessionStrategy: SessionStrategy,
         val configuration: Configuration,
-        val fieldProviders: List<FieldProvider>,
+        val initialFields: Map<String, String>,
     )
 }

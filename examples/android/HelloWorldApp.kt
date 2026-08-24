@@ -15,7 +15,6 @@ import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
-import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
@@ -59,14 +58,11 @@ class HelloWorldApp : Application() {
             apiUrl = BITDRIFT_URL,
             sessionStrategy = SessionStrategy.Fixed(),
             configuration = Configuration(issueCallbackConfiguration = issueCallbackConfiguration),
-            fieldProviders = listOf(
-                FieldProvider {
-                    mapOf(
-                        "foo" to "bar",
-                        "user_id" to userID,
-                    )
-                },
-            ),
+            initialFields =
+                mapOf(
+                    "foo" to "bar",
+                    "user_id" to userID,
+                ),
         )
 
         Log.v("HelloWorldApp", "Android Bitdrift app launched with session url=${Logger.sessionUrl}")

@@ -151,7 +151,7 @@ object Capture {
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
-            initialFields: Fields = emptyMap(),
+            initialFields: Fields,
             startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         ) {
             start(
@@ -207,7 +207,6 @@ object Capture {
         @Deprecated(
             message =
                 "Use start(initialFields = ...) to seed fields at startup and addField(...) to update them.",
-            level = DeprecationLevel.HIDDEN,
         )
         @Synchronized
         @JvmStatic
@@ -273,6 +272,7 @@ object Capture {
                 dateProvider = dateProvider,
                 apiUrl = apiUrl,
                 context = context,
+                initialFields = emptyMap(),
                 startResult = startResult,
             )
         }
