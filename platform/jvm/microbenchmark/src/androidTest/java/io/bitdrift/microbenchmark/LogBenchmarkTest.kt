@@ -249,7 +249,7 @@ class LogBenchmarkTest {
                 apiKey = "[test_api_key]",
                 apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
                 context = InstrumentationRegistry.getInstrumentation().targetContext,
-                fieldProviders = emptyList(),
+                customFieldGetters = emptyList(),
                 dateProvider = SystemDateProvider(),
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
