@@ -7,7 +7,6 @@
 
 internal import CaptureLoggerBridge
 import Foundation
-import os
 
 /// Configures the Capture session lifecycle.
 ///
@@ -35,10 +34,7 @@ import os
 /// `sessionID` property when the current session ID is required.
 @objc(CAPSessionConfiguration)
 public final class SessionConfiguration: NSObject {
-    private static let logger = os.Logger(
-        subsystem: "io.bitdrift.capture.SessionConfiguration",
-        category: "configuration"
-    )
+    private static let logger = OSLogger(subsystem: "Capture.SessionConfiguration")
     private static let largestValidInactivityTimeout = TimeInterval(Int64.max)
 
     /// Optional non-empty ID to use whenever no inactivity timeout is configured, or to seed the
@@ -90,7 +86,10 @@ public final class SessionConfiguration: NSObject {
               inactivityTimeout >= 0,
               inactivityTimeout < Self.largestValidInactivityTimeout
         else {
-            Self.logger.warning("Invalid session inactivity timeout; disabling activity-based rotation.")
+            Self.logger.log(
+                level: .error,
+                message: "Invalid session inactivity timeout; disabling activity-based rotation."
+            )
             return nil
         }
 

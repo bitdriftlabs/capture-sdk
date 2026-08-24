@@ -580,6 +580,7 @@ extern "C" fn capture_create_logger(
         session,
         metadata_provider,
         initial_ootb_fields,
+        initial_custom_fields: [].into(),
         resource_utilization_target: Box::new(resource_utilization::Target::new(
           resource_utilization_target,
         )),

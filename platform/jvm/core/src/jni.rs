@@ -851,6 +851,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         session,
         metadata_provider: Arc::new(MetadataProvider::new_global(&env, metadata_provider)?),
         initial_ootb_fields,
+        initial_custom_fields: [].into(),
         resource_utilization_target,
         session_replay_target,
         events_listener_target,
