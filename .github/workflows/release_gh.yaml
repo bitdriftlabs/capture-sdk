@@ -28,7 +28,7 @@ on:
         default: true
       include-swift-6-4-xcframework:
         type: boolean
-        description: Also build the Xcode 27 XCFramework consumed by Package@swift-6.4.swift. Requires a runner with Xcode 27 installed.
+        description: Also build the Xcode 27 `.xcframework`
         required: false
         default: false
       dry-run:
@@ -83,7 +83,7 @@ on:
         default: true
       include-swift-6-4-xcframework:
         type: boolean
-        description: Also build the Xcode 27 XCFramework consumed by Package@swift-6.4.swift. Requires a runner with Xcode 27 installed.
+        description: Also build the Xcode 27 `.xcframework`
         required: false
         default: false
       dry-run:
@@ -120,7 +120,6 @@ jobs:
     if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
     name: Capture.xcframework with artifacts (${{ matrix.variant }})
     needs: ["verify-version"]
-    # The xcode-27 image is a preview image whose only Xcode is 27.0 beta.
     runs-on: ${{ matrix.variant == 'swift-6.4' && 'xcode-27' || 'macos-26' }}
     strategy:
       fail-fast: false
@@ -138,7 +137,6 @@ jobs:
           cache-key-scope: release-${{ github.workflow }}
       - name: 'Update the content of platform/shared/.sdk_version'
         run: echo -n "${{ inputs.version }}" > platform/shared/.sdk_version
-      # tools/ios_release.sh owns the variant -> Xcode version / artifact name mapping.
       - name: Resolve release plan
         id: plan
         run: IOS_RELEASE_DRY_RUN=1 ./tools/ios_release.sh Capture "$VERSION" "$VARIANT" >> "$GITHUB_OUTPUT"

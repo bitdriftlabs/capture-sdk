@@ -41,7 +41,7 @@ on:
         default: true
       include-swift-6-4-xcframework:
         type: boolean
-        description: Also build the Xcode 27 XCFramework consumed by Package@swift-6.4.swift. Requires a runner with Xcode 27 installed.
+        description: Also build the Xcode 27 `.xcframework`.
         required: false
         default: false
       dry-run:
@@ -86,7 +86,7 @@ on:
         default: true
       include-swift-6-4-xcframework:
         type: boolean
-        description: Also build the Xcode 27 XCFramework consumed by Package@swift-6.4.swift. Requires a runner with Xcode 27 installed.
+        description: Also build the Xcode 27 `.xcframework`.
         required: false
         default: false
       dry-run:
