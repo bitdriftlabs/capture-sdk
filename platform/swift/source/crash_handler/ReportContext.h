@@ -28,6 +28,8 @@ typedef struct {
 typedef struct {
     char* reportPath;
     char* bundlePath;
+    char* teamIdentifier;
+    int8_t appEnvironment;
     ReportMetadata metadata;
     KSCrash_MonitorContext* monitorContext;
     BDCrashWriterPtr writer;

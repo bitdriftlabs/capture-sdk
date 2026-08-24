@@ -46,7 +46,9 @@ NS_ASSUME_NONNULL_BEGIN
  * @param error Filled if NO is returned.
  * @return true on success.
  */
-+ (BOOL)startCrashReporterWithError:(NSError **)error;
++ (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                              teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                       error:(NSError **)error;
 
 /**
  * Returns whether KSCrash detected a crash on the previous app launch.

@@ -553,6 +553,20 @@ fn app_info_from_kscrash_report(
     app_info.insert("bundlePath".to_string(), Value::String(bundle_path.clone()));
   }
 
+  if let Some(app_environment) = metadata.get("appEnvironment").and_then(value_as_u64) {
+    app_info.insert(
+      "appEnvironment".to_string(),
+      Value::Unsigned(app_environment),
+    );
+  }
+
+  if let Some(Value::String(team_identifier)) = metadata.get("teamIdentifier") {
+    app_info.insert(
+      "teamIdentifier".to_string(),
+      Value::String(team_identifier.clone()),
+    );
+  }
+
   app_info
 }
 
@@ -1361,6 +1375,11 @@ mod tests {
       "bundlePath".to_string(),
       Value::String("/var/containers/Bundle/Application/App.app".to_string()),
     );
+    metadata.insert("appEnvironment".to_string(), Value::Signed(4));
+    metadata.insert(
+      "teamIdentifier".to_string(),
+      Value::String("ABCDE12345".to_string()),
+    );
 
     let app_info = app_info_from_kscrash_report(&report);
 
@@ -1374,6 +1393,11 @@ mod tests {
         "/var/containers/Bundle/Application/App.app".to_string()
       )),
       app_info.get("bundlePath")
+    );
+    assert_eq!(Some(&Value::Unsigned(4)), app_info.get("appEnvironment"));
+    assert_eq!(
+      Some(&Value::String("ABCDE12345".to_string())),
+      app_info.get("teamIdentifier")
     );
   }
 

@@ -183,6 +183,34 @@ final class DiagnosticReportWriterTests: XCTestCase {
         XCTAssert(report.deviceMetrics!.lowPowerModeEnabled)
     }
 
+    func testWriteCrashReportUsesTeamIdentifierCapturedBeforeCrash() throws {
+        var crashDict = self.makeCrashDict(callStacks: [])
+        crashDict["bitdriftAppInfo"] = [
+            "appEnvironment": AppEnvironment.testFlight.rawValue,
+            "teamIdentifier": "ABCDE12345",
+        ]
+
+        self.writer.writeCrashReport(
+            with: .nativeCrash,
+            dict: crashDict,
+            name: nil,
+            reason: nil,
+            machExceptionType: nil,
+            exceptionCode: nil,
+            signal: nil,
+            terminationReason: nil,
+            capturedCrash: nil,
+            metadata: self.makeMetadata(),
+            applicationVersion: "1.0",
+            timestamp: 1_700_000_000
+        )
+
+        let filename = try self.onlyReportFilename()
+        let contents = try XCTUnwrap(
+            FileManager.default.contents(atPath: "\(self.outputDir.path)/\(filename)"))
+        XCTAssertNotNil(contents.range(of: Data("ABCDE12345".utf8)))
+    }
+
     func testWriteCrashReportUsesSdkIdentifierAndVersion() throws {
         self.writer = self.makeWriter(sdkVersion: "41.5.67")
 

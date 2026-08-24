@@ -16,6 +16,8 @@ public class MockKSCrashHandler: NSObject, KSCrashHandling {
     public var shouldThrowOnConfigure = false
     public var didCrashLastLaunchValue: NSNumber?
     public var cachedCrashDateValue: Date?
+    public var appEnvironmentAtStart: Int8?
+    public var teamIdentifierAtStart: String?
 
     init(
         didConfigure: Bool = false,
@@ -40,7 +42,11 @@ public class MockKSCrashHandler: NSObject, KSCrashHandling {
         didConfigure = true
     }
 
-    public func startCrashReporter() throws { didStart = true }
+    public func startCrashReporter(withAppEnvironment appEnvironment: Int8, teamIdentifier: String?) throws {
+        didStart = true
+        appEnvironmentAtStart = appEnvironment
+        teamIdentifierAtStart = teamIdentifier
+    }
     public func stopCrashReporter() { didStop = true }
     public func didCrashLastLaunch() -> NSNumber? { didCrashLastLaunchValue }
     public func cachedCrashDate() -> Date? { cachedCrashDateValue }
