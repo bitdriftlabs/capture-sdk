@@ -322,14 +322,19 @@ class CaptureLoggerTest {
             assertThat(streamId).isNotEqualTo(-1)
 
             CaptureTestJniLibrary.configureAggressiveContinuousUploads(streamId)
+            logger.log(LogLevel.DEBUG) { "initial fields" }
             logger.addField("initial_key", "updated_value")
-            logger.log(LogLevel.DEBUG) { "test log" }
+            logger.log(LogLevel.DEBUG) { "updated initial fields" }
 
             CaptureTestJniLibrary.nextUploadedLog()
             CaptureTestJniLibrary.nextUploadedLog()
-            val log = CaptureTestJniLibrary.nextUploadedLog()
+            val initialFieldsLog = CaptureTestJniLibrary.nextUploadedLog()
+            val updatedFieldsLog = CaptureTestJniLibrary.nextUploadedLog()
 
-            assertThat(log.fields).containsEntry("initial_key", "updated_value".toFieldValue())
+            assertThat(initialFieldsLog.message).isEqualTo("initial fields")
+            assertThat(initialFieldsLog.fields).containsEntry("initial_key", "initial_value".toFieldValue())
+            assertThat(updatedFieldsLog.message).isEqualTo("updated initial fields")
+            assertThat(updatedFieldsLog.fields).containsEntry("initial_key", "updated_value".toFieldValue())
         }
 
     @Test
