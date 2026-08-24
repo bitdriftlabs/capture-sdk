@@ -103,10 +103,19 @@ extension Logger {
     }
 
     /// Initializes Capture with the canonical session configuration API and legacy field providers.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        The configuration used to set up Capture features.
+    /// - parameter fieldProviders:       Additional field providers for the default logger.
+    /// - parameter dateProvider:         An optional date provider for the default logger.
+    /// - parameter startResult:          An optional callback invoked with the SDK initialization result.
+    ///
+    /// - returns: A logger integrator that can enable SDK integrations.
     @available(
-        *,
-        deprecated,
-        message: "Use Logger.start(initialFields:) to seed fields at startup and Logger.addField(withKey:value:) to update them."
+    *,
+    deprecated,
+    message: "Use Logger.start(initialFields:) to seed fields at startup and Logger.addField(withKey:value:) to update them."
     )
     @discardableResult
     public static func start(
