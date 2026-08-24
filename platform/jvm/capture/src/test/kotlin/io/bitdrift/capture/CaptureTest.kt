@@ -16,6 +16,7 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.ExitReason
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
@@ -56,7 +57,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
         )
 
@@ -69,7 +70,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             context = null,
         ) { result ->
@@ -124,7 +125,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
         ) { result ->
             capturedResult = result
@@ -146,7 +147,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test2",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
         )
 
@@ -212,7 +213,7 @@ class CaptureTest {
         assertThatThrownBy {
             Logger.start(
                 apiKey = "test1",
-                sessionStrategy = SessionStrategy.Fixed(),
+                sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
                 dateProvider = null,
             ) { _ ->
                 throw IllegalStateException("customer callback error")
@@ -231,7 +232,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
         ) { _ ->
             throw IllegalStateException("customer callback error")

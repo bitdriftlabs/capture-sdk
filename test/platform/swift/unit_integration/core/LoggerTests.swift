@@ -86,7 +86,7 @@ final class LoggerTests: XCTestCase {
 
         let logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
-            sessionStrategy: SessionStrategy.fixed(),
+            sessionStrategy: .configuration(.init()),
             dateProvider: dateProvider,
             fieldProviders: [fieldProvider]
         )

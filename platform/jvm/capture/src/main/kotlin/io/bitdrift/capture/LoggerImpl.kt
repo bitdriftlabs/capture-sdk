@@ -220,11 +220,14 @@ internal class LoggerImpl(
                 )
             } ?: NoopSessionReplayTarget()
 
+        val sessionConfiguration = sessionStrategy.makeSessionConfiguration()
         val loggerId =
             bridge.createLogger(
                 sdkDirectory,
                 apiKey,
-                sessionStrategy.createSessionStrategyConfiguration(),
+                sessionConfiguration.initialSessionId,
+                sessionConfiguration.inactivityTimeout?.inWholeMilliseconds ?: -1L,
+                sessionConfiguration.makeSessionCallback(),
                 metadataProvider,
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
@@ -348,7 +351,11 @@ internal class LoggerImpl(
     fun getSdkStatus(): SdkStatus = CaptureJniLibrary.getSdkStatus(this.loggerId)
 
     override fun startNewSession() {
-        CaptureJniLibrary.startNewSession(this.loggerId)
+        this.startNewSession(null)
+    }
+
+    override fun startNewSession(sessionId: String?) {
+        CaptureJniLibrary.startNewSession(this.loggerId, sessionId)
     }
 
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {

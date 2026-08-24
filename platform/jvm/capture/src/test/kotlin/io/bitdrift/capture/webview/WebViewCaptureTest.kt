@@ -26,6 +26,7 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.utils.toStringMap
 import org.assertj.core.api.Assertions.assertThat
@@ -128,7 +129,7 @@ class WebViewCaptureTest {
     private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
         Capture.Logger.start(
             apiKey = "test",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             configuration = Configuration(webViewConfiguration = webViewConfiguration),
             dateProvider = SystemDateProvider(),
             context = appContext,

@@ -13,6 +13,12 @@ typedef uintptr_t stream_id;
 
 NS_ASSUME_NONNULL_BEGIN
 
+@protocol CAPSessionCallbackProvider <NSObject>
+
+- (void)sessionIDChanged:(NSString *)sessionID;
+
+@end
+
 /*
  * Reports an error to the bitdrift backend and log it to the console. Both reporting to remote and logging
  * to the console are throttled to protect against noisy errors.
@@ -24,7 +30,10 @@ void capture_report_error(const char *message);
  *
  * @param path the path to the SDK directory used by the logger for disk persistence.
  * @param api_key the key used to authenticate the application with bitdrift services.
- * @param session_strategy_provider the session strategy provider.
+ * @param initial_session_id optional session ID to use when starting Capture.
+ * @param inactivity_timeout_seconds inactivity timeout in seconds, or a negative value to disable
+ *        inactivity-driven rotation.
+ * @param session_callback optional recipient for session ID changes.
  * @param metadata_provider used to provide the internal logger with logging metadata.
  * @param resource_utilization_target responsible for emitting resource utilization logs in response to provided ticks.
  * @param session_replay_target responsible for emitting session replay logs in response to callbacks.
@@ -42,7 +51,9 @@ void capture_report_error(const char *message);
 logger_id capture_create_logger(
     const char *_Nullable path,
     const char *api_key,
-    id<SessionStrategyProvider> session_strategy_provider,
+    NSString *_Nullable initial_session_id,
+    double inactivity_timeout_seconds,
+    _Nullable id<CAPSessionCallbackProvider> session_callback,
     id<MetadataProvider> metadata_provider,
     id<ResourceUtilizationTarget> resource_utilization_target,
     id<SessionReplayTarget> session_replay_target,
@@ -201,7 +212,7 @@ void capture_write_screen_view_log(
  *
  * @param logger_id the logger to use.
  */
-void capture_start_new_session(logger_id logger_id);
+void capture_start_new_session(logger_id logger_id, NSString * _Nullable session_id);
 
 /*
  * Returns currently active session id.

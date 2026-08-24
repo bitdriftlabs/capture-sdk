@@ -48,7 +48,7 @@ final class ConfigurationTests: XCTestCase {
 
         let logger = Logger.start(
             withAPIKey: "test",
-            sessionStrategy: .fixed(),
+            sessionConfiguration: .init(),
             configuration: .init(rootFileURL: tempDir)
         )
 
@@ -64,7 +64,7 @@ final class ConfigurationTests: XCTestCase {
 
         Logger.start(
             withAPIKey: "test",
-            sessionStrategy: .fixed(),
+            sessionStrategy: .configuration(.init()),
             configuration: .init(apiURL: URL(staticString: "https://api.bitdrift.io")),
             fieldProviders: [],
             dateProvider: nil,
@@ -76,7 +76,7 @@ final class ConfigurationTests: XCTestCase {
 
         Logger.start(
             withAPIKey: "test",
-            sessionStrategy: .fixed(),
+            sessionStrategy: .configuration(.init()),
             configuration: .init(apiURL: URL(staticString: "https://api.bitdrift.io")),
             fieldProviders: [],
             dateProvider: nil,

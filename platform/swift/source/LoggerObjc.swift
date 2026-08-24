@@ -114,6 +114,103 @@ public final class LoggerObjc: NSObject {
             )
     }
 
+    /// Initializes Capture with the canonical session configuration API.
+    ///
+    /// See `CAPSessionConfiguration` for the session-ID lifecycle and callback guarantees.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    @objc(startWithAPIKey:sessionConfiguration:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration
+    ) {
+        Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration
+        )
+    }
+
+    /// Initializes Capture with the canonical session configuration API and additional SDK options.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        Additional options for the Capture Logger.
+    @objc(startWithAPIKey:sessionConfiguration:configuration:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration,
+        configuration: CAPConfiguration
+    ) {
+        let logger = Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration,
+            configuration: configuration.underlyingConfig
+        )
+
+        if let logger, configuration.enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
+    /// Initializes Capture with the canonical session configuration API and reports its result.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter startResult:          Receives nil on success, or an error on failure.
+    @objc(startWithAPIKey:sessionConfiguration:startResult:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration,
+        startResult: @escaping (Error?) -> Void
+    ) {
+        Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration,
+            startResult: { result in
+                switch result {
+                case .success:
+                    startResult(nil)
+                case .failure(let error):
+                    startResult(error)
+                }
+            }
+        )
+    }
+
+    /// Initializes Capture with the canonical session configuration API, additional SDK options,
+    /// and a result callback.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        Additional options for the Capture Logger.
+    /// - parameter startResult:          Receives nil on success, or an error on failure.
+    @objc(startWithAPIKey:sessionConfiguration:configuration:startResult:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration,
+        configuration: CAPConfiguration,
+        startResult: @escaping (Error?) -> Void
+    ) {
+        let logger = Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration,
+            configuration: configuration.underlyingConfig,
+            startResult: { result in
+                switch result {
+                case .success:
+                    startResult(nil)
+                case .failure(let error):
+                    startResult(error)
+                }
+            }
+        )
+
+        if let logger, configuration.enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
     /// Initializes the Capture SDK with the specified API key and session strategy.
     /// Calling other SDK methods has no effect unless the logger has been initialized.
     /// Subsequent calls to this function will have no effect.
@@ -284,11 +381,20 @@ public final class LoggerObjc: NSObject {
         return Capture.Logger.getSdkStatus()
     }
 
-    /// Defines the initialization of a new session within the current configured logger.
+    /// Creates a new session with an SDK-created UUID within the current configured logger.
     /// If no logger is configured, this is a no-op.
     @objc
     public static func startNewSession() {
         Capture.Logger.startNewSession()
+    }
+
+    /// Creates a new session with the supplied ID. This invokes the configured session-ID callback,
+    /// even when the ID equals the current one.
+    ///
+    /// - parameter sessionID: The optional non-empty ID for the new session.
+    @objc(startNewSessionWithSessionID:)
+    public static func startNewSession(sessionID: String?) {
+        Capture.Logger.startNewSession(sessionID: sessionID)
     }
 
     /// Logs a trace level message to the default logger instance.
@@ -573,28 +679,10 @@ public final class SessionStrategyObjc: NSObject {
     /// is generated.
     ///
     /// - returns: The fixed session strategy.
+    @available(*, deprecated, message: "Use CAPSessionConfiguration instead.")
     @objc
     public static func fixed() -> SessionStrategyObjc {
         return SessionStrategyObjc(sessionStrategy: .fixed())
-    }
-
-    /// A session strategy that never expires the session ID but does not survive process restart.
-    ///
-    /// The initial session ID is retrieved by calling the passed closure.
-    ///
-    /// Whenever a new session is manually started via `startNewSession` method call, the closure is
-    /// invoked to generate a new session ID.
-    ///
-    /// - parameter sessionIDGenerator: The closure that returns the session ID to use. Upon the
-    ///                                 initialization of the logger the closure is called on the thread
-    ///                                 that's used to configure the logger. Subsequent closure calls are
-    ///                                 performed every time logger's `startNewSession` method is called
-    ///                                 using the thread on which the method is called.
-    ///
-    /// - returns: The fixed session strategy.
-    @objc
-    public static func fixed(sessionIDGenerator: @escaping () -> String) -> SessionStrategyObjc {
-        return SessionStrategyObjc(sessionStrategy: .fixed(sessionIDGenerator: sessionIDGenerator))
     }
 
     /// A session strategy that generates a new session ID after 30 minutes of app inactivity.
@@ -607,6 +695,7 @@ public final class SessionStrategyObjc: NSObject {
     ///
     /// - returns: The activity based session strategy that expires session after 30 minutes of app
     ///            inactivity.
+    @available(*, deprecated, message: "Use CAPSessionConfiguration instead.")
     @objc
     public static func activityBased() -> SessionStrategyObjc {
         return SessionStrategyObjc(sessionStrategy: .activityBased())
@@ -625,6 +714,7 @@ public final class SessionStrategyObjc: NSObject {
     ///
     /// - returns: The activity based session strategy that expires session after a specified duration of time
     ///            without any app activity.
+    @available(*, deprecated, message: "Use CAPSessionConfiguration instead.")
     @objc
     public static func activityBased(inactivityThresholdMins: Int) -> SessionStrategyObjc {
         return SessionStrategyObjc(sessionStrategy: .activityBased(
@@ -643,12 +733,16 @@ public final class SessionStrategyObjc: NSObject {
     ///
     /// - parameter inactivityThresholdMins: The amount of minutes of inactivity after which a session ID
     ///                                      changes.
-    /// - parameter onSessionIDChange:       Closure that is invoked with the new value every time the session
-    ///                                      ID changes. This callback is dispatched asynchronously to the
-    ///                                      main queue.
+    /// - parameter onSessionIDChange:       Closure that receives the active session ID after each session
+    ///                                      start or rotation, including explicit starts with the current ID.
+    ///                                      This callback is dispatched asynchronously to the main queue.
+    ///                                      Calls from overlapping session starts are not guaranteed to
+    ///                                      arrive in transition order; use `CAPLogger.sessionID()` for
+    ///                                      the current session ID.
     ///
     /// - returns: The activity based session strategy that expires session after a specified duration of time
     ///            without any app activity.
+    @available(*, deprecated, message: "Use CAPSessionConfiguration instead.")
     @objc
     public static func activityBased(
         inactivityThresholdMins: Int,

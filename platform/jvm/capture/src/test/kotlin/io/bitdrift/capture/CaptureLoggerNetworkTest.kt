@@ -12,7 +12,6 @@ import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.providers.Field
-import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.threading.CaptureDispatchers
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -88,7 +87,9 @@ class CaptureLoggerNetworkTest {
         CaptureJniLibrary.createLogger(
             sdkDirectory = directory.newFolder().path,
             apiKey = "abc123",
-            sessionStrategy = SessionStrategy.Fixed().createSessionStrategyConfiguration(),
+            initialSessionId = null,
+            inactivityTimeoutMilliseconds = -1L,
+            sessionCallback = null,
             metadataProvider = loggerBridge,
             resourceUtilizationTarget = mock(),
             sessionReplayTarget = mock(),

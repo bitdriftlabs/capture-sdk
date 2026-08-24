@@ -67,7 +67,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
                 withAPIKey: "test!",
                 remoteErrorReporter: MockRemoteErrorReporter(),
                 configuration: .init(apiURL: self.server.baseURL, rootFileURL: NetworkTestEnvironment.makeSDKDirectory()),
-                sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
+                sessionStrategy: .configuration(SessionConfiguration(initialSessionID: "mock-group-id")),
                 dateProvider: MockDateProvider(),
                 fieldProviders: fieldProviders ?? [
                     MockFieldProvider(

@@ -94,7 +94,7 @@ final class URLSessionIntegrationTests: XCTestCase {
         Logger
             .start(
                 withAPIKey: "123",
-                sessionStrategy: .fixed(),
+                sessionStrategy: .configuration(.init()),
                 configuration: .init(rootFileURL: self.makeTemporaryLoggerDirectory())
             )?
             .enableIntegrations([.urlSession()], disableSwizzling: !swizzle)
@@ -1003,7 +1003,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
             withAPIKey: "123",
             remoteErrorReporter: nil,
             configuration: .init(rootFileURL: FileManager.default.temporaryDirectory.appendingPathComponent("bitdrift_test_\(UUID().uuidString)")),
-            sessionStrategy: .fixed(),
+            sessionStrategy: .configuration(.init()),
             dateProvider: nil,
             fieldProviders: [],
             enableNetwork: false,

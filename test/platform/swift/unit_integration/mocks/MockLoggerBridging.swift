@@ -64,7 +64,7 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func getSessionID() -> String { "foo" }
 
-    public func startNewSession() {}
+    public func startNewSession(sessionID _: String?) {}
 
     public func getDeviceID() -> String { "deviceID" }
 

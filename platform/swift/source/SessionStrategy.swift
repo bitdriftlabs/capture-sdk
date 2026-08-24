@@ -5,25 +5,26 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-internal import CaptureLoggerBridge
-internal import CapturePassable
 import Foundation
 
 /// Describes the strategy to use for session management.
 public enum SessionStrategy {
-    /// A session strategy that never expires the session ID but does not survive process restart.
+    case configuration(SessionConfiguration)
+    /// Deprecated compatibility shim for a session that does not expire during a process but is
+    /// replaced when the SDK starts in a new process.
     ///
-    /// The initial session ID is retrieved by calling the passed closure.
+    /// Capture generates UUIDs for SDK-created sessions; use `SessionConfiguration.initialSessionID`
+    /// when an application needs to supply an initial ID.
+    @available(*, deprecated, message: "Use SessionConfiguration() instead.")
+    case fixed
+
+    /// Creates the deprecated fixed-session compatibility shim.
     ///
-    /// Whenever a new session is manually started via `startNewSession` method call, the closure is
-    /// invoked to generate a new session ID.
-    ///
-    /// - parameter sessionIDGenerator: The closure that returns the session ID to use. Upon the
-    ///                                 initialization of the logger the closure is called on the thread
-    ///                                 that's used to configure the logger. Subsequent closure calls are
-    ///                                 performed every time `Logger.startNewSession` method is called using
-    ///                                 the thread on which the method is called.
-    case fixed(sessionIDGenerator: (() -> String) = { UUID().uuidString })
+    /// - returns: The fixed-session compatibility shim.
+    @available(*, deprecated, message: "Use SessionConfiguration() instead.")
+    public static func fixed() -> Self {
+        .fixed
+    }
 
     /// A session strategy that generates a new session ID after a certain period of app inactivity.
     ///
@@ -35,69 +36,32 @@ public enum SessionStrategy {
     ///
     /// - parameter inactivityThresholdMins: The amount of minutes of inactivity after which a session ID
     ///                                      changes. The default value is 30 minutes.
-    /// - parameter onSessionIDChanged:      Closure that is invoked with the new value every time the session
-    ///                                      ID changes. This callback is dispatched asynchronously to the
-    ///                                      main queue.
+    /// - parameter onSessionIDChanged:      Closure that receives the active session ID after each session
+    ///                                      start or rotation, including explicit starts with the current ID.
+    ///                                      This callback is dispatched asynchronously to the main queue.
+    ///                                      Calls from overlapping session starts are not guaranteed to
+    ///                                      arrive in transition order; use `Logger.sessionID` for the
+    ///                                      current session ID.
+    @available(
+    *,
+    deprecated,
+    message: "Use SessionConfiguration(inactivityTimeout:onSessionIDChanged:) instead."
+    )
     case activityBased(inactivityThresholdMins: Int = 30, onSessionIDChanged: ((String) -> Void)? = nil)
 }
 
 extension SessionStrategy {
-    func makeSessionStrategyProvider() -> SessionStrategyProvider {
-        SessionStrategyConfiguration(sessionStrategy: self)
-    }
-}
-
-final class SessionStrategyConfiguration: NSObject {
-    private let underlyingSessionStrategy: SessionStrategy
-
-    init(sessionStrategy: SessionStrategy) {
-        self.underlyingSessionStrategy = sessionStrategy
-        super.init()
-    }
-}
-
-extension SessionStrategyConfiguration: SessionStrategyProvider {
-    @objc
-    func sessionIDChanged(_ sessionID: String) {
-        switch self.underlyingSessionStrategy {
+    func makeSessionConfiguration() -> SessionConfiguration {
+        switch self {
+        case let .configuration(configuration):
+            configuration
         case .fixed:
-            assertionFailure("sessionChanged should not be called on fixed session strategy")
-        case let .activityBased(_, onSessionChanged):
-            DispatchQueue.main.async {
-                onSessionChanged?(sessionID)
-            }
-        }
-    }
-
-    @objc
-    func generateSessionID() -> String {
-        switch self.underlyingSessionStrategy {
-        case let .fixed(sessionIDGenerator):
-            return sessionIDGenerator()
-        case .activityBased:
-            assertionFailure("generateSessionID should not be called on activityBased session strategy")
-            return UUID().uuidString
-        }
-    }
-
-    @objc
-    func inactivityThresholdMins() -> Int {
-        switch self.underlyingSessionStrategy {
-        case .fixed:
-            assertionFailure("inactivityThresholdMins should not be called on fixed session strategy")
-            return 30
-        case let .activityBased(inactivityThresholdMins, _):
-            return inactivityThresholdMins
-        }
-    }
-
-    @objc
-    func sessionStrategyType() -> CapturePassable.SessionStrategyType {
-        switch self.underlyingSessionStrategy {
-        case .fixed:
-            CapturePassable.SessionStrategyType.fixed
-        case .activityBased:
-            CapturePassable.SessionStrategyType.activityBased
+            SessionConfiguration()
+        case let .activityBased(inactivityThresholdMins, onSessionIDChanged):
+            SessionConfiguration(
+                inactivityTimeout: TimeInterval(inactivityThresholdMins) * 60,
+                onSessionIDChanged: onSessionIDChanged
+            )
         }
     }
 }

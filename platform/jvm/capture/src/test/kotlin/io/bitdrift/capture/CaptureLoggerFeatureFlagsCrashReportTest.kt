@@ -12,6 +12,7 @@ import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import io.bitdrift.capture.providers.DateProvider
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.threading.CaptureDispatchers
 import org.assertj.core.api.Assertions.assertThat
@@ -76,7 +77,8 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
                 apiUrl = testServer.url,
                 fieldProviders = listOf(),
                 dateProvider = systemDateProvider,
-                sessionStrategy = SessionStrategy.Fixed { sessionId },
+                sessionStrategy =
+                    SessionStrategy.Configuration(SessionConfiguration(initialSessionId = sessionId)),
                 configuration = Configuration(),
                 context = ContextHolder.APP_CONTEXT,
                 preferences = preferences,

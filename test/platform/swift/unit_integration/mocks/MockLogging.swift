@@ -73,6 +73,8 @@ extension MockLogging: Logging {
 
     public func startNewSession() {}
 
+    public func startNewSession(sessionID _: String?) {}
+
     public var deviceID: String { "deviceID" }
 
     public func getSdkStatus() -> SdkStatus {

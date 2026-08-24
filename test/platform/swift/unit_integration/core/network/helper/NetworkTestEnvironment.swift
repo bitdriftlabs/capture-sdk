@@ -46,7 +46,7 @@ final class NetworkTestEnvironment {
             LoggerBridge(
                 apiKey: "test!",
                 bufferDirectoryPath: sdkDirectory.path,
-                sessionStrategy: .fixed(),
+                sessionStrategy: .configuration(.init()),
                 metadataProvider: MockMetadataProvider(),
                 resourceUtilizationTarget: MockResourceUtilizationTarget(),
                 sessionReplayTarget: MockSessionReplayTarget(),

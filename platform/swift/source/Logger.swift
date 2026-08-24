@@ -419,8 +419,20 @@ extension Logger: Logging {
         (self.underlyingLogger as? CoreLogger)?.isTracingActive == true
     }
 
+    /// Creates a new session with an SDK-created ID.
     public func startNewSession() {
-        self.underlyingLogger.startNewSession()
+        self.startNewSession(sessionID: nil)
+    }
+
+    /// Creates a new session with an optional app-provided ID.
+    ///
+    /// A non-empty `sessionID` becomes the new session ID. When `sessionID` is `nil` or empty, Capture
+    /// generates a UUID regardless of how the previous session was established. This always
+    /// invokes the configured session-ID callback, even if `sessionID` equals the current ID.
+    ///
+    /// - parameter sessionID: The optional non-empty ID for the new session.
+    public func startNewSession(sessionID: String?) {
+        self.underlyingLogger.startNewSession(sessionID: sessionID)
     }
 
     public var deviceID: String {

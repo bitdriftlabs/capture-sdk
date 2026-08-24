@@ -142,8 +142,8 @@ extension CoreLogger: CoreLogging {
         self.underlyingLogger.logScreenView(screenName: screenName)
     }
 
-    func startNewSession() {
-        self.underlyingLogger.startNewSession()
+    func startNewSession(sessionID: String?) {
+        self.underlyingLogger.startNewSession(sessionID: sessionID)
     }
 
     func getSessionID() -> String {

@@ -38,7 +38,7 @@ extension XCTestCase {
     @discardableResult
     func startLoggerWithIsolatedDirectory(
         apiKey: String = "test_api_key",
-        sessionStrategy: SessionStrategy = .fixed(),
+        sessionStrategy: SessionStrategy = .configuration(.init()),
         configuration: Configuration = .init(),
         fieldProviders: [FieldProvider] = [],
         dateProvider: DateProvider? = nil
