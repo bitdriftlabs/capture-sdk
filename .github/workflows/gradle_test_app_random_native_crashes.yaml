@@ -13,6 +13,9 @@ jobs:
   run_random_native_crashes:
     name: Android gradle-test-app crash loop test
     runs-on: ubuntu-latest-8-cores
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     env:
       CRASH_LOOP_API_KEY: ${{ secrets.CRASH_LOOP_API_KEY }}
       SKIP_PROTO_GEN: 1
@@ -23,7 +26,7 @@ jobs:
       - name: Setup Android command-line tools
         uses: ./.github/actions/android-setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
           setup-gradle-cache: "true"
           setup-emulator: 'true'
           emulator-api-level: '31'

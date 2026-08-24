@@ -18,6 +18,9 @@ jobs:
   pre_check:
     name: pre_check
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     outputs:
       should_run: ${{ github.event_name == 'push' || steps.check_changes.outputs.run_tests }}
       has_affected_clippy_targets: ${{ steps.bazel_check.outputs.has_affected_clippy_targets }}
@@ -33,7 +36,7 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
       - name: Check for Bazel build file changes
         id: bazel_check
@@ -88,6 +91,9 @@ jobs:
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
     runs-on: macos-26
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout
@@ -96,7 +102,7 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
@@ -123,6 +129,9 @@ jobs:
 
   tests:
     runs-on: macos-26
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
     steps:
@@ -133,7 +142,7 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
@@ -170,6 +179,9 @@ jobs:
     needs: "pre_check"
     if: needs.pre_check.outputs.should_run == 'true'
     runs-on: macos-26
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     outputs:
       ios_app_size_kb: ${{ steps.ios_size.outputs.current_kb }}
       capture_binary_size_kb: ${{ steps.capture_binary_size.outputs.current_kb }}
@@ -182,7 +194,7 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh
