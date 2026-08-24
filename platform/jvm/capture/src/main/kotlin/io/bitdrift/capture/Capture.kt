@@ -125,15 +125,13 @@ object Capture {
             }
 
         /**
-         * Initializes the Capture SDK with the specified API key, providers, and configuration.
+         * Initializes the Capture SDK with the specified API key and configuration.
          * Calling other SDK methods has no effect unless the logger has been initialized.
          * Subsequent calls to this function will have no effect.
          *
          * @param apiKey The API key provided by bitdrift. This is required.
          * @param sessionStrategy session strategy for the management of session id.
          * @param configuration A configuration that is used to set up Capture features.
-         * @param fieldProviders list of extra field providers to apply to all logs. Deprecated; use
-         *                       [initialFields] to seed fields at startup and [addField] to update them.
          * @param dateProvider optional date provider used to override how the current timestamp is computed.
          * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
          *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
@@ -153,7 +151,6 @@ object Capture {
             apiKey: String,
             sessionStrategy: SessionStrategy,
             configuration: Configuration = Configuration(),
-            fieldProviders: List<FieldProvider> = listOf(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
@@ -161,16 +158,64 @@ object Capture {
             startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         ) {
             start(
-                apiKey,
-                sessionStrategy,
-                configuration,
-                fieldProviders,
-                dateProvider,
-                apiUrl,
-                CaptureJniLibrary,
-                context,
-                initialFields,
-                startResult,
+                apiKey = apiKey,
+                sessionStrategy = sessionStrategy,
+                configuration = configuration,
+                fieldProviders = emptyList(),
+                dateProvider = dateProvider,
+                apiUrl = apiUrl,
+                bridge = CaptureJniLibrary,
+                context = context,
+                initialFields = initialFields,
+                startResult = startResult,
+            )
+        }
+
+        /**
+         * Initializes the Capture SDK with the specified API key, legacy field providers, and configuration.
+         * Calling other SDK methods has no effect unless the logger has been initialized.
+         * Subsequent calls to this function will have no effect.
+         *
+         * @param apiKey The API key provided by bitdrift. This is required.
+         * @param sessionStrategy session strategy for the management of session id.
+         * @param configuration A configuration that is used to set up Capture features.
+         * @param fieldProviders list of extra field providers to apply to all logs.
+         * @param dateProvider optional date provider used to override how the current timestamp is computed.
+         * @param apiUrl The base URL of Capture API.
+         * @param context an optional context reference. You should provide the context if called from
+         * a [android.content.ContentProvider].
+         * @param initialFields fields to seed at SDK startup. Use [addField] to update their values later.
+         * @param startResult an optional callback invoked with the result of the SDK initialization.
+         */
+        @Deprecated(
+            message =
+                "Use start(initialFields = ...) to seed fields at startup and addField(...) to update them.",
+        )
+        @Synchronized
+        @JvmStatic
+        @JvmOverloads
+        fun start(
+            apiKey: String,
+            sessionStrategy: SessionStrategy,
+            configuration: Configuration = Configuration(),
+            fieldProviders: List<FieldProvider>,
+            dateProvider: DateProvider? = null,
+            apiUrl: HttpUrl = defaultCaptureApiUrl,
+            context: Context? = null,
+            initialFields: Fields = emptyMap(),
+            startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
+        ) {
+            start(
+                apiKey = apiKey,
+                sessionStrategy = sessionStrategy,
+                configuration = configuration,
+                fieldProviders = fieldProviders,
+                dateProvider = dateProvider,
+                apiUrl = apiUrl,
+                bridge = CaptureJniLibrary,
+                context = context,
+                initialFields = initialFields,
+                startResult = startResult,
             )
         }
 
@@ -186,7 +231,6 @@ object Capture {
          * SDK UUID for the current process, does not persist it across SDK restarts, and does not rotate it
          * due to inactivity.
          * @param configuration A configuration that is used to set up Capture features.
-         * @param fieldProviders List of extra field providers to apply to all logs.
          * @param dateProvider Optional date provider used to override how the current timestamp is computed.
          * @param apiUrl The base URL of Capture API.
          * @param context An optional context reference. Provide it if called from an
@@ -200,7 +244,46 @@ object Capture {
             apiKey: String,
             sessionConfiguration: SessionConfiguration = SessionConfiguration(),
             configuration: Configuration = Configuration(),
-            fieldProviders: List<FieldProvider> = listOf(),
+            dateProvider: DateProvider? = null,
+            apiUrl: HttpUrl = defaultCaptureApiUrl,
+            context: Context? = null,
+            startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
+        ) {
+            start(
+                apiKey = apiKey,
+                sessionStrategy = SessionStrategy.Configuration(sessionConfiguration),
+                configuration = configuration,
+                dateProvider = dateProvider,
+                apiUrl = apiUrl,
+                context = context,
+                startResult = startResult,
+            )
+        }
+
+        /**
+         * Initializes Capture with the canonical session configuration API and legacy field providers.
+         *
+         * @param apiKey The API key provided by bitdrift. This is required.
+         * @param sessionConfiguration Session lifecycle configuration.
+         * @param configuration A configuration that is used to set up Capture features.
+         * @param fieldProviders List of extra field providers to apply to all logs.
+         * @param dateProvider Optional date provider used to override how the current timestamp is computed.
+         * @param apiUrl The base URL of Capture API.
+         * @param context An optional context reference.
+         * @param startResult Optional callback invoked with the result of SDK initialization.
+         */
+        @Deprecated(
+            message =
+                "Use start(sessionConfiguration = ...) to initialize Capture and addField(...) to update fields.",
+        )
+        @Synchronized
+        @JvmStatic
+        @JvmOverloads
+        fun start(
+            apiKey: String,
+            sessionConfiguration: SessionConfiguration = SessionConfiguration(),
+            configuration: Configuration = Configuration(),
+            fieldProviders: List<FieldProvider>,
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
