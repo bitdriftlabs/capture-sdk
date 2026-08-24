@@ -569,6 +569,11 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
   NSString *bundle_version = [NSString stringWithFormat:@"%@.%@", app_version, string_for_key(metadata, @"appBuildVersion")];
   NSDictionary *app_info = dict_for_key(reportDict, @"bitdriftAppInfo");
   NSString *bundle_path = string_for_key(app_info, @"bundlePath") ?: NSBundle.mainBundle.bundlePath;
+  NSNumber *captured_app_environment = number_for_key(app_info, @"appEnvironment");
+  CAPAppEnvironment app_environment = captured_app_environment != nil
+      ? (CAPAppEnvironment)captured_app_environment.intValue
+      : self.appEnvironment;
+  NSString *team_identifier = string_for_key(app_info, @"teamIdentifier") ?: self.teamIdentifier;
   BDAppMetrics app = {
     .app_id = cstring_from(string_for_key(metadata, @"bundleIdentifier")),
     .region_format = cstring_from(string_for_key(metadata, @"regionFormat")),
@@ -577,8 +582,8 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
     .memory_pressure_level = self.memoryPressureLevel,
     .launch_time_seconds = [number_for_key(app_info, @"launchTimeSeconds") unsignedLongLongValue],
     .launch_time_nanos = [number_for_key(app_info, @"launchTimeNanos") unsignedIntValue],
-    .environment = self.appEnvironment,
-    .team_identifier = cstring_from(self.teamIdentifier),
+    .environment = app_environment,
+    .team_identifier = cstring_from(team_identifier),
     .bundle_path = cstring_from(bundle_path),
   };
   bdrw_add_app(handle, &app);

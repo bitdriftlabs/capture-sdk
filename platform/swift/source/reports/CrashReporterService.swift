@@ -201,8 +201,12 @@ private extension CrashReporterService {
         )
 
         do {
+            let appDistribution = self.appDistributionInspector.inspect()
             try self.ksCrashHandler.configure(withCrashReportDirectory: directoryURL)
-            try self.ksCrashHandler.startCrashReporter()
+            try self.ksCrashHandler.startCrashReporter(
+                withAppEnvironment: appDistribution.environment.rawValue,
+                teamIdentifier: appDistribution.teamIdentifier
+            )
         } catch {
             return .failure(error)
         }

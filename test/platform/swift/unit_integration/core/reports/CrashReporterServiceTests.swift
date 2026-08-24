@@ -97,6 +97,8 @@ final class CrashReporterServiceTests: XCTestCase {
         whenInvokingSetup()
         thenKSCrashHandlerIsConfigured()
         thenKSCrashHandlerIsStarted()
+        XCTAssertNotNil(ksCrashHandler.appEnvironmentAtStart)
+        XCTAssertNil(ksCrashHandler.teamIdentifierAtStart)
     }
 
     func testSetupCallsConfigureAndStartOnBitdriftHandlerWhenEnabled() {

@@ -16,8 +16,12 @@
     return [BitdriftKSCrashHandler configureWithCrashReportDirectory:crashReportDir error:error];
 }
 
-- (BOOL)startCrashReporterWithError:(NSError **)error {
-    return [BitdriftKSCrashHandler startCrashReporterWithError:error];
+- (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                              teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                       error:(NSError **)error {
+    return [BitdriftKSCrashHandler startCrashReporterWithAppEnvironment:appEnvironment
+                                                          teamIdentifier:teamIdentifier
+                                                                   error:error];
 }
 
 - (void)stopCrashReporter {
@@ -54,8 +58,12 @@
                                                 summaryOut:summaryOut];
 }
 
-+ (BOOL)startCrashReporterWithError:(NSError **)error {
-    return [BitdriftKSCrashHandler startCrashReporterWithError:error];
++ (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                              teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                       error:(NSError **)error {
+    return [BitdriftKSCrashHandler startCrashReporterWithAppEnvironment:appEnvironment
+                                                          teamIdentifier:teamIdentifier
+                                                                   error:error];
 }
 
 + (NSNumber *_Nullable)didCrashLastLaunch {

@@ -189,6 +189,10 @@ static bool writeMetadata(BDCrashWriterHandle writer, const ReportContext* ctx) 
     if (ctx->bundlePath != NULL) {
         RETURN_ON_FAIL(writeKVString(writer, "bundlePath", ctx->bundlePath));
     }
+    RETURN_ON_FAIL(writeKVSigned(writer, "appEnvironment", ctx->appEnvironment));
+    if (ctx->teamIdentifier != NULL) {
+        RETURN_ON_FAIL(writeKVString(writer, "teamIdentifier", ctx->teamIdentifier));
+    }
     return true;
 }
 

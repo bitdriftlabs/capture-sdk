@@ -13,7 +13,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol KSCrashHandling <NSObject>
 - (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error;
-- (BOOL)startCrashReporterWithError:(NSError **)error;
+- (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                              teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                       error:(NSError **)error;
 - (void)stopCrashReporter;
 - (NSNumber *_Nullable)didCrashLastLaunch;
 - (NSDate *_Nullable)cachedCrashDate;
@@ -27,7 +29,9 @@ NS_ASSUME_NONNULL_BEGIN
 // MARK: - Instance methods (conforms to KSCrashHandling)
 
 - (BOOL)configureWithCrashReportDirectory:(NSURL *)crashReportDir error:(NSError **)error;
-- (BOOL)startCrashReporterWithError:(NSError **)error;
+- (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                              teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                       error:(NSError **)error;
 - (void)stopCrashReporter;
 - (NSNumber *_Nullable)didCrashLastLaunch;
 - (NSDate *_Nullable)cachedCrashDate;
@@ -71,7 +75,9 @@ NS_ASSUME_NONNULL_BEGIN
  * @param error Filled if NO is returned.
  * @return true on success.
  */
-+ (BOOL)startCrashReporterWithError:(NSError **)error;
++ (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                              teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                       error:(NSError **)error;
 
 /**
  * Returns whether KSCrash detected a crash on the previous app launch.

@@ -167,11 +167,17 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     return BitdriftKSCrashHandler.sharedInstance.didCrashLastLaunch;
 }
 
-+ (BOOL)startCrashReporterWithError:(NSError **)error {
-    return [self.sharedInstance startCrashReporterWithError:error];
++ (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                              teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                       error:(NSError **)error {
+    return [self.sharedInstance startCrashReporterWithAppEnvironment:appEnvironment
+                                                       teamIdentifier:teamIdentifier
+                                                                error:error];
 }
 
-- (BOOL)startCrashReporterWithError:(NSError **)error {
+- (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                               teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                        error:(NSError **)error {
     if (self.kscrashReportFilePath == nil) {
         *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
                 NSLocalizedDescriptionKey:@"Start failed",
@@ -189,7 +195,15 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     memset(&g_crashHandlerReportContext, 0, sizeof(g_crashHandlerReportContext));
     // This gets allocated once and lives forever.
     g_crashHandlerReportContext.reportPath = strdup(self.kscrashReportFilePath.UTF8String);
-    g_crashHandlerReportContext.bundlePath = strdup(NSBundle.mainBundle.bundlePath.UTF8String);
+    const char *bundlePath = NSBundle.mainBundle.bundlePath.UTF8String;
+    if (bundlePath != NULL) {
+        g_crashHandlerReportContext.bundlePath = strdup(bundlePath);
+    }
+    const char *teamIdentifierCString = teamIdentifier.UTF8String;
+    if (teamIdentifierCString != NULL) {
+        g_crashHandlerReportContext.teamIdentifier = strdup(teamIdentifierCString);
+    }
+    g_crashHandlerReportContext.appEnvironment = appEnvironment;
     g_crashHandlerReportContext.metadata.pid = NSProcessInfo.processInfo.processIdentifier;
     readProcessStartTime(&g_crashHandlerReportContext.metadata.launchTimeSeconds,
                          &g_crashHandlerReportContext.metadata.launchTimeNanos);
