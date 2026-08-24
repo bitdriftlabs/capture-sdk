@@ -13,7 +13,6 @@ import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionCallback
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
-import io.bitdrift.capture.reports.processor.IStreamingReportProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import okio.IOException
 import java.io.InputStream
@@ -31,7 +30,7 @@ interface StackTraceProvider {
 }
 
 @Suppress("UndocumentedPublicClass")
-internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
+internal object CaptureJniLibrary : IBridge {
     /**
      * Loads the shared library. This is safe to call multiple times.
      */
@@ -432,9 +431,11 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param stream          The InputStream containing ANR details
      * @param timestampMillis The time at which the event took place
      * @param destinationPath Target file path to write the report
+     * @param attributes Client attributes used for dynamic report metadata
      */
     @Throws(IOException::class, IllegalArgumentException::class)
-    external override fun processAndPersistANR(
+    external fun processAndPersistANR(
+        loggerId: LoggerId,
         stream: InputStream?,
         timestampMillis: Long,
         destinationPath: String,
@@ -456,10 +457,11 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param debugId Debug id that will be used for de-minification
      * @param timestampMillis The time at which the event took place
      * @param destinationPath Target file path to write the report
-     * @param attributes Client attributes for metadata
+     * @param attributes Client attributes used for dynamic report metadata
      * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
      */
-    external override fun processAndPersistJavaScriptError(
+    external fun processAndPersistJavaScriptError(
+        loggerId: LoggerId,
         errorName: String,
         errorMessage: String,
         stackTrace: String,

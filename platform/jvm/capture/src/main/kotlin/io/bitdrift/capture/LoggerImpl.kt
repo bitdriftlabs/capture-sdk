@@ -748,6 +748,7 @@ internal class LoggerImpl(
         issueReporter?.init(
             sdkDirectory = sdkDirectory,
             clientAttributes = clientAttributes,
+            loggerId = loggerId,
             completedReportsProcessor = this,
         )
     }
