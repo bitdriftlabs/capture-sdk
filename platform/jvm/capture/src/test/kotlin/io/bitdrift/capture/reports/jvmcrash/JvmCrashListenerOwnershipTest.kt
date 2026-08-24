@@ -12,6 +12,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
+import com.nhaarman.mockitokotlin2.doThrow
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
@@ -145,6 +146,27 @@ class JvmCrashListenerOwnershipTest {
         backgroundThreadHandler.runPendingOnCurrentThread()
 
         assertThat(issueReporter.initializationState()).isEqualTo(IssueReporterState.Initialized)
+
+        captureUncaughtExceptionHandler.uncaughtException(Thread.currentThread(), SIMULATED_CRASH)
+
+        assertOnlyReportedAsFatalIssue()
+    }
+
+    @Test
+    fun uncaughtException_afterIssueReporterFailedProcessingPriorReports_shouldOnlyBeReportedAsFatalIssue() {
+        doThrow(RuntimeException("prior report processing failed"))
+            .whenever(completedReportsProcessor)
+            .processIssueReports(any())
+
+        appExitLogger.installAppExitLogger()
+        issueReporter.init(sdkDirectory, clientAttributes, completedReportsProcessor, TEST_LOGGER_ID)
+        backgroundThreadHandler.runPendingOnCurrentThread()
+
+        // Processing prior reports is the only thing that failed. The crash listener was installed
+        // before that work was scheduled and its processor is still live, so fatal issue reporting
+        // keeps ownership of JVM crashes despite the state saying otherwise.
+        assertThat(issueReporter.initializationState()).isEqualTo(IssueReporterState.InitializationFailed)
+        assertThat(issueReporter.getIssueReporterProcessor()).isNotNull
 
         captureUncaughtExceptionHandler.uncaughtException(Thread.currentThread(), SIMULATED_CRASH)
 
