@@ -17,6 +17,7 @@ old_version=$(grep bd-api Cargo.toml | grep -Eo 'rev = ".*"' | cut -d' ' -f3 | t
 
 sed -i "s|\"$old_version\"|\"$sha\"|g" Cargo.toml
 
-cargo upgrade --incompatible
+# Host-JVM JNI tests require the currently pinned JNI crate and its invocation feature.
+cargo upgrade --incompatible --exclude jni
 
 make repin
