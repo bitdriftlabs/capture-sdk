@@ -45,13 +45,12 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * Covers which of the two registered [IJvmCrashListener]s is allowed to report an uncaught JVM
- * exception.
+ * Covers which of the two JVM crash reporters is allowed to report an uncaught JVM exception.
  *
- * [AppExitLogger] and [IssueReporter] are both installed into the same
- * [CaptureUncaughtExceptionHandler], so exactly one of them must report any given crash. These
- * tests deliberately wire the real collaborators together rather than stubbing the reporter state,
- * so they stay valid regardless of how the hand-off between the two listeners is implemented.
+ * Ownership is decided once, at wiring time: [IssueReporter] owns uncaught JVM exceptions when its
+ * constructor initialized fatal issue reporting, and the legacy [AppExitLogger] otherwise. These
+ * tests reproduce the production wiring in `LoggerImpl` with real collaborators, so exactly one of
+ * the two must report any given crash regardless of what has or hasn't happened since wiring.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30]) // needs API 30 to use ApplicationExitInfo
@@ -94,26 +93,6 @@ class JvmCrashListenerOwnershipTest {
         // below only ever see logs produced by the simulated crash
         whenever(latestAppExitInfoProvider.get()).thenReturn(LatestAppExitReasonResult.None)
 
-        issueReporter =
-            IssueReporter(
-                internalLogger = internalLogger,
-                backgroundThreadHandler = backgroundThreadHandler,
-                latestAppExitInfoProvider = latestAppExitInfoProvider,
-                captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
-                dateProvider = FakeDateProvider,
-                memoryMetricsProvider = memoryMetricsProvider,
-            )
-        appExitLogger =
-            AppExitLogger(
-                logger = internalLogger,
-                runtime = runtime,
-                versionChecker = versionChecker,
-                memoryMetricsProvider = memoryMetricsProvider,
-                latestAppExitInfoProvider = latestAppExitInfoProvider,
-                captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
-                issueReporter = issueReporter,
-            )
-
         previousDefaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
     }
 
@@ -124,14 +103,23 @@ class JvmCrashListenerOwnershipTest {
     }
 
     @Test
-    fun uncaughtException_whileIssueReporterIsInitializing_shouldOnlyBeReportedAsFatalIssue() {
-        appExitLogger.installAppExitLogger()
-        issueReporter.init(sdkDirectory, clientAttributes, completedReportsProcessor, TEST_LOGGER_ID)
+    fun uncaughtException_beforePriorReportsProcessingIsRequested_shouldOnlyBeReportedAsFatalIssue() {
+        wireCrashReporting()
 
-        // init() registers the fatal issue reporting crash listener before handing prior-report
-        // processing to the background thread, so the reporter owns crashes from this point on
-        // even though it has not reached Initialized yet.
-        assertThat(issueReporter.initializationState()).isEqualTo(IssueReporterState.Initializing)
+        // The crash lands after LoggerImpl wiring but before Capture.start() asks for prior
+        // reports to be processed. Ownership was already fixed at construction, so the fatal
+        // issue reporting path owns this crash.
+        captureUncaughtExceptionHandler.uncaughtException(Thread.currentThread(), SIMULATED_CRASH)
+
+        assertOnlyReportedAsFatalIssue()
+    }
+
+    @Test
+    fun uncaughtException_whilePriorReportsProcessingIsPending_shouldOnlyBeReportedAsFatalIssue() {
+        wireCrashReporting()
+        issueReporter.processPriorReports(completedReportsProcessor)
+
+        assertThat(issueReporter.issueReporterState).isEqualTo(IssueReporterState.Initializing)
         assertThat(backgroundThreadHandler.hasPendingTasks).isTrue()
 
         captureUncaughtExceptionHandler.uncaughtException(Thread.currentThread(), SIMULATED_CRASH)
@@ -140,12 +128,12 @@ class JvmCrashListenerOwnershipTest {
     }
 
     @Test
-    fun uncaughtException_afterIssueReporterIsInitialized_shouldOnlyBeReportedAsFatalIssue() {
-        appExitLogger.installAppExitLogger()
-        issueReporter.init(sdkDirectory, clientAttributes, completedReportsProcessor, TEST_LOGGER_ID)
+    fun uncaughtException_afterPriorReportsAreProcessed_shouldOnlyBeReportedAsFatalIssue() {
+        wireCrashReporting()
+        issueReporter.processPriorReports(completedReportsProcessor)
         backgroundThreadHandler.runPendingOnCurrentThread()
 
-        assertThat(issueReporter.initializationState()).isEqualTo(IssueReporterState.Initialized)
+        assertThat(issueReporter.issueReporterState).isEqualTo(IssueReporterState.Initialized)
 
         captureUncaughtExceptionHandler.uncaughtException(Thread.currentThread(), SIMULATED_CRASH)
 
@@ -153,24 +141,85 @@ class JvmCrashListenerOwnershipTest {
     }
 
     @Test
-    fun uncaughtException_afterIssueReporterFailedProcessingPriorReports_shouldOnlyBeReportedAsFatalIssue() {
+    fun uncaughtException_afterPriorReportsProcessingFailed_shouldOnlyBeReportedAsFatalIssue() {
         doThrow(RuntimeException("prior report processing failed"))
             .whenever(completedReportsProcessor)
             .processIssueReports(any())
 
-        appExitLogger.installAppExitLogger()
-        issueReporter.init(sdkDirectory, clientAttributes, completedReportsProcessor, TEST_LOGGER_ID)
+        wireCrashReporting()
+        issueReporter.processPriorReports(completedReportsProcessor)
         backgroundThreadHandler.runPendingOnCurrentThread()
 
-        // Processing prior reports is the only thing that failed. The crash listener was installed
-        // before that work was scheduled and its processor is still live, so fatal issue reporting
-        // keeps ownership of JVM crashes despite the state saying otherwise.
-        assertThat(issueReporter.initializationState()).isEqualTo(IssueReporterState.InitializationFailed)
-        assertThat(issueReporter.getIssueReporterProcessor()).isNotNull
+        // Processing prior reports is the only thing that failed. Ownership was fixed at
+        // construction and the processor is still live, so fatal issue reporting keeps handling
+        // JVM crashes despite the state saying otherwise.
+        assertThat(issueReporter.issueReporterState).isEqualTo(IssueReporterState.InitializationFailed)
+        assertThat(issueReporter.handlesJvmCrashes).isTrue()
 
         captureUncaughtExceptionHandler.uncaughtException(Thread.currentThread(), SIMULATED_CRASH)
 
         assertOnlyReportedAsFatalIssue()
+    }
+
+    @Test
+    fun uncaughtException_whenFatalIssueReportingIsDisabledByConfig_shouldBeReportedByAppExitLogger() {
+        File(reportsDir, "config.csv").writeText("crash_reporting.enabled,false")
+
+        wireCrashReporting()
+        issueReporter.processPriorReports(completedReportsProcessor)
+
+        // The reporter never took ownership, so AppExitLogger is the only crash reporter listening.
+        assertThat(issueReporter.handlesJvmCrashes).isFalse
+        assertThat(issueReporter.issueReporterState).isEqualTo(IssueReporterState.RuntimeState.Disabled)
+
+        captureUncaughtExceptionHandler.uncaughtException(Thread.currentThread(), SIMULATED_CRASH)
+
+        // suppressing here would drop the crash entirely, which is worse than reporting it twice
+        verify(internalLogger).logInternal(
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            any(),
+        )
+        verify(internalLogger, never()).notifyMemoryPressureLevel(any())
+    }
+
+    /**
+     * Reproduces the crash reporting wiring in `LoggerImpl`: construct the reporter (which decides
+     * ownership), register exactly one of the two crash reporters, then install the app exit
+     * logger.
+     */
+    private fun wireCrashReporting() {
+        issueReporter =
+            IssueReporter(
+                internalLogger = internalLogger,
+                backgroundThreadHandler = backgroundThreadHandler,
+                latestAppExitInfoProvider = latestAppExitInfoProvider,
+                dateProvider = FakeDateProvider,
+                memoryMetricsProvider = memoryMetricsProvider,
+                sdkDirectory = sdkDirectory,
+                clientAttributes = clientAttributes,
+                loggerId = TEST_LOGGER_ID,
+            )
+
+        if (issueReporter.handlesJvmCrashes) {
+            captureUncaughtExceptionHandler.install(issueReporter)
+        }
+
+        appExitLogger =
+            AppExitLogger(
+                logger = internalLogger,
+                runtime = runtime,
+                versionChecker = versionChecker,
+                memoryMetricsProvider = memoryMetricsProvider,
+                latestAppExitInfoProvider = latestAppExitInfoProvider,
+                captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
+                fatalIssueReportingHandlesJvmCrashes = issueReporter.handlesJvmCrashes,
+            )
+        appExitLogger.installAppExitLogger()
     }
 
     /**

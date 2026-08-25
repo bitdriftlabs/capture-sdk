@@ -25,7 +25,6 @@ import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
-import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
@@ -42,12 +41,10 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30]) // needs API 30 to use ApplicationExitInfo
 class IssueReporterTest {
-    private lateinit var issueReporter: IssueReporter
     private lateinit var reportsDir: File
     private lateinit var configFile: File
 
     private lateinit var sdkDirectory: String
-    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
 
     private val completedReportsProcessor: ICompletedReportsProcessor = mock()
@@ -72,7 +69,6 @@ class IssueReporterTest {
         configFile = File(reportsDir, "config.csv")
         configFile.writeText("crash_reporting.enabled,true")
         sdkDirectory = SdkDirectory.getPath(APP_CONTEXT)
-        issueReporter = buildReporter()
     }
 
     @After
@@ -81,14 +77,12 @@ class IssueReporterTest {
     }
 
     @Test
-    fun initialize_whenDisabledViaConfig_shouldNotInit() {
+    fun construction_whenDisabledViaConfig_shouldNotHandleJvmCrashes() {
         configFile.writeText("crash_reporting.enabled,false")
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
 
+        val issueReporter = buildReporter()
+
+        assertThat(issueReporter.handlesJvmCrashes).isFalse
         issueReporter.issueReporterState.assert(
             IssueReporterState.RuntimeState.Disabled::class.java,
         )
@@ -98,14 +92,12 @@ class IssueReporterTest {
     }
 
     @Test
-    fun initialize_whenConfigCorrupt_shouldNotInit() {
+    fun construction_whenConfigCorrupt_shouldNotHandleJvmCrashes() {
         configFile.writeText("crash_reporting.enabled")
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
 
+        val issueReporter = buildReporter()
+
+        assertThat(issueReporter.handlesJvmCrashes).isFalse
         issueReporter.issueReporterState.assert(
             IssueReporterState.RuntimeState.Invalid::class.java,
         )
@@ -115,14 +107,12 @@ class IssueReporterTest {
     }
 
     @Test
-    fun initialize_whenConfigMissingCrashReportingKey_shouldNotInit() {
+    fun construction_whenConfigMissingCrashReportingKey_shouldNotHandleJvmCrashes() {
         configFile.writeText("other.flag,true")
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
 
+        val issueReporter = buildReporter()
+
+        assertThat(issueReporter.handlesJvmCrashes).isFalse
         issueReporter.issueReporterState.assert(
             IssueReporterState.RuntimeState.MissingFlag::class.java,
         )
@@ -132,14 +122,12 @@ class IssueReporterTest {
     }
 
     @Test
-    fun initialize_whenConfigCrashReportingValueIsNotBoolean_shouldNotInit() {
+    fun construction_whenConfigCrashReportingValueIsNotBoolean_shouldNotHandleJvmCrashes() {
         configFile.writeText("crash_reporting.enabled,not-a-bool")
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
 
+        val issueReporter = buildReporter()
+
+        assertThat(issueReporter.handlesJvmCrashes).isFalse
         issueReporter.issueReporterState.assert(
             IssueReporterState.RuntimeState.MissingFlag::class.java,
         )
@@ -149,43 +137,57 @@ class IssueReporterTest {
     }
 
     @Test
-    fun initialize_whenConfigFileIsEmpty_shouldBeInvalid() {
+    fun construction_whenConfigFileIsEmpty_shouldBeInvalid() {
         configFile.writeText("")
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
 
+        val issueReporter = buildReporter()
+
+        assertThat(issueReporter.handlesJvmCrashes).isFalse
         issueReporter.issueReporterState.assert(
             IssueReporterState.RuntimeState.Invalid::class.java,
         )
     }
 
     @Test
-    fun initialize_whenConfigHasMultipleKeysButMissingCrashReporting_shouldBeInvalid() {
+    fun construction_whenConfigHasMultipleKeysButMissingCrashReporting_shouldBeMissingFlag() {
         configFile.writeText("anr_reporting.enabled,true\nother.flag,false")
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
 
+        val issueReporter = buildReporter()
+
+        assertThat(issueReporter.handlesJvmCrashes).isFalse
         issueReporter.issueReporterState.assert(
             IssueReporterState.RuntimeState.MissingFlag::class.java,
         )
     }
 
     @Test
-    fun initialize_whenConfigNotPresent_shouldDefaultToEnabled() {
+    fun construction_whenConfigNotPresent_shouldDefaultToEnabled() {
         configFile.delete()
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
 
-        verify(captureUncaughtExceptionHandler).install(eq(issueReporter))
+        val issueReporter = buildReporter()
+
+        assertThat(issueReporter.handlesJvmCrashes).isTrue
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.Initializing::class.java,
+        )
+    }
+
+    @Test
+    fun construction_whenEnabled_shouldHandleJvmCrashesBeforePriorReportsAreProcessed() {
+        val issueReporter = buildReporter()
+
+        assertThat(issueReporter.handlesJvmCrashes).isTrue
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.Initializing::class.java,
+        )
+    }
+
+    @Test
+    fun processPriorReports_whenEnabled_shouldFetchAppExitReasonAndInitialize() {
+        val issueReporter = buildReporter()
+
+        issueReporter.processPriorReports(completedReportsProcessor)
+
         verify(latestAppExitInfoProvider).get()
         issueReporter.issueReporterState.assert(
             IssueReporterState.Initialized::class.java,
@@ -194,71 +196,69 @@ class IssueReporterTest {
     }
 
     @Test
-    fun initialize_whenEnabled_shouldInitCrashHandlerAndFetchAppExitReason() {
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
+    fun processPriorReports_whenDisabledViaConfig_shouldNotProcessReports() {
+        configFile.writeText("crash_reporting.enabled,false")
+        val issueReporter = buildReporter()
 
-        verify(captureUncaughtExceptionHandler).install(eq(issueReporter))
-        verify(latestAppExitInfoProvider).get()
+        issueReporter.processPriorReports(completedReportsProcessor)
+
+        verify(completedReportsProcessor, times(0)).processIssueReports(any())
         issueReporter.issueReporterState.assert(
-            IssueReporterState.Initialized::class.java,
+            IssueReporterState.RuntimeState.Disabled::class.java,
         )
-        verify(completedReportsProcessor).processIssueReports(ReportProcessingSession.PreviousRun)
     }
 
     @Test
-    fun init_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
+    fun processPriorReports_whenCalledTwice_shouldOnlyProcessOnce() {
+        val issueReporter = buildReporter()
+
+        issueReporter.processPriorReports(completedReportsProcessor)
+        issueReporter.processPriorReports(completedReportsProcessor)
+
+        verify(completedReportsProcessor, times(1)).processIssueReports(ReportProcessingSession.PreviousRun)
+    }
+
+    @Test
+    fun processPriorReports_whenAppExitInfoFails_shouldCallOnErrorOccurred() {
         val exception = RuntimeException("test error")
         whenever(latestAppExitInfoProvider.get())
             .thenThrow(exception)
+        val issueReporter = buildReporter()
 
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
+        issueReporter.processPriorReports(completedReportsProcessor)
 
         verify(completedReportsProcessor).onReportProcessingError(
             any(),
             eq(exception),
         )
+        issueReporter.issueReporterState.assert(
+            IssueReporterState.InitializationFailed::class.java,
+        )
     }
 
     @Test
-    fun getIssueReporterProcessor_whenNotInitialized_shouldReturnNull() {
-        val processor = issueReporter.getIssueReporterProcessor()
+    fun getIssueReporterProcessor_whenDisabledViaConfig_shouldReturnNull() {
+        configFile.writeText("crash_reporting.enabled,false")
+
+        val processor = buildReporter().getIssueReporterProcessor()
 
         assertThat(processor).isNull()
     }
 
     @Test
-    fun getIssueReporterProcessor_whenInitialized_shouldReturnValidProcessor() {
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
-
-        val processor = issueReporter.getIssueReporterProcessor()
+    fun getIssueReporterProcessor_whenEnabled_shouldReturnValidProcessorFromConstruction() {
+        val processor = buildReporter().getIssueReporterProcessor()
 
         assertThat(processor).isInstanceOf(IssueReporterProcessor::class.java)
     }
 
     @Test
-    fun onJvmCrash_whenInitialized_shouldUpdateMemoryLevelState() {
+    fun onJvmCrash_whenEnabled_shouldUpdateMemoryLevelState() {
         whenever(memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()).thenReturn(MemoryPressureLevel.Critical)
-        issueReporter.init(
-            sdkDirectory,
-            clientAttributes,
-            completedReportsProcessor,
-        )
+        val issueReporter = buildReporter()
 
         issueReporter.onJvmCrash(Thread(), IllegalStateException())
 
-        verify(memoryMetricsProvider, times(2)).getCurrentJvmMemoryPressureLevel()
         verify(internalLogger).notifyMemoryPressureLevel(MemoryPressureLevel.Critical)
     }
 
@@ -266,22 +266,16 @@ class IssueReporterTest {
         assertThat(this).isInstanceOf(expectedType)
     }
 
-    private fun IssueReporter.init(
-        sdkDirectory: String,
-        clientAttributes: ClientAttributes,
-        completedReportsProcessor: ICompletedReportsProcessor,
-    ) {
-        init(sdkDirectory, clientAttributes, completedReportsProcessor, TEST_LOGGER_ID)
-    }
-
     private fun buildReporter(): IssueReporter =
         IssueReporter(
             internalLogger = internalLogger,
             backgroundThreadHandler = FakeBackgroundThreadHandler(),
             latestAppExitInfoProvider = latestAppExitInfoProvider,
-            captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
             dateProvider = FakeDateProvider,
             memoryMetricsProvider = memoryMetricsProvider,
+            sdkDirectory = sdkDirectory,
+            clientAttributes = clientAttributes,
+            loggerId = TEST_LOGGER_ID,
         )
 
     private companion object {

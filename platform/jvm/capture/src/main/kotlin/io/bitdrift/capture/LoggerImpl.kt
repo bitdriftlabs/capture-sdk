@@ -145,18 +145,7 @@ internal class LoggerImpl(
         PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler)
     private val isSdkDirectoryFirstCreated: Boolean
 
-    private val issueReporter: IssueReporter? =
-        if (configuration.enableFatalIssueReporting) {
-            IssueReporter(
-                internalLogger = this,
-                dateProvider = dateProvider,
-                latestAppExitInfoProvider = latestAppExitInfoProvider,
-                captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
-                memoryMetricsProvider = memoryMetricsProvider,
-            )
-        } else {
-            null
-        }
+    private val issueReporter: IssueReporter?
 
     @VisibleForTesting
     internal val loggerId: LoggerId
@@ -299,6 +288,30 @@ internal class LoggerImpl(
 
         addWindowFocusFlushTarget(context, windowManager)
 
+        // Whether fatal issue reporting owns uncaught JVM exceptions is decided once, right here:
+        // the IssueReporter constructor reads the persisted runtime config and builds its report
+        // processor, so ownership is immutable from this point on and exactly one of the two crash
+        // reporters registers with the uncaught exception handler.
+        val issueReporter =
+            if (configuration.enableFatalIssueReporting) {
+                IssueReporter(
+                    internalLogger = this,
+                    dateProvider = dateProvider,
+                    latestAppExitInfoProvider = latestAppExitInfoProvider,
+                    memoryMetricsProvider = memoryMetricsProvider,
+                    sdkDirectory = sdkDirectory,
+                    clientAttributes = clientAttributes,
+                    loggerId = this.loggerId,
+                )
+            } else {
+                null
+            }
+        this.issueReporter = issueReporter
+
+        if (issueReporter != null && issueReporter.handlesJvmCrashes) {
+            captureUncaughtExceptionHandler.install(issueReporter)
+        }
+
         appExitLogger =
             AppExitLogger(
                 logger = this,
@@ -306,7 +319,7 @@ internal class LoggerImpl(
                 memoryMetricsProvider = memoryMetricsProvider,
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
                 captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
-                issueReporter = issueReporter,
+                fatalIssueReportingHandlesJvmCrashes = issueReporter?.handlesJvmCrashes == true,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure
@@ -741,16 +754,12 @@ internal class LoggerImpl(
     internal fun getPreviousRunInfo(): PreviousRunInfo? = previousRunInfoResolver.get()
 
     /**
-     * Initializes the issue reporter. Must be called immediately right after the LoggerImpl is created
-     * so we can guarantee that any calls to Capture.Logger.* are valid within `onBeforeReportSend`
+     * Processes issue reports persisted by previous runs. Must be called immediately right after
+     * the LoggerImpl is created so we can guarantee that any calls to Capture.Logger.* are valid
+     * within `onBeforeReportSend`
      */
-    internal fun initIssueReporter() {
-        issueReporter?.init(
-            sdkDirectory = sdkDirectory,
-            clientAttributes = clientAttributes,
-            loggerId = loggerId,
-            completedReportsProcessor = this,
-        )
+    internal fun processPriorIssueReports() {
+        issueReporter?.processPriorReports(completedReportsProcessor = this)
     }
 
     private fun startDebugOperationsAsNeeded(context: Context) {

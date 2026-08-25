@@ -83,7 +83,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
                 context = ContextHolder.APP_CONTEXT,
                 preferences = preferences,
             )
-        logger.initIssueReporter()
+        logger.processPriorIssueReports()
         return try {
             block(logger)
         } finally {

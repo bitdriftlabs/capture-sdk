@@ -770,9 +770,9 @@ object Capture {
 
             default.set(LoggerState.Started(loggerImpl))
 
-            // Must be initialized right after the logger state is set to avoid a null
-            // Capture.logger() reference when onBeforeSend callbacks are triggered.
-            loggerImpl.initIssueReporter()
+            // Prior reports can only be processed after the logger state is set, so that
+            // onBeforeSend callbacks triggered by report processing can resolve Capture.logger().
+            loggerImpl.processPriorIssueReports()
 
             val sdkConfiguredDuration =
                 SdkConfiguredDuration(

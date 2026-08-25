@@ -40,6 +40,11 @@
 
 - Prevent duplicate JVM crash reports when fatal issue reporting initializes after app exit logging.
 
+- Prevent duplicate JVM crash reports while fatal issue reporting is still starting up, and when it
+  fails to process reports from a previous run. Ownership of uncaught JVM exceptions is now decided
+  once at SDK start: the legacy app exit crash logger only registers itself when fatal issue
+  reporting is disabled or failed to initialize.
+
 ### iOS
 
 **Added**

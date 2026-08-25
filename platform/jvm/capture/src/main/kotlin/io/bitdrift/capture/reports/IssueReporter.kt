@@ -17,11 +17,9 @@ import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.DateProvider
-import io.bitdrift.capture.reports.IssueReporterState.NotInitialized
 import io.bitdrift.capture.reports.IssueReporterState.RuntimeState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
-import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.reports.persistence.IssueReporterStore
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
@@ -39,72 +37,84 @@ import kotlin.time.TimeSource
 /**
  * Reports different Issue Types (JVM crash, ANR, native, StrictMode, etc).
  *
+ * Whether this reporter owns uncaught JVM exceptions is decided exactly once, inside the
+ * constructor: the persisted runtime config is read and the report processor is built there, so
+ * [handlesJvmCrashes] is immutable and safely published to every thread by constructor semantics.
+ * The only deferred work is [processPriorReports], which handles reports persisted by previous
+ * runs once the logger is able to receive them; its outcome updates the telemetry state but never
+ * changes who owns JVM crashes.
+ *
  * @param internalLogger Logger used for internal SDK errors/diagnostics.
  * @param backgroundThreadHandler Handler for background thread operations.
  * @param latestAppExitInfoProvider Provider for retrieving latest app exit information.
- * @param captureUncaughtExceptionHandler Handler for uncaught exceptions.
  * @param dateProvider Date source used when building report payload metadata.
+ * @param memoryMetricsProvider Provider for memory metrics attached to reports.
+ * @param sdkDirectory Directory holding the persisted reports and their runtime config.
+ * @param clientAttributes Static client attributes attached to reports.
+ * @param loggerId Handle of the native logger that receives the processed reports.
  */
 internal class IssueReporter(
     private val internalLogger: IInternalLogger,
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
-    private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
     private val dateProvider: DateProvider,
     private val memoryMetricsProvider: IMemoryMetricsProvider,
-) : IIssueReporter,
-    IJvmCrashListener {
+    sdkDirectory: String,
+    clientAttributes: IClientAttributes,
+    loggerId: LoggerId,
+) : IJvmCrashListener {
+    private val issueReporterProcessor: IIssueReporterProcessor?
+    private val constructionError: Throwable?
+    private val initializationDuration: Duration
+
+    // Telemetry only: reported on the SDK start log and asserted by tests, never consulted to
+    // route a crash. The Initialized/InitializationFailed transition happens on the background
+    // worker once prior reports are processed.
     @VisibleForTesting
-    internal var issueReporterState: IssueReporterState = NotInitialized
+    internal var issueReporterState: IssueReporterState
         private set
-    private var initializationDuration: Duration? = null
-    private var issueReporterProcessor: IIssueReporterProcessor? = null
 
-    /**
-     * Initializes the IssueReporter handler once we have the required dependencies available
-     */
-    override fun init(
-        sdkDirectory: String,
-        clientAttributes: IClientAttributes,
-        completedReportsProcessor: ICompletedReportsProcessor,
-        loggerId: LoggerId,
-    ) {
-        if (issueReporterState != NotInitialized) {
-            Log.e(LOG_TAG, "Issue reporting already being initialized")
-            return
-        }
+    init {
         val duration = TimeSource.Monotonic.markNow()
-
-        // setting immediate value to avoid re-initializing if the first state check takes time
-        issueReporterState = IssueReporterState.Initializing
-
-        getRuntimeState(sdkDirectory)
-            .takeIf { state -> state != RuntimeState.Enabled }
-            ?.let { state ->
-                issueReporterState = state
-                initializationDuration = duration.elapsedNow()
-                return
-            }
-
-        runCatching {
-            issueReporterProcessor =
-                buildDefaultIssueReporterProcessor(
-                    sdkDirectory,
-                    clientAttributes,
-                    loggerId,
-                    dateProvider,
-                    internalLogger,
-                    memoryMetricsProvider,
-                )
-            captureUncaughtExceptionHandler.install(this)
-            processPriorReports(completedReportsProcessor)
-        }.getOrElse {
-            logError(completedReportsProcessor, it)
+        val runtimeState = getRuntimeState(sdkDirectory)
+        if (runtimeState == RuntimeState.Enabled) {
+            val processorResult =
+                runCatching {
+                    buildDefaultIssueReporterProcessor(
+                        sdkDirectory,
+                        clientAttributes,
+                        loggerId,
+                        dateProvider,
+                        internalLogger,
+                        memoryMetricsProvider,
+                    )
+                }
+            issueReporterProcessor = processorResult.getOrNull()
+            constructionError =
+                processorResult.exceptionOrNull()?.also {
+                    Log.e(LOG_TAG, "Error while initializing reporter. $it", it)
+                }
             issueReporterState =
-                IssueReporterState.InitializationFailed
+                if (issueReporterProcessor != null) {
+                    IssueReporterState.Initializing
+                } else {
+                    IssueReporterState.InitializationFailed
+                }
+        } else {
+            issueReporterProcessor = null
+            constructionError = null
+            issueReporterState = runtimeState
         }
         initializationDuration = duration.elapsedNow()
     }
+
+    /**
+     * Whether this reporter owns uncaught JVM exceptions. Fixed at construction, so the wiring in
+     * `LoggerImpl` can register exactly one JVM crash reporter and no listener ever has to
+     * re-negotiate ownership at crash time.
+     */
+    val handlesJvmCrashes: Boolean
+        get() = issueReporterProcessor != null
 
     /**
      * Returns the underlying report processor
@@ -112,9 +122,31 @@ internal class IssueReporter(
     internal fun getIssueReporterProcessor(): IIssueReporterProcessor? = issueReporterProcessor
 
     /**
-     * Returns the current init state
+     * Processes issue reports persisted by previous app runs. Must be called once, after the
+     * Capture logger is started, because report processing can trigger `onBeforeReportSend`
+     * callbacks that resolve `Capture.logger()`.
      */
-    override fun initializationState(): IssueReporterState = issueReporterState
+    fun processPriorReports(completedReportsProcessor: ICompletedReportsProcessor) {
+        constructionError?.let {
+            completedReportsProcessor.onReportProcessingError("Error while initializing reporter. $it", it)
+        }
+        if (issueReporterState != IssueReporterState.Initializing) {
+            return
+        }
+        backgroundThreadHandler.runAsync {
+            runCatching {
+                persistLastExitReasonIfNeeded()
+                completedReportsProcessor.processIssueReports(ReportProcessingSession.PreviousRun)
+            }.onSuccess {
+                issueReporterState =
+                    IssueReporterState.Initialized
+            }.onFailure {
+                logError(completedReportsProcessor, it)
+                issueReporterState =
+                    IssueReporterState.InitializationFailed
+            }
+        }
+    }
 
     /**
      * Processes any JVM crash.
@@ -132,12 +164,10 @@ internal class IssueReporter(
         )
     }
 
-    override fun getLogStatusFieldsMap(): Map<String, String> =
+    fun getLogStatusFieldsMap(): Map<String, String> =
         buildMap {
             put(FATAL_ISSUE_REPORTING_STATE_KEY, issueReporterState.readableType)
-            initializationDuration?.let {
-                put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, it.toDouble(DurationUnit.MILLISECONDS).toString())
-            }
+            put(FATAL_ISSUE_REPORTING_DURATION_MILLI_KEY, initializationDuration.toDouble(DurationUnit.MILLISECONDS).toString())
         }
 
     private fun getRuntimeState(sdkDirectory: String): RuntimeState =
@@ -160,22 +190,6 @@ internal class IssueReporter(
         }.getOrElse {
             RuntimeState.Invalid
         }
-
-    private fun processPriorReports(completedReportsProcessor: ICompletedReportsProcessor) {
-        backgroundThreadHandler.runAsync {
-            runCatching {
-                persistLastExitReasonIfNeeded()
-                completedReportsProcessor.processIssueReports(ReportProcessingSession.PreviousRun)
-            }.onSuccess {
-                issueReporterState =
-                    IssueReporterState.Initialized
-            }.onFailure {
-                logError(completedReportsProcessor, it)
-                issueReporterState =
-                    IssueReporterState.InitializationFailed
-            }
-        }
-    }
 
     private fun persistLastExitReasonIfNeeded() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
