@@ -54,6 +54,9 @@ internal class IssueReporter(
     private val memoryMetricsProvider: IMemoryMetricsProvider,
 ) : IIssueReporter,
     IJvmCrashListener {
+    // written on the background worker once prior reports are processed, and read from whichever
+    // thread happens to be crashing
+    @Volatile
     @VisibleForTesting
     internal var issueReporterState: IssueReporterState = NotInitialized
         private set
