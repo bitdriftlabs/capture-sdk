@@ -86,7 +86,7 @@ static bool writeBacktrace(BDCrashWriterHandle writer, const char *const key, KS
                     RETURN_ON_FAIL(writeKVUnsigned(writer, "address", stackCursor->stackEntry.address));
                     Dl_info info = {0};
                     if (ksdl_dladdr(stackCursor->stackEntry.address, &info)) {
-                        RETURN_ON_FAIL(writeKVString(writer, "binaryName", ksfu_lastPathEntry(info.dli_fname)));
+                        RETURN_ON_FAIL(writeKVString(writer, "binaryName", info.dli_fname));
                         // Ensure safe pointer arithmetic
                         if (info.dli_saddr >= info.dli_fbase) {
                             RETURN_ON_FAIL(writeKVUnsigned(writer, "offsetIntoBinaryTextSegment", 

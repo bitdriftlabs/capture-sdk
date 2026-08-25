@@ -162,7 +162,7 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
                         order:(FrameOrder)order {
   NSMutableSet <NSString *>* images = [NSMutableSet new];
   NSArray *call_stacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
-  NSDictionary *binary_sizes = dict_for_key(crash, @"bitdriftBinarySizes");
+  NSDictionary *binary_info = dict_for_key(crash, @"bitdriftBinaryInfo");
   uint32_t crashed_index = [self crashedThreadIndex:call_stacks];
 
   for (uint32_t thread_index = 0; thread_index < call_stacks.count; thread_index++) {
@@ -185,12 +185,12 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
       NSNumber *offset = number_for_key(frame, @"offsetIntoBinaryTextSegment");
       if (binary_name && binary_uuid && address && offset) {
         if (![images containsObject:binary_uuid]) {
-          NSNumber *image_size = number_for_key(binary_sizes, [binary_uuid uppercaseString]);
+          NSDictionary *image_info = dict_for_key(binary_info, [binary_uuid uppercaseString]);
           BDBinaryImage image = {
             .id = cstring_from(binary_uuid),
-            .path = cstring_from(binary_name),
+            .path = cstring_from(string_for_key(binary_info, @"path") ?: binary_name),
             .load_address = [address unsignedLongLongValue] - [offset unsignedLongLongValue],
-            .length = [image_size unsignedLongLongValue],
+            .length = [number_for_key(image_info, @"size") unsignedLongLongValue],
           };
           bdrw_add_binary_image(handle, &image);
           [images addObject:binary_uuid];
