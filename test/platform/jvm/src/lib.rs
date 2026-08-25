@@ -541,7 +541,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_sendErrorMessag
   error_reporter: JObject<'_>,
 ) {
   env
-    .with_env_no_catch(|mut env| -> jni::errors::Result<()> {
+    .with_env_no_catch(|env| -> jni::errors::Result<()> {
       let message: String = message
         .try_to_string(env)
         .expect("failed to get java string");
@@ -608,7 +608,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runKeyValueStor
   preferences: JObject<'_>,
 ) {
   env
-    .with_env_no_catch(|mut env| -> jni::errors::Result<()> {
+    .with_env_no_catch(|env| -> jni::errors::Result<()> {
       let storage = PreferencesHandle::new_global(&env, preferences).unwrap();
       platform_test_helpers::run_key_value_storage_tests(&storage);
 
@@ -624,7 +624,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runResourceUtil
   target: JObject<'_>,
 ) {
   env
-    .with_env_no_catch(|mut env| -> jni::errors::Result<()> {
+    .with_env_no_catch(|env| -> jni::errors::Result<()> {
       let target = ResourceUtilizationTargetHandler::new_global(&env, target).unwrap();
       platform_test_helpers::run_resource_utilization_target_tests(&target);
 
@@ -640,7 +640,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runSessionRepla
   target: JObject<'_>,
 ) {
   env
-    .with_env_no_catch(|mut env| -> jni::errors::Result<()> {
+    .with_env_no_catch(|env| -> jni::errors::Result<()> {
       let target = SessionReplayTargetHandler::new_global(&env, target).unwrap();
       platform_test_helpers::run_session_replay_target_tests(&target);
 
@@ -656,7 +656,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runEventsListen
   target: JObject<'_>,
 ) {
   env
-    .with_env_no_catch(|mut env| -> jni::errors::Result<()> {
+    .with_env_no_catch(|env| -> jni::errors::Result<()> {
       let target = EventsListenerTargetHandler::new_global(&env, target).unwrap();
       platform_test_helpers::run_events_listener_target_tests(&target);
 
