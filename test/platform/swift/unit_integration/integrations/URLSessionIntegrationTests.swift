@@ -75,6 +75,8 @@ struct URLSessionTaskTestCaseInput {
 final class URLSessionIntegrationTests: XCTestCase {
     private var logger: MockLogging!
 
+    private var caseQuery: String { self.logger.acceptedQuery ?? "" }
+
     override func setUp() {
         super.setUp()
         self.customSetUp(swizzle: true)
@@ -85,8 +87,14 @@ final class URLSessionIntegrationTests: XCTestCase {
         self.customTearDown()
     }
 
+    private func makeCaseQuery() -> String {
+        let name = self.name.filter { $0.isLetter || $0.isNumber }
+        return "q=\(name)-\(UUID().uuidString)"
+    }
+
     private func customSetUp(swizzle: Bool) {
         self.logger = MockLogging()
+        self.logger.acceptedQuery = self.makeCaseQuery()
         URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
 
         Logger.resetShared(logger: self.logger)
@@ -101,6 +109,12 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     private func customTearDown() {
+        XCTAssertEqual(
+            0,
+            self.logger.unmatchedLogCount,
+            "HTTP logs from another cycle bled into this one"
+        )
+
         URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
         Logger.resetShared()
     }
@@ -221,7 +235,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
             ],
@@ -710,7 +724,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
             ],
@@ -733,7 +747,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_result": "success",
                 "_span_name": "_http",
                 "_span_type": "end",
@@ -783,7 +797,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
             ],
@@ -806,7 +820,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_result": "canceled",
                 "_span_name": "_http",
                 "_span_type": "end",
@@ -957,7 +971,7 @@ final class URLSessionIntegrationTests: XCTestCase {
         // significantly more time when ran on the CI.
         // TODO(Augustyniak): Move to using bitdrift ping.
         // swiftlint:disable:next force_unwrapping
-        return URL(string: "https://api-fe.bitdrift.io/fe/ping?q=test")!
+        return URL(string: "https://api-fe.bitdrift.io/fe/ping?\(self.caseQuery)")!
     }
 
     private func makeTempFileURL(name: String) throws -> URL {
