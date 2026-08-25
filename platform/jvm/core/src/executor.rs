@@ -10,29 +10,31 @@
 mod tests;
 
 use anyhow::anyhow;
-use jni::JNIEnv;
-use jni::objects::{GlobalRef, JObject};
-use std::sync::Arc;
+use jni::objects::{Global, JObject, JString};
+use jni::{Env, JavaVM, jni_sig, jni_str};
 
-/// Checks whether there is an active exception via the provided executor, clearing it and
+/// Checks whether there is an active exception in the provided JNI environment, clearing it and
 /// returning an error if so.
-pub fn check_exception(env: &mut JNIEnv<'_>) -> anyhow::Result<Option<String>> {
-  let exception = env.exception_occurred()?;
-
-  if exception.is_null() {
+pub fn check_exception(env: &mut Env<'_>) -> anyhow::Result<Option<String>> {
+  let Some(exception) = env.exception_occurred() else {
     return Ok(None);
-  }
+  };
 
-  env.exception_clear()?;
+  env.exception_clear();
 
-  let exception_string = &env
-    .call_method(exception, "toString", "()Ljava/lang/String;", &[])?
-    .l()?
-    .into();
+  let exception_string = env
+    .call_method(
+      exception,
+      jni_str!("toString"),
+      jni_sig!("()Ljava/lang/String;"),
+      &[],
+    )?
+    .l()?;
+  let exception_string = env.cast_local::<JString<'_>>(exception_string)?;
 
-  let rust_string = env.get_string(exception_string)?;
+  let rust_string = exception_string.try_to_string(env)?;
 
-  Ok(Some(rust_string.into()))
+  Ok(Some(rust_string))
 }
 
 //
@@ -42,34 +44,32 @@ pub fn check_exception(env: &mut JNIEnv<'_>) -> anyhow::Result<Option<String>> {
 /// A wrapper around a global reference to a `JObject`, allowing for method calls to be made
 /// against said object. A global reference can outlive the current scope, allowing for the Java
 /// reference to be used from anywhere.
-#[derive(Clone)]
 pub struct ObjectHandle {
   // A global reference to a Java object. A global reference is necessary in order to
   // provide a reference that can be passed between threads.
-  object: GlobalRef,
+  object: Global<JObject<'static>>,
 
-  /// A handle to an executor which can be used to execute method calls on the Java object. This
-  /// is used to ensure that the thread we are executing the Java methods on are attached.
-  executor: jni::Executor,
+  /// JVM handle used to attach the calling thread before invoking methods on the Java object.
+  java_vm: JavaVM,
 }
 
 impl ObjectHandle {
-  pub fn new(env: &JNIEnv<'_>, object: JObject<'_>) -> jni::errors::Result<Self> {
+  pub fn new(env: &Env<'_>, object: JObject<'_>) -> jni::errors::Result<Self> {
     Ok(Self {
       object: env.new_global_ref(object)?,
-      executor: jni::Executor::new(Arc::new(env.get_java_vm()?)),
+      java_vm: env.get_java_vm()?,
     })
   }
 
   pub fn execute<R, F>(&self, f: F) -> anyhow::Result<R>
   where
-    F: for<'a> FnOnce(&mut JNIEnv<'a>, &JObject<'a>) -> anyhow::Result<R>,
+    F: for<'a> FnOnce(&mut Env<'a>, &JObject<'static>) -> anyhow::Result<R>,
   {
-    self.executor.with_attached(|env| {
+    self.java_vm.attach_current_thread(|env| {
       let rval = f(env, self.object.as_obj());
 
-      // When executing Java calls through an Executor we're most likely making a call from the
-      // event loop thread (anywhere else we'd have direct JNIEnv access), so clear out the
+      // Calls made through an attached thread usually originate on the event-loop thread
+      // (elsewhere we have direct Env access), so clear out the
       // exception here. This ensures that there is no active exception on the thread, which means
       // that if this error results in the event loop stopping the thread won't exit with an
       // active exception, avoiding crash detectors like Bugsnag from flagging it as a
@@ -112,7 +112,7 @@ macro_rules! define_object_wrapper {
 
     impl $name {
       pub fn new_global(
-        env: &jni::JNIEnv<'_>,
+        env: &jni::Env<'_>,
         object: jni::objects::JObject<'_>,
       ) -> jni::errors::Result<Self> {
         $crate::executor::ObjectHandle::new(env, object).map(|handle| Self(handle))

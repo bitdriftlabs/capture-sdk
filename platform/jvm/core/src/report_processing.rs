@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::jni::{CachedMethod, JValueWrapper, initialize_method_handle};
+use crate::jni::{CachedMethod, JValueWrapper, initialize_class, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   AppBuildNumber,
@@ -20,8 +20,8 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   Timestamp,
 };
 use flatbuffers::FlatBufferBuilder;
-use jni::JNIEnv;
-use jni::objects::{JObject, JString};
+use jni::Env;
+use jni::objects::{JList, JObject, JString};
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::{jint, jlong};
 use platform_shared::javascript_error::{
@@ -33,7 +33,7 @@ use platform_shared::metadata::Mobile;
 use std::io::{Seek, Write};
 use std::sync::OnceLock;
 
-const BUFFER_SIZE: i32 = 8192;
+const BUFFER_SIZE: usize = 8192;
 static INPUT_STREAM_READ: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_OS_BRAND: OnceLock<CachedMethod> = OnceLock::new();
 static CLIENT_ATTRS_SUPPORTED_ABIS: OnceLock<CachedMethod> = OnceLock::new();
@@ -45,7 +45,7 @@ static CLIENT_ATTRS_LOCALE_COUNTRY_CODE: OnceLock<CachedMethod> = OnceLock::new(
 
 /// Dependencies shared by Android report builders.
 pub(crate) struct AndroidReportContext<'a, 'env_local, 'metadata, 'attributes, 'object> {
-  pub env: &'a mut JNIEnv<'env_local>,
+  pub env: &'a mut Env<'env_local>,
   pub metadata: &'metadata Mobile,
   pub attributes: &'attributes JObject<'object>,
 }
@@ -82,10 +82,16 @@ pub(crate) struct JavaScriptErrorReport<'a> {
   pub sdk_version: &'a str,
 }
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
+pub(crate) fn initialize(env: &mut Env<'_>) -> anyhow::Result<()> {
+  let input_stream_class = initialize_class(env, "java/io/InputStream", None)?;
+  let client_attributes_class = initialize_class(
+    env,
+    "io/bitdrift/capture/attributes/IClientAttributes",
+    None,
+  )?;
   initialize_method_handle(
     env,
-    "java/io/InputStream",
+    input_stream_class.class.as_ref(),
     "read",
     "([B)I",
     &INPUT_STREAM_READ,
@@ -93,7 +99,7 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
 
   initialize_method_handle(
     env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
+    client_attributes_class.class.as_ref(),
     "getOsBrand",
     "()Ljava/lang/String;",
     &CLIENT_ATTRS_OS_BRAND,
@@ -101,7 +107,7 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
 
   initialize_method_handle(
     env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
+    client_attributes_class.class.as_ref(),
     "getSupportedAbis",
     "()Ljava/util/List;",
     &CLIENT_ATTRS_SUPPORTED_ABIS,
@@ -109,7 +115,7 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
 
   initialize_method_handle(
     env,
-    "io/bitdrift/capture/attributes/IClientAttributes",
+    client_attributes_class.class.as_ref(),
     "getLocaleCountryCode",
     "()Ljava/lang/String;",
     &CLIENT_ATTRS_LOCALE_COUNTRY_CODE,
@@ -309,7 +315,7 @@ fn build_app_metrics<'fbb>(
 }
 
 fn read_string(
-  env: &mut JNIEnv<'_>,
+  env: &mut Env<'_>,
   attributes: &JObject<'_>,
   method: &OnceLock<CachedMethod>,
 ) -> anyhow::Result<String> {
@@ -319,16 +325,12 @@ fn read_string(
     .call_method(env, attributes, ReturnType::Object, &[])?
     .l()?;
 
-  let value = JString::from(value);
-  Ok(
-    unsafe { env.get_string_unchecked(&value)? }
-      .to_string_lossy()
-      .to_string(),
-  )
+  let value = env.cast_local::<JString<'_>>(value)?;
+  Ok(value.try_to_string(env)?)
 }
 
 fn read_string_list(
-  env: &mut JNIEnv<'_>,
+  env: &mut Env<'_>,
   attributes: &JObject<'_>,
   method: &OnceLock<CachedMethod>,
 ) -> anyhow::Result<Vec<String>> {
@@ -338,25 +340,27 @@ fn read_string_list(
     .call_method(env, attributes, ReturnType::Object, &[])?
     .l()?;
 
-  let list = jni::objects::JList::from_env(env, &list_obj)?;
+  let list = env.cast_local::<JList<'_>>(list_obj)?;
+  read_jstring_list(env, &list)
+}
+
+fn read_jstring_list(env: &mut Env<'_>, list: &JList<'_>) -> anyhow::Result<Vec<String>> {
   let size = list.size(env)?;
   let mut result = Vec::with_capacity(size.max(0).try_into().unwrap_or(0));
 
   for i in 0 .. size {
-    if let Some(item) = list.get(env, i)? {
-      let string_obj: jni::objects::JString<'_> = item.into();
-      let string_val = unsafe { env.get_string_unchecked(&string_obj)? };
-      result.push(string_val.to_string_lossy().to_string());
+    let item = list.get(env, i)?;
+    if item.is_null() {
+      continue;
     }
+    let string_obj = env.cast_local::<JString<'_>>(item)?;
+    result.push(string_obj.try_to_string(env)?);
   }
 
   Ok(result)
 }
 
-fn read_stream_to_file(
-  env: &mut JNIEnv<'_>,
-  stream: &JObject<'_>,
-) -> anyhow::Result<std::fs::File> {
+fn read_stream_to_file(env: &mut Env<'_>, stream: &JObject<'_>) -> anyhow::Result<std::fs::File> {
   let mut file = tempfile::tempfile()?;
   let buffer = env.new_byte_array(BUFFER_SIZE)?;
   let reader = INPUT_STREAM_READ.get().ok_or(InvariantError::Invariant)?;
@@ -376,7 +380,7 @@ fn read_stream_to_file(
     }
 
     let buffer_elements =
-      unsafe { env.get_array_elements(&buffer, jni::objects::ReleaseMode::NoCopyBack)? };
+      unsafe { buffer.get_elements(env, jni::objects::ReleaseMode::NoCopyBack)? };
 
     // Safety: `bytes_read` is already verified to by greater than zero
     #[allow(clippy::cast_sign_loss)]

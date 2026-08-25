@@ -48,9 +48,18 @@ class CaptureTokioThreadTest {
                 ),
         )
 
-        Logger.logInfo { "Test log message" }
+        val logger = Capture.logger() as LoggerImpl
+        try {
+            Logger.logInfo { "Test log message" }
 
-        latch.await(5, TimeUnit.SECONDS)
-        assertThat(threadName.get()).isEqualTo("bd-tokio")
+            assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue()
+            assertThat(threadName.get()).isEqualTo("bd-tokio")
+        } finally {
+            // Exercise the worker's teardown path. In jni 0.22 this must detach the persistent
+            // event-loop attachment before thread-local storage is destroyed.
+            CaptureJniLibrary.shutdown(logger.loggerId)
+            CaptureJniLibrary.destroyLogger(logger.loggerId)
+            Logger.resetShared()
+        }
     }
 }

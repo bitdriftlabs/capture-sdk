@@ -10,7 +10,7 @@ use crate::jni::{CachedMethod, JValueWrapper, initialize_class, initialize_metho
 use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
 use bd_session::configuration;
-use jni::JNIEnv;
+use jni::Env;
 use jni::signature::{Primitive, ReturnType};
 use std::sync::OnceLock;
 
@@ -18,7 +18,7 @@ use std::sync::OnceLock;
 
 static SESSION_CALLBACK_SESSION_ID_CHANGED: OnceLock<CachedMethod> = OnceLock::new();
 
-pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
+pub(crate) fn initialize(env: &mut Env<'_>) -> anyhow::Result<()> {
   let session_callback = initialize_class(
     env,
     "io/bitdrift/capture/providers/session/SessionCallback",
@@ -26,7 +26,7 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   )?;
   initialize_method_handle(
     env,
-    &session_callback.class,
+    session_callback.class.as_ref(),
     "sessionIdChanged",
     "(Ljava/lang/String;)V",
     &SESSION_CALLBACK_SESSION_ID_CHANGED,
