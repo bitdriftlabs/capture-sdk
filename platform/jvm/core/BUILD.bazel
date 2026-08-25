@@ -1,12 +1,25 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
 
 bitdrift_rust_library(
     name = "capture_core",
+    configure_java_home = True,
+    test_name = "capture_core_host_jvm_jni_rust_test",
+    test_tags = ["manual"],
     visibility = ["//visibility:public"],
     deps = [
         "//platform/shared:platform-shared",
     ],
     alwayslink = True,
+)
+
+# HotSpot emits -Xcheck:jni diagnostics to the native process output. This wrapper preserves that
+# output and makes any diagnostic a Bazel test failure.
+sh_test(
+    name = "capture_core_host_jvm_jni_test",
+    srcs = ["jni_warnings_test.sh"],
+    args = ["$(rootpath :capture_core_host_jvm_jni_rust_test)"],
+    data = [":capture_core_host_jvm_jni_rust_test"],
 )
 
 # Concatenate the proguard files from the capture and replay libraries
