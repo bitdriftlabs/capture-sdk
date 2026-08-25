@@ -35,6 +35,16 @@ static FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static BINARY_FIELD_BYTE_ARRAY: OnceLock<CachedMethod> = OnceLock::new();
 static STRING_FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
+// `string_arrays_to_annotated_fields` receives Kotlin `Array<String>` parameters, so every
+// element is a Java String. Consuming the local `JObject` before constructing the `JString` keeps
+// a single owning wrapper while avoiding `cast_local`'s per-element `IsInstanceOf` JNI call.
+fn string_array_element<'local>(env: &Env<'local>, object: JObject<'local>) -> JString<'local> {
+  // SAFETY: `object` is a valid local reference returned by `JObjectArray::get_element` from a
+  // Kotlin `Array<String>` parameter. `into_raw` consumes the only owning wrapper, and the
+  // returned JString cannot outlive `env`'s local JNI frame.
+  unsafe { JString::from_raw(env, object.into_raw()) }
+}
+
 pub(crate) fn initialize(env: &mut Env<'_>) -> anyhow::Result<()> {
   let string_field_class = initialize_class(
     env,
@@ -210,9 +220,9 @@ pub fn string_arrays_to_annotated_fields(
       let key_obj = keys.get_element(env, i)?;
       let value_obj = values.get_element(env, i)?;
 
-      let key_obj = env.cast_local::<JString<'_>>(key_obj)?;
+      let key_obj = string_array_element(env, key_obj);
       let key = key_obj.try_to_string(env)?;
-      let value_obj = env.cast_local::<JString<'_>>(value_obj)?;
+      let value_obj = string_array_element(env, value_obj);
       let value = value_obj.try_to_string(env)?;
 
       fields.insert(
