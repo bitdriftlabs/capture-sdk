@@ -19,7 +19,7 @@ use std::path::Path;
 
 const KSCRASH_REGISTERS_KEY: &str = "registers";
 const METRICKIT_REGISTERS_KEY: &str = "bitdriftRegisters";
-const METRICKIT_BINARY_SIZES_KEY: &str = "bitdriftBinarySizes";
+const METRICKIT_BINARY_INFO_KEY: &str = "bitdriftBinaryInfo";
 const METRICKIT_APP_INFO_KEY: &str = "bitdriftAppInfo";
 
 #[derive(Clone)]
@@ -475,14 +475,14 @@ fn inject_process_info(
   metrickit_report: &mut AHashMap<String, Value>,
   kscrash_report: &AHashMap<String, Value>,
 ) -> bool {
-  let binary_sizes = binary_sizes_from_kscrash_report(kscrash_report);
+  let binary_info = binary_info_from_kscrash_report(kscrash_report);
   let app_info = app_info_from_kscrash_report(kscrash_report);
-  let injected = !binary_sizes.is_empty() || !app_info.is_empty();
+  let injected = !binary_info.is_empty() || !app_info.is_empty();
 
-  if !binary_sizes.is_empty() {
+  if !binary_info.is_empty() {
     metrickit_report.insert(
-      METRICKIT_BINARY_SIZES_KEY.to_string(),
-      Value::Object(binary_sizes),
+      METRICKIT_BINARY_INFO_KEY.to_string(),
+      Value::Object(binary_info),
     );
   }
 
@@ -493,7 +493,7 @@ fn inject_process_info(
   injected
 }
 
-fn binary_sizes_from_kscrash_report(
+fn binary_info_from_kscrash_report(
   kscrash_report: &AHashMap<String, Value>,
 ) -> AHashMap<String, Value> {
   let mut sizes = AHashMap::new();
@@ -519,13 +519,20 @@ fn binary_sizes_from_kscrash_report(
       let Some(Value::String(uuid)) = frame.get("binaryUUID") else {
         continue;
       };
+      let Some(Value::String(path)) = frame.get("binaryName") else {
+        continue;
+      };
       let Some(size) = frame.get("binaryImageSize").and_then(value_as_u64) else {
         continue;
       };
-      if size > 0 {
-        // We uppercase it because MetricKit uses uppercase for binary image UUIDs.
-        sizes.insert(uuid.to_uppercase(), Value::Unsigned(size));
-      }
+      // We uppercase it because MetricKit uses uppercase for binary image UUIDs.
+      sizes.insert(
+        uuid.to_uppercase(),
+        Value::Object(AHashMap::from([
+          ("size".to_owned(), Value::Unsigned(size)),
+          ("path".to_owned(), Value::String(path.to_owned())),
+        ])),
+      );
     }
   }
 
@@ -1338,7 +1345,7 @@ mod tests {
   }
 
   #[test]
-  fn injects_binary_sizes_keyed_by_uppercase_uuid() {
+  fn injects_binary_info_keyed_by_uppercase_uuid() {
     let mut thread = make_kscrash_thread(0, Some("main"), &[1, 2], true);
     let Some(Value::Object(backtrace)) = thread.get_mut("backtrace") else {
       panic!("expected backtrace object");
@@ -1354,12 +1361,22 @@ mod tests {
       Value::String("70b89f27-1634-3580-a695-57cdb41d7743".to_string()),
     );
     frame.insert("binaryImageSize".to_string(), Value::Unsigned(4096));
+    frame.insert(
+      "binaryName".to_string(),
+      Value::String("/path/to/ThisFramework".to_owned()),
+    );
 
-    let sizes = binary_sizes_from_kscrash_report(&make_kscrash_report(6, 1, vec![thread]));
+    let info = binary_info_from_kscrash_report(&make_kscrash_report(6, 1, vec![thread]));
 
     assert_eq!(
-      Some(&Value::Unsigned(4096)),
-      sizes.get("70B89F27-1634-3580-A695-57CDB41D7743")
+      Some(&Value::Object(AHashMap::from([
+        ("size".to_owned(), Value::Unsigned(4096)),
+        (
+          "path".to_owned(),
+          Value::String("/path/to/ThisFramework".to_owned())
+        ),
+      ]))),
+      info.get("70B89F27-1634-3580-A695-57CDB41D7743")
     );
   }
 
