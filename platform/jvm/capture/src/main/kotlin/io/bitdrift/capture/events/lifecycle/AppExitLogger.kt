@@ -13,6 +13,7 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
+import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
@@ -23,8 +24,6 @@ import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
-import io.bitdrift.capture.reports.IIssueReporter
-import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
@@ -38,7 +37,7 @@ internal class AppExitLogger(
     private val memoryMetricsProvider: IMemoryMetricsProvider,
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider,
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
-    private val issueReporter: IIssueReporter?,
+    private val sdkConfiguration: Configuration,
 ) : IJvmCrashListener {
     companion object {
         private const val APP_EXIT_EVENT_NAME = "AppExit"
@@ -56,21 +55,19 @@ internal class AppExitLogger(
         private const val FOREGROUND_KEY = "foreground"
     }
 
-    private val isFatalIssueReportingInitialized = IssueReporterState.Initialized == issueReporter?.initializationState()
-
     @SuppressLint("NewApi")
     fun installAppExitLogger() {
         if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)) {
             return
         }
-        if (!isFatalIssueReportingInitialized) {
+        if (!sdkConfiguration.enableFatalIssueReporting) {
             captureUncaughtExceptionHandler.install(this)
         }
         logPreviousExitReasonIfAny()
     }
 
     fun uninstallAppExitLogger() {
-        if (!isFatalIssueReportingInitialized) {
+        if (!sdkConfiguration.enableFatalIssueReporting) {
             captureUncaughtExceptionHandler.uninstall()
         }
     }
@@ -106,10 +103,8 @@ internal class AppExitLogger(
         thread: Thread,
         throwable: Throwable,
     ) {
-        // When IssueReporterState is Initialized will rely on shared-core to emit the related JVM crash log
-        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) ||
-            IssueReporterState.Initialized == issueReporter?.initializationState()
-        ) {
+        // Will only report basic JVM crash info when Fatal Issue Reporting is not enabled
+        if (!runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS) || sdkConfiguration.enableFatalIssueReporting) {
             return
         }
 

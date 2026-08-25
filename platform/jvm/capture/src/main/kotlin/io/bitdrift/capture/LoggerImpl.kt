@@ -306,7 +306,7 @@ internal class LoggerImpl(
                 memoryMetricsProvider = memoryMetricsProvider,
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
                 captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
-                issueReporter = issueReporter,
+                sdkConfiguration = configuration,
             )
 
         // Install the app exit logger before the Capture logger is started to ensure

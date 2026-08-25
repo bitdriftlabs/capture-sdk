@@ -18,6 +18,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogAttributesOverrides
 import io.bitdrift.capture.LogLevel
@@ -25,7 +26,6 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.MockPreferences
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.fakes.FakeIssueReporter
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
@@ -34,8 +34,6 @@ import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEM
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
-import io.bitdrift.capture.reports.IIssueReporter
-import io.bitdrift.capture.reports.IssueReporterState
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.Companion.EXIT_REASON_EXCEPTION_MESSAGE
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoBelowApi30State
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoBelowApi30Store
@@ -64,7 +62,7 @@ class AppExitLoggerTest {
         whenever(runtime.isEnabled(RuntimeFeature.APP_EXIT_EVENTS)).thenReturn(true)
         whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
         whenever(versionChecker.isAtLeast(anyInt())).thenReturn(true)
-        appExitLogger = buildAppExitLogger()
+        appExitLogger = buildAppExitLogger(isFatalIssueReportingEnabled = false)
         lastExitInfo.reset()
     }
 
@@ -234,30 +232,26 @@ class AppExitLoggerTest {
     }
 
     @Test
-    fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotSendAppExitCrashLog() {
-        val appExitLogger = buildAppExitLogger(IssueReporterState.Initialized)
+    fun installAppExitLogger_whenFatalIssueReportingEnabled_doesNotInstallCrashHandler() {
+        val appExitLogger = buildAppExitLogger(isFatalIssueReportingEnabled = true)
 
-        appExitLogger.onJvmCrash(Thread.currentThread(), IllegalStateException("Simulated Crash"))
+        appExitLogger.installAppExitLogger()
 
-        verify(logger, never()).logInternal(
-            any(),
-            any(),
-            any(),
-            anyOrNull(),
-            anyOrNull(),
-            any(),
-            any(),
-        )
-        verify(logger, never()).flush(any())
+        verify(captureUncaughtExceptionHandler, never()).install(appExitLogger)
     }
 
     @Test
-    fun onJvmCrash_whenFatalIssueReportingInitializesAfterConstruction_shouldNotSendAppExitCrashLog() {
-        val issueReporter: IIssueReporter = mock()
-        whenever(issueReporter.initializationState()).thenReturn(IssueReporterState.NotInitialized)
-        val appExitLogger = buildAppExitLogger(issueReporter = issueReporter)
-        whenever(runtime.isEnabled(RuntimeFeature.LOGGER_FLUSHING_ON_CRASH)).thenReturn(true)
-        whenever(issueReporter.initializationState()).thenReturn(IssueReporterState.Initialized)
+    fun uninstallAppExitLogger_whenFatalIssueReportingEnabled_doesNotUninstallCrashHandler() {
+        val appExitLogger = buildAppExitLogger(isFatalIssueReportingEnabled = true)
+
+        appExitLogger.uninstallAppExitLogger()
+
+        verify(captureUncaughtExceptionHandler, never()).uninstall()
+    }
+
+    @Test
+    fun onJvmCrash_whenBuiltInFatalIssueMechanism_shouldNotSendAppExitCrashLog() {
+        val appExitLogger = buildAppExitLogger(isFatalIssueReportingEnabled = true)
 
         appExitLogger.onJvmCrash(Thread.currentThread(), IllegalStateException("Simulated Crash"))
 
@@ -275,7 +269,7 @@ class AppExitLoggerTest {
 
     @Test
     fun onJvmCrash_withLinearExceptionChain_shouldLogRootCause() {
-        val appExitLogger = buildAppExitLogger()
+        val appExitLogger = buildAppExitLogger(isFatalIssueReportingEnabled = false)
         val rootCauseException = IllegalArgumentException("root cause")
         val middleException = RuntimeException("middle", rootCauseException)
         val topException = IllegalStateException("top", middleException)
@@ -287,7 +281,7 @@ class AppExitLoggerTest {
 
     @Test
     fun onJvmCrash_withExceptionCycle_shouldNotInfiniteLoop() {
-        val appExitLogger = buildAppExitLogger()
+        val appExitLogger = buildAppExitLogger(isFatalIssueReportingEnabled = false)
         val rootCauseException = IllegalArgumentException("root")
         val middleException = RuntimeException("middle", rootCauseException)
         val topException = IllegalStateException("top", middleException)
@@ -301,7 +295,7 @@ class AppExitLoggerTest {
 
     @Test
     fun onJvmCrash_withSelfCycle_shouldNotInfiniteLoop() {
-        val appExitLogger = buildAppExitLogger()
+        val appExitLogger = buildAppExitLogger(isFatalIssueReportingEnabled = false)
         val initialException = RuntimeException("Initial exception")
         createExceptionCycle(initialException, initialException)
 
@@ -312,7 +306,7 @@ class AppExitLoggerTest {
 
     @Test
     fun onJvmCrash_withInvocationTargetException_shouldReportIllegalArgException() {
-        val appExitLogger = buildAppExitLogger()
+        val appExitLogger = buildAppExitLogger(isFatalIssueReportingEnabled = false)
         val illegalArgumentException = IllegalArgumentException("root cause")
         val invocationTarget = java.lang.reflect.InvocationTargetException(illegalArgumentException)
         val top = RuntimeException("top", invocationTarget)
@@ -406,18 +400,16 @@ class AppExitLoggerTest {
         causeField.set(target, cause)
     }
 
-    private fun buildAppExitLogger(
-        fatalReporterInitState: IssueReporterState = IssueReporterState.NotInitialized,
-        issueReporter: IIssueReporter = FakeIssueReporter(fatalReporterInitState),
-    ) = AppExitLogger(
-        logger,
-        runtime,
-        versionChecker,
-        memoryMetricsProvider,
-        lastExitInfo,
-        captureUncaughtExceptionHandler,
-        issueReporter,
-    )
+    private fun buildAppExitLogger(isFatalIssueReportingEnabled: Boolean) =
+        AppExitLogger(
+            logger,
+            runtime,
+            versionChecker,
+            memoryMetricsProvider,
+            lastExitInfo,
+            captureUncaughtExceptionHandler,
+            Configuration(enableFatalIssueReporting = isFatalIssueReportingEnabled),
+        )
 
     private fun fieldsMatchExpectedAnr(arrayFields: ArrayFields): Boolean {
         val expectedKeys =
