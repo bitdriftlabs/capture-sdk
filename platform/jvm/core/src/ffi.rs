@@ -16,6 +16,7 @@ use bd_logger::{AnnotatedLogField, AnnotatedLogFields, LogFieldKind, LogFieldVal
 use jni::Env;
 use jni::objects::{JByteArray, JMap, JObject, JObjectArray, JString};
 use jni::signature::{Primitive, ReturnType};
+use jni::sys::{jobjectArray, jsize};
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
@@ -35,14 +36,27 @@ static FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static BINARY_FIELD_BYTE_ARRAY: OnceLock<CachedMethod> = OnceLock::new();
 static STRING_FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
-// `string_arrays_to_annotated_fields` receives Kotlin `Array<String>` parameters, so every
-// element is a Java String. Consuming the local `JObject` before constructing the `JString` keeps
-// a single owning wrapper while avoiding `cast_local`'s per-element `IsInstanceOf` JNI call.
-fn string_array_element<'local>(env: &Env<'local>, object: JObject<'local>) -> JString<'local> {
-  // SAFETY: `object` is a valid local reference returned by `JObjectArray::get_element` from a
-  // Kotlin `Array<String>` parameter. `into_raw` consumes the only owning wrapper, and the
-  // returned JString cannot outlive `env`'s local JNI frame.
-  unsafe { JString::from_raw(env, object.into_raw()) }
+// `string_arrays_to_annotated_fields` receives Kotlin `Array<String>` parameters. The array
+// lengths are checked before this is called, so direct JNI access cannot throw an index exception.
+// This avoids jni's per-element exception check and local-frame bookkeeping in the hot path.
+fn string_array_element<'local>(
+  env: &Env<'local>,
+  array: &JObjectArray<'_>,
+  index: usize,
+) -> JString<'local> {
+  // SAFETY: `array` is a non-null Kotlin `Array<String>` and `index` is less than its checked
+  // length. `GetObjectArrayElement` therefore returns a String local reference associated with
+  // `env`'s current frame. The returned JString cannot outlive that frame.
+  unsafe {
+    let raw_env = env.get_raw();
+    let interface = *raw_env;
+    let object = ((*interface).v1_1.GetObjectArrayElement)(
+      raw_env,
+      array.as_raw() as jobjectArray,
+      index as jsize,
+    );
+    JString::from_raw(env, object)
+  }
 }
 
 pub(crate) fn initialize(env: &mut Env<'_>) -> anyhow::Result<()> {
@@ -217,12 +231,9 @@ pub fn string_arrays_to_annotated_fields(
 
   for i in 0 .. len {
     env.with_local_frame(4, |env| -> anyhow::Result<()> {
-      let key_obj = keys.get_element(env, i)?;
-      let value_obj = values.get_element(env, i)?;
-
-      let key_obj = string_array_element(env, key_obj);
+      let key_obj = string_array_element(env, keys, i);
       let key = key_obj.try_to_string(env)?;
-      let value_obj = string_array_element(env, value_obj);
+      let value_obj = string_array_element(env, values, i);
       let value = value_obj.try_to_string(env)?;
 
       fields.insert(
