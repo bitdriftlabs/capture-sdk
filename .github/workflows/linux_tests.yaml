@@ -11,6 +11,9 @@ concurrency:
 jobs:
   linux_test:
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     steps:
       # --- Build the project for release
 
@@ -29,7 +32,7 @@ jobs:
       - name: Setup Android SDK
         uses: ./.github/actions/android-setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
       - name: Check for Bazel build file changes
         id: bazel_check
         run: ./ci/check_bazel.sh //platform/... //test/...

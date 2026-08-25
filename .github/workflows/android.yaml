@@ -19,6 +19,9 @@ jobs:
   pre_check:
     name: pre_check
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     outputs:
       should_run: ${{ steps.check_changes.outputs.run_tests }}
     steps:
@@ -31,7 +34,7 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
       # Check for Bazel build file changes
       - name: Check for Bazel build file changes
@@ -80,6 +83,9 @@ jobs:
 
   build_and_compare_sizes:
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     if: needs.pre_check.outputs.should_run == 'true'
     needs: pre_check
     steps:
@@ -91,7 +97,7 @@ jobs:
       - name: Setup Android SDK
         uses: ./.github/actions/android-setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
       - name: Build Bazel APK and AAR
         timeout-minutes: 30
@@ -290,6 +296,9 @@ jobs:
   gradle_tests:
     # Requires a "larger runner", for nested virtualization support
     runs-on: ubuntu-latest-8-cores
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     env:
       SKIP_PROTO_GEN: 1
     if: needs.pre_check.outputs.should_run == 'true'
@@ -302,7 +311,7 @@ jobs:
     - name: Setup Android emulator
       uses: ./.github/actions/setup-android-emulator
       with:
-        buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+        buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
         setup-gradle-cache: "true"
         api-level: '23'
         target: default
@@ -333,6 +342,9 @@ jobs:
 
   run_android_benchmarks:
     runs-on: ubuntu-latest-8-cores
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     continue-on-error: true
     env:
       SKIP_PROTO_GEN: 1
@@ -347,7 +359,7 @@ jobs:
       - name: Setup Android emulator
         uses: ./.github/actions/setup-android-emulator
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
           setup-gradle-cache: "true"
           api-level: '31'
           target: default
@@ -516,6 +528,9 @@ jobs:
   verify_android_hello_world_per_version:
     needs: build_and_compare_sizes
     runs-on: ubuntu-latest-8-cores
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     strategy:
       matrix:
         api-level: [23, 35]
@@ -533,7 +548,7 @@ jobs:
       - name: Setup Android emulator
         uses: ./.github/actions/setup-android-emulator
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
           api-level: ${{ matrix.api-level }}
           target: google_apis
           arch: x86_64

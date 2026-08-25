@@ -12,6 +12,9 @@ jobs:
   pre_check:
     name: pre_check
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     outputs:
       should_run: ${{ steps.check_changes.outputs.run_tests }}
     steps:
@@ -23,7 +26,7 @@ jobs:
       - name: Configure BuildBuddy cache
         uses: ./.github/actions/configure-buildbuddy-cache
         with:
-          api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
       - name: Check for crash reporter changes
         id: crash_check

@@ -31,12 +31,18 @@ runs:
           exit 0
         fi
 
+        if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+          remote_upload_option="build --remote_upload_local_results"
+        else
+          remote_upload_option="build --noremote_upload_local_results"
+        fi
+
         umask 077
         {
           echo "build --bes_backend=grpcs://remote.buildbuddy.io"
           echo "build --bes_results_url=https://app.buildbuddy.io/invocation/"
           echo "build --remote_cache=grpcs://remote.buildbuddy.io"
-          echo "build --remote_upload_local_results"
+          echo "$remote_upload_option"
           echo "build --remote_cache_compression"
           echo "startup --experimental_remote_repo_contents_cache"
           printf "build --remote_header=x-buildbuddy-api-key=%s\\n" "$BUILDBUDDY_API_KEY"
