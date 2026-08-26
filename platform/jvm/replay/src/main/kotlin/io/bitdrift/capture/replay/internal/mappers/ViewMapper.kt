@@ -8,10 +8,12 @@
 package io.bitdrift.capture.replay.internal.mappers
 
 import android.content.res.Resources
+import android.graphics.PixelFormat
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
+import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.ReplayRect
@@ -97,9 +99,29 @@ internal class ViewMapper(
                 "Successfully mapped Android view=${this.javaClass.simpleName} to=$type:" +
                     " ${out[0]}, ${out[1]}, ${this.width}, ${this.height}",
             )
-            list.add(ReplayRect(type, out[0], out[1], this.width, this.height))
+            list.add(ReplayRect(effectiveType(type), out[0], out[1], this.width, this.height))
         }
         return list
+    }
+
+    /**
+     * A generic container only occludes what is behind it when it actually paints an opaque
+     * background. The window root (DecorView) of a dialog, bottom sheet or popup is transparent, so
+     * emitting it as [ReplayType.View] paints a filled rect over the whole frame and hides every
+     * window below it. Mirrors the check [BackgroundMapper] already applies to uncategorized views,
+     * which never runs here because these classes resolve through the mapper table instead.
+     */
+    @Suppress("DEPRECATION")
+    private fun View.effectiveType(type: ReplayType): ReplayType {
+        if (type != ReplayType.View) {
+            return type
+        }
+        val background = this.background ?: return ReplayType.TransparentView
+        return if (background.opacity == PixelFormat.OPAQUE) {
+            ReplayType.View
+        } else {
+            ReplayType.TransparentView
+        }
     }
 
     private fun isValidResId(resId: Int): Boolean {

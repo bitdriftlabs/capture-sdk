@@ -54,7 +54,10 @@ internal object ComposeTreeParser {
         SessionReplayController.L.d(
             "Found Compose SemanticsNode root. Parsing Compose tree. Window offset: (${windowOffset[0]}, ${windowOffset[1]})",
         )
-        return rootNode.toScannableView(windowOffset[0], windowOffset[1], layoutNodeMap)
+        // IsDialog/IsPopup sit on a wrapper *below* this window's Compose root, so the root itself
+        // would otherwise be classified as an opaque backdrop. Decide once per window instead.
+        val isOverlayWindow = rootNode.hasDialogOrPopupDescendant()
+        return rootNode.toScannableView(windowOffset[0], windowOffset[1], layoutNodeMap, isOverlayWindow)
     }
 
     private fun buildSemanticsIdToLayoutNodeMap(rootNode: LayoutNode): MutableIntObjectMap<LayoutNode> {
@@ -89,6 +92,7 @@ internal object ComposeTreeParser {
         windowOffsetX: Int,
         windowOffsetY: Int,
         layoutNodeMap: MutableIntObjectMap<LayoutNode>,
+        inOverlayWindow: Boolean = false,
     ): ScannableView {
         val layoutNode = layoutNodeMap[this.id] ?: return ScannableView.IgnoredComposeView
         // this is a somewhat expensive call, so avoid calling it multiple times
@@ -96,6 +100,12 @@ internal object ComposeTreeParser {
         val captureIgnoreSubTree = config.getOrNull(CaptureModifier.CaptureIgnore)
         val isVisible = !config.contains(SemanticsProperties.InvisibleToUser)
         val notAttachedOrPlaced = !layoutNode.isPlaced || !layoutNode.isAttached
+        // Dialog, Popup and ModalBottomSheet mark their window root with these. Everything from the
+        // root down belongs to a floating overlay window, which never paints an opaque backdrop.
+        val isOverlayWindow =
+            inOverlayWindow ||
+                config.contains(SemanticsProperties.IsDialog) ||
+                config.contains(SemanticsProperties.IsPopup)
         val type =
             if (notAttachedOrPlaced) {
                 return ScannableView.IgnoredComposeView
@@ -110,7 +120,7 @@ internal object ComposeTreeParser {
             } else if (!isVisible) {
                 ReplayType.TransparentView
             } else {
-                config.toReplayType()
+                config.toReplayType(isOverlayWindow)
             }
 
         // Handle hybrid interop AndroidViews inside Compose elements
@@ -137,11 +147,14 @@ internal object ComposeTreeParser {
             // The display name is not really used for anything
             displayName = "ComposeView",
             // Pass window offset to all children
-            children = this.children.asSequence().map { it.toScannableView(windowOffsetX, windowOffsetY, layoutNodeMap) },
+            children =
+                this.children.asSequence().map {
+                    it.toScannableView(windowOffsetX, windowOffsetY, layoutNodeMap, isOverlayWindow)
+                },
         )
     }
 
-    private fun SemanticsConfiguration.toReplayType(): ReplayType {
+    private fun SemanticsConfiguration.toReplayType(inOverlayWindow: Boolean): ReplayType {
         val role = this.getOrNull(SemanticsProperties.Role)
         return if (this.contains(SemanticsProperties.Text)) {
             ReplayType.Label
@@ -157,10 +170,24 @@ internal object ComposeTreeParser {
             } else {
                 ReplayType.SwitchOff
             }
+        } else if (inOverlayWindow) {
+            // A node with no text and no role is a layout container, and Compose semantics carry no
+            // background information, so we cannot tell whether it actually paints. Inside an
+            // overlay window that ambiguity is dangerous: the containers are full-screen (a
+            // ModalBottomSheet scrim, for instance) and an opaque guess occludes every window
+            // beneath them, blanking the frame. Outside one, the top container is the screen's own
+            // backdrop and opaque is the better guess, so only the overlay case is downgraded.
+            ReplayType.TransparentView
         } else {
             ReplayType.View
         }
     }
+
+    /** Whether this window hosts a floating overlay (Dialog, Popup or ModalBottomSheet). */
+    private fun SemanticsNode.hasDialogOrPopupDescendant(): Boolean =
+        config.contains(SemanticsProperties.IsDialog) ||
+            config.contains(SemanticsProperties.IsPopup) ||
+            children.any { it.hasDialogOrPopupDescendant() }
 
     private val SemanticsNode.unclippedGlobalBounds: Rect
         get() {
