@@ -11,14 +11,9 @@ import io.bitdrift.capture.providers.Field
 
 /**
  * Used to allow the logger to call back up into the platform layer to determine the current
- * group and timestamp.
+ * fields.
  */
 internal interface IMetadataProvider {
-    /**
-     * Returns the current ms since UTC epoch using the active DateProvider.
-     */
-    fun timestamp(): Long
-
     /**
      * Returns out of the box fields to be included with emitted logs. Out of the box fields
      * are fields that come from the SDK itself.

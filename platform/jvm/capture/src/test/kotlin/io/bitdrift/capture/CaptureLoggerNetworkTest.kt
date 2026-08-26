@@ -21,7 +21,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.util.Date
 
 class CaptureLoggerNetworkTest {
     init {
@@ -39,8 +38,6 @@ class CaptureLoggerNetworkTest {
     private val okHttpClient = OkHttpClient()
 
     class TestMetadataProvider : IMetadataProvider {
-        override fun timestamp(): Long = Date().time
-
         override fun ootbFields(): Array<Field> = emptyArray()
 
         override fun customFields(): Array<Field> = emptyArray()
@@ -91,6 +88,7 @@ class CaptureLoggerNetworkTest {
             inactivityTimeoutMilliseconds = -1L,
             sessionCallback = null,
             metadataProvider = loggerBridge,
+            timestampProvider = null,
             resourceUtilizationTarget = mock(),
             sessionReplayTarget = mock(),
             eventsListenerTarget = mock(),

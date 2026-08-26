@@ -24,7 +24,6 @@ import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldProvider
-import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
@@ -761,7 +760,7 @@ object Capture {
                         apiUrl = apiUrl,
                         context = appContext,
                         fieldProviders = fieldProviders,
-                        dateProvider = dateProvider ?: SystemDateProvider(),
+                        dateProvider = dateProvider,
                         configuration = configuration,
                         sessionStrategy = sessionStrategy,
                         bridge = bridge,

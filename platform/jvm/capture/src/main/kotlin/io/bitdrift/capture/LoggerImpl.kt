@@ -48,6 +48,8 @@ import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.MetadataProvider
+import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.TimestampProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -84,7 +86,7 @@ internal class LoggerImpl(
     errorReporter: IErrorReporter? = null,
     configuration: Configuration,
     fieldProviders: List<FieldProvider>,
-    dateProvider: DateProvider,
+    dateProvider: DateProvider?,
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
     context: Context,
@@ -113,6 +115,8 @@ internal class LoggerImpl(
     internal val webViewConfiguration: WebViewConfiguration? = configuration.webViewConfiguration
 
     private val metadataProvider: MetadataProvider
+    private val timestampProvider = dateProvider?.let(::TimestampProvider)
+    private val effectiveDateProvider = dateProvider ?: SystemDateProvider()
     private val sdkDirectory: String
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
@@ -149,7 +153,7 @@ internal class LoggerImpl(
         if (configuration.enableFatalIssueReporting) {
             IssueReporter(
                 internalLogger = this,
-                dateProvider = dateProvider,
+                dateProvider = effectiveDateProvider,
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
                 captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
@@ -166,7 +170,6 @@ internal class LoggerImpl(
 
         metadataProvider =
             MetadataProvider(
-                dateProvider = dateProvider,
                 // order of providers matters in here, the earlier in the list the higher their priority in
                 // case of key conflicts.
                 ootbFieldProviders =
@@ -229,6 +232,7 @@ internal class LoggerImpl(
                 sessionConfiguration.inactivityTimeout?.inWholeMilliseconds ?: -1L,
                 sessionConfiguration.makeSessionCallback(),
                 metadataProvider,
+                timestampProvider,
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
