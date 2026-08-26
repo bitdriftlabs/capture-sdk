@@ -307,14 +307,22 @@ final class URLSessionIntegrationTests: XCTestCase {
                 instrumentedSessionWithConfiguration: .default,
                 delegate: delegate
             )
+
+            defer {
+                self.logger.logRequestExpectation = nil
+                self.logger.logResponseExpectation = nil
+                delegate.didReceiveChallenge = nil
+                session.invalidateAndCancel()
+                self.customTearDown()
+            }
+
             let task = try taskTestCase(session)
 
-            try self.runCompletedRequestTest(with: task, completionExpectation: nil)
+            guard try self.runCompletedRequestTest(with: task, completionExpectation: nil) else {
+                return
+            }
 
             XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 0.1))
-
-            session.invalidateAndCancel()
-            self.customTearDown()
         }
     }
 
