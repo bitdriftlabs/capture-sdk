@@ -9,16 +9,16 @@ feature-depth = 1
 
 [licenses]
 allow = [
-    "0BSD",
-    "Apache-2.0",
-    "BSD-3-Clause",
-    "BSL-1.0",
-    "CC0-1.0",
-    "CDLA-Permissive-2.0",
-    "ISC",
-    "MIT",
-    "MPL-2.0",
-    "Unicode-3.0",
+  "0BSD",
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "MIT",
+  "MPL-2.0",
+  "Unicode-3.0",
 ]
 confidence-threshold = 0.8
 exceptions = []

@@ -14,7 +14,6 @@ use capture_core::events::ListenerTargetHandler as EventsListenerTargetHandler;
 use capture_core::executor::ObjectHandle;
 use capture_core::jni::{ErrorReporterHandle, JValueWrapper};
 use capture_core::key_value_storage::PreferencesHandle;
-use capture_core::new_global;
 use capture_core::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use capture_core::session_replay::TargetHandler as SessionReplayTargetHandler;
 use jni::JNIEnv;
@@ -419,7 +418,7 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_sendErrorMessag
     .get_string(&message)
     .expect("failed to get java string")
     .into();
-  let reporter = new_global!(ErrorReporterHandle, &mut env, error_reporter).unwrap();
+  let reporter = ErrorReporterHandle::new_global(&env, error_reporter).unwrap();
 
   reporter.report(&message, &None, &HashMap::new());
 }
@@ -454,41 +453,41 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runLargeUploadT
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runKeyValueStorageTest(
-  mut env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
   preferences: JObject<'_>,
 ) {
-  let storage = new_global!(PreferencesHandle, &mut env, preferences).unwrap();
+  let storage = PreferencesHandle::new_global(&env, preferences).unwrap();
   platform_test_helpers::run_key_value_storage_tests(&storage);
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runResourceUtilizationTargetTest(
-  mut env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
   target: JObject<'_>,
 ) {
-  let target = new_global!(ResourceUtilizationTargetHandler, &mut env, target).unwrap();
+  let target = ResourceUtilizationTargetHandler::new_global(&env, target).unwrap();
   platform_test_helpers::run_resource_utilization_target_tests(&target);
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runSessionReplayTargetTest(
-  mut env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
   target: JObject<'_>,
 ) {
-  let target = new_global!(SessionReplayTargetHandler, &mut env, target).unwrap();
+  let target = SessionReplayTargetHandler::new_global(&env, target).unwrap();
   platform_test_helpers::run_session_replay_target_tests(&target);
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runEventsListenerTargetTest(
-  mut env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
   target: JObject<'_>,
 ) {
-  let target = new_global!(EventsListenerTargetHandler, &mut env, target).unwrap();
+  let target = EventsListenerTargetHandler::new_global(&env, target).unwrap();
   platform_test_helpers::run_events_listener_target_tests(&target);
 }
 

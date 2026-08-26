@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures as cf
+import glob
 import json
 import os
 import re
@@ -47,13 +48,52 @@ def firewall_revoke(serial: str, uid: str, after_ms: int) -> int | None:
     return best
 
 
+def warn_if_build_is_stale(app: str) -> None:
+    """Warn when the built APK predates the pinned shared-core config.
+
+    Compares mtimes of two files in this repo, so there is no device/host clock skew involved and no
+    table of revs to keep current: if Cargo.toml moved after the APK was built, the device cannot be
+    running what the tree describes. Reading one rev's behaviour while the tree names another is the
+    single most confusing state to debug from.
+    """
+    # Walk up to the repo root rather than counting directory levels: a hardcoded count silently
+    # resolved to the wrong directory and made this check a no-op that never fired once.
+    root = os.path.abspath(__file__)
+    while root != os.path.dirname(root):
+        root = os.path.dirname(root)
+        if os.path.exists(os.path.join(root, "Cargo.toml")) and \
+           os.path.isdir(os.path.join(root, "platform")):
+            break
+    else:
+        return
+    cargo = os.path.join(root, "Cargo.toml")
+    apks = glob.glob(os.path.join(root, "platform", "jvm", "*", "build", "outputs", "apk", "debug",
+                                  "*.apk"))
+    if not os.path.exists(cargo) or not apks:
+        return
+    newest = max(apks, key=os.path.getmtime)
+    drift = os.path.getmtime(cargo) - os.path.getmtime(newest)
+    if drift > 60:
+        print(f"  !! STALE BUILD: Cargo.toml is {drift / 60:.0f} min newer than the last built APK.\n"
+              f"     The device runs whatever was last built -- bumping a pinned rev does not\n"
+              f"     reinstall it. Run `adbctl.py install` before trusting this capture.", flush=True)
+
+
 def run_on(serial: str, sc: dict, outdir: str, app: str) -> dict:
     pkg, activity, _ = adbctl.APPS[app]
     d = os.path.join(outdir, serial)
     os.makedirs(d, exist_ok=True)
     logf = os.path.join(d, "logcat.txt")
 
-    adbctl.require_unlocked(serial)
+    # A locked device can only produce invalid runs, but that is this device's problem — it must
+    # not abort the whole sweep. Skip it and let the other devices continue.
+    if adbctl.is_locked(serial):
+        print(f"[{serial}] SKIPPED — device is LOCKED; the app would launch behind the keyguard "
+              f"and background itself, so any result would be invalid.", flush=True)
+        return {"skipped": "device locked", "device": {"serial": serial,
+                "api": adbctl.api_level(serial)}, "invalid_run": False,
+                "fg": {}, "bg": {}, "net_cutoff_s": None}
+
     adbctl.mode(serial, "reset", False, pkg)
     adbctl.adb(serial, f"am force-stop {pkg}")
     if sc.get("rust_log"):
@@ -79,7 +119,8 @@ def run_on(serial: str, sc: dict, outdir: str, app: str) -> dict:
                 adbctl.mark(serial, f"ACTION mode {step['name']} on")
                 adbctl.mode(serial, step["name"], True, pkg)
             else:
-                adbctl.action(serial, act, pkg, activity)
+                adbctl.action(serial, act, pkg, activity, component=step.get("component"),
+                              text=step.get("text"), permission=step.get("permission"))
     finally:
         adbctl.mark(serial, "ACTION observe-end")
         time.sleep(1)
@@ -137,6 +178,7 @@ def main() -> None:
 
     print(f"scenario '{sc['name']}' on {len(targets)} device(s)"
           f"{' sequentially' if args.sequential else ' in parallel'}")
+    warn_if_build_is_stale(args.app)
 
     fn = lambda s: run_on(s, sc, args.out, args.app)
     if args.sequential or len(targets) == 1:
@@ -147,6 +189,22 @@ def main() -> None:
             results = {futs[f]: f.result() for f in cf.as_completed(futs)}
 
     for s, r in results.items():
+        if r.get("skipped"):
+            print(f"\n[{s}] SKIPPED — {r['skipped']}")
+            continue
+        # When the reference event never fired, summarize() falls back to the first event in the
+        # capture, which puts the WHOLE run on the "after" side — so bg counts are foreground work
+        # wearing a background label. parse_logs.main() guards this; this console path did not, and
+        # printed `BG: snapshot=YES … upload=ENQ/OK` for recents runs where nothing backgrounded.
+        # A confident false pass is worse than no summary, so refuse to print a verdict here.
+        if r.get("no_reference"):
+            print(f"\n[{s}] api={r['device']['api']}  *** REFERENCE EVENT NEVER FIRED ***")
+            print("  No foreground/background split is possible, so no verdict is shown — any BG")
+            print("  number here would be foreground work mislabelled. If the reference is")
+            print("  'process ON_STOP', the app most likely never backgrounded (recents leaves the")
+            print("  activity started). That absence is itself the result. See summary.txt.")
+            continue
+
         bg, fg = r["bg"], r["fg"]
         flag = "  *** INVALID (see summary.txt) ***" if r["invalid_run"] else ""
         print(f"\n[{s}] api={r['device']['api']}{flag}")

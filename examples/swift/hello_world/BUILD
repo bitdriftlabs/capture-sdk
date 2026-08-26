@@ -15,7 +15,7 @@ CI_APP_ICONS = select({
 
 genrule(
     name = "expanded_xcframework",
-    srcs = ["//:ios_xcframework_with_rust_symbols"],
+    srcs = ["//:ios_xcframework_for_distribution"],
     outs = [
         "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/x86_64.swiftdoc",
         "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftinterface",

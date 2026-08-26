@@ -1,10 +1,15 @@
 #!/bin/bash
 
-set -euxo pipefail
+set -euo pipefail
 
 : "${AR:?AR is not set or empty}"
 : "${RANLIB:?RANLIB is not set or empty}"
 : "${LIPO:?LIPO is not set or empty}"
+
+# Rust puts lib.rmeta members in `.rlib` archives so Rust crates can compile
+# against each other. Capture's XCFramework is for Swift/Objective-C consumers,
+# so this compiler metadata is unnecessary in the shipped static archives and
+# materially bloats the distribution.
 
 # Ensure that ar/ranlib creates deterministic archives.
 export ZERO_AR_DATE=1
@@ -12,7 +17,7 @@ export ZERO_AR_DATE=1
 remove_rmeta () {
   local -r bin="$1"
 
-  if $AR t "$bin"| grep "lib\.r"; then
+  if $AR t "$bin" | grep "lib\.r" > /dev/null; then
     $AR dD "$bin" $($AR t "$bin"| grep "lib\.r")
   fi
 

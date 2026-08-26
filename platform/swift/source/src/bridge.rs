@@ -12,9 +12,10 @@ mod bridge_tests;
 use crate::bridge::ffi::make_nsstring;
 use crate::ffi::{make_empty_nsstring, nsstring_into_string};
 use crate::key_value_storage::UserDefaultsStorage;
+use crate::session::{SessionCallback, timeout_from_seconds};
 use crate::{events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
-use bd_api::{Platform, PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
+use bd_api::{PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_crash_handler::{CrashReportHook, CrashReportInfo};
 use bd_error_reporter::reporter::{
   MetadataErrorReporter,
@@ -36,6 +37,8 @@ use bd_logger::{
 use bd_noop_network::NoopNetwork;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1;
 use bd_proto::protos::logging::payload::LogType;
+use bd_session::Strategy;
+use bd_session::configuration::{Callbacks, NoopCallbacks};
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::javascript_error::{
@@ -43,7 +46,7 @@ use platform_shared::javascript_error::{
   DeviceMetadata,
   persist_javascript_error_report,
 };
-use platform_shared::metadata::{self, Mobile};
+use platform_shared::metadata::{self, AppleStaticFields, Mobile};
 use platform_shared::{LoggerHolder, LoggerId, date_to_unix_milliseconds};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
@@ -486,13 +489,16 @@ extern "C" fn capture_report_error(error_message: *const c_char) {
 extern "C" fn capture_create_logger(
   path: *const c_char,
   api_key: *const c_char,
-  session_strategy: *mut Object,
+  initial_session_id: *const Object,
+  inactivity_timeout_seconds: f64,
+  session_callback: *mut Object,
   provider: *mut Object,
   resource_utilization_target: *mut Object,
   session_replay_target: *mut Object,
   events_listener_target: *mut Object,
   app_id: *const c_char,
   app_version: *const c_char,
+  build_number: *const c_char,
   os_version: *const c_char,
   model: *const c_char,
   bd_network_nsobject: *mut Object,
@@ -513,32 +519,42 @@ extern "C" fn capture_create_logger(
       let storage = Box::<UserDefaultsStorage>::default();
       let store = Arc::new(bd_key_value::Store::new(storage));
 
-      let session_strategy =
-        crate::session::SessionStrategy::new(session_strategy).create(sdk_directory.as_ref())?;
+      let initial_session_id = (!initial_session_id.is_null())
+        .then(|| unsafe { nsstring_into_string(initial_session_id) })
+        .transpose()?;
+      let callbacks: Arc<dyn Callbacks> = if session_callback.is_null() {
+        Arc::new(NoopCallbacks)
+      } else {
+        Arc::new(SessionCallback::new(session_callback))
+      };
+      let session = Strategy::configuration(
+        sdk_directory,
+        initial_session_id,
+        timeout_from_seconds(inactivity_timeout_seconds),
+        callbacks,
+        Arc::new(bd_time::SystemTimeProvider {}),
+      );
+      let active_session = session.strategy();
 
       let device: Arc<bd_device::Device> = Arc::new(bd_device::Device::new(store.clone()));
 
-      let static_metadata = Arc::new(Mobile {
-        // String conversion can fail if the provided string is not UTF-8.
-        app_id: Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
-        app_version: Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
-        platform: Platform::Apple,
-        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
-        // Further, "os" as sent as a log tag is hard coded as "iOS" so we have a casing
-        // mismatch. We need to untangle all of this but we can do that when we send all fixed
-        // fields as metadata and only use the fixed fields on logs for matching.
-        os: "ios".to_string(),
-        device: device.clone(),
-        os_version: Some(unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string()),
-        manufacturer: None,
-        model: unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
-      });
+      let static_metadata = Arc::new(Mobile::apple(
+        Some(unsafe { CStr::from_ptr(app_id) }.to_str()?.to_string()),
+        Some(unsafe { CStr::from_ptr(app_version) }.to_str()?.to_string()),
+        Some(unsafe { CStr::from_ptr(os_version) }.to_str()?.to_string()),
+        device.clone(),
+        unsafe { CStr::from_ptr(model) }.to_str()?.to_string(),
+        AppleStaticFields {
+          build_number: unsafe { CStr::from_ptr(build_number) }
+            .to_str()?
+            .to_string(),
+        },
+      ));
+      let initial_ootb_fields = static_metadata.static_log_fields();
 
       let error_reporter = MetadataErrorReporter::new(
         Arc::new(unsafe { SwiftErrorReporter::new(error_reporter_ns_object) }),
-        Arc::new(platform_shared::error::SessionProvider::new(
-          session_strategy.clone(),
-        )),
+        Arc::new(platform_shared::error::SessionProvider::new(active_session)),
         static_metadata.clone(),
       );
 
@@ -561,8 +577,10 @@ extern "C" fn capture_create_logger(
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory: path.into(),
         api_key: unsafe { CStr::from_ptr(api_key) }.to_str()?.to_string(),
-        session_strategy,
+        session,
         metadata_provider,
+        initial_ootb_fields,
+        initial_custom_fields: [].into(),
         resource_utilization_target: Box::new(resource_utilization::Target::new(
           resource_utilization_target,
         )),
@@ -571,7 +589,7 @@ extern "C" fn capture_create_logger(
         network: network_manager,
         store,
         device,
-        static_metadata,
+        static_metadata: static_metadata.clone(),
         start_in_sleep_mode,
       })
       .with_crash_report_hook(
@@ -585,7 +603,9 @@ extern "C" fn capture_create_logger(
       )
       .with_internal_logger(true)
       .build()
-      .map(|(logger, _, future, _)| LoggerHolder::new(logger, future))?;
+      .map(|(logger, _, future, _)| {
+        LoggerHolder::new_with_static_metadata(logger, future, Some(static_metadata))
+      })?;
 
       Ok(logger.into_raw())
     },
@@ -716,8 +736,6 @@ extern "C" fn capture_write_log(
   log: *const c_char,
   fields: *const Object,
   matching_fields: *const Object,
-  blocking: bool,
-  blocking_timeout_ms: u32,
   override_occurred_at_unix_milliseconds: i64,
 ) {
   with_handle_unexpected(
@@ -745,14 +763,6 @@ extern "C" fn capture_write_log(
         fields,
         matching_fields,
         attributes_overrides,
-        if blocking {
-          Block::Yes {
-            timeout: std::time::Duration::from_millis(u64::from(blocking_timeout_ms)),
-            poll_callback: None,
-          }
-        } else {
-          Block::No
-        },
         &CaptureSession::default(),
       );
 
@@ -901,8 +911,16 @@ extern "C" fn capture_write_screen_view_log(logger_id: LoggerId<'_>, screen_name
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>) {
-  with_handle_unexpected(|| logger_id.start_new_session(), "swift start new session");
+extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>, session_id: *const Object) {
+  with_handle_unexpected(
+    || {
+      let session_id = (!session_id.is_null())
+        .then(|| unsafe { nsstring_into_string(session_id) })
+        .transpose()?;
+      logger_id.start_new_session(session_id)
+    },
+    "swift start new session",
+  );
 }
 
 #[unsafe(no_mangle)]

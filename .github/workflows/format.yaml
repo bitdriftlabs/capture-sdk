@@ -11,6 +11,9 @@ concurrency:
 jobs:
   format_check:
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
     steps:
       # --- Build the project for release
 
@@ -21,7 +24,7 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
       - uses: actions/cache@v4
         id: cache-formatters

@@ -1,26 +1,116 @@
 {
   "skill_name": "android-launch-run",
+  "notes": "Assertions were revised across sessions. Evals 0-2 were run and graded on main (42637e1f); evals 3-5 were added afterwards and are ungraded. Eval 4 and 5 target behaviour specific to c3ba1cba (the bump branch, PR #1107) and require that rev installed - check_signatures.py will warn on a stale APK. Do not compare pass rates across assertion sets.",
   "evals": [
     {
       "id": 0,
       "name": "background-flush-verification",
       "prompt": "I want to know whether the capture SDK's stats upload actually makes it out when the app goes to the background on my connected Android devices. Install the debug test app, run it, background it with the home button, and tell me whether the stats got written to disk and whether the upload was acked before anything blocked it. Give me the timings.",
-      "expected_output": "Installs debug app, sets a bd_client_stats + bd_logger RUST_LOG filter, waits >30s in foreground to clear the upload debounce, backgrounds via HOME, captures main+events, reports FG vs BG phases separately, distinguishes 'writing snapshot' (disk) from the upload ack, reports the ~5s firewall cutoff, and resets device state.",
-      "files": []
+      "expected_output": "Installs debug app, sets a bd_client_stats + bd_logger + bd_api RUST_LOG filter, waits >30s in foreground to clear the minimum-upload-interval floor, backgrounds via HOME, captures main+events, reports FG vs BG phases separately, distinguishes 'writing snapshot' (disk) from the server ack, reports the ~5s firewall cutoff, and resets device state.",
+      "files": [],
+      "assertions": [
+        "Sets debug.bitdrift.internal_rust_log to a filter covering bd_client_stats BEFORE the app is launched",
+        "Includes bd_api in the filter, since the server ack is logged by the transport and a stats-only filter hides delivery evidence (NEW)",
+        "Waits at least 30s in the foreground before backgrounding, to clear the stats.minimum_upload_interval_ms floor",
+        "Captures logcat from both the main and events buffers in one capture",
+        "Reports foreground-phase and background-phase activity separately rather than as one total",
+        "Distinguishes the disk snapshot write from the upload acknowledgement as two separate facts",
+        "Reports a concrete upload ack latency in milliseconds relative to the backgrounding reference event",
+        "Reports the network/firewall cutoff time relative to the same reference event",
+        "Reports results for both connected devices (Pixel 10 and emulator)",
+        "All reported timings come from the device clock, not the host clock",
+        "Either reports an upload backed by a quoted log line, or explicitly verifies the absence against the raw capture rather than trusting a parser summary",
+        "Attributes each observed outcome to the correct mechanism, and does not blame the network for an upload the SDK declined to attempt because of the minimum-upload-interval gate (NEW)",
+        "Restores device state at the end, verified against a baseline captured before the run, including clearing debug.bitdrift.internal_rust_log (NEW)"
+      ]
     },
     {
       "id": 1,
       "name": "doze-comparison",
       "prompt": "Does deep doze stop the SDK from uploading stats in the background? Check it on every device I have connected and tell me if the emulator and my phone behave differently.",
-      "expected_output": "Pre-arms doze before launch, applies force-idle only after screen-off (documenting the race), runs on all connected devices, verifies doze actually engaged via dumpsys deviceidle get deep, compares per-device results, resets state afterwards.",
-      "files": []
+      "expected_output": "Pre-arms doze before launch, applies force-idle only after screen-off, runs on all connected devices, verifies doze actually engaged via dumpsys deviceidle get deep, runs an unrestricted or screen-off-only control so the result is attributable to doze, compares per-device results, resets state afterwards.",
+      "files": [],
+      "assertions": [
+        "Applies deep doze force-idle only after the screen is off and the device is unplugged, as force-idle is rejected otherwise",
+        "Arms doze BEFORE process ON_STOP so it is in force when the background flush runs, rather than applying it after the flush has already completed (NEW)",
+        "Verifies doze actually engaged by reading dumpsys deviceidle get deep rather than assuming the command worked",
+        "Runs a control without doze, so a blocked upload is attributable to doze rather than to screen-off or the background firewall (NEW)",
+        "Runs the comparison on both connected devices",
+        "Reports an explicit per-device comparison of emulator versus physical phone",
+        "Explains WHY the devices agree or differ, rather than only stating that they do -- doze is a hard block established before the flush, so identical results are expected (NEW)",
+        "Handles the physical phone's secure keyguard without bypassing it, and does not spend its single usable screen-off run on a control (NEW)",
+        "Resets doze and battery state on both devices afterwards",
+        "Does not report a doze result from a run where the app never actually backgrounded"
+      ]
     },
     {
       "id": 2,
       "name": "recents-no-flush",
-      "prompt": "Something looks off when I leave the app using the app switcher instead of the home button — I don't think the SDK is doing its background work. Can you check what actually happens in each case?",
-      "expected_output": "Runs both recents and home, discovers that recents never fires process ON_STOP (so no flush runs at all) while window focus does drop, and does not misreport the absence as a harness failure.",
-      "files": []
+      "prompt": "Something looks off when I leave the app using the app switcher instead of the home button \u2014 I don't think the SDK is doing its background work. Can you check what actually happens in each case?",
+      "expected_output": "Runs both recents and home with Rust logging enabled, discovers that recents never fires process ON_STOP (so no flush runs at all) while window focus does drop, uses the home case as a positive control, and does not misreport the absence as a harness failure.",
+      "files": [],
+      "assertions": [
+        "Runs both the app-switcher/recents case and the home-button case",
+        "Enables Rust logging so the SDK's own flush chain is observable, rather than inferring the flush from file mtimes alone (NEW)",
+        "Uses the home case as an explicit positive control, showing the flush signature present in one case and absent in the other from the same build (NEW)",
+        "Correctly finds that recents does not fire process ON_STOP",
+        "Correctly finds that home does fire process ON_STOP and does trigger the background flush",
+        "Attributes the recents result to Android activity lifecycle (the activity stays started), not to a tooling or harness failure",
+        "Notes that window focus still drops under recents, distinguishing focus loss from lifecycle stop",
+        "Confirms the negative against the raw capture rather than reporting an empty parser summary as the finding",
+        "Identifies where in the source the flush is triggered, so the finding names a fix site rather than only a symptom (NEW)",
+        "Establishes whether the flush is deferred or lost, by testing what happens on leaving the overview (NEW)",
+        "Restores device state at the end"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "interval-attribution",
+      "prompt": "I'm pretty sure we override the stats upload interval remotely to 5 seconds. If that's right, our test scenarios are waiting way longer in the foreground than they need to \u2014 can you confirm what the interval actually is on my devices and tell me whether we can shorten those waits?",
+      "expected_output": "Distinguishes stats.minimum_upload_interval_ms (the 30s gate) from the active upload interval (5s cadence) rather than conflating them because both appear in one log line. Establishes the real value from evidence -- bd_runtime=debug showing which flags are actually pushed, plus observed allow/refuse timings bracketing the gate -- and correctly tells the user the premise is wrong and the waits must stay. Does not agree with the user's incorrect assumption.",
+      "files": [],
+      "assertions": [
+        "Does NOT simply accept the user's 5s premise; reaches a conclusion from evidence on the device",
+        "Distinguishes stats.minimum_upload_interval_ms (the gate) from the active upload interval (the cadence), rather than treating the 5s in the 'does not cleanly divide' log line as the gate",
+        "Enables bd_runtime=debug or otherwise establishes which runtime flags the account actually overrides, and notes that an absent flag is at its default",
+        "Brackets the real gate with observed evidence -- an upload allowed at one elapsed time and refused at another -- rather than asserting a value",
+        "Concludes the gate is 30s and that the existing foreground waits must NOT be shortened",
+        "Distinguishes a benign periodic-path suppression from an invalidating flush-path suppression",
+        "Accounts for last_flush_upload_time being cleared on upload failure, so an ENQ after a failed upload is not misread as a short interval",
+        "Restores device state at the end"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "debounce-coalescing",
+      "prompt": "The disk-flush debounce window is supposed to merge a second flush that arrives inside it into a single write, but as far as I know we've never actually seen that happen. Can you prove whether the coalescing works?",
+      "expected_output": "Recognises that ordinary scenarios cannot reach the branch (the two easy flush sources land ~3s apart, outside the 1s window) and schedules deliberately: observe one periodic tick, then pre-empt the next by pressing HOME ~1.35s early so the platform flush lands inside the window. Reports the coalesce and trailing-flush lines, and does NOT accept a zero count from a detector that has never fired.",
+      "files": [],
+      "assertions": [
+        "Recognises that reacting to a tick is too late and pre-empts the next one instead",
+        "Verifies the debounce signature family is actually detectable before reporting any count, rather than trusting a zero",
+        "Observes the real coalesce wording (coalescing stats disk flush into active debounce window) rather than assuming a 'window closed with coalesce' message",
+        "Explains that a coalesce defers its write to window expiry, so two writes ~1 window apart are the debounce working rather than failing",
+        "Distinguishes 'no coalesce happened in this run' from 'the coalescing branch is unreachable'",
+        "Confirms the installed APK matches the pinned rev, since the debounce window does not exist on main",
+        "Restores device state at the end"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "flush-trigger-attribution",
+      "prompt": "I'm seeing stats flushes at times that don't line up with any timer I know about, and it's not when the app backgrounds either. Where are they coming from?",
+      "expected_output": "Enumerates the flush triggers, uses the absence of 'state flushing initiated' to rule out the platform path and timer arithmetic to rule out the periodic paths, then widens the filter to bd_workflows=debug and identifies a server-configured flush_buffers action. Does not attribute it to a client-side cause.",
+      "files": [],
+      "assertions": [
+        "Uses the absence of 'state flushing initiated' to rule out a platform-triggered flush",
+        "Checks the flush time against the periodic anchor plus interval to rule out the timer",
+        "Widens the RUST_LOG filter to include bd_workflows rather than theorising from the stats log alone",
+        "Identifies a server-side workflow flush_buffers action as the cause",
+        "Notes that the action also flushes ring buffers, so the stats flush is a side effect of something broader",
+        "Does not attribute the flush to a client-side timer or to the platform bridge",
+        "Manages trace/debug log volume so the relevant lines are not evicted from the logcat buffer"
+      ]
     }
   ]
 }

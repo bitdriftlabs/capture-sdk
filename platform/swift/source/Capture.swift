@@ -68,6 +68,39 @@ extension Logger {
         )
     }
 
+    /// Initializes Capture with the canonical session configuration API.
+    ///
+    /// The default configuration generates an SDK UUID for the current process, does not persist it
+    /// across SDK restarts, and does not rotate it due to inactivity. See ``SessionConfiguration``
+    /// for the session-ID lifecycle contract.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        The configuration used to set up Capture features.
+    /// - parameter fieldProviders:       Additional field providers for the default logger.
+    /// - parameter dateProvider:         An optional date provider for the default logger.
+    /// - parameter startResult:          An optional callback invoked with the SDK initialization result.
+    ///
+    /// - returns: A logger integrator that can enable SDK integrations.
+    @discardableResult
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration = .init(),
+        configuration: Configuration = .init(),
+        fieldProviders: [FieldProvider] = [],
+        dateProvider: DateProvider? = nil,
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
+    ) -> LoggerIntegrator? {
+        self.start(
+            withAPIKey: apiKey,
+            sessionStrategy: .configuration(sessionConfiguration),
+            configuration: configuration,
+            fieldProviders: fieldProviders,
+            dateProvider: dateProvider,
+            startResult: startResult
+        )
+    }
+
     @discardableResult
     static func start(
         withAPIKey apiKey: String,
@@ -104,10 +137,24 @@ extension Logger {
         return Self.getShared()?.sessionURL
     }
 
-    /// Initializes a new session within the currently configured logger.
+    /// Creates a new session with an SDK-created ID within the currently configured logger.
+    ///
     /// The logger must be started before this operation for it to take effect.
     public static func startNewSession() {
-        Self.getShared()?.startNewSession()
+        Self.startNewSession(sessionID: nil)
+    }
+
+    /// Creates a new session with an optional app-provided ID within the currently configured
+    /// logger.
+    ///
+    /// A non-empty `sessionID` becomes the new session ID. When `sessionID` is `nil` or empty, Capture
+    /// generates a UUID regardless of how the previous session was established. This always
+    /// invokes the configured session-ID callback, even if `sessionID` equals the current ID. The
+    /// logger must be started before this operation for it to take effect.
+    ///
+    /// - parameter sessionID: The optional non-empty ID for the new session.
+    public static func startNewSession(sessionID: String?) {
+        Self.getShared()?.startNewSession(sessionID: sessionID)
     }
 
     /// A canonical identifier for a device that remains consistent as long as an application

@@ -266,6 +266,14 @@ class IssueReporterTest {
         assertThat(this).isInstanceOf(expectedType)
     }
 
+    private fun IssueReporter.init(
+        sdkDirectory: String,
+        clientAttributes: ClientAttributes,
+        completedReportsProcessor: ICompletedReportsProcessor,
+    ) {
+        init(sdkDirectory, clientAttributes, completedReportsProcessor, TEST_LOGGER_ID)
+    }
+
     private fun buildReporter(): IssueReporter =
         IssueReporter(
             internalLogger = internalLogger,
@@ -275,4 +283,8 @@ class IssueReporterTest {
             dateProvider = FakeDateProvider,
             memoryMetricsProvider = memoryMetricsProvider,
         )
+
+    private companion object {
+        const val TEST_LOGGER_ID = 1L
+    }
 }

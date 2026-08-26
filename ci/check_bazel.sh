@@ -8,8 +8,8 @@ set -euo pipefail
 #
 # Usage ./ci/check_bazel.sh <list of targets to check for in the changeset>
 
-# Trap to handle unexpected errors and log them
-trap 'echo "An unexpected error occurred during Bazel check."; echo "check_result=1" >> "$GITHUB_OUTPUT"; exit 1' ERR
+# Trap to handle unexpected errors and log them.
+trap 'echo "An unexpected error occurred during Bazel check."; exit 1' ERR
 
 # Check if GITHUB_BASE_REF is set (i.e., you're in a pull request)
 if [ -n "$GITHUB_BASE_REF" ]; then
@@ -41,8 +41,13 @@ fi
 # If the only file that changed was .sdk_version, we don't need to run bazel-diff and just mark it as no changes detected.
 if ./ci/version_only_change.sh; then
   echo "Only change was platform/shared/.sdk-version, no Bazel changes detected."
-  echo "check_result=2" >> "$GITHUB_OUTPUT"
-  exit 1
+  {
+    echo "has_affected_targets=false"
+    echo "has_affected_test_targets=false"
+    echo "has_affected_clippy_targets=false"
+    echo "changed=false"
+  } >> "$GITHUB_OUTPUT"
+  exit 0
 fi
 
 starting_hashes_json="/tmp/starting_hashes.json"
@@ -92,9 +97,18 @@ git -C "$workspace_path" checkout "$previous_revision" --quiet
 
 "${bazel_diff_command[@]}" generate-hashes -w "$workspace_path" -b "$bazel_path" $starting_hashes_json --excludeExternalTargets
 
+# Bzlmod may regenerate its lockfile while collecting hashes. The generated file is not an input
+# to the comparison after this point, so restore it before changing revisions. This keeps a stale
+# base lockfile from preventing the checkout of the PR revision.
+git -C "$workspace_path" checkout -- MODULE.bazel.lock
+
 git -C "$workspace_path" checkout "$final_revision" --quiet
 
 "${bazel_diff_command[@]}" generate-hashes -w "$workspace_path" -b "$bazel_path" $final_hashes_json --excludeExternalTargets
+
+# The final hash collection can also update the lockfile. Restore the checked-in version before
+# later CI gates inspect changed files so this generator side effect is not treated as a PR change.
+git -C "$workspace_path" checkout -- MODULE.bazel.lock
 
 "${bazel_diff_command[@]}" get-impacted-targets -w "$workspace_path" -sh $starting_hashes_json -fh $final_hashes_json -o $impacted_targets_path
 
@@ -107,6 +121,48 @@ formatted_impacted_targets="$(IFS=$'\n'; echo "${impacted_targets[*]}")"
 # Piping the output through to grep is flaky and will cause a broken pipe. Write the contents to a file
 # and grep the file to avoid this.
 echo "$formatted_impacted_targets" | tee /tmp/impacted_targets.txt
+
+if [[ ${#impacted_targets[@]} -gt 0 ]]; then
+  echo "has_affected_targets=true" >> "$GITHUB_OUTPUT"
+else
+  echo "has_affected_targets=false" >> "$GITHUB_OUTPUT"
+fi
+
+# A caller can request the subset of impacted labels that are runnable tests.
+# This keeps `bazel test` from receiving libraries or source files from the
+# general impacted-targets list.
+impacted_test_targets_path="/tmp/impacted_test_targets.txt"
+if [[ -n "${BAZEL_DIFF_TEST_TARGETS_QUERY:-}" ]]; then
+  all_test_targets_path="/tmp/all_test_targets.txt"
+  "$bazel_path" query "$BAZEL_DIFF_TEST_TARGETS_QUERY" --output=label | LC_ALL=C sort > "$all_test_targets_path"
+  LC_ALL=C sort "$impacted_targets_path" | comm -12 - "$all_test_targets_path" > "$impacted_test_targets_path"
+
+  if [[ -s "$impacted_test_targets_path" ]]; then
+    echo "has_affected_test_targets=true" >> "$GITHUB_OUTPUT"
+  else
+    echo "has_affected_test_targets=false" >> "$GITHUB_OUTPUT"
+  fi
+else
+  echo "has_affected_test_targets=false" >> "$GITHUB_OUTPUT"
+fi
+
+# Clippy invocations receive explicit labels through --target_pattern_file, so
+# Bazel's tag filters do not trim their target set. Intersect the Bazel Diff
+# labels with the runner-specific Clippy query before handing them to Clippy.
+impacted_clippy_targets_path="/tmp/impacted_clippy_targets.txt"
+if [[ -n "${BAZEL_DIFF_CLIPPY_TARGETS_QUERY:-}" ]]; then
+  all_clippy_targets_path="/tmp/all_clippy_targets.txt"
+  "$bazel_path" query "$BAZEL_DIFF_CLIPPY_TARGETS_QUERY" --output=label | LC_ALL=C sort > "$all_clippy_targets_path"
+  LC_ALL=C sort "$impacted_targets_path" | comm -12 - "$all_clippy_targets_path" > "$impacted_clippy_targets_path"
+
+  if [[ -s "$impacted_clippy_targets_path" ]]; then
+    echo "has_affected_clippy_targets=true" >> "$GITHUB_OUTPUT"
+  else
+    echo "has_affected_clippy_targets=false" >> "$GITHUB_OUTPUT"
+  fi
+else
+  echo "has_affected_clippy_targets=false" >> "$GITHUB_OUTPUT"
+fi
 
 # Look for the patterns provided as arguments to this script. $formatted_impacted_targets contains
 # a list of all the Bazel targets impacted by the changes between the two branches, so we just
@@ -127,15 +183,20 @@ do
   fi
 done
 
-# Exit code based on whether changes were detected
+# Report whether the caller's target patterns changed. A no-change result is a
+# successful check; only a failure to perform the comparison exits non-zero.
 if [ "$changes_detected" = true ]; then
   if [[ ${#bazel_diff_args[@]} -gt 0 ]]; then
-    "$bazel_path" build --nobuild --build_tests_only "${bazel_diff_args[@]}" "$@"
+    if [[ -n "${BAZEL_DIFF_TEST_TARGETS_QUERY:-}" ]]; then
+      if [[ -s "$impacted_test_targets_path" ]]; then
+        "$bazel_path" build --nobuild --build_tests_only "${bazel_diff_args[@]}" --target_pattern_file="$impacted_test_targets_path"
+      fi
+    else
+      "$bazel_path" build --nobuild --build_tests_only "${bazel_diff_args[@]}" "$@"
+    fi
   fi
-  echo "check_result=0" >> "$GITHUB_OUTPUT"
-  exit 0  # Changes found
+  echo "changed=true" >> "$GITHUB_OUTPUT"
 else
   echo "No changes detected."
-  echo "check_result=2" >> "$GITHUB_OUTPUT"
-  exit 1
+  echo "changed=false" >> "$GITHUB_OUTPUT"
 fi

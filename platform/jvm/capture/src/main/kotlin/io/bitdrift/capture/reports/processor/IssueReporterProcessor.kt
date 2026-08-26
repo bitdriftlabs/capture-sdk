@@ -84,16 +84,17 @@ internal class IssueReporterProcessor(
                 }
 
             streamingReportsProcessor.processAndPersistJavaScriptError(
-                errorName = errorName,
-                errorMessage = message,
-                stackTrace = stack,
-                isFatal = isFatalIssue,
-                engine = engine,
-                debugId = debugId,
-                timestampMillis = timestamp,
-                destinationPath = destinationPath,
-                attributes = clientAttributes,
-                sdkVersion = sdkVersion,
+                JavaScriptErrorReport(
+                    errorName = errorName,
+                    errorMessage = message,
+                    stackTrace = stack,
+                    isFatal = isFatalIssue,
+                    engine = engine,
+                    debugId = debugId,
+                    timestampMillis = timestamp,
+                    destinationPath = destinationPath,
+                    sdkVersion = sdkVersion,
+                ),
             )
         }.onFailure {
             internalLogger.logInternalError(
@@ -117,16 +118,17 @@ internal class IssueReporterProcessor(
         val runningState = applicationExit.importance.toRunningState()
 
         runCatching {
-            if (fatalIssueType == ReportType.AppNotResponding && traceInputStream != null) {
+            if (fatalIssueType == ReportType.AppNotResponding) {
                 streamingReportsProcessor.processAndPersistANR(
-                    traceInputStream,
-                    timestamp,
-                    reporterIssueStore.generateFatalIssueFilePath(),
-                    clientAttributes,
-                    runningState,
-                    applicationExit.description,
-                    internalLogger.getPreviousRunMemoryPressureLevel().nativeValue,
-                    isFileSizeOptimizationEnabled,
+                    AnrReport(
+                        traceInputStream,
+                        timestamp,
+                        reporterIssueStore.generateFatalIssueFilePath(),
+                        runningState,
+                        applicationExit.description,
+                        internalLogger.getPreviousRunMemoryPressureLevel().nativeValue,
+                        isFileSizeOptimizationEnabled,
+                    ),
                 )
             } else if (fatalIssueType == ReportType.NativeCrash) {
                 val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)

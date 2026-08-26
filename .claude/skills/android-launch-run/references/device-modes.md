@@ -3,7 +3,8 @@
 Nine states, each with setup, teardown, and a **verify** command. Several fail silently, so always
 verify rather than assuming the setup command worked.
 
-All commands verified on API 36 (emulator) and API 37 (Pixel 10).
+All commands verified on a recent-API emulator and physical hardware. Re-verify on a new API level:
+the setup commands are the part most likely to drift.
 
 ## When each mode can be applied
 
@@ -91,6 +92,21 @@ adb shell dumpsys deviceidle get light
 Requires the screen off. The app must not be on the idle allowlist. Check `effective=` in
 `dumpsys netpolicy` for the `DOZE` reason to confirm it actually reached the app.
 
+**With the pre-arm order there is no race at all** — better than previously documented. Measured on
+both physical hardware and an emulator: `force-idle deep` lands **about a second *before*
+`process ON_STOP`**, because `ProcessLifecycleOwner` debounces the stop by roughly that much. So doze is already in force when the flush runs,
+the app's state goes `APP_BACKGROUND` → `DOZE|APP_BACKGROUND`, and the upload is never acked. Pair it
+with a screen-off-*without*-doze control (which acks in ~700ms) and the result is attributable to
+doze rather than to screen-off or to the background firewall.
+
+⚠ **A restriction applied after the flush has already run tests nothing.** Backgrounding alone kills
+network within ~5s and freezes the process within ~70s. Force doze a minute later and you will
+correctly observe "no uploads" while having isolated nothing — everything was already dead. A real
+run did exactly this: doze forced ~95s after HOME, with the one background flush already *acked*
+before doze existed, then concluded doze was not the cause. The experiment could not support either
+verdict. If the question is "does <restriction> affect the backgrounding flush?", the restriction
+must be armed **before `ON_STOP`**, which for doze means the pre-arm order above.
+
 ### data-saver
 
 ```bash
@@ -99,13 +115,33 @@ for n in $(adb shell cmd netpolicy list wifi-networks | cut -d';' -f1); do
   adb shell cmd netpolicy set metered-network "$n" true
 done
 adb shell cmd netpolicy set restrict-background true
-# off:
+# off — all THREE, see below:
 adb shell cmd netpolicy set restrict-background false
 for n in ...; do adb shell cmd netpolicy set metered-network "$n" undefined; done
+adb shell cmd netpolicy remove restrict-background-blacklist <uid>
 # verify:
 adb shell cmd netpolicy get restrict-background        # -> enabled
 adb shell cmd netpolicy list wifi-networks             # the active SSID should read 'true'
+adb shell dumpsys netpolicy | grep 'UID=<uid> policy'  # -> nothing, once cleared
 ```
+
+⚠ **Data Saver is three independent switches, and the third one leaks.** Beyond the global toggle
+and the metered-network marks there is a **per-uid** policy, `REJECT_METERED_BACKGROUND`, which
+survives both of the others. Left behind it shows up as `METERED_USER_RESTRICTED` in the app's
+`effective=` blocked state and silently restricts every later run — including runs of unrelated
+scenarios, on someone's real phone.
+
+This actually happened: a sweep left `UID=<uid> policy=1 (REJECT_METERED_BACKGROUND)` on someone's
+phone, and `adbctl.py mode reset` could not clear it because reset only handled the global toggle and the
+network marks. `mode data-saver --off` (and therefore `mode reset`) now removes the blacklist entry
+too, and `verify data-saver` reports all three switches so a leftover is visible instead of silent:
+
+```
+Restrict background status: disabled | metered=0 | uid_policy=none
+```
+
+`state_line` (`adbctl.py state`) is what surfaced it — the `blocked=` field carries the effective
+reasons, so **check `adbctl.py state` after any sweep**, not just the per-mode verify.
 
 **Data Saver only restricts metered networks.** On unmetered WiFi — the default for both emulators
 and most home networks — it does nothing at all unless the network is marked metered first.
@@ -186,7 +222,7 @@ Data Saver.
 
 Measured, both devices, with no modes applied:
 
-| Hop | Emulator (API 36) | Pixel 10 (API 37) |
+| Hop | Emulator | Physical |
 |---|---|---|
 | `ON_STOP` → firewall allow revoked | +4.962s | +4.950s |
 | revoke → socket aborted | +13ms | +51ms |

@@ -5,23 +5,26 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#[cfg(test)]
+#[path = "./jni_test.rs"]
+mod tests;
+
 use crate::events::ListenerTargetHandler as EventsListenerTargetHandler;
 use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
-use crate::session::SessionStrategyConfigurationHandle;
+use crate::session::SessionCallback;
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
   define_object_wrapper,
   events,
   ffi,
   key_value_storage,
-  new_global,
   report_processing,
   resource_utilization,
   session,
 };
 use anyhow::{anyhow, bail};
-use bd_api::{Platform, PlatformNetworkStream, StreamEvent};
+use bd_api::{PlatformNetworkStream, StreamEvent};
 use bd_client_common::error::InvariantError;
 use bd_crash_handler::CrashReportHook;
 use bd_error_reporter::reporter::{
@@ -35,6 +38,8 @@ use bd_error_reporter::reporter::{
 use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::MemoryPressureLevel;
 use bd_proto::protos::logging::payload::LogType;
+use bd_session::Strategy;
+use bd_session::configuration::{Callbacks, NoopCallbacks};
 use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
@@ -62,7 +67,7 @@ use jni::sys::{
   jvalue,
 };
 use jni::{JNIEnv, JavaVM};
-use platform_shared::metadata::Mobile;
+use platform_shared::metadata::{AndroidStaticFields, Mobile};
 use platform_shared::{LoggerHolder, LoggerId, date_to_unix_milliseconds};
 use protobuf::Enum as _;
 use std::borrow::{Borrow, Cow};
@@ -480,7 +485,7 @@ impl bd_api::PlatformNetworkManager<bd_runtime::runtime::ConfigLoader> for Netwo
         )
         .and_then(|v| JValueGen::l(v).map_err(|e| anyhow!(e)))?;
 
-      Ok(Box::new(new_global!(StreamHandle, e, handle)?) as Box<dyn PlatformNetworkStream>)
+      Ok(Box::new(StreamHandle::new_global(e, handle)?) as Box<dyn PlatformNetworkStream>)
     });
 
     // At this point we should have allocated a new one but also deallocated the previous one. This
@@ -729,11 +734,13 @@ impl CrashReportHook for IssueCallbackConfigurationHandle {
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
-  mut env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
   directory: JString<'_>,
   api_key: JString<'_>,
-  session_strategy: JObject<'_>,
+  initial_session_id: JString<'_>,
+  inactivity_timeout_milliseconds: jlong,
+  session_callback: JObject<'_>,
   metadata_provider: JObject<'_>,
   resource_utilization_target: JObject<'_>,
   session_replay_target: JObject<'_>,
@@ -743,6 +750,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   os_version: JString<'_>,
   manufacturer: JString<'_>,
   model: JString<'_>,
+  app_version_code: jlong,
+  os_api_level: jint,
+  architecture: JString<'_>,
   network: JObject<'_>,
   preferences: JObject<'_>,
   error_reporter: JObject<'_>,
@@ -757,61 +767,71 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
           .to_string(),
       );
       let network_manager = Box::new(Network {
-        handle: new_global!(NetworkHandle, &mut env, network)?,
+        handle: NetworkHandle::new_global(&env, network)?,
         active_streams: Arc::new(AtomicU32::new(0)),
       });
 
-      let preferences = new_global!(PreferencesHandle, &mut env, preferences)?;
+      let preferences = PreferencesHandle::new_global(&env, preferences)?;
       let store = Arc::new(bd_key_value::Store::new(Box::new(preferences)));
 
-      let session_strategy = Arc::new(new_global!(
-        SessionStrategyConfigurationHandle,
-        &mut env,
-        session_strategy
-      )?);
-      let session_strategy = session_strategy.create(session_strategy.clone(), &sdk_directory)?;
+      let initial_session_id = if initial_session_id.is_null() {
+        None
+      } else {
+        Some(unsafe { env.get_string_unchecked(&initial_session_id) }?.into())
+      };
+      let callbacks: Arc<dyn Callbacks> = if session_callback.is_null() {
+        Arc::new(NoopCallbacks)
+      } else {
+        Arc::new(SessionCallback::new_global(&env, session_callback)?)
+      };
+      let session = Strategy::configuration(
+        &sdk_directory,
+        initial_session_id,
+        (inactivity_timeout_milliseconds >= 0)
+          .then(|| time::Duration::milliseconds(inactivity_timeout_milliseconds)),
+        callbacks,
+        Arc::new(bd_time::SystemTimeProvider {}),
+      );
+      let active_session = session.strategy();
 
       let device = Arc::new(bd_device::Device::new(store.clone()));
-      let static_metadata = Arc::new(Mobile {
-        app_id: Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
-        app_version: Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
-        platform: Platform::Android,
-        // TODO(mattklein123): Pass this from the platform layer when we want to support other OS.
-        // Further, "os" as sent as a log tag is hard coded as "Android" so we have a casing
-        // mismatch. We need to untangle all of this but we can do that when we send all fixed
-        // fields as metadata and only use the fixed fields on logs for matching.
-        os: "android".to_string(),
-        device: device.clone(),
-        os_version: Some(unsafe { env.get_string_unchecked(&os_version) }?.into()),
-        manufacturer: Some(unsafe { env.get_string_unchecked(&manufacturer) }?.into()),
-        model: unsafe { env.get_string_unchecked(&model) }?.into(),
-      });
+      let static_metadata = Arc::new(Mobile::android(
+        Some(unsafe { env.get_string_unchecked(&application_id) }?.into()),
+        Some(unsafe { env.get_string_unchecked(&application_version) }?.into()),
+        Some(unsafe { env.get_string_unchecked(&os_version) }?.into()),
+        device.clone(),
+        unsafe { env.get_string_unchecked(&model) }?.into(),
+        AndroidStaticFields {
+          manufacturer: unsafe { env.get_string_unchecked(&manufacturer) }?.into(),
+          app_version_code,
+          os_api_level,
+          architecture: unsafe { env.get_string_unchecked(&architecture) }?
+            .to_string_lossy()
+            .to_string(),
+        },
+      ));
+      let initial_ootb_fields = static_metadata.static_log_fields();
 
-      let error_reporter = Arc::new(new_global!(ErrorReporterHandle, &mut env, error_reporter)?);
+      let error_reporter = Arc::new(ErrorReporterHandle::new_global(&env, error_reporter)?);
       let error_reporter = MetadataErrorReporter::new(
         error_reporter,
-        Arc::new(platform_shared::error::SessionProvider::new(
-          session_strategy.clone(),
-        )),
+        Arc::new(platform_shared::error::SessionProvider::new(active_session)),
         static_metadata.clone(),
       );
 
-      let resource_utilization_target = Box::new(new_global!(
-        ResourceUtilizationTargetHandler,
-        &mut env,
-        resource_utilization_target
+      let resource_utilization_target = Box::new(ResourceUtilizationTargetHandler::new_global(
+        &env,
+        resource_utilization_target,
       )?);
 
-      let session_replay_target = Box::new(new_global!(
-        SessionReplayTargetHandler,
-        &mut env,
-        session_replay_target
+      let session_replay_target = Box::new(SessionReplayTargetHandler::new_global(
+        &env,
+        session_replay_target,
       )?);
 
-      let events_listener_target = Box::new(new_global!(
-        EventsListenerTargetHandler,
-        &mut env,
-        events_listener_target
+      let events_listener_target = Box::new(EventsListenerTargetHandler::new_global(
+        &env,
+        events_listener_target,
       )?);
 
       // Errors emitted up until this point are not reported to bitdrift remote.
@@ -822,10 +842,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let crash_report_hook: Option<Arc<dyn CrashReportHook>> = if issue_report_callback.is_null() {
         None
       } else {
-        Some(Arc::new(new_global!(
-          IssueCallbackConfigurationHandle,
-          &mut env,
-          issue_report_callback
+        Some(Arc::new(IssueCallbackConfigurationHandle::new_global(
+          &env,
+          issue_report_callback,
         )?))
       };
 
@@ -833,22 +852,24 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
-        session_strategy,
-        metadata_provider: Arc::new(new_global!(MetadataProvider, &mut env, metadata_provider)?),
+        session,
+        metadata_provider: Arc::new(MetadataProvider::new_global(&env, metadata_provider)?),
+        initial_ootb_fields,
+        initial_custom_fields: [].into(),
         resource_utilization_target,
         session_replay_target,
         events_listener_target,
         device,
         store,
         network: network_manager,
-        static_metadata,
+        static_metadata: static_metadata.clone(),
         start_in_sleep_mode: start_in_sleep_mode == JNI_TRUE,
       })
       .with_internal_logger(true)
       .with_crash_report_hook(crash_report_hook)
       .build()
       .map(|(logger, _, future, _)| {
-        LoggerHolder::new(
+        LoggerHolder::new_with_static_metadata(
           logger,
           async move {
             handle_unexpected(
@@ -863,6 +884,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
             future.await
           }
           .boxed(),
+          Some(static_metadata),
         )
       })?;
 
@@ -957,11 +979,21 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_destroyLogger(
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSession(
-  _env: JNIEnv<'_>,
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
   logger_id: LoggerId<'_>,
+  session_id: JString<'_>,
 ) {
-  with_handle_unexpected(|| logger_id.start_new_session(), "jni start new session");
+  with_handle_unexpected(
+    || {
+      let session_id = (!session_id.is_null())
+        .then(|| unsafe { env.get_string_unchecked(&session_id) })
+        .transpose()?
+        .map(Into::into);
+      logger_id.start_new_session(session_id)
+    },
+    "jni start new session",
+  );
 }
 
 #[unsafe(no_mangle)]
@@ -1134,7 +1166,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
   matching_field_values: JObjectArray<'_>,
   use_previous_process_session_id: jboolean,
   override_occurred_at_unix_milliseconds: jlong,
-  blocking: jboolean,
 ) {
   // This should only fail if the JVM is in a bad state.
   with_handle_unexpected(
@@ -1179,14 +1210,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeLog(
         fields,
         matching_fields,
         attributes_overrides,
-        if blocking == JNI_TRUE {
-          Block::Yes {
-            timeout: std::time::Duration::from_millis(500),
-            poll_callback: None,
-          }
-        } else {
-          Block::No
-        },
         &CaptureSession::default(),
       );
 
@@ -1561,6 +1584,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processIssueRe
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistANR(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
+  logger_id: LoggerId<'_>,
   stream: JObject<'_>,
   timestamp: jlong,
   destination: JString<'_>,
@@ -1595,18 +1619,34 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
       .map(|s| s.to_string_lossy().to_string())
       .filter(|s| !s.is_empty())
   };
+  let stream = if stream.is_null() {
+    None
+  } else {
+    Some(&stream)
+  };
 
-  match report_processing::persist_anr(
-    &mut env,
-    &stream,
-    timestamp,
-    &destination,
-    &attributes,
-    running_state_str.as_deref(),
-    app_exit_description_str.as_deref(),
-    memory_pressure_level,
-    is_file_size_optimization_enabled == JNI_TRUE,
-  ) {
+  let result = logger_id
+    .static_metadata()
+    .ok_or_else(|| anyhow::anyhow!("missing static logger metadata"))
+    .and_then(|metadata| {
+      let mut context = report_processing::AndroidReportContext {
+        env: &mut env,
+        metadata,
+        attributes: &attributes,
+      };
+      let report = report_processing::AnrReport {
+        source_stream: stream,
+        timestamp_millis: timestamp,
+        destination: &destination,
+        running_state: running_state_str.as_deref(),
+        app_exit_description: app_exit_description_str.as_deref(),
+        memory_pressure_level,
+        is_file_size_optimization_enabled: is_file_size_optimization_enabled == JNI_TRUE,
+      };
+      report_processing::persist_anr(&mut context, &report)
+    });
+
+  match result {
     Ok(()) => {},
     Err(e) => {
       let message = format!("jni persist ANR: {e:#}");
@@ -1619,6 +1659,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPersistJavaScriptError(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
+  logger_id: LoggerId<'_>,
   error_name: JString<'_>,
   error_message: JString<'_>,
   stack_trace: JString<'_>,
@@ -1661,19 +1702,26 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
         .to_string_lossy()
         .to_string();
 
-      report_processing::persist_javascript_error(
-        &mut env,
-        &error_name,
-        &error_message,
-        &stack_trace,
-        is_fatal != 0,
-        &engine,
-        &debugger_id,
-        timestamp,
-        &destination,
-        &attributes,
-        &sdk_version,
-      )?;
+      let metadata = logger_id
+        .static_metadata()
+        .ok_or_else(|| anyhow::anyhow!("missing static logger metadata"))?;
+      let mut context = report_processing::AndroidReportContext {
+        env: &mut env,
+        metadata,
+        attributes: &attributes,
+      };
+      let report = report_processing::JavaScriptErrorReport {
+        error_name: &error_name,
+        error_message: &error_message,
+        stack_trace: &stack_trace,
+        is_fatal: is_fatal != 0,
+        engine: &engine,
+        debugger_id: &debugger_id,
+        timestamp_millis: timestamp,
+        destination: &destination,
+        sdk_version: &sdk_version,
+      };
+      report_processing::persist_javascript_error(&mut context, &report)?;
       Ok(())
     },
     "jni persist JavaScript error",
@@ -1740,7 +1788,7 @@ pub extern "system" fn Java_io_bitdrift_capture_Jni_runtimeValue(
         .runtime_snapshot()
         .get_integer(variable_name, default_value as u32);
 
-      Ok(jint::try_from(integer_value).map_or(default_value, |value| value))
+      Ok(jint::try_from(integer_value).unwrap_or(default_value))
     },
     default_value,
     "jni runtimeValue",

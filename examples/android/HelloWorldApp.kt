@@ -57,7 +57,7 @@ class HelloWorldApp : Application() {
         Logger.start(
             apiKey = bitdriftAPIKey,
             apiUrl = BITDRIFT_URL,
-            sessionStrategy = SessionStrategy.Fixed { UUID.randomUUID().toString() },
+            sessionStrategy = SessionStrategy.Fixed(),
             configuration = Configuration(issueCallbackConfiguration = issueCallbackConfiguration),
             fieldProviders = listOf(
                 FieldProvider {

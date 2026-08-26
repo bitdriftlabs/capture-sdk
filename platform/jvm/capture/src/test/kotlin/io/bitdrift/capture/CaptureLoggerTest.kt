@@ -32,6 +32,7 @@ import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.threading.CaptureDispatchers
@@ -91,7 +92,8 @@ class CaptureLoggerTest {
     private fun <T> withLogger(
         fieldProvider: FieldProvider? = null,
         dateProvider: DateProvider = systemDateProvider,
-        sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+        sessionStrategy: SessionStrategy =
+            SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
         context: android.content.Context = ContextHolder.APP_CONTEXT,
         windowManager: IWindowManager = WindowManager(ErrorHandler()),
         block: (LoggerImpl) -> T,
@@ -376,31 +378,6 @@ class CaptureLoggerTest {
 
     @Test
     @Suppress("TooGenericExceptionThrown")
-    fun `exceptions thrown by session strategy are ignored`() {
-        val providerLatch = CountDownLatch(1)
-
-        val dateProvider = mock<DateProvider>()
-        Mockito.`when`(dateProvider.invoke()).thenReturn(Date())
-
-        val fieldProvider = mock<FieldProvider>()
-        Mockito.`when`(fieldProvider.invoke()).thenReturn(emptyMap())
-
-        withLogger(
-            fieldProvider = fieldProvider,
-            dateProvider = dateProvider,
-            sessionStrategy =
-                SessionStrategy.Fixed {
-                    providerLatch.countDown()
-                    throw RuntimeException()
-                },
-        ) { logger ->
-            logger.log(LogLevel.DEBUG) { "logging..." }
-            assert(providerLatch.await(1, TimeUnit.SECONDS))
-        }
-    }
-
-    @Test
-    @Suppress("TooGenericExceptionThrown")
     fun `exceptions thrown by date provider are ignored`() {
         val providerLatch = CountDownLatch(1)
 
@@ -491,7 +468,8 @@ class CaptureLoggerTest {
     private fun buildLogger(
         fieldProvider: FieldProvider? = null,
         dateProvider: DateProvider = mock<DateProvider>(),
-        sessionStrategy: SessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+        sessionStrategy: SessionStrategy =
+            SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
         context: android.content.Context = ContextHolder.APP_CONTEXT,
         windowManager: IWindowManager = WindowManager(ErrorHandler()),
     ): LoggerImpl {
@@ -521,12 +499,27 @@ class CaptureLoggerTest {
         return loggerImpl
     }
 
-    private fun getDefaultFields(): Map<String, FieldValue> =
-        ClientAttributes(
-            ContextHolder.APP_CONTEXT,
-            ProcessLifecycleOwner.get(),
-        ).invoke().toFieldValueMap() +
+    private fun getDefaultFields(): Map<String, FieldValue> {
+        val clientAttributes =
+            ClientAttributes(
+                ContextHolder.APP_CONTEXT,
+                ProcessLifecycleOwner.get(),
+            )
+
+        return mapOf(
+            "app_id" to clientAttributes.appId,
+            "os" to "Android",
+            "os_version" to clientAttributes.osVersion,
+            "model" to clientAttributes.model,
+            "_manufacturer" to clientAttributes.manufacturer,
+            "_os_api_level" to clientAttributes.osApiLevel.toString(),
+            "app_version" to clientAttributes.appVersion,
+            "_app_version_code" to clientAttributes.appVersionCode.toString(),
+            "_architecture" to clientAttributes.architecture,
+        ).toFieldValueMap() +
+            clientAttributes.dynamicFields().toFieldValueMap() +
             NetworkAttributes(ContextHolder.APP_CONTEXT).invoke().toFieldValueMap()
+    }
 
     private fun Map<String, String>.toFieldValueMap(): Map<String, FieldValue> = mapValues { (_, v) -> v.toFieldValue() }
 }

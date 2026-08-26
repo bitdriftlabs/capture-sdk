@@ -79,6 +79,7 @@ final class LoggerBridge: LoggerBridging {
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,
+        buildNumber: String,
         osVersion: String,
         model: String,
         network: Network?,
@@ -94,16 +95,20 @@ final class LoggerBridge: LoggerBridging {
             return nil
         }
 
+        let sessionConfiguration = sessionStrategy.makeSessionConfiguration()
         let loggerID = capture_create_logger(
             bufferDirectoryPath,
             apiKey,
-            sessionStrategy.makeSessionStrategyProvider(),
+            sessionConfiguration.initialSessionID,
+            sessionConfiguration.inactivityTimeout ?? -1,
+            sessionConfiguration.makeSessionCallbackBridge(),
             metadataProvider,
             resourceUtilizationTarget,
             sessionReplayTarget,
             eventsListenerTarget,
             appID,
             releaseVersion,
+            buildNumber,
             osVersion,
             model,
             network,
@@ -137,6 +142,7 @@ final class LoggerBridge: LoggerBridging {
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,
+        buildNumber: String,
         osVersion: String,
         model: String,
         network: Network?,
@@ -154,6 +160,7 @@ final class LoggerBridge: LoggerBridging {
             eventsListenerTarget: eventsListenerTarget,
             appID: appID,
             releaseVersion: releaseVersion,
+            buildNumber: buildNumber,
             osVersion: osVersion,
             model: model,
             network: network,
@@ -176,13 +183,6 @@ final class LoggerBridge: LoggerBridging {
         blockingBehavior: LogBlockingBehavior,
         occurredAtOverride: Date?
     ) {
-        let (blocking, blockingTimeoutMs): (Bool, UInt32) = switch blockingBehavior {
-        case .nonBlocking:
-            (false, 0)
-        case .blocking(let timeoutMs):
-            (true, timeoutMs)
-        }
-
         capture_write_log(
             self.loggerID,
             level.rawValue,
@@ -190,10 +190,11 @@ final class LoggerBridge: LoggerBridging {
             message(),
             fields,
             matchingFields,
-            blocking,
-            blockingTimeoutMs,
             occurredAtOverride.map { Int64($0.timeIntervalSince1970 * 1_000) } ?? 0
         )
+        if case .blocking = blockingBehavior {
+            self.flush(blocking: true)
+        }
     }
 
     func logSessionReplayScreen(fields: [CapturePassable.Field], duration: TimeInterval) {
@@ -236,8 +237,8 @@ final class LoggerBridge: LoggerBridging {
         capture_write_screen_view_log(self.loggerID, screenName)
     }
 
-    func startNewSession() {
-        capture_start_new_session(self.loggerID)
+    func startNewSession(sessionID: String?) {
+        capture_start_new_session(self.loggerID, sessionID)
     }
 
     func getSessionID() -> String {

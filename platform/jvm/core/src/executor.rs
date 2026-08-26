@@ -5,6 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#[cfg(test)]
+#[path = "./executor_test.rs"]
+mod tests;
+
 use anyhow::anyhow;
 use jni::JNIEnv;
 use jni::objects::{GlobalRef, JObject};
@@ -94,12 +98,26 @@ impl std::fmt::Debug for ObjectHandle {
   }
 }
 
-/// Defines all Java object wrappers. All of these types are a phantom type tagged `ObjectWrapper`,
-/// which allows constructing them either as local or as global objects.
+/// Defines a wrapper around an `ObjectHandle` for a specific Java object type. This allows for the
+/// creation of a new global reference to the Java object, and provides deref implementations to
+/// allow for method calls to be made against the underlying `ObjectHandle`.
+///
+/// These wrappers are used to provide a type-safe way to interact with specific Java objects,
+/// ensuring that the correct methods are called on the correct object types. as well to provide a
+/// convenient way to implement traits.
 #[macro_export]
 macro_rules! define_object_wrapper {
   ($name:ident) => {
     pub struct $name(pub $crate::executor::ObjectHandle);
+
+    impl $name {
+      pub fn new_global(
+        env: &jni::JNIEnv<'_>,
+        object: jni::objects::JObject<'_>,
+      ) -> jni::errors::Result<Self> {
+        $crate::executor::ObjectHandle::new(env, object).map(|handle| Self(handle))
+      }
+    }
 
     impl std::ops::Deref for $name {
       type Target = $crate::executor::ObjectHandle;
@@ -114,12 +132,5 @@ macro_rules! define_object_wrapper {
         return &mut self.0;
       }
     }
-  };
-}
-
-#[macro_export]
-macro_rules! new_global {
-  ($object_type:ident, $env:expr, $object:expr) => {
-    $crate::executor::ObjectHandle::new($env, $object).map(|executor| $object_type(executor))
   };
 }

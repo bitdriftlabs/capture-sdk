@@ -16,6 +16,13 @@ if [[ ! -f "$archive" ]]; then
   exit 1
 fi
 
+metadata_members=$("$archive_tool" t "$archive" | grep -E '^lib\.rmeta(-link)?$' || true)
+if [[ -n "$metadata_members" ]]; then
+  echo "Rust compiler metadata must not be shipped in the XCFramework archive:" >&2
+  echo "$metadata_members" >&2
+  exit 1
+fi
+
 duplicates=$("$archive_tool" t "$archive" |
   awk '/^(alloc|cfg_if|compiler_builtins|core|hashbrown|libc|rustc_demangle|rustc_std_workspace_(alloc|core)|std|std_detect|unwind)-/' |
   LC_ALL=C sort |

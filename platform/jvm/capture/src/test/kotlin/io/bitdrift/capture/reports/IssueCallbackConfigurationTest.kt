@@ -22,6 +22,7 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.LoggerState
 import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -105,7 +106,7 @@ class IssueCallbackConfigurationTest {
     private fun startSdkAndReturnLogger(issueCallbackConfiguration: IssueCallbackConfiguration): IInternalLogger {
         Capture.Logger.start(
             apiKey = "test",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             configuration = Configuration(issueCallbackConfiguration = issueCallbackConfiguration),
             dateProvider = SystemDateProvider(),
             context = appContext,

@@ -34,6 +34,12 @@
                 />
         </provider>
 
+        <!-- Exercises window-focus-loss cases; exported so tests can start it via adb. -->
+        <activity
+            android:name=".ui.activities.FocusMatrixActivity"
+            android:exported="true"
+            android:label="@string/focus_matrix" />
+
         <activity
             android:name=".ui.activities.MainActivity"
             android:exported="true"

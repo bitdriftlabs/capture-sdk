@@ -36,6 +36,7 @@ function verify_sdk_verification_file() {
 bazel_args=(
   --announce_rc
   --config=ci
+  --config=nocache
   --config=release-android
   --define="pom_version=$version"
 )

@@ -20,6 +20,7 @@ protocol LoggerBridgingFactoryProvider {
     /// - parameter eventsListenerTarget:       The events listener target to use.
     /// - parameter appID:                      The host application application identifier.
     /// - parameter releaseVersion:             The host application release version.
+    /// - parameter buildNumber:                The host application build number.
     /// - parameter osVersion:                  The host operating system version.
     /// - parameter model:                      The host device model.
     /// - parameter network:                    The interface to use for network operations.
@@ -38,6 +39,7 @@ protocol LoggerBridgingFactoryProvider {
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
         appID: String,
         releaseVersion: String,
+        buildNumber: String,
         osVersion: String,
         model: String,
         network: Network?,

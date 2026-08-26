@@ -1,10 +1,22 @@
 name: Setup
-description: Restores the Bazelisk launcher and Android SDK used by bazelw
+description: Restores the Bazelisk launcher and verifies Android toolchain configuration
 
 inputs:
   buildbuddy-api-key:
     description: BuildBuddy API key.
     required: false
+  enable-bazel-cache:
+    description: Whether to configure the BuildBuddy remote cache.
+    required: false
+    default: "true"
+  cache-key-scope:
+    description: Namespace for GitHub Actions caches. Use a release-only value for release builds.
+    required: false
+    default: ci
+  setup-local-android-sdk:
+    description: Whether to restore the local Android SDK cache used by Gradle and emulator jobs
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -17,40 +29,48 @@ runs:
       uses: ./.github/actions/configure-buildbuddy-cache
       with:
         api-key: ${{ inputs.buildbuddy-api-key }}
+        enabled: ${{ inputs.enable-bazel-cache }}
 
     - name: Restore Bazelisk and Bazel cache
       if: github.ref != 'refs/heads/main'
       uses: actions/cache/restore@v4
       with:
         path: ${{ github.workspace }}/tmp/bazel
-        key: ${{ runner.os }}-${{ runner.arch }}-bazelisk-${{ hashFiles('bazelw') }}
+        key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-bazelisk-${{ hashFiles('bazelw') }}
 
     - name: Cache Bazelisk and Bazel on main
       if: github.ref == 'refs/heads/main'
       uses: actions/cache@v4
       with:
         path: ${{ github.workspace }}/tmp/bazel
-        key: ${{ runner.os }}-${{ runner.arch }}-bazelisk-${{ hashFiles('bazelw') }}
+        key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-bazelisk-${{ hashFiles('bazelw') }}
 
-    - name: Restore Android SDK cache
+    - name: Check Android Bazel and Gradle toolchain versions
+      shell: bash
+      run: ./tools/check_android_toolchain_versions.sh
+
+    - name: Restore local Android SDK cache for Gradle
+      if: inputs.setup-local-android-sdk == 'true'
       id: android-sdk-cache
       uses: actions/cache/restore@v4
       with:
         path: ~/.androidbin/bitdrift-android-sdk/android-sdk-4333796-unarchived
-        key: ${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh') }}
+        key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh', 'tools/android_toolchain_versions.sh') }}
 
-    - name: Set up Android SDK
+    - name: Set up local Android SDK for Gradle
+      if: inputs.setup-local-android-sdk == 'true'
       shell: bash
       run: ./tools/setup_android_sdk.sh
 
-    - name: Save Android SDK cache
-      if: github.ref == 'refs/heads/main' && steps.android-sdk-cache.outputs.cache-hit != 'true'
+    - name: Save local Android SDK cache for Gradle
+      if: github.ref == 'refs/heads/main' && inputs.setup-local-android-sdk == 'true' && steps.android-sdk-cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
       with:
         path: ~/.androidbin/bitdrift-android-sdk/android-sdk-4333796-unarchived
-        key: ${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh') }}
+        key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh', 'tools/android_toolchain_versions.sh') }}
 
-    - name: Add Android SDK tools to PATH
+    - name: Add local Android SDK tools to PATH
+      if: inputs.setup-local-android-sdk == 'true'
       shell: bash
       run: |
         echo "$ANDROID_HOME/cmdline-tools/6.0/bin" >> "$GITHUB_PATH"

@@ -7,29 +7,28 @@
 
 package io.bitdrift.capture.providers.session
 
-import java.util.UUID
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Describes the strategy to use for session management.
  */
 sealed class SessionStrategy {
+    internal data class Configuration(
+        val configuration: SessionConfiguration,
+    ) : SessionStrategy()
+
     /**
-     * A session strategy that never expires the session ID but does not survive process restart.
+     * Deprecated compatibility shim for a session that does not expire during a process but is
+     * replaced when the SDK starts in a new process.
      *
-     * The initial session ID is retrieved by calling the passed closure.
-     *
-     * Whenever a new session is manually started via `startNewSession` method call, the closure is
-     * invoked to generate a new session ID.
-     * @param sessionIdGenerator The callback that will invoked to obtain the session ID to use. Upon the initialization
-     *  of the logger the function is called on the thread that's used to configure the logger.
-     *  Subsequent function calls are performed every time [io.bitdrift.Bitdrift.Logger.startNewSession]
-     *  method is called using the thread on which the method is called.
+     * Capture generates UUIDs for SDK-created sessions; use [SessionConfiguration.initialSessionId]
+     * when an application needs to supply an initial ID.
      */
-    data class Fixed
-        @JvmOverloads
-        constructor(
-            val sessionIdGenerator: () -> String = { UUID.randomUUID().toString() },
-        ) : SessionStrategy()
+    @Deprecated(
+        message = "Use SessionConfiguration instead.",
+        replaceWith = ReplaceWith("SessionConfiguration()"),
+    )
+    class Fixed : SessionStrategy()
 
     /**
      * A session strategy that generates a new session ID after a certain period of app inactivity.
@@ -41,9 +40,20 @@ sealed class SessionStrategy {
      * features - counts as activity
      * @param inactivityThresholdMins the amount of minutes of inactivity after which a new session Id changes.
      * The default value is 30 minutes.
-     * @param onSessionIdChanged optional callback that is invoked with the new value every time the session Id changes.
-     *  This callback is invoked in the main thread.
+     * @param onSessionIdChanged optional callback that receives the active session ID after each
+     *  session start or rotation, including explicit starts with the current ID. This callback is
+     *  invoked on the main thread. Callbacks from overlapping session starts are not guaranteed
+     *  to arrive in transition order; use [io.bitdrift.capture.ILogger.sessionId] for the current
+     *  session ID.
      */
+    @Deprecated(
+        message = "Use SessionConfiguration instead.",
+        replaceWith =
+            ReplaceWith(
+                "SessionConfiguration(inactivityTimeout = inactivityThresholdMins.minutes, " +
+                    "onSessionIdChanged = onSessionIdChanged)",
+            ),
+    )
     data class ActivityBased
         @JvmOverloads
         constructor(
@@ -51,9 +61,15 @@ sealed class SessionStrategy {
             val onSessionIdChanged: ((String) -> Unit)? = null,
         ) : SessionStrategy()
 
-    internal fun createSessionStrategyConfiguration(): SessionStrategyConfiguration =
+    @Suppress("DEPRECATION")
+    internal fun makeSessionConfiguration(): SessionConfiguration =
         when (this) {
-            is Fixed -> SessionStrategyConfiguration.Fixed(this)
-            is ActivityBased -> SessionStrategyConfiguration.ActivityBased(this)
+            is Configuration -> configuration
+            is Fixed -> SessionConfiguration()
+            is ActivityBased ->
+                SessionConfiguration(
+                    inactivityTimeout = inactivityThresholdMins.minutes,
+                    onSessionIdChanged = onSessionIdChanged,
+                )
         }
 }

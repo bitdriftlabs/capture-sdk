@@ -11,7 +11,7 @@ use std::path::Path;
 
 pub fn main() {
   let version_path = args().nth_back(0).unwrap();
-  eprintln!("version_path: {}", &version_path);
+  eprintln!("version_path: {version_path}");
   let version = read_to_string(Path::new(&version_path)).unwrap();
 
   println!(

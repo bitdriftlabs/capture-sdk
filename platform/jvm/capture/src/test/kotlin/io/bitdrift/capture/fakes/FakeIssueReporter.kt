@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.fakes
 
+import io.bitdrift.capture.LoggerId
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.reports.IIssueReporter
 import io.bitdrift.capture.reports.IssueReporterState
@@ -19,6 +20,7 @@ class FakeIssueReporter(
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
+        loggerId: LoggerId,
     ) {
         // no-op
     }

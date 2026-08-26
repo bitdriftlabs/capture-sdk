@@ -11,8 +11,8 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture.LOG_TAG
-import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.LoggerId
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
@@ -27,6 +27,7 @@ import io.bitdrift.capture.reports.persistence.IssueReporterStore
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.IssueReporterProcessor
+import io.bitdrift.capture.reports.processor.JniStreamingReportProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.ConfigCache
@@ -53,6 +54,9 @@ internal class IssueReporter(
     private val memoryMetricsProvider: IMemoryMetricsProvider,
 ) : IIssueReporter,
     IJvmCrashListener {
+    // written on the background worker once prior reports are processed, and read from whichever
+    // thread happens to be crashing
+    @Volatile
     @VisibleForTesting
     internal var issueReporterState: IssueReporterState = NotInitialized
         private set
@@ -66,6 +70,7 @@ internal class IssueReporter(
         sdkDirectory: String,
         clientAttributes: IClientAttributes,
         completedReportsProcessor: ICompletedReportsProcessor,
+        loggerId: LoggerId,
     ) {
         if (issueReporterState != NotInitialized) {
             Log.e(LOG_TAG, "Issue reporting already being initialized")
@@ -86,7 +91,14 @@ internal class IssueReporter(
 
         runCatching {
             issueReporterProcessor =
-                buildDefaultIssueReporterProcessor(sdkDirectory, clientAttributes, dateProvider, internalLogger, memoryMetricsProvider)
+                buildDefaultIssueReporterProcessor(
+                    sdkDirectory,
+                    clientAttributes,
+                    loggerId,
+                    dateProvider,
+                    internalLogger,
+                    memoryMetricsProvider,
+                )
             captureUncaughtExceptionHandler.install(this)
             processPriorReports(completedReportsProcessor)
         }.getOrElse {
@@ -200,6 +212,7 @@ internal class IssueReporter(
         fun buildDefaultIssueReporterProcessor(
             sdkDirectory: String,
             clientAttributes: IClientAttributes,
+            loggerId: LoggerId,
             dateProvider: DateProvider,
             internalLogger: IInternalLogger,
             memoryMetricsProvider: IMemoryMetricsProvider,
@@ -207,7 +220,7 @@ internal class IssueReporter(
             IssueReporterProcessor(
                 IssueReporterStore(sdkDirectory),
                 clientAttributes,
-                CaptureJniLibrary,
+                JniStreamingReportProcessor(loggerId, clientAttributes),
                 dateProvider,
                 internalLogger,
                 memoryMetricsProvider,

@@ -79,6 +79,15 @@ Primary: **Bazel** (`./bazelw`). Secondary: Gradle for Android (`platform/jvm/gr
 
 Key Bazel configs: `--config android`, `--config release-ios`, `--config release-android`, `--config ci`
 
+## Release Build Cache Policy
+
+Release workflows must not use the Bazel/BuildBuddy remote cache. Release Bazel invocations include
+`--config=nocache`; configure their shared setup actions with `enable-bazel-cache: "false"` as a
+second safeguard. GitHub Actions dependency caches that remain necessary for a release must use the
+`release-${{ github.workflow }}` cache-key scope, so a release cache is never restored by
+pull-request or ordinary `main` CI builds. Do not enable an unscoped cache (including an
+action-managed Gradle cache) in a release workflow.
+
 ## Project Structure
 
 ```
@@ -101,10 +110,29 @@ Test locations:
 - Android: JDK 17, NDK 27.2, minSdk 23
 - Rust: 1.95.0
 
+## FFI and ABI Safety
+
+Changes at the Swift C bridge or Android JNI boundary are release-critical. Treat a function
+signature as an ABI contract: its parameter count, order, nullability, and pointer types must
+match exactly across every declaration, generated binding, and Rust export. In particular, never
+add an unused trailing parameter to a Rust C/JNI export, and use Objective-C object types (such as
+nullable `NSString *`) rather than untyped pointers when Swift passes Foundation values.
+
+When changing an FFI entry point, inspect and update every layer together:
+
+- the Rust `extern "C"` or JNI export;
+- `CaptureRustBridge.h` and every Swift call site, or the Kotlin `external` declaration and callers;
+- compatibility overloads exposed to Swift, Objective-C, Kotlin, or Java.
+
+Run focused bridge compilation/tests for every FFI change. Do not rely on Rust-only compilation to
+validate Swift header imports or JNI call signatures.
+
 ## Key Dependencies
 
 Depends on [shared-core](https://github.com/bitdriftlabs/shared-core) for `bd-logger`, `bd-buffer`, `bd-api`, `bd-crash-handler`, `bd-runtime`.
 
 ## Changelog
 
-Update `CHANGELOG.md` under `### Both`, `### Android`, or `### iOS` with categories: **Added**, **Changed**, **Fixed**.
+Update `CHANGELOG.md` for every user-facing behavior change under `### Both`, `### Android`,
+or `### iOS` with categories: **Added**, **Changed**, **Fixed**. Do not add an entry for CI,
+build, tooling, test-only, documentation-only, or internal changes that do not affect SDK behavior.

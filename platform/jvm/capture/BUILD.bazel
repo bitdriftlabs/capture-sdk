@@ -19,6 +19,7 @@ java_lite_proto_library(
 java_library(
     name = "retrofit_compile_only",
     neverlink = True,
+    tags = ["maven:compile-only"],
     visibility = ["//visibility:public"],
     exports = [artifact("com.squareup.retrofit2:retrofit")],
 )
@@ -27,8 +28,18 @@ java_library(
 java_library(
     name = "webkit_compile_only",
     neverlink = True,
+    tags = ["maven:compile-only"],
     visibility = ["//visibility:public"],
     exports = [artifact("androidx.webkit:webkit")],
+)
+
+# JSR305 is used only for compile-time nullability annotations and is not shipped by the SDK.
+java_library(
+    name = "jsr305_compile_only",
+    neverlink = True,
+    tags = ["maven:compile-only"],
+    visibility = ["//visibility:public"],
+    exports = [artifact("com.google.code.findbugs:jsr305")],
 )
 
 # export proguard library rules
@@ -60,6 +71,7 @@ bitdrift_kt_android_library(
         exclude = ["src/main/**/BuildConstants.kt"],
     ),
     custom_package = "io.bitdrift.capture",
+    tags = ["maven_coordinates=io.bitdrift:capture:$(pom_version)"],
     visibility = ["//visibility:public"],
     # Exported dependencies will appear as dependencies in the generated .pom xml.
     exports = [
@@ -81,7 +93,7 @@ bitdrift_kt_android_library(
         artifact("androidx.startup:startup-runtime"),
         artifact("androidx.core:core"),
         artifact("com.google.guava:listenablefuture"),
-        artifact("com.google.code.findbugs:jsr305"),
+        ":jsr305_compile_only",
         artifact("com.google.code.gson:gson"),
         artifact("com.google.flatbuffers:flatbuffers-java"),
         artifact("com.google.protobuf:protobuf-kotlin-lite"),
@@ -105,7 +117,6 @@ bitdrift_kt_android_local_test(
         "-Djava.library.path=test/platform/jvm",
     ],
     deps = [
-        "//platform/jvm/capture:capture_logger_lib",
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
         "@rules_robolectric//bazel:android-all",

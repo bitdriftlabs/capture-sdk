@@ -5,6 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#[cfg(test)]
+#[path = "./ffi_test.rs"]
+mod tests;
+
 use crate::jni::{CachedClass, CachedMethod, initialize_class, initialize_method_handle};
 use anyhow::bail;
 use bd_client_common::error::InvariantError;
@@ -195,6 +199,10 @@ pub fn string_arrays_to_annotated_fields(
   kind: LogFieldKind,
 ) -> anyhow::Result<AnnotatedLogFields> {
   let len = env.get_array_length(keys)?;
+  let values_len = env.get_array_length(values)?;
+  if len != values_len {
+    bail!("keys and values must have the same length");
+  }
   #[allow(clippy::cast_sign_loss)]
   let mut fields = AnnotatedLogFields::with_capacity(len as usize);
 

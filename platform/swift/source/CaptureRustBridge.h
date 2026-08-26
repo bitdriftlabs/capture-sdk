@@ -13,6 +13,12 @@ typedef uintptr_t stream_id;
 
 NS_ASSUME_NONNULL_BEGIN
 
+@protocol CAPSessionCallbackProvider <NSObject>
+
+- (void)sessionIDChanged:(NSString *)sessionID;
+
+@end
+
 /*
  * Reports an error to the bitdrift backend and log it to the console. Both reporting to remote and logging
  * to the console are throttled to protect against noisy errors.
@@ -24,13 +30,17 @@ void capture_report_error(const char *message);
  *
  * @param path the path to the SDK directory used by the logger for disk persistence.
  * @param api_key the key used to authenticate the application with bitdrift services.
- * @param session_strategy_provider the session strategy provider.
+ * @param initial_session_id optional session ID to use when starting Capture.
+ * @param inactivity_timeout_seconds inactivity timeout in seconds, or a negative value to disable
+ *        inactivity-driven rotation.
+ * @param session_callback optional recipient for session ID changes.
  * @param metadata_provider used to provide the internal logger with logging metadata.
  * @param resource_utilization_target responsible for emitting resource utilization logs in response to provided ticks.
  * @param session_replay_target responsible for emitting session replay logs in response to callbacks.
  * @param events_listener_target responsible for listening to platform events and emitting logs in response to them.
  * @param app_id the app id to identify the client as a null terminated C string.
  * @param app_version the app version to identify the client as a null terminated C string.
+ * @param build_number the app build number to attach to log metadata.
  * @param os_version the operating system version to identify the client as a null terminated C string.
  * @param model the model of the device to identify the client as a null terminated C string.
  * @param network the Capture Network protocol to use for performing network requests.
@@ -41,13 +51,16 @@ void capture_report_error(const char *message);
 logger_id capture_create_logger(
     const char *_Nullable path,
     const char *api_key,
-    id<SessionStrategyProvider> session_strategy_provider,
+    NSString *_Nullable initial_session_id,
+    double inactivity_timeout_seconds,
+    _Nullable id<CAPSessionCallbackProvider> session_callback,
     id<MetadataProvider> metadata_provider,
     id<ResourceUtilizationTarget> resource_utilization_target,
     id<SessionReplayTarget> session_replay_target,
     id<EventsListenerTarget> events_listener_target,
     const char *app_id,
     const char *app_version,
+    const char *build_number,
     const char *os_version,
     const char *model,
     _Nullable id<Network> network,
@@ -77,8 +90,6 @@ void capture_start_logger(logger_id logger_id);
  *        remote services.
  * @param matching_fields The list of matching fields that can be read when processing a given log but are
  *        not a part of the log itself.
- * @param blocking whether the method should return only after the log is processed.
- * @param blocking_timeout_ms timeout to use when waiting for the log to be processed.
  */
 void capture_write_log(
     logger_id logger_id,
@@ -87,8 +98,6 @@ void capture_write_log(
     const char *message,
     const NSArray<const Field *> *_Nullable fields,
     const NSArray<const Field *> *_Nullable matching_fields,
-    bool blocking,
-    uint32_t blocking_timeout_ms,
     int64_t occurred_at_override
 );
 
@@ -203,7 +212,7 @@ void capture_write_screen_view_log(
  *
  * @param logger_id the logger to use.
  */
-void capture_start_new_session(logger_id logger_id);
+void capture_start_new_session(logger_id logger_id, NSString * _Nullable session_id);
 
 /*
  * Returns currently active session id.

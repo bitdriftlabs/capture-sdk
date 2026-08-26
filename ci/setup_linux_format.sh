@@ -7,7 +7,7 @@ formatter_dir="$(pwd)/formatters"
 readonly formatter_dir
 
 # buildifier is used for format .bzl / BUILD / WORKSPACE files.
-curl -LSs https://github.com/bazelbuild/buildtools/releases/download/6.0.1/buildifier-linux-amd64 --output "$formatter_dir/buildifier"
+curl -LSs https://github.com/bazelbuild/buildtools/releases/download/v8.5.1/buildifier-linux-amd64 --output "$formatter_dir/buildifier"
 chmod +x "$formatter_dir/buildifier"
 
 # The binaries above dynamically link a library provided by Swift, so download Swift + update the
@@ -33,7 +33,7 @@ mv "taplo-linux-x86_64" "$formatter_dir/taplo"
 chmod +x "$formatter_dir/taplo"
 
 pushd "$(mktemp -d)"
-scversion="stable"
+scversion="v0.11.0"
 wget -qO- "https://github.com/koalaman/shellcheck/releases/download/${scversion?}/shellcheck-${scversion?}.linux.x86_64.tar.xz" | tar -xJv
 mv "shellcheck-${scversion}/shellcheck" "$formatter_dir/shellcheck"
 "$formatter_dir/shellcheck" --version

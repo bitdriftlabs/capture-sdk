@@ -31,8 +31,11 @@ platform-shared.workspace       = true
 protobuf.workspace              = true
 tempfile.workspace              = true
 time.workspace                  = true
-tracing-subscriber.workspace    = true
 uuid.workspace                  = true
+
+[dev-dependencies]
+# The host-JVM JNI tests start Bazel's JDK through the JNI invocation API.
+jni = { workspace = true, features = ["invocation"] }
 
 [lib]
 crate-type = ["rlib"]

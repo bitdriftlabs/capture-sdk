@@ -117,8 +117,10 @@ protocol CoreLogging: AnyObject {
     /// - parameter screenName: The name of the screen.
     func logScreenView(screenName: String)
 
-    /// Stars new session using configured session strategy.
-    func startNewSession()
+    /// Starts a new session using the configured session strategy.
+    ///
+    /// - parameter sessionID: The optional non-empty ID for the new session.
+    func startNewSession(sessionID: String?)
 
     /// Returns currently active session ID.
     ///

@@ -13,8 +13,8 @@ import com.google.gson.reflect.TypeToken
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
-import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -48,7 +48,6 @@ class ErrorReporterTest {
 
         reporter =
             ErrorReporterService(
-                listOf(FieldProvider { mapOf("foo" to "bar") }),
                 lazyOf(apiClient),
             )
 
@@ -70,7 +69,6 @@ class ErrorReporterTest {
         assertThat(request?.path).isEqualTo("/v1/sdk-errors")
         assertThat(request?.headers?.get("content-type")).isEqualTo("application/json; charset=utf-8")
         assertThat(request?.method).isEqualTo("POST")
-        assertThat(request?.headers).contains(Pair("x-foo", "bar"))
         assertThat(request?.headers).contains(Pair("x-bitdrift-api-key", "api-key"))
 
         val jsonPayload = request?.body?.readString(Charset.defaultCharset())!!
@@ -105,7 +103,8 @@ class ErrorReporterTest {
                 fieldProviders = listOf(),
                 dateProvider = SystemDateProvider(),
                 context = ContextHolder.APP_CONTEXT,
-                sessionStrategy = SessionStrategy.Fixed { "SESSION_ID" },
+                sessionStrategy =
+                    SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
                 configuration = Configuration(),
                 errorReporter = reporter,
             )

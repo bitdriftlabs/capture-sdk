@@ -12,6 +12,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import org.assertj.core.api.Assertions
 import org.junit.After
@@ -48,6 +49,11 @@ class ConfigurationTest {
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
             ),
         ).thenReturn(-1L)
 
@@ -56,7 +62,7 @@ class ConfigurationTest {
 
         Capture.Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             bridge = bridge,
         )
@@ -83,13 +89,18 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
+            anyOrNull(),
+            anyOrNull(),
+            anyOrNull(),
+            anyOrNull(),
+            anyOrNull(),
         )
 
         // We perform another attempt to configure the logger to verify that
         // consecutive configure calls are no-ops.
         Capture.Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             bridge = bridge,
         )
@@ -98,6 +109,11 @@ class ConfigurationTest {
 
         // We verify that the second configure call was a no-op.
         verify(bridge, times(1)).createLogger(
+            anyOrNull(),
+            anyOrNull(),
+            anyOrNull(),
+            anyOrNull(),
+            anyOrNull(),
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
@@ -143,6 +159,11 @@ class ConfigurationTest {
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
             ),
         ).thenReturn(-1L)
 
@@ -150,7 +171,7 @@ class ConfigurationTest {
 
         Capture.Logger.start(
             apiKey = "test1",
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             bridge = bridge,
         ) { result ->

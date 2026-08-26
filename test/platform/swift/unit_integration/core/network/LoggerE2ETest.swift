@@ -67,7 +67,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
                 withAPIKey: "test!",
                 remoteErrorReporter: MockRemoteErrorReporter(),
                 configuration: .init(apiURL: self.server.baseURL, rootFileURL: NetworkTestEnvironment.makeSDKDirectory()),
-                sessionStrategy: SessionStrategy.fixed(sessionIDGenerator: { "mock-group-id" }),
+                sessionStrategy: .configuration(SessionConfiguration(initialSessionID: "mock-group-id")),
                 dateProvider: MockDateProvider(),
                 fieldProviders: fieldProviders ?? [
                     MockFieldProvider(
@@ -159,10 +159,20 @@ final class CaptureE2ENetworkTests: XCTestCase {
         XCTAssertEqual(helloWorldLog.message, "hello world")
         XCTAssertEqual(helloWorldLog.sessionID, "mock-group-id")
 
+        // Client and model fields are initialized once in the Rust metadata map before replay; only
+        // the remaining providers are evaluated when this log is emitted.
+        let staticFields: [String: Encodable] = [
+            "app_id": clientAttributes.appID,
+            "app_version": clientAttributes.appVersion,
+            "os": "iOS",
+            "os_version": clientAttributes.osVersion,
+            "_build_number": clientAttributes.buildNumber,
+            "model": deviceAttributes.hardwareVersion,
+        ]
         let defaultFields = appStateAttributes.getFields()
-            .mergedOverwritingConflictingKeys(clientAttributes.getFields())
             .mergedOverwritingConflictingKeys(deviceAttributes.getFields())
             .mergedOverwritingConflictingKeys(networkAttributes.getFields())
+            .mergedOverwritingConflictingKeys(staticFields)
 
         let helloWorldExpectedFields: [String: Encodable] = [
             "bar": "value_bar",

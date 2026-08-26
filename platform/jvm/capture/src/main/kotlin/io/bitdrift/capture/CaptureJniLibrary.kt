@@ -11,9 +11,8 @@ import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.Field
-import io.bitdrift.capture.providers.session.SessionStrategyConfiguration
+import io.bitdrift.capture.providers.session.SessionCallback
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
-import io.bitdrift.capture.reports.processor.IStreamingReportProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import okio.IOException
 import java.io.InputStream
@@ -31,7 +30,7 @@ interface StackTraceProvider {
 }
 
 @Suppress("UndocumentedPublicClass")
-internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
+internal object CaptureJniLibrary : IBridge {
     /**
      * Loads the shared library. This is safe to call multiple times.
      */
@@ -44,7 +43,10 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      *
      * @param sdkDirectory the directory to use when persisting data and/or configuration
      * @param apiKey the key used to authenticate the application with Bitdrift services.
-     * @param sessionStrategy the session strategy to use.
+     * @param initialSessionId optional session ID to use when starting Capture.
+     * @param inactivityTimeoutMilliseconds inactivity timeout in milliseconds, or a negative value
+     * to disable inactivity-driven rotation.
+     * @param sessionCallback optional recipient for session ID changes.
      * @param metadataProvider used to provide metadata for emitted logs.
      * @param resourceUtilizationTarget used to inform platform layer about a need to emit a resource log.
      * @param sessionReplayTarget used to inform platform layer about a need to emit session replay logs.
@@ -54,6 +56,9 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param osVersion the operating system version of the current device, used to identify with the backend
      * @param manufacturer the device manufacturer, used to identify with the backend on Android
      * @param model the host device model, used to identify with the backend
+     * @param appVersionCode the application version code
+     * @param osApiLevel the Android API level
+     * @param architecture the device CPU architecture
      * @param network the network implementation to use to communicate with the backend
      * @param preferences the preferences storage to use for persistent storage of simple settings and configuration.
      * @param errorReporter the error reporter to use for reporting error to bitdrift services.
@@ -62,7 +67,9 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
     external override fun createLogger(
         sdkDirectory: String,
         apiKey: String,
-        sessionStrategy: SessionStrategyConfiguration,
+        initialSessionId: String?,
+        inactivityTimeoutMilliseconds: Long,
+        sessionCallback: SessionCallback?,
         metadataProvider: IMetadataProvider,
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,
@@ -72,6 +79,9 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         osVersion: String,
         manufacturer: String,
         model: String,
+        appVersionCode: Long,
+        osApiLevel: Int,
+        architecture: String,
         network: ICaptureNetwork,
         preferences: IPreferences,
         errorReporter: IErrorReporter,
@@ -108,7 +118,10 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      *
      * @param loggerId the logger to start a new session for.
      */
-    external fun startNewSession(loggerId: Long)
+    external fun startNewSession(
+        loggerId: Long,
+        sessionId: String?,
+    )
 
     /**
      * Returns currently active session Id.
@@ -215,7 +228,6 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param usePreviousProcessSessionId if set to true, this log will be emitted with the session ID
      *        corresponding to the last session ID during the previous process run.
      * @param overrideOccurredAtUnixMilliseconds used to override the timestamp of the log.
-     * @param blocking if true, the call blocks until the log has been processed.
      */
     external fun writeLog(
         loggerId: Long,
@@ -228,7 +240,6 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
         matchingFieldValues: Array<String>,
         usePreviousProcessSessionId: Boolean,
         overrideOccurredAtUnixMilliseconds: Long,
-        blocking: Boolean,
     )
 
     /**
@@ -420,10 +431,12 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param stream          The InputStream containing ANR details
      * @param timestampMillis The time at which the event took place
      * @param destinationPath Target file path to write the report
+     * @param attributes Client attributes used for dynamic report metadata
      */
     @Throws(IOException::class, IllegalArgumentException::class)
-    external override fun processAndPersistANR(
-        stream: InputStream,
+    external fun processAndPersistANR(
+        loggerId: LoggerId,
+        stream: InputStream?,
         timestampMillis: Long,
         destinationPath: String,
         attributes: IClientAttributes,
@@ -444,10 +457,11 @@ internal object CaptureJniLibrary : IBridge, IStreamingReportProcessor {
      * @param debugId Debug id that will be used for de-minification
      * @param timestampMillis The time at which the event took place
      * @param destinationPath Target file path to write the report
-     * @param attributes Client attributes for metadata
+     * @param attributes Client attributes used for dynamic report metadata
      * @param sdkVersion bitdrift's React Native SDK version(e.g 8.1)
      */
-    external override fun processAndPersistJavaScriptError(
+    external fun processAndPersistJavaScriptError(
+        loggerId: LoggerId,
         errorName: String,
         errorMessage: String,
         stackTrace: String,

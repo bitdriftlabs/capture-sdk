@@ -24,6 +24,3 @@ parking_lot.workspace           = true
 regex.workspace                 = true
 time.workspace                  = true
 tokio.workspace                 = true
-
-[dev-dependencies]
-pretty_assertions.workspace = true

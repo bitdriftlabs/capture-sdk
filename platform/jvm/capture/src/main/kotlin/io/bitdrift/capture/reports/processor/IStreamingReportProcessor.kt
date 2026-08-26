@@ -6,40 +6,43 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.reports.processor
 
-import io.bitdrift.capture.attributes.IClientAttributes
 import java.io.InputStream
+
+/** Immutable input for persisting an ANR report. */
+internal data class AnrReport(
+    val stream: InputStream?,
+    val timestampMillis: Long,
+    val destinationPath: String,
+    val runningState: String?,
+    val appExitDescription: String?,
+    val memoryPressureLevel: Int,
+    val isFileSizeOptimizationEnabled: Boolean,
+)
+
+/** Immutable input for persisting a JavaScript error report. */
+internal data class JavaScriptErrorReport(
+    val errorName: String,
+    val errorMessage: String,
+    val stackTrace: String,
+    val isFatal: Boolean,
+    val engine: String,
+    val debugId: String,
+    val timestampMillis: Long,
+    val destinationPath: String,
+    val sdkVersion: String,
+)
 
 /**
  * Process reports via streaming values
  */
-interface IStreamingReportProcessor {
+internal interface IStreamingReportProcessor {
     /**
      * Call to convert a trace input stream into a report file
      */
-    fun processAndPersistANR(
-        stream: InputStream,
-        timestampMillis: Long,
-        destinationPath: String,
-        attributes: IClientAttributes,
-        runningState: String?,
-        appExitDescription: String?,
-        memoryPressureLevel: Int,
-        isFileSizeOptimizationEnabled: Boolean,
-    )
+    fun processAndPersistANR(report: AnrReport)
 
     /**
      * Call to convert a JS error trace into a fbs report file
      */
-    fun processAndPersistJavaScriptError(
-        errorName: String,
-        errorMessage: String,
-        stackTrace: String,
-        isFatal: Boolean,
-        engine: String,
-        debugId: String,
-        timestampMillis: Long,
-        destinationPath: String,
-        attributes: IClientAttributes,
-        sdkVersion: String,
-    )
+    fun processAndPersistJavaScriptError(report: JavaScriptErrorReport)
 }

@@ -44,7 +44,7 @@
    public <methods>;
 }
 
--keep, includedescriptorclasses class io.bitdrift.capture.providers.session.SessionStrategyConfiguration$* {
+-keep, includedescriptorclasses class io.bitdrift.capture.providers.session.SessionCallback {
    public <methods>;
 }
 

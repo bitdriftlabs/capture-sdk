@@ -14,7 +14,7 @@ load("//bazel:android_debug_info.bzl", "android_debug_info")
 load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
 load("//bazel:rustfmt.bzl", "rustfmt_runner")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
-load("//bazel/ios:hack.bzl", "rewrite_xcframework")
+load("//bazel/ios:xcframework.bzl", "strip_rust_metadata_xcframework")
 
 alias(
     name = "ios_app",
@@ -43,24 +43,24 @@ rustfmt_runner(
     name = "rustfmt",
 )
 
-rewrite_xcframework(
-    name = "ios_xcframework_with_rust_symbols",
-    rewrite_tool = "//bazel/ios:rewrite_symbols",
+strip_rust_metadata_xcframework(
+    name = "ios_xcframework_for_distribution",
+    metadata_stripper = "//bazel/ios:strip_rust_metadata",
     visibility = ["//visibility:public"],
     xcframework = "//platform/swift/source:Capture",
 )
 
 sh_test(
-    name = "ios_xcframework_archive_deduplication_test",
+    name = "ios_xcframework_archive_metadata_test",
     srcs = ["ci/check_ios_xcframework_archive_members.sh"],
-    data = [":ios_xcframework_with_rust_symbols"],
+    data = [":ios_xcframework_for_distribution"],
     tags = ["macos_only"],
 )
 
 pkg_zip(
     name = "ios_dist",
     srcs = [
-        ":ios_xcframework_with_rust_symbols",
+        ":ios_xcframework_for_distribution",
         ":license",
     ],
     out = "Capture.ios.zip",
@@ -109,11 +109,6 @@ android_artifacts(
     name = "capture_aar",
     android_library = "//platform/jvm/capture:capture_logger_lib",
     archive_name = "capture",
-    excluded_artifacts = [
-        "com.google.code.findbugs:jsr305",
-        "com.squareup.retrofit2:retrofit",
-        "androidx.webkit:webkit",
-    ],
     manifest = "//platform/jvm:AndroidManifest.xml",
     native_deps = select({
         # When targeting an optimized build, use the stripped binary. The symbols are collected prior to stripping and exposed via capture_symbols below.

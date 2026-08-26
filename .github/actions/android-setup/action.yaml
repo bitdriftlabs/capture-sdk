@@ -5,6 +5,22 @@ inputs:
   buildbuddy-api-key:
     description: BuildBuddy API key.
     required: false
+  enable-bazel-cache:
+    description: Whether to configure the BuildBuddy remote cache.
+    required: false
+    default: "true"
+  cache-key-scope:
+    description: Namespace for GitHub Actions caches. Use a release-only value for release builds.
+    required: false
+    default: ci
+  setup-local-android-sdk:
+    description: Whether to set up the local Android SDK cache needed by Gradle
+    required: false
+    default: "false"
+  setup-gradle-cache:
+    description: Whether to restore Gradle's dependency cache
+    required: false
+    default: "false"
   java-version:
     description: JDK version to install
     required: false
@@ -29,10 +45,13 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Bazel and Android SDK
+    - name: Set up Bazel and optional local Android SDK
       uses: ./.github/actions/setup
       with:
         buildbuddy-api-key: ${{ inputs.buildbuddy-api-key }}
+        enable-bazel-cache: ${{ inputs.enable-bazel-cache }}
+        cache-key-scope: ${{ inputs.cache-key-scope }}
+        setup-local-android-sdk: ${{ inputs.setup-local-android-sdk == 'true' || inputs.setup-emulator == 'true' || inputs.emulator-api-level != '' }}
 
     - name: Enable KVM group perms
       if: inputs.setup-emulator == 'true'
@@ -48,7 +67,7 @@ runs:
       with:
         distribution: 'zulu'
         java-version: ${{ inputs.java-version }}
-        cache: gradle
+        cache: ${{ inputs.setup-gradle-cache == 'true' && 'gradle' || '' }}
 
     - name: Accept Android SDK licenses
       if: inputs.setup-emulator == 'true'
@@ -63,7 +82,7 @@ runs:
         path: |
           ${{ env.ANDROID_HOME }}/build-tools/36.0.0
           ${{ env.ANDROID_HOME }}/emulator
-        key: ${{ runner.os }}-${{ runner.arch }}-android-emulator-tools-v1
+        key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-android-emulator-tools-v1
 
     - name: Install Android emulator tools
       if: inputs.emulator-api-level != '' && steps.emulator-tools-cache.outputs.cache-hit != 'true'
@@ -77,7 +96,7 @@ runs:
         path: |
           ${{ env.ANDROID_HOME }}/build-tools/36.0.0
           ${{ env.ANDROID_HOME }}/emulator
-        key: ${{ runner.os }}-${{ runner.arch }}-android-emulator-tools-v1
+        key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-android-emulator-tools-v1
 
     - name: Restore Android emulator system image cache
       if: inputs.emulator-api-level != ''
@@ -87,7 +106,7 @@ runs:
         path: |
           ${{ env.ANDROID_HOME }}/platforms/android-${{ inputs.emulator-api-level }}
           ${{ env.ANDROID_HOME }}/system-images/android-${{ inputs.emulator-api-level }}/${{ inputs.emulator-target }}/${{ inputs.emulator-arch }}
-        key: ${{ runner.os }}-${{ runner.arch }}-android-emulator-api-${{ inputs.emulator-api-level }}-${{ inputs.emulator-target }}-${{ inputs.emulator-arch }}-v1
+        key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-android-emulator-api-${{ inputs.emulator-api-level }}-${{ inputs.emulator-target }}-${{ inputs.emulator-arch }}-v1
 
     - name: Install Android emulator system image
       if: inputs.emulator-api-level != '' && steps.emulator-image-cache.outputs.cache-hit != 'true'
@@ -104,7 +123,7 @@ runs:
         path: |
           ${{ env.ANDROID_HOME }}/platforms/android-${{ inputs.emulator-api-level }}
           ${{ env.ANDROID_HOME }}/system-images/android-${{ inputs.emulator-api-level }}/${{ inputs.emulator-target }}/${{ inputs.emulator-arch }}
-        key: ${{ runner.os }}-${{ runner.arch }}-android-emulator-api-${{ inputs.emulator-api-level }}-${{ inputs.emulator-target }}-${{ inputs.emulator-arch }}-v1
+        key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-android-emulator-api-${{ inputs.emulator-api-level }}-${{ inputs.emulator-target }}-${{ inputs.emulator-arch }}-v1
 
     - name: Touch local.properties
       shell: bash

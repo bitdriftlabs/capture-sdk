@@ -5,10 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use bd_logger::{AnnotatedLogField, Block, CaptureSession, InitParams, log_level};
+use bd_logger::{AnnotatedLogField, CaptureSession, InitParams, log_level};
 use bd_proto::protos::logging::payload::LogType;
-use bd_session::Strategy;
-use bd_session::fixed::UUIDCallbacks;
+use bd_session::configuration::NoopCallbacks;
+use bd_session::{Strategy, StrategyWithWorker};
 use bd_shutdown::ComponentShutdownTrigger;
 use bd_test_helpers::metadata::EmptyMetadata;
 use bd_test_helpers::metadata_provider::LogMetadata;
@@ -16,6 +16,16 @@ use bd_test_helpers::session::InMemoryStorage;
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::sync::Arc;
 use std::time::Duration;
+
+fn session() -> StrategyWithWorker {
+  Strategy::configuration(
+    ".",
+    None,
+    None,
+    Arc::new(NoopCallbacks),
+    Arc::new(bd_time::SystemTimeProvider),
+  )
+}
 
 fn test_live_match_performance(c: &mut Criterion) {
   let _ignored = std::fs::remove_file("./config.pb");
@@ -40,9 +50,11 @@ fn test_live_match_performance(c: &mut Criterion) {
     network: Box::new(network),
     static_metadata: Arc::new(EmptyMetadata),
     sdk_directory: ".".into(),
-    session_strategy: Arc::new(Strategy::fixed(".", Arc::new(UUIDCallbacks))),
+    session: session(),
     store,
     metadata_provider,
+    initial_ootb_fields: [].into(),
+    initial_custom_fields: [].into(),
     resource_utilization_target: Box::new(bd_test_helpers::resource_utilization::EmptyTarget),
     session_replay_target: Box::new(bd_test_helpers::session_replay::NoOpTarget),
     events_listener_target: Box::new(bd_test_helpers::events::NoOpListenerTarget),
@@ -66,7 +78,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
       handle.log(
@@ -76,7 +87,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
       handle.log(
@@ -86,7 +96,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
       handle.log(
@@ -96,7 +105,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
       handle.log(
@@ -106,7 +114,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         [].into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
     });
@@ -129,7 +136,6 @@ fn test_live_match_performance(c: &mut Criterion) {
         .into(),
         [].into(),
         None,
-        Block::No,
         &CaptureSession::default(),
       );
     });

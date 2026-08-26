@@ -52,7 +52,7 @@ protocol LoggerBridging {
 
     func start()
 
-    func startNewSession()
+    func startNewSession(sessionID: String?)
 
     func getSessionID() -> String
 

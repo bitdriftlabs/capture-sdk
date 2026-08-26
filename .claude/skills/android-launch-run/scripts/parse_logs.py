@@ -19,7 +19,7 @@ import re
 import sys
 
 LINE = re.compile(
-    r"^(?P<ts>\d\d-\d\d \d\d:\d\d:\d\d\.\d\d\d)\s+(?P<pid>\d+)\s+\d+\s+[VDIWEF]\s+(?P<tag>.*?):\s(?P<msg>.*)$"
+    r"^(?P<ts>\d\d-\d\d \d\d:\d\d:\d\d\.\d{3,6})\s+(?P<pid>\d+)\s+\d+\s+[VDIWEF]\s+(?P<tag>.*?):\s(?P<msg>.*)$"
 )
 
 # (kind, tag regex, message regex, human label). Order matters only for first-match-wins.
@@ -44,25 +44,73 @@ PATTERNS: list[tuple[str, str, str, str]] = [
     ("BLOCK_ERR", r"bd_logger::async_log_buffer",
      r"^flush state: received an error when waiting for completion",
      "blocking flush TIMED OUT (500ms JNI cap)"),
-    # stats — match the whole bd_client_stats* prefix, not just ::stats
-    ("FORCED", r"bd_client_stats.*", r"^received a signal to flush stats to disk$",
+    # Stats. Match the whole bd_client_stats* prefix, not just ::stats.
+    #
+    # The message text changed when the stats subsystem was reworked, so both wordings are matched:
+    # older pins are still in the wild, and a pattern that silently stops matching reports "no
+    # upload happened" rather than "I can't see it" — the worst possible failure mode here.
+    ("FORCED", r"bd_client_stats.*",
+     r"^(received a signal to flush stats to disk|flushing collected stats to disk)$",
      "forced flush requested"),
-    ("TICK", r"bd_client_stats.*", r"^processing flush to disk tick$", "flush_to_disk() entered"),
+    ("TICK", r"bd_client_stats.*", r"^processing flush to disk tick$",
+     "flush to disk tick entered"),
     ("MERGE", r"bd_client_stats.*", r"^updating aggregated snapshot file with (?P<n>\d+) metrics",
      "merge snapshot ({n} metrics)"),
     ("SNAP", r"bd_client_stats.*", r"^writing snapshot: (?P<path>\S+)$",
      "WROTE SNAPSHOT TO DISK  {path}"),
-    ("FLUSHED", r"bd_client_stats.*", r"^stats flushed$", "stats flushed (forced path complete)"),
+    ("FLUSHED", r"bd_client_stats.*", r"^stats flushed$",
+     "stats flushed (forced path complete)"),
+    ("PREP", r"bd_client_stats.*",
+     r"^preparing stats upload from disk: only_if_file_is_old=(?P<old>\w+), reason=(?P<reason>\S+)",
+     "preparing upload ({reason})"),
     ("ENQ", r"bd_client_stats.*",
-     r"^sending pending flush upload: (?P<uuid>\S+) with (?P<n>\d+) metrics$",
-     "upload enqueued {uuid} ({n} metrics)"),
-    ("DEBO", r"bd_client_stats.*", r"^skipping flush upload, minimum interval not elapsed$",
-     "upload DEBOUNCED (30s window)"),
+     r"^(?:sending pending flush upload: (?P<uuid>\S+) with (?P<n>\d+) metrics"
+     r"|prepared (?P<reason>\S+) stats upload: uuid=(?P<uuid2>[0-9a-f-]+), snapshots=(?P<snaps>\d+), metrics=(?P<n2>\d+))$",
+     "upload enqueued"),
+    ("DISPATCH", r"bd_client_stats.*",
+     r"^dispatched (?P<kind>.+?) stats upload for (?P<n>\d+) source files$",
+     "dispatched {kind} upload ({n} files)"),
+    # `skipping <kind> upload, …` — kind is flush/periodic/absent depending on pin and call site.
+    # Pinning the word (it used to be a literal "flush") made a live gate invisible: the legacy
+    # wording emits "skipping periodic upload", which fell through and reported as upload NONE.
+    # Surface which path was refused: a `periodic` suppression is the gate working as designed (a 5s
+    # cadence against a 30s floor refuses constantly), whereas a `flush` suppression means the
+    # backgrounding upload never went out and the run measured the gate instead of the question.
+    ("DEBO", r"bd_client_stats.*",
+     r"^(?:skipping (?:(?P<kind0>\S+) )?upload, minimum interval not elapsed"
+     r"|skipping (?P<kind>\S+) stats upload: minimum upload interval has not elapsed)$",
+     "upload DEBOUNCED ({kind} path, minimum interval)"),
+    ("DEBOUNCE_OPEN", r"bd_client_stats.*",
+     r"^started stats disk flush debounce window: duration=(?P<d>\S+)$",
+     "disk-flush debounce window OPENED ({d})"),
+    ("DEBOUNCE_SHUT", r"bd_client_stats.*",
+     r"^stats disk flush debounce window closed without a trailing flush$",
+     "disk-flush debounce window closed, nothing coalesced"),
+    # A coalescing window emits NO "closed" line — it logs the coalesce, then runs a trailing flush
+    # at window expiry. The previous pattern here guessed at "…window closed <with something>" and
+    # could never match, so every run reported `coalesced 0` and the docs concluded the branch was
+    # untested. It was reachable all along; only the detector was wrong. Confirmed against a capture
+    # from scripts/force_coalesce.py, which lands two flushes inside the window on purpose.
+    ("DEBOUNCE_COALESCE", r"bd_client_stats.*",
+     r"^coalescing stats disk flush into active debounce window$",
+     "disk-flush COALESCED into the open window"),
+    ("DEBOUNCE_TRAILING", r"bd_client_stats.*",
+     r"^running debounced trailing stats disk flush: periodic_upload_pending=(?P<pending>\w+)$",
+     "debounced trailing flush runs (periodic_upload_pending={pending})"),
     ("DROPPED", r"bd_client_stats.*", r"^flush already in progress, skipping$",
      "flush DROPPED (already in progress)"),
+    # The server ack, logged one step before the UploadResponse summary. It is the most direct
+    # evidence an upload actually landed, so surface it rather than inferring delivery from RES.
+    # Note the tag is bd_api, not bd_client_stats — the ack is observed at the transport layer,
+    # which is why a stats-only RUST_LOG filter hides it. The id is a uuid on some paths and a
+    # 64-char content hash on others, so match neither shape.
+    ("ACK", r"bd_api.*",
+     r'^received ack for stats upload "(?P<uuid>[^"]*)", error: "(?P<err>[^"]*)"$',
+     "server ACK for upload"),
     ("RES", r"bd_client_stats.*",
-     r'^stat flush upload attempt complete: UploadResponse \{ success: (?P<ok>\w+), uuid: "(?P<uuid>[^"]*)"',
-     "upload result success={ok} {uuid}"),
+     r'^(?:stat flush upload attempt complete: UploadResponse \{ success: (?P<ok>\w+), uuid: "(?P<uuid>[^"]*)"'
+     r'|(?P<kind2>.+?) stats upload completed: uuid=(?P<uuid2>[0-9a-f-]+), success=(?P<ok2>\w+), source_files=(?P<files>\d+))',
+     "upload result"),
     # transport
     ("STREAM_UP", r"bd_api.*", r"^received handshake$", "api stream up"),
     ("STREAM_DOWN", r"bd_api.*", r"^stream closed due to '(?P<why>.*)'$", "api stream CLOSED: {why}"),
@@ -74,11 +122,17 @@ COMPILED = [(k, re.compile(t), re.compile(m), lbl) for k, t, m, lbl in PATTERNS]
 
 
 def ts_ms(ts: str) -> int:
+    """Device-clock timestamp to milliseconds.
+
+    Handles both `-v threadtime` (`.345`) and `-v usec` (`.000124`) fractions — padding then
+    truncating to three digits gives ms in either case.
+    """
     date, clock = ts.split(" ")
     mo, dd = (int(x) for x in date.split("-"))
     hh, mm, rest = clock.split(":")
-    ss, ms = rest.split(".")
-    return ((((mo - 1) * 31 + dd) * 24 + int(hh)) * 3600 + int(mm) * 60 + int(ss)) * 1000 + int(ms)
+    ss, frac = rest.split(".")
+    ms = int(frac.ljust(6, "0")[:3])
+    return ((((mo - 1) * 31 + dd) * 24 + int(hh)) * 3600 + int(mm) * 60 + int(ss)) * 1000 + ms
 
 
 def parse(path: str, pkg: str = "io.bitdrift.gradletestapp") -> list[dict]:
@@ -105,9 +159,26 @@ def parse(path: str, pkg: str = "io.bitdrift.gradletestapp") -> list[dict]:
                 if kind.startswith("OS_") and pkg not in msg:
                     break
                 groups = {k: v for k, v in mm.groupdict().items() if v}
-                out.append({"kind": kind, "t": ts_ms(m["ts"]), "ts": m["ts"],
-                            "pid": m["pid"],
-                            "label": label.format(**groups) if groups else label, **groups})
+                # Old/new wordings use different group names for the same field.
+                if "uuid2" in groups:
+                    groups["uuid"] = groups.pop("uuid2")
+                if "ok2" in groups:
+                    groups["ok"] = groups.pop("ok2")
+                if "n2" in groups:
+                    groups["n"] = groups.pop("n2")
+                if "kind0" in groups:
+                    groups["kind"] = groups.pop("kind0")
+                # Some revs log a bare "skipping upload, …" with no kind. The label still needs the
+                # placeholder filled, and an unnamed path is worth flagging rather than papering over.
+                if kind == "DEBO":
+                    groups.setdefault("kind", "unspecified")
+                # Reserved fields must win over regex capture groups. A pattern with a
+                # (?P<kind>…) group would otherwise clobber the event type via the splat and
+                # silently vanish from every downstream count.
+                ev = dict(groups)
+                ev.update({"kind": kind, "t": ts_ms(m["ts"]), "ts": m["ts"], "pid": m["pid"],
+                           "label": label.format(**groups) if groups else label})
+                out.append(ev)
                 break
 
     # Our pid is whichever process emitted the app-side lifecycle logs. Use it to drop bd_* lines
@@ -123,6 +194,49 @@ def fmt(delta: int) -> str:
     a = abs(delta)
     s = "+" if delta >= 0 else "-"
     return f"{s}{a/1000:.3f}s" if a >= 1000 else f"{s}{a}ms"
+
+
+
+def _debounce_report(evs: list[dict]) -> dict:
+    """Report on the disk-flush debounce window (present on post-rework pins only).
+
+    The window opens right after each disk write and lasts `duration`. A flush arriving inside it is
+    coalesced and deferred to window expiry, so a coalescing window logs
+    `coalescing stats disk flush …` then `running debounced trailing stats disk flush` — and, unlike
+    an idle window, emits **no** "closed" line. Windows therefore split three ways:
+    opened == closed_empty + coalesced (+ any still open when the capture ended).
+
+    Two things follow that are easy to get backwards:
+
+    - A coalesce produces a trailing write ~`duration` after the first, so consecutive writes about
+      one window apart are the debounce *working*, not evidence it did nothing.
+    - The invariant (consecutive writes never closer than the window) holds in both cases, so it
+      cannot distinguish "coalesced correctly" from "never had two flushes close together". Read
+      `coalesced` for that, and note the count was stuck at 0 for a long time purely because this
+      detector was wrong — see scripts/force_coalesce.py for a run that exercises the branch.
+    """
+    opens = [e for e in evs if e["kind"] == "DEBOUNCE_OPEN"]
+    shuts = [e for e in evs if e["kind"] == "DEBOUNCE_SHUT"]
+    coal = [e for e in evs if e["kind"] == "DEBOUNCE_COALESCE"]
+    trail = [e for e in evs if e["kind"] == "DEBOUNCE_TRAILING"]
+    writes = sorted(e["t"] for e in evs if e["kind"] == "SNAP")
+    gaps = [b - a for a, b in zip(writes, writes[1:])]
+
+    dur_ms = None
+    if opens:
+        raw = opens[0].get("d", "")
+        m = re.match(r"([\d.]+)(ms|s)$", raw)
+        if m:
+            dur_ms = float(m.group(1)) * (1 if m.group(2) == "ms" else 1000)
+
+    min_gap = min(gaps) if gaps else None
+    held = None
+    if dur_ms is not None and min_gap is not None:
+        held = min_gap >= dur_ms
+    return {"present": bool(opens), "window_ms": dur_ms, "opened": len(opens),
+            "closed_empty": len(shuts), "closed_coalesced": len(coal),
+            "trailing_flushes": len(trail),
+            "writes": len(writes), "min_write_gap_ms": min_gap, "invariant_held": held}
 
 
 def summarize(evs: list[dict], ref_label: str) -> dict:
@@ -150,10 +264,26 @@ def summarize(evs: list[dict], ref_label: str) -> dict:
                    and "wait" not in e["label"]), None)
     invalid = bool(ref and action and ref["t"] < action["t"] - 50)
 
+    # A pre-reference upload that was enqueued but never acked is still in flight when the
+    # backgrounding happens. It then competes with the backgrounding upload and both die at the
+    # firewall cutoff, so a missing BG ack says nothing about the scenario's subject.
+    #
+    # This is a validity flag, not a result. Ack latency has a heavy tail -- 1.3s typical, 23s
+    # observed on the same device and config minutes apart -- so no foreground wait can rule this
+    # out by construction; it has to be detected per run. A whole 16-scenario sweep was misread as
+    # 9 upload regressions before this existed.
+    pre_enq = [e for e in before if e["kind"] == "ENQ"]
+    pre_ack = [e for e in before if e["kind"] in ("ACK", "RES")]
+    startup_in_flight = bool(pre_enq) and len(pre_ack) < len(pre_enq)
+
+    no_ref = ref is None
     return {
+        "startup_upload_in_flight": startup_in_flight,
         "ref_t": ref_t,
-        "ref_found": ref is not None,
+        "ref_found": not no_ref,
+        "no_reference": no_ref,
         "invalid_run": invalid,
+        "debounce": _debounce_report(evs),
         "fg": {"snapshots": len(k(before, "SNAP")), "uploads_enqueued": len(k(before, "ENQ")),
                "uploads_ok": len([e for e in k(before, "RES") if e.get("ok") == "true"])},
         "bg": {
@@ -188,8 +318,14 @@ def main() -> None:
         print(json.dumps({"summary": s, "events": evs}, indent=2))
         return
 
-    print(f"reference: {args.ref}" + ("" if s["ref_found"] else "  (NOT FOUND — offsets are from "
-                                                               "the first event)"))
+    print(f"reference: {args.ref}")
+    if s["no_reference"]:
+        print("\n  *** REFERENCE EVENT NEVER FIRED ***"
+              "\n      The foreground/background split is meaningless, so no backgrounding verdict"
+              "\n      is reported below — any counts would be foreground work mislabelled."
+              "\n      If the reference is 'process ON_STOP', the usual cause is that the app never"
+              "\n      actually backgrounded: the app-switcher/recents action leaves the activity"
+              "\n      started, so no backgrounding work runs at all. That absence IS the result.\n")
     if s["invalid_run"]:
         print("\n  *** INVALID RUN: the reference event precedes the action marker. The app was "
               "\n      already backgrounded when the action landed — usually a locked device. "
@@ -201,6 +337,14 @@ def main() -> None:
         print(f"  {fmt(d):>9}  {'#' if strong else '|'} {e['label']}")
 
     fg, bg = s["fg"], s["bg"]
+    if s["no_reference"]:
+        snaps = len([e for e in evs if e["kind"] == "SNAP"])
+        enq = len([e for e in evs if e["kind"] == "ENQ"])
+        ok = len([e for e in evs if e["kind"] == "RES" and e.get("ok") == "true"])
+        print(f"WHOLE RUN (no phase split possible): {snaps} snapshot write(s) · "
+              f"{enq} upload(s) enqueued, {ok} acked")
+        print("BACKGROUNDING FLUSH: none ran — the reference event never fired.")
+        return
     print(f"\nFOREGROUND (before reference): {fg['snapshots']} snapshot write(s) · "
           f"{fg['uploads_enqueued']} upload(s) enqueued, {fg['uploads_ok']} acked")
     print(f"BACKGROUND (after reference):  snapshot written: "
@@ -209,6 +353,25 @@ def main() -> None:
           f"timed: {bg['timed']} · dropped: {bg['dropped']}")
     print(f"  upload {bg['upload']}/{bg['upload_result']}"
           + (f" · ack {bg['ack_ms']}ms" if bg["ack_ms"] is not None else ""))
+    db = s["debounce"]
+    if db["present"]:
+        verdict = ("HELD" if db["invariant_held"] else "VIOLATED") if db["invariant_held"] is not None else "n/a"
+        print(f"DISK-FLUSH DEBOUNCE ({db['window_ms']:.0f}ms window): {db['opened']} opened · "
+              f"{db['closed_empty']} closed empty · {db['closed_coalesced']} COALESCED "
+              f"({db['trailing_flushes']} trailing flush(es)) · "
+              f"{db['writes']} write(s), closest {db['min_write_gap_ms']}ms apart "
+              f"=> invariant {verdict}")
+        if db["closed_coalesced"]:
+            print("  A coalesce defers its write to window expiry, so write pairs ~one window apart "
+                  "are the\n  debounce working. Exercised deliberately by scripts/force_coalesce.py.")
+        else:
+            print("  NOTE: no window coalesced here — this run simply never had two flushes land "
+                  "inside one\n  window. That is ordinary; flushes usually arrive seconds apart.")
+    if s.get("startup_upload_in_flight"):
+        print("  *** STARTUP UPLOAD STILL IN FLIGHT at the reference event. It competes with the"
+              "\n      backgrounding upload and both die at the firewall cutoff, so a missing ack here"
+              "\n      is INCONCLUSIVE, not a blocked upload. Ack latency has a heavy tail (1.3s"
+              "\n      typical, 23s observed), so idle longer in the foreground and repeat.")
     if bg["upload"] == "DEBO":
         print("  NOTE: debounced by the 30s window — this run did not test upload delivery. "
               "Idle >30s in the foreground before backgrounding.")

@@ -1,0 +1,31 @@
+{
+  "name": "T06-doze-deep",
+  "description": "Screen off, then deep doze forced immediately after. Pre-armed so force-idle lands ~0.3s after ON_STOP rather than ~2s.",
+  "rust_log": "info,bd_client_stats=debug,bd_logger=debug,bd_api=debug,bd_runtime=debug,bd_workflows=debug",
+  "modes_before_launch": [
+    "doze-prearm"
+  ],
+  "steps": [
+    {
+      "action": "launch"
+    },
+    {
+      "action": "wait",
+      "seconds": 18,
+      "why": "let the startup upload settle before backgrounding. This wait is load-bearing for TWO things and only one is obvious: the minimum-upload-interval floor (now unarmed at launch, so not the reason) AND letting the ~5s startup upload ACK before the app backgrounds. If it is still in flight it competes with the backgrounding upload and both die at the ~5s firewall cutoff. 18s covers typical ack latency (1.3-2s) and moderate outliers (8.5s observed); the tail reaches 23s, which no wait can cover, so parse_logs flags startup_upload_in_flight per run instead of pretending otherwise."
+    },
+    {
+      "action": "screen-off"
+    },
+    {
+      "action": "mode",
+      "name": "doze-deep"
+    },
+    {
+      "action": "wait",
+      "seconds": 15,
+      "why": "covers everything that happens after a forced flush: disk write (+30ms), server ack (0.5-2s), the OS network cutoff (~4-5s), and the RE-ANCHORED disk flush (+5s). shared-core resets the periodic schedule on an explicit flush, so a long tail no longer buys anything - the old 40s was sized for a 30s cadence that no longer exists."
+    }
+  ],
+  "reference_event": "process ON_STOP"
+}
