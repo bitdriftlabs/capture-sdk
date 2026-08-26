@@ -35,6 +35,8 @@ static FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 static BINARY_FIELD_BYTE_ARRAY: OnceLock<CachedMethod> = OnceLock::new();
 static STRING_FIELD_STRING: OnceLock<CachedMethod> = OnceLock::new();
 
+const STRING_ARRAY_LOCAL_REF_BATCH_SIZE: usize = 64;
+
 pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   let field_class = initialize_class(env, "io/bitdrift/capture/providers/Field", None)?;
   initialize_method_handle(
@@ -206,27 +208,33 @@ pub fn string_arrays_to_annotated_fields(
   #[allow(clippy::cast_sign_loss)]
   let mut fields = AnnotatedLogFields::with_capacity(len as usize);
 
-  for i in 0 .. len {
-    env.with_local_frame(4, |env| -> anyhow::Result<()> {
-      let key_obj = env.get_object_array_element(keys, i)?;
-      let value_obj = env.get_object_array_element(values, i)?;
+  // Converted strings are owned before each frame is popped. Processing a bounded window keeps
+  // local-reference use predictable while avoiding a frame transition for every field.
+  let batch_size = i32::try_from(STRING_ARRAY_LOCAL_REF_BATCH_SIZE)?;
+  for batch_start in (0 .. len).step_by(STRING_ARRAY_LOCAL_REF_BATCH_SIZE) {
+    let batch_end = (batch_start + batch_size).min(len);
+    env.with_local_frame((batch_end - batch_start) * 4, |env| -> anyhow::Result<()> {
+      for i in batch_start .. batch_end {
+        let key_obj = env.get_object_array_element(keys, i)?;
+        let value_obj = env.get_object_array_element(values, i)?;
 
-      let key_obj = JString::from(key_obj);
-      let key = unsafe { env.get_string_unchecked(&key_obj) }?
-        .to_string_lossy()
-        .to_string();
-      let value_obj = JString::from(value_obj);
-      let value = unsafe { env.get_string_unchecked(&value_obj) }?
-        .to_string_lossy()
-        .to_string();
+        let key_obj = JString::from(key_obj);
+        let key = unsafe { env.get_string_unchecked(&key_obj) }?
+          .to_string_lossy()
+          .to_string();
+        let value_obj = JString::from(value_obj);
+        let value = unsafe { env.get_string_unchecked(&value_obj) }?
+          .to_string_lossy()
+          .to_string();
 
-      fields.insert(
-        key.into(),
-        AnnotatedLogField {
-          value: LogFieldValue::String(value),
-          kind,
-        },
-      );
+        fields.insert(
+          key.into(),
+          AnnotatedLogField {
+            value: LogFieldValue::String(value),
+            kind,
+          },
+        );
+      }
       Ok(())
     })?;
   }

@@ -96,8 +96,32 @@ class LogBenchmarkTest {
 
     @Test
     fun logNotMatched5000Fields() {
+        logNotMatchedFields(5000)
+    }
+
+    @Test
+    fun logNotMatched1Field() {
+        logNotMatchedFields(1)
+    }
+
+    @Test
+    fun logNotMatched10Fields() {
+        logNotMatchedFields(10)
+    }
+
+    @Test
+    fun logNotMatched50Fields() {
+        logNotMatchedFields(50)
+    }
+
+    @Test
+    fun logNotMatched100Fields() {
+        logNotMatchedFields(100)
+    }
+
+    private fun logNotMatchedFields(fieldCount: Int) {
         startLogger()
-        val fields = buildFieldsMap(5000)
+        val fields = buildFieldsMap(fieldCount)
 
         benchmarkRule.measureRepeated {
             Capture.Logger.logInfo(fields) { LOG_MESSAGE }
