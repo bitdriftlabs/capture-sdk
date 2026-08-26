@@ -10,6 +10,10 @@ extern crate objc;
 
 use bd_error_reporter::reporter::Reporter;
 use bd_logger::DataValue;
+use bd_runtime::runtime::{
+  FeatureFlag,
+  retry_backoff::{InitialBackoffInterval, MaxBackoffInterval},
+};
 use bd_test_helpers::config_helper::make_benchmarking_configuration_with_workflows_update;
 use bd_test_helpers::runtime::{ValueKind, make_update};
 use objc::runtime::Object;
@@ -55,8 +59,8 @@ extern "C" fn create_fast_retry_configuration(dir_path: *const c_char) {
 
   let config = make_update(
     vec![
-      ("api.initial_backoff_interval_ms", ValueKind::Int(1)),
-      ("api.max_backoff_interval_ms", ValueKind::Int(10)),
+      (InitialBackoffInterval::path(), ValueKind::Int(1)),
+      (MaxBackoffInterval::path(), ValueKind::Int(10)),
     ],
     "test-fast-retry".to_string(),
   );

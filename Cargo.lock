@@ -3877,6 +3877,7 @@ dependencies = [
  "bd-key-value",
  "bd-logger",
  "bd-proto",
+ "bd-runtime",
  "bd-test-helpers",
  "bd-test-helpers-core",
  "ctor",
