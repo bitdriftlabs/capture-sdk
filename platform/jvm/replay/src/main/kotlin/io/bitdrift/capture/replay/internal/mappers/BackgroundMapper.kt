@@ -7,30 +7,16 @@
 
 package io.bitdrift.capture.replay.internal.mappers
 
-import android.graphics.PixelFormat
 import android.view.View
-import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.internal.ReplayRect
 
-@Suppress("DEPRECATION")
 internal class BackgroundMapper : Mapper() {
     override fun map(view: View): MutableList<ReplayRect> {
         val list = super.map(view)
 
-        view.background?.let { drawable ->
-            val type =
-                when (drawable.opacity) {
-                    PixelFormat.OPAQUE -> {
-                        ReplayType.BackgroundImage
-                    }
-                    PixelFormat.TRANSLUCENT -> {
-                        ReplayType.TransparentView
-                    }
-                    else -> {
-                        // is Transparent or unknown
-                        ReplayType.Ignore
-                    }
-                }
+        // Only contribute a rect when the background actually paints something; this mapper runs
+        // alongside ButtonMapper and TextMapper, so a view with no background must not add one.
+        BackgroundOpacity.paintedType(view)?.let { type ->
             list.add(ReplayRect(type, viewOriginX, viewOriginY, view.width, view.height))
         }
         return list
