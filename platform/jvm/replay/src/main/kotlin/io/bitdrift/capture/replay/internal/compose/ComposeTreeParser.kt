@@ -54,10 +54,14 @@ internal object ComposeTreeParser {
         SessionReplayController.L.d(
             "Found Compose SemanticsNode root. Parsing Compose tree. Window offset: (${windowOffset[0]}, ${windowOffset[1]})",
         )
-        // IsDialog/IsPopup sit on a wrapper *below* this window's Compose root, so the root itself
-        // would otherwise be classified as an opaque backdrop. Decide once per window instead.
-        val isOverlayWindow = rootNode.hasDialogOrPopupDescendant()
-        return rootNode.toScannableView(windowOffset[0], windowOffset[1], layoutNodeMap, isOverlayWindow)
+        return rootNode.toScannableView(
+            ComposeWindow(
+                offsetX = windowOffset[0],
+                offsetY = windowOffset[1],
+                layoutNodes = layoutNodeMap,
+                isOverlay = rootNode.hostsOverlayWindow(),
+            ),
+        )
     }
 
     private fun buildSemanticsIdToLayoutNodeMap(rootNode: LayoutNode): MutableIntObjectMap<LayoutNode> {
@@ -88,25 +92,15 @@ internal object ComposeTreeParser {
     }
 
     @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
-    private fun SemanticsNode.toScannableView(
-        windowOffsetX: Int,
-        windowOffsetY: Int,
-        layoutNodeMap: MutableIntObjectMap<LayoutNode>,
-        inOverlayWindow: Boolean = false,
-    ): ScannableView {
-        val layoutNode = layoutNodeMap[this.id] ?: return ScannableView.IgnoredComposeView
+    private fun SemanticsNode.toScannableView(window: ComposeWindow): ScannableView {
+        val layoutNode = window.layoutNodes[this.id] ?: return ScannableView.IgnoredComposeView
         // this is a somewhat expensive call, so avoid calling it multiple times
         val config = this.config
         val captureIgnoreSubTree = config.getOrNull(CaptureModifier.CaptureIgnore)
         val isVisible = !config.contains(SemanticsProperties.InvisibleToUser)
         val notAttachedOrPlaced = !layoutNode.isPlaced || !layoutNode.isAttached
-        // Dialog, Popup and ModalBottomSheet mark their window root with these. Everything from the
-        // root down belongs to a floating overlay window, which never paints an opaque backdrop.
-        val isOverlayWindow =
-            inOverlayWindow ||
-                config.contains(SemanticsProperties.IsDialog) ||
-                config.contains(SemanticsProperties.IsPopup)
-        val type =
+        // What this node *is*, independent of the window it lives in.
+        val semanticType =
             if (notAttachedOrPlaced) {
                 return ScannableView.IgnoredComposeView
             } else if (captureIgnoreSubTree != null) {
@@ -120,18 +114,23 @@ internal object ComposeTreeParser {
             } else if (!isVisible) {
                 ReplayType.TransparentView
             } else {
-                config.toReplayType(isOverlayWindow)
+                config.toReplayType()
             }
 
-        // Handle hybrid interop AndroidViews inside Compose elements
+        // Handle hybrid interop AndroidViews inside Compose elements. This has to test the semantic
+        // type, before any occlusion adjustment: inside an overlay window a generic container is
+        // downgraded to TransparentView, and gating on the adjusted type would stop handing the
+        // embedded view to the Android traversal, silently dropping its entire subtree.
         val interopAndroidView = layoutNode.getInteropView()
-        if (type == ReplayType.View && interopAndroidView != null) {
+        if (semanticType == ReplayType.View && interopAndroidView != null) {
             return ScannableView.AndroidView(
                 view = interopAndroidView,
                 skipReplayComposeViews = false,
             )
         }
 
+        // ...and what it may claim to paint, given that window.
+        val type = semanticType.occlusionAdjustedFor(window)
         val nodeBounds = this.unclippedGlobalBounds
 
         return ScannableView.ComposeView(
@@ -139,22 +138,18 @@ internal object ComposeTreeParser {
                 ReplayRect(
                     type = type,
                     // Add window offset to translate from window-relative to screen coordinates
-                    x = nodeBounds.left.toInt() + windowOffsetX,
-                    y = nodeBounds.top.toInt() + windowOffsetY,
+                    x = nodeBounds.left.toInt() + window.offsetX,
+                    y = nodeBounds.top.toInt() + window.offsetY,
                     width = nodeBounds.width.toInt(),
                     height = nodeBounds.height.toInt(),
                 ),
             // The display name is not really used for anything
             displayName = "ComposeView",
-            // Pass window offset to all children
-            children =
-                this.children.asSequence().map {
-                    it.toScannableView(windowOffsetX, windowOffsetY, layoutNodeMap, isOverlayWindow)
-                },
+            children = this.children.asSequence().map { it.toScannableView(window) },
         )
     }
 
-    private fun SemanticsConfiguration.toReplayType(inOverlayWindow: Boolean): ReplayType {
+    private fun SemanticsConfiguration.toReplayType(): ReplayType {
         val role = this.getOrNull(SemanticsProperties.Role)
         return if (this.contains(SemanticsProperties.Text)) {
             ReplayType.Label
@@ -170,24 +165,48 @@ internal object ComposeTreeParser {
             } else {
                 ReplayType.SwitchOff
             }
-        } else if (inOverlayWindow) {
-            // A node with no text and no role is a layout container, and Compose semantics carry no
-            // background information, so we cannot tell whether it actually paints. Inside an
-            // overlay window that ambiguity is dangerous: the containers are full-screen (a
-            // ModalBottomSheet scrim, for instance) and an opaque guess occludes every window
-            // beneath them, blanking the frame. Outside one, the top container is the screen's own
-            // backdrop and opaque is the better guess, so only the overlay case is downgraded.
-            ReplayType.TransparentView
         } else {
             ReplayType.View
         }
     }
 
-    /** Whether this window hosts a floating overlay (Dialog, Popup or ModalBottomSheet). */
-    private fun SemanticsNode.hasDialogOrPopupDescendant(): Boolean =
-        config.contains(SemanticsProperties.IsDialog) ||
-            config.contains(SemanticsProperties.IsPopup) ||
-            children.any { it.hasDialogOrPopupDescendant() }
+    /**
+     * Compose marks the root of a floating overlay -- Dialog, Popup, ModalBottomSheet -- with one of
+     * these. The only place this predicate lives.
+     */
+    private val SemanticsNode.isOverlayRoot: Boolean
+        get() =
+            config.contains(SemanticsProperties.IsDialog) ||
+                config.contains(SemanticsProperties.IsPopup)
+
+    /**
+     * Whether this window hosts a floating overlay. Searched from the window's Compose root because
+     * the marker sits on a wrapper *below* it, so a node-local check would leave the root itself --
+     * which spans the whole window -- classified as an opaque backdrop.
+     */
+    private fun SemanticsNode.hostsOverlayWindow(): Boolean = isOverlayRoot || children.any { it.hostsOverlayWindow() }
+
+    /**
+     * An overlay window paints no backdrop of its own; its root and its scrim let the app show
+     * through. Compose semantics carry no background information, so a generic container inside one
+     * must not be guessed opaque -- a full-screen container would occlude every window beneath it
+     * and blank the frame. Outside an overlay the outermost container *is* the screen's backdrop,
+     * so it stays opaque. Types that are already specific carry their own meaning and are untouched.
+     */
+    private fun ReplayType.occlusionAdjustedFor(window: ComposeWindow): ReplayType =
+        if (window.isOverlay && this == ReplayType.View) ReplayType.TransparentView else this
+
+    /**
+     * The facts about the window currently being traversed. Every one of them is fixed for the whole
+     * of a single [parse] call, which is what makes them window state rather than node state -- and
+     * why they travel together instead of as four parallel parameters.
+     */
+    private class ComposeWindow(
+        val offsetX: Int,
+        val offsetY: Int,
+        val layoutNodes: MutableIntObjectMap<LayoutNode>,
+        val isOverlay: Boolean,
+    )
 
     private val SemanticsNode.unclippedGlobalBounds: Rect
         get() {

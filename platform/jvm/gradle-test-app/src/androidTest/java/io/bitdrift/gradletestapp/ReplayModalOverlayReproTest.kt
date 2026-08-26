@@ -8,6 +8,8 @@
 package io.bitdrift.gradletestapp
 
 import android.util.Log
+import android.view.ViewGroup
+import android.widget.TextView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +21,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -151,7 +154,42 @@ class ReplayModalOverlayReproTest {
         ).that(lastOpaqueFullBleed).isLessThan(firstTransparentFullBleed)
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test
+    fun interopAndroidViewInsideOverlayIsStillTraversed() {
+        composeRule.setContent {
+            ModalBottomSheet(onDismissRequest = { }) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    AndroidView(
+                        factory = { context ->
+                            TextView(context).apply {
+                                text = INTEROP_TEXT
+                                layoutParams = ViewGroup.LayoutParams(INTEROP_W, INTEROP_H)
+                            }
+                        },
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        val screen = capture()
+        dump("interop AndroidView inside ModalBottomSheet", screen)
+
+        // The interop view is handed to the Android traversal only when the *semantic* type is a
+        // generic View. Gating that on the occlusion-adjusted type instead drops the embedded view
+        // and everything under it, because an overlay window downgrades containers to transparent.
+        assertWithMessage(
+            "no Label captured for the interop TextView: the embedded AndroidView was not handed " +
+                "to the Android traversal, so its subtree was dropped",
+        ).that(screen.any { it.type == ReplayType.Label }).isTrue()
+    }
+
     private companion object {
+        const val INTEROP_TEXT = "Interop TextView"
+        const val INTEROP_W = 400
+        const val INTEROP_H = 100
+
         const val CAPTURE_TIMEOUT_MS = 10_000
     }
 }
