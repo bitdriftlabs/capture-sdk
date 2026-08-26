@@ -19,6 +19,7 @@ final class NetworkTestEnvironment {
     let network: Network
     let loggerBridge: LoggerBridge
     let sdkDirectory: URL
+    private let networkDiagnostics: NetworkDiagnostics
 
     var loggerID: Int64 { loggerBridge.loggerID }
 
@@ -36,11 +37,17 @@ final class NetworkTestEnvironment {
         // other.
         self.sdkDirectory = Self.makeSDKDirectory()
 
-        self.network = URLSessionNetworkClient(
+        let network = URLSessionNetworkClient(
             apiBaseURL: testServer.baseURL,
             timeout: networkIdleTimeout,
             delegateQueue: .global(qos: .userInteractive)
         )
+        let networkDiagnostics = NetworkDiagnostics()
+        self.networkDiagnostics = networkDiagnostics
+        self.network = RecordingNetwork(network: network, diagnostics: networkDiagnostics)
+        self.testServer.setFailureDiagnostics { [weak networkDiagnostics] in
+            networkDiagnostics?.description ?? "network diagnostics unavailable"
+        }
 
         self.loggerBridge = try XCTUnwrap(
             LoggerBridge(
@@ -85,6 +92,10 @@ final class NetworkTestEnvironment {
             )
         }
 
+        // This runs before the first API stream is created, so keep retries short
+        // enough to not exceed the test timeout.
+        create_fast_retry_configuration(sdkDirectory.path)
+
         return sdkDirectory
     }
 
@@ -112,5 +123,77 @@ final class NetworkTestEnvironment {
     private final class MockSessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget {
         func captureScreen() {}
         func captureScreenshot() {}
+    }
+
+    private final class RecordingNetwork: Network {
+        private let network: Network
+        private let diagnostics: NetworkDiagnostics
+
+        init(network: Network, diagnostics: NetworkDiagnostics) {
+            self.network = network
+            self.diagnostics = diagnostics
+        }
+
+        func startStream(_ streamId: UInt, headers: [String: String]) -> NetworkStream {
+            self.diagnostics.recordStart(streamID: streamId, headerCount: headers.count)
+            return RecordingNetworkStream(
+                stream: self.network.startStream(streamId, headers: headers),
+                streamID: streamId,
+                diagnostics: self.diagnostics
+            )
+        }
+    }
+
+    private final class RecordingNetworkStream: NetworkStream {
+        private let stream: NetworkStream
+        private let streamID: UInt
+        private let diagnostics: NetworkDiagnostics
+
+        init(stream: NetworkStream, streamID: UInt, diagnostics: NetworkDiagnostics) {
+            self.stream = stream
+            self.streamID = streamID
+            self.diagnostics = diagnostics
+        }
+
+        func sendData(_ baseAddress: UnsafePointer<UInt8>, count: Int) -> Int {
+            let result = self.stream.sendData(baseAddress, count: count)
+            self.diagnostics.recordWrite(streamID: self.streamID, byteCount: count, result: result)
+            return result
+        }
+
+        func shutdown() {
+            self.diagnostics.recordShutdown(streamID: self.streamID)
+            self.stream.shutdown()
+        }
+    }
+
+    private final class NetworkDiagnostics: @unchecked Sendable {
+        private let lock = NSLock()
+        private var events = [String]()
+
+        func recordStart(streamID: UInt, headerCount: Int) {
+            self.record("startStream(id=\(streamID), headers=\(headerCount))")
+        }
+
+        func recordWrite(streamID: UInt, byteCount: Int, result: Int) {
+            self.record("sendData(id=\(streamID), bytes=\(byteCount), result=\(result))")
+        }
+
+        func recordShutdown(streamID: UInt) {
+            self.record("shutdown(id=\(streamID))")
+        }
+
+        var description: String {
+            self.lock.lock()
+            defer { self.lock.unlock() }
+            return self.events.isEmpty
+                ? "no Network calls observed" : self.events.joined(separator: " -> ")
+        }
+
+        private func record(_ event: String) {
+            self.lock.lock()
+            defer { self.lock.unlock() }
+            self.events.append(event)
+        }
     }
 }

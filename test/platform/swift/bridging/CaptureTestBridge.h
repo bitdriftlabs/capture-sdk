@@ -34,6 +34,9 @@ void test_helpers_free_string(char *ptr);
 /// Stores SDK benchmarking configuration in a given directory.
 void create_benchmarking_configuration(const char *dir_path);
 
+/// Stores a runtime config with the details to do a fast API retry backoff.
+void create_fast_retry_configuration(const char *dir_path);
+
 void test_null_termination(const void *object);
 
 void run_key_value_storage_test();

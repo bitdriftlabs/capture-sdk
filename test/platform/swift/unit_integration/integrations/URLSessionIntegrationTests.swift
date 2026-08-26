@@ -191,7 +191,7 @@ final class URLSessionIntegrationTests: XCTestCase {
         let responseExpectation = self.expectation(description: "response not logged")
         responseExpectation.isInverted = true
 
-        let session = AVAssetDownloadURLSession(configuration: .background(withIdentifier: "w00t"),
+        let session = AVAssetDownloadURLSession(configuration: .background(withIdentifier: self.backgroundSessionIdentifier()),
                                                 assetDownloadDelegate: nil,
                                                 delegateQueue: nil)
 
@@ -206,12 +206,15 @@ final class URLSessionIntegrationTests: XCTestCase {
         )
 
         XCTAssertTrue(self.logger.logs.isEmpty)
+
+        task.cancel()
+        session.invalidateAndCancel()
     }
 
     func testBackgroundSessionTasks() throws {
         self.customSetUp(swizzle: true)
 
-        let session = URLSession(configuration: .background(withIdentifier: "w00t"))
+        let session = URLSession(configuration: .background(withIdentifier: self.backgroundSessionIdentifier()))
         let task = session.dataTask(with: self.makeURL())
 
         let logRequestExpectation = self.expectation(
@@ -964,6 +967,10 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     private func makeURLRequest() -> URLRequest {
         return URLRequest(url: self.makeURL())
+    }
+
+    private func backgroundSessionIdentifier() -> String {
+        "io.bitdrift.capture.tests.url-session.\(UUID().uuidString)"
     }
 
     private func makeURL() -> URL {

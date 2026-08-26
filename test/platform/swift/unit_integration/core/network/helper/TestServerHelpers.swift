@@ -31,6 +31,7 @@ public final class TestApiServer: @unchecked Sendable {
     private let handle: UnsafeMutableRawPointer
     public let port: Int32
     private let tls: Bool
+    private var failureDiagnostics: (() -> String)?
 
     /// The Rust server constructor waits for its listener to start before returning. Verify that it
     /// supplied a usable port here so tests fail at setup rather than later as a stream timeout.
@@ -65,6 +66,10 @@ public final class TestApiServer: @unchecked Sendable {
         "url=\(self.baseURL.absoluteString), tls=\(self.tls), port=\(self.port)"
     }
 
+    func setFailureDiagnostics(_ diagnostics: @escaping () -> String) {
+        self.failureDiagnostics = diagnostics
+    }
+
     // MARK: - Public async API
 
     /// Waits for the next API stream connection.
@@ -87,6 +92,7 @@ public final class TestApiServer: @unchecked Sendable {
             NSLog(
                 "[TestApiServer] stream wait timed out after \(timeout)s and \(attempts) attempts; "
                     + self.readinessDescription
+                    + (self.failureDiagnostics.map { "; client=\($0())" } ?? "")
             )
         }
 
@@ -106,6 +112,7 @@ public final class TestApiServer: @unchecked Sendable {
             throw TestServerError(
                 "Timed out waiting for API stream in \(testName) after \(timeout)s; "
                     + self.readinessDescription
+                    + (self.failureDiagnostics.map { "; client=\($0())" } ?? "")
             )
         }
         return streamID
