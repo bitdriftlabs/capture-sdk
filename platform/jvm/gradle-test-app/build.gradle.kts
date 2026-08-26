@@ -139,6 +139,7 @@ android {
     }
     lint {
         checkDependencies = true
+        checkTestSources = true
         disable.add("GradleDependency")
         disable.add("AndroidGradlePluginVersion")
     }

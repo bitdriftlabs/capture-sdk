@@ -10,7 +10,6 @@ package io.bitdrift.gradletestapp
 import androidx.fragment.app.testing.FragmentScenario
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.lifecycle.Lifecycle
-import androidx.test.internal.runner.junit4.statement.UiThreadStatement
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
@@ -47,7 +46,7 @@ class AndroidViewReplayTest {
         // ARRANGE
 
         // ACT
-        UiThreadStatement.runOnUiThread {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
             replayClient.captureScreen()
         }
 
