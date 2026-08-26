@@ -10,10 +10,8 @@ extern crate objc;
 
 use bd_error_reporter::reporter::Reporter;
 use bd_logger::DataValue;
-use bd_runtime::runtime::{
-  FeatureFlag,
-  retry_backoff::{InitialBackoffInterval, MaxBackoffInterval},
-};
+use bd_runtime::runtime::FeatureFlag;
+use bd_runtime::runtime::retry_backoff::{InitialBackoffInterval, MaxBackoffInterval};
 use bd_test_helpers::config_helper::make_benchmarking_configuration_with_workflows_update;
 use bd_test_helpers::runtime::{ValueKind, make_update};
 use objc::runtime::Object;
