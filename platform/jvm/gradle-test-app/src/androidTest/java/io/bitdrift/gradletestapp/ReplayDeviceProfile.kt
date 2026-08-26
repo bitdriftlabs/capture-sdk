@@ -7,7 +7,10 @@
 
 package io.bitdrift.gradletestapp
 
+import android.content.Context
 import android.graphics.Rect
+import android.os.Build
+import android.util.DisplayMetrics
 import android.view.WindowManager
 import androidx.test.platform.app.InstrumentationRegistry
 
@@ -34,14 +37,25 @@ enum class ReplayDeviceProfile(
     companion object {
         private const val ARG = "replayDevice"
 
-        /** Live display bounds, matching the first rect of every replay capture. */
-        fun deviceBounds(): Rect =
-            InstrumentationRegistry
-                .getInstrumentation()
-                .targetContext
-                .getSystemService(WindowManager::class.java)
-                .currentWindowMetrics
-                .bounds
+        /**
+         * Live display bounds, matching the first rect of every replay capture. Mirrors the API
+         * split in the SDK's own `DisplayManagers.computeDisplayRect`.
+         */
+        @Suppress("DEPRECATION")
+        fun deviceBounds(): Rect {
+            val windowManager =
+                InstrumentationRegistry
+                    .getInstrumentation()
+                    .targetContext
+                    .getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                windowManager.currentWindowMetrics.bounds
+            } else {
+                val metrics = DisplayMetrics()
+                windowManager.defaultDisplay.getRealMetrics(metrics)
+                Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
+            }
+        }
 
         /** Defaults to [NEXUS_6] so CI keeps asserting what it always has. */
         fun current(): ReplayDeviceProfile {

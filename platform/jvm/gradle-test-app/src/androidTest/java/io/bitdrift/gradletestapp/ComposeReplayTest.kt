@@ -437,8 +437,9 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
-        // Dialog - Child Box: should be centered
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 645, 1138, 150, 200))
+        // Dialog - Child Box: should be centered. Transparent because it has no background and so
+        // paints nothing; inside an overlay window a generic container is not assumed opaque.
+        assertThat(capture).contains(ReplayRect(ReplayType.TransparentView, 645, 1138, 150, 200))
     }
 
     @Test
@@ -472,8 +473,9 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
-        // Dialog - Child Box: should be centered
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 645, 1138, 150, 200))
+        // Dialog - Child Box: should be centered. Transparent because it has no background and so
+        // paints nothing; inside an overlay window a generic container is not assumed opaque.
+        assertThat(capture).contains(ReplayRect(ReplayType.TransparentView, 645, 1138, 150, 200))
     }
 
     @Test
