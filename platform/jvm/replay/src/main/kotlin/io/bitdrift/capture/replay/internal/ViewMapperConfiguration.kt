@@ -35,6 +35,18 @@ internal class ViewMapperConfiguration(
         map.toMap()
     }
 
+    /**
+     * Class names the host app mapped explicitly through [SessionReplayConfiguration.categorizers].
+     * Their type is the caller's choice and must not be second-guessed.
+     */
+    val externallyCategorized: Set<String> by lazy {
+        externalMapper
+            ?.values
+            ?.flatten()
+            ?.toSet()
+            .orEmpty()
+    }
+
     private val defaultMapper: Map<ReplayType, List<String>> =
         mapOf(
             ReplayType.View to

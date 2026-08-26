@@ -322,6 +322,9 @@ jobs:
     - name: Gradle capture-plugin unit tests
       working-directory: ./platform/jvm
       run: ./gradlew capture-plugin:test --info
+    - name: Gradle replay unit tests
+      working-directory: ./platform/jvm
+      run: ./gradlew replay:testDebugUnitTest --info
     - name: Check Licenses for modules
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense

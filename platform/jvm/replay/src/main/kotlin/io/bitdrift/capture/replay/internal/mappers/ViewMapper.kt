@@ -77,7 +77,8 @@ internal class ViewMapper(
                 "invalid_resource_id"
             }
 
-        val type = viewMapperConfiguration.mapper[this.javaClass.simpleName]
+        val className = this.javaClass.simpleName
+        val type = viewMapperConfiguration.mapper[className]
         if (type == null) {
             // Try to use generic mapper
             list.addAll(buttonMapper.map(this))
@@ -85,7 +86,7 @@ internal class ViewMapper(
             list.addAll(backgroundMapper.map(this))
             if (list.isEmpty()) {
                 SessionReplayController.L.v(
-                    "Ignoring Unknown view: $resourceName ${this.javaClass.simpleName}:" +
+                    "Ignoring Unknown view: $resourceName $className:" +
                         " w=${this.width}, h=${this.height}",
                 )
             } else {
@@ -95,11 +96,13 @@ internal class ViewMapper(
             val out = IntArray(2)
             this.getLocationOnScreen(out)
             SessionReplayController.L.v(
-                "Successfully mapped Android view=${this.javaClass.simpleName} to=$type:" +
+                "Successfully mapped Android view=$className to=$type:" +
                     " ${out[0]}, ${out[1]}, ${this.width}, ${this.height}",
             )
+            // Only infer opacity for built-in generic mappings; an app that categorized this class
+            // itself asked for this exact type.
             val paintedType =
-                if (type == ReplayType.View) {
+                if (type == ReplayType.View && className !in viewMapperConfiguration.externallyCategorized) {
                     BackgroundOpacity.paintedType(this) ?: ReplayType.TransparentView
                 } else {
                     type
