@@ -299,6 +299,10 @@ final class URLSessionIntegrationTests: XCTestCase {
 
             let expectation = self.expectation(description: "delegate callbacks are called")
             expectation.expectedFulfillmentCount = 1
+            // HTTPS may issue more than one authentication challenge while establishing a
+            // connection. This test verifies that the caller's session delegate is retained,
+            // not the number of challenges issued by the transport.
+            expectation.assertForOverFulfill = false
 
             let delegate = URLSessionCustomDelegate()
             delegate.didReceiveChallenge = expectation
