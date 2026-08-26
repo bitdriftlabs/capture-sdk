@@ -19,6 +19,7 @@ import androidx.compose.material.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -129,6 +130,14 @@ class ReplayModalOverlayReproTest {
                 "opaque View and will paint over every window beneath it",
         ).that(firstTransparentFullBleed).isAtLeast(0)
 
+        // The sheet's own Surface paints, so it must stay opaque; only the window root and the
+        // scrim are transparent. Downgrading everything in the overlay renders the sheet hollow.
+        assertWithMessage(
+            "the sheet Surface was downgraded to TransparentView, so the sheet renders unfilled",
+        ).that(
+            screen.any { it.type == ReplayType.View && !isFullBleed(it) && it.y > sh / 2 && it.width >= sw / 2 },
+        ).isTrue()
+
         // Rects are emitted in paint order, bottom window first.
         val lastOpaqueFullBleed =
             screen.indexOfLast { isFullBleed(it) && it.type == ReplayType.View }
@@ -164,6 +173,15 @@ class ReplayModalOverlayReproTest {
             "no Label captured for the interop TextView: the embedded AndroidView was not handed " +
                 "to the Android traversal, so its subtree was dropped",
         ).that(screen.any { it.type == ReplayType.Label }).isTrue()
+    }
+
+    /**
+     * The SDK matches this semantics key by name, because it compiles against a Compose too old to
+     * declare it. Fails here if Compose ever renames it, instead of silently hollowing out sheets.
+     */
+    @Test
+    fun shapeSemanticsKeyIsStillNamedShape() {
+        assertThat(SemanticsProperties.Shape.name).isEqualTo("Shape")
     }
 
     private companion object {

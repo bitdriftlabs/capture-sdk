@@ -30,6 +30,8 @@ import io.bitdrift.capture.replay.compose.CaptureModifier
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
 
+private const val SHAPE_KEY = "Shape"
+
 internal object ComposeTreeParser {
     @OptIn(InternalComposeUiApi::class)
     internal fun parse(androidComposeView: View): ScannableView {
@@ -127,7 +129,7 @@ internal object ComposeTreeParser {
             )
         }
 
-        val type = semanticType.occlusionAdjustedFor(window)
+        val type = semanticType.occlusionAdjustedFor(window, config)
         val nodeBounds = this.unclippedGlobalBounds
 
         return ScannableView.ComposeView(
@@ -180,8 +182,24 @@ internal object ComposeTreeParser {
      * Downgrades a generic container inside an overlay window. Compose semantics carry no background
      * information, and guessing opaque lets a full-screen container occlude the windows beneath it.
      */
-    private fun ReplayType.occlusionAdjustedFor(window: ComposeWindow): ReplayType =
-        if (window.isOverlay && this == ReplayType.View) ReplayType.TransparentView else this
+    private fun ReplayType.occlusionAdjustedFor(
+        window: ComposeWindow,
+        config: SemanticsConfiguration,
+    ): ReplayType =
+        if (window.isOverlay && this == ReplayType.View && !config.paintsSurface) {
+            ReplayType.TransparentView
+        } else {
+            this
+        }
+
+    /**
+     * Whether this node draws a surface of its own, which an overlay's scrim and wrappers do not.
+     * Matched by key name because [SemanticsProperties] gained `Shape` after the Compose version
+     * this module compiles against; on older runtimes it is simply absent.
+     */
+    private val SemanticsConfiguration.paintsSurface: Boolean
+        // TODO(@murki): Migrate to using strongly-typed [SemanticsProperties.Shape] check when updating compose-ui to >= 1.9.0
+        get() = any { it.key.name == SHAPE_KEY }
 
     /** State fixed for the duration of one [parse] call. */
     private class ComposeWindow(
