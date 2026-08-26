@@ -77,9 +77,8 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest")
-    // ui-test-manifest drags androidx.test:core 1.5.0 onto debugRuntimeClasspath, and AGP's
-    // consistent resolution then pins androidTest to it. Espresso <3.7 calls
-    // InputManager.getInstance(), removed in Android 17, so the floor has to come up here too.
+    // Raises the floor AGP's consistent resolution pins androidTest to; Espresso <3.7 calls
+    // InputManager.getInstance(), removed in Android 17.
     debugImplementation("androidx.test:core:1.7.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")

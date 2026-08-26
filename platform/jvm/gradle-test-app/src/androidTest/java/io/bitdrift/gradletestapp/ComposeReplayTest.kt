@@ -84,10 +84,7 @@ class ComposeReplayTest {
         replayClient = TestUtils.createReplayPreviewClient(replay, latch, InstrumentationRegistry.getInstrumentation().targetContext)
     }
 
-    /**
-     * The exact pixel rects below were calibrated on the CI emulator. Skip rather than fail when the
-     * suite runs on different hardware, so density noise cannot mask a real regression.
-     */
+    /** Skips rather than fails on hardware the pixel rects below were not calibrated for. */
     private fun assumeReferenceGeometry() {
         val profile = ReplayDeviceProfile.current()
         Assume.assumeTrue(
@@ -118,9 +115,7 @@ class ComposeReplayTest {
 //        assertThat(screen.size).isEqualTo(viewCount)
         assertThat(screen.size).isGreaterThan(1)
 
-        // The first rect is always the display bounds. ReplayDeviceProfile.current() has already
-        // checked the attached device matches the selected profile, so this asserts real geometry
-        // on CI and on local hardware alike.
+        // The first rect is always the display bounds.
         val bounds = ReplayDeviceProfile.deviceBounds()
         assertThat(screen[0])
             .isEqualTo(ReplayRect(ReplayType.View, bounds.left, bounds.top, bounds.width(), bounds.height()))

@@ -40,9 +40,8 @@
 
 - Prevent duplicate JVM crash reports when fatal issue reporting initializes after app exit logging.
 
-- Session Replay no longer renders an empty frame when a dialog, bottom sheet or popup is on screen.
-  The overlay window's transparent root, and Compose layout containers, were captured as opaque
-  views spanning the whole window, which painted over every window beneath them.
+- Session Replay no longer renders an empty frame while a dialog, bottom sheet or popup is on
+  screen, and no longer drops the contents of an `AndroidView` embedded in one.
 
 ### iOS
 

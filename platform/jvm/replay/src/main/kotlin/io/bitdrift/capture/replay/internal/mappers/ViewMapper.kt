@@ -98,9 +98,12 @@ internal class ViewMapper(
                 "Successfully mapped Android view=${this.javaClass.simpleName} to=$type:" +
                     " ${out[0]}, ${out[1]}, ${this.width}, ${this.height}",
             )
-            // A generic container is only opaque when its background actually paints; see
-            // [BackgroundOpacity]. Every other type is already specific enough to keep as-is.
-            val paintedType = if (type == ReplayType.View) BackgroundOpacity.containerType(this) else type
+            val paintedType =
+                if (type == ReplayType.View) {
+                    BackgroundOpacity.paintedType(this) ?: ReplayType.TransparentView
+                } else {
+                    type
+                }
             list.add(ReplayRect(paintedType, out[0], out[1], this.width, this.height))
         }
         return list

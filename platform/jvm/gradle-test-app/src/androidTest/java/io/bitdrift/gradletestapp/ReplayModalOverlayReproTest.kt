@@ -40,13 +40,10 @@ import java.util.concurrent.atomic.AtomicReference
 private const val TAG = "ReplayRepro"
 
 /**
- * A floating overlay window (Dialog, Popup, ModalBottomSheet) must not contribute an opaque
- * full-bleed rect to a replay capture. Its window root and its scrim are transparent, so emitting
- * them as [ReplayType.View] paints a filled rect over every window beneath and the frame renders
- * empty.
+ * A floating overlay window must not contribute an opaque full-bleed rect: its root and scrim are
+ * transparent, and emitting them as [ReplayType.View] paints over every window beneath.
  *
- * Device-independent: it compares an overlay capture against a capture of the same content with the
- * overlay dismissed, so it needs no calibrated geometry and runs anywhere.
+ * Asserts on paint order rather than pixel geometry, so it runs on any device.
  */
 class ReplayModalOverlayReproTest {
     @get:Rule
@@ -68,12 +65,10 @@ class ReplayModalOverlayReproTest {
     }
 
     private fun capture(): FilteredCapture {
-        // NB: do not reassign `latch` here -- ReplayPreviewClient captured the instance created in
-        // setUp() by value, so a fresh one would never be counted down.
+        // Do not reassign `latch`: ReplayPreviewClient holds the instance created in setUp().
         replayClient.captureScreen()
-        // Pump the main looper rather than blocking it, otherwise the capture -- which runs on the
-        // main thread -- can never complete. Bounded, because ReplayFilter silently drops a capture
-        // identical to the previous one, and an unbounded wait would hang instead of failing.
+        // Pump the main looper instead of blocking it; the capture runs there. Bounded because
+        // ReplayFilter silently drops a capture identical to the previous one.
         var waited = 0
         while (composeRule.runOnIdle { !latch.await(500, TimeUnit.MILLISECONDS) }) {
             waited += 500
@@ -100,12 +95,6 @@ class ReplayModalOverlayReproTest {
         }
     }
 
-    private fun countOpaqueFullBleed(screen: FilteredCapture): Int {
-        val sw = screen[0].width
-        val sh = screen[0].height
-        return screen.count { it.type == ReplayType.View && it.width >= sw && it.height >= sh }
-    }
-
     @OptIn(ExperimentalMaterial3Api::class)
     @Test
     fun overlayWindowAddsNoOpaqueFullBleedRect() {
@@ -129,13 +118,10 @@ class ReplayModalOverlayReproTest {
 
         fun isFullBleed(r: ReplayRect) = r.width >= sw && r.height >= sh
 
-        // The sheet's own content has to be present, so the assertions below cannot be satisfied by
-        // simply dropping the overlay window from the capture.
+        // Guards against the assertions below being satisfied by dropping the overlay entirely.
         assertThat(screen.any { it.type == ReplayType.Label && it.y > sh / 2 }).isTrue()
         assertThat(screen.any { it.type == ReplayType.Button && it.y > sh / 2 }).isTrue()
 
-        // The overlay window's root spans the screen and paints nothing, so it must show up as a
-        // full-bleed TransparentView. Before the fix it -- and its scrim -- were opaque Views.
         val firstTransparentFullBleed =
             screen.indexOfFirst { isFullBleed(it) && it.type == ReplayType.TransparentView }
         assertWithMessage(
@@ -143,9 +129,7 @@ class ReplayModalOverlayReproTest {
                 "opaque View and will paint over every window beneath it",
         ).that(firstTransparentFullBleed).isAtLeast(0)
 
-        // Rects are emitted in paint order, bottom window first. Everything after the overlay root
-        // belongs to the overlay, so nothing there may claim to fill the screen opaquely -- that is
-        // exactly what painted over the app and produced an empty frame.
+        // Rects are emitted in paint order, bottom window first.
         val lastOpaqueFullBleed =
             screen.indexOfLast { isFullBleed(it) && it.type == ReplayType.View }
         assertWithMessage(
@@ -176,9 +160,6 @@ class ReplayModalOverlayReproTest {
         val screen = capture()
         dump("interop AndroidView inside ModalBottomSheet", screen)
 
-        // The interop view is handed to the Android traversal only when the *semantic* type is a
-        // generic View. Gating that on the occlusion-adjusted type instead drops the embedded view
-        // and everything under it, because an overlay window downgrades containers to transparent.
         assertWithMessage(
             "no Label captured for the interop TextView: the embedded AndroidView was not handed " +
                 "to the Android traversal, so its subtree was dropped",

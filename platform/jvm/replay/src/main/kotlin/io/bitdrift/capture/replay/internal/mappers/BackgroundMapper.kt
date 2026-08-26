@@ -14,8 +14,8 @@ internal class BackgroundMapper : Mapper() {
     override fun map(view: View): MutableList<ReplayRect> {
         val list = super.map(view)
 
-        // Only contribute a rect when the background actually paints something; this mapper runs
-        // alongside ButtonMapper and TextMapper, so a view with no background must not add one.
+        // Runs alongside ButtonMapper and TextMapper, so only contribute a rect when the
+        // background actually paints.
         BackgroundOpacity.paintedType(view)?.let { type ->
             list.add(ReplayRect(type, viewOriginX, viewOriginY, view.width, view.height))
         }
