@@ -17,6 +17,7 @@ import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
@@ -62,6 +63,11 @@ internal class AppLifecycleListenerLogger(
         source: LifecycleOwner,
         event: Lifecycle.Event,
     ) {
+        when (event) {
+            Lifecycle.Event.ON_START -> logger.updateOotbField(ClientAttributes.FOREGROUND_KEY, "1")
+            Lifecycle.Event.ON_STOP -> logger.updateOotbField(ClientAttributes.FOREGROUND_KEY, "0")
+            else -> Unit
+        }
         executor.execute {
             if (!runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)) {
                 return@execute
