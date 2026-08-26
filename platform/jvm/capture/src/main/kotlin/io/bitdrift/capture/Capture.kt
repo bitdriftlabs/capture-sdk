@@ -144,14 +144,15 @@ object Capture {
          */
         @Synchronized
         @JvmStatic
+        @JvmOverloads
         fun start(
             apiKey: String,
             sessionStrategy: SessionStrategy,
+            initialFields: Fields,
             configuration: Configuration = Configuration(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
-            initialFields: Fields,
             startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         ) {
             start(
@@ -165,26 +166,6 @@ object Capture {
                 context = context,
                 initialFields = initialFields,
                 startResult = startResult,
-            )
-        }
-
-        /**
-         * Initializes Capture with the specified API key, session strategy, and startup fields.
-         *
-         * This overload keeps startup fields ergonomic for Java callers without changing the existing
-         * Java overloads that accept legacy field providers.
-         */
-        @Synchronized
-        @JvmStatic
-        fun start(
-            apiKey: String,
-            sessionStrategy: SessionStrategy,
-            initialFields: Fields,
-        ) {
-            start(
-                apiKey = apiKey,
-                sessionStrategy = sessionStrategy,
-                initialFields = initialFields,
             )
         }
 
