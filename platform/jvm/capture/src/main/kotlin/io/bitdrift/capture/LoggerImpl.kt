@@ -494,6 +494,8 @@ internal class LoggerImpl(
             return
         }
         try {
+            val fields = if (arrayFields.isEmpty()) null else arrayFields
+            val matchingFields = if (matchingArrayFields.isEmpty()) null else matchingArrayFields
             val previousRunSessionId =
                 when (attributesOverrides) {
                     is LogAttributesOverrides.PreviousRunSessionId -> true
@@ -512,10 +514,10 @@ internal class LoggerImpl(
                 type.value,
                 level.value,
                 message(),
-                arrayFields.keys,
-                arrayFields.values,
-                matchingArrayFields.keys,
-                matchingArrayFields.values,
+                fields?.keys,
+                fields?.values,
+                matchingFields?.keys,
+                matchingFields?.values,
                 previousRunSessionId,
                 occurredAtTimestampMs,
             )

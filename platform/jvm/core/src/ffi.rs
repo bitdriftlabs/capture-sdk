@@ -201,6 +201,13 @@ pub fn string_arrays_to_annotated_fields(
   values: &JObjectArray<'_>,
   kind: LogFieldKind,
 ) -> anyhow::Result<AnnotatedLogFields> {
+  if keys.is_null() || values.is_null() {
+    if keys.is_null() && values.is_null() {
+      return Ok(AnnotatedLogFields::default());
+    }
+    bail!("keys and values must both be null or non-null");
+  }
+
   let len = env.get_array_length(keys)?;
   let values_len = env.get_array_length(values)?;
   if len != values_len {
