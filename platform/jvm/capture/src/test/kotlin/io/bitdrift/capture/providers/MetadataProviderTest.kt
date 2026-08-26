@@ -10,16 +10,11 @@ package io.bitdrift.capture.providers
 import com.nhaarman.mockitokotlin2.mock
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import org.mockito.Mockito.`when`
-import java.util.Date
 
 class MetadataProviderTest {
     @Suppress("TooGenericExceptionThrown")
     @Test
     fun metadata_provider_processes_field_providers_in_order_and_swallows_exceptions() {
-        val dateProvider = mock<DateProvider>()
-        `when`(dateProvider.invoke()).thenReturn(Date())
-
         // Processing of field providers continues even if one of them throws
         // an exception.
         val throwingFieldProvider1 =
@@ -41,7 +36,6 @@ class MetadataProviderTest {
             }
         val metadataProvider =
             MetadataProvider(
-                dateProvider = dateProvider,
                 ootbFieldProviders = listOf(throwingFieldProvider1, workingFieldProviders1),
                 customFieldProviders = listOf(throwingFieldProvider2, workingFieldProviders2),
                 errorHandler = mock { },

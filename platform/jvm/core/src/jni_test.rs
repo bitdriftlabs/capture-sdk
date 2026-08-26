@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use super::initialize_class;
+use super::{initialize_class, native_timestamp};
 use crate::test_jvm::with_env;
 use anyhow::Result;
 
@@ -24,4 +24,10 @@ fn initialize_class_clears_failed_lookup_exception() -> Result<()> {
     assert!(!env.exception_check()?);
     Ok(())
   })
+}
+
+#[test]
+fn native_timestamp_has_millisecond_precision() -> Result<()> {
+  assert_eq!(native_timestamp()?.nanosecond() % 1_000_000, 0);
+  Ok(())
 }

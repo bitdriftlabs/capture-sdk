@@ -10,6 +10,7 @@
 mod tests;
 
 use crate::events::ListenerTargetHandler as EventsListenerTargetHandler;
+use crate::executor::ObjectHandle;
 use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use crate::session::SessionCallback;
@@ -199,9 +200,9 @@ impl CachedClass {
 
 // Cached method IDs
 
-static METADATA_PROVIDER_TIMESTAMP: OnceLock<CachedMethod> = OnceLock::new();
 static METADATA_PROVIDER_OOTB_FIELDS: OnceLock<CachedMethod> = OnceLock::new();
 static METADATA_PROVIDER_CUSTOM_FIELDS: OnceLock<CachedMethod> = OnceLock::new();
+static TIMESTAMP_PROVIDER_TIMESTAMP: OnceLock<CachedMethod> = OnceLock::new();
 
 static NETWORK_START_STREAM: OnceLock<CachedMethod> = OnceLock::new();
 
@@ -300,16 +301,19 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   initialize_method_handle(
     &mut env,
     &metadata_provider.class,
-    "timestamp",
-    "()J",
-    &METADATA_PROVIDER_TIMESTAMP,
-  )?;
-  initialize_method_handle(
-    &mut env,
-    &metadata_provider.class,
     "ootbFields",
     "()[Lio/bitdrift/capture/providers/Field;",
     &METADATA_PROVIDER_OOTB_FIELDS,
+  )?;
+
+  let timestamp_provider =
+    initialize_class(&mut env, "io/bitdrift/capture/ITimestampProvider", None)?;
+  initialize_method_handle(
+    &mut env,
+    &timestamp_provider.class,
+    "timestamp",
+    "()J",
+    &TIMESTAMP_PROVIDER_TIMESTAMP,
   )?;
   initialize_method_handle(
     &mut env,
@@ -632,13 +636,35 @@ impl bd_error_reporter::reporter::Reporter for ErrorReporterHandle {
   }
 }
 
-define_object_wrapper!(MetadataProvider);
+struct MetadataProvider {
+  fields: ObjectHandle,
+  timestamp: Option<ObjectHandle>,
+}
+
+impl MetadataProvider {
+  fn new_global(
+    env: &JNIEnv<'_>,
+    fields: JObject<'_>,
+    timestamp: JObject<'_>,
+  ) -> jni::errors::Result<Self> {
+    Ok(Self {
+      fields: ObjectHandle::new(env, fields)?,
+      timestamp: (!timestamp.is_null())
+        .then(|| ObjectHandle::new(env, timestamp))
+        .transpose()?,
+    })
+  }
+}
 
 impl bd_logger::MetadataProvider for MetadataProvider {
   #[allow(clippy::cast_possible_truncation)]
   fn timestamp(&self) -> anyhow::Result<time::OffsetDateTime> {
-    self.execute(|e, provider| {
-      let millis_since_utc_epoch = METADATA_PROVIDER_TIMESTAMP
+    let Some(timestamp_provider) = &self.timestamp else {
+      return native_timestamp();
+    };
+
+    timestamp_provider.execute(|e, provider| {
+      let millis_since_utc_epoch = TIMESTAMP_PROVIDER_TIMESTAMP
         .get()
         .ok_or(InvariantError::Invariant)?
         .call_method(e, provider, ReturnType::Primitive(Primitive::Long), &[])?
@@ -649,7 +675,7 @@ impl bd_logger::MetadataProvider for MetadataProvider {
   }
 
   fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
-    self.execute(|e, provider| {
+    self.fields.execute(|e, provider| {
       let ootb_fields = METADATA_PROVIDER_OOTB_FIELDS
         .get()
         .ok_or(InvariantError::Invariant)?
@@ -742,6 +768,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   inactivity_timeout_milliseconds: jlong,
   session_callback: JObject<'_>,
   metadata_provider: JObject<'_>,
+  timestamp_provider: JObject<'_>,
   resource_utilization_target: JObject<'_>,
   session_replay_target: JObject<'_>,
   events_listener_target: JObject<'_>,
@@ -853,7 +880,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
         session,
-        metadata_provider: Arc::new(MetadataProvider::new_global(&env, metadata_provider)?),
+        metadata_provider: Arc::new(MetadataProvider::new_global(
+          &env,
+          metadata_provider,
+          timestamp_provider,
+        )?),
         initial_ootb_fields,
         initial_custom_fields: [].into(),
         resource_utilization_target,
@@ -1837,4 +1868,8 @@ fn unix_milliseconds_to_date(millis_since_utc_epoch: i64) -> anyhow::Result<Offs
   let nano = (millis_since_utc_epoch % 1000) * 10_i64.pow(6);
 
   Ok(time::OffsetDateTime::from_unix_timestamp(seconds)? + Duration::nanoseconds(nano))
+}
+
+fn native_timestamp() -> anyhow::Result<OffsetDateTime> {
+  unix_milliseconds_to_date(date_to_unix_milliseconds(Some(OffsetDateTime::now_utc())))
 }
