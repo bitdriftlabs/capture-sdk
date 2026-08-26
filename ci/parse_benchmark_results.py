@@ -30,6 +30,7 @@ BENCHMARKS_EXCLUDED_FROM_REPORT = frozenset(
         "logNotMatched10Fields",
         "logNotMatched50Fields",
         "logNotMatched100Fields",
+        "logNotMatched1000Fields",
     }
 )
 

@@ -132,8 +132,8 @@ enum class BazelRustStripLevel(
     NONE("none"),
 }
 
-// Keep Gradle's historical cargo-ndk target names so existing local and CI invocations select
-// the corresponding Bazel platform and APK JNI directory together.
+// Accept Gradle's historical cargo-ndk target names and the canonical Rust target triple so local
+// and CI invocations select the corresponding Bazel platform and APK JNI directory together.
 data class BazelAndroidTarget(
     val platform: String,
     val abi: String,
@@ -141,7 +141,8 @@ data class BazelAndroidTarget(
 
 val bazelAndroidTarget =
     when (val rustTarget = providers.gradleProperty("rust-target").getOrElse("arm64")) {
-        "arm64", "arm64-v8a" -> BazelAndroidTarget("@rules_android//:arm64-v8a", "arm64-v8a")
+        "arm64", "arm64-v8a", "aarch64-linux-android" ->
+            BazelAndroidTarget("@rules_android//:arm64-v8a", "arm64-v8a")
         "arm", "armv7", "armeabi-v7a" ->
             BazelAndroidTarget("@rules_android//:armeabi-v7a", "armeabi-v7a")
         "x86" -> BazelAndroidTarget("@rules_android//:x86", "x86")

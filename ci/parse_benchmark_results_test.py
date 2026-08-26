@@ -23,6 +23,7 @@ class ParseBenchmarkResultsTest(unittest.TestCase):
                 {"name": "logNotMatched10Fields", "metrics": {}},
                 {"name": "logNotMatched50Fields", "metrics": {}},
                 {"name": "logNotMatched100Fields", "metrics": {}},
+                {"name": "logNotMatched1000Fields", "metrics": {}},
                 {"name": "logNotMatched5000Fields", "metrics": {}},
             ]
         }

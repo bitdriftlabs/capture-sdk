@@ -119,6 +119,11 @@ class LogBenchmarkTest {
         logNotMatchedFields(100)
     }
 
+    @Test
+    fun logNotMatched1000Fields() {
+        logNotMatchedFields(1000)
+    }
+
     private fun logNotMatchedFields(fieldCount: Int) {
         startLogger()
         val fields = buildFieldsMap(fieldCount)
