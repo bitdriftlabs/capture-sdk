@@ -63,6 +63,7 @@ public final class MockCoreLogging {
 
     public private(set) var clearEntityIDCallCount = 0
     public private(set) var ootbFields = [String: String]()
+    public private(set) var ootbFieldUpdateCount = 0
 
     public init() {}
 
@@ -168,6 +169,7 @@ extension MockCoreLogging: CoreLogging {
     public func addField(withKey _: String, value _: String) {}
 
     public func updateOotbField(withKey key: String, value: String) {
+        self.ootbFieldUpdateCount += 1
         self.ootbFields[key] = value
     }
 

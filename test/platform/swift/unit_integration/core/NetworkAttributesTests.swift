@@ -27,4 +27,17 @@ final class NetworkAttributesTests: XCTestCase {
         XCTAssertEqual(logger.ootbFields["network_type"], attributes.getFields()["network_type"] as? String)
         XCTAssertEqual(logger.ootbFields["radio_type"], attributes.getFields()["radio_type"] as? String)
     }
+
+    func testTelephonyUpdatesOotbRadioField() {
+        let attributes = TelephonyNetworkInfo()
+        let logger = MockCoreLogging()
+
+        attributes.start(with: logger)
+        let updateCount = logger.ootbFieldUpdateCount
+
+        attributes.dataServiceIdentifierDidChange("test-service")
+
+        XCTAssertGreaterThanOrEqual(logger.ootbFieldUpdateCount, updateCount + 1)
+        XCTAssertNotNil(logger.ootbFields["radio_type"])
+    }
 }
