@@ -146,6 +146,7 @@ jobs:
           ./bazelw build \
             --config ci \
             --xcode_version="$XCODE_VERSION" \
+            --ios_simulator_version=27.0 \
             //platform/swift/source:capture_ios_static_framework
         env:
           XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}

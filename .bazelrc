@@ -47,7 +47,8 @@ build:noclippy --output_groups=-clippy_checks
 # `bazel test //...` should discover and build tests, not every build target that the wildcard
 # happens to match. Targets that are not tests remain available through `bazel build`.
 test --build_tests_only
-test --test_env=RUST_BACKTRACE=full --java_runtime_version=remotejdk_11
+test --test_env=RUST_BACKTRACE=full
+common --java_runtime_version=remotejdk_11
 
 # Shared configuration for all CI tasks. Clippy runs in its dedicated workflow so
 # artifact builds do not pay for lint-aspect analysis.
