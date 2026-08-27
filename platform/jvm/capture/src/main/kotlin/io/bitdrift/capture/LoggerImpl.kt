@@ -170,12 +170,6 @@ internal class LoggerImpl(
         metadataProvider =
             MetadataProvider(
                 dateProvider = dateProvider,
-                // order of providers matters in here, the earlier in the list the higher their priority in
-                // case of key conflicts.
-                ootbFieldGetters =
-                    listOf(
-                        clientAttributes::dynamicFields,
-                    ),
                 errorHandler = errorHandler,
                 customFieldGetters = customFieldGetters,
             )
@@ -265,6 +259,7 @@ internal class LoggerImpl(
         this.loggerId = loggerId
 
         runtime = JniRuntime(this.loggerId)
+        clientAttributes.startOotbUpdates(::updateOotbField)
         networkAttributes.start { fields ->
             fields.forEach { (key, value) ->
                 updateOotbField(key, value)

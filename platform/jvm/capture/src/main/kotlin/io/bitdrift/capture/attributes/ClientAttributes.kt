@@ -7,8 +7,8 @@
 
 package io.bitdrift.capture.attributes
 
+import android.content.ComponentCallbacks
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -19,18 +19,21 @@ import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldValue
-import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.utils.BuildTypeChecker
 import java.util.Locale
 
 internal class ClientAttributes(
-    context: Context,
+    private val context: Context,
     private val processLifecycleOwner: LifecycleOwner,
-) : IClientAttributes {
+) : IClientAttributes,
+    ComponentCallbacks {
     private val resources = context.resources
-    private var cachedConfiguration: Configuration = Configuration(resources.configuration)
 
-    private var cachedLocale: String? = null
+    @Volatile
+    private var cachedLocale = locale
+
+    @Volatile
+    private var fieldUpdateHandler: ((String, String) -> Unit)? = null
 
     override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
 
@@ -76,14 +79,12 @@ internal class ClientAttributes(
         }
     }
 
-    private val cachedAttributes = mutableMapOf<String, String>()
-
     /**
-     * Returns the dynamic OOTB snapshots needed before the logger can accept logs.
+     * Returns the OOTB snapshots needed before the logger can accept logs.
      *
      * Process lifecycle state can be read from the logger runtime thread. Subsequent lifecycle
-     * events keep the foreground field current on the main thread, while the metadata provider
-     * refreshes the locale when the configuration changes.
+     * events keep the foreground field current on the main thread, while configuration changes
+     * update the locale directly in the native OOTB field store.
      */
     internal fun initialOotbFields(): Array<Field> =
         arrayOf(
@@ -91,25 +92,23 @@ internal class ClientAttributes(
             Field(LOCALE_KEY, FieldValue.StringField(locale)),
         )
 
-    internal fun dynamicFields(): Fields {
-        updateLocaleIfNeeded()
-        return cachedAttributes
+    /** Starts forwarding locale changes to the native OOTB field store. */
+    internal fun startOotbUpdates(fieldUpdateHandler: (String, String) -> Unit) {
+        this.fieldUpdateHandler = fieldUpdateHandler
+        context.registerComponentCallbacks(this)
+        cachedLocale = locale
+        fieldUpdateHandler(LOCALE_KEY, cachedLocale)
     }
 
-    private fun updateLocaleIfNeeded() {
-        val currentConfig = resources.configuration
-        val configDiff = currentConfig.diff(cachedConfiguration)
-
-        if (cachedLocale == null || (configDiff and ActivityInfo.CONFIG_LOCALE == ActivityInfo.CONFIG_LOCALE)) {
-            val updatedLocale = locale
-
-            if (cachedLocale != updatedLocale) {
-                cachedLocale = updatedLocale
-                cachedAttributes[LOCALE_KEY] = updatedLocale
-            }
-            cachedConfiguration = Configuration(currentConfig)
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        val updatedLocale = getCurrentLocale(newConfig)?.toString() ?: UNKNOWN_FIELD_VALUE
+        if (cachedLocale != updatedLocale) {
+            cachedLocale = updatedLocale
+            fieldUpdateHandler?.invoke(LOCALE_KEY, updatedLocale)
         }
     }
+
+    override fun onLowMemory() = Unit
 
     private fun isForeground(): Boolean {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
@@ -138,7 +137,8 @@ internal class ClientAttributes(
     /**
      * Gets the current locale.
      */
-    private fun getCurrentLocale(): Locale? = ConfigurationCompat.getLocales(resources.configuration).get(0)
+    private fun getCurrentLocale(configuration: Configuration = resources.configuration): Locale? =
+        ConfigurationCompat.getLocales(configuration).get(0)
 
     /**
      * Returns the installation source (e.g. `com.android.vending` will be shown when

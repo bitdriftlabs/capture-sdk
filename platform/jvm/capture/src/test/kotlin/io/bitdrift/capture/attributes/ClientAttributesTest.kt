@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.pm.InstallSourceInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -34,6 +35,7 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.Locale
 
 @Suppress("DEPRECATION")
 @RunWith(RobolectricTestRunner::class)
@@ -71,15 +73,23 @@ class ClientAttributesTest {
     }
 
     @Test
-    fun dynamic_fields_exclude_static_attributes() {
-        val fields =
+    fun locale_changes_update_ootb_field() {
+        val clientAttributes =
             ClientAttributes(
                 appContext,
                 obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED),
-            ).dynamicFields()
+            )
+        val updates = mutableListOf<Pair<String, String>>()
+        val frenchCanadianConfig = Configuration(appContext.resources.configuration).apply { setLocale(Locale.CANADA_FRENCH) }
 
-        assertThat(fields).doesNotContainKey("foreground")
-        assertThat(fields).doesNotContainKeys("app_id", "app_version", "_app_version_code", "model")
+        clientAttributes.startOotbUpdates { key, value -> updates.add(key to value) }
+        clientAttributes.onConfigurationChanged(frenchCanadianConfig)
+        clientAttributes.onConfigurationChanged(frenchCanadianConfig)
+
+        assertThat(updates).containsExactly(
+            ClientAttributes.LOCALE_KEY to "en_US",
+            ClientAttributes.LOCALE_KEY to "fr_CA",
+        )
     }
 
     @Test
@@ -278,9 +288,7 @@ class ClientAttributesTest {
         val clientAttributes =
             ClientAttributes(appContext, obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED))
 
-        val fields = clientAttributes.dynamicFields()
-
-        assertThat(fields).containsEntry(ClientAttributes.LOCALE_KEY, "en_US")
+        assertThat(clientAttributes.locale).isEqualTo("en_US")
     }
 
     private fun assertInstallationSource(

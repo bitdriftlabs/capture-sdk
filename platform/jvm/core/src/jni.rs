@@ -200,7 +200,6 @@ impl CachedClass {
 // Cached method IDs
 
 static METADATA_PROVIDER_TIMESTAMP: OnceLock<CachedMethod> = OnceLock::new();
-static METADATA_PROVIDER_OOTB_FIELDS: OnceLock<CachedMethod> = OnceLock::new();
 static METADATA_PROVIDER_CUSTOM_FIELDS: OnceLock<CachedMethod> = OnceLock::new();
 
 static NETWORK_START_STREAM: OnceLock<CachedMethod> = OnceLock::new();
@@ -303,13 +302,6 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
     "timestamp",
     "()J",
     &METADATA_PROVIDER_TIMESTAMP,
-  )?;
-  initialize_method_handle(
-    &mut env,
-    &metadata_provider.class,
-    "ootbFields",
-    "()[Lio/bitdrift/capture/providers/Field;",
-    &METADATA_PROVIDER_OOTB_FIELDS,
   )?;
   initialize_method_handle(
     &mut env,
@@ -650,14 +642,6 @@ impl bd_logger::MetadataProvider for MetadataProvider {
 
   fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
     self.execute(|e, provider| {
-      let ootb_fields = METADATA_PROVIDER_OOTB_FIELDS
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .call_method(e, provider, ReturnType::Object, &[])?
-        .l()?;
-      let ootb_fields_array = unsafe { JObjectArray::from_raw(ootb_fields.as_raw()) };
-      let ootb_fields = ffi::jarray_to_fields(e, &ootb_fields_array)?;
-
       let custom_fields = METADATA_PROVIDER_CUSTOM_FIELDS
         .get()
         .ok_or(InvariantError::Invariant)?
@@ -666,7 +650,7 @@ impl bd_logger::MetadataProvider for MetadataProvider {
       let custom_fields_array = unsafe { JObjectArray::from_raw(custom_fields.as_raw()) };
       let custom_fields = ffi::jarray_to_fields(e, &custom_fields_array)?;
 
-      Ok((custom_fields, ootb_fields))
+      Ok((custom_fields, LogFields::default()))
     })
   }
 }

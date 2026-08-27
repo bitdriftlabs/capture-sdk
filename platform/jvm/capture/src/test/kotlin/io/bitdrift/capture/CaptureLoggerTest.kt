@@ -547,7 +547,6 @@ class CaptureLoggerTest {
             "_architecture" to clientAttributes.architecture,
         ).toFieldValueMap() +
             clientAttributes.initialOotbFields().associate { it.key to it.value } +
-            clientAttributes.dynamicFields().toFieldValueMap() +
             NetworkAttributes(ContextHolder.APP_CONTEXT).getFields().toFieldValueMap()
     }
 
