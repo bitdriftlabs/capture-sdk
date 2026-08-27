@@ -10,12 +10,14 @@ if ! which cargo-upgrade >/dev/null 2>&1; then
   exit 1
 fi
 
-shared_core_main=$(git ls-remote git@github.com:bitdriftlabs/shared-core.git main | awk '{print $1}')
-sha="${1:-$shared_core_main}"
+sha="${1:-}"
+if [ -z "$sha" ]; then
+  sha=$(git ls-remote git@github.com:bitdriftlabs/shared-core.git main | awk '{print $1}')
+fi
 
 old_version=$(grep bd-api Cargo.toml | grep -Eo 'rev = ".*"' | cut -d' ' -f3 | tr -d '"')
 
-sed -i "s|\"$old_version\"|\"$sha\"|g" Cargo.toml
+perl -0pi -e "s|\Q\"$old_version\"\E|\"$sha\"|g" Cargo.toml
 
 # Host-JVM JNI tests require the currently pinned JNI crate and its invocation feature.
 cargo upgrade --incompatible --exclude jni
