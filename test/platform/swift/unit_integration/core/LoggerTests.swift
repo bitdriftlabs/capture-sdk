@@ -32,16 +32,23 @@ final class LoggerTests: XCTestCase {
     // up calling back into the logger.
     func testPreventsLoggingReEntryFromWithinRegisteredProviders() throws {
         var logger: Logger?
+        defer {
+            logger?.enableBlockingShutdown()
+            logger = nil
+        }
 
         let expectation = self.expectation(description: "'SDKConfigured' log is emitted")
         expectation.expectedFulfillmentCount = 1
+        let fieldGetterCallCount = Atomic(0)
 
         logger = try Logger.testLogger(
             withAPIKey: "test_api_key",
             customFieldGetters: [
-                {
+                { [weak logger] in
                     logger?.log(level: .debug, message: "never_logged", type: .normal)
-                    expectation.fulfill()
+                    if fieldGetterCallCount.update({ $0 += 1 }) == 1 {
+                        expectation.fulfill()
+                    }
                     return [:]
                 },
             ]
@@ -60,23 +67,28 @@ final class LoggerTests: XCTestCase {
             description: "Field Provider is called on the background thread"
         )
         // Called once for OOTB "SDK configured" and once for custom emitted log.
-        fieldProviderExpectation.expectedFulfillmentCount = 2
+        let expectedProviderCalls = 2
+        fieldProviderExpectation.expectedFulfillmentCount = expectedProviderCalls
+        let fieldProviderCallCount = Atomic(0)
 
         let dateProviderExpectation = self.expectation(
             description: "Date Provider is called on the background thread"
         )
         // Called once for OOTB "SDK configured" log and once for custom emitted log.
-        dateProviderExpectation.expectedFulfillmentCount = 2
+        dateProviderExpectation.expectedFulfillmentCount = expectedProviderCalls
+        let dateProviderCallCount = Atomic(0)
 
         dateProvider.getDateClosure = {
             // Tests are evaluated on the main queue so we would expect this to run
             // on another thread if logs processing happens off the caller thread.
             dispatchPrecondition(condition: .notOnQueue(.main))
-            dateProviderExpectation.fulfill()
+            if dateProviderCallCount.update({ $0 += 1 }) <= expectedProviderCalls {
+                dateProviderExpectation.fulfill()
+            }
             return Date()
         }
 
-        let logger = try Logger.testLogger(
+        var logger: Logger? = try Logger.testLogger(
             withAPIKey: "test_api_key",
             sessionStrategy: .configuration(.init()),
             dateProvider: dateProvider,
@@ -85,18 +97,24 @@ final class LoggerTests: XCTestCase {
                     // Tests are evaluated on the main queue so we would expect this to run
                     // on another thread if logs processing happens off the caller thread.
                     dispatchPrecondition(condition: .notOnQueue(.main))
-                    fieldProviderExpectation.fulfill()
+                    if fieldProviderCallCount.update({ $0 += 1 }) <= expectedProviderCalls {
+                        fieldProviderExpectation.fulfill()
+                    }
                     return [:]
                 },
             ]
         )
+        defer {
+            logger?.enableBlockingShutdown()
+            logger = nil
+        }
 
         let expectations = [
             dateProviderExpectation,
             fieldProviderExpectation,
         ]
 
-        logger.log(level: .debug, message: "logged", type: .normal)
+        logger?.log(level: .debug, message: "logged", type: .normal)
 
         XCTAssertEqual(.completed, XCTWaiter().wait(for: expectations, timeout: 1))
     }
