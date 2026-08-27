@@ -10,7 +10,10 @@ extern crate objc;
 
 use bd_error_reporter::reporter::Reporter;
 use bd_logger::DataValue;
+use bd_runtime::runtime::FeatureFlag;
+use bd_runtime::runtime::retry_backoff::{InitialBackoffInterval, MaxBackoffInterval};
 use bd_test_helpers::config_helper::make_benchmarking_configuration_with_workflows_update;
+use bd_test_helpers::runtime::{ValueKind, make_update};
 use objc::runtime::Object;
 use protobuf::Message;
 use std::collections::HashMap;
@@ -42,6 +45,23 @@ extern "C" fn create_benchmarking_configuration(dir_path: *const c_char) {
   let str_path: &str = c_path.to_str().unwrap();
 
   let config = make_benchmarking_configuration_with_workflows_update();
+
+  let encoded_config = config.write_to_bytes().unwrap();
+  std::fs::write(str_path.to_owned() + "/config.pb", encoded_config).unwrap();
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn create_fast_retry_configuration(dir_path: *const c_char) {
+  let c_path: &CStr = unsafe { CStr::from_ptr(dir_path) };
+  let str_path: &str = c_path.to_str().unwrap();
+
+  let config = make_update(
+    vec![
+      (InitialBackoffInterval::path(), ValueKind::Int(1)),
+      (MaxBackoffInterval::path(), ValueKind::Int(10)),
+    ],
+    "test-fast-retry".to_string(),
+  );
 
   let encoded_config = config.write_to_bytes().unwrap();
   std::fs::write(str_path.to_owned() + "/config.pb", encoded_config).unwrap();

@@ -14,6 +14,7 @@ bd-error-reporter     = { workspace = true }
 bd-key-value          = { workspace = true }
 bd-logger             = { workspace = true }
 bd-proto              = { workspace = true }
+bd-runtime            = { workspace = true }
 bd-test-helpers       = { workspace = true }
 bd-test-helpers-core  = { workspace = true }
 ctor                  = { workspace = true }

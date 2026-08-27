@@ -75,6 +75,8 @@ struct URLSessionTaskTestCaseInput {
 final class URLSessionIntegrationTests: XCTestCase {
     private var logger: MockLogging!
 
+    private var caseQuery: String { self.logger.acceptedQuery ?? "" }
+
     override func setUp() {
         super.setUp()
         self.customSetUp(swizzle: true)
@@ -85,8 +87,14 @@ final class URLSessionIntegrationTests: XCTestCase {
         self.customTearDown()
     }
 
+    private func makeCaseQuery() -> String {
+        let name = self.name.filter { $0.isLetter || $0.isNumber }
+        return "q=\(name)-\(UUID().uuidString)"
+    }
+
     private func customSetUp(swizzle: Bool) {
         self.logger = MockLogging()
+        self.logger.acceptedQuery = self.makeCaseQuery()
         URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
 
         Logger.resetShared(logger: self.logger)
@@ -101,6 +109,12 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     private func customTearDown() {
+        XCTAssertEqual(
+            0,
+            self.logger.unmatchedLogCount,
+            "HTTP logs from another cycle bled into this one"
+        )
+
         URLSessionIntegration.shared.disableURLSessionTaskSwizzling()
         Logger.resetShared()
     }
@@ -177,7 +191,7 @@ final class URLSessionIntegrationTests: XCTestCase {
         let responseExpectation = self.expectation(description: "response not logged")
         responseExpectation.isInverted = true
 
-        let session = AVAssetDownloadURLSession(configuration: .background(withIdentifier: "w00t"),
+        let session = AVAssetDownloadURLSession(configuration: .background(withIdentifier: self.backgroundSessionIdentifier()),
                                                 assetDownloadDelegate: nil,
                                                 delegateQueue: nil)
 
@@ -192,12 +206,15 @@ final class URLSessionIntegrationTests: XCTestCase {
         )
 
         XCTAssertTrue(self.logger.logs.isEmpty)
+
+        task.cancel()
+        session.invalidateAndCancel()
     }
 
     func testBackgroundSessionTasks() throws {
         self.customSetUp(swizzle: true)
 
-        let session = URLSession(configuration: .background(withIdentifier: "w00t"))
+        let session = URLSession(configuration: .background(withIdentifier: self.backgroundSessionIdentifier()))
         let task = session.dataTask(with: self.makeURL())
 
         let logRequestExpectation = self.expectation(
@@ -221,7 +238,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
             ],
@@ -282,6 +299,10 @@ final class URLSessionIntegrationTests: XCTestCase {
 
             let expectation = self.expectation(description: "delegate callbacks are called")
             expectation.expectedFulfillmentCount = 1
+            // HTTPS may issue more than one authentication challenge while establishing a
+            // connection. This test verifies that the caller's session delegate is retained,
+            // not the number of challenges issued by the transport.
+            expectation.assertForOverFulfill = false
 
             let delegate = URLSessionCustomDelegate()
             delegate.didReceiveChallenge = expectation
@@ -290,14 +311,22 @@ final class URLSessionIntegrationTests: XCTestCase {
                 instrumentedSessionWithConfiguration: .default,
                 delegate: delegate
             )
+
+            defer {
+                self.logger.logRequestExpectation = nil
+                self.logger.logResponseExpectation = nil
+                delegate.didReceiveChallenge = nil
+                session.invalidateAndCancel()
+                self.customTearDown()
+            }
+
             let task = try taskTestCase(session)
 
-            try self.runCompletedRequestTest(with: task, completionExpectation: nil)
+            guard try self.runCompletedRequestTest(with: task, completionExpectation: nil) else {
+                return
+            }
 
             XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 0.1))
-
-            session.invalidateAndCancel()
-            self.customTearDown()
         }
     }
 
@@ -710,7 +739,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
             ],
@@ -733,7 +762,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_result": "success",
                 "_span_name": "_http",
                 "_span_type": "end",
@@ -783,7 +812,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
             ],
@@ -806,7 +835,7 @@ final class URLSessionIntegrationTests: XCTestCase {
                 "_host": "api-fe.bitdrift.io",
                 "_method": "GET",
                 "_path": "/fe/ping",
-                "_query": "q=test",
+                "_query": self.caseQuery,
                 "_result": "canceled",
                 "_span_name": "_http",
                 "_span_type": "end",
@@ -952,12 +981,16 @@ final class URLSessionIntegrationTests: XCTestCase {
         return URLRequest(url: self.makeURL())
     }
 
+    private func backgroundSessionIdentifier() -> String {
+        "io.bitdrift.capture.tests.url-session.\(UUID().uuidString)"
+    }
+
     private func makeURL() -> URL {
         // `https` requires us to run tests inside of a host application which causes the tests to take
         // significantly more time when ran on the CI.
         // TODO(Augustyniak): Move to using bitdrift ping.
         // swiftlint:disable:next force_unwrapping
-        return URL(string: "https://api-fe.bitdrift.io/fe/ping?q=test")!
+        return URL(string: "https://api-fe.bitdrift.io/fe/ping?\(self.caseQuery)")!
     }
 
     private func makeTempFileURL(name: String) throws -> URL {

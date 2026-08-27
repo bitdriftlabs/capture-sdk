@@ -50,6 +50,10 @@ public final class MockLogging {
     public var logRequestExpectation: XCTestExpectation?
     public var logResponseExpectation: XCTestExpectation?
 
+    public var acceptedQuery: String?
+
+    public private(set) var unmatchedLogCount = 0
+
     public init() {}
 
     /// The logs emitted by the logger
@@ -107,6 +111,11 @@ extension MockLogging: Logging {
             fields: request.toFields()
         )
 
+        guard self.matchesAcceptedQuery(log) else {
+            self.unmatchedLogCount += 1
+            return
+        }
+
         self.logs.append(log)
         self.logRequestExpectation?.fulfill()
         self.onLog(log)
@@ -119,9 +128,22 @@ extension MockLogging: Logging {
             fields: response.toFields()
         )
 
+        guard self.matchesAcceptedQuery(log) else {
+            self.unmatchedLogCount += 1
+            return
+        }
+
         self.logs.append(log)
         self.logResponseExpectation?.fulfill()
         self.onLog(log)
+    }
+
+    private func matchesAcceptedQuery(_ log: Log) -> Bool {
+        guard let acceptedQuery = self.acceptedQuery else {
+            return true
+        }
+
+        return log.fields?["_query"] as? String == acceptedQuery
     }
 
     public func logAppLaunchTTI(_: TimeInterval) {}
