@@ -174,7 +174,6 @@ internal class LoggerImpl(
                 // case of key conflicts.
                 ootbFieldGetters =
                     listOf(
-                        networkAttributes::getFields,
                         clientAttributes::dynamicFields,
                     ),
                 errorHandler = errorHandler,
@@ -233,7 +232,7 @@ internal class LoggerImpl(
                 sessionConfiguration.inactivityTimeout?.inWholeMilliseconds ?: -1L,
                 sessionConfiguration.makeSessionCallback(),
                 metadataProvider,
-                clientAttributes.initialOotbFields(),
+                clientAttributes.initialOotbFields() + networkAttributes.initialOotbFields(),
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
@@ -266,6 +265,11 @@ internal class LoggerImpl(
         this.loggerId = loggerId
 
         runtime = JniRuntime(this.loggerId)
+        networkAttributes.start { fields ->
+            fields.forEach { (key, value) ->
+                updateOotbField(key, value)
+            }
+        }
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime
         }

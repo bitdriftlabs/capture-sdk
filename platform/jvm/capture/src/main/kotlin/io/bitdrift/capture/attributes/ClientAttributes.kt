@@ -79,12 +79,17 @@ internal class ClientAttributes(
     private val cachedAttributes = mutableMapOf<String, String>()
 
     /**
-     * Returns the foreground snapshot used to initialize the logger.
+     * Returns the dynamic OOTB snapshots needed before the logger can accept logs.
      *
      * Process lifecycle state can be read from the logger runtime thread. Subsequent lifecycle
-     * events keep the OOTB field current on the main thread.
+     * events keep the foreground field current on the main thread, while the metadata provider
+     * refreshes the locale when the configuration changes.
      */
-    internal fun initialOotbFields(): Array<Field> = arrayOf(Field(FOREGROUND_KEY, FieldValue.StringField(foregroundValue())))
+    internal fun initialOotbFields(): Array<Field> =
+        arrayOf(
+            Field(FOREGROUND_KEY, FieldValue.StringField(foregroundValue())),
+            Field(LOCALE_KEY, FieldValue.StringField(locale)),
+        )
 
     internal fun dynamicFields(): Fields {
         updateLocaleIfNeeded()
@@ -100,7 +105,7 @@ internal class ClientAttributes(
 
             if (cachedLocale != updatedLocale) {
                 cachedLocale = updatedLocale
-                cachedAttributes["_locale"] = updatedLocale
+                cachedAttributes[LOCALE_KEY] = updatedLocale
             }
             cachedConfiguration = Configuration(currentConfig)
         }
@@ -166,6 +171,7 @@ internal class ClientAttributes(
      */
     companion object {
         const val FOREGROUND_KEY = "foreground"
+        const val LOCALE_KEY = "_locale"
 
         // The unique sdk library that can be used for custom reports
         const val SDK_LIBRARY_ID = "io.bitdrift.capture-android"

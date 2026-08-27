@@ -52,7 +52,10 @@ class ClientAttributesTest {
 
         val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateStarted).initialOotbFields()
 
-        assertThat(clientAttributes).containsExactly(Field("foreground", FieldValue.StringField("1")))
+        assertThat(clientAttributes).containsExactly(
+            Field("foreground", FieldValue.StringField("1")),
+            Field("_locale", FieldValue.StringField("en_US")),
+        )
     }
 
     @Test
@@ -61,7 +64,10 @@ class ClientAttributesTest {
 
         val clientAttributes = ClientAttributes(appContext, mockedLifecycleOwnerLifecycleStateCreated).initialOotbFields()
 
-        assertThat(clientAttributes).containsExactly(Field("foreground", FieldValue.StringField("0")))
+        assertThat(clientAttributes).containsExactly(
+            Field("foreground", FieldValue.StringField("0")),
+            Field("_locale", FieldValue.StringField("en_US")),
+        )
     }
 
     @Test
@@ -274,7 +280,7 @@ class ClientAttributesTest {
 
         val fields = clientAttributes.dynamicFields()
 
-        assertThat(fields).containsEntry("_locale", "en_US")
+        assertThat(fields).containsEntry(ClientAttributes.LOCALE_KEY, "en_US")
     }
 
     private fun assertInstallationSource(

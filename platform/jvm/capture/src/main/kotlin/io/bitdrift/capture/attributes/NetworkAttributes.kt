@@ -35,6 +35,8 @@ import android.telephony.TelephonyManager.NETWORK_TYPE_TD_SCDMA
 import android.telephony.TelephonyManager.NETWORK_TYPE_UMTS
 import android.telephony.TelephonyManager.NETWORK_TYPE_UNKNOWN
 import androidx.core.content.ContextCompat
+import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.ExecutorService
@@ -72,6 +74,9 @@ internal class NetworkAttributes(
     @Volatile
     private var currentFields: Map<String, String> = emptyMap()
 
+    @Volatile
+    private var fieldUpdateHandler: ((Fields) -> Unit)? = null
+
     init {
         executor.execute {
             monitorNetworkType()
@@ -79,6 +84,18 @@ internal class NetworkAttributes(
     }
 
     fun getFields(): Fields = currentFields
+
+    /** Returns the network snapshot needed before the logger can accept logs. */
+    fun initialOotbFields(): Array<Field> =
+        currentFields
+            .map { (key, value) -> Field(key, FieldValue.StringField(value)) }
+            .toTypedArray()
+
+    /** Starts forwarding network changes to the native OOTB field store. */
+    fun start(fieldUpdateHandler: (Fields) -> Unit) {
+        this.fieldUpdateHandler = fieldUpdateHandler
+        fieldUpdateHandler(currentFields)
+    }
 
     @SuppressLint("NewApi")
     @Suppress("SwallowedException")
@@ -145,6 +162,7 @@ internal class NetworkAttributes(
                 networkType?.let { this[KEY_NETWORK_TYPE] = it }
                 radioType?.let { this[KEY_RADIO_TYPE] = it }
             }
+        fieldUpdateHandler?.invoke(currentFields)
     }
 
     private fun radioType(): String {
