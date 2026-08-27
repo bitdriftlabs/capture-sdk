@@ -36,5 +36,6 @@ bitdrift_kt_android_local_test(
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
         "@rules_robolectric//bazel:android-all",
+        artifact("androidx.test:core"),
     ],
 )

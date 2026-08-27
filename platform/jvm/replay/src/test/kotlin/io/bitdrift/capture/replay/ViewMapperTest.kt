@@ -15,15 +15,16 @@ import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
 import io.bitdrift.capture.replay.internal.mappers.ViewMapper
-import org.assertj.core.api.Assertions.assertThat
+import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-// sdk is pinned because Robolectric 4.13 does not support this module's compileSdk.
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+// Matches the SDK the other Robolectric suites pin; Bazel runs these on Java 11, which
+// Robolectric supports only up to SDK 33.
+@Config(sdk = [24])
 class ViewMapperTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
@@ -55,34 +56,34 @@ class ViewMapperTest {
     fun externallyCategorizedViewKeepsRequestedTypeWithoutBackground() {
         val rects = map(customView(), mapOf(ReplayType.View to listOf("CustomDrawnView")))
 
-        assertThat(rects).containsExactly(ReplayRect(ReplayType.View, 0, 0, 100, 100))
+        Assert.assertEquals(listOf(ReplayRect(ReplayType.View, 0, 0, 100, 100)), rects)
     }
 
     @Test
     fun externallyCategorizedNonGenericTypeIsUntouched() {
         val rects = map(customView(), mapOf(ReplayType.Map to listOf("CustomDrawnView")))
 
-        assertThat(rects).containsExactly(ReplayRect(ReplayType.Map, 0, 0, 100, 100))
+        Assert.assertEquals(listOf(ReplayRect(ReplayType.Map, 0, 0, 100, 100)), rects)
     }
 
     @Test
     fun builtInGenericViewWithoutBackgroundIsTransparent() {
         val rects = map(builtInGenericView(), categorizers = null)
 
-        assertThat(rects).containsExactly(ReplayRect(ReplayType.TransparentView, 0, 0, 100, 100))
+        Assert.assertEquals(listOf(ReplayRect(ReplayType.TransparentView, 0, 0, 100, 100)), rects)
     }
 
     @Test
     fun builtInGenericViewWithOpaqueBackgroundStaysOpaque() {
         val rects = map(builtInGenericView(ColorDrawable(Color.RED)), categorizers = null)
 
-        assertThat(rects).containsExactly(ReplayRect(ReplayType.View, 0, 0, 100, 100))
+        Assert.assertEquals(listOf(ReplayRect(ReplayType.View, 0, 0, 100, 100)), rects)
     }
 
     @Test
     fun builtInGenericViewWithTransparentBackgroundIsTransparent() {
         val rects = map(builtInGenericView(ColorDrawable(Color.TRANSPARENT)), categorizers = null)
 
-        assertThat(rects).containsExactly(ReplayRect(ReplayType.TransparentView, 0, 0, 100, 100))
+        Assert.assertEquals(listOf(ReplayRect(ReplayType.TransparentView, 0, 0, 100, 100)), rects)
     }
 }
