@@ -73,6 +73,7 @@ class SessionUrlTest {
     private fun startAndReturnLogger(apiUrl: String): ILogger? {
         Capture.Logger.start(
             apiKey = "test",
+            initialFields = emptyMap(),
             apiUrl = apiUrl.toHttpUrl(),
             configuration = Configuration(),
             context = ContextHolder.APP_CONTEXT,

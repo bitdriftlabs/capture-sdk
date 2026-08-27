@@ -129,6 +129,7 @@ class WebViewCaptureTest {
     private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
         Capture.Logger.start(
             apiKey = "test",
+            initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             configuration = Configuration(webViewConfiguration = webViewConfiguration),
             dateProvider = SystemDateProvider(),
