@@ -30,6 +30,21 @@ abstract class BdReactNativeSpec internal constructor(context: ReactApplicationC
 
   abstract fun log(level: Double, message: String, jsFields: ReadableMap?)
 
+  abstract fun startSpan(
+    name: String,
+    level: Double,
+    jsFields: ReadableMap?,
+    startTimeMs: Double?,
+    parentSpanId: String?,
+  ): String?
+
+  abstract fun endSpan(
+    spanId: String,
+    result: String,
+    jsFields: ReadableMap?,
+    endTimeMs: Double?,
+  )
+
   abstract fun addField(key: String, value: String)
 
   abstract fun removeField(key: String)

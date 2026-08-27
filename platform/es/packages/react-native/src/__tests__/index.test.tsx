@@ -32,6 +32,8 @@ function loadSdk(platform: PlatformName): TestSetup {
   const nativeModule = {
     init: jest.fn(),
     log: jest.fn(),
+    startSpan: jest.fn(),
+    endSpan: jest.fn(),
     addField: jest.fn(),
     removeField: jest.fn(),
     isTracingActive: jest.fn(),
@@ -383,5 +385,47 @@ describe('clearEntityId', () => {
     sdk.clearEntityId();
 
     expect(nativeModule.clearEntityId).toHaveBeenCalled();
+  });
+});
+
+describe('spans', () => {
+  test('starts a span and serializes its fields', () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+    nativeModule.startSpan.mockReturnValue('span-id');
+
+    const span = sdk.startSpan('loading_spinner', 'info', { attempts: 2 }, 123, 'parent-id');
+
+    expect(nativeModule.startSpan).toHaveBeenCalledWith(
+      'loading_spinner',
+      2,
+      { attempts: '2' },
+      123,
+      'parent-id',
+    );
+    expect(span?.id).toBe('span-id');
+  });
+
+  test('returns null when Capture has not started', () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+    nativeModule.startSpan.mockReturnValue(null);
+
+    expect(sdk.startSpan('loading_spinner', 'info')).toBeNull();
+  });
+
+  test('ends a span once and serializes end fields', () => {
+    const { sdk, nativeModule } = loadSdk('android');
+    nativeModule.startSpan.mockReturnValue('span-id');
+
+    const span = sdk.startSpan('loading_spinner', 'info');
+    span?.end(sdk.SpanResult.SUCCESS, { cached: false }, 456);
+    span?.end(sdk.SpanResult.FAILURE);
+
+    expect(nativeModule.endSpan).toHaveBeenCalledTimes(1);
+    expect(nativeModule.endSpan).toHaveBeenCalledWith(
+      'span-id',
+      'success',
+      { cached: 'false' },
+      456,
+    );
   });
 });

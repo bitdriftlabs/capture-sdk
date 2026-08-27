@@ -34,6 +34,8 @@ import {
   type PreviousRunInfo,
   type SdkStatus,
   setFeatureFlagExposure,
+  startSpan,
+  SpanResult,
 } from '@bitdrift/react-native';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
@@ -105,6 +107,7 @@ const triggerLogErrorExample = () => {
 
 
 const LOG_LEVEL_ARRAY = Array.from(LOG_LEVELS.keys());
+const MANUAL_TEST_SPAN_NAME = 'expo_manual_test_span';
 
 const HomeScreen = () => {
   const [selectedLogLevel, setSelectedLogLevel] = useState(
@@ -187,6 +190,26 @@ const HomeScreen = () => {
   const handleClearEntityId = () => {
     clearEntityId();
     showToast('Entity ID cleared');
+  };
+
+  const handleCreateTestSpan = () => {
+    const span = startSpan(MANUAL_TEST_SPAN_NAME, 'info', {
+      source: 'expo_sample',
+      trigger: 'manual',
+    });
+
+    if (!span) {
+      showToast('Test span was not created: Capture has not started');
+      return;
+    }
+
+    setTimeout(() => {
+      span.end(SpanResult.SUCCESS, {
+        source: 'expo_sample',
+        trigger: 'manual',
+      });
+      showToast('Test span created');
+    }, 1_000);
   };
 
   return (
@@ -369,6 +392,18 @@ const HomeScreen = () => {
           onPress={logMessageHandler}
         >
           <Text style={styles.buttonText}>Log</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.inlineContainer}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleCreateTestSpan}
+        >
+          <Text style={styles.buttonText}>Create Test Span</Text>
         </Pressable>
       </View>
 
