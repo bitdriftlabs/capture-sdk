@@ -67,6 +67,21 @@ export interface Spec extends TurboModule {
 
   log(level: number, message: string, fields?: LogFields): void;
 
+  startSpan(
+    name: string,
+    level: number,
+    fields?: LogFields,
+    startTimeMs?: number,
+    parentSpanId?: string,
+  ): string | null;
+
+  endSpan(
+    spanId: string,
+    result: string,
+    fields?: LogFields,
+    endTimeMs?: number,
+  ): void;
+
   addField(key: string, value: string): void;
 
   removeField(key: string): void;

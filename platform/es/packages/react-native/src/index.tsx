@@ -21,6 +21,8 @@ import {
 } from './NativeBdReactNative';
 import NativeBdReactNative from './NativeBdReactNative';
 export { SessionStrategy } from './NativeBdReactNative';
+export { SpanResult, startSpan, type Span } from './span';
+export type { LogLevel, SerializableLogFields } from './log';
 
 // Cross-platform native<->JS event contract for issue report callbacks.
 // If this value changes, update the matching constants in:

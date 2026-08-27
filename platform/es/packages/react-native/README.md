@@ -27,6 +27,8 @@ import {
   isTracingActive,
   setEntityId,
   clearEntityId,
+  startSpan,
+  SpanResult,
   SessionStrategy,
 } from '@bitdrift/react-native';
 
@@ -48,6 +50,10 @@ info('Hello, World!');
 setEntityId('user-123');
 console.log('Tracing active?', isTracingActive());
 clearEntityId();
+
+const span = startSpan('loading_profile', 'info', { source: 'tap' });
+// ... perform the work ...
+span?.end(SpanResult.SUCCESS, { cached: false });
 ```
 
 For all Expo usages, make sure to add `@bitdrift/react-native` to the `plugins` field in your `app.json` file. This helps ensure setting up the native modules correctly.
@@ -104,6 +110,25 @@ For Android, perform the initialization in `onCreate` in your `MainApplication.k
 ```
 
 To add custom log messages from your React Native app, import the log level functions from the `@bitdrift/react-native` package and use them to log messages at the desired log level.
+
+### Spans
+
+Use spans to measure an operation with a matched start and end event. `startSpan` returns `null`
+until Capture has been initialized. End each started span once; repeated `end` calls are ignored.
+
+```ts
+import { startSpan, SpanResult } from '@bitdrift/react-native';
+
+const parent = startSpan('load_profile', 'info', { profileId: '123' });
+const child = startSpan('fetch_profile', 'debug', undefined, undefined, parent?.id);
+
+// ... perform the request ...
+child?.end(SpanResult.SUCCESS, { cacheHit: false });
+parent?.end(SpanResult.SUCCESS);
+```
+
+`startTimeMs` and `endTimeMs` are optional Unix timestamps in milliseconds. If either is used,
+provide both so Capture can calculate and place the span correctly.
 
 ## Configuration Options
 
