@@ -14,6 +14,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
     private let logger: LoggerBridging?
     public private(set) var makeLoggerCallsCount = 0
     public private(set) var targetDomains: [String] = []
+    public private(set) var initialOotbFields = [CapturePassable.Field]()
 
     public init(logger: LoggerBridging?) {
         self.logger = logger
@@ -24,7 +25,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         bufferDirectoryPath _: String,
         sessionStrategy _: SessionStrategy,
         metadataProvider _: CaptureLoggerBridge.MetadataProvider,
-        initialOotbFields _: [CapturePassable.Field],
+        initialOotbFields: [CapturePassable.Field],
         resourceUtilizationTarget _: CaptureLoggerBridge.ResourceUtilizationTarget,
         sessionReplayTarget _: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget _: CaptureLoggerBridge.EventsListenerTarget,
@@ -42,6 +43,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
     ) -> LoggerBridging? {
         self.makeLoggerCallsCount += 1
         self.targetDomains.append(targetDomain)
+        self.initialOotbFields = initialOotbFields
         return self.logger
     }
 }
