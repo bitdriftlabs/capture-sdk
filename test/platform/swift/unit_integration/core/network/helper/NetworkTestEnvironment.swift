@@ -25,9 +25,14 @@ final class NetworkTestEnvironment {
 
     /// Creates a new test environment with isolated infrastructure.
     ///
+    /// - parameter testName:           The name of the test creating the environment, used to label its queue.
     /// - parameter networkIdleTimeout: The timeout used for URLSessionNetworkClient. Defaults to 1 second.
     /// - parameter pingInterval:       The ping interval to configure the logger with. Defaults to `nil` (disabled).
-    init(networkIdleTimeout: TimeInterval = 1, pingInterval: TimeInterval? = nil) throws {
+    init(
+        testName: String,
+        networkIdleTimeout: TimeInterval = 1,
+        pingInterval: TimeInterval? = nil
+    ) throws {
         // The logger receives the ping interval to use in its handshake when it connects to the
         // server, so we pass the ping interval to the test server.
         let pingIntervalMs = pingInterval.map { Int32($0 * 1000) } ?? -1
@@ -40,7 +45,7 @@ final class NetworkTestEnvironment {
         let network = URLSessionNetworkClient(
             apiBaseURL: testServer.baseURL,
             timeout: networkIdleTimeout,
-            delegateQueue: .global(qos: .userInteractive)
+            delegateQueue: Self.makeNetworkDelegateQueue(testName: testName)
         )
         let networkDiagnostics = NetworkDiagnostics()
         self.networkDiagnostics = networkDiagnostics
@@ -99,6 +104,14 @@ final class NetworkTestEnvironment {
         create_fast_retry_configuration(sdkDirectory.path)
 
         return sdkDirectory
+    }
+
+    static func makeNetworkDelegateQueue(testName: String) -> DispatchQueue {
+        DispatchQueue(
+            label: "io.bitdrift.capture.test.network.\(testName)",
+            qos: .userInteractive,
+            autoreleaseFrequency: .workItem
+        )
     }
 
     // MARK: - Private Mock Types

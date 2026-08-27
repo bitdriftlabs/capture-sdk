@@ -15,7 +15,7 @@ final class CaptureNetworkTests: XCTestCase {
     // (pings) are not configured. We set the timeout low, then wait for it to hit and verify that
     // we see the stream re-established afterwards.
     func testHappyPathWithTimeoutAndReconnect() async throws {
-        let env = try NetworkTestEnvironment(networkIdleTimeout: 1)
+        let env = try NetworkTestEnvironment(testName: self.name, networkIdleTimeout: 1)
 
         let streamID = try await env.testServer.waitForStream(testName: #function)
 
@@ -29,7 +29,7 @@ final class CaptureNetworkTests: XCTestCase {
 
     // Verifies that we can extend the stream beyond the idle timeout via keep alive pings.
     func testHappyPathWithKeepAlives() async throws {
-        let env = try NetworkTestEnvironment(pingInterval: 0.1)
+        let env = try NetworkTestEnvironment(testName: self.name, pingInterval: 0.1)
 
         let streamID = try await env.testServer.waitForStream(testName: #function)
         try await env.testServer.handshake(streamId: streamID)
@@ -41,7 +41,7 @@ final class CaptureNetworkTests: XCTestCase {
     }
 
     func testLargeUpload() async throws {
-        let env = try NetworkTestEnvironment(networkIdleTimeout: 10)
+        let env = try NetworkTestEnvironment(testName: self.name, networkIdleTimeout: 10)
 
         try await env.testServer.runLargeUploadTest(loggerId: env.loggerID)
     }
