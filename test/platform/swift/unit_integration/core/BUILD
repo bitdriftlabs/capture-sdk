@@ -3,13 +3,7 @@ load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_test")
 bitdrift_mobile_swift_test(
     name = "test",
     srcs = glob(["**/*.swift"]) + ["//proto:report_swift_source"],
-    data = [
-        "testdata/lastCrash.bjn",
-        "testdata/metrickit-example.json",
-        "testdata/metrickit-ios27-anr-example.json",
-        "testdata/metrickit-ios27-crash-example.json",
-        "testdata/metrickit-ios27-memoryexception-example.json",
-    ],
+    data = glob(["testdata/*"]),
     repository = "@capture",
     tags = ["macos_only"],
     use_test_host = True,
