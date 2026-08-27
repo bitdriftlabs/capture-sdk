@@ -37,11 +37,11 @@ enum Environment {
         ?? (ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)
 }
 
-protocol AppEnvironment {
+protocol RuntimeEnvironment {
     var isSimulator: Bool { get }
 }
 
-class LiveEnvironment: AppEnvironment {
+class LiveEnvironment: RuntimeEnvironment {
     lazy var isSimulator: Bool = {
         #if targetEnvironment(simulator)
         true

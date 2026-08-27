@@ -36,7 +36,8 @@ private struct RuntimeFileState {
     private let bitdriftCrashHandler: any BitdriftCrashHandling
     private let metricManager: MXMetricManager
     private let fileManager: FileManager
-    private let environment: AppEnvironment
+    private let environment: RuntimeEnvironment
+    private let appDistributionInspector: AppDistributionInspector
     private let previousRunInfoController: PreviousRunInfoController?
 
     private var isBitdriftCrashHandlerEnabled = false
@@ -48,13 +49,15 @@ private struct RuntimeFileState {
         bitdriftCrashHandler: any BitdriftCrashHandling = BitdriftCrashHandler(),
         metricManager: MXMetricManager = .shared,
         fileManager: FileManager = .default,
-        environment: AppEnvironment = LiveEnvironment()
+        environment: RuntimeEnvironment = LiveEnvironment(),
+        appDistributionInspector: AppDistributionInspector = AppDistributionInspector()
     ) {
         self.ksCrashHandler = ksCrashHandler
         self.bitdriftCrashHandler = bitdriftCrashHandler
         self.metricManager = metricManager
         self.fileManager = fileManager
         self.environment = environment
+        self.appDistributionInspector = appDistributionInspector
         self.previousRunInfoController = previousRunInfoController
     }
 
@@ -198,8 +201,12 @@ private extension CrashReporterService {
         )
 
         do {
+            let appDistribution = self.appDistributionInspector.inspect()
             try self.ksCrashHandler.configure(withCrashReportDirectory: directoryURL)
-            try self.ksCrashHandler.startCrashReporter()
+            try self.ksCrashHandler.startCrashReporter(
+                withAppEnvironment: appDistribution.environment.rawValue,
+                teamIdentifier: appDistribution.teamIdentifier
+            )
         } catch {
             return .failure(error)
         }
@@ -240,6 +247,7 @@ private extension CrashReporterService {
         let useStackOverlapMatching = underlyingLogger.runtimeValue(.crashThreadMatchingByStackOverlap)
         let fileSizeOptimizationEnabled = underlyingLogger.runtimeValue(.optimizeFatalIssueReportSize)
         let memoryPressureLevel = underlyingLogger.previousMemoryPressureLevel()
+        let appDistribution = self.appDistributionInspector.inspect()
         let outputDir = sdkBaseURL.appendingPathComponent(Constants.reportCollectionDirectory, isDirectory: true)
         return DiagnosticEventReporter(
             outputDir: outputDir,
@@ -249,6 +257,8 @@ private extension CrashReporterService {
             memoryPressureLevel: memoryPressureLevel,
             fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
             useStackOverlapMatching: useStackOverlapMatching,
+            appEnvironment: appDistribution.environment,
+            teamIdentifier: appDistribution.teamIdentifier,
             crashReporting: self,
             crashEnrichmentSummaryHandler: { [weak underlyingLogger] summary in
                 let matcherMode = useStackOverlapMatching ? "base" : "exact"
@@ -336,6 +346,7 @@ extension CrashReporterService {
             fileSizeOptimizationEnabled: fileSizeOptimizationEnabled,
             useStackOverlapMatching: useStackOverlapMatching,
             crashReporting: self,
+            appDistributionInspector: self.appDistributionInspector,
             crashEnrichmentSummaryHandler: { [weak underlyingLogger] summary in
                 let matcherMode = useStackOverlapMatching ? "base" : "exact"
                 guard let underlyingLogger,

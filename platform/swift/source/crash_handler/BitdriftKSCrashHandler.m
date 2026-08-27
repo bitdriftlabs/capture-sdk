@@ -54,6 +54,21 @@ NSDictionary *_Nullable capture_enhance_metrickit_diagnostic_report(const NSDict
 
 static ReportContext g_crashHandlerReportContext;
 
+static void readProcessStartTime(uint64_t *seconds, uint32_t *nanos) {
+    *seconds = 0;
+    *nanos = 0;
+
+    struct kinfo_proc info = {0};
+    size_t size = sizeof(info);
+    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
+    if (sysctl(mib, 4, &info, &size, NULL, 0) != 0 || size == 0) {
+        return;
+    }
+
+    *seconds = (uint64_t)info.kp_proc.p_starttime.tv_sec;
+    *nanos = (uint32_t)(info.kp_proc.p_starttime.tv_usec * NSEC_PER_USEC);
+}
+
 static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     bool expectReceived = false;
     if (!atomic_compare_exchange_strong(&g_crashHandlerReportContext.hasReceivedCrashNotification,
@@ -152,11 +167,17 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     return BitdriftKSCrashHandler.sharedInstance.didCrashLastLaunch;
 }
 
-+ (BOOL)startCrashReporterWithError:(NSError **)error {
-    return [self.sharedInstance startCrashReporterWithError:error];
++ (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                              teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                       error:(NSError **)error {
+    return [self.sharedInstance startCrashReporterWithAppEnvironment:appEnvironment
+                                                       teamIdentifier:teamIdentifier
+                                                                error:error];
 }
 
-- (BOOL)startCrashReporterWithError:(NSError **)error {
+- (BOOL)startCrashReporterWithAppEnvironment:(int8_t)appEnvironment
+                               teamIdentifier:(NSString *_Nullable)teamIdentifier
+                                        error:(NSError **)error {
     if (self.kscrashReportFilePath == nil) {
         *error = [NSError errorWithDomain:@"BitdriftKSCrashHandler" code:0 userInfo:@{
                 NSLocalizedDescriptionKey:@"Start failed",
@@ -174,7 +195,18 @@ static void onCrash(struct KSCrash_MonitorContext *monitorContext) {
     memset(&g_crashHandlerReportContext, 0, sizeof(g_crashHandlerReportContext));
     // This gets allocated once and lives forever.
     g_crashHandlerReportContext.reportPath = strdup(self.kscrashReportFilePath.UTF8String);
+    const char *bundlePath = NSBundle.mainBundle.bundlePath.UTF8String;
+    if (bundlePath != NULL) {
+        g_crashHandlerReportContext.bundlePath = strdup(bundlePath);
+    }
+    const char *teamIdentifierCString = teamIdentifier.UTF8String;
+    if (teamIdentifierCString != NULL) {
+        g_crashHandlerReportContext.teamIdentifier = strdup(teamIdentifierCString);
+    }
+    g_crashHandlerReportContext.appEnvironment = appEnvironment;
     g_crashHandlerReportContext.metadata.pid = NSProcessInfo.processInfo.processIdentifier;
+    readProcessStartTime(&g_crashHandlerReportContext.metadata.launchTimeSeconds,
+                         &g_crashHandlerReportContext.metadata.launchTimeNanos);
     
 #define ERROR_IF_FALSE(A) do { \
     if(!(A)) { \

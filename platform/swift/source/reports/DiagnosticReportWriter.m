@@ -71,6 +71,8 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
 @property (nonnull, strong) NSString *sdkVersion;
 @property BOOL fileSizeOptimizationEnabled;
 @property CAPMemoryPressureLevel memoryPressureLevel;
+@property CAPAppEnvironment appEnvironment;
+@property (nullable, strong) NSString *teamIdentifier;
 @property (nonnull, strong) NSFileManager *fileManager;
 @property (nonnull, strong) MetricKitDiagnosticParsing *parsing;
 @end
@@ -81,12 +83,16 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
                         sdkVersion:(NSString *)sdkVersion
       fileSizeOptimizationEnabled:(BOOL)fileSizeOptimizationEnabled
                memoryPressureLevel:(CAPMemoryPressureLevel)memoryPressureLevel
+                    appEnvironment:(CAPAppEnvironment)appEnvironment
+                    teamIdentifier:(nullable NSString *)teamIdentifier
                        fileManager:(NSFileManager *)fileManager {
   if (self = [super init]) {
     self.outputDir = outputDir;
     self.sdkVersion = sdkVersion;
     self.fileSizeOptimizationEnabled = fileSizeOptimizationEnabled;
     self.memoryPressureLevel = memoryPressureLevel;
+    self.appEnvironment = appEnvironment;
+    self.teamIdentifier = teamIdentifier;
     self.fileManager = fileManager;
     self.parsing = [MetricKitDiagnosticParsing new];
   }
@@ -119,7 +125,7 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
           terminationReason:terminationReason
               capturedCrash:capturedCrash
                  metricTime:timestamp];
-  [self serializeAppMetrics:&handle appVersion:applicationVersion metadata:metadata];
+  [self serializeAppMetrics:&handle appVersion:applicationVersion metadata:metadata reportDict:crashDict];
   [self serializeDeviceMetrics:&handle metadata:metadata timestamp:timestamp];
   [self finishReport:&handle reportType:reportType timestamp:timestamp];
 }
@@ -136,7 +142,7 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
   bdrw_create_buffer_handle(&handle, reportType, SDK_ID, cstring_from(self.sdkVersion), self.fileSizeOptimizationEnabled);
 
   [self serializeErrorThreads:&handle crash:dict name:name reason:reason order:order];
-  [self serializeAppMetrics:&handle appVersion:applicationVersion metadata:metadata];
+  [self serializeAppMetrics:&handle appVersion:applicationVersion metadata:metadata reportDict:dict];
   [self serializeDeviceMetrics:&handle metadata:metadata timestamp:timestamp];
   [self finishReport:&handle reportType:reportType timestamp:timestamp];
 }
@@ -156,6 +162,7 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
                         order:(FrameOrder)order {
   NSMutableSet <NSString *>* images = [NSMutableSet new];
   NSArray *call_stacks = dict_for_key(crash, @"callStackTree")[@"callStacks"];
+  NSDictionary *binary_info = dict_for_key(crash, @"bitdriftBinaryInfo");
   uint32_t crashed_index = [self crashedThreadIndex:call_stacks];
 
   for (uint32_t thread_index = 0; thread_index < call_stacks.count; thread_index++) {
@@ -178,10 +185,12 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
       NSNumber *offset = number_for_key(frame, @"offsetIntoBinaryTextSegment");
       if (binary_name && binary_uuid && address && offset) {
         if (![images containsObject:binary_uuid]) {
+          NSDictionary *image_info = dict_for_key(binary_info, [binary_uuid uppercaseString]);
           BDBinaryImage image = {
             .id = cstring_from(binary_uuid),
-            .path = cstring_from(binary_name),
+            .path = cstring_from(string_for_key(binary_info, @"path") ?: binary_name),
             .load_address = [address unsignedLongLongValue] - [offset unsignedLongLongValue],
+            .length = [number_for_key(image_info, @"size") unsignedLongLongValue],
           };
           bdrw_add_binary_image(handle, &image);
           [images addObject:binary_uuid];
@@ -203,11 +212,17 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
       frame = [array_for_key(frame, @"subFrames") firstObject];
       frame_index++;
     }
+    BDCPURegisterStorage registers = [self registersForThread:thread];
+    if (frame_index > 0) {
+      stack[0].reg_count = registers.count;
+      stack[0].regs = registers.regs;
+    }
     BDThread bdthread = { .index = thread_index, .quality_of_service = -1, .name = cstring_from(threadName), .active = (thread_index == crashed_index) };
     bdrw_add_thread(handle, [call_stacks count], &bdthread, frame_index, stack);
     if (thread_index == crashed_index) {
       bdrw_add_error(handle, cstring_from(name), cstring_from(reason), 0, frame_index, stack);
     }
+    free(registers.regs);
     free(stack);
   }
   // handle case where there are no threads
@@ -247,6 +262,33 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
     }
   }
   return 0; // first thread is crashed thread if none contain frames
+}
+
+- (BDCPURegisterStorage)registersForThread:(NSDictionary *)thread {
+  NSDictionary *registers = dict_for_key(thread, @"bitdriftRegisters");
+  if (registers.count == 0) {
+    return (BDCPURegisterStorage){0};
+  }
+
+  NSArray<NSString *> *names = [registers.allKeys sortedArrayUsingSelector:@selector(compare:)];
+  BDCPURegister *regs = (BDCPURegister *)calloc(names.count, sizeof(BDCPURegister));
+  if (regs == NULL) {
+    return (BDCPURegisterStorage){0};
+  }
+
+  uintptr_t count = 0;
+  for (NSString *name in names) {
+    NSNumber *value = number_for_key(registers, name);
+    if (value == nil) {
+      continue;
+    }
+    regs[count++] = (BDCPURegister) {
+      .name = cstring_from(name),
+      .value = value.unsignedLongLongValue,
+    };
+  }
+
+  return (BDCPURegisterStorage){ .regs = regs, .count = count };
 }
 
 // MARK: - BDAppleCrashInfo (MetricKit side + bitdrift in-process side)
@@ -522,14 +564,27 @@ static id object_for_key(NSDictionary *dict, NSString *key, Class klass) {
 
 - (void)serializeAppMetrics:(BDProcessorHandle)handle
                  appVersion:(NSString *)app_version
-                   metadata:(NSDictionary *)metadata {
+                   metadata:(NSDictionary *)metadata
+                 reportDict:(NSDictionary *)reportDict {
   NSString *bundle_version = [NSString stringWithFormat:@"%@.%@", app_version, string_for_key(metadata, @"appBuildVersion")];
+  NSDictionary *app_info = dict_for_key(reportDict, @"bitdriftAppInfo");
+  NSString *bundle_path = string_for_key(app_info, @"bundlePath") ?: NSBundle.mainBundle.bundlePath;
+  NSNumber *captured_app_environment = number_for_key(app_info, @"appEnvironment");
+  CAPAppEnvironment app_environment = captured_app_environment != nil
+      ? (CAPAppEnvironment)captured_app_environment.intValue
+      : self.appEnvironment;
+  NSString *team_identifier = string_for_key(app_info, @"teamIdentifier") ?: self.teamIdentifier;
   BDAppMetrics app = {
     .app_id = cstring_from(string_for_key(metadata, @"bundleIdentifier")),
     .region_format = cstring_from(string_for_key(metadata, @"regionFormat")),
     .version = cstring_from(app_version),
     .cf_bundle_version = cstring_from(bundle_version),
     .memory_pressure_level = self.memoryPressureLevel,
+    .launch_time_seconds = [number_for_key(app_info, @"launchTimeSeconds") unsignedLongLongValue],
+    .launch_time_nanos = [number_for_key(app_info, @"launchTimeNanos") unsignedIntValue],
+    .environment = app_environment,
+    .team_identifier = cstring_from(team_identifier),
+    .bundle_path = cstring_from(bundle_path),
   };
   bdrw_add_app(handle, &app);
 }

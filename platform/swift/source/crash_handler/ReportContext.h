@@ -21,10 +21,15 @@ extern "C" {
 typedef struct {
     pid_t pid;
     time_t time;
+    uint64_t launchTimeSeconds;
+    uint32_t launchTimeNanos;
 } ReportMetadata;
 
 typedef struct {
     char* reportPath;
+    char* bundlePath;
+    char* teamIdentifier;
+    int8_t appEnvironment;
     ReportMetadata metadata;
     KSCrash_MonitorContext* monitorContext;
     BDCrashWriterPtr writer;

@@ -24,6 +24,11 @@ static inline BDCrashInfoThreadDetailsStorage empty_crash_info_thread_details_st
   return (BDCrashInfoThreadDetailsStorage){0};
 }
 
+typedef struct {
+  BDCPURegister *regs;
+  uintptr_t count;
+} BDCPURegisterStorage;
+
 /// SDK identifier used in generated report files.
 static const char *const SDK_ID = "io.bitdrift.capture-apple";
 
