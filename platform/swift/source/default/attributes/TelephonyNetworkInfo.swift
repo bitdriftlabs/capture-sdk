@@ -13,7 +13,6 @@ import Foundation
 final class TelephonyNetworkInfo: NSObject {
     private let dataServiceIdentifier: Atomic<String?>
     private let underlyingNetworkInfo = CTTelephonyNetworkInfo()
-    private let stateUpdateLock = Lock()
 
     private weak var logger: CoreLogging?
 
@@ -54,10 +53,8 @@ final class TelephonyNetworkInfo: NSObject {
     }
 
     func start(with logger: CoreLogging) {
-        self.stateUpdateLock.withLock {
-            self.logger = logger
-            self.publishRadioType()
-        }
+        self.logger = logger
+        self.publishRadioType()
     }
 
     func initialOotbFields() -> [Field] {
@@ -69,13 +66,11 @@ final class TelephonyNetworkInfo: NSObject {
     // MARK: - Private
 
     private func updateDataServiceNetworkInfo() {
-        self.stateUpdateLock.withLock {
-            let identifier = self.dataServiceIdentifier.load()
+        let identifier = self.dataServiceIdentifier.load()
 
-            let radioType = self.underlyingNetworkInfo.radioType(for: identifier)
-            self.radioType.update { $0 = radioType }
-            self.publishRadioType()
-        }
+        let radioType = self.underlyingNetworkInfo.radioType(for: identifier)
+        self.radioType.update { $0 = radioType }
+        self.publishRadioType()
     }
 
     private func publishRadioType() {
