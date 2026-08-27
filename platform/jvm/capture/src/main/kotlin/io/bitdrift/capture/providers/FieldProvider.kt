@@ -87,11 +87,18 @@ sealed class FieldValue {
 
 typealias Fields = Map<String, String>
 
+internal typealias FieldGetter = () -> Fields
+
 /**
  * A field provider is used to provide additional fields to each log event.
  *
  * It is invoked inline during logging, and so should therefore avoid doing expensive or blocking work.
  */
+@Deprecated(
+    message =
+        "FieldProvider is deprecated. Use Capture.Logger.start(initialFields = ...) to seed fields at " +
+            "startup and Capture.Logger.addField(...) to update them.",
+)
 fun interface FieldProvider : () -> Fields
 
 /**

@@ -75,7 +75,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             LoggerImpl(
                 apiKey = "test",
                 apiUrl = testServer.url,
-                fieldProviders = listOf(),
+                customFieldGetters = emptyList(),
                 dateProvider = systemDateProvider,
                 sessionStrategy =
                     SessionStrategy.Configuration(SessionConfiguration(initialSessionId = sessionId)),

@@ -114,6 +114,24 @@ public final class LoggerObjc: NSObject {
             )
     }
 
+    /// Initializes Capture with the specified API key, session strategy, and startup fields.
+    ///
+    /// - parameter apiKey:          The API key provided by bitdrift.
+    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
+    /// - parameter initialFields:   Fields to seed at SDK startup.
+    @objc(startWithAPIKey:sessionStrategy:initialFields:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategyObjc,
+        initialFields: [String: String]
+    ) {
+        Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+            initialFields: initialFields
+        )
+    }
+
     /// Initializes Capture with the canonical session configuration API.
     ///
     /// See `CAPSessionConfiguration` for the session-ID lifecycle and callback guarantees.
@@ -128,6 +146,24 @@ public final class LoggerObjc: NSObject {
         Capture.Logger.start(
             withAPIKey: apiKey,
             sessionConfiguration: sessionConfiguration
+        )
+    }
+
+    /// Initializes Capture with the canonical session configuration API and startup fields.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter initialFields:        Fields to seed at SDK startup.
+    @objc(startWithAPIKey:sessionConfiguration:initialFields:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration,
+        initialFields: [String: String]
+    ) {
+        Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration,
+            initialFields: initialFields
         )
     }
 
@@ -146,6 +182,32 @@ public final class LoggerObjc: NSObject {
             withAPIKey: apiKey,
             sessionConfiguration: sessionConfiguration,
             configuration: configuration.underlyingConfig
+        )
+
+        if let logger, configuration.enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
+    /// Initializes Capture with the canonical session configuration API, additional SDK options, and startup
+    /// fields.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        Additional options for the Capture Logger.
+    /// - parameter initialFields:        Fields to seed at SDK startup.
+    @objc(startWithAPIKey:sessionConfiguration:configuration:initialFields:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration,
+        configuration: CAPConfiguration,
+        initialFields: [String: String]
+    ) {
+        let logger = Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionConfiguration: sessionConfiguration,
+            configuration: configuration.underlyingConfig,
+            initialFields: initialFields
         )
 
         if let logger, configuration.enableURLSessionIntegration {
@@ -230,6 +292,32 @@ public final class LoggerObjc: NSObject {
                 sessionStrategy: sessionStrategy.underlyingSessionStrategy,
                 configuration: configuration.underlyingConfig
             )
+
+        if let logger, configuration.enableURLSessionIntegration {
+            logger.enableIntegrations([.urlSession()], disableSwizzling: false)
+        }
+    }
+
+    /// Initializes Capture with the specified API key, session strategy, additional SDK options, and startup
+    /// fields.
+    ///
+    /// - parameter apiKey:          The API key provided by bitdrift.
+    /// - parameter sessionStrategy: A session strategy for the management of session IDs.
+    /// - parameter configuration:   Additional options for the Capture Logger.
+    /// - parameter initialFields:   Fields to seed at SDK startup.
+    @objc(startWithAPIKey:sessionStrategy:configuration:initialFields:)
+    public static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategyObjc,
+        configuration: CAPConfiguration,
+        initialFields: [String: String]
+    ) {
+        let logger = Capture.Logger.start(
+            withAPIKey: apiKey,
+            sessionStrategy: sessionStrategy.underlyingSessionStrategy,
+            configuration: configuration.underlyingConfig,
+            initialFields: initialFields
+        )
 
         if let logger, configuration.enableURLSessionIntegration {
             logger.enableIntegrations([.urlSession()], disableSwizzling: false)

@@ -10,7 +10,6 @@ package io.bitdrift.gradletvtestapp
 import android.app.Application
 import android.util.Log
 import io.bitdrift.capture.Capture
-import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -38,7 +37,7 @@ class GradleTvTestApp : Application() {
             apiKey = apiKey,
             apiUrl = apiUrl,
             sessionStrategy = SessionStrategy.ActivityBased(inactivityThresholdMins = 30L),
-            fieldProviders = listOf(FieldProvider { mapOf("app_surface" to "android_tv") }),
+            initialFields = mapOf("app_surface" to "android_tv"),
             context = this,
         )
 

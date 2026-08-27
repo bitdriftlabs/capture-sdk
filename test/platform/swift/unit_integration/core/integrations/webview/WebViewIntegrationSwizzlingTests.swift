@@ -61,7 +61,7 @@ final class WebViewIntegrationSwizzlingRuntimeFlagTests: XCTestCase {
             ),
             sessionStrategy: .configuration(.init()),
             dateProvider: nil,
-            fieldProviders: [],
+            customFieldGetters: [],
             enableNetwork: false,
             storageProvider: MockStorageProvider(),
             timeProvider: MockTimeProvider(),

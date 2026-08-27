@@ -12,29 +12,30 @@ import Foundation
 /// to wrap up the Atomics in an @objc protocol
 final class MetadataProviderController {
     typealias ErrorReporter = (_ context: String, _ error: Error) -> Void
+    typealias FieldGetter = () -> Fields
 
     var errorHandler: ErrorReporter = { _, _ in assertionFailure("errorHandler not set") }
 
     let dateProvider: DateProvider
 
-    let ootbFieldProviders: [FieldProvider]
-    let customFieldProviders: [FieldProvider]
+    let ootbFieldGetters: [FieldGetter]
+    let customFieldGetters: [FieldGetter]
 
     init(
         dateProvider: DateProvider,
-        ootbFieldProviders: [FieldProvider],
-        customFieldProviders: [FieldProvider]
+        ootbFieldGetters: [FieldGetter],
+        customFieldGetters: [FieldGetter]
     ) {
         self.dateProvider = dateProvider
-        self.ootbFieldProviders = ootbFieldProviders
-        self.customFieldProviders = customFieldProviders
+        self.ootbFieldGetters = ootbFieldGetters
+        self.customFieldGetters = customFieldGetters
     }
 
-    private func getFields(fieldProviders: [FieldProvider]) -> [CapturePassable.Field] {
+    private func getFields(fieldGetters: [FieldGetter]) -> [CapturePassable.Field] {
         // The order in which we process field providers of a given kind matters.
         // The earlier in the array a given field lands the highest its priority is.
-        return fieldProviders
-            .flatMap { $0.getFields() }
+        return fieldGetters
+            .flatMap { $0() }
             .compactMap { [weak self] keyValue in
                 do {
                     return try Field.make(keyValue: keyValue)
@@ -52,10 +53,10 @@ extension MetadataProviderController: CapturePassable.MetadataProvider {
     }
 
     func ootbFields() -> [Field] {
-        self.getFields(fieldProviders: self.ootbFieldProviders)
+        self.getFields(fieldGetters: self.ootbFieldGetters)
     }
 
     func customFields() -> [Field] {
-        self.getFields(fieldProviders: self.customFieldProviders)
+        self.getFields(fieldGetters: self.customFieldGetters)
     }
 }

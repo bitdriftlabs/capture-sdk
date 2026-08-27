@@ -85,6 +85,7 @@ final class LoggerBridge: LoggerBridging {
         network: Network?,
         errorReporting: RemoteErrorReporting,
         sleepMode: SleepMode,
+        initialFields: [CapturePassable.Field],
         issueCallbackConfiguration: IssueCallbackConfiguration?
     ) {
         do {
@@ -114,6 +115,7 @@ final class LoggerBridge: LoggerBridging {
             network,
             errorReporting,
             sleepMode == SleepMode.enabled,
+            initialFields,
             issueCallbackConfiguration
         )
 
@@ -148,6 +150,7 @@ final class LoggerBridge: LoggerBridging {
         network: Network?,
         errorReporting: RemoteErrorReporting,
         sleepMode: SleepMode,
+        initialFields: [CapturePassable.Field],
         issueCallbackConfiguration: IssueCallbackConfiguration?
     ) -> LoggerBridging? {
         return LoggerBridge(
@@ -166,6 +169,7 @@ final class LoggerBridge: LoggerBridging {
             network: network,
             errorReporting: errorReporting,
             sleepMode: sleepMode,
+            initialFields: initialFields,
             issueCallbackConfiguration: issueCallbackConfiguration
         )
     }

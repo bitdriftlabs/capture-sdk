@@ -46,11 +46,13 @@ import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
-import io.bitdrift.capture.providers.FieldProvider
+import io.bitdrift.capture.providers.FieldGetter
+import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.MetadataProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
@@ -83,7 +85,8 @@ internal class LoggerImpl(
     apiUrl: HttpUrl,
     errorReporter: IErrorReporter? = null,
     configuration: Configuration,
-    fieldProviders: List<FieldProvider>,
+    customFieldGetters: List<FieldGetter>,
+    initialFields: Fields = emptyMap(),
     dateProvider: DateProvider,
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
@@ -169,13 +172,13 @@ internal class LoggerImpl(
                 dateProvider = dateProvider,
                 // order of providers matters in here, the earlier in the list the higher their priority in
                 // case of key conflicts.
-                ootbFieldProviders =
+                ootbFieldGetters =
                     listOf(
-                        networkAttributes,
-                        FieldProvider { clientAttributes.dynamicFields() },
+                        networkAttributes::getFields,
+                        clientAttributes::dynamicFields,
                     ),
                 errorHandler = errorHandler,
-                customFieldProviders = fieldProviders,
+                customFieldGetters = customFieldGetters,
             )
 
         val network =
@@ -251,6 +254,9 @@ internal class LoggerImpl(
                 localErrorReporter,
                 configuration.sleepMode == SleepMode.ENABLED,
                 getIssueCallbackConfiguration(configuration),
+                initialFields
+                    .map { (key, value) -> Field(key, value.toFieldValue()) }
+                    .toTypedArray(),
             )
 
         check(loggerId != -1L) { "initialization of the rust logger failed" }

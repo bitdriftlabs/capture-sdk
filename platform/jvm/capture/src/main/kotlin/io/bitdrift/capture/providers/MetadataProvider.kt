@@ -13,24 +13,24 @@ import io.bitdrift.capture.IMetadataProvider
 
 internal class MetadataProvider(
     private val dateProvider: DateProvider,
-    private val ootbFieldProviders: List<FieldProvider>,
-    private val customFieldProviders: List<FieldProvider>,
+    private val ootbFieldGetters: List<FieldGetter>,
+    private val customFieldGetters: List<FieldGetter>,
     private val errorHandler: ErrorHandler,
     private val errorLog: ((String, Throwable) -> Unit) = { message, throwable -> Log.w("capture", message, throwable) },
 ) : IMetadataProvider {
     override fun timestamp(): Long = dateProvider.invoke().time
 
-    override fun ootbFields(): Array<Field> = fields(ootbFieldProviders)
+    override fun ootbFields(): Array<Field> = fields(ootbFieldGetters)
 
-    override fun customFields(): Array<Field> = fields(customFieldProviders)
+    override fun customFields(): Array<Field> = fields(customFieldGetters)
 
-    private fun fields(fieldProviders: List<FieldProvider>): Array<Field> {
-        if (fieldProviders.isEmpty()) return emptyArray()
+    private fun fields(fieldGetters: List<FieldGetter>): Array<Field> {
+        if (fieldGetters.isEmpty()) return emptyArray()
 
         val result = mutableListOf<Field>()
-        for (fieldProvider in fieldProviders) {
+        for (fieldGetter in fieldGetters) {
             try {
-                val providedFields = fieldProvider()
+                val providedFields = fieldGetter()
                 for ((key, value) in providedFields) {
                     result.add(Field(key, FieldValue.StringField(value)))
                 }
@@ -38,7 +38,7 @@ internal class MetadataProvider(
                 // We cannot log to our logger as we are in the middle of processing
                 // a log and want to avoid an infinite cycle of logs.
                 // The issue is not with our code but customer's provider.
-                val message = "Field Provider \"${fieldProvider.javaClass.name}\" threw an exception"
+                val message = "Field Provider \"${fieldGetter.javaClass.name}\" threw an exception"
                 errorLog(message, e)
                 errorHandler.handleError(message, e)
             }

@@ -56,7 +56,10 @@ final class CaptureE2ENetworkTests: XCTestCase {
         self.server = nil
     }
 
-    private func setUpLogger(fieldProviders: [FieldProvider]? = nil) throws -> Logger {
+    private func setUpLogger(
+        customFieldGetters: [MetadataProviderController.FieldGetter]? = nil,
+        initialFields: Fields = [:]
+    ) throws -> Logger {
         self.storage = MockStorageProvider()
 
         // Use instance-based server for test isolation
@@ -69,15 +72,14 @@ final class CaptureE2ENetworkTests: XCTestCase {
                 configuration: .init(apiURL: self.server.baseURL, rootFileURL: NetworkTestEnvironment.makeSDKDirectory()),
                 sessionStrategy: .configuration(SessionConfiguration(initialSessionID: "mock-group-id")),
                 dateProvider: MockDateProvider(),
-                fieldProviders: fieldProviders ?? [
-                    MockFieldProvider(
-                        getFieldsClosure: {
-                            [
-                                "field_provider": "mock_field_provider",
-                            ]
-                        }
-                    ),
+                customFieldGetters: customFieldGetters ?? [
+                    {
+                        [
+                            "field_provider": "mock_field_provider",
+                        ]
+                    },
                 ],
+                initialFields: initialFields,
                 storageProvider: self.storage,
                 timeProvider: SystemTimeProvider(),
                 networkDelegateQueue: .global(qos: .userInteractive)
@@ -110,6 +112,35 @@ final class CaptureE2ENetworkTests: XCTestCase {
         ])
 
         XCTAssertEqual(logs.count, 3, "Did not find all expected initial logs")
+    }
+
+    func testInitialFieldsAreIncludedInLogs() async throws {
+        // `substring` splits the emoji's UTF-16 surrogate pair, so this NSString cannot be
+        // converted to UTF-8. The Rust bridge must use its lossy fallback rather than reject
+        // all initial fields.
+        let invalidUTF8String = ("abc💇‍♀️" as NSString).substring(with: NSRange(location: 0, length: 4))
+        let logger = try self.setUpLogger(initialFields: [
+            "initial_field": "initial_value",
+            "invalid_utf": invalidUTF8String,
+        ])
+
+        let streamID = try await self.server.waitForStream(testName: #function)
+        try await self.server.configureAggressiveUploads(streamId: streamID)
+
+        logger.log(level: .debug, message: "initial fields")
+        let initialFieldsLog = await self.server.nextUploadedLogMatching { $0.message == "initial fields" }
+        let uploadedInitialFieldsLog = try XCTUnwrap(initialFieldsLog, "Did not receive initial fields log")
+
+        XCTAssertEqual(uploadedInitialFieldsLog.field(withKey: "initial_field")?.value as? String, "initial_value")
+        XCTAssertEqual(uploadedInitialFieldsLog.field(withKey: "invalid_utf")?.value as? String, "abc?")
+
+        logger.addField(withKey: "initial_field", value: "updated_value")
+        logger.log(level: .debug, message: "updated initial fields")
+
+        let updatedFieldsLog = await self.server.nextUploadedLogMatching { $0.message == "updated initial fields" }
+        let uploadedUpdatedFieldsLog = try XCTUnwrap(updatedFieldsLog, "Did not receive updated initial fields log")
+
+        XCTAssertEqual(uploadedUpdatedFieldsLog.field(withKey: "initial_field")?.value as? String, "updated_value")
     }
 
     // swiftlint:disable:next function_body_length
@@ -240,20 +271,18 @@ final class CaptureE2ENetworkTests: XCTestCase {
         thirdLog.assertFieldsEqual(expectedFields)
     }
 
-    func testFieldProviderEncodingFailureIsHandledGracefully() async throws {
-        // Set up logger with a field provider that includes a failing encodable
-        let fieldProviders: [FieldProvider] = [
-            MockFieldProvider(
-                getFieldsClosure: {
-                    [
-                        "valid_field": "valid_value",
-                        "failing_field": MockEncodable(),
-                    ]
-                }
-            ),
+    func testCustomFieldEncodingFailureIsHandledGracefully() async throws {
+        // Set up logger with custom fields that include a failing encodable.
+        let customFieldGetters: [MetadataProviderController.FieldGetter] = [
+            {
+                [
+                    "valid_field": "valid_value",
+                    "failing_field": MockEncodable(),
+                ]
+            },
         ]
 
-        _ = try self.setUpLogger(fieldProviders: fieldProviders)
+        _ = try self.setUpLogger(customFieldGetters: customFieldGetters)
 
         let streamID = try await self.server.waitForStream(testName: #function)
         try await self.server.configureAggressiveUploads(streamId: streamID)

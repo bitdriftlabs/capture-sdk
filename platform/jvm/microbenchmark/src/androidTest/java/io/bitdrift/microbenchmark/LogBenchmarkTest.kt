@@ -36,7 +36,6 @@ import io.bitdrift.capture.network.HttpResponse.HttpResult
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.network.ICaptureNetwork
-import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
@@ -64,7 +63,7 @@ class LogBenchmarkTest {
     val benchmarkRule = BenchmarkRule()
 
     private fun startLogger(
-        fieldProviders: List<FieldProvider> = listOf(),
+        initialFields: Map<String, String> = emptyMap(),
         configuration: Configuration = Configuration()
     ) {
         CaptureJniLibrary.load()
@@ -74,7 +73,7 @@ class LogBenchmarkTest {
             apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
             context = InstrumentationRegistry.getInstrumentation().targetContext,
             sessionStrategy = SessionStrategy.Fixed(),
-            fieldProviders = fieldProviders,
+            initialFields = initialFields,
             configuration = configuration,
         )
     }
@@ -135,7 +134,7 @@ class LogBenchmarkTest {
 
     @Test
     fun trackSpansWithoutFields() {
-        startLogger(createFieldProviders())
+        startLogger(createInitialFields())
 
         benchmarkRule.measureRepeated {
             val span = Capture.Logger.startSpan("Span without metadata", LogLevel.INFO)
@@ -145,7 +144,7 @@ class LogBenchmarkTest {
 
     @Test
     fun trackSpansWithFields() {
-        startLogger(createFieldProviders())
+        startLogger(createInitialFields())
         val metadata = buildFieldsMap(500)
 
         benchmarkRule.measureRepeated {
@@ -155,8 +154,8 @@ class LogBenchmarkTest {
     }
 
     @Test
-    fun logHttpNetworkLog50FieldsAndHeadersAndFieldProviders() {
-        startLogger(createFieldProviders())
+    fun logHttpNetworkLog50FieldsAndHeadersAndInitialFields() {
+        startLogger(createInitialFields())
 
         val extraFields = buildFieldsMap(50)
         val headers = buildFieldsMap(50, keyIdentifier = "header_")
@@ -249,7 +248,7 @@ class LogBenchmarkTest {
                 apiKey = "[test_api_key]",
                 apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
                 context = InstrumentationRegistry.getInstrumentation().targetContext,
-                fieldProviders = emptyList(),
+                customFieldGetters = emptyList(),
                 dateProvider = SystemDateProvider(),
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
@@ -265,7 +264,7 @@ class LogBenchmarkTest {
         configuration: Configuration = Configuration(),
         captureSdkOperation: () -> Unit
     ) {
-        startLogger(fieldProviders = createFieldProviders(), configuration = configuration)
+        startLogger(initialFields = createInitialFields(), configuration = configuration)
 
         benchmarkRule.measureRepeated { captureSdkOperation() }
     }
@@ -281,14 +280,13 @@ class LogBenchmarkTest {
             CaptureJniLibrary.destroyLogger(it.loggerId)
         }
     }
-    private fun createFieldProviders(providers: Int = 5, fields: Int = 10): List<FieldProvider> {
-        return (1..providers).map { providerIndex ->
-            val fields = (1..fields).associate { fieldIndex ->
-                "provider${providerIndex}_key$fieldIndex" to "provider${providerIndex}_val$fieldIndex"
-            }
-            FieldProvider { fields }
-        }
-    }
+    private fun createInitialFields(providers: Int = 5, fields: Int = 10): Map<String, String> =
+        (1..providers)
+            .flatMap { providerIndex ->
+                (1..fields).map { fieldIndex ->
+                    "provider${providerIndex}_key$fieldIndex" to "provider${providerIndex}_val$fieldIndex"
+                }
+            }.toMap()
 
     private fun buildFieldsMap(size: Int, keyIdentifier: String = "key_"): Map<String, String> =
         (1..size).associate { "$keyIdentifier$it" to "value_$it" }

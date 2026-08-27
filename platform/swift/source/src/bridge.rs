@@ -504,6 +504,7 @@ extern "C" fn capture_create_logger(
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
   start_in_sleep_mode: bool,
+  initial_fields: *const Object,
   issue_callback_configuration: *mut Object,
 ) -> LoggerId<'static> {
   initialize_logging();
@@ -550,6 +551,9 @@ extern "C" fn capture_create_logger(
             .to_string(),
         },
       ));
+      let initial_custom_fields = unsafe { ffi::convert_fields(initial_fields) }
+        .inspect_err(|error| log::warn!("failed to convert initial fields: {error:#}"))
+        .unwrap_or_default();
       let initial_ootb_fields = static_metadata.static_log_fields();
 
       let error_reporter = MetadataErrorReporter::new(
@@ -580,7 +584,7 @@ extern "C" fn capture_create_logger(
         session,
         metadata_provider,
         initial_ootb_fields,
-        initial_custom_fields: [].into(),
+        initial_custom_fields,
         resource_utilization_target: Box::new(resource_utilization::Target::new(
           resource_utilization_target,
         )),

@@ -41,7 +41,7 @@ class NetworkAttributesTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val networkAttributes = buildNetworkAttributes(context)
 
-        val result = networkAttributes.invoke()
+        val result = networkAttributes.getFields()
 
         assertThat(result).containsEntry("carrier", "")
     }
@@ -51,7 +51,7 @@ class NetworkAttributesTest {
         grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).getFields()
 
         assertThat(networkAttributes).containsEntry("network_type", "wwan")
     }
@@ -60,7 +60,7 @@ class NetworkAttributesTest {
     fun network_type_access_network_state_not_granted() {
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).getFields()
 
         assertThat(networkAttributes).doesNotContainKey("network_type")
     }
@@ -73,7 +73,7 @@ class NetworkAttributesTest {
         val mockedActiveNetwork = obtainMockedActiveNetwork(mockedConnectivityManager)
         doReturn(null).`when`(mockedConnectivityManager).getNetworkCapabilities(eq(mockedActiveNetwork))
 
-        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).getFields()
 
         assertThat(networkAttributes).containsEntry("network_type", "unknown")
     }
@@ -84,7 +84,7 @@ class NetworkAttributesTest {
         val context = spy(ApplicationProvider.getApplicationContext<Context>())
         val mockedConnectivityManager = obtainMockedConnectivityManager(context)
 
-        NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).invoke()
+        NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).getFields()
 
         verify(mockedConnectivityManager).registerDefaultNetworkCallback(
             any(ConnectivityManager.NetworkCallback::class.java),
@@ -97,7 +97,7 @@ class NetworkAttributesTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val networkAttributes = buildNetworkAttributes(context)
 
-        val result = networkAttributes.invoke()
+        val result = networkAttributes.getFields()
 
         assertThat(result).containsEntry("radio_type", "unknown")
     }
@@ -107,7 +107,7 @@ class NetworkAttributesTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val networkAttributes = buildNetworkAttributes(context)
 
-        val result = networkAttributes.invoke()
+        val result = networkAttributes.getFields()
 
         assertThat(result).containsEntry("radio_type", "forbidden")
     }
@@ -171,7 +171,7 @@ class NetworkAttributesTest {
         val network = mock(Network::class.java)
         networkAttributes.onLost(network)
 
-        val result = networkAttributes.invoke()
+        val result = networkAttributes.getFields()
 
         assertThat(result).containsEntry("network_type", "unknown")
     }
@@ -194,7 +194,7 @@ class NetworkAttributesTest {
         `when`(telephonyManager.networkType).thenReturn(radioType)
 
         networkAttributes.onCapabilitiesChanged(network, capabilities)
-        return networkAttributes.invoke()
+        return networkAttributes.getFields()
     }
 
     private fun grantPermissions(vararg permissionNames: String) {

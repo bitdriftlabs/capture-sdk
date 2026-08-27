@@ -39,8 +39,8 @@ final class DeviceAttributes {
     }
 }
 
-extension DeviceAttributes: FieldProvider {
-    public func getFields() -> Fields {
+extension DeviceAttributes {
+    func getFields() -> Fields {
         return [
             /// The device locale (e.g. en_US)
             "_locale": self.locale.load(),

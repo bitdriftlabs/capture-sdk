@@ -35,7 +35,6 @@ import android.telephony.TelephonyManager.NETWORK_TYPE_TD_SCDMA
 import android.telephony.TelephonyManager.NETWORK_TYPE_UMTS
 import android.telephony.TelephonyManager.NETWORK_TYPE_UNKNOWN
 import androidx.core.content.ContextCompat
-import io.bitdrift.capture.providers.FieldProvider
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.ExecutorService
@@ -44,8 +43,7 @@ import java.util.concurrent.ExecutorService
 internal class NetworkAttributes(
     private val context: Context,
     executor: ExecutorService = CaptureDispatchers.CommonBackground.executorService,
-) : ConnectivityManager.NetworkCallback(),
-    FieldProvider {
+) : ConnectivityManager.NetworkCallback() {
     @SuppressLint("InlinedApi")
     private val radioTypeNameMap =
         hashMapOf(
@@ -80,7 +78,7 @@ internal class NetworkAttributes(
         }
     }
 
-    override fun invoke(): Fields = currentFields
+    fun getFields(): Fields = currentFields
 
     @SuppressLint("NewApi")
     @Suppress("SwallowedException")
