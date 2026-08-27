@@ -31,6 +31,7 @@ fun TestingToolsCard(
     onLogLevelChange: (LogLevel) -> Unit,
     onLogSingleMessage: () -> Unit,
     onLogManyMessages: () -> Unit,
+    onLogJsonField: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -84,6 +85,18 @@ fun TestingToolsCard(
                     ),
             ) {
                 Text("Log Many Messages")
+            }
+
+            Button(
+                onClick = onLogJsonField,
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = BitdriftColors.TextSecondary,
+                        contentColor = Color.Black,
+                    ),
+            ) {
+                Text("Log JSON Field")
             }
         }
     }

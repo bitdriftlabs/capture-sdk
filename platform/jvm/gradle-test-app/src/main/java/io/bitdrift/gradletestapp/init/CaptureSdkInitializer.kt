@@ -248,6 +248,7 @@ object CaptureSdkInitializer {
             Capture.Logger.logInfo(fields) {
                 "Capture.Logger.getPreviousRunInfo"
             }
+
         }
     }
 

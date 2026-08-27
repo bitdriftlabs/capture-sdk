@@ -7,6 +7,7 @@
 
 **Added**
 
+- Added workflow matching support for nested JSON fields.
 - Added `SessionConfiguration` for setting the session ID at SDK start, configuring inactivity
   rotation, and receiving main-thread session-ID change callbacks. With an inactivity timeout,
   Capture reuses a persisted session until it expires; without one, it uses the configured initial
