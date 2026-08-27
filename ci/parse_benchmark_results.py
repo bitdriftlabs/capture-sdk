@@ -22,6 +22,19 @@ import re
 import sys
 
 
+# These focused cases are retained for local and CI-run diagnostics, but would otherwise add
+# short-lived, low-signal rows to every PR benchmark comment.
+BENCHMARKS_EXCLUDED_FROM_REPORT = frozenset(
+    {
+        "logNotMatched1Field",
+        "logNotMatched10Fields",
+        "logNotMatched50Fields",
+        "logNotMatched100Fields",
+        "logNotMatched1000Fields",
+    }
+)
+
+
 def format_time_ns(ns):
     """Format nanoseconds into a human-readable string."""
     if ns >= 1_000_000_000:
@@ -103,6 +116,8 @@ def parse_benchmark_json(json_path):
 
     for benchmark in benchmarks:
         name = clean_test_name(benchmark.get("name", "unknown"))
+        if name in BENCHMARKS_EXCLUDED_FROM_REPORT:
+            continue
         metrics = benchmark.get("metrics", {})
 
         # Extract time metrics (timeNs)

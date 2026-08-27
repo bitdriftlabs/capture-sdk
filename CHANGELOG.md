@@ -14,8 +14,6 @@
 
 **Changed**
 
-- Nothing yet!
-
 - Legacy fixed-session strategy generator callbacks have been removed. Use
   `SessionConfiguration` to provide an initial session ID.
 
@@ -34,7 +32,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced overhead when logging multiple string fields by batching JNI local-reference cleanup.
 
 **Fixed**
 
