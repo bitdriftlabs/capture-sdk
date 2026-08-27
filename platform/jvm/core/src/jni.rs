@@ -743,6 +743,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   inactivity_timeout_milliseconds: jlong,
   session_callback: JObject<'_>,
   metadata_provider: JObject<'_>,
+  initial_ootb_fields_array: JObjectArray<'_>,
   resource_utilization_target: JObject<'_>,
   session_replay_target: JObject<'_>,
   events_listener_target: JObject<'_>,

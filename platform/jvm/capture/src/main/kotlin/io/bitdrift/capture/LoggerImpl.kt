@@ -177,10 +177,6 @@ internal class LoggerImpl(
                         networkAttributes::getFields,
                         clientAttributes::dynamicFields,
                     ),
-                initialOotbFieldProviders =
-                    listOf(
-                        FieldProvider { clientAttributes.initialOotbFields() },
-                    ),
                 errorHandler = errorHandler,
                 customFieldGetters = customFieldGetters,
             )
