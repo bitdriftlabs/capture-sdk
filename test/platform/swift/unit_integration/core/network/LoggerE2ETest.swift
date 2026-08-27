@@ -156,9 +156,10 @@ final class CaptureE2ENetworkTests: XCTestCase {
         let appStateAttributes = AppStateAttributes()
         let clientAttributes = ClientAttributes()
         let deviceAttributes = DeviceAttributes()
+        let localeAttributes = LocaleAttributes()
         let networkAttributes = NetworkAttributes()
 
-        deviceAttributes.start(with: MockCoreLogging())
+        localeAttributes.start(with: MockCoreLogging())
         networkAttributes.start(with: MockCoreLogging())
 
         let logger = try self.setUpLogger()
@@ -209,8 +210,8 @@ final class CaptureE2ENetworkTests: XCTestCase {
         ]
         let defaultFields: [String: Encodable] = [
             "foreground": appStateAttributes.isForeground ? "1" : "0",
+            "_locale": localeAttributes.initialOotbFields()[0].data as! String,
         ]
-        .mergedOverwritingConflictingKeys(deviceAttributes.getFields())
         .mergedOverwritingConflictingKeys(networkAttributes.getFields())
         .mergedOverwritingConflictingKeys(staticFields)
 

@@ -11,15 +11,11 @@ import android.content.Context
 import android.content.pm.InstallSourceInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.os.Build
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.times
 import io.bitdrift.capture.ErrorHandler
-import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldValue
 import junit.framework.TestCase.assertEquals
@@ -37,7 +33,6 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.util.Locale
 
 @Suppress("DEPRECATION")
 @RunWith(RobolectricTestRunner::class)
@@ -58,7 +53,6 @@ class ClientAttributesTest {
 
         assertThat(clientAttributes).containsExactly(
             Field("foreground", FieldValue.StringField("1")),
-            Field("_locale", FieldValue.StringField("en_US")),
         )
     }
 
@@ -70,26 +64,7 @@ class ClientAttributesTest {
 
         assertThat(clientAttributes).containsExactly(
             Field("foreground", FieldValue.StringField("0")),
-            Field("_locale", FieldValue.StringField("en_US")),
         )
-    }
-
-    @Test
-    fun locale_changes_update_ootb_field() {
-        val clientAttributes =
-            ClientAttributes(
-                appContext,
-                obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED),
-            )
-        val logger: IInternalLogger = mock()
-        val frenchCanadianConfig = Configuration(appContext.resources.configuration).apply { setLocale(Locale.CANADA_FRENCH) }
-
-        clientAttributes.start(logger)
-        clientAttributes.onConfigurationChanged(frenchCanadianConfig)
-        clientAttributes.onConfigurationChanged(frenchCanadianConfig)
-
-        verify(logger).updateOotbField(ClientAttributes.LOCALE_KEY, "en_US")
-        verify(logger, times(1)).updateOotbField(ClientAttributes.LOCALE_KEY, "fr_CA")
     }
 
     @Test

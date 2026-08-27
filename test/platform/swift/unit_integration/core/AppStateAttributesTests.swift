@@ -30,6 +30,8 @@ final class AppStateAttributesTests: XCTestCase {
         let logger = MockCoreLogging()
         attributes.start(with: logger)
 
+        XCTAssertEqual(logger.ootbFields["foreground"], attributes.isForeground ? "1" : "0")
+
         notificationCenter.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
         XCTAssertEqual(logger.ootbFields["foreground"], "0")
 

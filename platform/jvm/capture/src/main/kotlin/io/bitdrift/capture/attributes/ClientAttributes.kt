@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.attributes
 
-import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
@@ -17,7 +16,6 @@ import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.ErrorHandler
-import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.utils.BuildTypeChecker
@@ -26,15 +24,8 @@ import java.util.Locale
 internal class ClientAttributes(
     private val context: Context,
     private val processLifecycleOwner: LifecycleOwner,
-) : IClientAttributes,
-    ComponentCallbacks {
+) : IClientAttributes {
     private val resources = context.resources
-
-    @Volatile
-    private var cachedLocale = locale
-
-    @Volatile
-    private var logger: IInternalLogger? = null
 
     override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
 
@@ -84,32 +75,12 @@ internal class ClientAttributes(
      * Returns the OOTB snapshots needed before the logger can accept logs.
      *
      * Process lifecycle state can be read from the logger runtime thread. Subsequent lifecycle
-     * events keep the foreground field current on the main thread, while configuration changes
-     * update the locale directly in the native OOTB field store.
+     * events keep the foreground field current on the main thread.
      */
     internal fun initialOotbFields(): Array<Field> =
         arrayOf(
             Field(FOREGROUND_KEY, FieldValue.StringField(foregroundValue())),
-            Field(LOCALE_KEY, FieldValue.StringField(locale)),
         )
-
-    /** Starts forwarding locale changes to the native OOTB field store. */
-    internal fun start(logger: IInternalLogger) {
-        this.logger = logger
-        context.registerComponentCallbacks(this)
-        cachedLocale = locale
-        logger.updateOotbField(LOCALE_KEY, cachedLocale)
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        val updatedLocale = getCurrentLocale(newConfig)?.toString() ?: UNKNOWN_FIELD_VALUE
-        if (cachedLocale != updatedLocale) {
-            cachedLocale = updatedLocale
-            logger?.updateOotbField(LOCALE_KEY, updatedLocale)
-        }
-    }
-
-    override fun onLowMemory() = Unit
 
     private fun isForeground(): Boolean {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
@@ -172,7 +143,6 @@ internal class ClientAttributes(
      */
     companion object {
         const val FOREGROUND_KEY = "foreground"
-        const val LOCALE_KEY = "_locale"
 
         // The unique sdk library that can be used for custom reports
         const val SDK_LIBRARY_ID = "io.bitdrift.capture-android"

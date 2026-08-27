@@ -5,14 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-internal import CapturePassable
 import Foundation
-import UIKit
 
-/// Attributes related to the device information including hardware model, locale, etc.
+/// Attributes related to the device hardware.
 final class DeviceAttributes {
-    private let locale = Atomic<String>(Locale.current.identifier)
-    private weak var logger: CoreLogging?
     let hardwareVersion: String = {
         let size = UnsafeMutablePointer<Int>.allocate(capacity: 1)
         sysctlbyname("hw.machine", nil, size, nil, 0)
@@ -23,49 +19,4 @@ final class DeviceAttributes {
 
         return String(cString: machine)
     }()
-
-    private var notificationRegistrationToken: NSObjectProtocol?
-
-    func start(with logger: CoreLogging) {
-        guard self.logger == nil else {
-            return
-        }
-
-        self.logger = logger
-        self.locale.update { $0 = Locale.current.identifier }
-        logger.updateOotbField(withKey: "_locale", value: self.locale.load())
-        self.notificationRegistrationToken = NotificationCenter.default.bitdrift_addObserver(
-            forName: NSLocale.currentLocaleDidChangeNotification
-        ) { [weak self] _ in
-            self?.updateLocale()
-        }
-    }
-
-    deinit {
-        if let token = self.notificationRegistrationToken {
-            NotificationCenter.default.removeObserver(token)
-        }
-    }
-}
-
-extension DeviceAttributes {
-    func initialOotbFields() -> [Field] {
-        [
-            Field(key: "_locale", data: self.locale.load() as NSString, type: .string),
-        ]
-    }
-
-    func getFields() -> Fields {
-        return [
-            /// The device locale (e.g. en_US)
-            "_locale": self.locale.load(),
-        ]
-    }
-}
-
-private extension DeviceAttributes {
-    func updateLocale() {
-        self.locale.update { $0 = Locale.current.identifier }
-        self.logger?.updateOotbField(withKey: "_locale", value: self.locale.load())
-    }
 }

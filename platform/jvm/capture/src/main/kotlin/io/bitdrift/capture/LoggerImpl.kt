@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
@@ -123,6 +124,7 @@ internal class LoggerImpl(
     private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
+    private val localeAttributes = LocaleAttributes(context)
     private var jankStatsMonitor: JankStatsMonitor? = null
 
     // Session URLs are only needed when queried externally, so derive the
@@ -226,7 +228,9 @@ internal class LoggerImpl(
                 sessionConfiguration.inactivityTimeout?.inWholeMilliseconds ?: -1L,
                 sessionConfiguration.makeSessionCallback(),
                 metadataProvider,
-                clientAttributes.initialOotbFields() + networkAttributes.initialOotbFields(),
+                clientAttributes.initialOotbFields() +
+                    localeAttributes.initialOotbFields() +
+                    networkAttributes.initialOotbFields(),
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
@@ -259,7 +263,7 @@ internal class LoggerImpl(
         this.loggerId = loggerId
 
         runtime = JniRuntime(this.loggerId)
-        clientAttributes.start(this)
+        localeAttributes.start(this)
         networkAttributes.start(this)
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime

@@ -7,13 +7,20 @@
 
 **Added**
 
+- Added workflow matching support for nested JSON fields.
 - Added `SessionConfiguration` for setting the session ID at SDK start, configuring inactivity
   rotation, and receiving main-thread session-ID change callbacks. With an inactivity timeout,
   Capture reuses a persisted session until it expires; without one, it uses the configured initial
   ID at every SDK start.
+- Added `initialFields` to seed custom global fields during Capture SDK startup.
+
 **Changed**
 
-- Nothing yet!
+- Deprecated `FieldProvider`; use `initialFields` to seed global fields at SDK startup and `addField`
+  to update them.
+
+- Out-of-the-box foreground, locale, and network fields now keep their values in the native state
+  store instead of being evaluated for every log.
 
 - Legacy fixed-session strategy generator callbacks have been removed. Use
   `SessionConfiguration` to provide an initial session ID.

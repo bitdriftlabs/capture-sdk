@@ -18,6 +18,7 @@ import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.timeout
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
@@ -547,6 +548,7 @@ class CaptureLoggerTest {
             "_architecture" to clientAttributes.architecture,
         ).toFieldValueMap() +
             clientAttributes.initialOotbFields().associate { it.key to it.value } +
+            LocaleAttributes(ContextHolder.APP_CONTEXT).initialOotbFields().associate { it.key to it.value } +
             NetworkAttributes(ContextHolder.APP_CONTEXT).getFields().toFieldValueMap()
     }
 

@@ -15,6 +15,7 @@ final class AppStateAttributes {
 
     private let underlyingIsForeground: Atomic<Bool>
     private let notificationCenter: NotificationCenter
+    private let stateUpdateLock = Lock()
     private weak var logger: CoreLogging?
     private var notificationTokens: [NSObjectProtocol] = []
 
@@ -53,14 +54,14 @@ final class AppStateAttributes {
         ]
     }
 
-    /// Starts forwarding future foreground-state changes to the logger.
+    /// Starts forwarding foreground-state changes to the logger and reconciles the initial snapshot.
     ///
-    /// The initial OOTB snapshot is not reconciled with lifecycle transitions during logger
-    /// construction. Avoiding that coordination keeps initialization independent of the main thread.
-    ///
-    /// - parameter logger: The logger that receives future foreground-state changes.
+    /// - parameter logger: The logger that receives foreground-state updates.
     func start(with logger: CoreLogging) {
-        self.logger = logger
+        self.stateUpdateLock.withLock {
+            self.logger = logger
+            logger.updateOotbField(withKey: "foreground", value: self.isForeground ? "1" : "0")
+        }
     }
 
     func initialOotbFields() -> [Field] {
@@ -80,7 +81,9 @@ final class AppStateAttributes {
 
 private extension AppStateAttributes {
     func updateForeground(_ isForeground: Bool) {
-        self.underlyingIsForeground.update { $0 = isForeground }
-        self.logger?.updateOotbField(withKey: "foreground", value: isForeground ? "1" : "0")
+        self.stateUpdateLock.withLock {
+            self.underlyingIsForeground.update { $0 = isForeground }
+            self.logger?.updateOotbField(withKey: "foreground", value: isForeground ? "1" : "0")
+        }
     }
 }
