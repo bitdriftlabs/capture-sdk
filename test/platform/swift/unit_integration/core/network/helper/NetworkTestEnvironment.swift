@@ -106,7 +106,7 @@ final class NetworkTestEnvironment {
         return sdkDirectory
     }
 
-   static func makeNetworkDelegateQueue(testName: String) -> DispatchQueue {
+    static func makeNetworkDelegateQueue(testName: String) -> DispatchQueue {
         DispatchQueue(
             label: "io.bitdrift.capture.test.network.\(testName)",
             qos: .userInteractive,
