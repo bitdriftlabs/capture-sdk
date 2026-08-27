@@ -223,10 +223,10 @@ internal object CaptureJniLibrary : IBridge {
      * @param logType the type of the log to be logged.
      * @param logLevel the log level of the log.
      * @param log the log message of the log.
-     * @param fieldKeys array of field keys (parallel to fieldValues).
-     * @param fieldValues array of field values (parallel to fieldKeys).
-     * @param matchingFieldKeys array of matching field keys.
-     * @param matchingFieldValues array of matching field values.
+     * @param fieldKeys array of field keys (parallel to fieldValues), or null if there are no fields.
+     * @param fieldValues array of field values (parallel to fieldKeys), or null if there are no fields.
+     * @param matchingFieldKeys array of matching field keys, or null if there are no matching fields.
+     * @param matchingFieldValues array of matching field values, or null if there are no matching fields.
      * @param usePreviousProcessSessionId if set to true, this log will be emitted with the session ID
      *        corresponding to the last session ID during the previous process run.
      * @param overrideOccurredAtUnixMilliseconds used to override the timestamp of the log.
@@ -236,10 +236,10 @@ internal object CaptureJniLibrary : IBridge {
         logType: Int,
         logLevel: Int,
         log: String,
-        fieldKeys: Array<String>,
-        fieldValues: Array<String>,
-        matchingFieldKeys: Array<String>,
-        matchingFieldValues: Array<String>,
+        fieldKeys: Array<String>?,
+        fieldValues: Array<String>?,
+        matchingFieldKeys: Array<String>?,
+        matchingFieldValues: Array<String>?,
         usePreviousProcessSessionId: Boolean,
         overrideOccurredAtUnixMilliseconds: Long,
     )

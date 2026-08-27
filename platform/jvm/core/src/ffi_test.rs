@@ -74,6 +74,19 @@ fn string_arrays_convert_empty_arrays() -> Result<()> {
 }
 
 #[test]
+fn string_arrays_convert_null_arrays() -> Result<()> {
+  with_env(|env| -> Result<()> {
+    let keys = JObjectArray::from(JObject::null());
+    let values = JObjectArray::from(JObject::null());
+
+    let fields = string_arrays_to_annotated_fields(env, &keys, &values, LogFieldKind::Ootb)?;
+
+    assert!(fields.is_empty());
+    Ok(())
+  })
+}
+
+#[test]
 fn string_arrays_reject_mismatched_lengths() -> Result<()> {
   with_env(|env| -> Result<()> {
     let keys = string_array(env, &["key".to_owned()])?;
