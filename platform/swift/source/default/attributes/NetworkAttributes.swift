@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CapturePassable
 import Foundation
 import Network
 
@@ -67,9 +68,8 @@ final class NetworkAttributes {
 
             let reachability = ReachabilityPath(from: path)
             self.reachabilityPath.update { $0 = reachability }
+            self.updateOotbFields()
 
-            // The initial path update is called before a shared logger is configured so we cannot assert on
-            // the existence of the logger in here.
             self.logger?.log(
                 level: .debug,
                 message: "[NetworkAttributes] Reachability updated: \(reachability)",
@@ -84,6 +84,8 @@ final class NetworkAttributes {
         }
 
         self.logger = logger
+        Self.telephonyNetworkInfo.start(with: logger)
+        self.updateOotbFields()
         self.pathMonitor.start(queue: self.queue)
     }
 
@@ -93,6 +95,13 @@ final class NetworkAttributes {
 }
 
 extension NetworkAttributes {
+    func initialOotbFields() -> [Field] {
+        [
+            Field(key: "network_type", data: self.reachabilityPath.load().rawValue as NSString, type: .string),
+            Field(key: "radio_type", data: (Self.telephonyNetworkInfo.radioType.load() ?? "unknown") as NSString, type: .string),
+        ]
+    }
+
     func getFields() -> Fields {
         return [
             /// The cellular network type. Note a given network can support multiple paths. We'll
@@ -102,5 +111,15 @@ extension NetworkAttributes {
             /// Cellular access technology that is active at the moment (eg. LTE)
             "radio_type": Self.telephonyNetworkInfo.radioType.load() ?? "unknown",
         ]
+    }
+}
+
+private extension NetworkAttributes {
+    func updateOotbFields() {
+        self.logger?.updateOotbField(withKey: "network_type", value: self.reachabilityPath.load().rawValue)
+        self.logger?.updateOotbField(
+            withKey: "radio_type",
+            value: Self.telephonyNetworkInfo.radioType.load() ?? "unknown"
+        )
     }
 }

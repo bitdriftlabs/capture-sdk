@@ -13,7 +13,7 @@ final class TelephonyNetworkInfo: NSObject {
     private let dataServiceIdentifier: Atomic<String?>
     private let underlyingNetworkInfo = CTTelephonyNetworkInfo()
 
-    var logger: CoreLogging?
+    private weak var logger: CoreLogging?
 
     let radioType: Atomic<String?>
 
@@ -51,6 +51,11 @@ final class TelephonyNetworkInfo: NSObject {
             }
     }
 
+    func start(with logger: CoreLogging) {
+        self.logger = logger
+        logger.updateOotbField(withKey: "radio_type", value: self.radioType.load() ?? "unknown")
+    }
+
     // MARK: - Private
 
     private func updateDataServiceNetworkInfo() {
@@ -58,6 +63,7 @@ final class TelephonyNetworkInfo: NSObject {
 
         let radioType = self.underlyingNetworkInfo.radioType(for: identifier)
         self.radioType.update { $0 = radioType }
+        self.logger?.updateOotbField(withKey: "radio_type", value: radioType ?? "unknown")
     }
 }
 

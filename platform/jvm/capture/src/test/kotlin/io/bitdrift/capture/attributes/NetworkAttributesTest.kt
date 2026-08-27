@@ -19,6 +19,7 @@ import android.telephony.TelephonyManager
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.verify
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldValue
 import org.assertj.core.api.Assertions.assertThat
@@ -192,12 +193,12 @@ class NetworkAttributesTest {
     fun start_forwards_network_changes() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService())
-        val updates = mutableListOf<Map<String, String>>()
+        val logger: IInternalLogger = mock()
 
-        networkAttributes.start(updates::add)
+        networkAttributes.start(logger)
         networkAttributes.onLost(mock(Network::class.java))
 
-        assertThat(updates.last()).containsEntry("network_type", "unknown")
+        verify(logger).updateOotbField("network_type", "unknown")
     }
 
     private fun invokeWithNetworkCapabilities(

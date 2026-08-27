@@ -463,13 +463,11 @@ impl MetadataProvider for LogMetadataProvider {
 
   fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
     // Safety: Since we receive MetadataProvider as a typed protocol, we know that it
-    // responds to `ootbFields` and `customFields` selectors.
+    // responds to the `customFields` selector.
     objc::rc::autoreleasepool(|| unsafe {
-      let ootb_fields = ffi::convert_fields(msg_send![*self.ptr, ootbFields])?;
-
       let custom_fields = ffi::convert_fields(msg_send![*self.ptr, customFields])?;
 
-      Ok((custom_fields, ootb_fields))
+      Ok((custom_fields, LogFields::default()))
     })
   }
 }

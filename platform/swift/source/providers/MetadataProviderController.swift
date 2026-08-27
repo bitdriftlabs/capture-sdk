@@ -18,16 +18,13 @@ final class MetadataProviderController {
 
     let dateProvider: DateProvider
 
-    let ootbFieldGetters: [FieldGetter]
     let customFieldGetters: [FieldGetter]
 
     init(
         dateProvider: DateProvider,
-        ootbFieldGetters: [FieldGetter],
         customFieldGetters: [FieldGetter]
     ) {
         self.dateProvider = dateProvider
-        self.ootbFieldGetters = ootbFieldGetters
         self.customFieldGetters = customFieldGetters
     }
 
@@ -52,11 +49,15 @@ extension MetadataProviderController: CapturePassable.MetadataProvider {
         self.dateProvider.getDate().timeIntervalSince1970
     }
 
-    func ootbFields() -> [Field] {
-        self.getFields(fieldGetters: self.ootbFieldGetters)
-    }
-
     func customFields() -> [Field] {
-        self.getFields(fieldGetters: self.customFieldGetters)
+        guard !self.customFieldGetters.isEmpty else {
+            return Self.emptyFields
+        }
+
+        return self.getFields(fieldGetters: self.customFieldGetters)
     }
+}
+
+private extension MetadataProviderController {
+    static let emptyFields = [Field]()
 }

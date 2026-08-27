@@ -158,7 +158,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
         let deviceAttributes = DeviceAttributes()
         let networkAttributes = NetworkAttributes()
 
-        deviceAttributes.start()
+        deviceAttributes.start(with: MockCoreLogging())
         networkAttributes.start(with: MockCoreLogging())
 
         let logger = try self.setUpLogger()

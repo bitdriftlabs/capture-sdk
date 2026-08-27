@@ -124,10 +124,6 @@ final class NetworkTestEnvironment {
             Date(timeIntervalSince1970: 1_666_807_001.52005815).timeIntervalSince1970
         }
 
-        func ootbFields() -> [Field] {
-            []
-        }
-
         func customFields() -> [Field] {
             []
         }

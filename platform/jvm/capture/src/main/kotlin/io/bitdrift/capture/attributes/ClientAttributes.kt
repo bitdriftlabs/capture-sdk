@@ -17,6 +17,7 @@ import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.utils.BuildTypeChecker
@@ -33,7 +34,7 @@ internal class ClientAttributes(
     private var cachedLocale = locale
 
     @Volatile
-    private var fieldUpdateHandler: ((String, String) -> Unit)? = null
+    private var logger: IInternalLogger? = null
 
     override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
 
@@ -93,18 +94,18 @@ internal class ClientAttributes(
         )
 
     /** Starts forwarding locale changes to the native OOTB field store. */
-    internal fun startOotbUpdates(fieldUpdateHandler: (String, String) -> Unit) {
-        this.fieldUpdateHandler = fieldUpdateHandler
+    internal fun start(logger: IInternalLogger) {
+        this.logger = logger
         context.registerComponentCallbacks(this)
         cachedLocale = locale
-        fieldUpdateHandler(LOCALE_KEY, cachedLocale)
+        logger.updateOotbField(LOCALE_KEY, cachedLocale)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         val updatedLocale = getCurrentLocale(newConfig)?.toString() ?: UNKNOWN_FIELD_VALUE
         if (cachedLocale != updatedLocale) {
             cachedLocale = updatedLocale
-            fieldUpdateHandler?.invoke(LOCALE_KEY, updatedLocale)
+            logger?.updateOotbField(LOCALE_KEY, updatedLocale)
         }
     }
 

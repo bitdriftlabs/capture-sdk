@@ -259,12 +259,8 @@ internal class LoggerImpl(
         this.loggerId = loggerId
 
         runtime = JniRuntime(this.loggerId)
-        clientAttributes.startOotbUpdates(::updateOotbField)
-        networkAttributes.start { fields ->
-            fields.forEach { (key, value) ->
-                updateOotbField(key, value)
-            }
-        }
+        clientAttributes.start(this)
+        networkAttributes.start(this)
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime
         }

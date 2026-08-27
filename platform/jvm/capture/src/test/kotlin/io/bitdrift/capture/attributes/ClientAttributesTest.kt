@@ -17,7 +17,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.times
 import io.bitdrift.capture.ErrorHandler
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldValue
 import junit.framework.TestCase.assertEquals
@@ -79,17 +81,15 @@ class ClientAttributesTest {
                 appContext,
                 obtainMockedLifecycleOwnerWith(Lifecycle.State.STARTED),
             )
-        val updates = mutableListOf<Pair<String, String>>()
+        val logger: IInternalLogger = mock()
         val frenchCanadianConfig = Configuration(appContext.resources.configuration).apply { setLocale(Locale.CANADA_FRENCH) }
 
-        clientAttributes.startOotbUpdates { key, value -> updates.add(key to value) }
+        clientAttributes.start(logger)
         clientAttributes.onConfigurationChanged(frenchCanadianConfig)
         clientAttributes.onConfigurationChanged(frenchCanadianConfig)
 
-        assertThat(updates).containsExactly(
-            ClientAttributes.LOCALE_KEY to "en_US",
-            ClientAttributes.LOCALE_KEY to "fr_CA",
-        )
+        verify(logger).updateOotbField(ClientAttributes.LOCALE_KEY, "en_US")
+        verify(logger, times(1)).updateOotbField(ClientAttributes.LOCALE_KEY, "fr_CA")
     }
 
     @Test

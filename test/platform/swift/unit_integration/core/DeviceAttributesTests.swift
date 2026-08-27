@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @testable import Capture
+import CaptureMocks
 import Foundation
 import XCTest
 
@@ -13,12 +14,13 @@ final class DeviceAttributesTests: XCTestCase {
     func testLocale() {
         let deviceAttributes = DeviceAttributes()
         // Confirm that attributes are initialized with the `locale` field value.
-        let localeStr = deviceAttributes.getFields()["_locale"] as! String
+        let localeStr = deviceAttributes.initialOotbFields()[0].data as! String
         XCTAssertNotNil(Locale(identifier: localeStr))
 
-        deviceAttributes.start()
+        let logger = MockCoreLogging()
+        deviceAttributes.start(with: logger)
         // Confirm that the `locale` field looks OK after starting device attributes.
-        let nowLocaleStr = deviceAttributes.getFields()["_locale"] as! String
+        let nowLocaleStr = logger.ootbFields["_locale"]!
         XCTAssertNotNil(Locale(identifier: nowLocaleStr))
 
         // And is the same as before.
