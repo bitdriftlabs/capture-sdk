@@ -47,7 +47,8 @@ build:noclippy --output_groups=-clippy_checks
 # `bazel test //...` should discover and build tests, not every build target that the wildcard
 # happens to match. Targets that are not tests remain available through `bazel build`.
 test --build_tests_only
-test --test_env=RUST_BACKTRACE=full --java_runtime_version=remotejdk_11
+test --test_env=RUST_BACKTRACE=full
+common --java_runtime_version=remotejdk_11
 
 # Shared configuration for all CI tasks. Clippy runs in its dedicated workflow so
 # artifact builds do not pay for lint-aspect analysis.
@@ -95,6 +96,11 @@ build:release-ios --features=swift.emit_swiftinterface
 # Make sure __.SYMDEF does not have a timestamp for iOS (for reproducibility)
 build:release-ios --action_env=ZERO_AR_DATE=1
 build:release-ios --repo_env=ZERO_AR_DATE=1
+# Swift 6.4 (embedded in Xcode 27) doesnt emit module interfaces unless the language mode is explicit;
+# so we pin it to the mode the compiler defaults to today (-language-mode 5). Every toolchain we
+# release with gets it, so all the artifacts expose the same interface.
+build:release-ios --@rules_swift//swift:copt=-language-mode
+build:release-ios --@rules_swift//swift:copt=5
 
 # Allows disabling the cache for cases where the cache might be slow, e.g. slow networks.
 build:nocache --remote_accept_cached=false

@@ -111,6 +111,58 @@ jobs:
       # TODO(snowp): Add some kind of assertion that the app does that it's supposed to
       - run: ./bazelw run --config ci --config release-ios //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
         name: "Run app"
+  xcode_27_build:
+    name: xcode 27 build and test
+    timeout-minutes: 40
+    needs: "pre_check"
+    if: >-
+      needs.pre_check.outputs.should_run == 'true' &&
+      (github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: xcode-27
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+
+      - name: Resolve the Xcode 27 toolchain
+        id: plan
+        run: IOS_RELEASE_DRY_RUN=1 ./tools/ios_release.sh Capture 0.0.0 swift-6.4 >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: ./ci/mac_ci_setup.sh "$XCODE_VERSION"
+        env:
+          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
+
+      - name: Build the SDK with Xcode 27
+        run: |
+          ./bazelw build \
+            --config ci \
+            --xcode_version="$XCODE_VERSION" \
+            --ios_simulator_version=27.0 \
+            //platform/swift/source:capture_ios_static_framework
+        env:
+          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
+
+      - name: Test the iOS 27 code paths with Xcode 27
+        run: |
+          ./bazelw test \
+            --config ci \
+            --test_output=errors \
+            --test_env=REUSE_GLOBAL_SIMULATOR=1 \
+            --test_env=STARTUP_TIMEOUT_SEC=300 \
+            --xcode_version="$XCODE_VERSION" \
+            --ios_simulator_version=27.0 \
+            //test/platform/swift/unit_integration/core:ios27_test
+        env:
+          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
   unit_tests:
     name: unit tests
     needs: "pre_check"

@@ -20,3 +20,22 @@ bitdrift_mobile_swift_test(
         "@flatbuffers//swift",
     ],
 )
+
+bitdrift_mobile_swift_test(
+    name = "ios27_test",
+    srcs = [
+        "reports/CrashReporterServiceTests.swift",
+        "reports/MetricKitDiagnosticManagerTests.swift",
+        "reports/MetricKitLegacyCrashAdapterTests.swift",
+    ],
+    data = glob(["testdata/*"]),
+    repository = "@capture",
+    tags = ["macos_only"],
+    use_test_host = True,
+    visibility = ["//visibility:public"],
+    deps = [
+        "//platform/swift/source:ios_lib",
+        "//platform/swift/source:objc_bridge",
+        "//test/platform/swift/unit_integration/mocks",
+    ],
+)

@@ -37,6 +37,14 @@ function prepare_and_upload_library_artifacts() {
     "$library.zip" \
   )
 
+  local -r swift_64_artifact="$library-swift-6.4-$version.ios.zip"
+  if [[ -f "$swift_64_artifact" ]]; then
+    mv "$swift_64_artifact" "$library-swift-6.4.zip"
+    files+=("$library-swift-6.4.zip")
+  else
+    echo "+ No $swift_64_artifact found, skipping the Swift 6.4 variant"
+  fi
+
   echo "+++ Uploading $library artifacts to s3 bucket"
 
   for file in "${files[@]}"; do
