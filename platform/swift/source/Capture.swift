@@ -69,39 +69,6 @@ extension Logger {
         )
     }
 
-    /// Initializes Capture with the canonical session configuration API.
-    ///
-    /// The default configuration generates an SDK UUID for the current process, does not persist it
-    /// across SDK restarts, and does not rotate it due to inactivity. See ``SessionConfiguration``
-    /// for the session-ID lifecycle contract.
-    ///
-    /// - parameter apiKey:               The API key provided by bitdrift.
-    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
-    /// - parameter configuration:        The configuration used to set up Capture features.
-    /// - parameter dateProvider:         An optional date provider for the default logger.
-    /// - parameter startResult:          An optional callback invoked with the SDK initialization result.
-    ///
-    /// - returns: A logger integrator that can enable SDK integrations.
-    @discardableResult
-    public static func start(
-        withAPIKey apiKey: String,
-        sessionConfiguration: SessionConfiguration = .init(),
-        configuration: Configuration = .init(),
-        dateProvider: DateProvider? = nil,
-        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
-    ) -> LoggerIntegrator? {
-        self.start(
-            withAPIKey: apiKey,
-            sessionStrategy: .configuration(sessionConfiguration),
-            configuration: configuration,
-            customFieldGetters: [],
-            initialFields: [:],
-            dateProvider: dateProvider,
-            loggerBridgingFactoryProvider: LoggerBridgingFactory(),
-            startResult: startResult
-        )
-    }
-
     /// Initializes Capture with the canonical session configuration API and startup fields.
     ///
     /// - parameter apiKey:               The API key provided by bitdrift.
@@ -118,7 +85,7 @@ extension Logger {
         withAPIKey apiKey: String,
         sessionConfiguration: SessionConfiguration = .init(),
         configuration: Configuration = .init(),
-        initialFields: Fields,
+        initialFields: Fields = [:],
         dateProvider: DateProvider? = nil,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator? {

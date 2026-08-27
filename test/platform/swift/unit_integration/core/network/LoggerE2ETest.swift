@@ -115,7 +115,14 @@ final class CaptureE2ENetworkTests: XCTestCase {
     }
 
     func testInitialFieldsAreIncludedInLogs() async throws {
-        let logger = try self.setUpLogger(initialFields: ["initial_field": "initial_value"])
+        // `substring` splits the emoji's UTF-16 surrogate pair, so this NSString cannot be
+        // converted to UTF-8. The Rust bridge must use its lossy fallback rather than reject
+        // all initial fields.
+        let invalidUTF8String = ("abc💇‍♀️" as NSString).substring(with: NSRange(location: 0, length: 4))
+        let logger = try self.setUpLogger(initialFields: [
+            "initial_field": "initial_value",
+            "invalid_utf": invalidUTF8String,
+        ])
 
         let streamID = try await self.server.waitForStream(testName: #function)
         try await self.server.configureAggressiveUploads(streamId: streamID)
@@ -125,6 +132,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
         let uploadedInitialFieldsLog = try XCTUnwrap(initialFieldsLog, "Did not receive initial fields log")
 
         XCTAssertEqual(uploadedInitialFieldsLog.field(withKey: "initial_field")?.value as? String, "initial_value")
+        XCTAssertEqual(uploadedInitialFieldsLog.field(withKey: "invalid_utf")?.value as? String, "abc?")
 
         logger.addField(withKey: "initial_field", value: "updated_value")
         logger.log(level: .debug, message: "updated initial fields")
