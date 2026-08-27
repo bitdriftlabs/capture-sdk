@@ -82,7 +82,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
                 initialFields: initialFields,
                 storageProvider: self.storage,
                 timeProvider: SystemTimeProvider(),
-                networkDelegateQueue: .global(qos: .userInteractive)
+                networkDelegateQueue: NetworkTestEnvironment.makeNetworkDelegateQueue(testName: self.name)
             )
         )
 
