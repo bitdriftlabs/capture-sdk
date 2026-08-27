@@ -7,6 +7,7 @@
 
 import BitdriftEnhancedCrashData
 @testable import CaptureLoggerBridge
+@testable import CaptureMocks
 import FlatBuffers
 import XCTest
 
@@ -1004,23 +1005,6 @@ func createTempDir() throws -> URL {
 }
 
 // MARK: - mock classes
-
-final class MockCrashReporting: NSObject, CrashReporting {
-    let previousCrash: BitdriftPreviousCrash?
-
-    init(previousCrash: BitdriftPreviousCrash? = nil) {
-        self.previousCrash = previousCrash
-        super.init()
-    }
-
-    func cachedCrashDate() -> Date? { nil }
-    func cachedPreviousCrash() -> BitdriftPreviousCrash? { previousCrash }
-    func enhancedMetricKitReport(
-        _ metricKitReport: [String: Any],
-        useStackOverlapMatching: Bool,
-        summaryOut: AutoreleasingUnsafeMutablePointer<NSDictionary?>?
-    ) -> [String: Any] { metricKitReport }
-}
 
 private func makePreviousCrash(
     nsexceptionName: String? = nil,

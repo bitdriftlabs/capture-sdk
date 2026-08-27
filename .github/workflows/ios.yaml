@@ -112,7 +112,7 @@ jobs:
       - run: ./bazelw run --config ci --config release-ios //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
         name: "Run app"
   xcode_27_build:
-    name: xcode 27 build
+    name: xcode 27 build and test
     timeout-minutes: 40
     needs: "pre_check"
     if: >-
@@ -147,6 +147,19 @@ jobs:
             --config ci \
             --xcode_version="$XCODE_VERSION" \
             //platform/swift/source:capture_ios_static_framework
+        env:
+          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
+
+      - name: Test the iOS 27 code paths with Xcode 27
+        run: |
+          ./bazelw test \
+            --config ci \
+            --test_output=errors \
+            --test_env=REUSE_GLOBAL_SIMULATOR=1 \
+            --test_env=STARTUP_TIMEOUT_SEC=300 \
+            --xcode_version="$XCODE_VERSION" \
+            --ios_simulator_version=27.0 \
+            //test/platform/swift/unit_integration/core:ios27_test
         env:
           XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
   unit_tests:
