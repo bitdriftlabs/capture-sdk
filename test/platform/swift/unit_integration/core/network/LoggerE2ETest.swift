@@ -212,7 +212,13 @@ final class CaptureE2ENetworkTests: XCTestCase {
             "foreground": appStateAttributes.isForeground ? "1" : "0",
             "_locale": localeAttributes.initialOotbFields()[0].data as! String,
         ]
-        .mergedOverwritingConflictingKeys(networkAttributes.getFields())
+        .mergedOverwritingConflictingKeys(
+            Dictionary(
+                uniqueKeysWithValues: networkAttributes.initialOotbFields().compactMap { field in
+                    (field.data as? String).map { (field.key, $0 as Encodable) }
+                }
+            )
+        )
         .mergedOverwritingConflictingKeys(staticFields)
 
         let helloWorldExpectedFields: [String: Encodable] = [

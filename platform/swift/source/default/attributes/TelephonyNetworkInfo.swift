@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CapturePassable
 import CoreTelephony
 import Foundation
 
@@ -12,6 +13,7 @@ import Foundation
 final class TelephonyNetworkInfo: NSObject {
     private let dataServiceIdentifier: Atomic<String?>
     private let underlyingNetworkInfo = CTTelephonyNetworkInfo()
+    private let stateUpdateLock = Lock()
 
     private weak var logger: CoreLogging?
 
@@ -52,18 +54,32 @@ final class TelephonyNetworkInfo: NSObject {
     }
 
     func start(with logger: CoreLogging) {
-        self.logger = logger
-        logger.updateOotbField(withKey: "radio_type", value: self.radioType.load() ?? "unknown")
+        self.stateUpdateLock.withLock {
+            self.logger = logger
+            self.publishRadioType()
+        }
+    }
+
+    func initialOotbFields() -> [Field] {
+        [
+            Field(key: "radio_type", data: (self.radioType.load() ?? "unknown") as NSString, type: .string),
+        ]
     }
 
     // MARK: - Private
 
     private func updateDataServiceNetworkInfo() {
-        let identifier = self.dataServiceIdentifier.load()
+        self.stateUpdateLock.withLock {
+            let identifier = self.dataServiceIdentifier.load()
 
-        let radioType = self.underlyingNetworkInfo.radioType(for: identifier)
-        self.radioType.update { $0 = radioType }
-        self.logger?.updateOotbField(withKey: "radio_type", value: radioType ?? "unknown")
+            let radioType = self.underlyingNetworkInfo.radioType(for: identifier)
+            self.radioType.update { $0 = radioType }
+            self.publishRadioType()
+        }
+    }
+
+    private func publishRadioType() {
+        self.logger?.updateOotbField(withKey: "radio_type", value: self.radioType.load() ?? "unknown")
     }
 }
 

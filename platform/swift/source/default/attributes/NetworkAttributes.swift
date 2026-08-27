@@ -33,7 +33,7 @@ private enum ReachabilityPath: String {
 final class NetworkAttributes {
     private let pathMonitor: NWPathMonitor
     private let queue = DispatchQueue.serial(withLabelSuffix: "NetworkAttributes", target: .default)
-    private var reachabilityPath: Atomic<ReachabilityPath> = Atomic(.other)
+    private let reachabilityPath = Atomic<ReachabilityPath>(.other)
     private weak var logger: CoreLogging?
 
     // This property is static as static ('type') properties are guaranteed to be initialized in a lazily
@@ -68,7 +68,7 @@ final class NetworkAttributes {
 
             let reachability = ReachabilityPath(from: path)
             self.reachabilityPath.update { $0 = reachability }
-            self.updateOotbFields()
+            self.publishNetworkType()
 
             self.logger?.log(
                 level: .debug,
@@ -85,7 +85,7 @@ final class NetworkAttributes {
 
         self.logger = logger
         Self.telephonyNetworkInfo.start(with: logger)
-        self.updateOotbFields()
+        self.publishNetworkType()
         self.pathMonitor.start(queue: self.queue)
     }
 
@@ -98,28 +98,12 @@ extension NetworkAttributes {
     func initialOotbFields() -> [Field] {
         [
             Field(key: "network_type", data: self.reachabilityPath.load().rawValue as NSString, type: .string),
-            Field(key: "radio_type", data: (Self.telephonyNetworkInfo.radioType.load() ?? "unknown") as NSString, type: .string),
-        ]
-    }
-
-    func getFields() -> Fields {
-        return [
-            /// The cellular network type. Note a given network can support multiple paths. We'll
-            /// report the currently used. (e.g. wlan)
-            "network_type": self.reachabilityPath.load().rawValue,
-
-            /// Cellular access technology that is active at the moment (eg. LTE)
-            "radio_type": Self.telephonyNetworkInfo.radioType.load() ?? "unknown",
-        ]
+        ] + Self.telephonyNetworkInfo.initialOotbFields()
     }
 }
 
 private extension NetworkAttributes {
-    func updateOotbFields() {
+    func publishNetworkType() {
         self.logger?.updateOotbField(withKey: "network_type", value: self.reachabilityPath.load().rawValue)
-        self.logger?.updateOotbField(
-            withKey: "radio_type",
-            value: Self.telephonyNetworkInfo.radioType.load() ?? "unknown"
-        )
     }
 }

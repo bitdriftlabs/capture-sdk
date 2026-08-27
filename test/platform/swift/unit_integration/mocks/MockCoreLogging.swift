@@ -11,6 +11,11 @@ import Foundation
 import XCTest
 
 public final class MockCoreLogging {
+    public struct OotbFieldUpdate {
+        public let key: String
+        public let value: String
+    }
+
     public struct Log {
         public let level: LogLevel
         public let message: String
@@ -64,6 +69,7 @@ public final class MockCoreLogging {
     public private(set) var clearEntityIDCallCount = 0
     public private(set) var ootbFields = [String: String]()
     public private(set) var ootbFieldUpdateCount = 0
+    public private(set) var ootbFieldUpdates = [OotbFieldUpdate]()
 
     public init() {}
 
@@ -170,6 +176,7 @@ extension MockCoreLogging: CoreLogging {
 
     public func updateOotbField(withKey key: String, value: String) {
         self.ootbFieldUpdateCount += 1
+        self.ootbFieldUpdates.append(OotbFieldUpdate(key: key, value: value))
         self.ootbFields[key] = value
     }
 

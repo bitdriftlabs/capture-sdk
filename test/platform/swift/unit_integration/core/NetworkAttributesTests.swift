@@ -24,8 +24,14 @@ final class NetworkAttributesTests: XCTestCase {
 
         attributes.start(with: logger)
 
-        XCTAssertEqual(logger.ootbFields["network_type"], attributes.getFields()["network_type"] as? String)
-        XCTAssertEqual(logger.ootbFields["radio_type"], attributes.getFields()["radio_type"] as? String)
+        let initialFields = Dictionary(
+            uniqueKeysWithValues: attributes.initialOotbFields().compactMap { field in
+                (field.data as? String).map { (field.key, $0) }
+            }
+        )
+        XCTAssertEqual(logger.ootbFields["network_type"], initialFields["network_type"])
+        XCTAssertEqual(logger.ootbFields["radio_type"], initialFields["radio_type"])
+        XCTAssertEqual(logger.ootbFieldUpdates.prefix(2).map(\.key), ["radio_type", "network_type"])
     }
 
     func testTelephonyUpdatesOotbRadioField() {
