@@ -115,6 +115,9 @@ bitdrift_kt_android_local_test(
     ],
     jvm_flags = [
         "-Djava.library.path=test/platform/jvm",
+        # Mirrors the Gradle test config; JDK 17 strongly encapsulates java.lang, and these tests
+        # reflect on Throwable.cause to build exception cycles.
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
     ],
     deps = [
         artifact("junit:junit"),
