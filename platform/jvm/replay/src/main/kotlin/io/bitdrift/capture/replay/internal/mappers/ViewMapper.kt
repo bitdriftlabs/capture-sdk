@@ -12,16 +12,15 @@ import android.view.View
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
-import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
-import io.bitdrift.capture.replay.internal.ViewMapperConfiguration
+import io.bitdrift.capture.replay.internal.ViewTypeResolver
 
 internal class ViewMapper(
     sessionReplayConfiguration: SessionReplayConfiguration,
-    private val viewMapperConfiguration: ViewMapperConfiguration = ViewMapperConfiguration(sessionReplayConfiguration),
+    private val viewTypeResolver: ViewTypeResolver = ViewTypeResolver(sessionReplayConfiguration),
     private val buttonMapper: ButtonMapper = ButtonMapper(),
     private val textMapper: TextMapper = TextMapper(),
     private val backgroundMapper: BackgroundMapper = BackgroundMapper(),
@@ -78,7 +77,7 @@ internal class ViewMapper(
             }
 
         val className = this.javaClass.simpleName
-        val type = viewMapperConfiguration.mapper[className]
+        val type = viewTypeResolver.resolve(className, this)
         if (type == null) {
             // Try to use generic mapper
             list.addAll(buttonMapper.map(this))
@@ -99,15 +98,7 @@ internal class ViewMapper(
                 "Successfully mapped Android view=$className to=$type:" +
                     " ${out[0]}, ${out[1]}, ${this.width}, ${this.height}",
             )
-            // Only infer opacity for built-in generic mappings; an app that categorized this class
-            // itself asked for this exact type.
-            val paintedType =
-                if (type == ReplayType.View && className !in viewMapperConfiguration.externallyCategorized) {
-                    BackgroundOpacity.paintedType(this) ?: ReplayType.TransparentView
-                } else {
-                    type
-                }
-            list.add(ReplayRect(paintedType, out[0], out[1], this.width, this.height))
+            list.add(ReplayRect(type, out[0], out[1], this.width, this.height))
         }
         return list
     }

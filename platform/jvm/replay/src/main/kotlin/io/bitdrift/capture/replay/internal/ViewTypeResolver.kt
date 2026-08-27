@@ -7,45 +7,46 @@
 
 package io.bitdrift.capture.replay.internal
 
+import android.view.View
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.SessionReplayConfiguration
+import io.bitdrift.capture.replay.internal.mappers.BackgroundOpacity
 
-internal class ViewMapperConfiguration(
+internal class ViewTypeResolver(
     sessionReplayConfiguration: SessionReplayConfiguration,
     private val externalMapper: Map<ReplayType, List<String>>? =
         sessionReplayConfiguration.categorizers,
 ) {
     /**
-     * Let a third party select the ReplayType for the given class name.
+     * The type to report for [view], or null when no class-name mapping applies and the generic
+     * mappers should run instead.
+     *
+     * A type the host app declared through [SessionReplayConfiguration.categorizers] is the
+     * caller's choice and is returned as-is. A built-in generic container is refined by what the
+     * view actually paints, since it only occludes with an opaque background.
      */
-    val mapper: Map<String, ReplayType> by lazy {
-        val map = mutableMapOf<String, ReplayType>()
-        for ((type, viewNames) in defaultMapper) {
-            for (viewName in viewNames) {
-                map[viewName] = type
-            }
+    fun resolve(
+        className: String,
+        view: View,
+    ): ReplayType? {
+        declared[className]?.let { return it }
+        val builtInType = builtIn[className] ?: return null
+        return if (builtInType == ReplayType.View) {
+            BackgroundOpacity.paintedType(view) ?: ReplayType.TransparentView
+        } else {
+            builtInType
         }
-        externalMapper?.let { externalMap ->
-            for ((type, viewNames) in externalMap) {
-                for (viewName in viewNames) {
-                    map[viewName] = type
-                }
-            }
-        }
-        map.toMap()
     }
 
-    /**
-     * Class names the host app mapped explicitly through [SessionReplayConfiguration.categorizers].
-     * Their type is the caller's choice and must not be second-guessed.
-     */
-    val externallyCategorized: Set<String> by lazy {
-        externalMapper
-            ?.values
-            ?.flatten()
-            ?.toSet()
+    private val declared: Map<String, ReplayType> by lazy { externalMapper.flattenByClassName() }
+
+    private val builtIn: Map<String, ReplayType> by lazy { defaultMapper.flattenByClassName() }
+
+    private fun Map<ReplayType, List<String>>?.flattenByClassName(): Map<String, ReplayType> =
+        this
+            ?.flatMap { (type, viewNames) -> viewNames.map { it to type } }
+            ?.toMap()
             .orEmpty()
-    }
 
     private val defaultMapper: Map<ReplayType, List<String>> =
         mapOf(
