@@ -94,6 +94,9 @@ function provision_android_sdk_packages() {
     "$android_sdk_unarchived_dir/platforms/android-$android_sdk_platform/source.properties" > "$agp_platform_dir/source.properties"
   sed -e 's/platforms;android-37.0/platforms;android-37/' -e 's/<api-level>37.0<\//<api-level>37<\//' \
     "$android_sdk_unarchived_dir/platforms/android-$android_sdk_platform/package.xml" > "$agp_platform_dir/package.xml"
+
+  grep -Fqx "AndroidVersion.ApiLevel=$android_sdk_api_level" "$agp_platform_dir/source.properties"
+  grep -Fq "platforms;android-$android_sdk_api_level" "$agp_platform_dir/package.xml"
 }
 
 function expose_latest_cmdline_tools() {
