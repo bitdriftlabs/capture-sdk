@@ -48,7 +48,7 @@ build:noclippy --output_groups=-clippy_checks
 # happens to match. Targets that are not tests remain available through `bazel build`.
 test --build_tests_only
 test --test_env=RUST_BACKTRACE=full
-common --java_runtime_version=remotejdk_11
+common --java_runtime_version=remotejdk_17
 
 # Shared configuration for all CI tasks. Clippy runs in its dedicated workflow so
 # artifact builds do not pay for lint-aspect analysis.
