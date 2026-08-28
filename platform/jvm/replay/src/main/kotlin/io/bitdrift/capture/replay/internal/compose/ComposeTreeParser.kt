@@ -94,6 +94,7 @@ internal object ComposeTreeParser {
         // this is a somewhat expensive call, so avoid calling it multiple times
         val config = this.config
         val captureIgnoreSubTree = config.getOrNull(CaptureModifier.CaptureIgnore)
+        @Suppress("DEPRECATION")
         val isVisible = !config.contains(SemanticsProperties.InvisibleToUser)
         val notAttachedOrPlaced = !layoutNode.isPlaced || !layoutNode.isAttached
         val type =

@@ -80,23 +80,7 @@ function provision_android_sdk_packages() {
     ANDROID_HOME="$android_sdk_unarchived_dir" "$sdkmanager" "${install_android_sdk_packages_command[@]}" | (grep -v = || true)
   fi
 
-  # AGP 8.13 resolves compileSdk 37 as platforms/android-37, while the Android 17 SDK ships as
-  # android-37.0. Create a valid API 37 platform package at AGP's expected location.
-  # shellcheck disable=SC2154 # Defined by android_toolchain_versions.sh.
-  local -r agp_platform_dir="$android_sdk_unarchived_dir/platforms/android-$android_sdk_api_level"
-  local platform_file
-  rm -rf "$agp_platform_dir"
-  mkdir -p "$agp_platform_dir"
-  for platform_file in android-stubs-src.jar android.jar build.prop core-for-system-modules.jar data framework.aidl optional skins templates uiautomator.jar; do
-    ln -s "../android-$android_sdk_platform/$platform_file" "$agp_platform_dir/$platform_file"
-  done
-  sed -e 's/Platform.Version=17/Platform.Version=37/' -e 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' \
-    "$android_sdk_unarchived_dir/platforms/android-$android_sdk_platform/source.properties" > "$agp_platform_dir/source.properties"
-  sed -e 's/platforms;android-37.0/platforms;android-37/' -e 's/<api-level>37.0<\//<api-level>37<\//' \
-    "$android_sdk_unarchived_dir/platforms/android-$android_sdk_platform/package.xml" > "$agp_platform_dir/package.xml"
-
-  grep -Fqx "AndroidVersion.ApiLevel=$android_sdk_api_level" "$agp_platform_dir/source.properties"
-  grep -Fq "platforms;android-$android_sdk_api_level" "$agp_platform_dir/package.xml"
+  rm -rf "$android_sdk_unarchived_dir/platforms/android-$android_sdk_api_level"
 }
 
 function expose_latest_cmdline_tools() {
