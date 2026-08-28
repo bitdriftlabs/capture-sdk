@@ -9,8 +9,6 @@ script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_root
 # shellcheck source=tools/android_toolchain_versions.sh
 source "$script_root/android_toolchain_versions.sh"
-repo_root="$(cd "$script_root/.." && pwd)"
-readonly repo_root
 readonly android_sdk_root_dir="$HOME/.androidbin/bitdrift-android-sdk"
 readonly android_sdk_unarchived_dir="$android_sdk_root_dir/android-sdk-$android_sdk_version-unarchived"
 readonly softlink_root_dir="/tmp/bitdrift-android-sdk"
@@ -83,8 +81,8 @@ function provision_android_sdk_packages() {
   fi
 
   # AGP 8.13 resolves compileSdk 37 as platforms/android-37, while the Android 17 SDK ships as
-  # android-37.0. Supply API 37 metadata at AGP's expected path without exposing a duplicate SDK
-  # Manager package.
+  # android-37.0. Create a valid API 37 platform package at AGP's expected location.
+  # shellcheck disable=SC2154 # Defined by android_toolchain_versions.sh.
   local -r agp_platform_dir="$android_sdk_unarchived_dir/platforms/android-$android_sdk_api_level"
   local platform_file
   rm -rf "$agp_platform_dir"
@@ -94,6 +92,8 @@ function provision_android_sdk_packages() {
   done
   sed -e 's/Platform.Version=17/Platform.Version=37/' -e 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/' \
     "$android_sdk_unarchived_dir/platforms/android-$android_sdk_platform/source.properties" > "$agp_platform_dir/source.properties"
+  sed -e 's/platforms;android-37.0/platforms;android-37/' -e 's/<api-level>37.0<\//<api-level>37<\//' \
+    "$android_sdk_unarchived_dir/platforms/android-$android_sdk_platform/package.xml" > "$agp_platform_dir/package.xml"
 }
 
 function expose_latest_cmdline_tools() {
