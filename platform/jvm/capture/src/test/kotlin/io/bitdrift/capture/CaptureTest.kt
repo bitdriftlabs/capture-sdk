@@ -57,6 +57,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test1",
+            initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
         )
@@ -70,6 +71,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test1",
+            initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             context = null,
@@ -125,6 +127,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test1",
+            initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
         ) { result ->
@@ -147,6 +150,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test2",
+            initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
         )
@@ -213,6 +217,7 @@ class CaptureTest {
         assertThatThrownBy {
             Logger.start(
                 apiKey = "test1",
+                initialFields = emptyMap(),
                 sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
                 dateProvider = null,
             ) { _ ->
@@ -232,6 +237,7 @@ class CaptureTest {
 
         Logger.start(
             apiKey = "test1",
+            initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
         ) { _ ->

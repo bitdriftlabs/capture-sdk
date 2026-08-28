@@ -182,6 +182,10 @@ exports_files([
 
 kt_kotlinc_options(
     name = "kt_kotlinc_options",
+    warn = "error",
+    # Kotlin 2.3 warns when compiling the SDK's supported 1.9 language level; each Gradle module
+    # suppresses the same warning in its compilerOptions.
+    x_suppress_version_warnings = True,
 )
 
 kt_javac_options(

@@ -53,6 +53,7 @@ class HelloWorldApp : Application() {
                     },
             )
 
+        @Suppress("DEPRECATION")
         Logger.start(
             apiKey = bitdriftAPIKey,
             apiUrl = BITDRIFT_URL,

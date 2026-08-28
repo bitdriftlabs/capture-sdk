@@ -106,6 +106,7 @@ class IssueCallbackConfigurationTest {
     private fun startSdkAndReturnLogger(issueCallbackConfiguration: IssueCallbackConfiguration): IInternalLogger {
         Capture.Logger.start(
             apiKey = "test",
+            initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             configuration = Configuration(issueCallbackConfiguration = issueCallbackConfiguration),
             dateProvider = SystemDateProvider(),
