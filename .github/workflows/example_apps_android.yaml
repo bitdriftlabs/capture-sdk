@@ -48,7 +48,10 @@ jobs:
         cache-key-scope: release-${{ github.workflow }}
         setup-local-android-sdk: "true"
     - name: Accept Android SDK licenses
-      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+      run: |
+        # shellcheck source=tools/android_toolchain_versions.sh
+        source tools/android_toolchain_versions.sh
+        yes | "$ANDROID_HOME/cmdline-tools/$android_cmdline_tools_version/bin/sdkmanager" --licenses
     - name: Install Rust target
       run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
     - name: Build Android example app

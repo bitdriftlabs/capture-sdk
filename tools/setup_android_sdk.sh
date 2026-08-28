@@ -100,3 +100,11 @@ provision_android_sdk_packages
 if [[ -n "${ANDROID_HOME_ENV_FILE:-}" ]]; then
   echo "$softlink_unarchived_dir" > "$ANDROID_HOME_ENV_FILE"
 fi
+
+# Point the rest of the job at this SDK rather than the runner's preinstalled one.
+if [[ -n "${GITHUB_ENV:-}" ]]; then
+  {
+    echo "ANDROID_HOME=$softlink_unarchived_dir"
+    echo "ANDROID_SDK_ROOT=$softlink_unarchived_dir"
+  } >> "$GITHUB_ENV"
+fi

@@ -73,5 +73,7 @@ runs:
       if: inputs.setup-local-android-sdk == 'true'
       shell: bash
       run: |
-        echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+        # shellcheck source=tools/android_toolchain_versions.sh
+        source tools/android_toolchain_versions.sh
+        echo "$ANDROID_HOME/cmdline-tools/$android_cmdline_tools_version/bin" >> "$GITHUB_PATH"
         echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
