@@ -20,8 +20,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.IInternalLogger
-import io.bitdrift.capture.providers.Field
-import io.bitdrift.capture.providers.FieldValue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -54,26 +52,16 @@ class NetworkAttributesTest {
         grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).getFields()
+        val networkAttributes = startNetworkAttributes(context).getFields()
 
         assertThat(networkAttributes).containsEntry("network_type", "wwan")
-    }
-
-    @Test
-    fun initial_ootb_fields_capture_network_snapshot() {
-        grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
-        val context = ApplicationProvider.getApplicationContext<Context>()
-
-        val fields = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).initialOotbFields()
-
-        assertThat(fields).contains(Field("network_type", FieldValue.StringField("wwan")))
     }
 
     @Test
     fun network_type_access_network_state_not_granted() {
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).getFields()
+        val networkAttributes = startNetworkAttributes(context).getFields()
 
         assertThat(networkAttributes).doesNotContainKey("network_type")
     }
@@ -86,7 +74,7 @@ class NetworkAttributesTest {
         val mockedActiveNetwork = obtainMockedActiveNetwork(mockedConnectivityManager)
         doReturn(null).`when`(mockedConnectivityManager).getNetworkCapabilities(eq(mockedActiveNetwork))
 
-        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).getFields()
+        val networkAttributes = startNetworkAttributes(context).getFields()
 
         assertThat(networkAttributes).containsEntry("network_type", "unknown")
     }
@@ -97,7 +85,7 @@ class NetworkAttributesTest {
         val context = spy(ApplicationProvider.getApplicationContext<Context>())
         val mockedConnectivityManager = obtainMockedConnectivityManager(context)
 
-        NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).getFields()
+        startNetworkAttributes(context)
 
         verify(mockedConnectivityManager).registerDefaultNetworkCallback(
             any(ConnectivityManager.NetworkCallback::class.java),
@@ -246,6 +234,11 @@ class NetworkAttributesTest {
         networkAttributes.onCapabilitiesChanged(network, capabilities)
         return networkAttributes
     }
+
+    private fun startNetworkAttributes(context: Context): NetworkAttributes =
+        NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).also {
+            it.start(mock())
+        }
 
     private enum class NetworkTransport {
         WIFI,

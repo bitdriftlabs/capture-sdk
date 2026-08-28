@@ -36,8 +36,6 @@ import android.telephony.TelephonyManager.NETWORK_TYPE_UMTS
 import android.telephony.TelephonyManager.NETWORK_TYPE_UNKNOWN
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.IInternalLogger
-import io.bitdrift.capture.providers.Field
-import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.ExecutorService
@@ -45,7 +43,7 @@ import java.util.concurrent.ExecutorService
 @SuppressLint("MissingPermission")
 internal class NetworkAttributes(
     private val context: Context,
-    executor: ExecutorService = CaptureDispatchers.CommonBackground.executorService,
+    private val executor: ExecutorService = CaptureDispatchers.CommonBackground.executorService,
 ) : ConnectivityManager.NetworkCallback() {
     @SuppressLint("InlinedApi")
     private val radioTypeNameMap =
@@ -78,24 +76,14 @@ internal class NetworkAttributes(
     @Volatile
     private var logger: IInternalLogger? = null
 
-    init {
-        executor.execute {
-            monitorNetworkType()
-        }
-    }
-
     fun getFields(): Fields = currentFields
-
-    /** Returns the network snapshot needed before the logger can accept logs. */
-    fun initialOotbFields(): Array<Field> =
-        currentFields
-            .map { (key, value) -> Field(key, FieldValue.StringField(value)) }
-            .toTypedArray()
 
     /** Starts forwarding network changes to the native OOTB field store. */
     fun start(logger: IInternalLogger) {
         this.logger = logger
-        updateOotbFields(currentFields)
+        executor.execute {
+            monitorNetworkType()
+        }
     }
 
     @SuppressLint("NewApi")

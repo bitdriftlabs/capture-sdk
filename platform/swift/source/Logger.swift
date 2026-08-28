@@ -141,7 +141,6 @@ public final class Logger {
 
         self.appStateAttributes = AppStateAttributes()
         let clientAttributes = ClientAttributes()
-        let deviceAttributes = DeviceAttributes()
         self.localeAttributes = LocaleAttributes()
         self.networkAttributes = NetworkAttributes()
 
@@ -198,7 +197,7 @@ public final class Logger {
             releaseVersion: clientAttributes.appVersion,
             buildNumber: clientAttributes.buildNumber,
             osVersion: clientAttributes.osVersion,
-            model: deviceAttributes.hardwareVersion,
+            model: hardwareModel(),
             targetDomain: Self.targetDomain(apiURL: configuration.apiURL),
             network: network,
             errorReporting: self.remoteErrorReporter,
@@ -425,6 +424,17 @@ public final class Logger {
         self.dispatchSourceMemoryMonitor = nil
         self.crashReporterService?.stop()
     }
+}
+
+private func hardwareModel() -> String {
+    let size = UnsafeMutablePointer<Int>.allocate(capacity: 1)
+    sysctlbyname("hw.machine", nil, size, nil, 0)
+
+    var machine = [CChar](repeating: 0, count: size.pointee)
+    sysctlbyname("hw.machine", &machine, size, nil, 0)
+    size.deallocate()
+
+    return String(cString: machine)
 }
 
 extension Logger: Logging {

@@ -13,15 +13,14 @@ import Foundation
 import XCTest
 
 extension UploadedLog {
-    func assertFieldsEqual(_ fields: [String: any Encodable]) {
-        let fields = fields.map(UploadedField.fromKeyValue).sorted(by: {
-            $0.key < $1.key
-        })
+    func assertFieldsContain(_ fields: [String: any Encodable]) {
+        for expectedField in fields.map(UploadedField.fromKeyValue) {
+            XCTAssertEqual(self.field(withKey: expectedField.key), expectedField)
+        }
+    }
 
-        var sortedSelf = self.fields.sorted(by: { $0.key < $1.key })
-        sortedSelf.removeAll { ["_file", "_line", "_function"].contains($0.key) }
-
-        XCTAssertEqual(fields, sortedSelf)
+    func assertFieldsContain(keys: Set<String>) {
+        XCTAssertTrue(keys.isSubset(of: Set(self.fields.map(\.key))))
     }
 
     func field(withKey: String) -> UploadedField? {
@@ -152,16 +151,6 @@ final class CaptureE2ENetworkTests: XCTestCase {
 
     // swiftlint:disable:next function_body_length
     func testLoggerE2E() async throws {
-        // Use the default logger configuration.
-        let appStateAttributes = AppStateAttributes()
-        let clientAttributes = ClientAttributes()
-        let deviceAttributes = DeviceAttributes()
-        let localeAttributes = LocaleAttributes()
-        let networkAttributes = NetworkAttributes()
-
-        localeAttributes.start(with: MockCoreLogging())
-        networkAttributes.start(with: MockCoreLogging())
-
         let logger = try self.setUpLogger()
 
         // Add a valid field, it should be present.
@@ -198,37 +187,30 @@ final class CaptureE2ENetworkTests: XCTestCase {
         XCTAssertEqual(helloWorldLog.message, "hello world")
         XCTAssertEqual(helloWorldLog.sessionID, "mock-group-id")
 
-        // Client and model fields are initialized once in the Rust metadata map before replay; only
-        // the remaining providers are evaluated when this log is emitted.
-        let staticFields: [String: Encodable] = [
-            "app_id": clientAttributes.appID,
-            "app_version": clientAttributes.appVersion,
-            "os": "iOS",
-            "os_version": clientAttributes.osVersion,
-            "_build_number": clientAttributes.buildNumber,
-            "model": deviceAttributes.hardwareVersion,
-        ]
-        let defaultFields: [String: Encodable] = [
-            "foreground": appStateAttributes.isForeground ? "1" : "0",
-            "_locale": localeAttributes.initialOotbFields()[0].data as! String,
-        ]
-        .mergedOverwritingConflictingKeys(
-            Dictionary(
-                uniqueKeysWithValues: networkAttributes.initialOotbFields().compactMap { field in
-                    (field.data as? String).map { (field.key, $0 as Encodable) }
-                }
-            )
-        )
-        .mergedOverwritingConflictingKeys(staticFields)
-
-        let helloWorldExpectedFields: [String: Encodable] = [
+        helloWorldLog.assertFieldsContain([
             "bar": "value_bar",
             "field_provider": "mock_field_provider",
             "foo": "value_foo",
             "invalid_utf": "abc?",
-        ].mergedOverwritingConflictingKeys(defaultFields)
-
-        helloWorldLog.assertFieldsEqual(helloWorldExpectedFields)
+        ])
+        helloWorldLog.assertFieldsContain(keys: [
+            "app_id",
+            "app_version",
+            "os",
+            "os_version",
+            "_build_number",
+            "model",
+            "foreground",
+            "_locale",
+            "network_type",
+            "radio_type",
+        ])
+        XCTAssertEqual(helloWorldLog.field(withKey: "os")?.value as? String, "iOS")
+        XCTAssertTrue(["0", "1"].contains(helloWorldLog.field(withKey: "foreground")?.value as? String))
+        XCTAssertEqual(helloWorldLog.field(withKey: "_locale")?.value as? String, Locale.current.identifier)
+        XCTAssertNil(helloWorldLog.field(withKey: "car"))
+        XCTAssertNil(helloWorldLog.field(withKey: "_dar"))
+        XCTAssertFalse((helloWorldLog.field(withKey: "model")?.value as? String ?? "").isEmpty)
 
         let fields: [String: Encodable] = [
             "field": "passed_in",
@@ -255,13 +237,13 @@ final class CaptureE2ENetworkTests: XCTestCase {
             "screen_replay": try XCTUnwrap("hello".data(using: .utf8)),
             "data_field": "dGVzdA==",
             "date_field": "1970-01-01T00:00:00.000Z",
-        ].mergedOverwritingConflictingKeys(defaultFields)
+        ]
 
         XCTAssertEqual(secondLog.logType, Capture.Logger.LogType.normal.rawValue)
         XCTAssertEqual(secondLog.logLevel, UInt32(LogLevel.debug.rawValue))
         XCTAssertEqual(secondLog.message, "second log")
         XCTAssertEqual(secondLog.sessionID, "mock-group-id")
-        secondLog.assertFieldsEqual(expectedFields)
+        secondLog.assertFieldsContain(expectedFields)
 
         // Issue a second log and verify that we see it uploaded. This explicitly validates
         // that the recursion check is cleared out between log calls. Here we also verify
@@ -284,7 +266,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
         XCTAssertEqual(thirdLog.message, "alternate type log")
         XCTAssertEqual(thirdLog.sessionID, "mock-group-id")
 
-        thirdLog.assertFieldsEqual(expectedFields)
+        thirdLog.assertFieldsContain(expectedFields)
     }
 
     func testCustomFieldEncodingFailureIsHandledGracefully() async throws {

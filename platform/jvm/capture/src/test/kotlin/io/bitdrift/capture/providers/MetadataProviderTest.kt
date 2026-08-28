@@ -21,19 +21,19 @@ class MetadataProviderTest {
         `when`(dateProvider.invoke()).thenReturn(Date())
 
         // Processing of field getters continues even if one of them throws an exception.
-        val throwingFieldGetter2: FieldGetter =
+        val throwingFieldGetter: FieldGetter =
             {
-                throw RuntimeException("throw2")
+                throw RuntimeException("throw")
             }
 
-        val workingFieldGetter2: FieldGetter =
+        val workingFieldGetter: FieldGetter =
             {
                 mapOf("key1" to "value3", "key2" to "value4")
             }
         val metadataProvider =
             MetadataProvider(
                 dateProvider = dateProvider,
-                customFieldGetters = listOf(throwingFieldGetter2, workingFieldGetter2),
+                customFieldGetters = listOf(throwingFieldGetter, workingFieldGetter),
                 errorHandler = mock { },
                 errorLog = { _, _ -> },
             )

@@ -15,7 +15,6 @@ final class AppStateAttributes {
 
     private let underlyingIsForeground: Atomic<Bool>
     private let notificationCenter: NotificationCenter
-    private let stateUpdateLock = Lock()
     private weak var logger: CoreLogging?
     private var notificationTokens: [NSObjectProtocol] = []
 
@@ -58,10 +57,8 @@ final class AppStateAttributes {
     ///
     /// - parameter logger: The logger that receives foreground-state updates.
     func start(with logger: CoreLogging) {
-        self.stateUpdateLock.withLock {
-            self.logger = logger
-            logger.updateOotbField(withKey: "foreground", value: self.isForeground ? "1" : "0")
-        }
+        self.logger = logger
+        logger.updateOotbField(withKey: "foreground", value: self.isForeground ? "1" : "0")
     }
 
     func initialOotbFields() -> [Field] {
@@ -81,9 +78,7 @@ final class AppStateAttributes {
 
 private extension AppStateAttributes {
     func updateForeground(_ isForeground: Bool) {
-        self.stateUpdateLock.withLock {
-            self.underlyingIsForeground.update { $0 = isForeground }
-            self.logger?.updateOotbField(withKey: "foreground", value: isForeground ? "1" : "0")
-        }
+        self.underlyingIsForeground.update { $0 = isForeground }
+        self.logger?.updateOotbField(withKey: "foreground", value: isForeground ? "1" : "0")
     }
 }

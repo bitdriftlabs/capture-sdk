@@ -229,8 +229,7 @@ internal class LoggerImpl(
                 sessionConfiguration.makeSessionCallback(),
                 metadataProvider,
                 clientAttributes.initialOotbFields() +
-                    localeAttributes.initialOotbFields() +
-                    networkAttributes.initialOotbFields(),
+                    localeAttributes.initialOotbFields(),
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up

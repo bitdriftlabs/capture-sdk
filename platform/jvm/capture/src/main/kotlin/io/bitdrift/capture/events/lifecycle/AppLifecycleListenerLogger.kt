@@ -63,12 +63,13 @@ internal class AppLifecycleListenerLogger(
         source: LifecycleOwner,
         event: Lifecycle.Event,
     ) {
-        when (event) {
-            Lifecycle.Event.ON_START -> logger.updateOotbField(ClientAttributes.FOREGROUND_KEY, "1")
-            Lifecycle.Event.ON_STOP -> logger.updateOotbField(ClientAttributes.FOREGROUND_KEY, "0")
-            else -> Unit
-        }
         executor.execute {
+            when (event) {
+                Lifecycle.Event.ON_START -> logger.updateOotbField(ClientAttributes.FOREGROUND_KEY, "1")
+                Lifecycle.Event.ON_STOP -> logger.updateOotbField(ClientAttributes.FOREGROUND_KEY, "0")
+                else -> Unit
+            }
+
             if (!runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)) {
                 return@execute
             }
