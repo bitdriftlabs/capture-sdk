@@ -198,7 +198,6 @@ native_binary(
 android = use_extension("@hermetic_android_toolchains//:extensions.bzl", "android", dev_dependency = True)
 android.sdk(
     api_level = str(SDK_API_LEVEL),
-    build_tools_version = SDK_BUILD_TOOLS_VERSION,
     build_tools_sha256s = {
         "darwin": "b5b1ac529028a49f11b596b89d9b34252e0f39388ee7dbd16ae3110f1c9c5722",
         "linux": "01af179347cbcd9c208b7f8171f7b21f6dd1d2f85bcd15e88caa51d5d7b86060",
@@ -214,9 +213,7 @@ android.sdk(
         "linux": "https://dl.google.com/android/repository/build-tools_r37_linux.zip",
         "windows": "https://dl.google.com/android/repository/build-tools_r37_windows.zip",
     },
-    platforms_sha256 = "840b23e827f96e64aea4c89a1194aac3dc5f6bad37edb231c5c795d890330e8d",
-    platforms_strip_prefix = "android-37.0",
-    platforms_url = "https://dl.google.com/android/repository/platform-37.0_r02.zip",
+    build_tools_version = SDK_BUILD_TOOLS_VERSION,
     platform_tools_sha256s = {
         "darwin": "ee39ad5967e95c2a07f04dbcbde96b1a0c916ba376096db5d2f498b7727a5d1d",
         "linux": "d230f13842f60f782a8645f9c813f8f845bf36089ea7289f28c48f17979313f1",
@@ -227,6 +224,9 @@ android.sdk(
         "linux": "https://dl.google.com/android/repository/platform-tools_r37.0.1-linux.zip",
         "windows": "https://dl.google.com/android/repository/platform-tools_r37.0.1-win.zip",
     },
+    platforms_sha256 = "840b23e827f96e64aea4c89a1194aac3dc5f6bad37edb231c5c795d890330e8d",
+    platforms_strip_prefix = "android-37.0",
+    platforms_url = "https://dl.google.com/android/repository/platform-37.0_r02.zip",
     version = str(SDK_API_LEVEL),
 )
 android.ndk(
