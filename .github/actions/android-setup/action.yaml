@@ -72,7 +72,7 @@ runs:
     - name: Accept Android SDK licenses
       if: inputs.setup-emulator == 'true'
       shell: bash
-      run: yes | "$ANDROID_HOME/cmdline-tools/6.0/bin/sdkmanager" --licenses || true
+      run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
     - name: Restore Android emulator tools cache
       if: inputs.emulator-api-level != ''
