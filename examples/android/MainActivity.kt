@@ -214,7 +214,7 @@ class MainActivity : ComponentActivity() {
         sdkStatusLabel.text = text
     }
 
-    fun generateTmpDeviceCode(view: View) {
+    fun generateTmpDeviceCode(@Suppress("UNUSED_PARAMETER") view: View) {
         Logger.createTemporaryDeviceCode { result ->
             when (result) {
                 is CaptureResult.Success -> updateDeviceCodeValue(result.value)
