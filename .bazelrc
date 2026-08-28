@@ -3,7 +3,7 @@ common --incompatible_disable_native_android_rules
 # .bazelversion pins Bazel to 7a3283ce565d7618a9d947465d67ff7ad87f95c0 from the 9.3 release branch.
 # TODO: Update the pin to 9.3.0rc1 when it is available.
 # Accepted licenses for the pinned hermetic Android SDK and NDK in MODULE.bazel.
-common --repo_env=ACCEPTED_ANDROID_SDK_LICENSE_VERSION=36
+common --repo_env=ACCEPTED_ANDROID_SDK_LICENSE_VERSION=37
 common --repo_env=ACCEPTED_ANDROID_NDK_LICENSE_VERSION=r27c
 
 mobile-install --config=android

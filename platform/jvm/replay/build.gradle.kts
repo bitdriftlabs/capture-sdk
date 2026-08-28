@@ -12,6 +12,7 @@ plugins {
 dependencies {
     implementation(project(":common"))
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.collection)
     implementation(libs.androidx.ui)
     implementation(libs.okhttp)
 
@@ -28,7 +29,7 @@ group = "io.bitdrift"
 android {
     namespace = "io.bitdrift.capture.replay"
 
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 23

@@ -57,7 +57,7 @@ jobs:
         enable-bazel-cache: "false"
         cache-key-scope: release-${{ github.workflow }}
     - name: Accept Android SDK licenses
-      run: yes | $ANDROID_HOME/cmdline-tools/6.0/bin/sdkmanager --licenses
+      run: yes | $ANDROID_HOME/cmdline-tools/19.0/bin/sdkmanager --licenses
     - name: Install Rust target
       run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
     - name: Build Timber artifacts with Gradle

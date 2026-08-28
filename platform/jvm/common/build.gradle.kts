@@ -13,7 +13,7 @@ group = "io.bitdrift"
 android {
     namespace = "io.bitdrift.capture.common"
 
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 23

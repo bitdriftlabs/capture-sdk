@@ -25,7 +25,7 @@ module_ndk_alias="$(sed -nE '/^android\.ndk\(/,/^\)/ s/^    version = "([^"]+)",
 [[ "$module_ndk_api" == "$android_ndk_api_level" ]] || fail "MODULE.bazel NDK API is $module_ndk_api, expected $android_ndk_api_level"
 [[ "$module_ndk_alias" == "$android_ndk_alias" ]] || fail "MODULE.bazel NDK is $module_ndk_alias, expected $android_ndk_alias"
 
-if ! grep -Fq "platforms;android-\$android_sdk_api_level" "$script_root/setup_android_sdk.sh"; then
+if ! grep -Fq "platforms;android-\$android_sdk_platform" "$script_root/setup_android_sdk.sh"; then
   fail "the Gradle SDK setup does not install the configured platform API"
 fi
 if ! grep -Fq "build-tools;\$android_build_tools_version" "$script_root/setup_android_sdk.sh"; then
