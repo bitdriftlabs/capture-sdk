@@ -59,7 +59,7 @@ jobs:
     - name: Accept Android SDK licenses
       run: |
         # shellcheck source=tools/android_toolchain_versions.sh
-        source tools/android_toolchain_versions.sh
+        source "$GITHUB_WORKSPACE/tools/android_toolchain_versions.sh"
         yes | "$ANDROID_HOME/cmdline-tools/$android_cmdline_tools_version/bin/sdkmanager" --licenses
     - name: Install Rust target
       run: rustup update && rustup target add aarch64-linux-android && rustup target add x86_64-linux-android
