@@ -24,7 +24,6 @@ import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.IInternalLogger
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.ArgumentMatchers.any as javaAny
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
@@ -34,6 +33,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.mockito.ArgumentMatchers.any as javaAny
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])

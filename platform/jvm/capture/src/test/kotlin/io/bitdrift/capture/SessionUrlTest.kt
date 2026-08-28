@@ -70,6 +70,7 @@ class SessionUrlTest {
         Capture.Logger.resetShared()
     }
 
+    @Suppress("DEPRECATION")
     private fun startAndReturnLogger(apiUrl: String): ILogger? {
         Capture.Logger.start(
             apiKey = "test",
@@ -78,7 +79,6 @@ class SessionUrlTest {
             configuration = Configuration(),
             context = ContextHolder.APP_CONTEXT,
             dateProvider = SystemDateProvider(),
-            initialFields = emptyMap(),
             sessionStrategy =
                 SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
         )
