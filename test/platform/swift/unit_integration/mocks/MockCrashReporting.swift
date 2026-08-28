@@ -10,13 +10,15 @@ import Foundation
 
 public final class MockCrashReporting: NSObject, CrashReporting {
     let previousCrash: BitdriftPreviousCrash?
+    let crashDate: Date?
 
-    public init(previousCrash: BitdriftPreviousCrash? = nil) {
+    public init(previousCrash: BitdriftPreviousCrash? = nil, crashDate: Date? = nil) {
         self.previousCrash = previousCrash
+        self.crashDate = crashDate
         super.init()
     }
 
-    public func cachedCrashDate() -> Date? { nil }
+    public func cachedCrashDate() -> Date? { crashDate }
     public func cachedPreviousCrash() -> BitdriftPreviousCrash? { previousCrash }
     public func enhancedMetricKitReport(
         _ metricKitReport: [String: Any],

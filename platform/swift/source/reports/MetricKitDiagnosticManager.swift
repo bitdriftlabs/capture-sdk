@@ -116,10 +116,11 @@ final class MetricKitDiagnosticManager: MetricKitDiagnosticManaging {
         switch report.result {
         case .crash(let diagnostic):
             let capturedCrash = self.crashReporting.cachedPreviousCrash()
+            let crashDate = self.crashReporting.cachedCrashDate()
             self.processCrash(
                 diagnostic,
                 environment: report.environment,
-                timestamp: timestamp,
+                timestamp: crashDate?.timeIntervalSince1970 ?? timestamp,
                 capturedCrash: capturedCrash
             )
         case .memoryException(let diagnostic):
