@@ -130,6 +130,6 @@ internal class SessionReplayTarget(
     ): Array<Field> =
         combineJniFields(
             metrics.toArray().toFields(),
-            jniFieldsOf("screen" to compressedScreen.toFieldValue()),
+            jniFieldsOf("screen_px" to compressedScreen.toFieldValue()),
         )
 }
