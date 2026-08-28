@@ -132,6 +132,7 @@ class WebViewCaptureTest {
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             configuration = Configuration(webViewConfiguration = webViewConfiguration),
+            initialFields = emptyMap(),
             dateProvider = SystemDateProvider(),
             context = appContext,
         )

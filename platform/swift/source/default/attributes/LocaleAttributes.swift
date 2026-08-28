@@ -20,13 +20,16 @@ final class LocaleAttributes {
         ]
     }
 
+    /// Starts forwarding locale changes. The initial locale is synchronously installed when the
+    /// logger is created, so starting this listener does not need to replay it.
+    ///
+    /// - parameter logger: The logger that receives locale changes.
     func start(with logger: CoreLogging) {
         guard self.logger == nil else {
             return
         }
 
         self.logger = logger
-        self.updateLocale()
         self.notificationRegistrationToken = NotificationCenter.default.bitdrift_addObserver(
             forName: NSLocale.currentLocaleDidChangeNotification
         ) { [weak self] _ in

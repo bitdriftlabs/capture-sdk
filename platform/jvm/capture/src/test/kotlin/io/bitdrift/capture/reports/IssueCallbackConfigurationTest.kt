@@ -109,6 +109,7 @@ class IssueCallbackConfigurationTest {
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             configuration = Configuration(issueCallbackConfiguration = issueCallbackConfiguration),
+            initialFields = emptyMap(),
             dateProvider = SystemDateProvider(),
             context = appContext,
         )

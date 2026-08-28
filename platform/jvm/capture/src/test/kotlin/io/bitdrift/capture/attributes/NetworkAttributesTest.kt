@@ -18,15 +18,16 @@ import android.net.NetworkCapabilities.TRANSPORT_WIFI
 import android.telephony.TelephonyManager
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
+import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.IInternalLogger
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchers.eq
+import org.mockito.ArgumentMatchers.any as javaAny
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.`when`
 import org.robolectric.RobolectricTestRunner
@@ -40,11 +41,9 @@ class NetworkAttributesTest {
     @Test
     fun carrier() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val networkAttributes = buildNetworkAttributes(context)
+        val logger = buildNetworkAttributes(context)
 
-        val result = networkAttributes.getFields()
-
-        assertThat(result).containsEntry("carrier", "")
+        verify(logger).updateOotbField("carrier", "")
     }
 
     @Test
@@ -52,18 +51,18 @@ class NetworkAttributesTest {
         grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = startNetworkAttributes(context).getFields()
+        val logger = startNetworkAttributes(context)
 
-        assertThat(networkAttributes).containsEntry("network_type", "wwan")
+        verify(logger).updateOotbField("network_type", "wwan")
     }
 
     @Test
     fun network_type_access_network_state_not_granted() {
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        val networkAttributes = startNetworkAttributes(context).getFields()
+        val logger = startNetworkAttributes(context)
 
-        assertThat(networkAttributes).doesNotContainKey("network_type")
+        verify(logger, never()).updateOotbField(eq("network_type"), any())
     }
 
     @Test
@@ -74,9 +73,9 @@ class NetworkAttributesTest {
         val mockedActiveNetwork = obtainMockedActiveNetwork(mockedConnectivityManager)
         doReturn(null).`when`(mockedConnectivityManager).getNetworkCapabilities(eq(mockedActiveNetwork))
 
-        val networkAttributes = startNetworkAttributes(context).getFields()
+        val logger = startNetworkAttributes(context)
 
-        assertThat(networkAttributes).containsEntry("network_type", "unknown")
+        verify(logger).updateOotbField("network_type", "unknown")
     }
 
     @Test
@@ -88,7 +87,7 @@ class NetworkAttributesTest {
         startNetworkAttributes(context)
 
         verify(mockedConnectivityManager).registerDefaultNetworkCallback(
-            any(ConnectivityManager.NetworkCallback::class.java),
+            javaAny(ConnectivityManager.NetworkCallback::class.java),
         )
     }
 
@@ -96,85 +95,81 @@ class NetworkAttributesTest {
     fun radio_type_read_phone_state_granted() {
         grantPermissions(Manifest.permission.READ_PHONE_STATE)
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val networkAttributes = buildNetworkAttributes(context)
+        val logger = buildNetworkAttributes(context)
 
-        val result = networkAttributes.getFields()
-
-        assertThat(result).containsEntry("radio_type", "unknown")
+        verify(logger).updateOotbField("radio_type", "unknown")
     }
 
     @Test
     fun radio_type_read_phone_state_not_granted() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val networkAttributes = buildNetworkAttributes(context)
+        val logger = buildNetworkAttributes(context)
 
-        val result = networkAttributes.getFields()
-
-        assertThat(result).containsEntry("radio_type", "forbidden")
+        verify(logger).updateOotbField("radio_type", "forbidden")
     }
 
     @Test
     fun invoke_whenWifiNetworkTransport_shouldMatchType() {
-        val fields = invokeWithNetworkCapabilities(NetworkTransport.WIFI)
+        val logger = invokeWithNetworkCapabilities(NetworkTransport.WIFI)
 
-        assertThat(fields).containsEntry("network_type", "wlan")
+        verify(logger).updateOotbField("network_type", "wlan")
     }
 
     @Test
     fun invoke_whenCellularNetworkTransport_shouldMatchType() {
-        val fields = invokeWithNetworkCapabilities(NetworkTransport.CELLULAR)
+        val logger = invokeWithNetworkCapabilities(NetworkTransport.CELLULAR)
 
-        assertThat(fields).containsEntry("network_type", "wwan")
+        verify(logger).updateOotbField("network_type", "wwan")
     }
 
     @Test
     fun invoke_whenEthernetNetworkTransport_shouldMatchType() {
-        val fields = invokeWithNetworkCapabilities(NetworkTransport.ETHERNET)
+        val logger = invokeWithNetworkCapabilities(NetworkTransport.ETHERNET)
 
-        assertThat(fields).containsEntry("network_type", "ethernet")
+        verify(logger).updateOotbField("network_type", "ethernet")
     }
 
     @Test
     fun invoke_whenOtherNetworkTransport_shouldMatchType() {
-        val fields = invokeWithNetworkCapabilities(NetworkTransport.OTHER)
+        val logger = invokeWithNetworkCapabilities(NetworkTransport.OTHER)
 
-        assertThat(fields).containsEntry("network_type", "other")
+        verify(logger).updateOotbField("network_type", "other")
     }
 
     @Test
     fun invoke_whenLte_shouldSetLteRadioType() {
         grantPermissions(Manifest.permission.READ_PHONE_STATE)
 
-        val result =
+        val logger =
             invokeWithNetworkCapabilities(
                 radioType = TelephonyManager.NETWORK_TYPE_LTE,
             )
 
-        assertThat(result).containsEntry("radio_type", "lte")
+        verify(logger).updateOotbField("radio_type", "lte")
     }
 
     @Test
     fun invoke_whenGsm_shouldSetGsmRadioType() {
         grantPermissions(Manifest.permission.READ_PHONE_STATE)
 
-        val result =
+        val logger =
             invokeWithNetworkCapabilities(
                 radioType = TelephonyManager.NETWORK_TYPE_GSM,
             )
 
-        assertThat(result).containsEntry("radio_type", "gsm")
+        verify(logger).updateOotbField("radio_type", "gsm")
     }
 
     @Test
     fun invoke_whenOnLost_shouldSetUnknown() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        val logger: IInternalLogger = mock()
         val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService())
         val network = mock(Network::class.java)
+        networkAttributes.start(logger)
         networkAttributes.onLost(network)
 
-        val result = networkAttributes.getFields()
-
-        assertThat(result).containsEntry("network_type", "unknown")
+        verify(logger).updateOotbField("network_type", "unknown")
     }
 
     @Test
@@ -192,12 +187,13 @@ class NetworkAttributesTest {
     private fun invokeWithNetworkCapabilities(
         transport: NetworkTransport = NetworkTransport.WIFI,
         radioType: Int = TelephonyManager.NETWORK_TYPE_UNKNOWN,
-    ): Map<String, String> {
+    ): IInternalLogger {
         val context = spy(ApplicationProvider.getApplicationContext<Context>())
         val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService())
         val network = mock(Network::class.java)
         val capabilities = mock(NetworkCapabilities::class.java)
         val telephonyManager = mock(TelephonyManager::class.java)
+        val logger: IInternalLogger = mock()
 
         `when`(capabilities.hasTransport(TRANSPORT_WIFI)).thenReturn(transport == NetworkTransport.WIFI)
         `when`(capabilities.hasTransport(TRANSPORT_CELLULAR)).thenReturn(transport == NetworkTransport.CELLULAR)
@@ -206,8 +202,9 @@ class NetworkAttributesTest {
         @Suppress("DEPRECATION")
         `when`(telephonyManager.networkType).thenReturn(radioType)
 
+        networkAttributes.start(logger)
         networkAttributes.onCapabilitiesChanged(network, capabilities)
-        return networkAttributes.getFields()
+        return logger
     }
 
     private fun grantPermissions(vararg permissionNames: String) {
@@ -227,18 +224,21 @@ class NetworkAttributesTest {
         return mockedNetwork
     }
 
-    private fun buildNetworkAttributes(context: Context): NetworkAttributes {
+    private fun buildNetworkAttributes(context: Context): IInternalLogger {
         val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService())
         val capabilities = NetworkCapabilities()
         val network = mock(Network::class.java)
+        val logger: IInternalLogger = mock()
+        networkAttributes.start(logger)
         networkAttributes.onCapabilitiesChanged(network, capabilities)
-        return networkAttributes
+        return logger
     }
 
-    private fun startNetworkAttributes(context: Context): NetworkAttributes =
-        NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).also {
-            it.start(mock())
-        }
+    private fun startNetworkAttributes(context: Context): IInternalLogger {
+        val logger: IInternalLogger = mock()
+        NetworkAttributes(context, MoreExecutors.newDirectExecutorService()).start(logger)
+        return logger
+    }
 
     private enum class NetworkTransport {
         WIFI,

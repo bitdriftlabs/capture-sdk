@@ -78,6 +78,7 @@ class SessionUrlTest {
             configuration = Configuration(),
             context = ContextHolder.APP_CONTEXT,
             dateProvider = SystemDateProvider(),
+            initialFields = emptyMap(),
             sessionStrategy =
                 SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
         )

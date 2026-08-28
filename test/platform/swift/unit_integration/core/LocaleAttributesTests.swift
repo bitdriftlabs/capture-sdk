@@ -11,7 +11,7 @@ import Foundation
 import XCTest
 
 final class LocaleAttributesTests: XCTestCase {
-    func testLocale() {
+    func testLocale() throws {
         let localeAttributes = LocaleAttributes()
         let localeStr = localeAttributes.initialOotbFields()[0].data as! String
         XCTAssertNotNil(Locale(identifier: localeStr))
@@ -19,7 +19,10 @@ final class LocaleAttributesTests: XCTestCase {
         let logger = MockCoreLogging()
         localeAttributes.start(with: logger)
 
-        let nowLocaleStr = logger.ootbFields["_locale"]!
+        XCTAssertNil(logger.ootbFields["_locale"])
+
+        NotificationCenter.default.post(name: NSLocale.currentLocaleDidChangeNotification, object: nil)
+        let nowLocaleStr = try XCTUnwrap(logger.ootbFields["_locale"])
         XCTAssertNotNil(Locale(identifier: nowLocaleStr))
         XCTAssertEqual(localeStr, nowLocaleStr)
     }

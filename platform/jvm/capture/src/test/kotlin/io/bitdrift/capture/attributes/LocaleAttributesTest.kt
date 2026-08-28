@@ -19,6 +19,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.Locale
@@ -42,10 +43,10 @@ class LocaleAttributesTest {
         val frenchCanadianConfig = Configuration(context.resources.configuration).apply { setLocale(Locale.CANADA_FRENCH) }
 
         attributes.start(logger)
+        verifyNoInteractions(logger)
         attributes.onConfigurationChanged(frenchCanadianConfig)
         attributes.onConfigurationChanged(frenchCanadianConfig)
 
-        verify(logger).updateOotbField("_locale", "en_US")
         verify(logger, times(1)).updateOotbField("_locale", "fr_CA")
     }
 }

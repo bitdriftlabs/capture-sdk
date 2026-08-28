@@ -36,7 +36,6 @@ import android.telephony.TelephonyManager.NETWORK_TYPE_UMTS
 import android.telephony.TelephonyManager.NETWORK_TYPE_UNKNOWN
 import androidx.core.content.ContextCompat
 import io.bitdrift.capture.IInternalLogger
-import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.ExecutorService
 
@@ -71,12 +70,7 @@ internal class NetworkAttributes(
     }
 
     @Volatile
-    private var currentFields: Map<String, String> = emptyMap()
-
-    @Volatile
     private var logger: IInternalLogger? = null
-
-    fun getFields(): Fields = currentFields
 
     /** Starts forwarding network changes to the native OOTB field store. */
     fun start(logger: IInternalLogger) {
@@ -116,7 +110,7 @@ internal class NetworkAttributes(
     }
 
     override fun onLost(network: Network) {
-        updateFields(networkType = UNKNOWN_FIELD_VALUE)
+        publishOotbField(KEY_NETWORK_TYPE, UNKNOWN_FIELD_VALUE)
     }
 
     private fun updateNetworkType(networkCapabilities: NetworkCapabilities?) {
@@ -130,35 +124,21 @@ internal class NetworkAttributes(
                 }
             } ?: UNKNOWN_FIELD_VALUE
 
-        updateFields(networkType = type)
+        publishOotbField(KEY_NETWORK_TYPE, type)
     }
 
     private fun updateTelephonyAttributes() {
         val carrier = telephonyManager.networkOperatorName ?: UNKNOWN_FIELD_VALUE
         val radioType = permissiveOperation({ radioType() }, READ_PHONE_STATE)
 
-        updateFields(carrier = carrier, radioType = radioType)
+        publishOotbField(KEY_CARRIER, carrier)
+        publishOotbField(KEY_RADIO_TYPE, radioType)
     }
 
-    private fun updateFields(
-        carrier: String? = null,
-        networkType: String? = null,
-        radioType: String? = null,
-    ) {
-        currentFields =
-            currentFields.toMutableMap().apply {
-                carrier?.let { this[KEY_CARRIER] = it }
-                networkType?.let { this[KEY_NETWORK_TYPE] = it }
-                radioType?.let { this[KEY_RADIO_TYPE] = it }
-            }
-        updateOotbFields(currentFields)
-    }
-
-    private fun updateOotbFields(fields: Fields) {
-        fields.forEach { (key, value) ->
-            logger?.updateOotbField(key, value)
-        }
-    }
+    private fun publishOotbField(
+        key: String,
+        value: String,
+    ) = logger?.updateOotbField(key, value)
 
     private fun radioType(): String {
         @Suppress("DEPRECATION")

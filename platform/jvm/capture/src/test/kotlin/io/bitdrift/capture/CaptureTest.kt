@@ -59,6 +59,7 @@ class CaptureTest {
             apiKey = "test1",
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+            initialFields = emptyMap(),
             dateProvider = null,
         )
 
@@ -73,6 +74,7 @@ class CaptureTest {
             apiKey = "test1",
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+            initialFields = emptyMap(),
             dateProvider = null,
             context = null,
         ) { result ->
@@ -129,6 +131,7 @@ class CaptureTest {
             apiKey = "test1",
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+            initialFields = emptyMap(),
             dateProvider = null,
         ) { result ->
             capturedResult = result
@@ -152,6 +155,7 @@ class CaptureTest {
             apiKey = "test2",
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+            initialFields = emptyMap(),
             dateProvider = null,
         )
 
@@ -219,6 +223,7 @@ class CaptureTest {
                 apiKey = "test1",
                 initialFields = emptyMap(),
                 sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+                initialFields = emptyMap(),
                 dateProvider = null,
             ) { _ ->
                 throw IllegalStateException("customer callback error")
@@ -239,6 +244,7 @@ class CaptureTest {
             apiKey = "test1",
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+            initialFields = emptyMap(),
             dateProvider = null,
         ) { _ ->
             throw IllegalStateException("customer callback error")

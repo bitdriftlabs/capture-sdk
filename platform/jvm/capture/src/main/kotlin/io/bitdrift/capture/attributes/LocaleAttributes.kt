@@ -27,11 +27,15 @@ internal class LocaleAttributes(
 
     fun initialOotbFields(): Array<Field> = arrayOf(Field(LOCALE_KEY, FieldValue.StringField(locale)))
 
+    /**
+     * Starts forwarding locale changes.
+     *
+     * The initial locale is installed synchronously when the logger is created, so starting this
+     * listener does not need to replay it.
+     */
     fun start(logger: IInternalLogger) {
         this.logger = logger
         context.registerComponentCallbacks(this)
-        locale = currentLocale()
-        logger.updateOotbField(LOCALE_KEY, locale)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

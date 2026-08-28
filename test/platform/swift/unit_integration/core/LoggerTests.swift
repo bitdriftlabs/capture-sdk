@@ -43,7 +43,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertNotNil(initialFields["network_type"])
         XCTAssertNotNil(initialFields["radio_type"])
 
-        let expectedUpdatedKeys = Set(["foreground", "_locale", "network_type", "radio_type"])
+        let expectedUpdatedKeys = Set(["foreground", "network_type", "radio_type"])
         XCTAssertTrue(expectedUpdatedKeys.isSubset(of: Set(bridge.ootbFieldUpdates.map(\.key))))
 
         let localeUpdateCount = bridge.ootbFieldUpdates.filter { $0.key == "_locale" }.count
