@@ -54,7 +54,7 @@ runs:
       id: android-sdk-cache
       uses: actions/cache/restore@v4
       with:
-        path: ~/.androidbin/bitdrift-android-sdk/android-sdk-4333796-unarchived
+        path: ~/.androidbin/bitdrift-android-sdk/android-sdk-unarchived
         key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh', 'tools/android_toolchain_versions.sh') }}
 
     - name: Set up local Android SDK for Gradle
@@ -66,12 +66,14 @@ runs:
       if: github.ref == 'refs/heads/main' && inputs.setup-local-android-sdk == 'true' && steps.android-sdk-cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
       with:
-        path: ~/.androidbin/bitdrift-android-sdk/android-sdk-4333796-unarchived
+        path: ~/.androidbin/bitdrift-android-sdk/android-sdk-unarchived
         key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-android-sdk-${{ hashFiles('tools/setup_android_sdk.sh', 'tools/android_toolchain_versions.sh') }}
 
     - name: Add local Android SDK tools to PATH
       if: inputs.setup-local-android-sdk == 'true'
       shell: bash
       run: |
-        echo "$ANDROID_HOME/cmdline-tools/6.0/bin" >> "$GITHUB_PATH"
+        # shellcheck source=tools/android_toolchain_versions.sh
+        source "$GITHUB_WORKSPACE/tools/android_toolchain_versions.sh"
+        echo "$ANDROID_HOME/cmdline-tools/$android_cmdline_tools_version/bin" >> "$GITHUB_PATH"
         echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
