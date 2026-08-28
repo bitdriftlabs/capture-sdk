@@ -23,7 +23,7 @@ else
   exit 1
 fi
 
-readonly sdkmanager="$android_sdk_unarchived_dir/cmdline-tools/latest/bin/sdkmanager"
+readonly sdkmanager="$android_sdk_unarchived_dir/cmdline-tools/$android_cmdline_tools_version/bin/sdkmanager"
 
 # $1 — Path to file to download to.
 # $2 - Directory to unarchive to.
@@ -53,6 +53,8 @@ function accept_licenses() {
   echo "$android_sdk_license_hash" > "$android_sdk_unarchived_dir/licenses/android-sdk-license"
 }
 
+# Gradle and AGP expect the canonical <sdk>/cmdline-tools/latest. Nothing here resolves through it;
+# every lookup in this repo goes via $android_cmdline_tools_version.
 function expose_latest_cmdline_tools() {
   local -r versioned_cmdline_tools="$android_sdk_unarchived_dir/cmdline-tools/$android_cmdline_tools_version"
   local -r latest_cmdline_tools="$android_sdk_unarchived_dir/cmdline-tools/latest"
