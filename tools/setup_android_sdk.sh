@@ -8,9 +8,9 @@ readonly script_root
 # shellcheck source=tools/android_toolchain_versions.sh
 source "$script_root/android_toolchain_versions.sh"
 readonly android_sdk_root_dir="$HOME/.androidbin/bitdrift-android-sdk"
-readonly android_sdk_unarchived_dir="$android_sdk_root_dir/android-sdk-$android_cmdline_tools_build-unarchived"
+readonly android_sdk_unarchived_dir="$android_sdk_root_dir/android-sdk-unarchived"
 readonly softlink_root_dir="/tmp/bitdrift-android-sdk"
-readonly softlink_unarchived_dir="$softlink_root_dir/android-sdk-$android_cmdline_tools_build-unarchived"
+readonly softlink_unarchived_dir="$softlink_root_dir/android-sdk-unarchived"
 
 if [[ "$OSTYPE" == darwin* ]]; then
   readonly android_sdk_file_url="https://dl.google.com/android/repository/commandlinetools-mac-${android_cmdline_tools_build}_latest.zip"
@@ -86,7 +86,9 @@ function provision_android_sdk_packages() {
   fi
 }
 
-if [[ ! -d "$android_sdk_unarchived_dir" ]]; then
+# Keyed on the versioned cmdline-tools directory, not the SDK root: the root name no longer carries
+# the build number, so this is what makes a version bump reinstall rather than silently reuse.
+if [[ ! -d "$android_sdk_unarchived_dir/cmdline-tools/$android_cmdline_tools_version" ]]; then
   mkdir -p "$android_sdk_root_dir"
   download_android_sdk "$(mktemp)" "$android_sdk_unarchived_dir"
 fi

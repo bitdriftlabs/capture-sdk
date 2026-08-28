@@ -7,12 +7,12 @@ readonly script_root
 # shellcheck source=tools/android_toolchain_versions.sh
 source "$script_root/android_toolchain_versions.sh"
 readonly softlink_root_dir="/tmp/bitdrift-android-sdk"
-readonly custom_android_home="$softlink_root_dir/android-sdk-$android_cmdline_tools_build-unarchived"
+readonly custom_android_home="$softlink_root_dir/android-sdk-unarchived"
 
 "$script_root/setup_android_sdk.sh"
 
 unset ANDROID_SDK_ROOT
 
 ANDROID_HOME=$custom_android_home \
-  PATH="$custom_android_home/cmdline-tools/latest/bin:$custom_android_home/platform-tools:$PATH" \
+  PATH="$custom_android_home/cmdline-tools/$android_cmdline_tools_version/bin:$custom_android_home/platform-tools:$PATH" \
   "$@"
