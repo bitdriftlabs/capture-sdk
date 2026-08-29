@@ -65,25 +65,27 @@ final class ConfigurationTests: XCTestCase {
         Logger.start(
             withAPIKey: "test",
             sessionStrategy: .configuration(.init()),
-            configuration: .init(apiURL: URL(staticString: "https://api.bitdrift.io")),
+            configuration: .init(apiURL: URL(staticString: "http://capture.example:8080/path")),
             customFieldGetters: [],
             dateProvider: nil,
             loggerBridgingFactoryProvider: factory
         )
 
         XCTAssertEqual(1, factory.makeLoggerCallsCount)
+    XCTAssertEqual(["http://capture.example:8080"], factory.targetDomains)
         XCTAssertNil(Logger.shared)
 
         Logger.start(
             withAPIKey: "test",
             sessionStrategy: .configuration(.init()),
-            configuration: .init(apiURL: URL(staticString: "https://api.bitdrift.io")),
+            configuration: .init(apiURL: URL(staticString: "http://capture.example:8080/path")),
             customFieldGetters: [],
             dateProvider: nil,
             loggerBridgingFactoryProvider: factory
         )
 
         XCTAssertEqual(1, factory.makeLoggerCallsCount)
+    XCTAssertEqual(["http://capture.example:8080"], factory.targetDomains)
         XCTAssertNil(Logger.shared)
     }
 }

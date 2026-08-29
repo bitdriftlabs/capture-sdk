@@ -47,6 +47,7 @@ fn test_live_match_performance(c: &mut Criterion) {
 
   let logger = bd_logger::LoggerBuilder::new(InitParams {
     api_key: "replace me with a real auth token".to_string(),
+    target_domain: bitdrift_api_url(),
     network: Box::new(network),
     static_metadata: Arc::new(EmptyMetadata),
     sdk_directory: ".".into(),

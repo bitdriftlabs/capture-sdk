@@ -68,6 +68,7 @@ final class NetworkTestEnvironment {
                 buildNumber: "",
                 osVersion: "",
                 model: "",
+                targetDomain: "\(testServer.baseURL.scheme ?? "http")://\(testServer.baseURL.host ?? "localhost"):\(testServer.baseURL.port ?? 80)",
                 network: network,
                 errorReporting: MockRemoteErrorReporter(),
                 sleepMode: .disabled,

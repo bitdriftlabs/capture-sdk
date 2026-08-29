@@ -738,6 +738,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   _class: JClass<'_>,
   directory: JString<'_>,
   api_key: JString<'_>,
+  target_domain: JString<'_>,
   initial_session_id: JString<'_>,
   inactivity_timeout_milliseconds: jlong,
   session_callback: JObject<'_>,
@@ -856,6 +857,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
         api_key: unsafe { env.get_string_unchecked(&api_key) }?.into(),
+        target_domain: unsafe { env.get_string_unchecked(&target_domain) }?.into(),
         session,
         metadata_provider,
         initial_ootb_fields,

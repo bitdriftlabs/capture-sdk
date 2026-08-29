@@ -489,6 +489,7 @@ extern "C" fn capture_report_error(error_message: *const c_char) {
 extern "C" fn capture_create_logger(
   path: *const c_char,
   api_key: *const c_char,
+  target_domain: *const c_char,
   initial_session_id: *const Object,
   inactivity_timeout_seconds: f64,
   session_callback: *mut Object,
@@ -581,6 +582,9 @@ extern "C" fn capture_create_logger(
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory: path.into(),
         api_key: unsafe { CStr::from_ptr(api_key) }.to_str()?.to_string(),
+        target_domain: unsafe { CStr::from_ptr(target_domain) }
+          .to_str()?
+          .to_string(),
         session,
         metadata_provider,
         initial_ootb_fields,

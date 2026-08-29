@@ -17,6 +17,7 @@ internal interface IBridge {
     fun createLogger(
         sdkDirectory: String,
         apiKey: String,
+        targetDomain: String,
         initialSessionId: String?,
         inactivityTimeoutMilliseconds: Long,
         sessionCallback: SessionCallback?,
