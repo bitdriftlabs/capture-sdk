@@ -87,6 +87,7 @@ class CaptureLoggerNetworkTest {
         CaptureJniLibrary.createLogger(
             sdkDirectory = directory.newFolder().path,
             apiKey = "abc123",
+            targetDomain = "https://api.bitdrift.io:443",
             initialSessionId = null,
             inactivityTimeoutMilliseconds = -1L,
             sessionCallback = null,

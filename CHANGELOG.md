@@ -26,7 +26,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Changing the configured Capture API endpoint clears an active persisted disabled state.
 
 ### Android
 

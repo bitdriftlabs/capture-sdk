@@ -12,6 +12,7 @@ import Foundation
 public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
     private let logger: LoggerBridging?
     public private(set) var makeLoggerCallsCount = 0
+    public private(set) var targetDomains: [String] = []
 
     public init(logger: LoggerBridging?) {
         self.logger = logger
@@ -30,6 +31,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         buildNumber _: String,
         osVersion _: String,
         model _: String,
+        targetDomain: String,
         network _: Network?,
         errorReporting _: RemoteErrorReporting,
         sleepMode _: Capture.SleepMode,
@@ -37,6 +39,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         issueCallbackConfiguration _: IssueCallbackConfiguration?
     ) -> LoggerBridging? {
         self.makeLoggerCallsCount += 1
+        self.targetDomains.append(targetDomain)
         return self.logger
     }
 }

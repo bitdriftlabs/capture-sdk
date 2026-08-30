@@ -30,6 +30,7 @@ void capture_report_error(const char *message);
  *
  * @param path the path to the SDK directory used by the logger for disk persistence.
  * @param api_key the key used to authenticate the application with bitdrift services.
+ * @param target_domain the canonical authority of the Capture API endpoint.
  * @param initial_session_id optional session ID to use when starting Capture.
  * @param inactivity_timeout_seconds inactivity timeout in seconds, or a negative value to disable
  *        inactivity-driven rotation.
@@ -52,6 +53,7 @@ void capture_report_error(const char *message);
 logger_id capture_create_logger(
     const char *_Nullable path,
     const char *api_key,
+    const char *target_domain,
     NSString *_Nullable initial_session_id,
     double inactivity_timeout_seconds,
     _Nullable id<CAPSessionCallbackProvider> session_callback,

@@ -62,6 +62,7 @@ fn simple_log(c: &mut Criterion) {
   let logger = bd_logger::LoggerBuilder::new(InitParams {
     sdk_directory: ".".into(),
     api_key: "foo".to_string(),
+    target_domain: "https://api.bitdrift.io:443".to_string(),
     session: session(),
     metadata_provider: Arc::new(LogMetadata {
       timestamp: time::OffsetDateTime::now_utc().into(),
@@ -106,6 +107,7 @@ fn with_matcher_and_buffer(c: &mut Criterion) {
   let logger = bd_logger::LoggerBuilder::new(InitParams {
     sdk_directory: ".".into(),
     api_key: "foo-api-key".to_string(),
+    target_domain: "https://api.bitdrift.io:443".to_string(),
     session: session(),
     metadata_provider: Arc::new(LogMetadata {
       timestamp: time::OffsetDateTime::now_utc().into(),

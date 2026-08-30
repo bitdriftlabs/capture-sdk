@@ -6,6 +6,15 @@ See [here](https://docs.bitdrift.io/product/overview) for more information.
 
 For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sdk/wiki)
 
+## Local formatting
+
+`make format` uses Bazel-managed Kotlin and Rust formatters plus local `buildifier`, `taplo`,
+`swiftlint`, and `shellcheck`. On macOS, install the local tools with:
+
+```sh
+brew install buildifier taplo swiftlint shellcheck
+```
+
 ## Release build cache policy
 
 Release builds do not use the Bazel/BuildBuddy remote cache. GitHub Actions caches used by a

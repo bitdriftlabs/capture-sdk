@@ -8,12 +8,14 @@ package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.anyOrNull
+import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.assertj.core.api.Assertions
 import org.junit.After
 import org.junit.Test
@@ -26,6 +28,7 @@ import org.robolectric.annotation.Config
 class ConfigurationTest {
     @Test
     fun configurationFailure() {
+        val targetDomain = "http://capture.example:8080"
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
@@ -34,6 +37,7 @@ class ConfigurationTest {
             bridge.createLogger(
                 anyOrNull(),
                 anyOrNull(),
+                eq(targetDomain),
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
@@ -65,6 +69,7 @@ class ConfigurationTest {
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
+            apiUrl = targetDomain.toHttpUrl(),
             bridge = bridge,
         )
 
@@ -75,6 +80,7 @@ class ConfigurationTest {
         verify(bridge, times(1)).createLogger(
             anyOrNull(),
             anyOrNull(),
+            eq(targetDomain),
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
@@ -134,6 +140,7 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
+            anyOrNull(),
         )
     }
 
@@ -145,6 +152,7 @@ class ConfigurationTest {
         val bridge: IBridge = mock {}
         whenever(
             bridge.createLogger(
+                anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),

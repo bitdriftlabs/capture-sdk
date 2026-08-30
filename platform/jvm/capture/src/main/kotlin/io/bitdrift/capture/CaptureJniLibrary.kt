@@ -43,6 +43,7 @@ internal object CaptureJniLibrary : IBridge {
      *
      * @param sdkDirectory the directory to use when persisting data and/or configuration
      * @param apiKey the key used to authenticate the application with Bitdrift services.
+     * @param targetDomain the canonical authority of the Capture API endpoint.
      * @param initialSessionId optional session ID to use when starting Capture.
      * @param inactivityTimeoutMilliseconds inactivity timeout in milliseconds, or a negative value
      * to disable inactivity-driven rotation.
@@ -68,6 +69,7 @@ internal object CaptureJniLibrary : IBridge {
     external override fun createLogger(
         sdkDirectory: String,
         apiKey: String,
+        targetDomain: String,
         initialSessionId: String?,
         inactivityTimeoutMilliseconds: Long,
         sessionCallback: SessionCallback?,

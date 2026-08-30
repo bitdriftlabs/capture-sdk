@@ -228,6 +228,7 @@ internal class LoggerImpl(
             bridge.createLogger(
                 sdkDirectory,
                 apiKey,
+                "${apiUrl.scheme.lowercase()}://${apiUrl.host.lowercase()}:${apiUrl.port}",
                 sessionConfiguration.initialSessionId,
                 sessionConfiguration.inactivityTimeout?.inWholeMilliseconds ?: -1L,
                 sessionConfiguration.makeSessionCallback(),

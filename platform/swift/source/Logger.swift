@@ -197,6 +197,7 @@ public final class Logger {
             buildNumber: clientAttributes.buildNumber,
             osVersion: clientAttributes.osVersion,
             model: deviceAttributes.hardwareVersion,
+            targetDomain: Self.targetDomain(apiURL: configuration.apiURL),
             network: network,
             errorReporting: self.remoteErrorReporter,
             sleepMode: configuration.sleepMode,
@@ -407,6 +408,13 @@ public final class Logger {
         // we use it - it should never return `nil` but just to be safe we fallback to the original `apiURL`
         // instead.
         return hostComponents.url ?? apiURL
+    }
+
+    private static func targetDomain(apiURL: URL) -> String {
+        let scheme = apiURL.scheme?.lowercased() ?? "https"
+        let host = apiURL.host?.lowercased() ?? apiURL.absoluteString
+        let port = apiURL.port ?? (scheme == "https" ? 443 : 80)
+        return "\(scheme)://\(host):\(port)"
     }
 
     private func stop() {

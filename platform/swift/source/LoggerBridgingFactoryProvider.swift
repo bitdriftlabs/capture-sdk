@@ -23,6 +23,7 @@ protocol LoggerBridgingFactoryProvider {
     /// - parameter buildNumber:                The host application build number.
     /// - parameter osVersion:                  The host operating system version.
     /// - parameter model:                      The host device model.
+    /// - parameter targetDomain:               The canonical authority of the Capture API endpoint.
     /// - parameter network:                    The interface to use for network operations.
     /// - parameter errorReporting:             The interface to use for reporting errors.
     /// - parameter sleepMode:                  .enabled if sleep mode should be initialized now.
@@ -43,6 +44,7 @@ protocol LoggerBridgingFactoryProvider {
         buildNumber: String,
         osVersion: String,
         model: String,
+        targetDomain: String,
         network: Network?,
         errorReporting: RemoteErrorReporting,
         sleepMode: SleepMode,
