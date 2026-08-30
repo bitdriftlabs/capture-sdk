@@ -72,7 +72,7 @@ final class ConfigurationTests: XCTestCase {
         )
 
         XCTAssertEqual(1, factory.makeLoggerCallsCount)
-    XCTAssertEqual(["http://capture.example:8080"], factory.targetDomains)
+        XCTAssertEqual(["http://capture.example:8080"], factory.targetDomains)
         XCTAssertNil(Logger.shared)
 
         Logger.start(
@@ -85,7 +85,7 @@ final class ConfigurationTests: XCTestCase {
         )
 
         XCTAssertEqual(1, factory.makeLoggerCallsCount)
-    XCTAssertEqual(["http://capture.example:8080"], factory.targetDomains)
+        XCTAssertEqual(["http://capture.example:8080"], factory.targetDomains)
         XCTAssertNil(Logger.shared)
     }
 }

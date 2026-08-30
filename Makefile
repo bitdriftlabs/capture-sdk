@@ -52,13 +52,13 @@ fix-swift: fix-swiftlint lint-docstrings
 
 .PHONY: format-bazel
 format-bazel:
-	+@$(MAKE) $(FORMAT_MAKE_FLAGS) ktlint; \
+	+@$(MAKE) $(FORMAT_MAKE_FLAGS) ktlint && \
 	$(MAKE) $(FORMAT_MAKE_FLAGS) rustfmt
 
 .PHONY: format
 format:
-	+@$(MAKE) $(FORMAT_MAKE_FLAGS) buildifier; \
-	$(MAKE) $(FORMAT_MAKE_FLAGS) -j4 format-bazel lint-shell fix-swiftlint lint-yaml; \
+	+@$(MAKE) $(FORMAT_MAKE_FLAGS) buildifier && \
+	$(MAKE) $(FORMAT_MAKE_FLAGS) -j4 format-bazel lint-shell fix-swiftlint lint-yaml && \
 	$(MAKE) $(FORMAT_MAKE_FLAGS) lint-docstrings
 
 # Use repin when you get Error: Digests do not match
