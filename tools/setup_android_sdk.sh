@@ -81,8 +81,26 @@ function provision_android_sdk_packages() {
   if [[ ! -d "$package_path" ]]; then
     accept_licenses
 
-    ANDROID_HOME="$android_sdk_unarchived_dir" "$sdkmanager" "--install" \
-      "platform-tools" "platforms;android-$android_sdk_api_level" "build-tools;$android_build_tools_version" | (grep -v = || true)
+    local -r packages=(
+      "platform-tools"
+      "platforms;android-$android_sdk_api_level"
+      "build-tools;$android_build_tools_version"
+    )
+    local attempt
+
+    for attempt in 1 2; do
+      if ANDROID_HOME="$android_sdk_unarchived_dir" "$sdkmanager" "--install" "${packages[@]}"; then
+        return
+      fi
+
+      if [[ "$attempt" == 1 ]]; then
+        echo "Android SDK package installation failed; retrying once." >&2
+        sleep 5
+      fi
+    done
+
+    echo "Android SDK package installation failed after two attempts." >&2
+    exit 1
   fi
 }
 

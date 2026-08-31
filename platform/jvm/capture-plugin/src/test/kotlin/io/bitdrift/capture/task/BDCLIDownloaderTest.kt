@@ -15,7 +15,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -23,7 +22,7 @@ class BDCLIDownloaderTest {
     @get:Rule
     val tempDir = TemporaryFolder()
 
-    @Ignore("TODO(FRAN): BIT-7392 To resolve this flaky test")
+    @Test
     fun `downloadIfNeeded does not throw when called concurrently`() {
         val binDir = tempDir.newFolder("bin")
         val bdFile = File(binDir, "bd")
@@ -34,12 +33,13 @@ class BDCLIDownloaderTest {
         val doneLatch = CountDownLatch(threadCount)
 
         val errorCounter = AtomicInteger(0)
-
         repeat(threadCount) {
             executor.submit {
                 try {
                     startLatch.await()
-                    val downloader = BDCLIDownloader(bdFile)
+                    val downloader = BDCLIDownloader(bdFile) {
+                        "bd".toByteArray()
+                    }
                     downloader.downloadIfNeeded()
                 } catch (e: Exception) {
                     errorCounter.incrementAndGet()
@@ -56,7 +56,26 @@ class BDCLIDownloaderTest {
         assertEquals(0, errorCounter.get())
         assertTrue(bdFile.exists())
         assertTrue(bdFile.isFile)
+        assertEquals("0.2.23", File(binDir, "bd.version").readText())
         val tempFiles = binDir.listFiles()?.filter { it.name.endsWith(".tmp") } ?: emptyList()
         assertTrue(tempFiles.isEmpty())
+    }
+
+    @Test
+    fun `downloadIfNeeded replaces an older CLI version`() {
+        val binDir = tempDir.newFolder("bin")
+        val bdFile = File(binDir, "bd")
+        bdFile.writeText("old-bd")
+        File(binDir, "bd.version").writeText("0.1.37")
+        val downloadCount = AtomicInteger(0)
+
+        BDCLIDownloader(bdFile) {
+            downloadCount.incrementAndGet()
+            "new-bd".toByteArray()
+        }.downloadIfNeeded()
+
+        assertEquals(1, downloadCount.get())
+        assertEquals("new-bd", bdFile.readText())
+        assertEquals("0.2.23", File(binDir, "bd.version").readText())
     }
 }

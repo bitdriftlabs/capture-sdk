@@ -51,7 +51,7 @@ jobs:
         id: gradle_check
         uses: ./.github/actions/files-changed
         with:
-          regex: '^(platform/jvm/gradle-test-app/.*\.(gradle|kts|kt|xml)|platform/jvm/capture/src/test/.*)$'
+          regex: '^(platform/jvm/(capture-plugin/.*|gradle-test-app/.*\.(gradle|kts|kt|xml))|platform/jvm/capture/src/test/.*)$'
 
       - name: Check for Cargo.toml changes
         id: cargo_check
