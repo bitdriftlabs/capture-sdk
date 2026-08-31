@@ -10,7 +10,7 @@
 mod bridge_tests;
 
 use crate::bridge::ffi::make_nsstring;
-use crate::ffi::{make_empty_nsstring, nsstring_into_string};
+use crate::ffi::{make_empty_nsstring, nsstring_into_arc_str, nsstring_into_string};
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::session::{SessionCallback, timeout_from_seconds};
 use crate::{events, ffi, resource_utilization, session_replay};
@@ -522,7 +522,7 @@ extern "C" fn capture_create_logger(
       let store = Arc::new(bd_key_value::Store::new(storage));
 
       let initial_session_id = (!initial_session_id.is_null())
-        .then(|| unsafe { nsstring_into_string(initial_session_id) })
+        .then(|| unsafe { nsstring_into_arc_str(initial_session_id) })
         .transpose()?;
       let callbacks: Arc<dyn Callbacks> = if session_callback.is_null() {
         Arc::new(NoopCallbacks)
@@ -923,7 +923,7 @@ extern "C" fn capture_start_new_session(logger_id: LoggerId<'_>, session_id: *co
   with_handle_unexpected(
     || {
       let session_id = (!session_id.is_null())
-        .then(|| unsafe { nsstring_into_string(session_id) })
+        .then(|| unsafe { nsstring_into_arc_str(session_id) })
         .transpose()?;
       logger_id.start_new_session(session_id)
     },
