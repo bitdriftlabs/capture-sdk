@@ -32,7 +32,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added support for `BITDRIFT_API_KEY` when uploading ProGuard mappings using capture-plugin. `API_KEY` remains supported for compatibility.
 
 **Changed**
 
