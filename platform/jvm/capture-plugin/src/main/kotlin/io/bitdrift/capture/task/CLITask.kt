@@ -39,7 +39,7 @@ abstract class CLIUploadMappingTask : CLITask() {
         val versionName = manifest.getAttribute("android:versionName")
         val apiKey = System.getenv("BITDRIFT_API_KEY") ?: System.getenv("API_KEY")
         checkNotNull(apiKey) {
-            "Environment variable BITDRIFT_API_KEY or API_KEY must be set to your Bitdrift API key before running this task"
+            "Environment variable BITDRIFT_API_KEY or API_KEY must be set to your bitdrift API key before running this task"
         }
 
         runBDCLI(
