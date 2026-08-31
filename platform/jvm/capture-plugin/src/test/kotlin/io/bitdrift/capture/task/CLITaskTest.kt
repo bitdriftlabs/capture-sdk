@@ -34,6 +34,24 @@ class CLITaskTest {
         val result = runGradle(projectDir, "bdUploadMapping")
         assertTrue(result.output.contains("BUILD SUCCESSFUL"))
         assertTrue(recordedArgs.readText().contains("--base-domain api.bitdrift.dev"))
+        assertTrue(recordedArgs.readText().contains("--api-key test-api-key"))
+    }
+
+    @Test
+    fun `falls back to legacy API key environment variable`() {
+        val projectDir = tempDir.root
+        val buildDir = File(projectDir, "build")
+        val binDir = File(buildDir, "bin")
+        val recordedArgs = File(buildDir, "bd-cli-args.txt")
+
+        writeSettingsFile(projectDir)
+        writeBuildFile(projectDir)
+        writeManifestAndMappingFiles(buildDir)
+        writeFakeBdExecutable(binDir, recordedArgs)
+
+        val result = runGradle(projectDir, "bdUploadMapping", environment = mapOf("API_KEY" to "legacy-api-key"))
+        assertTrue(result.output.contains("BUILD SUCCESSFUL"))
+        assertTrue(recordedArgs.readText().contains("--api-key legacy-api-key"))
     }
 
     private fun writeSettingsFile(projectDir: File) {
@@ -129,12 +147,13 @@ class CLITaskTest {
     private fun runGradle(
         projectDir: File,
         vararg args: String,
+        environment: Map<String, String> = mapOf("BITDRIFT_API_KEY" to "test-api-key"),
     ): BuildResult =
         GradleRunner
             .create()
             .withProjectDir(projectDir)
             .withArguments(*args, "-Pandroid.injected.build.api=33", "-Pandroid.injected.build.abi=arm64-v8a")
             .withPluginClasspath()
-            .withEnvironment(mapOf("API_KEY" to "test-api-key"))
+            .withEnvironment(environment)
             .build()
 }
