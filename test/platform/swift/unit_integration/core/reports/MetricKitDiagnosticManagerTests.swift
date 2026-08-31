@@ -43,8 +43,7 @@ final class MetricKitDiagnosticManagerTests: XCTestCase {
 
         let files = try FileManager.default.contentsOfDirectory(atPath: self.outputDir.path)
         XCTAssertEqual(files.count, 1)
-        XCTAssertTrue(
-            files[0].contains("_crash_"), "expected a crash report filename, got \(files[0])")
+        XCTAssertTrue(files[0].contains("_crash_"), "expected a crash report filename, got \(files[0])")
     }
 
     func testMemoryExceptionWritesReportWithoutEnrichment() throws {
@@ -76,6 +75,51 @@ final class MetricKitDiagnosticManagerTests: XCTestCase {
             files[0].contains("_anr_"), "expected an ANR report filename, got \(files[0])")
     }
 
+    func testCrashUsesCachedCrashDateInsteadOfReportTimeRange() throws {
+        let crashDate = Date(timeIntervalSince1970: 1_700_000_000)
+        self.crashReporting = MockCrashReporting(crashDate: crashDate)
+
+        let expectation = expectation(description: "completion")
+        self.makeMetricKitDiagnosticManager(completionHandler: { expectation.fulfill() })
+
+        let report = try self.loadDiagnosticReport("metrickit-ios27-crash-example.json")
+        self.source.yield(report)
+        self.source.finish()
+        wait(for: [expectation], timeout: 5)
+
+        try self.assertSingleReport(timestamp: crashDate.timeIntervalSince1970, type: "crash")
+    }
+
+    func testCrashFallsBackToReportTimeRangeWhenNoCachedCrashDate() throws {
+        let expectation = expectation(description: "completion")
+        self.makeMetricKitDiagnosticManager(completionHandler: { expectation.fulfill() })
+
+        let report = try self.loadDiagnosticReport("metrickit-ios27-crash-example.json")
+        self.source.yield(report)
+        self.source.finish()
+        wait(for: [expectation], timeout: 5)
+
+        try self.assertSingleReport(
+            timestamp: report.timeRange.end.timeIntervalSince1970, type: "crash")
+    }
+
+    func testMemoryExceptionKeepsReportTimeRangeDespiteCachedCrashDate() throws {
+        self.crashReporting = MockCrashReporting(
+            crashDate: Date(timeIntervalSince1970: 1_700_000_000))
+
+        let expectation = expectation(description: "completion")
+        self.makeMetricKitDiagnosticManager(completionHandler: { expectation.fulfill() })
+
+        let report = try self.loadDiagnosticReport(
+            "metrickit-ios27-memoryexception-example.json")
+        self.source.yield(report)
+        self.source.finish()
+        wait(for: [expectation], timeout: 5)
+
+        try self.assertSingleReport(
+            timestamp: report.timeRange.end.timeIntervalSince1970, type: "crash")
+    }
+
     func testStopCancelsConsumption() throws {
         self.makeMetricKitDiagnosticManager()
         self.sut.stop()
@@ -92,7 +136,7 @@ final class MetricKitDiagnosticManagerTests: XCTestCase {
 
 @available(iOS 27.0, *)
 extension MetricKitDiagnosticManagerTests {
-    fileprivate func makeMetricKitDiagnosticManager(completionHandler: (() -> Void)? = nil) {
+    func makeMetricKitDiagnosticManager(completionHandler: (() -> Void)? = nil) {
         self.sut = MetricKitDiagnosticManager(
             outputDir: self.outputDir,
             sdkVersion: "1.0.0",
@@ -106,7 +150,17 @@ extension MetricKitDiagnosticManagerTests {
         self.sut.start()
     }
 
-    fileprivate func loadDiagnosticReport(_ resourceName: String) throws -> DiagnosticReport {
+    func assertSingleReport(timestamp: TimeInterval, type: String) throws {
+        let files = try FileManager.default.contentsOfDirectory(atPath: self.outputDir.path)
+        XCTAssertEqual(files.count, 1)
+        let expectedPrefix = String(format: "%.6f_%@_", timestamp.rounded(.towardZero), type)
+        XCTAssertTrue(
+            files[0].hasPrefix(expectedPrefix),
+            "expected a report named \(expectedPrefix)*, got \(files[0])"
+        )
+    }
+
+    func loadDiagnosticReport(_ resourceName: String) throws -> DiagnosticReport {
         let testBundle = Bundle(for: type(of: self))
         let url = try XCTUnwrap(testBundle.url(forResource: resourceName, withExtension: nil))
         return try JSONDecoder().decode(DiagnosticReport.self, from: Data(contentsOf: url))
