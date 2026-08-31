@@ -12,7 +12,6 @@ plugins {
 dependencies {
     implementation(project(":common"))
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.collection)
     implementation(libs.androidx.ui)
     implementation(libs.okhttp)
 

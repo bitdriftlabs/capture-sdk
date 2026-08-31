@@ -318,7 +318,7 @@ jobs:
         arch: x86_64
     - name: Gradle capture-timber unit tests
       working-directory: ./platform/jvm
-      run: ./gradlew capture-timber:testDebugUnitTest --info
+      run: ./gradlew capture-timber:testReleaseUnitTest --info
     - name: Gradle capture-plugin unit tests
       working-directory: ./platform/jvm
       run: ./gradlew capture-plugin:test --info

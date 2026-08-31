@@ -1,8 +1,7 @@
 [versions]
 androidBenchmark        = "1.4.1"
-androidGradlePlugin     = "9.3.2"
+androidGradlePlugin     = "8.13.2"
 androidxCore            = "1.13.1"
-androidxCollection      = "1.5.0"
 androidxTestCore        = "1.6.1"
 androidxWebkit          = "1.14.0"
 apollo                  = "4.1.0"
@@ -29,13 +28,12 @@ robolectric             = "4.16"
 startupRuntime          = "1.2.0"
 timber                  = "5.0.1"
 truth                   = "1.1.4"
-ui                      = "1.10.0"
+ui                      = "1.7.6"
 
 [libraries]
 androidx-benchmark-junit4  = { module = "androidx.benchmark:benchmark-junit4", version.ref = "androidBenchmark" }
 androidx-appcompat         = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-core              = { group = "androidx.core", name = "core", version.ref = "androidxCore" }
-androidx-collection        = { module = "androidx.collection:collection", version.ref = "androidxCollection" }
 androidx-lifecycle-common  = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleCommon" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleCommon" }
 androidx-startup-runtime   = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }

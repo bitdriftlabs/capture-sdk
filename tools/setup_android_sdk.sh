@@ -80,6 +80,7 @@ function provision_android_sdk_packages() {
     ANDROID_HOME="$android_sdk_unarchived_dir" "$sdkmanager" "${install_android_sdk_packages_command[@]}" | (grep -v = || true)
   fi
 
+  # shellcheck disable=SC2154 # Defined by android_toolchain_versions.sh.
   rm -rf "$android_sdk_unarchived_dir/platforms/android-$android_sdk_api_level"
 }
 

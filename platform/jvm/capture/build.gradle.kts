@@ -247,7 +247,7 @@ tasks.register<Exec>("buildTestJni") {
 
 // Configure tests to use the test JNI library and build it first
 afterEvaluate {
-    tasks.withType<Test>().matching { it.name == "testDebugUnitTest" }.configureEach {
+    tasks.named<Test>("testDebugUnitTest") {
         val testJniLib = bazelWorkspace.resolve("bazel-bin/test/platform/jvm")
 
         // Set java.library.path to the test library location
@@ -281,7 +281,7 @@ afterEvaluate {
         }
     }
 
-    tasks.withType<Test>().matching { it.name == "testReleaseUnitTest" }.configureEach {
+    tasks.named<Test>("testReleaseUnitTest") {
         val testJniLib = bazelWorkspace.resolve("bazel-bin/test/platform/jvm")
 
         // Set java.library.path to the test library location
