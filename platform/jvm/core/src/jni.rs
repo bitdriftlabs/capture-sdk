@@ -779,7 +779,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let initial_session_id = if initial_session_id.is_null() {
         None
       } else {
-        Some(unsafe { env.get_string_unchecked(&initial_session_id) }?.into())
+        let session_id = unsafe { env.get_string_unchecked(&initial_session_id) }?;
+        Some(Arc::from(Cow::<str>::from(&session_id)))
       };
       let callbacks: Arc<dyn Callbacks> = if session_callback.is_null() {
         Arc::new(NoopCallbacks)
@@ -995,7 +996,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_startNewSessio
       let session_id = (!session_id.is_null())
         .then(|| unsafe { env.get_string_unchecked(&session_id) })
         .transpose()?
-        .map(Into::into);
+        .map(|session_id| Arc::from(Cow::<str>::from(&session_id)));
       logger_id.start_new_session(session_id)
     },
     "jni start new session",

@@ -23,6 +23,7 @@ use objc::runtime::Object;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use std::sync::Arc;
 
 // NSASCIIStringEncoding
 const NS_ASCII_STRING_ENCODING: u64 = 1;
@@ -47,6 +48,19 @@ macro_rules! debug_check_class {
 /// # Safety
 /// If `s` is non-null, it must point to a live `NSString` for the duration of this call.
 pub(crate) unsafe fn nsstring_into_string(s: *const Object) -> anyhow::Result<String> {
+  unsafe { nsstring_into(s, std::borrow::ToOwned::to_owned) }
+}
+
+/// Converts a `NSString` to an Arc-backed string. The operation fails if the `NSString` does not
+/// contain valid UTF-8.
+///
+/// # Safety
+/// If `s` is non-null, it must point to a live `NSString` for the duration of this call.
+pub(crate) unsafe fn nsstring_into_arc_str(s: *const Object) -> anyhow::Result<Arc<str>> {
+  unsafe { nsstring_into(s, |value| Arc::<str>::from(value)) }
+}
+
+unsafe fn nsstring_into<T>(s: *const Object, convert: impl FnOnce(&str) -> T) -> anyhow::Result<T> {
   debug_check_class!(s, NSString);
   if s.is_null() {
     anyhow::bail!("Platform UTF-8 error: Passed NSString is equal to nil")
@@ -91,7 +105,7 @@ pub(crate) unsafe fn nsstring_into_string(s: *const Object) -> anyhow::Result<St
     cstr
   };
 
-  Ok(unsafe { CStr::from_ptr(cstr) }.to_str()?.to_string())
+  Ok(convert(unsafe { CStr::from_ptr(cstr) }.to_str()?))
 }
 
 /// Converts a Rust `String` into a `NSString`. Returned `StrongPtr` holds a strong reference to
