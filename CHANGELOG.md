@@ -32,10 +32,11 @@
 
 **Added**
 
-- Nothing yet!
+- Added support for `BITDRIFT_API_KEY` when uploading ProGuard mappings using capture-plugin. `API_KEY` remains supported for compatibility.
 
 **Changed**
 
+- Updated the `bd` CLI bundled with capture-plugin from version `0.1.37` to `0.2.23`.
 - Reduced overhead when logging multiple string fields by batching JNI local-reference cleanup.
 
 **Fixed**
