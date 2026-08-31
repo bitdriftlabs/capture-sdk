@@ -27,6 +27,8 @@
 **Fixed**
 
 - Changing the configured Capture API endpoint clears an active persisted disabled state.
+- Check available disk space and preallocate files for all mmap files to avoid runtime SIGBUS when
+  out of disk space.
 
 ### Android
 
