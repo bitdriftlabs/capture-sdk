@@ -33,27 +33,6 @@ final class TelephonyNetworkInfo: NSObject {
         // Keep track of the active data service for cases when device uses multiple SIMs.
         // All delegate's callbacks are dispatched asynchronously to a global queue with `default` QoS.
         self.underlyingNetworkInfo.delegate = self
-        self.stateQueue.sync {
-            self.updateDataServiceNetworkInfo()
-        }
-
-        // This callback is dispatched asynchronously to a global queue with `default` QoS.
-        self.underlyingNetworkInfo
-            .serviceSubscriberCellularProvidersDidUpdateNotifier = { [weak self] identifier in
-                guard let self else {
-                    return
-                }
-
-                // We update network info only if cellular provider's identifier matches the
-                // identifier of the currently active data service provider. Otherwise, the update
-                // is for a SIM (cellular provider) that's not actively used for data transfer
-                // and we ignore it.
-                self.stateQueue.async {
-                    if identifier == self.dataServiceIdentifier {
-                        self.updateDataServiceNetworkInfo()
-                    }
-                }
-            }
     }
 
     func start(with logger: CoreLogging) {
@@ -90,7 +69,7 @@ final class TelephonyNetworkInfo: NSObject {
 
 extension TelephonyNetworkInfo: CTTelephonyNetworkInfoDelegate {
     public func dataServiceIdentifierDidChange(_ identifier: String) {
-        self.stateQueue.sync {
+        self.stateQueue.async {
             self.dataServiceIdentifier = identifier
             self.updateDataServiceNetworkInfo()
         }

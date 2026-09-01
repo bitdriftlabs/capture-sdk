@@ -42,6 +42,7 @@ final class NetworkAttributesTests: XCTestCase {
         let updateCount = logger.ootbFieldUpdateCount
 
         attributes.dataServiceIdentifierDidChange("test-service")
+        _ = attributes.initialOotbFields()
 
         XCTAssertEqual(logger.ootbFieldUpdateCount, updateCount)
         XCTAssertNotNil(logger.ootbFields["radio_type"])
