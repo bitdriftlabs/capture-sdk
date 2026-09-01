@@ -64,10 +64,15 @@ objc-foundation = "0.1.1"
 objc2 = "0.6.4"
 objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "alloc",
-  "NSException",
-  "NSObjCRuntime",
-  "NSString",
   "NSArray",
+  "NSData",
+  "NSDictionary",
+  "NSException",
+  "NSNull",
+  "NSObjCRuntime",
+  "NSObject",
+  "NSString",
+  "NSUserDefaults",
   "NSValue",
 ] }
 parameterized = "2.1.0"

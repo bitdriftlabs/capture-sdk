@@ -8,7 +8,7 @@
 // Helpers for safely interacting with Objective-C types.
 use crate::ffi;
 use ahash::AHashMap;
-use anyhow::bail;
+use anyhow::{Context, bail};
 use bd_log_primitives::LogFieldKey;
 use bd_logger::{
   AnnotatedLogField,
@@ -20,15 +20,12 @@ use bd_logger::{
 };
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
+use objc2::Message;
+use objc2::rc::Retained;
+use objc2::runtime::{AnyObject, ProtocolObject};
+use objc2_foundation::{NSData, NSMutableDictionary, NSString};
 use std::collections::HashMap;
-use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
 use std::sync::Arc;
-
-// NSASCIIStringEncoding
-const NS_ASCII_STRING_ENCODING: u64 = 1;
-// NSUTF8StringEncoding
-const NS_UTF8_STRING_ENCODING: u64 = 4;
 
 #[macro_export]
 macro_rules! debug_check_class {
@@ -42,127 +39,122 @@ macro_rules! debug_check_class {
       };
     }
 
-/// Converts a `NSString` to Rust String. The operation fails if the `NSString` does not
-/// contain valid UTF-8.
+/// Converts an owned `objc2` object to the legacy pointer owner used at the C ABI boundary.
+///
+/// The bridge still exposes `objc::runtime::Object` pointers to Swift. Keep that representation
+/// at the boundary while using the typed `objc2` representation within Foundation operations.
+pub(crate) fn retained_to_strong_ptr<T: Message>(object: Retained<T>) -> StrongPtr {
+  // The legacy bridge returns raw autoreleased pointers. Preserve that lifetime contract while
+  // temporarily owning a StrongPtr for callers that still use the `objc` crate API.
+  let ptr = Retained::autorelease_ptr(object).cast::<Object>();
+  unsafe { StrongPtr::retain(ptr) }
+}
+
+/// Erases a typed Foundation object's class while retaining its Objective-C ownership.
+pub(crate) fn into_any_object<T: Message>(object: Retained<T>) -> Retained<AnyObject> {
+  // Every Objective-C class has the same object representation as `AnyObject`.
+  unsafe { Retained::cast_unchecked(object) }
+}
+
+/// Views a non-null Objective-C pointer from the C ABI as an `objc2` object.
+///
+/// # Safety
+///
+/// `ptr` must point to a live Objective-C object for the returned reference's lifetime.
+pub(crate) unsafe fn objc_object_from_ptr<'a>(ptr: *const Object) -> anyhow::Result<&'a AnyObject> {
+  if ptr.is_null() {
+    anyhow::bail!("received a null Objective-C object");
+  }
+
+  Ok(unsafe { &*ptr.cast::<AnyObject>() })
+}
+
+/// Views a non-null `NSString` pointer from the C ABI as a typed Foundation string.
+///
+/// # Safety
+///
+/// `ptr` must point to a live `NSString` for the returned reference's lifetime.
+pub(crate) unsafe fn nsstring_from_ptr<'a>(ptr: *const Object) -> anyhow::Result<&'a NSString> {
+  let object = unsafe { objc_object_from_ptr(ptr) }?;
+  object
+    .downcast_ref::<NSString>()
+    .ok_or_else(|| anyhow::anyhow!("expected NSString at Objective-C bridge boundary"))
+}
+
+/// Views a non-null `NSData` pointer from the C ABI as typed Foundation data.
+///
+/// # Safety
+///
+/// `ptr` must point to a live `NSData` for the returned reference's lifetime.
+pub(crate) unsafe fn nsdata_from_ptr<'a>(ptr: *const Object) -> anyhow::Result<&'a NSData> {
+  let object = unsafe { objc_object_from_ptr(ptr) }?;
+  object
+    .downcast_ref::<NSData>()
+    .ok_or_else(|| anyhow::anyhow!("expected NSData at Objective-C bridge boundary"))
+}
+
+const NS_ASCII_STRING_ENCODING: usize = 1;
+const NS_UTF8_STRING_ENCODING: usize = 4;
+
+/// Converts an `NSString` to a Rust `String`, preserving the bridge's legacy lossy fallback.
+///
+/// Some `NSString` values can contain invalid UTF-16. Formatting such a value directly would
+/// require objc2 to assume valid Unicode, whereas the old bridge explicitly converted it through
+/// ASCII with lossy conversion. Prefer UTF-8 and retain that fallback for malformed values.
+pub(crate) fn nsstring_to_string(s: &NSString) -> anyhow::Result<String> {
+  let data = s
+    .dataUsingEncoding(NS_UTF8_STRING_ENCODING)
+    .or_else(|| s.dataUsingEncoding_allowLossyConversion(NS_ASCII_STRING_ENCODING, true))
+    .ok_or_else(|| anyhow::anyhow!("could not encode NSString as UTF-8 or lossy ASCII"))?;
+
+  String::from_utf8(data.to_vec()).context("NSString encoding produced invalid UTF-8")
+}
+
+/// Converts an `NSString` to an Arc-backed Rust string.
+pub(crate) fn nsstring_to_arc_str(s: &NSString) -> anyhow::Result<Arc<str>> {
+  Ok(Arc::from(nsstring_to_string(s)?))
+}
+
+/// Converts an `NSString` C-ABI pointer to Rust `String`.
 ///
 /// # Safety
 /// If `s` is non-null, it must point to a live `NSString` for the duration of this call.
 pub(crate) unsafe fn nsstring_into_string(s: *const Object) -> anyhow::Result<String> {
-  unsafe { nsstring_into(s, std::borrow::ToOwned::to_owned) }
+  nsstring_to_string(unsafe { nsstring_from_ptr(s) }?)
 }
 
-/// Converts a `NSString` to an Arc-backed string. The operation fails if the `NSString` does not
-/// contain valid UTF-8.
+/// Converts an `NSString` C-ABI pointer to an Arc-backed Rust string.
 ///
 /// # Safety
 /// If `s` is non-null, it must point to a live `NSString` for the duration of this call.
 pub(crate) unsafe fn nsstring_into_arc_str(s: *const Object) -> anyhow::Result<Arc<str>> {
-  unsafe { nsstring_into(s, |value| Arc::<str>::from(value)) }
+  nsstring_to_arc_str(unsafe { nsstring_from_ptr(s) }?)
 }
 
-unsafe fn nsstring_into<T>(s: *const Object, convert: impl FnOnce(&str) -> T) -> anyhow::Result<T> {
-  debug_check_class!(s, NSString);
-  if s.is_null() {
-    anyhow::bail!("Platform UTF-8 error: Passed NSString is equal to nil")
-  }
-
-  let cstr: *const c_char = unsafe { msg_send![s, cStringUsingEncoding: NS_UTF8_STRING_ENCODING] };
-
-  let cstr = if cstr.is_null() {
-    let str: *mut Object = {
-      let data: *mut Object = unsafe {
-        msg_send![s, dataUsingEncoding: NS_ASCII_STRING_ENCODING allowLossyConversion: true]
-      };
-
-      if data.is_null() {
-        anyhow::bail!("Platform UTF-8 error: dataUsingEncoding(ASCII) returned null");
-      }
-
-      let str = {
-        let class: *mut Object = msg_send![class!(NSString), alloc];
-        let str = unsafe {
-          StrongPtr::new(msg_send![class, initWithData: data encoding: NS_ASCII_STRING_ENCODING])
-        };
-        if str.is_null() {
-          anyhow::bail!("Platform UTF-8 error: initWithData:encoding(ASCII) returned null");
-        }
-
-        str
-      };
-
-      str.autorelease()
-    };
-
-    let cstr: *const c_char =
-      unsafe { msg_send![str, cStringUsingEncoding: NS_UTF8_STRING_ENCODING] };
-
-    if cstr.is_null() {
-      anyhow::bail!("Platform UTF-8 error: cStringUsingEncoding(UTF8) returned null");
-    }
-
-    cstr
-  } else {
-    cstr
-  };
-
-  Ok(convert(unsafe { CStr::from_ptr(cstr) }.to_str()?))
-}
-
-/// Converts a Rust `String` into a `NSString`. Returned `StrongPtr` holds a strong reference to
-/// an underlying `NSString` instance that's also autoreleased. Note that the implementations
-/// does two copies of the s bytes.
-///
-/// # Safety
-/// The call to the method needs to be wrapped in an autorelease pool.
+/// Converts a Rust string into an `NSString` retained by the legacy bridge owner.
 pub fn make_nsstring(s: &str) -> anyhow::Result<StrongPtr> {
-  let string_cls = class!(NSString);
-  let c_str = CString::new(s)?;
-  Ok(unsafe { StrongPtr::retain(msg_send![string_cls, stringWithUTF8String: c_str.as_ptr()]) })
+  Ok(retained_to_strong_ptr(NSString::from_str(s)))
 }
 
 /// Creates an empty `NSString`.
 #[must_use]
 pub fn make_empty_nsstring() -> StrongPtr {
-  let string_cls = class!(NSString);
-  unsafe { StrongPtr::retain(msg_send![string_cls, string]) }
-}
-
-/// Specifies a conversion between a Objective-C Object and a arbitrary Rust type.
-pub trait FromObjcObject<'a> {
-  /// Converts a Objective-C object into another reference type.
-  ///
-  /// # Safety
-  /// Fundamentally any calls into Objective-C will be unsafe, and relies on us passing the
-  /// correct type and carefully managing assumptions. In general this function assumes that
-  /// the provided pointer is valid and of an appropriate type (depending on which type
-  /// implements this trait). The lifetime of the returned is likely only valid as long as the
-  /// underlying Objective C object does not change, which cannot be formally verified by Rust.
-  unsafe fn from_objc(ptr: *const Object) -> anyhow::Result<&'a Self>;
-}
-
-impl<'a> FromObjcObject<'a> for [u8] {
-  unsafe fn from_objc(ptr: *const Object) -> anyhow::Result<&'a Self> {
-    debug_check_class!(ptr, NSData);
-
-    let length: usize = msg_send![ptr, length];
-    let bytes: *const u8 = msg_send![ptr, bytes];
-
-    Ok(unsafe { std::slice::from_raw_parts(bytes, length) })
-  }
+  retained_to_strong_ptr(NSString::from_str(""))
 }
 
 pub fn convert_map<S: ::std::hash::BuildHasher>(
   map: &HashMap<&str, &str, S>,
 ) -> anyhow::Result<StrongPtr> {
-  let objc_headers = unsafe { StrongPtr::new(msg_send![class!(NSMutableDictionary), new]) };
+  let objc_headers = NSMutableDictionary::<NSString, NSString>::dictionaryWithCapacity(map.len());
   for (key, value) in map {
-    unsafe {
-      let () =
-        msg_send![*objc_headers, setObject:*make_nsstring(value)? forKey:*make_nsstring(key)?];
-    };
+    let key = NSString::from_str(key);
+    let value = NSString::from_str(value);
+    let key = ProtocolObject::from_ref(&*key);
+    // The typed key and value satisfy the Objective-C dictionary's generic parameters.
+    unsafe { objc_headers.setObject_forKey(&value, key) };
   }
 
-  Ok(objc_headers)
+  Ok(retained_to_strong_ptr(objc_headers))
 }
 
 const FIELD_TYPE_STRING: usize = 0;
@@ -214,7 +206,7 @@ unsafe fn convert_fields_helper<FieldValue>(
         DataValue::String(string_value)
       },
       FIELD_TYPE_DATA => {
-        let data_value = unsafe { FromObjcObject::from_objc(field_value) }? as &[u8];
+        let data_value = unsafe { nsdata_from_ptr(field_value) }?;
         DataValue::Bytes(data_value.to_vec().into())
       },
       _ => bail!("unknown field value type: {field_type:?}"),

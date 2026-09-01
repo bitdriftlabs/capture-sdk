@@ -5,9 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::ffi::{make_nsstring, nsstring_into_string};
-use objc::rc::StrongPtr;
-use objc::runtime::Object;
+use crate::ffi::nsstring_to_string;
+use objc2::AnyThread;
+use objc2::rc::Retained;
+use objc2_foundation::{NSString, NSUserDefaults};
 
 //
 // UserDefaultsStorage
@@ -15,71 +16,47 @@ use objc::runtime::Object;
 
 #[allow(clippy::non_send_fields_in_send_ty)]
 pub struct UserDefaultsStorage {
-  user_defaults: StrongPtr,
+  user_defaults: Retained<NSUserDefaults>,
 }
 
 impl Default for UserDefaultsStorage {
   fn default() -> Self {
-    let mut user_defaults = {
-      let defaults: *mut Object = unsafe { msg_send![class!(NSUserDefaults), alloc] };
-      make_nsstring("io.bitdrift.storage").map_or_else(
-        |_| unsafe { StrongPtr::new(std::ptr::null_mut()) },
-        |suite_name| {
-          let defaults: *mut Object = unsafe { msg_send![defaults, initWithSuiteName:*suite_name] };
-          unsafe { StrongPtr::new(defaults) }
-        },
-      )
-    };
-
-    if user_defaults.is_null() {
-      // Fallback to standard UserDefaults if the suite is not available.
+    let suite_name = NSString::from_str("io.bitdrift.storage");
+    let user_defaults = NSUserDefaults::initWithSuiteName(
+      NSUserDefaults::alloc(),
+      Some(&suite_name),
+    )
+    .unwrap_or_else(|| {
+      // Fall back to standard UserDefaults if the suite is unavailable.
       log::debug!("couldn't create specific UserDefaults, falling back to standard UserDefaults");
-      user_defaults =
-        unsafe { StrongPtr::retain(msg_send![class!(NSUserDefaults), standardUserDefaults]) }
-    }
+      NSUserDefaults::standardUserDefaults()
+    });
 
     Self { user_defaults }
   }
 }
 
-unsafe impl Sync for UserDefaultsStorage {}
-unsafe impl Send for UserDefaultsStorage {}
-
 impl bd_key_value::Storage for UserDefaultsStorage {
   fn set_string(&self, key: &str, value: &str) -> anyhow::Result<()> {
-    objc::rc::autoreleasepool(|| {
-      let key = make_nsstring(key)?;
-      let value = make_nsstring(value)?;
-
-      unsafe {
-        let () = msg_send![*self.user_defaults, setObject:*value forKey:*key];
-      };
-      Ok::<_, anyhow::Error>(())
-    })?;
-
+    let key = NSString::from_str(key);
+    let value = NSString::from_str(value);
+    // `value` is an NSString, which is valid for NSUserDefaults persistence.
+    unsafe { self.user_defaults.setObject_forKey(Some(&value), &key) };
     Ok(())
   }
 
   fn get_string(&self, key: &str) -> anyhow::Result<Option<String>> {
-    objc::rc::autoreleasepool(|| {
-      let key = make_nsstring(key)?;
-      let value: *const Object = unsafe { msg_send![*self.user_defaults, objectForKey:*key] };
-
-      if value.is_null() {
-        return Ok(None);
-      }
-
-      unsafe { nsstring_into_string(value) }.map(Some)
-    })
+    let key = NSString::from_str(key);
+    self
+      .user_defaults
+      .stringForKey(&key)
+      .map(|value| nsstring_to_string(&value))
+      .transpose()
   }
 
   fn delete(&self, key: &str) -> anyhow::Result<()> {
-    objc::rc::autoreleasepool(|| {
-      let key = make_nsstring(key)?;
-      unsafe { msg_send![*self.user_defaults, removeObjectForKey:*key] }
-      Ok::<_, anyhow::Error>(())
-    })?;
-
+    let key = NSString::from_str(key);
+    self.user_defaults.removeObjectForKey(&key);
     Ok(())
   }
 }

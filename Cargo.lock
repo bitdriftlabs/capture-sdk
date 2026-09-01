@@ -3786,6 +3786,8 @@ dependencies = [
  "bd-time",
  "log",
  "objc",
+ "objc2",
+ "objc2-foundation",
  "parking_lot",
  "platform-shared",
  "protobuf 4.0.0-alpha.0",

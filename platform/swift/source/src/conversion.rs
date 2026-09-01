@@ -5,18 +5,29 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::ffi::{make_nsstring, nsstring_into_string};
+use crate::ffi::{into_any_object, nsstring_to_string, retained_to_strong_ptr};
 use ahash::AHashMap;
 use bd_bonjson::Value;
 use bd_client_common::error::InvariantError;
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
+use objc2::rc::Retained;
+use objc2::runtime::{AnyObject, ProtocolObject};
+use objc2_foundation::{
+  NSArray,
+  NSDictionary,
+  NSMutableArray,
+  NSMutableDictionary,
+  NSNull,
+  NSNumber,
+  NSString,
+};
 use std::collections::HashMap;
 
 #[derive(Debug)]
 enum ObjcToRustWorkItem {
   ProcessObject {
-    ptr: *const Object,
+    object: Retained<AnyObject>,
     result_id: usize,
   },
   InsertDictValue {
@@ -61,17 +72,6 @@ enum RustToObjcWorkItem {
     array_id: usize,
     result_id: usize,
   },
-}
-
-unsafe extern "C" {
-  fn NSStringFromClass(cls: *const Object) -> *const Object;
-}
-
-pub(crate) unsafe fn objc_obj_class_name(s: *const Object) -> anyhow::Result<String> {
-  let class: *const Object = unsafe { msg_send![s, class] };
-  let name: *const Object = unsafe { NSStringFromClass(class) };
-  let name_str = unsafe { nsstring_into_string(name) }?;
-  Ok(name_str)
 }
 
 /// Deep-convert an Objective-C object to a Rust `Value`.
@@ -127,6 +127,8 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
     anyhow::bail!("Cannot convert null pointer to Value");
   }
 
+  let root_object = unsafe { Retained::retain(ptr.cast_mut().cast::<AnyObject>()) }
+    .ok_or_else(|| anyhow::anyhow!("Cannot convert null pointer to Value"))?;
   let mut work_stack: Vec<ObjcToRustWorkItem> = Vec::new();
   let mut results: HashMap<usize, Value> = HashMap::new();
   let mut next_id = 0;
@@ -140,28 +142,33 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
   // Start with the root object
   let root_id = get_next_id();
   work_stack.push(ObjcToRustWorkItem::ProcessObject {
-    ptr,
+    object: root_object,
     result_id: root_id,
   });
 
   while let Some(work_item) = work_stack.pop() {
     match work_item {
-      ObjcToRustWorkItem::ProcessObject { ptr, result_id } => {
-        if msg_send![ptr, isKindOfClass: class!(NSDictionary)] {
-          let count: usize = msg_send![ptr, count];
+      ObjcToRustWorkItem::ProcessObject { object, result_id } => {
+        if let Some(dictionary) = object.downcast_ref::<NSDictionary>() {
+          let count = dictionary.count();
 
           if count > 0 {
             let map_id = get_next_id();
             results.insert(map_id, Value::Object(AHashMap::new()));
-            let all_keys: *const Object = msg_send![ptr, allKeys];
+            let all_keys = dictionary.allKeys();
 
             // Add a work item to finalize the dictionary after all items are processed
             work_stack.push(ObjcToRustWorkItem::FinalizeDictionary { map_id, result_id });
 
             for i in 0 .. count {
-              let key: *const Object = msg_send![all_keys, objectAtIndex: i];
-              let key_str: String = unsafe { nsstring_into_string(key) }?;
-              let value: *const Object = msg_send![ptr, objectForKey: key];
+              let key = all_keys.objectAtIndex(i);
+              let key = key.downcast_ref::<NSString>().ok_or_else(|| {
+                anyhow::anyhow!("Objective-C dictionary keys must be NSString values")
+              })?;
+              let key_str = nsstring_to_string(key)?;
+              let value = dictionary.objectForKey(key).ok_or_else(|| {
+                anyhow::anyhow!("Objective-C dictionary returned no value for key")
+              })?;
 
               let value_id = get_next_id();
 
@@ -173,7 +180,7 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
               });
 
               work_stack.push(ObjcToRustWorkItem::ProcessObject {
-                ptr: value,
+                object: value,
                 result_id: value_id,
               });
             }
@@ -181,8 +188,8 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
             // Empty dictionary
             results.insert(result_id, Value::Object(AHashMap::new()));
           }
-        } else if msg_send![ptr, isKindOfClass: class!(NSArray)] {
-          let count: usize = msg_send![ptr, count];
+        } else if let Some(array) = object.downcast_ref::<NSArray>() {
+          let count = array.count();
 
           if count > 0 {
             let array_id = get_next_id();
@@ -196,14 +203,14 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
 
             // Process array items in reverse order to maintain correct order with stack
             for i in (0 .. count).rev() {
-              let item: *const Object = msg_send![ptr, objectAtIndex: i];
+              let item = array.objectAtIndex(i);
               let value_id = get_next_id();
 
               // Schedule the insertion after the value is processed
               work_stack.push(ObjcToRustWorkItem::InsertArrayValue { value_id, array_id });
 
               work_stack.push(ObjcToRustWorkItem::ProcessObject {
-                ptr: item,
+                object: item,
                 result_id: value_id,
               });
             }
@@ -211,17 +218,16 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
             // Empty array
             results.insert(result_id, Value::Array(Vec::new()));
           }
-        } else if msg_send![ptr, isKindOfClass: class!(NSString)] {
-          let string_value = unsafe { nsstring_into_string(ptr) }?;
-          results.insert(result_id, Value::String(string_value));
-        } else if msg_send![ptr, isKindOfClass: class!(NSNumber)] {
-          results.insert(result_id, extract_nsnumber_value(ptr));
-        } else if msg_send![ptr, isKindOfClass: class!(NSNull)] {
+        } else if let Some(string) = object.downcast_ref::<NSString>() {
+          results.insert(result_id, Value::String(nsstring_to_string(string)?));
+        } else if let Some(number) = object.downcast_ref::<NSNumber>() {
+          results.insert(result_id, extract_nsnumber_value(number));
+        } else if object.downcast_ref::<NSNull>().is_some() {
           results.insert(result_id, Value::Null);
         } else {
           anyhow::bail!(
             "Unsupported Objective-C type for conversion: {:?}",
-            unsafe { objc_obj_class_name(ptr) }
+            object.class()
           );
         }
       },
@@ -267,10 +273,10 @@ pub unsafe fn objc_value_to_rust(ptr: *const Object) -> anyhow::Result<Value> {
     .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))
 }
 
-fn extract_nsnumber_value(ptr: *const Object) -> Value {
-  let num_i64: i64 = unsafe { msg_send![ptr, longLongValue] };
-  let num_u64: u64 = unsafe { msg_send![ptr, unsignedLongLongValue] };
-  let num_f64: f64 = unsafe { msg_send![ptr, doubleValue] };
+fn extract_nsnumber_value(number: &NSNumber) -> Value {
+  let num_i64 = number.longLongValue();
+  let num_u64 = number.unsignedLongLongValue();
+  let num_f64 = number.doubleValue();
 
   // NSNumber won't tell us what numeric type it was initialized with, so we use heuristics.
   // If the float value can't be round-tripped via i64 or u64, we keep the float value.
@@ -299,7 +305,7 @@ fn extract_nsnumber_value(ptr: *const Object) -> Value {
 #[allow(clippy::cognitive_complexity)]
 pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
   let mut work_stack: Vec<RustToObjcWorkItem> = Vec::new();
-  let mut results: HashMap<usize, StrongPtr> = HashMap::new();
+  let mut results: HashMap<usize, Retained<AnyObject>> = HashMap::new();
   let mut next_id = 0;
 
   let mut get_next_id = || {
@@ -319,45 +325,37 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
       RustToObjcWorkItem::ProcessValue { value, result_id } => {
         match value {
           Value::String(s) => {
-            let ns_string = make_nsstring(&s)?;
-            results.insert(result_id, ns_string);
+            results.insert(result_id, into_any_object(NSString::from_str(&s)));
           },
 
           Value::Signed(n) => {
-            let number_class = class!(NSNumber);
-            let number = msg_send![number_class, numberWithLongLong: n];
-            results.insert(result_id, unsafe { StrongPtr::retain(number) });
+            results.insert(result_id, into_any_object(NSNumber::numberWithLongLong(n)));
           },
 
           Value::Unsigned(n) => {
-            let number_class = class!(NSNumber);
-            let number = msg_send![number_class, numberWithUnsignedLongLong: n];
-            results.insert(result_id, unsafe { StrongPtr::retain(number) });
+            results.insert(
+              result_id,
+              into_any_object(NSNumber::numberWithUnsignedLongLong(n)),
+            );
           },
 
           Value::Float(f) => {
-            let number_class = class!(NSNumber);
-            let number = msg_send![number_class, numberWithDouble: f];
-            results.insert(result_id, unsafe { StrongPtr::retain(number) });
+            results.insert(result_id, into_any_object(NSNumber::numberWithDouble(f)));
           },
 
           Value::Bool(b) => {
-            let number_class = class!(NSNumber);
-            let number = msg_send![number_class, numberWithBool: b];
-            results.insert(result_id, unsafe { StrongPtr::retain(number) });
+            results.insert(result_id, into_any_object(NSNumber::numberWithBool(b)));
           },
 
           Value::Array(arr) => {
             if arr.is_empty() {
-              let array_class = class!(NSArray);
-              let empty_array = msg_send![array_class, array];
-              results.insert(result_id, unsafe { StrongPtr::retain(empty_array) });
+              results.insert(result_id, into_any_object(NSArray::<AnyObject>::array()));
             } else {
               let array_id = get_next_id();
-              let mutable_array_class = class!(NSMutableArray);
-              let ns_array: *mut Object =
-                msg_send![mutable_array_class, arrayWithCapacity: arr.len()];
-              results.insert(array_id, unsafe { StrongPtr::retain(ns_array) });
+              results.insert(
+                array_id,
+                into_any_object(NSMutableArray::<AnyObject>::arrayWithCapacity(arr.len())),
+              );
 
               // Schedule finalization
               work_stack.push(RustToObjcWorkItem::FinalizeArray {
@@ -382,15 +380,18 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
 
           Value::Object(map) => {
             if map.is_empty() {
-              let dict_class = class!(NSDictionary);
-              let empty_dict = msg_send![dict_class, dictionary];
-              results.insert(result_id, unsafe { StrongPtr::retain(empty_dict) });
+              results.insert(
+                result_id,
+                into_any_object(NSDictionary::<NSString, AnyObject>::dictionary()),
+              );
             } else {
               let dict_id = get_next_id();
-              let mutable_dict_class = class!(NSMutableDictionary);
-              let ns_dict: *mut Object =
-                msg_send![mutable_dict_class, dictionaryWithCapacity: map.len()];
-              results.insert(dict_id, unsafe { StrongPtr::retain(ns_dict) });
+              results.insert(
+                dict_id,
+                into_any_object(
+                  NSMutableDictionary::<NSString, AnyObject>::dictionaryWithCapacity(map.len()),
+                ),
+              );
 
               // Schedule finalization
               work_stack.push(RustToObjcWorkItem::FinalizeDict { dict_id, result_id });
@@ -415,22 +416,18 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
           },
 
           Value::Null => {
-            let null_class = class!(NSNull);
-            let null_obj = msg_send![null_class, null];
-            results.insert(result_id, unsafe { StrongPtr::retain(null_obj) });
+            results.insert(result_id, into_any_object(NSNull::null()));
           },
 
           Value::KVVec(kvvec) => {
             if kvvec.is_empty() {
-              let array_class = class!(NSArray);
-              let empty_array = msg_send![array_class, array];
-              results.insert(result_id, unsafe { StrongPtr::retain(empty_array) });
+              results.insert(result_id, into_any_object(NSArray::<AnyObject>::array()));
             } else {
               let array_id = get_next_id();
-              let mutable_array_class = class!(NSMutableArray);
-              let ns_array: *mut Object =
-                msg_send![mutable_array_class, arrayWithCapacity: kvvec.len()];
-              results.insert(array_id, unsafe { StrongPtr::retain(ns_array) });
+              results.insert(
+                array_id,
+                into_any_object(NSMutableArray::<AnyObject>::arrayWithCapacity(kvvec.len())),
+              );
 
               // Schedule finalization
               work_stack.push(RustToObjcWorkItem::FinalizeArray {
@@ -450,10 +447,10 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
 
                 // Create NSArray tuple containing the key and value strings
                 let tuple_array_id = get_next_id();
-                let tuple_mutable_array_class = class!(NSMutableArray);
-                let tuple_ns_array: *mut Object =
-                  msg_send![tuple_mutable_array_class, arrayWithCapacity: 2];
-                results.insert(tuple_array_id, unsafe { StrongPtr::retain(tuple_ns_array) });
+                results.insert(
+                  tuple_array_id,
+                  into_any_object(NSMutableArray::<AnyObject>::arrayWithCapacity(2)),
+                );
 
                 // Schedule finalization of tuple array
                 work_stack.push(RustToObjcWorkItem::FinalizeArray {
@@ -499,8 +496,14 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
         let dict_obj = results
           .get(&dict_id)
           .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
-        let ns_key = make_nsstring(&key)?;
-        let () = msg_send![**dict_obj, setObject: *value_obj forKey: *ns_key];
+        let dict_obj = dict_obj
+          .downcast_ref::<NSMutableDictionary>()
+          .ok_or(InvariantError::Invariant)?;
+        let dict_obj = unsafe { dict_obj.cast_unchecked::<NSString, AnyObject>() };
+        let ns_key = NSString::from_str(&key);
+        let ns_key = ProtocolObject::from_ref(&*ns_key);
+        // The typed key and value satisfy the Objective-C dictionary's generic parameters.
+        unsafe { dict_obj.setObject_forKey(&value_obj, ns_key) };
       },
 
       RustToObjcWorkItem::InsertArrayValue { value_id, array_id } => {
@@ -510,16 +513,23 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
         let array_obj = results
           .get(&array_id)
           .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
-        let () = msg_send![**array_obj, addObject: *value_obj];
+        let array_obj = array_obj
+          .downcast_ref::<NSMutableArray<AnyObject>>()
+          .ok_or(InvariantError::Invariant)?;
+        array_obj.addObject(&value_obj);
       },
 
       RustToObjcWorkItem::FinalizeDict { dict_id, result_id } => {
         let mutable_dict = results
-          .remove(&dict_id)
+          .get(&dict_id)
           .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
-        let dict_class = class!(NSDictionary);
-        let immutable_dict = msg_send![dict_class, dictionaryWithDictionary: *mutable_dict];
-        results.insert(result_id, unsafe { StrongPtr::retain(immutable_dict) });
+        let mutable_dict = mutable_dict
+          .downcast_ref::<NSMutableDictionary>()
+          .ok_or(InvariantError::Invariant)?;
+        let mutable_dict = unsafe { mutable_dict.cast_unchecked::<NSString, AnyObject>() };
+        let immutable_dict = NSDictionary::dictionaryWithDictionary(mutable_dict);
+        results.remove(&dict_id);
+        results.insert(result_id, into_any_object(immutable_dict));
       },
 
       RustToObjcWorkItem::FinalizeArray {
@@ -527,16 +537,20 @@ pub unsafe fn rust_value_to_objc(value: &Value) -> anyhow::Result<StrongPtr> {
         result_id,
       } => {
         let mutable_array = results
-          .remove(&array_id)
+          .get(&array_id)
           .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))?;
-        let array_class = class!(NSArray);
-        let immutable_array = msg_send![array_class, arrayWithArray: *mutable_array];
-        results.insert(result_id, unsafe { StrongPtr::retain(immutable_array) });
+        let mutable_array = mutable_array
+          .downcast_ref::<NSMutableArray<AnyObject>>()
+          .ok_or(InvariantError::Invariant)?;
+        let immutable_array = NSArray::arrayWithArray(mutable_array);
+        results.remove(&array_id);
+        results.insert(result_id, into_any_object(immutable_array));
       },
     }
   }
 
   results
     .remove(&root_id)
+    .map(retained_to_strong_ptr)
     .ok_or_else(|| anyhow::Error::from(InvariantError::Invariant))
 }
