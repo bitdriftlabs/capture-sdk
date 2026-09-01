@@ -46,11 +46,13 @@ import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
 import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.CustomFieldsProvider
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldGetter
 import io.bitdrift.capture.providers.Fields
-import io.bitdrift.capture.providers.MetadataProvider
+import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.TimestampProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -89,7 +91,7 @@ internal class LoggerImpl(
     configuration: Configuration,
     customFieldGetters: List<FieldGetter>,
     initialFields: Fields = emptyMap(),
-    dateProvider: DateProvider,
+    dateProvider: DateProvider?,
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
     context: Context,
@@ -117,7 +119,11 @@ internal class LoggerImpl(
     @OptIn(ExperimentalBitdriftApi::class)
     internal val webViewConfiguration: WebViewConfiguration? = configuration.webViewConfiguration
 
-    private val metadataProvider: MetadataProvider
+    private val timestampProvider = dateProvider?.let(::TimestampProvider)
+    private val customFieldsProvider =
+        customFieldGetters.takeIf { it.isNotEmpty() }?.let {
+            CustomFieldsProvider(it, errorHandler)
+        }
     private val sdkDirectory: String
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
@@ -157,7 +163,7 @@ internal class LoggerImpl(
         if (configuration.enableFatalIssueReporting) {
             IssueReporter(
                 internalLogger = this,
-                dateProvider = dateProvider,
+                dateProvider = dateProvider ?: SystemDateProvider(),
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
                 captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
@@ -170,13 +176,6 @@ internal class LoggerImpl(
     internal val loggerId: LoggerId
 
     init {
-        metadataProvider =
-            MetadataProvider(
-                dateProvider = dateProvider,
-                errorHandler = errorHandler,
-                customFieldGetters = customFieldGetters,
-            )
-
         val network =
             OkHttpCaptureStream(
                 apiBaseUrl = apiUrl,
@@ -228,7 +227,8 @@ internal class LoggerImpl(
                 sessionConfiguration.initialSessionId,
                 sessionConfiguration.inactivityTimeout?.inWholeMilliseconds ?: -1L,
                 sessionConfiguration.makeSessionCallback(),
-                metadataProvider,
+                timestampProvider,
+                customFieldsProvider,
                 clientAttributes.initialOotbFields() +
                     ootbFieldProviders.flatMap { it.initialOotbFields().toList() }.toTypedArray(),
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,

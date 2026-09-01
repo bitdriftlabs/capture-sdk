@@ -8,27 +8,38 @@
 internal import CapturePassable
 import Foundation
 
-/// To support the date and session provider being able to change at any time, we need to be able
-/// to wrap up the Atomics in an @objc protocol
 final class MetadataProviderController {
-    typealias ErrorReporter = (_ context: String, _ error: Error) -> Void
     typealias FieldGetter = () -> Fields
+}
+
+/// Wraps a custom timestamp provider for the Objective-C bridge.
+final class TimestampProviderController {
+    private let dateProvider: DateProvider
+
+    init(dateProvider: DateProvider) {
+        self.dateProvider = dateProvider
+    }
+}
+
+extension TimestampProviderController: CapturePassable.TimestampProvider {
+    func timestamp() -> TimeInterval {
+        self.dateProvider.getDate().timeIntervalSince1970
+    }
+}
+
+/// Wraps custom field getters for the Objective-C bridge.
+final class CustomFieldsProviderController {
+    typealias ErrorReporter = (_ context: String, _ error: Error) -> Void
 
     var errorHandler: ErrorReporter = { _, _ in assertionFailure("errorHandler not set") }
 
-    let dateProvider: DateProvider
+    let customFieldGetters: [MetadataProviderController.FieldGetter]
 
-    let customFieldGetters: [FieldGetter]
-
-    init(
-        dateProvider: DateProvider,
-        customFieldGetters: [FieldGetter]
-    ) {
-        self.dateProvider = dateProvider
+    init(customFieldGetters: [MetadataProviderController.FieldGetter]) {
         self.customFieldGetters = customFieldGetters
     }
 
-    private func getFields(fieldGetters: [FieldGetter]) -> [CapturePassable.Field] {
+    private func getFields(fieldGetters: [MetadataProviderController.FieldGetter]) -> [CapturePassable.Field] {
         // The order in which we process field providers of a given kind matters.
         // The earlier in the array a given field lands the highest its priority is.
         return fieldGetters
@@ -44,20 +55,8 @@ final class MetadataProviderController {
     }
 }
 
-extension MetadataProviderController: CapturePassable.MetadataProvider {
-    func timestamp() -> TimeInterval {
-        self.dateProvider.getDate().timeIntervalSince1970
-    }
-
+extension CustomFieldsProviderController: CapturePassable.CustomFieldsProvider {
     func customFields() -> [Field] {
-        guard !self.customFieldGetters.isEmpty else {
-            return Self.emptyFields
-        }
-
         return self.getFields(fieldGetters: self.customFieldGetters)
     }
-}
-
-private extension MetadataProviderController {
-    static let emptyFields = [Field]()
 }

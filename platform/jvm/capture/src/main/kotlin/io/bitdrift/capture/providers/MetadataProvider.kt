@@ -9,16 +9,20 @@ package io.bitdrift.capture.providers
 
 import android.util.Log
 import io.bitdrift.capture.ErrorHandler
-import io.bitdrift.capture.IMetadataProvider
+import io.bitdrift.capture.ICustomFieldsProvider
+import io.bitdrift.capture.ITimestampProvider
 
-internal class MetadataProvider(
+internal class TimestampProvider(
     private val dateProvider: DateProvider,
+) : ITimestampProvider {
+    override fun timestamp(): Long = dateProvider.invoke().time
+}
+
+internal class CustomFieldsProvider(
     private val customFieldGetters: List<FieldGetter>,
     private val errorHandler: ErrorHandler,
     private val errorLog: ((String, Throwable) -> Unit) = { message, throwable -> Log.w("capture", message, throwable) },
-) : IMetadataProvider {
-    override fun timestamp(): Long = dateProvider.invoke().time
-
+) : ICustomFieldsProvider {
     override fun customFields(): Array<Field> =
         if (customFieldGetters.isEmpty()) {
             EMPTY_FIELDS

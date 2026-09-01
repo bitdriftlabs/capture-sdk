@@ -5,10 +5,9 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import Foundation
+package io.bitdrift.capture
 
-final class SystemDateProvider: DateProvider {
-    func getDate() -> Date {
-        return Date()
-    }
+/** Provides the current timestamp in milliseconds since the UTC epoch. */
+internal interface ITimestampProvider {
+    fun timestamp(): Long
 }

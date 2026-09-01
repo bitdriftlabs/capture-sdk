@@ -17,9 +17,6 @@ class MetadataProviderTest {
     @Suppress("TooGenericExceptionThrown")
     @Test
     fun metadata_provider_processes_field_providers_in_order_and_swallows_exceptions() {
-        val dateProvider = mock<DateProvider>()
-        `when`(dateProvider.invoke()).thenReturn(Date())
-
         // Processing of field getters continues even if one of them throws an exception.
         val throwingFieldGetter: FieldGetter =
             {
@@ -30,29 +27,36 @@ class MetadataProviderTest {
             {
                 mapOf("key1" to "value3", "key2" to "value4")
             }
-        val metadataProvider =
-            MetadataProvider(
-                dateProvider = dateProvider,
+        val customFieldsProvider =
+            CustomFieldsProvider(
                 customFieldGetters = listOf(throwingFieldGetter, workingFieldGetter),
                 errorHandler = mock { },
                 errorLog = { _, _ -> },
             )
 
-        assertThat(metadataProvider.customFields()).containsExactly(
+        assertThat(customFieldsProvider.customFields()).containsExactly(
             Field("key1", FieldValue.StringField("value3")),
             Field("key2", FieldValue.StringField("value4")),
         )
     }
 
     @Test
-    fun metadata_provider_reuses_empty_custom_fields() {
-        val metadataProvider =
-            MetadataProvider(
-                dateProvider = mock(),
+    fun custom_fields_provider_reuses_empty_custom_fields() {
+        val customFieldsProvider =
+            CustomFieldsProvider(
                 customFieldGetters = emptyList(),
                 errorHandler = mock(),
             )
 
-        assertThat(metadataProvider.customFields()).isSameAs(metadataProvider.customFields()).isEmpty()
+        assertThat(customFieldsProvider.customFields()).isSameAs(customFieldsProvider.customFields()).isEmpty()
+    }
+
+    @Test
+    fun timestamp_provider_uses_custom_date_provider() {
+        val dateProvider = mock<DateProvider>()
+        val date = Date()
+        `when`(dateProvider.invoke()).thenReturn(date)
+
+        assertThat(TimestampProvider(dateProvider).timestamp()).isEqualTo(date.time)
     }
 }

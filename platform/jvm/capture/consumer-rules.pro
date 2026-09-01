@@ -48,7 +48,11 @@
    public <methods>;
 }
 
--keep, includedescriptorclasses class io.bitdrift.capture.IMetadataProvider {
+-keep, includedescriptorclasses class io.bitdrift.capture.ITimestampProvider {
+   public <methods>;
+}
+
+-keep, includedescriptorclasses class io.bitdrift.capture.ICustomFieldsProvider {
    public <methods>;
 }
 

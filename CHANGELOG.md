@@ -16,6 +16,8 @@
 
 **Changed**
 
+- Reduced logging overhead when using the default system timestamp and no custom field providers.
+
 - Deprecated `FieldProvider`; use `initialFields` to seed global fields at SDK startup and `addField`
   to update them.
 

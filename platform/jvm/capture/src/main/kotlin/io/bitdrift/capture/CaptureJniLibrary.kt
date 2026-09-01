@@ -48,7 +48,8 @@ internal object CaptureJniLibrary : IBridge {
      * @param inactivityTimeoutMilliseconds inactivity timeout in milliseconds, or a negative value
      * to disable inactivity-driven rotation.
      * @param sessionCallback optional recipient for session ID changes.
-     * @param metadataProvider used to provide metadata for emitted logs.
+     * @param timestampProvider optional provider for custom log timestamps.
+     * @param customFieldsProvider optional provider for custom log fields.
      * @param initialOotbFields the OOTB fields to use before the logger accepts logs.
      * @param resourceUtilizationTarget used to inform platform layer about a need to emit a resource log.
      * @param sessionReplayTarget used to inform platform layer about a need to emit session replay logs.
@@ -74,7 +75,8 @@ internal object CaptureJniLibrary : IBridge {
         initialSessionId: String?,
         inactivityTimeoutMilliseconds: Long,
         sessionCallback: SessionCallback?,
-        metadataProvider: IMetadataProvider,
+        timestampProvider: ITimestampProvider?,
+        customFieldsProvider: ICustomFieldsProvider?,
         initialOotbFields: Array<Field>,
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,

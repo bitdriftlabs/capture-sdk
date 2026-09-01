@@ -63,8 +63,8 @@ public final class Logger {
     ///                                            account. Provided by bitdrift.
     /// - parameter configuration:                 A configuration that specifies Capture features to enable.
     /// - parameter sessionStrategy:               The session strategy to use.
-    /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to
-    ///                                            system date provider if none is provided.
+    /// - parameter dateProvider:                  The date provider to use, if any. The logger uses its
+    ///                                            native system clock if none is provided.
     /// - parameter customFieldGetters:            The functions to use when querying the list of attributes
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
@@ -106,8 +106,8 @@ public final class Logger {
     ///                                            creates its own error reporter.
     /// - parameter configuration:                 A configuration that specifies Capture features to enable.
     /// - parameter sessionStrategy:               The session strategy to use.
-    /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to
-    ///                                            system date provider if none is provided.
+    /// - parameter dateProvider:                  The date provider to use, if any. The logger uses its
+    ///                                            native system clock if none is provided.
     /// - parameter customFieldGetters:            The functions to use when querying the list of attributes
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
@@ -148,10 +148,10 @@ public final class Logger {
         self.ootbFieldProviders = [appStateAttributes, localeAttributes, networkAttributes]
         let clientAttributes = ClientAttributes()
 
-        let metadataProvider = MetadataProviderController(
-            dateProvider: dateProvider ?? SystemDateProvider(),
-            customFieldGetters: customFieldGetters
-        )
+        let timestampProvider = dateProvider.map(TimestampProviderController.init)
+        let customFieldsProvider = customFieldGetters.isEmpty
+            ? nil
+            : CustomFieldsProviderController(customFieldGetters: customFieldGetters)
 
         self.sessionURLBase = Self.normalizedAPIURL(apiURL: configuration.apiURL)
 
@@ -184,7 +184,8 @@ public final class Logger {
             apiKey: apiKey,
             bufferDirectoryPath: directoryURL.path,
             sessionStrategy: sessionStrategy,
-            metadataProvider: metadataProvider,
+            timestampProvider: timestampProvider,
+            customFieldsProvider: customFieldsProvider,
             initialOotbFields: self.ootbFieldProviders.flatMap { $0.initialOotbFields() },
             // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
             // and `eventsListenerTarget` as part of the `self.underlyingLogger.start()` method call instead.
@@ -234,7 +235,7 @@ public final class Logger {
         self.resourceUtilizationTarget.logger = self.underlyingLogger
 
         network?.logger = self.underlyingLogger
-        metadataProvider.errorHandler = { [weak underlyingLogger] context, error in
+        customFieldsProvider?.errorHandler = { [weak underlyingLogger] context, error in
             underlyingLogger?.handleError(context: context, error: error)
         }
         self.sessionReplayController?.logger = self.underlyingLogger
