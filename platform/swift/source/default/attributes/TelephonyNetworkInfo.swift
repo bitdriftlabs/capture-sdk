@@ -36,7 +36,11 @@ final class TelephonyNetworkInfo: NSObject {
     }
 
     func start(with logger: CoreLogging) {
-        self.stateQueue.sync {
+        self.stateQueue.async {
+            guard self.logger == nil else {
+                return
+            }
+
             self.logger = logger
             self.publishRadioType()
         }
