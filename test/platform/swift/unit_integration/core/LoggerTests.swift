@@ -43,7 +43,9 @@ final class LoggerTests: XCTestCase {
         XCTAssertNotNil(initialFields["network_type"])
         XCTAssertNotNil(initialFields["radio_type"])
 
-        let expectedUpdatedKeys = Set(["foreground", "network_type", "radio_type"])
+        // `radio_type` is reconciled asynchronously so a telephony callback cannot be overwritten during
+        // startup. Its seeded initial value is asserted above; immediate updates are foreground and network.
+        let expectedUpdatedKeys = Set(["foreground", "network_type"])
         XCTAssertTrue(expectedUpdatedKeys.isSubset(of: Set(bridge.ootbFieldUpdates.map(\.key))))
 
         let localeUpdateCount = bridge.ootbFieldUpdates.filter { $0.key == "_locale" }.count
