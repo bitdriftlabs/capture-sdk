@@ -29,6 +29,7 @@ import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.compose.CaptureModifier
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
+import io.bitdrift.capture.replay.internal.mappers.BackgroundOpacity
 
 private const val SHAPE_KEY = "Shape"
 
@@ -61,7 +62,7 @@ internal object ComposeTreeParser {
                 offsetX = windowOffset[0],
                 offsetY = windowOffset[1],
                 layoutNodes = layoutNodeMap,
-                isOverlay = rootNode.hostsOverlayWindow(),
+                isOverlay = androidComposeView.rootView.isOverlayWindowRoot(),
             ),
         )
     }
@@ -170,13 +171,15 @@ internal object ComposeTreeParser {
     }
 
     /**
-     * Whether this window hosts a Dialog, Popup or ModalBottomSheet. Searched from the window root
-     * because Compose sets the marker on a wrapper below it.
+     * Whether this window is a floating overlay, judged from its root's background rather than by
+     * scanning the semantics tree for IsDialog/IsPopup. An activity window paints an opaque
+     * backdrop; a Dialog, Popup or ModalBottomSheet window does not.
+     *
+     * This reads one background instead of walking every node. SemanticsNode.children rebuilds a
+     * list on each access, so the scan it replaces cost a second traversal *and* a list allocation
+     * per node, on the main thread inside parseDuration.
      */
-    private fun SemanticsNode.hostsOverlayWindow(): Boolean =
-        config.contains(SemanticsProperties.IsDialog) ||
-            config.contains(SemanticsProperties.IsPopup) ||
-            children.any { it.hostsOverlayWindow() }
+    private fun View.isOverlayWindowRoot(): Boolean = BackgroundOpacity.paintedType(this) != ReplayType.View
 
     /**
      * Downgrades a generic container inside an overlay window. Compose semantics carry no background

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.android.benchmark)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -50,6 +51,17 @@ dependencies {
     // the module containing code to benchmark
     androidTestImplementation(project(":capture"))
     androidTestImplementation(project(":common"))
+    androidTestImplementation(project(":replay"))
+
+    // ComposeTreeParser needs a real AndroidComposeView, which needs a composition hosted in an
+    // activity; ui-test-manifest supplies the ComponentActivity for that.
+    androidTestImplementation(platform("androidx.compose:compose-bom:2025.12.00"))
+    androidTestImplementation("androidx.compose.ui:ui")
+    androidTestImplementation("androidx.compose.foundation:foundation")
+    androidTestImplementation("androidx.compose.material3:material3")
+    androidTestImplementation("androidx.activity:activity-compose")
+    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation("androidx.compose.ui:ui-test-manifest")
 
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

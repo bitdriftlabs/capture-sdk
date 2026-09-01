@@ -8,6 +8,8 @@
 package io.bitdrift.gradletestapp
 
 import android.app.Dialog
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.util.Log
 import android.view.View
 import androidx.activity.ComponentActivity
@@ -21,6 +23,7 @@ import com.google.common.truth.Truth.assertWithMessage
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.internal.FilteredCapture
+import io.bitdrift.capture.replay.internal.ReplayRect
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -118,6 +121,45 @@ class ReplayPlatformOverlayTest {
                     show()
                 }
         }
+    }
+
+    /**
+     * Overlay detection reads the window root's background, so a translucent *activity* counts as an
+     * overlay and its Compose containers report transparent. Detecting overlays from IsDialog/IsPopup
+     * semantics would have said otherwise, but that cost a second traversal of the whole tree.
+     *
+     * Two rects flip here. The DecorView already did, through BackgroundOpacity on the Android path.
+     * The Compose root is the new one, and the reason this test exists: the behaviour is defensible,
+     * since such a window paints no backdrop, but it is a deliberate trade rather than a free win.
+     */
+    @Test
+    fun translucentActivityWindowIsTreatedAsOverlay() {
+        val opaque = capture()
+        dump("opaque activity window", opaque)
+        // screen[0] is the display-bounds decoration, which is always ReplayType.View.
+        assertWithMessage("an opaque activity window should report opaque full-bleed containers")
+            .that(opaqueFullBleedAfterDecoration(opaque))
+            .isNotEmpty()
+
+        composeRule.activity.runOnUiThread {
+            composeRule.activity.window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+        composeRule.waitForIdle()
+
+        val translucent = capture()
+        dump("translucent activity window", translucent)
+        // The DecorView alone flipping is not enough: BackgroundOpacity already did that on the
+        // Android path. Requiring none left proves the Compose root flipped too.
+        assertWithMessage(
+            "a translucent activity window should report no opaque full-bleed container, " +
+                "found ${opaqueFullBleedAfterDecoration(translucent)}",
+        ).that(opaqueFullBleedAfterDecoration(translucent)).isEmpty()
+    }
+
+    private fun opaqueFullBleedAfterDecoration(screen: FilteredCapture): List<ReplayRect> {
+        val sw = screen[0].width
+        val sh = screen[0].height
+        return screen.drop(1).filter { it.type == ReplayType.View && it.width >= sw && it.height >= sh }
     }
 
     private companion object {
