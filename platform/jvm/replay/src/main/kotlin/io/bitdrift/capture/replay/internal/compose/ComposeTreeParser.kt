@@ -175,9 +175,7 @@ internal object ComposeTreeParser {
      * scanning the semantics tree for IsDialog/IsPopup. An activity window paints an opaque
      * backdrop; a Dialog, Popup or ModalBottomSheet window does not.
      *
-     * This reads one background instead of walking every node. SemanticsNode.children rebuilds a
-     * list on each access, so the scan it replaces cost a second traversal *and* a list allocation
-     * per node, on the main thread inside parseDuration.
+     * This reads the entire View background instead of walking every node.
      */
     private fun View.isOverlayWindowRoot(): Boolean = BackgroundOpacity.paintedType(this) != ReplayType.View
 
@@ -190,18 +188,25 @@ internal object ComposeTreeParser {
         config: SemanticsConfiguration,
     ): ReplayType =
         if (window.isOverlay && this == ReplayType.View && !config.paintsSurface) {
+            // We only resort to deem this node transparent if we can be certain
             ReplayType.TransparentView
         } else {
             this
         }
 
     /**
-     * Whether this node draws a surface of its own, which an overlay's scrim and wrappers do not.
-     * Matched by key name because [SemanticsProperties] gained `Shape` after the Compose version
-     * this module compiles against; on older runtimes it is simply absent.
+     * Whether this node paints a surface of its own. This is a best-effort guess.
+     *
+     * It uses SemanticsProperties.Shape as a proxy for painting, which is normally set via
+     * `Modifier.background`, `border` and `clip`. Note that this is populated only from Compose 1.10.0.
+     * Below that it is always absent and every node reads as non-painting.
+     *
      */
     private val SemanticsConfiguration.paintsSurface: Boolean
-        // TODO(@murki): Migrate to using strongly-typed [SemanticsProperties.Shape] check when updating compose-ui to >= 1.9.0
+        // TODO(@murki): Migrate to using strongly-typed [SemanticsProperties.Shape] check when updating compose-ui to >= 1.10.0
+        // TODO(@murki): Consider using [SemanticsProperties.BackgroundColor] 1.13.0 stable, keeping `Shape` as the fallback below that.
+        // Matched by key name because `SemanticsProperties.Shape` is not available until compose-ui v1.10.0+
+        // `SemanticsProperties.BackgroundColor` answers directly, alpha included, from compose-ui
         get() = any { it.key.name == SHAPE_KEY }
 
     /** State fixed for the duration of one [parse] call. */
