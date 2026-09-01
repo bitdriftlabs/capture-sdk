@@ -11,12 +11,12 @@ import Foundation
 
 // Tracks attributes of the currently active cellular provider.
 final class TelephonyNetworkInfo: NSObject {
-    private let dataServiceIdentifier: Atomic<String?>
     private let underlyingNetworkInfo = CTTelephonyNetworkInfo()
+    private let stateQueue = DispatchQueue.serial(withLabelSuffix: "TelephonyNetworkInfo", target: .default)
 
+    private var dataServiceIdentifier: String?
     private weak var logger: CoreLogging?
-
-    let radioType: Atomic<String?>
+    private var radioType: String?
 
     override init() {
         // On iOS 13 and up, we initialize the initial value of `dataServiceIdentifier` and start tracking
@@ -25,15 +25,17 @@ final class TelephonyNetworkInfo: NSObject {
         // active radio type each time the active `dataServiceIdentifier` changes or relevant cellular
         // provider settings are updated.
         let dataServiceIdentifier = self.underlyingNetworkInfo.dataServiceIdentifier
-        self.radioType = Atomic(self.underlyingNetworkInfo.radioType(for: dataServiceIdentifier))
-        self.dataServiceIdentifier = Atomic(dataServiceIdentifier)
+        self.radioType = self.underlyingNetworkInfo.radioType(for: dataServiceIdentifier)
+        self.dataServiceIdentifier = dataServiceIdentifier
 
         super.init()
 
         // Keep track of the active data service for cases when device uses multiple SIMs.
         // All delegate's callbacks are dispatched asynchronously to a global queue with `default` QoS.
         self.underlyingNetworkInfo.delegate = self
-        self.updateDataServiceNetworkInfo()
+        self.stateQueue.sync {
+            self.updateDataServiceNetworkInfo()
+        }
 
         // This callback is dispatched asynchronously to a global queue with `default` QoS.
         self.underlyingNetworkInfo
@@ -46,42 +48,52 @@ final class TelephonyNetworkInfo: NSObject {
                 // identifier of the currently active data service provider. Otherwise, the update
                 // is for a SIM (cellular provider) that's not actively used for data transfer
                 // and we ignore it.
-                if identifier == self.dataServiceIdentifier.load() {
-                    self.updateDataServiceNetworkInfo()
+                self.stateQueue.async {
+                    if identifier == self.dataServiceIdentifier {
+                        self.updateDataServiceNetworkInfo()
+                    }
                 }
             }
     }
 
     func start(with logger: CoreLogging) {
-        self.logger = logger
-        self.publishRadioType()
+        self.stateQueue.sync {
+            self.logger = logger
+            self.publishRadioType()
+        }
     }
 
     func initialOotbFields() -> [Field] {
-        [
-            Field(key: "radio_type", data: (self.radioType.load() ?? "unknown") as NSString, type: .string),
-        ]
+        self.stateQueue.sync {
+            [
+                Field(key: "radio_type", data: (self.radioType ?? "unknown") as NSString, type: .string),
+            ]
+        }
     }
 
     // MARK: - Private
 
     private func updateDataServiceNetworkInfo() {
-        let identifier = self.dataServiceIdentifier.load()
+        let radioType = self.underlyingNetworkInfo.radioType(for: self.dataServiceIdentifier)
+        guard self.radioType != radioType else {
+            return
+        }
 
-        let radioType = self.underlyingNetworkInfo.radioType(for: identifier)
-        self.radioType.update { $0 = radioType }
+        self.radioType = radioType
         self.publishRadioType()
     }
 
     private func publishRadioType() {
-        self.logger?.updateOotbField(withKey: "radio_type", value: self.radioType.load() ?? "unknown")
+        self.logger?.updateOotbField(withKey: "radio_type", value: self.radioType ?? "unknown")
     }
 }
 
 extension TelephonyNetworkInfo: CTTelephonyNetworkInfoDelegate {
     public func dataServiceIdentifierDidChange(_ identifier: String) {
-        self.dataServiceIdentifier.update { $0 = identifier }
-        self.updateDataServiceNetworkInfo()
+        self.stateQueue.sync {
+            self.dataServiceIdentifier = identifier
+            self.updateDataServiceNetworkInfo()
+        }
     }
 }
 

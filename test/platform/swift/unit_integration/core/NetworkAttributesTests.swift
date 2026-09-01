@@ -34,7 +34,7 @@ final class NetworkAttributesTests: XCTestCase {
         XCTAssertEqual(logger.ootbFieldUpdates.prefix(2).map(\.key), ["radio_type", "network_type"])
     }
 
-    func testTelephonyUpdatesOotbRadioField() {
+    func testTelephonyDoesNotRepublishAnUnchangedRadioField() {
         let attributes = TelephonyNetworkInfo()
         let logger = MockCoreLogging()
 
@@ -43,7 +43,7 @@ final class NetworkAttributesTests: XCTestCase {
 
         attributes.dataServiceIdentifierDidChange("test-service")
 
-        XCTAssertGreaterThanOrEqual(logger.ootbFieldUpdateCount, updateCount + 1)
+        XCTAssertEqual(logger.ootbFieldUpdateCount, updateCount)
         XCTAssertNotNil(logger.ootbFields["radio_type"])
     }
 }
