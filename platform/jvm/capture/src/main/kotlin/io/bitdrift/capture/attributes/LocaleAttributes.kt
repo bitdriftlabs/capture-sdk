@@ -19,7 +19,7 @@ import io.bitdrift.capture.providers.FieldValue
 internal class LocaleAttributes(
     private val context: Context,
 ) : ComponentCallbacks,
-    OotbFieldProvider {
+    IOotbFieldProvider {
     @Volatile
     private var locale = currentLocale()
 

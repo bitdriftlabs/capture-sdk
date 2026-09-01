@@ -14,9 +14,9 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
-import io.bitdrift.capture.attributes.OotbFieldProvider
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -127,7 +127,7 @@ internal class LoggerImpl(
     private val runtime: JniRuntime
     private val localeAttributes = LocaleAttributes(context)
     private val networkAttributes = NetworkAttributes(context)
-    private val ootbFieldProviders: List<OotbFieldProvider> = listOf(localeAttributes, networkAttributes)
+    private val ootbFieldProviders: List<IOotbFieldProvider> = listOf(localeAttributes, networkAttributes)
     private var jankStatsMonitor: JankStatsMonitor? = null
 
     // Session URLs are only needed when queried externally, so derive the

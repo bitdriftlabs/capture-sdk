@@ -44,7 +44,7 @@ internal class NetworkAttributes(
     private val context: Context,
     private val executor: ExecutorService = CaptureDispatchers.CommonBackground.executorService,
 ) : ConnectivityManager.NetworkCallback(),
-    OotbFieldProvider {
+    IOotbFieldProvider {
     @SuppressLint("InlinedApi")
     private val radioTypeNameMap =
         hashMapOf(

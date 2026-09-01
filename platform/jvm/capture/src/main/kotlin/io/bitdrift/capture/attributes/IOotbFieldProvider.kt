@@ -11,7 +11,7 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.providers.Field
 
 /** Supplies OOTB fields at logger creation and forwards later state changes to the logger. */
-internal interface OotbFieldProvider {
+internal interface IOotbFieldProvider {
     /** Returns fields that are available before the logger accepts logs. */
     fun initialOotbFields(): Array<Field> = emptyArray()
 
