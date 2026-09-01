@@ -16,6 +16,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.attributes.OotbFieldProvider
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -125,6 +126,8 @@ internal class LoggerImpl(
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
     private val localeAttributes = LocaleAttributes(context)
+    private val networkAttributes = NetworkAttributes(context)
+    private val ootbFieldProviders: List<OotbFieldProvider> = listOf(localeAttributes, networkAttributes)
     private var jankStatsMonitor: JankStatsMonitor? = null
 
     // Session URLs are only needed when queried externally, so derive the
@@ -167,8 +170,6 @@ internal class LoggerImpl(
     internal val loggerId: LoggerId
 
     init {
-        val networkAttributes = NetworkAttributes(context)
-
         metadataProvider =
             MetadataProvider(
                 dateProvider = dateProvider,
@@ -229,7 +230,7 @@ internal class LoggerImpl(
                 sessionConfiguration.makeSessionCallback(),
                 metadataProvider,
                 clientAttributes.initialOotbFields() +
-                    localeAttributes.initialOotbFields(),
+                    ootbFieldProviders.flatMap { it.initialOotbFields().toList() }.toTypedArray(),
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
@@ -262,8 +263,7 @@ internal class LoggerImpl(
         this.loggerId = loggerId
 
         runtime = JniRuntime(this.loggerId)
-        localeAttributes.start(this)
-        networkAttributes.start(this)
+        ootbFieldProviders.forEach { it.start(this) }
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime
         }

@@ -9,7 +9,7 @@ internal import CapturePassable
 import UIKit
 
 /// Attributes related to app state.
-final class AppStateAttributes {
+final class AppStateAttributes: OotbFieldProvider {
     /// Whether the app is in the foreground.
     var isForeground: Bool { self.underlyingIsForeground.load() }
 

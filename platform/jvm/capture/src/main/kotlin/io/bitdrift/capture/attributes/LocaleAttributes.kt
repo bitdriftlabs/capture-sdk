@@ -18,14 +18,15 @@ import io.bitdrift.capture.providers.FieldValue
 /** Provides the locale snapshot and forwards configuration changes to the native OOTB field store. */
 internal class LocaleAttributes(
     private val context: Context,
-) : ComponentCallbacks {
+) : ComponentCallbacks,
+    OotbFieldProvider {
     @Volatile
     private var locale = currentLocale()
 
     @Volatile
     private var logger: IInternalLogger? = null
 
-    fun initialOotbFields(): Array<Field> = arrayOf(Field(LOCALE_KEY, FieldValue.StringField(locale)))
+    override fun initialOotbFields(): Array<Field> = arrayOf(Field(LOCALE_KEY, FieldValue.StringField(locale)))
 
     /**
      * Starts forwarding locale changes.
@@ -33,7 +34,7 @@ internal class LocaleAttributes(
      * The initial locale is installed synchronously when the logger is created, so starting this
      * listener does not need to replay it.
      */
-    fun start(logger: IInternalLogger) {
+    override fun start(logger: IInternalLogger) {
         this.logger = logger
         context.registerComponentCallbacks(this)
     }

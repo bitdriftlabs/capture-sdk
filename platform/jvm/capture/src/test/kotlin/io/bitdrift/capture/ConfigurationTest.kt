@@ -143,6 +143,7 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
+            anyOrNull(),
         )
     }
 
@@ -154,6 +155,7 @@ class ConfigurationTest {
         val bridge: IBridge = mock {}
         whenever(
             bridge.createLogger(
+                anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),

@@ -9,7 +9,7 @@ internal import CapturePassable
 import Foundation
 
 /// Provides the locale snapshot and forwards locale changes to the native OOTB field store.
-final class LocaleAttributes {
+final class LocaleAttributes: OotbFieldProvider {
     private let locale = Atomic<String>(Locale.current.identifier)
     private weak var logger: CoreLogging?
     private var notificationRegistrationToken: NSObjectProtocol?

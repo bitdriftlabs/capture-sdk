@@ -30,7 +30,7 @@ private enum ReachabilityPath: String {
 
 /// Attributes related to the network conditions, including active interfaces metadata, cellular
 /// information and the like.
-final class NetworkAttributes {
+final class NetworkAttributes: OotbFieldProvider {
     private let pathMonitor: NWPathMonitor
     private let queue = DispatchQueue.serial(withLabelSuffix: "NetworkAttributes", target: .default)
     private let reachabilityPath = Atomic<ReachabilityPath>(.other)

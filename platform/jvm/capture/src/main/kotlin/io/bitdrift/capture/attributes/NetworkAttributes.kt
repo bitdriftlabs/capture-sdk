@@ -43,7 +43,8 @@ import java.util.concurrent.ExecutorService
 internal class NetworkAttributes(
     private val context: Context,
     private val executor: ExecutorService = CaptureDispatchers.CommonBackground.executorService,
-) : ConnectivityManager.NetworkCallback() {
+) : ConnectivityManager.NetworkCallback(),
+    OotbFieldProvider {
     @SuppressLint("InlinedApi")
     private val radioTypeNameMap =
         hashMapOf(
@@ -73,7 +74,7 @@ internal class NetworkAttributes(
     private var logger: IInternalLogger? = null
 
     /** Starts forwarding network changes to the native OOTB field store. */
-    fun start(logger: IInternalLogger) {
+    override fun start(logger: IInternalLogger) {
         this.logger = logger
         executor.execute {
             monitorNetworkType()
