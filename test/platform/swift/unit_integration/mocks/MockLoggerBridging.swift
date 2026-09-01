@@ -11,6 +11,11 @@ import Foundation
 import XCTest
 
 public final class MockLoggerBridging {
+    public struct OotbFieldUpdate {
+        public let key: String
+        public let value: String
+    }
+
     public struct HandledError {
         public let context: String
         public let error: Error
@@ -42,6 +47,8 @@ public final class MockLoggerBridging {
     public private(set) var setEntityIDs = [String]()
 
     public private(set) var clearEntityIDCallCount = 0
+
+    public private(set) var ootbFieldUpdates = [OotbFieldUpdate]()
 
     public var shouldLogAppUpdateEvent = false
 
@@ -124,6 +131,10 @@ extension MockLoggerBridging: LoggerBridging {
     public func logScreenView(screenName _: String) {}
 
     public func addField(withKey _: String, value _: String) {}
+
+    public func updateOotbField(withKey key: String, value: String) {
+        self.ootbFieldUpdates.append(OotbFieldUpdate(key: key, value: value))
+    }
 
     public func removeField(withKey _: String) {}
 

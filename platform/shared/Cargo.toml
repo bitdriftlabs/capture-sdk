@@ -23,4 +23,3 @@ log.workspace                   = true
 parking_lot.workspace           = true
 regex.workspace                 = true
 time.workspace                  = true
-tokio.workspace                 = true

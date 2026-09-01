@@ -36,6 +36,7 @@ void capture_report_error(const char *message);
  *        inactivity-driven rotation.
  * @param session_callback optional recipient for session ID changes.
  * @param metadata_provider used to provide the internal logger with logging metadata.
+ * @param initial_ootb_fields OOTB fields captured by the platform before logger construction.
  * @param resource_utilization_target responsible for emitting resource utilization logs in response to provided ticks.
  * @param session_replay_target responsible for emitting session replay logs in response to callbacks.
  * @param events_listener_target responsible for listening to platform events and emitting logs in response to them.
@@ -58,6 +59,7 @@ logger_id capture_create_logger(
     double inactivity_timeout_seconds,
     _Nullable id<CAPSessionCallbackProvider> session_callback,
     id<MetadataProvider> metadata_provider,
+    NSArray<const Field *> *initial_ootb_fields,
     id<ResourceUtilizationTarget> resource_utilization_target,
     id<SessionReplayTarget> session_replay_target,
     id<EventsListenerTarget> events_listener_target,
@@ -266,6 +268,12 @@ SdkStatusFFI capture_get_sdk_status(logger_id logger_id);
  * @param value the value of the field.
  */
 void capture_add_log_field(logger_id logger_id, const char *key, const char *value);
+
+/*
+ * Adds or replaces an SDK-owned OOTB field. OOTB fields take precedence over customer fields and
+ * are reserved for Capture's platform implementation.
+ */
+void capture_update_ootb_log_field(logger_id logger_id, const char *key, const char *value);
 
 /*
  * Removes a field with a given key. This operation does nothing if the field with the given key is not

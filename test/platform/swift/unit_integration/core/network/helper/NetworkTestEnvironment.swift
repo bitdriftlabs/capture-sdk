@@ -60,6 +60,7 @@ final class NetworkTestEnvironment {
                 bufferDirectoryPath: sdkDirectory.path,
                 sessionStrategy: .configuration(.init()),
                 metadataProvider: MockMetadataProvider(),
+                initialOotbFields: [],
                 resourceUtilizationTarget: MockResourceUtilizationTarget(),
                 sessionReplayTarget: MockSessionReplayTarget(),
                 eventsListenerTarget: MockEventsListenerTarget(),
@@ -121,10 +122,6 @@ final class NetworkTestEnvironment {
         func timestamp() -> TimeInterval {
             // Matches "2022-10-26T17:56:41.520058155Z" when formatted.
             Date(timeIntervalSince1970: 1_666_807_001.52005815).timeIntervalSince1970
-        }
-
-        func ootbFields() -> [Field] {
-            []
         }
 
         func customFields() -> [Field] {

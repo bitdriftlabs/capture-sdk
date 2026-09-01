@@ -103,6 +103,7 @@ class IssueCallbackConfigurationTest {
             fields = mapOf("test" to "true"),
         )
 
+    @Suppress("DEPRECATION")
     private fun startSdkAndReturnLogger(issueCallbackConfiguration: IssueCallbackConfiguration): IInternalLogger {
         Capture.Logger.start(
             apiKey = "test",

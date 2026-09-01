@@ -8,7 +8,6 @@
 package io.bitdrift.capture
 
 import android.content.ContextWrapper
-import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.argThat
@@ -17,8 +16,6 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.timeout
 import com.nhaarman.mockitokotlin2.verify
-import io.bitdrift.capture.attributes.ClientAttributes
-import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.WindowManager
@@ -294,23 +291,22 @@ class CaptureLoggerTest {
 
             logger.log(LogLevel.DEBUG, fields = mapOf("fields" to "passed_in")) { "test log" }
 
-            val expectedFields =
-                mapOf(
-                    "bar" to "value_bar".toFieldValue(),
-                    "fields" to "passed_in".toFieldValue(),
-                    "foo" to "value_foo".toFieldValue(),
-                ) + getDefaultFields()
-
             val sdkConfiguredLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfiguredLog.message).isEqualTo("SDKConfigured")
+            assertThat(sdkConfiguredLog.fields).containsKey("foreground")
 
             val resourceLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(resourceLog.message).isEqualTo("")
+            assertThat(resourceLog.fields).containsKey("foreground")
 
             val log = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
             assertThat(log.message).isEqualTo("test log")
-            assertThat(log.fields).isEqualTo(expectedFields)
+            assertDefaultFields(log)
+            assertThat(log.fields).containsEntry("bar", "value_bar".toFieldValue())
+            assertThat(log.fields).containsEntry("fields", "passed_in".toFieldValue())
+            assertThat(log.fields).containsEntry("foo", "value_foo".toFieldValue())
+            assertThat(log.fields).doesNotContainKeys("car", "_dar")
             assertThat(log.sessionId).isEqualTo("SESSION_ID")
             assertThat(log.rfc3339Timestamp).isEqualTo("2022-07-05T18:55:58.123Z")
         }
@@ -348,11 +344,6 @@ class CaptureLoggerTest {
 
             logger.log(LogLevel.DEBUG, fields = mapOf("fields" to "passed_in")) { "test log" }
 
-            val expectedFields =
-                mapOf(
-                    "fields" to "passed_in".toFieldValue(),
-                ) + getDefaultFields()
-
             val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
 
@@ -368,7 +359,10 @@ class CaptureLoggerTest {
                 log = CaptureTestJniLibrary.nextUploadedLog()
             }
             assertThat(log.level).isEqualTo(LogLevel.DEBUG.value)
-            assertThat(log.fields).isEqualTo(expectedFields)
+            assertDefaultFields(log)
+            assertThat(log.fields).containsEntry("fields", "passed_in".toFieldValue())
+            assertThat(log.fields["_locale"])
+                .isEqualTo(FieldValue.StringField("ar"))
             assertThat(log.message).isEqualTo("test log")
             assertThat(log.sessionId).isEqualTo("SESSION_ID")
             assertThat(log.rfc3339Timestamp).isEqualTo("2022-07-05T18:55:58.123Z")
@@ -524,27 +518,23 @@ class CaptureLoggerTest {
         return loggerImpl
     }
 
-    private fun getDefaultFields(): Map<String, FieldValue> {
-        val clientAttributes =
-            ClientAttributes(
-                ContextHolder.APP_CONTEXT,
-                ProcessLifecycleOwner.get(),
-            )
-
-        return mapOf(
-            "app_id" to clientAttributes.appId,
-            "os" to "Android",
-            "os_version" to clientAttributes.osVersion,
-            "model" to clientAttributes.model,
-            "_manufacturer" to clientAttributes.manufacturer,
-            "_os_api_level" to clientAttributes.osApiLevel.toString(),
-            "app_version" to clientAttributes.appVersion,
-            "_app_version_code" to clientAttributes.appVersionCode.toString(),
-            "_architecture" to clientAttributes.architecture,
-        ).toFieldValueMap() +
-            clientAttributes.dynamicFields().toFieldValueMap() +
-            NetworkAttributes(ContextHolder.APP_CONTEXT).getFields().toFieldValueMap()
+    private fun assertDefaultFields(log: UploadedLog) {
+        assertThat(log.fields.keys).contains(
+            "app_id",
+            "app_version",
+            "os",
+            "os_version",
+            "model",
+            "_manufacturer",
+            "_os_api_level",
+            "_app_version_code",
+            "_architecture",
+            "foreground",
+            "_locale",
+        )
+        assertThat(log.fields).containsEntry("app_id", ContextHolder.APP_CONTEXT.packageName.toFieldValue())
+        assertThat(log.fields).containsEntry("os", "Android".toFieldValue())
+        assertThat(log.fields["foreground"])
+            .isIn("0".toFieldValue(), "1".toFieldValue())
     }
-
-    private fun Map<String, String>.toFieldValueMap(): Map<String, FieldValue> = mapValues { (_, v) -> v.toFieldValue() }
 }

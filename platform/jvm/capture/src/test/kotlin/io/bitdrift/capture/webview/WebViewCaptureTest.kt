@@ -126,6 +126,7 @@ class WebViewCaptureTest {
         assertThat(webView.settings.javaScriptEnabled).isTrue()
     }
 
+    @Suppress("DEPRECATION")
     private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
         Capture.Logger.start(
             apiKey = "test",

@@ -8,7 +8,6 @@
 package io.bitdrift.capture.attributes
 
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -17,19 +16,16 @@ import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import io.bitdrift.capture.ErrorHandler
-import io.bitdrift.capture.providers.Fields
+import io.bitdrift.capture.providers.Field
+import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.utils.BuildTypeChecker
 import java.util.Locale
 
 internal class ClientAttributes(
-    context: Context,
+    private val context: Context,
     private val processLifecycleOwner: LifecycleOwner,
 ) : IClientAttributes {
     private val resources = context.resources
-    private var cachedForegroundState: ForegroundState? = null
-    private var cachedConfiguration: Configuration = Configuration(resources.configuration)
-
-    private var cachedLocale: String? = null
 
     override val appId = context.packageName ?: UNKNOWN_FIELD_VALUE
 
@@ -75,37 +71,16 @@ internal class ClientAttributes(
         }
     }
 
-    private val cachedAttributes = mutableMapOf<String, String>()
-
-    internal fun dynamicFields(): Fields {
-        updateForegroundState()
-        updateLocaleIfNeeded()
-        return cachedAttributes
-    }
-
-    private fun updateForegroundState() {
-        val currentState = if (isForeground()) ForegroundState.Foreground else ForegroundState.Background
-
-        if (cachedForegroundState != currentState) {
-            cachedForegroundState = currentState
-            cachedAttributes["foreground"] = currentState.value
-        }
-    }
-
-    private fun updateLocaleIfNeeded() {
-        val currentConfig = resources.configuration
-        val configDiff = currentConfig.diff(cachedConfiguration)
-
-        if (cachedLocale == null || (configDiff and ActivityInfo.CONFIG_LOCALE == ActivityInfo.CONFIG_LOCALE)) {
-            val updatedLocale = locale
-
-            if (cachedLocale != updatedLocale) {
-                cachedLocale = updatedLocale
-                cachedAttributes["_locale"] = updatedLocale
-            }
-            cachedConfiguration = Configuration(currentConfig)
-        }
-    }
+    /**
+     * Returns the OOTB snapshots needed before the logger can accept logs.
+     *
+     * Process lifecycle state can be read from the logger runtime thread. Subsequent lifecycle
+     * events keep the foreground field current on the main thread.
+     */
+    internal fun initialOotbFields(): Array<Field> =
+        arrayOf(
+            Field(FOREGROUND_KEY, FieldValue.StringField(foregroundValue())),
+        )
 
     private fun isForeground(): Boolean {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
@@ -118,6 +93,8 @@ internal class ClientAttributes(
             false
         }
     }
+
+    private fun foregroundValue(): String = if (isForeground()) "1" else "0"
 
     private fun PackageManager.getPackageInfoCompat(
         packageName: String,
@@ -132,7 +109,8 @@ internal class ClientAttributes(
     /**
      * Gets the current locale.
      */
-    private fun getCurrentLocale(): Locale? = ConfigurationCompat.getLocales(resources.configuration).get(0)
+    private fun getCurrentLocale(configuration: Configuration = resources.configuration): Locale? =
+        ConfigurationCompat.getLocales(configuration).get(0)
 
     /**
      * Returns the installation source (e.g. `com.android.vending` will be shown when
@@ -160,22 +138,12 @@ internal class ClientAttributes(
             UNKNOWN_FIELD_VALUE
         }
 
-    private sealed interface ForegroundState {
-        val value: String
-
-        object Foreground : ForegroundState {
-            override val value: String = "1"
-        }
-
-        object Background : ForegroundState {
-            override val value: String = "0"
-        }
-    }
-
     /**
      * Holds constants for Client attributes
      */
     companion object {
+        const val FOREGROUND_KEY = "foreground"
+
         // The unique sdk library that can be used for custom reports
         const val SDK_LIBRARY_ID = "io.bitdrift.capture-android"
 

@@ -200,7 +200,6 @@ impl CachedClass {
 // Cached method IDs
 
 static METADATA_PROVIDER_TIMESTAMP: OnceLock<CachedMethod> = OnceLock::new();
-static METADATA_PROVIDER_OOTB_FIELDS: OnceLock<CachedMethod> = OnceLock::new();
 static METADATA_PROVIDER_CUSTOM_FIELDS: OnceLock<CachedMethod> = OnceLock::new();
 
 static NETWORK_START_STREAM: OnceLock<CachedMethod> = OnceLock::new();
@@ -303,13 +302,6 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
     "timestamp",
     "()J",
     &METADATA_PROVIDER_TIMESTAMP,
-  )?;
-  initialize_method_handle(
-    &mut env,
-    &metadata_provider.class,
-    "ootbFields",
-    "()[Lio/bitdrift/capture/providers/Field;",
-    &METADATA_PROVIDER_OOTB_FIELDS,
   )?;
   initialize_method_handle(
     &mut env,
@@ -650,14 +642,6 @@ impl bd_logger::MetadataProvider for MetadataProvider {
 
   fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
     self.execute(|e, provider| {
-      let ootb_fields = METADATA_PROVIDER_OOTB_FIELDS
-        .get()
-        .ok_or(InvariantError::Invariant)?
-        .call_method(e, provider, ReturnType::Object, &[])?
-        .l()?;
-      let ootb_fields_array = unsafe { JObjectArray::from_raw(ootb_fields.as_raw()) };
-      let ootb_fields = ffi::jarray_to_fields(e, &ootb_fields_array)?;
-
       let custom_fields = METADATA_PROVIDER_CUSTOM_FIELDS
         .get()
         .ok_or(InvariantError::Invariant)?
@@ -666,7 +650,7 @@ impl bd_logger::MetadataProvider for MetadataProvider {
       let custom_fields_array = unsafe { JObjectArray::from_raw(custom_fields.as_raw()) };
       let custom_fields = ffi::jarray_to_fields(e, &custom_fields_array)?;
 
-      Ok((custom_fields, ootb_fields))
+      Ok((custom_fields, LogFields::default()))
     })
   }
 }
@@ -743,6 +727,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   inactivity_timeout_milliseconds: jlong,
   session_callback: JObject<'_>,
   metadata_provider: JObject<'_>,
+  initial_ootb_fields_array: JObjectArray<'_>,
   resource_utilization_target: JObject<'_>,
   session_replay_target: JObject<'_>,
   events_listener_target: JObject<'_>,
@@ -815,7 +800,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       ));
       let initial_fields = unsafe { JObjectArray::from_raw(initial_fields.as_raw()) };
       let initial_custom_fields = ffi::jarray_to_fields(&mut env, &initial_fields)?;
-      let initial_ootb_fields = static_metadata.static_log_fields();
+      let mut initial_ootb_fields = static_metadata.static_log_fields();
+      initial_ootb_fields.extend(ffi::jarray_to_fields(&mut env, &initial_ootb_fields_array)?);
       let metadata_provider = Arc::new(MetadataProvider::new_global(&env, metadata_provider)?);
 
       let error_reporter = Arc::new(ErrorReporterHandle::new_global(&env, error_reporter)?);
@@ -1061,6 +1047,32 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
       Ok(())
     },
     "jni add log field",
+  );
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_updateOotbLogField(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  key: JString<'_>,
+  value: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let key = unsafe { env.get_string_unchecked(&key) }?
+        .to_string_lossy()
+        .to_string();
+      let value = unsafe { env.get_string_unchecked(&value) }?
+        .to_string_lossy()
+        .to_string();
+
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.update_ootb_log_field(key, value.into());
+
+      Ok(())
+    },
+    "jni update OOTB log field",
   );
 }
 

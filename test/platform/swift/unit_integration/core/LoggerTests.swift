@@ -28,6 +28,33 @@ final class LoggerTests: XCTestCase {
         logger.log(level: .debug, message: "test no fields", type: .normal)
     }
 
+    func testOotbFieldsArePassedToBridgeAndLocaleUpdatesReachIt() throws {
+        let bridge = MockLoggerBridging()
+        let factory = MockLoggerBridgingFactory(logger: bridge)
+        let logger = try Logger.testLogger(loggerBridgingFactoryProvider: factory)
+
+        let initialFields = Dictionary(
+            uniqueKeysWithValues: factory.initialOotbFields.compactMap { field in
+                (field.data as? String).map { (field.key, $0) }
+            }
+        )
+        XCTAssertTrue(["0", "1"].contains(initialFields["foreground"]))
+        XCTAssertEqual(initialFields["_locale"], Locale.current.identifier)
+        XCTAssertNotNil(initialFields["network_type"])
+        XCTAssertNotNil(initialFields["radio_type"])
+
+        // `radio_type` is reconciled asynchronously so a telephony callback cannot be overwritten during
+        // startup. Its seeded initial value is asserted above; immediate updates are foreground and network.
+        let expectedUpdatedKeys = Set(["foreground", "network_type"])
+        XCTAssertTrue(expectedUpdatedKeys.isSubset(of: Set(bridge.ootbFieldUpdates.map(\.key))))
+
+        let localeUpdateCount = bridge.ootbFieldUpdates.filter { $0.key == "_locale" }.count
+        NotificationCenter.default.post(name: NSLocale.currentLocaleDidChangeNotification, object: nil)
+        XCTAssertEqual(bridge.ootbFieldUpdates.filter { $0.key == "_locale" }.count, localeUpdateCount + 1)
+
+        withExtendedLifetime(logger) {}
+    }
+
     // Verifies that we don't end up recursing forever (resulting in a stack overflow) when a provider ends
     // up calling back into the logger.
     func testPreventsLoggingReEntryFromWithinRegisteredProviders() throws {

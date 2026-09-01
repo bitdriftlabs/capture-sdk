@@ -22,6 +22,7 @@ internal interface IBridge {
         inactivityTimeoutMilliseconds: Long,
         sessionCallback: SessionCallback?,
         metadataProvider: IMetadataProvider,
+        initialOotbFields: Array<Field>,
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,
         eventsListenerTarget: IEventsListenerTarget,

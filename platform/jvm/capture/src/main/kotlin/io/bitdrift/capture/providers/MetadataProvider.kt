@@ -13,20 +13,20 @@ import io.bitdrift.capture.IMetadataProvider
 
 internal class MetadataProvider(
     private val dateProvider: DateProvider,
-    private val ootbFieldGetters: List<FieldGetter>,
     private val customFieldGetters: List<FieldGetter>,
     private val errorHandler: ErrorHandler,
     private val errorLog: ((String, Throwable) -> Unit) = { message, throwable -> Log.w("capture", message, throwable) },
 ) : IMetadataProvider {
     override fun timestamp(): Long = dateProvider.invoke().time
 
-    override fun ootbFields(): Array<Field> = fields(ootbFieldGetters)
-
-    override fun customFields(): Array<Field> = fields(customFieldGetters)
+    override fun customFields(): Array<Field> =
+        if (customFieldGetters.isEmpty()) {
+            EMPTY_FIELDS
+        } else {
+            fields(customFieldGetters)
+        }
 
     private fun fields(fieldGetters: List<FieldGetter>): Array<Field> {
-        if (fieldGetters.isEmpty()) return emptyArray()
-
         val result = mutableListOf<Field>()
         for (fieldGetter in fieldGetters) {
             try {
@@ -43,7 +43,11 @@ internal class MetadataProvider(
                 errorHandler.handleError(message, e)
             }
         }
-        if (result.isEmpty()) return emptyArray()
+        if (result.isEmpty()) return EMPTY_FIELDS
         return result.toTypedArray()
+    }
+
+    private companion object {
+        val EMPTY_FIELDS = emptyArray<Field>()
     }
 }

@@ -20,41 +20,39 @@ class MetadataProviderTest {
         val dateProvider = mock<DateProvider>()
         `when`(dateProvider.invoke()).thenReturn(Date())
 
-        // Processing of field getters continues even if one of them throws
-        // an exception.
-        val throwingFieldGetter1: FieldGetter =
+        // Processing of field getters continues even if one of them throws an exception.
+        val throwingFieldGetter: FieldGetter =
             {
-                throw RuntimeException("throw1")
-            }
-        val throwingFieldGetter2: FieldGetter =
-            {
-                throw RuntimeException("throw2")
+                throw RuntimeException("throw")
             }
 
-        val workingFieldGetter1: FieldGetter =
-            {
-                mapOf("key1" to "value1", "key2" to "value2")
-            }
-        val workingFieldGetter2: FieldGetter =
+        val workingFieldGetter: FieldGetter =
             {
                 mapOf("key1" to "value3", "key2" to "value4")
             }
         val metadataProvider =
             MetadataProvider(
                 dateProvider = dateProvider,
-                ootbFieldGetters = listOf(throwingFieldGetter1, workingFieldGetter1),
-                customFieldGetters = listOf(throwingFieldGetter2, workingFieldGetter2),
+                customFieldGetters = listOf(throwingFieldGetter, workingFieldGetter),
                 errorHandler = mock { },
                 errorLog = { _, _ -> },
             )
 
-        assertThat(metadataProvider.ootbFields()).containsExactly(
-            Field("key1", FieldValue.StringField("value1")),
-            Field("key2", FieldValue.StringField("value2")),
-        )
         assertThat(metadataProvider.customFields()).containsExactly(
             Field("key1", FieldValue.StringField("value3")),
             Field("key2", FieldValue.StringField("value4")),
         )
+    }
+
+    @Test
+    fun metadata_provider_reuses_empty_custom_fields() {
+        val metadataProvider =
+            MetadataProvider(
+                dateProvider = mock(),
+                customFieldGetters = emptyList(),
+                errorHandler = mock(),
+            )
+
+        assertThat(metadataProvider.customFields()).isSameAs(metadataProvider.customFields()).isEmpty()
     }
 }

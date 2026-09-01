@@ -20,40 +20,11 @@ private struct FailingEncodable: Encodable {
 }
 
 final class MetadataProviderControllerTests: XCTestCase {
-    func testReportsFieldsErrors() throws {
-        let errorHandler = MockErrorHandler()
-
-        let provider = MetadataProviderController(
-            dateProvider: MockDateProvider(),
-            ootbFieldGetters: [
-                {
-                    [
-                        "foo": FailingEncodable(),
-                        "bar": "bar_value",
-                        "car": Data(),
-                    ]
-                },
-            ],
-            customFieldGetters: []
-        )
-
-        provider.errorHandler = errorHandler.handleError
-
-        let fields = provider.ootbFields()
-        XCTAssertEqual(fields.sorted(by: { $0.key < $1.key }), [
-            try Field.make(key: "bar", value: "bar_value"),
-            try Field.make(key: "car", value: Data()),
-        ])
-        XCTAssertEqual(errorHandler.errors.count, 1)
-        XCTAssertEqual(errorHandler.errors[0].context, "metadata provider, get fields")
-    }
-
     func testReportsCustomFieldsErrors() {
         let errorHandler = MockErrorHandler()
 
         let provider = MetadataProviderController(
             dateProvider: MockDateProvider(),
-            ootbFieldGetters: [],
             customFieldGetters: [
                 {
                     [
@@ -74,5 +45,14 @@ final class MetadataProviderControllerTests: XCTestCase {
         ])
         XCTAssertEqual(errorHandler.errors.count, 1)
         XCTAssertEqual(errorHandler.errors[0].context, "metadata provider, get fields")
+    }
+
+    func testSkipsEmptyCustomFieldGetters() {
+        let provider = MetadataProviderController(
+            dateProvider: MockDateProvider(),
+            customFieldGetters: []
+        )
+
+        XCTAssertTrue(provider.customFields().isEmpty)
     }
 }

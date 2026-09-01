@@ -16,12 +16,6 @@ public protocol MetadataProvider {
     /// - returns: Current time.
     func timestamp() -> TimeInterval
 
-    /// Returns OOTB (out-of-the-box) fields to be included with emitted logs. OOTB fields are fields that
-    /// come from the SDK itself.
-    ///
-    /// - returns: OOTB fields to emit as part of logs.
-    func ootbFields() -> [Field]
-
     /// Returns custom fields to be included with emitted logs. Custom fields are fields provided by SDK
     /// customers.
     ///

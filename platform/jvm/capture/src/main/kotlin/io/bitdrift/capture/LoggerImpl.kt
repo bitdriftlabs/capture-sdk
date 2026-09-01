@@ -14,6 +14,8 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.attributes.IOotbFieldProvider
+import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
@@ -123,6 +125,9 @@ internal class LoggerImpl(
     private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
+    private val localeAttributes = LocaleAttributes(context)
+    private val networkAttributes = NetworkAttributes(context)
+    private val ootbFieldProviders: List<IOotbFieldProvider> = listOf(localeAttributes, networkAttributes)
     private var jankStatsMonitor: JankStatsMonitor? = null
 
     // Session URLs are only needed when queried externally, so derive the
@@ -165,18 +170,9 @@ internal class LoggerImpl(
     internal val loggerId: LoggerId
 
     init {
-        val networkAttributes = NetworkAttributes(context)
-
         metadataProvider =
             MetadataProvider(
                 dateProvider = dateProvider,
-                // order of providers matters in here, the earlier in the list the higher their priority in
-                // case of key conflicts.
-                ootbFieldGetters =
-                    listOf(
-                        networkAttributes::getFields,
-                        clientAttributes::dynamicFields,
-                    ),
                 errorHandler = errorHandler,
                 customFieldGetters = customFieldGetters,
             )
@@ -233,6 +229,8 @@ internal class LoggerImpl(
                 sessionConfiguration.inactivityTimeout?.inWholeMilliseconds ?: -1L,
                 sessionConfiguration.makeSessionCallback(),
                 metadataProvider,
+                clientAttributes.initialOotbFields() +
+                    ootbFieldProviders.flatMap { it.initialOotbFields().toList() }.toTypedArray(),
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
@@ -265,6 +263,7 @@ internal class LoggerImpl(
         this.loggerId = loggerId
 
         runtime = JniRuntime(this.loggerId)
+        ootbFieldProviders.forEach { it.start(this) }
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime
         }
@@ -454,6 +453,13 @@ internal class LoggerImpl(
         value: String,
     ) {
         CaptureJniLibrary.addLogField(this.loggerId, key, value)
+    }
+
+    override fun updateOotbField(
+        key: String,
+        value: String,
+    ) {
+        CaptureJniLibrary.updateOotbLogField(this.loggerId, key, value)
     }
 
     override fun removeField(key: String) {

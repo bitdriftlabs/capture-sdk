@@ -18,6 +18,10 @@
 
 - Deprecated `FieldProvider`; use `initialFields` to seed global fields at SDK startup and `addField`
   to update them.
+
+- Out-of-the-box foreground, locale, and network fields now keep their values in the native state
+  store instead of being evaluated for every log.
+
 - Legacy fixed-session strategy generator callbacks have been removed. Use
   `SessionConfiguration` to provide an initial session ID.
 

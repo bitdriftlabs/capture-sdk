@@ -37,6 +37,9 @@ public final class Logger {
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
     private(set) var resourceUtilizationTarget: ResourceUtilizationController
     private(set) var eventsListenerTarget: EventSubscriber
+    private let appStateAttributes: AppStateAttributes
+    private let deviceAttributes: DeviceAttributes
+    private let ootbFieldProviders: [any OotbFieldProvider]
 
     private let sessionURLBase: URL
     private var crashReporterService: CrashReporterService?
@@ -137,17 +140,16 @@ public final class Logger {
         let start = timeProvider.uptime()
 
         let appStateAttributes = AppStateAttributes()
-        let clientAttributes = ClientAttributes()
-        let deviceAttributes = DeviceAttributes()
+        let localeAttributes = LocaleAttributes()
         let networkAttributes = NetworkAttributes()
+
+        self.appStateAttributes = appStateAttributes
+        self.deviceAttributes = DeviceAttributes()
+        self.ootbFieldProviders = [appStateAttributes, localeAttributes, networkAttributes]
+        let clientAttributes = ClientAttributes()
 
         let metadataProvider = MetadataProviderController(
             dateProvider: dateProvider ?? SystemDateProvider(),
-            ootbFieldGetters: [
-                appStateAttributes.getFields,
-                deviceAttributes.getFields,
-                networkAttributes.getFields,
-            ],
             customFieldGetters: customFieldGetters
         )
 
@@ -183,6 +185,7 @@ public final class Logger {
             bufferDirectoryPath: directoryURL.path,
             sessionStrategy: sessionStrategy,
             metadataProvider: metadataProvider,
+            initialOotbFields: self.ootbFieldProviders.flatMap { $0.initialOotbFields() },
             // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
             // and `eventsListenerTarget` as part of the `self.underlyingLogger.start()` method call instead.
             // Pass the event listener target here and finish setting up
@@ -196,7 +199,7 @@ public final class Logger {
             releaseVersion: clientAttributes.appVersion,
             buildNumber: clientAttributes.buildNumber,
             osVersion: clientAttributes.osVersion,
-            model: deviceAttributes.hardwareVersion,
+            model: self.deviceAttributes.hardwareVersion,
             targetDomain: Self.targetDomain(apiURL: configuration.apiURL),
             network: network,
             errorReporting: self.remoteErrorReporter,
@@ -224,7 +227,7 @@ public final class Logger {
 
         self.eventsListenerTarget.setUp(
             logger: self.underlyingLogger,
-            appStateAttributes: appStateAttributes,
+            appStateAttributes: self.appStateAttributes,
             clientAttributes: clientAttributes,
             timeProvider: timeProvider
         )
@@ -239,8 +242,9 @@ public final class Logger {
         // Start attributes before the underlying logger is running to increase the chances
         // of out-of-the-box attributes being ready by the time logs emitted as a result of the logger start
         // are emitted.
-        deviceAttributes.start()
-        networkAttributes.start(with: self.underlyingLogger)
+        for provider in self.ootbFieldProviders {
+            provider.start(with: self.underlyingLogger)
+        }
 
         self.underlyingLogger.start()
 
