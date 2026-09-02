@@ -1,15 +1,23 @@
 # capture_flutter
 
+> Alpha prototype. This package is not yet published to pub.dev. Install an immutable Git tag as described below.
+
 Official Flutter plugin for the [Bitdrift Capture SDK](https://bitdrift.io).
 
-Provides logging, session management, distributed tracing, and session replay for Flutter apps on iOS and Android.
+Provides logging, session management, and distributed tracing for Flutter apps on iOS and Android. Wireframe session replay is currently available on Android only.
 
 ## Installation
 
 ```yaml
 dependencies:
-  capture_flutter: ^0.22.16
+  capture_flutter:
+    git:
+      url: https://github.com/bitdriftlabs/capture-sdk.git
+      ref: flutter-prototype-0.0.1
+      path: platform/capture_flutter
 ```
+
+The Flutter package version is defined in [`pubspec.yaml`](pubspec.yaml). Each published alpha is available from an immutable `flutter-prototype-<version>` Git tag; see [`ALPHA_RELEASES.md`](ALPHA_RELEASES.md) for release history and the latest tag.
 
 ## Quick Start
 
@@ -83,3 +91,17 @@ Capture.stopSessionReplay();
 - iOS 15.0+
 - Android minSdk 23
 - Flutter 3.10+
+
+## Releases
+
+The `version` in `pubspec.yaml` is the release source of truth. The matching customer-facing Git tag is `flutter-prototype-<version>`; with the current version, use `flutter-prototype-0.0.1`.
+
+Prepare a release in a PR: update `pubspec.yaml`, the installation tag above, and move the reviewed notes from `## [Next release]` to a matching versioned entry in `ALPHA_RELEASES.md`; then restore the empty `Next release` template. After that PR merges to `main`, run the `Publish Flutter Alpha Tag` GitHub Actions workflow. It validates the prepared release metadata and creates `flutter-prototype-<version>` from the current `main` commit.
+
+The CocoaPods `capture_flutter` version follows the native iOS SDK release line and is independent of the Flutter prototype tag.
+
+Before publishing the next Flutter alpha release, update the `BitdriftCapture` dependency in `ios/capture_flutter.podspec` to the latest compatible released iOS SDK version.
+
+Do not retag an existing prototype release: Git consumers depend on its commit remaining immutable.
+
+See `ALPHA_RELEASES.md` for the customer-facing history of Flutter alpha tags.
