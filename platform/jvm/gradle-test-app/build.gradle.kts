@@ -77,6 +77,9 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+    // Raises the floor AGP's consistent resolution pins androidTest to; Espresso <3.7 calls
+    // InputManager.getInstance(), removed in Android 17.
+    debugImplementation("androidx.test:core:1.7.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
     debugImplementation("com.github.chuckerteam.chucker:library:4.2.0")
@@ -87,14 +90,14 @@ dependencies {
     androidTestImplementation(project(":common"))
     androidTestImplementation("com.google.truth:truth:1.1.4")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    androidTestImplementation("androidx.test:core:1.5.0")
-    androidTestImplementation("androidx.test:core-ktx:1.5.0")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.ext:junit-ktx:1.1.5")
-    androidTestImplementation("androidx.test:runner:1.5.0")
+    androidTestImplementation("androidx.test:core:1.7.0")
+    androidTestImplementation("androidx.test:core-ktx:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.ext:junit-ktx:1.3.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.tracing:tracing-ktx:1.0.0")
     androidTestImplementation("androidx.tracing:tracing:1.0.0")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 }
 
 android {
@@ -136,6 +139,7 @@ android {
     }
     lint {
         checkDependencies = true
+        checkTestSources = true
         disable.add("GradleDependency")
         disable.add("AndroidGradlePluginVersion")
     }

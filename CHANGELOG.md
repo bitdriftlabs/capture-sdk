@@ -49,6 +49,9 @@
 
 - Prevent duplicate JVM crash reports when fatal issue reporting initializes after app exit logging.
 
+- Session Replay no longer renders an empty frame while a dialog, bottom sheet or popup is on
+  screen, and no longer drops the contents of an `AndroidView` embedded in one.
+
 ### iOS
 
 **Added**
