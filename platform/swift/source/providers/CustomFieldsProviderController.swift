@@ -8,38 +8,20 @@
 internal import CapturePassable
 import Foundation
 
-final class MetadataProviderController {
-    typealias FieldGetter = () -> Fields
-}
-
-/// Wraps a custom timestamp provider for the Objective-C bridge.
-final class TimestampProviderController {
-    private let dateProvider: DateProvider
-
-    init(dateProvider: DateProvider) {
-        self.dateProvider = dateProvider
-    }
-}
-
-extension TimestampProviderController: CapturePassable.TimestampProvider {
-    func timestamp() -> TimeInterval {
-        self.dateProvider.getDate().timeIntervalSince1970
-    }
-}
-
 /// Wraps custom field getters for the Objective-C bridge.
 final class CustomFieldsProviderController {
     typealias ErrorReporter = (_ context: String, _ error: Error) -> Void
+    typealias FieldGetter = () -> Fields
 
     var errorHandler: ErrorReporter = { _, _ in assertionFailure("errorHandler not set") }
 
-    let customFieldGetters: [MetadataProviderController.FieldGetter]
+    let customFieldGetters: [FieldGetter]
 
-    init(customFieldGetters: [MetadataProviderController.FieldGetter]) {
+    init(customFieldGetters: [FieldGetter]) {
         self.customFieldGetters = customFieldGetters
     }
 
-    private func getFields(fieldGetters: [MetadataProviderController.FieldGetter]) -> [CapturePassable.Field] {
+    private func getFields(fieldGetters: [FieldGetter]) -> [CapturePassable.Field] {
         // The order in which we process field providers of a given kind matters.
         // The earlier in the array a given field lands the highest its priority is.
         return fieldGetters

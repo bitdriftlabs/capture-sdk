@@ -76,7 +76,7 @@ public final class Logger {
         configuration: Configuration,
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
-        customFieldGetters: [MetadataProviderController.FieldGetter] = [],
+        customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     )
@@ -127,7 +127,7 @@ public final class Logger {
         configuration: Configuration,
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
-        customFieldGetters: [MetadataProviderController.FieldGetter] = [],
+        customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
         enableNetwork: Bool = true,
         storageProvider: StorageProvider,

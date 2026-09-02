@@ -19,7 +19,7 @@ private struct FailingEncodable: Encodable {
     }
 }
 
-final class MetadataProviderControllerTests: XCTestCase {
+final class CustomFieldsProviderControllerTests: XCTestCase {
     func testReportsCustomFieldsErrors() {
         let errorHandler = MockErrorHandler()
 
@@ -50,13 +50,5 @@ final class MetadataProviderControllerTests: XCTestCase {
         let provider = CustomFieldsProviderController(customFieldGetters: [])
 
         XCTAssertTrue(provider.customFields().isEmpty)
-    }
-
-    func testSupportsIndependentTimestampAndCustomFieldsProviders() {
-        let timestampProvider = TimestampProviderController(dateProvider: MockDateProvider())
-        XCTAssertNotEqual(timestampProvider.timestamp(), 0)
-
-        let customFieldsProvider = CustomFieldsProviderController(customFieldGetters: [{ [:] }])
-        XCTAssertTrue(customFieldsProvider.customFields().isEmpty)
     }
 }

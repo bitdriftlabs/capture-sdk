@@ -10,10 +10,8 @@ package io.bitdrift.capture.providers
 import com.nhaarman.mockitokotlin2.mock
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import org.mockito.Mockito.`when`
-import java.util.Date
 
-class MetadataProviderTest {
+class CustomFieldsProviderTest {
     @Suppress("TooGenericExceptionThrown")
     @Test
     fun metadata_provider_processes_field_providers_in_order_and_swallows_exceptions() {
@@ -49,14 +47,5 @@ class MetadataProviderTest {
             )
 
         assertThat(customFieldsProvider.customFields()).isSameAs(customFieldsProvider.customFields()).isEmpty()
-    }
-
-    @Test
-    fun timestamp_provider_uses_custom_date_provider() {
-        val dateProvider = mock<DateProvider>()
-        val date = Date()
-        `when`(dateProvider.invoke()).thenReturn(date)
-
-        assertThat(TimestampProvider(dateProvider).timestamp()).isEqualTo(date.time)
     }
 }

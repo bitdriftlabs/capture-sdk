@@ -7,15 +7,6 @@
 
 import Foundation
 
-/// Provides timestamps for emitted logs.
-@objc
-public protocol TimestampProvider {
-    /// Returns the current time, relative to UTC epoch.
-    ///
-    /// - returns: Current time.
-    func timestamp() -> TimeInterval
-}
-
 /// Provides custom fields for emitted logs.
 @objc
 public protocol CustomFieldsProvider {

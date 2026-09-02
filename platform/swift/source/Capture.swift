@@ -218,7 +218,7 @@ extension Logger {
         withAPIKey apiKey: String,
         sessionStrategy: SessionStrategy,
         configuration: Configuration,
-        customFieldGetters: [MetadataProviderController.FieldGetter] = [],
+        customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
         dateProvider: DateProvider?,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider,

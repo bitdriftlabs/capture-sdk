@@ -10,13 +10,6 @@ package io.bitdrift.capture.providers
 import android.util.Log
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.ICustomFieldsProvider
-import io.bitdrift.capture.ITimestampProvider
-
-internal class TimestampProvider(
-    private val dateProvider: DateProvider,
-) : ITimestampProvider {
-    override fun timestamp(): Long = dateProvider.invoke().time
-}
 
 internal class CustomFieldsProvider(
     private val customFieldGetters: List<FieldGetter>,
