@@ -16,7 +16,7 @@ extension Logger {
         sessionStrategy: SessionStrategy = .configuration(.init()),
         sessionConfiguration: SessionConfiguration? = nil,
         dateProvider: DateProvider? = nil,
-        customFieldGetters: [MetadataProviderController.FieldGetter] = [],
+        customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
         configuration: Configuration = .testConfiguration,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()

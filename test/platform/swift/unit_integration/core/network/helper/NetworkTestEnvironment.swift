@@ -59,7 +59,8 @@ final class NetworkTestEnvironment {
                 apiKey: "test!",
                 bufferDirectoryPath: sdkDirectory.path,
                 sessionStrategy: .configuration(.init()),
-                metadataProvider: MockMetadataProvider(),
+                timestampProvider: MockMetadataProvider(),
+                customFieldsProvider: MockMetadataProvider(),
                 initialOotbFields: [],
                 resourceUtilizationTarget: MockResourceUtilizationTarget(),
                 sessionReplayTarget: MockSessionReplayTarget(),
@@ -118,7 +119,9 @@ final class NetworkTestEnvironment {
 
     // MARK: - Private Mock Types
 
-    private final class MockMetadataProvider: CaptureLoggerBridge.MetadataProvider {
+    private final class MockMetadataProvider: CaptureLoggerBridge.TimestampProvider,
+                                              CaptureLoggerBridge.CustomFieldsProvider
+    {
         func timestamp() -> TimeInterval {
             // Matches "2022-10-26T17:56:41.520058155Z" when formatted.
             Date(timeIntervalSince1970: 1_666_807_001.52005815).timeIntervalSince1970

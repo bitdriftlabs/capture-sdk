@@ -10,16 +10,11 @@ package io.bitdrift.capture.providers
 import com.nhaarman.mockitokotlin2.mock
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import org.mockito.Mockito.`when`
-import java.util.Date
 
-class MetadataProviderTest {
+class CustomFieldsProviderTest {
     @Suppress("TooGenericExceptionThrown")
     @Test
     fun metadata_provider_processes_field_providers_in_order_and_swallows_exceptions() {
-        val dateProvider = mock<DateProvider>()
-        `when`(dateProvider.invoke()).thenReturn(Date())
-
         // Processing of field getters continues even if one of them throws an exception.
         val throwingFieldGetter: FieldGetter =
             {
@@ -30,29 +25,27 @@ class MetadataProviderTest {
             {
                 mapOf("key1" to "value3", "key2" to "value4")
             }
-        val metadataProvider =
-            MetadataProvider(
-                dateProvider = dateProvider,
+        val customFieldsProvider =
+            CustomFieldsProvider(
                 customFieldGetters = listOf(throwingFieldGetter, workingFieldGetter),
                 errorHandler = mock { },
                 errorLog = { _, _ -> },
             )
 
-        assertThat(metadataProvider.customFields()).containsExactly(
+        assertThat(customFieldsProvider.customFields()).containsExactly(
             Field("key1", FieldValue.StringField("value3")),
             Field("key2", FieldValue.StringField("value4")),
         )
     }
 
     @Test
-    fun metadata_provider_reuses_empty_custom_fields() {
-        val metadataProvider =
-            MetadataProvider(
-                dateProvider = mock(),
+    fun custom_fields_provider_reuses_empty_custom_fields() {
+        val customFieldsProvider =
+            CustomFieldsProvider(
                 customFieldGetters = emptyList(),
                 errorHandler = mock(),
             )
 
-        assertThat(metadataProvider.customFields()).isSameAs(metadataProvider.customFields()).isEmpty()
+        assertThat(customFieldsProvider.customFields()).isSameAs(customFieldsProvider.customFields()).isEmpty()
     }
 }

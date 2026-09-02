@@ -8,23 +8,16 @@
 internal import CapturePassable
 import Foundation
 
-/// To support the date and session provider being able to change at any time, we need to be able
-/// to wrap up the Atomics in an @objc protocol
-final class MetadataProviderController {
+/// Wraps custom field getters for the Objective-C bridge.
+final class CustomFieldsProviderController {
     typealias ErrorReporter = (_ context: String, _ error: Error) -> Void
     typealias FieldGetter = () -> Fields
 
     var errorHandler: ErrorReporter = { _, _ in assertionFailure("errorHandler not set") }
 
-    let dateProvider: DateProvider
-
     let customFieldGetters: [FieldGetter]
 
-    init(
-        dateProvider: DateProvider,
-        customFieldGetters: [FieldGetter]
-    ) {
-        self.dateProvider = dateProvider
+    init(customFieldGetters: [FieldGetter]) {
         self.customFieldGetters = customFieldGetters
     }
 
@@ -44,20 +37,8 @@ final class MetadataProviderController {
     }
 }
 
-extension MetadataProviderController: CapturePassable.MetadataProvider {
-    func timestamp() -> TimeInterval {
-        self.dateProvider.getDate().timeIntervalSince1970
-    }
-
+extension CustomFieldsProviderController: CapturePassable.CustomFieldsProvider {
     func customFields() -> [Field] {
-        guard !self.customFieldGetters.isEmpty else {
-            return Self.emptyFields
-        }
-
         return self.getFields(fieldGetters: self.customFieldGetters)
     }
-}
-
-private extension MetadataProviderController {
-    static let emptyFields = [Field]()
 }

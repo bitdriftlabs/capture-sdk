@@ -19,7 +19,6 @@ import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.IBridge
 import io.bitdrift.capture.IEventsListenerTarget
 import io.bitdrift.capture.IInternalLogger
-import io.bitdrift.capture.IMetadataProvider
 import io.bitdrift.capture.IPreferences
 import io.bitdrift.capture.IResourceUtilizationTarget
 import io.bitdrift.capture.ISessionReplayTarget
@@ -36,7 +35,6 @@ import io.bitdrift.capture.network.HttpResponse.HttpResult
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.network.ICaptureNetwork
-import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.webview.WebViewBridgeMessageHandler
@@ -249,7 +247,7 @@ class LogBenchmarkTest {
                 apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
                 context = InstrumentationRegistry.getInstrumentation().targetContext,
                 customFieldGetters = emptyList(),
-                dateProvider = SystemDateProvider(),
+                dateProvider = null,
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
             )

@@ -7,8 +7,11 @@
 
 import Foundation
 
-final class SystemDateProvider: DateProvider {
-    func getDate() -> Date {
-        return Date()
-    }
+/// Provides custom fields for emitted logs.
+@objc
+public protocol CustomFieldsProvider {
+    /// Returns custom fields provided by SDK customers.
+    ///
+    /// - returns: Custom fields to emit with the log.
+    func customFields() -> [Field]
 }

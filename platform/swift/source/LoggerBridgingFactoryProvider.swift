@@ -15,7 +15,8 @@ protocol LoggerBridgingFactoryProvider {
     /// - parameter apiKey:                     The bitdrift Capture API key.
     /// - parameter bufferDirectoryPath:        The directory to use for storing files.
     /// - parameter sessionStrategy:            The session strategy to use.
-    /// - parameter metadataProvider:           The metadata provider to use.
+    /// - parameter timestampProvider:          The optional provider to use for custom log timestamps.
+    /// - parameter customFieldsProvider:       The optional provider to use for custom log fields.
     /// - parameter initialOotbFields:          OOTB fields needed before the logger accepts logs.
     /// - parameter resourceUtilizationTarget:  The resource utilization target to use.
     /// - parameter sessionReplayTarget:        The session replay target to use.
@@ -37,7 +38,8 @@ protocol LoggerBridgingFactoryProvider {
         apiKey: String,
         bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
-        metadataProvider: CaptureLoggerBridge.MetadataProvider,
+        timestampProvider: CaptureLoggerBridge.TimestampProvider?,
+        customFieldsProvider: CaptureLoggerBridge.CustomFieldsProvider?,
         initialOotbFields: [CapturePassable.Field],
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
         sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,

@@ -293,19 +293,21 @@ fn throw_java_exception(env: &mut JNIEnv<'_>, class: &str, message: &str) {
 fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   let mut env = vm.get_env()?;
 
-  let metadata_provider =
-    initialize_class(&mut env, "io/bitdrift/capture/IMetadataProvider", None)?;
+  let timestamp_provider =
+    initialize_class(&mut env, "io/bitdrift/capture/ITimestampProvider", None)?;
 
   initialize_method_handle(
     &mut env,
-    &metadata_provider.class,
+    &timestamp_provider.class,
     "timestamp",
     "()J",
     &METADATA_PROVIDER_TIMESTAMP,
   )?;
+  let custom_fields_provider =
+    initialize_class(&mut env, "io/bitdrift/capture/ICustomFieldsProvider", None)?;
   initialize_method_handle(
     &mut env,
-    &metadata_provider.class,
+    &custom_fields_provider.class,
     "customFields",
     "()[Lio/bitdrift/capture/providers/Field;",
     &METADATA_PROVIDER_CUSTOM_FIELDS,
@@ -624,12 +626,43 @@ impl bd_error_reporter::reporter::Reporter for ErrorReporterHandle {
   }
 }
 
-define_object_wrapper!(MetadataProvider);
+define_object_wrapper!(JniTimestampProvider);
+define_object_wrapper!(JniCustomFieldsProvider);
+
+//
+// MetadataProvider
+//
+
+struct MetadataProvider {
+  timestamp_provider: Option<JniTimestampProvider>,
+  custom_fields_provider: Option<JniCustomFieldsProvider>,
+}
+
+impl MetadataProvider {
+  fn new_global(
+    env: &JNIEnv<'_>,
+    timestamp_provider: JObject<'_>,
+    custom_fields_provider: JObject<'_>,
+  ) -> jni::errors::Result<Self> {
+    Ok(Self {
+      timestamp_provider: (!timestamp_provider.is_null())
+        .then(|| JniTimestampProvider::new_global(env, timestamp_provider))
+        .transpose()?,
+      custom_fields_provider: (!custom_fields_provider.is_null())
+        .then(|| JniCustomFieldsProvider::new_global(env, custom_fields_provider))
+        .transpose()?,
+    })
+  }
+}
 
 impl bd_logger::MetadataProvider for MetadataProvider {
   #[allow(clippy::cast_possible_truncation)]
   fn timestamp(&self) -> anyhow::Result<time::OffsetDateTime> {
-    self.execute(|e, provider| {
+    let Some(timestamp_provider) = &self.timestamp_provider else {
+      return Ok(OffsetDateTime::now_utc());
+    };
+
+    timestamp_provider.execute(|e, provider| {
       let millis_since_utc_epoch = METADATA_PROVIDER_TIMESTAMP
         .get()
         .ok_or(InvariantError::Invariant)?
@@ -641,7 +674,11 @@ impl bd_logger::MetadataProvider for MetadataProvider {
   }
 
   fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
-    self.execute(|e, provider| {
+    let Some(custom_fields_provider) = &self.custom_fields_provider else {
+      return Ok((LogFields::default(), LogFields::default()));
+    };
+
+    custom_fields_provider.execute(|e, provider| {
       let custom_fields = METADATA_PROVIDER_CUSTOM_FIELDS
         .get()
         .ok_or(InvariantError::Invariant)?
@@ -726,7 +763,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   initial_session_id: JString<'_>,
   inactivity_timeout_milliseconds: jlong,
   session_callback: JObject<'_>,
-  metadata_provider: JObject<'_>,
+  timestamp_provider: JObject<'_>,
+  custom_fields_provider: JObject<'_>,
   initial_ootb_fields_array: JObjectArray<'_>,
   resource_utilization_target: JObject<'_>,
   session_replay_target: JObject<'_>,
@@ -802,7 +840,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       let initial_custom_fields = ffi::jarray_to_fields(&mut env, &initial_fields)?;
       let mut initial_ootb_fields = static_metadata.static_log_fields();
       initial_ootb_fields.extend(ffi::jarray_to_fields(&mut env, &initial_ootb_fields_array)?);
-      let metadata_provider = Arc::new(MetadataProvider::new_global(&env, metadata_provider)?);
+      let metadata_provider = Arc::new(MetadataProvider::new_global(
+        &env,
+        timestamp_provider,
+        custom_fields_provider,
+      )?);
 
       let error_reporter = Arc::new(ErrorReporterHandle::new_global(&env, error_reporter)?);
       let error_reporter = MetadataErrorReporter::new(

@@ -80,21 +80,6 @@ public final class MockCoreLogging {
 }
 
 extension MockCoreLogging: CoreLogging {
-    public static func makeLogger(
-        apiKey _: String,
-        bufferDirectory _: URL?,
-        sessionStrategy _: SessionStrategy,
-        metadataProvider _: MetadataProviderController,
-        resourceUtilizationTarget _: ResourceUtilizationController,
-        appID _: String,
-        releaseVersion _: String,
-        network _: Network?,
-        errorReporting _: RemoteErrorReporting,
-        loggerBridgingFactoryProvider _: LoggerBridgingFactoryProvider
-    ) -> CoreLogging {
-        return MockCoreLogging()
-    }
-
     public func start() {}
 
     public func startNewSession(sessionID _: String?) {}

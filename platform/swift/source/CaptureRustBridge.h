@@ -35,7 +35,8 @@ void capture_report_error(const char *message);
  * @param inactivity_timeout_seconds inactivity timeout in seconds, or a negative value to disable
  *        inactivity-driven rotation.
  * @param session_callback optional recipient for session ID changes.
- * @param metadata_provider used to provide the internal logger with logging metadata.
+ * @param timestamp_provider optional provider for custom log timestamps.
+ * @param custom_fields_provider optional provider for custom log fields.
  * @param initial_ootb_fields OOTB fields captured by the platform before logger construction.
  * @param resource_utilization_target responsible for emitting resource utilization logs in response to provided ticks.
  * @param session_replay_target responsible for emitting session replay logs in response to callbacks.
@@ -58,7 +59,8 @@ logger_id capture_create_logger(
     NSString *_Nullable initial_session_id,
     double inactivity_timeout_seconds,
     _Nullable id<CAPSessionCallbackProvider> session_callback,
-    id<MetadataProvider> metadata_provider,
+    _Nullable id<TimestampProvider> timestamp_provider,
+    _Nullable id<CustomFieldsProvider> custom_fields_provider,
     NSArray<const Field *> *initial_ootb_fields,
     id<ResourceUtilizationTarget> resource_utilization_target,
     id<SessionReplayTarget> session_replay_target,

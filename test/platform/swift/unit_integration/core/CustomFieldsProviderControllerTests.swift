@@ -19,12 +19,11 @@ private struct FailingEncodable: Encodable {
     }
 }
 
-final class MetadataProviderControllerTests: XCTestCase {
+final class CustomFieldsProviderControllerTests: XCTestCase {
     func testReportsCustomFieldsErrors() {
         let errorHandler = MockErrorHandler()
 
-        let provider = MetadataProviderController(
-            dateProvider: MockDateProvider(),
+        let provider = CustomFieldsProviderController(
             customFieldGetters: [
                 {
                     [
@@ -48,10 +47,7 @@ final class MetadataProviderControllerTests: XCTestCase {
     }
 
     func testSkipsEmptyCustomFieldGetters() {
-        let provider = MetadataProviderController(
-            dateProvider: MockDateProvider(),
-            customFieldGetters: []
-        )
+        let provider = CustomFieldsProviderController(customFieldGetters: [])
 
         XCTAssertTrue(provider.customFields().isEmpty)
     }

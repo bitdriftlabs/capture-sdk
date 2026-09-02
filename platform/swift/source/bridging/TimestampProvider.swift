@@ -7,18 +7,11 @@
 
 import Foundation
 
-/// Provides a protocol that the native logger can invoke in order to retrieve metadata that should
-/// be included in the log.
+/// Provides timestamps for emitted logs.
 @objc
-public protocol MetadataProvider {
+public protocol TimestampProvider {
     /// Returns the current time, relative to UTC epoch.
     ///
     /// - returns: Current time.
     func timestamp() -> TimeInterval
-
-    /// Returns custom fields to be included with emitted logs. Custom fields are fields provided by SDK
-    /// customers.
-    ///
-    /// - returns: Custom fields to emit as part of logs.
-    func customFields() -> [Field]
 }

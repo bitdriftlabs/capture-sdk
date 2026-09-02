@@ -56,7 +56,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
     }
 
     private func setUpLogger(
-        customFieldGetters: [MetadataProviderController.FieldGetter]? = nil,
+        customFieldGetters: [CustomFieldsProviderController.FieldGetter]? = nil,
         initialFields: Fields = [:]
     ) throws -> Logger {
         self.storage = MockStorageProvider()
@@ -271,7 +271,7 @@ final class CaptureE2ENetworkTests: XCTestCase {
 
     func testCustomFieldEncodingFailureIsHandledGracefully() async throws {
         // Set up logger with custom fields that include a failing encodable.
-        let customFieldGetters: [MetadataProviderController.FieldGetter] = [
+        let customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [
             {
                 [
                     "valid_field": "valid_value",
