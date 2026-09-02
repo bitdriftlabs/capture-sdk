@@ -23,7 +23,7 @@ packages:
       path: "../../platform/capture_flutter"
       relative: true
     source: path
-    version: "0.22.16"
+    version: "0.0.1"
   characters:
     dependency: transitive
     description:

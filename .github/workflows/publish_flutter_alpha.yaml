@@ -1,0 +1,54 @@
+name: Publish Flutter Alpha Release Tag
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate release version and tag
+        run: |
+          set -euo pipefail
+          package_dir=platform/capture_flutter
+          VERSION=$(sed -n 's/^version: //p' "$package_dir/pubspec.yaml")
+          if ! [[ "$VERSION" =~ ^0\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Flutter alpha version must match 0.<minor>.<patch>: $VERSION" >&2
+            exit 1
+          fi
+          tag="flutter-prototype-$VERSION"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "Tag already exists: $tag" >&2
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "Remote tag already exists: $tag" >&2
+            exit 1
+          fi
+
+      - name: Verify release files
+        run: |
+          set -euo pipefail
+          package_dir=platform/capture_flutter
+          VERSION=$(sed -n 's/^version: //p' "$package_dir/pubspec.yaml")
+          grep -Fqx "      ref: flutter-prototype-$VERSION" "$package_dir/README.md"
+          grep -Fqx "## [$VERSION]" "$package_dir/ALPHA_RELEASES.md"
+          grep -Fqx "[$VERSION]: https://github.com/bitdriftlabs/capture-sdk/tree/flutter-prototype-$VERSION" "$package_dir/ALPHA_RELEASES.md"
+          grep -Fqx '## [Next release]' "$package_dir/ALPHA_RELEASES.md"
+
+      - name: Create immutable consumer tag
+        run: |
+          set -euo pipefail
+          VERSION=$(sed -n 's/^version: //p' platform/capture_flutter/pubspec.yaml)
+          tag="flutter-prototype-$VERSION"
+          git tag -a "$tag" -m "Flutter alpha $VERSION"
+          git push origin "$tag"
