@@ -43,6 +43,7 @@ import io.bitdrift.gradletestapp.data.model.AppState
 import io.bitdrift.gradletestapp.data.model.ClearError
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
+import io.bitdrift.gradletestapp.data.model.DiskPressureState
 import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
 import io.bitdrift.gradletestapp.data.model.GlobalFieldAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
@@ -173,6 +174,7 @@ fun MainScreen(
                         currentEntityId = currentEntityId,
                     )
                 BottomNavTab.STRESS_TESTS -> StressTestsTabContent(
+                    diskPressure = uiState.diskPressure,
                     onAction = onAction,
                 )
                 BottomNavTab.APP_TERMINATIONS -> AppTerminationsTabContent(
@@ -401,11 +403,13 @@ private fun AppTerminationsTabContent(
 
 @Composable
 private fun StressTestsTabContent(
+    diskPressure: DiskPressureState,
     onAction: (AppAction) -> Unit,
 ) {
     StressTestScreen(
         onAction = onAction,
         onNavigateBack = {},
+        diskPressure = diskPressure,
     )
 }
 
