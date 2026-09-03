@@ -84,14 +84,14 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 1))
     }
 
-    func testRunsProvidersOffCallerThread() throws {
+    func testRunsProvidersOnCallerThread() throws {
         let dateProvider = MockDateProvider()
 
         // Verify that test is executed on the main queue.
         dispatchPrecondition(condition: .onQueue(.main))
 
         let fieldProviderExpectation = self.expectation(
-            description: "Field Provider is called on the background thread"
+            description: "Field Provider is called on the caller thread"
         )
         // Called once for OOTB "SDK configured" and once for custom emitted log.
         let expectedProviderCalls = 2
@@ -99,19 +99,22 @@ final class LoggerTests: XCTestCase {
         let fieldProviderCallCount = Atomic(0)
 
         let dateProviderExpectation = self.expectation(
-            description: "Date Provider is called on the background thread"
+            description: "Date Provider is called on the caller thread"
         )
         // Called once for OOTB "SDK configured" log and once for custom emitted log.
         dateProviderExpectation.expectedFulfillmentCount = expectedProviderCalls
         let dateProviderCallCount = Atomic(0)
 
         dateProvider.getDateClosure = {
-            // Tests are evaluated on the main queue so we would expect this to run
-            // on another thread if logs processing happens off the caller thread.
-            dispatchPrecondition(condition: .notOnQueue(.main))
-            if dateProviderCallCount.update({ $0 += 1 }) <= expectedProviderCalls {
-                dateProviderExpectation.fulfill()
+            let callCount = dateProviderCallCount.update { $0 += 1 }
+            guard callCount <= expectedProviderCalls else {
+                return Date()
             }
+
+            // Shared Core snapshots dynamic metadata as the log is admitted, preserving the state at
+            // emission time. This test runs on the main queue, so its provider runs there too.
+            dispatchPrecondition(condition: .onQueue(.main))
+            dateProviderExpectation.fulfill()
             return Date()
         }
 
@@ -121,12 +124,14 @@ final class LoggerTests: XCTestCase {
             dateProvider: dateProvider,
             customFieldGetters: [
                 {
-                    // Tests are evaluated on the main queue so we would expect this to run
-                    // on another thread if logs processing happens off the caller thread.
-                    dispatchPrecondition(condition: .notOnQueue(.main))
-                    if fieldProviderCallCount.update({ $0 += 1 }) <= expectedProviderCalls {
-                        fieldProviderExpectation.fulfill()
+                    let callCount = fieldProviderCallCount.update { $0 += 1 }
+                    guard callCount <= expectedProviderCalls else {
+                        return [:]
                     }
+
+                    // Custom fields are captured at log admission on the caller queue.
+                    dispatchPrecondition(condition: .onQueue(.main))
+                    fieldProviderExpectation.fulfill()
                     return [:]
                 },
             ]
