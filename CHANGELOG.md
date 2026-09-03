@@ -101,6 +101,10 @@
 
 ### iOS
 
+**Added**
+
+- Crash, hangs, and (new) OOM diagnostics are now read through the iOS 27 `MetricManager` API when running on iOS 27 and compiling with Xcode 27; earlier OS versions continue to use `MXMetricManager`.
+
 **Changed**
 
 - Deprecated legacy `SessionStrategy` and `CAPSessionStrategy` factory APIs in favor of
