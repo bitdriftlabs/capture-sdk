@@ -1,7 +1,52 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.12...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.24.0...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.24.0]
+[0.24.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.0
 
 ### Both
 
@@ -55,10 +100,6 @@
   screen, and no longer drops the contents of an `AndroidView` embedded in one.
 
 ### iOS
-
-**Added**
-
-- Nothing yet!
 
 **Changed**
 
