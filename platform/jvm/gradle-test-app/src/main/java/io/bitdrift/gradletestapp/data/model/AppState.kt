@@ -15,13 +15,26 @@ data class AppState(
     val session: SessionState = SessionState(),
     val diagnostics: DiagnosticsState = DiagnosticsState(),
     val globalFields: List<GlobalFieldEntry> = emptyList(),
-    val diskPressure: DiskPressureState = DiskPressureState(),
+    val diskPressure: DiskPressureState = DiskPressureState.Loading,
     val isLoading: Boolean = false,
     val error: String? = null,
 )
 
-data class DiskPressureState(
-    val availableBytes: Long? = null,
-    val isFilling: Boolean = false,
-    val error: String? = null,
-)
+sealed interface DiskPressureState {
+    data object Loading : DiskPressureState
+
+    data object UnsupportedDevice : DiskPressureState
+
+    data class Ready(
+        val availableBytes: Long,
+    ) : DiskPressureState
+
+    data class Filling(
+        val availableBytes: Long,
+    ) : DiskPressureState
+
+    data class Failed(
+        val availableBytes: Long,
+        val message: String,
+    ) : DiskPressureState
+}

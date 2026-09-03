@@ -82,25 +82,42 @@ private fun DiskPressureCard(
     onAction: (AppAction) -> Unit,
 ) {
     val context = LocalContext.current
+    val availableBytes =
+        when (diskPressure) {
+            is DiskPressureState.Ready -> diskPressure.availableBytes
+            is DiskPressureState.Filling -> diskPressure.availableBytes
+            is DiskPressureState.Failed -> diskPressure.availableBytes
+            DiskPressureState.Loading -> null
+            DiskPressureState.UnsupportedDevice -> null
+        }
 
     StressTestCard(title = "Disk Pressure") {
         Text(
-            text = "Enable Deferred SDK Start in Settings, fill storage, then manually start the SDK to test initialization under ENOSPC.",
+            text =
+                if (diskPressure == DiskPressureState.Loading) {
+                    "Checking whether disk pressure testing is supported."
+                } else if (diskPressure != DiskPressureState.UnsupportedDevice) {
+                    "Enable Deferred SDK Start in Settings, fill storage, then manually start the SDK to test initialization under ENOSPC."
+                } else {
+                    "Unavailable. Disk pressure testing requires an Android emulator."
+                },
             style = MaterialTheme.typography.bodySmall,
             color = BitdriftColors.TextSecondary,
         )
 
-        Text(
-            text = diskPressure.availableBytes?.let { "Available: ${Formatter.formatFileSize(context, it)}" } ?: "Available: loading",
-            style = MaterialTheme.typography.bodySmall,
-            color = BitdriftColors.TextPrimary,
-        )
+        availableBytes?.let {
+            Text(
+                text = "Available: ${Formatter.formatFileSize(context, it)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = BitdriftColors.TextPrimary,
+            )
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        diskPressure.error?.let { error ->
+        (diskPressure as? DiskPressureState.Failed)?.let { failure ->
             Text(
-                text = "Disk filler error: $error",
+                text = "Disk filler error: ${failure.message}",
                 style = MaterialTheme.typography.bodySmall,
                 color = BitdriftColors.Error,
             )
@@ -108,7 +125,7 @@ private fun DiskPressureCard(
 
         Button(
             onClick = { onAction(StressTestAction.FillDiskSpace) },
-            enabled = !diskPressure.isFilling,
+            enabled = diskPressure is DiskPressureState.Ready || diskPressure is DiskPressureState.Failed,
             modifier = Modifier.fillMaxWidth(),
             colors =
                 ButtonDefaults.buttonColors(
@@ -116,11 +133,14 @@ private fun DiskPressureCard(
                     contentColor = Color.White,
                 ),
         ) {
-            Text(if (diskPressure.isFilling) "Filling Internal Storage" else "Fill Internal Storage")
+            Text(if (diskPressure is DiskPressureState.Filling) "Filling Internal Storage" else "Fill Internal Storage")
         }
 
         OutlinedButton(
             onClick = { onAction(StressTestAction.ClearDiskSpace) },
+            enabled = diskPressure is DiskPressureState.Ready ||
+                diskPressure is DiskPressureState.Filling ||
+                diskPressure is DiskPressureState.Failed,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
         ) {
@@ -457,5 +477,5 @@ private fun StressTestCard(
 @Preview
 @Composable
 fun StressTestScreenPreview(){
-    StressTestScreen({}, {}, DiskPressureState())
+    StressTestScreen({}, {}, DiskPressureState.Ready(0))
 }

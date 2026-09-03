@@ -16,6 +16,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.StatFs
 import android.os.StrictMode
+import android.os.Build
 import android.view.Gravity
 import android.view.View
 import android.view.Window
@@ -51,13 +52,24 @@ class StressTestRepository(
     private val oomList = mutableListOf<ByteArray>()
     private var memoryPressureThread: Thread? = null
 
+    private val isDiskPressureAvailable: Boolean by lazy {
+        // "ranchu"   — QEMU2-based AVD, the default since Android Studio 2.x
+        // "goldfish" — legacy QEMU1 AVD, still reported by very old system images
+        Build.HARDWARE == "ranchu" || Build.HARDWARE == "goldfish"
+    }
+
     fun fillDiskSpace(): Flow<DiskPressureState> =
         flow {
+            if (!isDiskPressureAvailable) {
+                emit(DiskPressureState.UnsupportedDevice)
+                return@flow
+            }
+
             val fillerFile = File(context.filesDir, DISK_FILLER_FILE_NAME)
             val buffer = ByteArray(DISK_FILL_CHUNK_SIZE_BYTES)
             var availableBytes = clearDiskSpaceFile()
 
-            emit(DiskPressureState(availableBytes = availableBytes, isFilling = true))
+            emit(DiskPressureState.Filling(availableBytes))
 
             try {
                 FileOutputStream(fillerFile).use { output ->
@@ -65,28 +77,35 @@ class StressTestRepository(
                         currentCoroutineContext().ensureActive()
                         output.write(buffer)
                         availableBytes = availableDiskSpace()
-                        emit(DiskPressureState(availableBytes = availableBytes, isFilling = true))
+                        emit(DiskPressureState.Filling(availableBytes))
                     }
                 }
             } catch (e: IOException) {
                 emit(
-                    DiskPressureState(
+                    DiskPressureState.Failed(
                         availableBytes = availableDiskSpace(),
-                        error = e.message ?: "Disk write failed",
+                        message = e.message ?: "Disk write failed",
                     ),
                 )
                 return@flow
             }
 
-            emit(DiskPressureState(availableBytes = availableBytes))
+            emit(DiskPressureState.Ready(availableBytes))
         }.flowOn(Dispatchers.IO)
 
     fun clearDiskSpace(): Flow<DiskPressureState> =
-        flow { emit(DiskPressureState(availableBytes = clearDiskSpaceFile())) }.flowOn(Dispatchers.IO)
+        flow {
+            emit(
+                DiskPressureState.Ready(clearDiskSpaceFile()),
+            )
+        }.flowOn(Dispatchers.IO)
 
     fun refreshDiskSpace(): DiskPressureState =
-        DiskPressureState(availableBytes = availableDiskSpace())
+        diskPressureReadyState()
 
+    private fun diskPressureReadyState(): DiskPressureState =
+        if (isDiskPressureAvailable) DiskPressureState.Ready(availableDiskSpace()) else DiskPressureState.UnsupportedDevice
+    
     private fun clearDiskSpaceFile(): Long {
         File(context.filesDir, DISK_FILLER_FILE_NAME).delete()
         return availableDiskSpace()
@@ -333,7 +352,7 @@ class StressTestRepository(
                 1,
                 WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                 PixelFormat.TRANSLUCENT,
             ).apply { this.token = token }
 
