@@ -135,6 +135,9 @@
   SDK initialization.
 - Fixed a link failure in apps that was caused by exceeding Apple's limit of personality routines for compact unwind.
 
+- The Objective-C `logWarning` and `logError` entry points now log at warning and error level.
+  They previously logged at info level.
+
 ## [0.23.12]
 [0.23.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.12
 
