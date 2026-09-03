@@ -1,6 +1,6 @@
 name: capture_flutter
 description: Official Flutter plugin for the Bitdrift Capture SDK. Provides logging, session management, and session replay for Flutter apps.
-version: 0.0.1
+version: 0.0.2
 homepage: https://bitdrift.io
 repository: https://github.com/bitdriftlabs/capture-sdk
 

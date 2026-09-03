@@ -74,6 +74,15 @@ class CaptureFlutterPlugin : FlutterPlugin, MethodCallHandler {
                 Logger.removeField(key)
                 result.success(null)
             }
+            "setEntityId" -> {
+                val entityId = call.argument<String>("entityId")!!
+                Logger.setEntityId(entityId)
+                result.success(null)
+            }
+            "clearEntityId" -> {
+                Logger.clearEntityId()
+                result.success(null)
+            }
             "startSpan" -> handleStartSpan(call, result)
             "endSpan" -> handleEndSpan(call, result)
             "logReplayScreen" -> handleLogReplayScreen(call, result)

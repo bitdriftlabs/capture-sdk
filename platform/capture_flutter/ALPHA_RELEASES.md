@@ -22,6 +22,19 @@ TODO: Before publishing, update the native SDK dependencies in `android/build.gr
 
 - Nothing yet!
 
+## [0.0.2]
+[0.0.2]: https://github.com/bitdriftlabs/capture-sdk/tree/flutter-prototype-0.0.2
+
+### Both
+
+**Added**
+
+- Added `Capture.setEntityId` and `Capture.clearEntityId`.
+
+**Changed**
+
+- Updated the Android and iOS Capture SDK dependencies to 0.23.12.
+
 ## [0.0.1]
 [0.0.1]: https://github.com/bitdriftlabs/capture-sdk/tree/flutter-prototype-0.0.1
 
@@ -35,7 +48,7 @@ TODO: Before publishing, update the native SDK dependencies in `android/build.gr
 
 **Changed**
 
-- Uses the `BitdriftCapture` iOS SDK `~> 0.22` dependency constraint.
+- Uses Android Capture SDK 0.23.0 and the `BitdriftCapture` iOS SDK `~> 0.22` dependency constraint.
 
 **Fixed**
 
