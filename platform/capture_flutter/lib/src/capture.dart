@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'log_level.dart';
+import 'network.dart';
 import 'session_replay.dart';
 import 'span.dart';
 
@@ -140,6 +141,36 @@ class Capture {
 
   /// Clears the entity identifier used for backend correlation with this device.
   static Future<void> clearEntityId() => _channel.invokeMethod('clearEntityId');
+
+  // -- Network --
+
+  /// Log the start of an outgoing HTTP request.
+  ///
+  /// Pair with [logNetworkResponse] (matched by [HttpRequestInfo.spanId])
+  /// once the request completes.
+  static Future<void> logNetworkRequest(HttpRequestInfo request) =>
+      _channel.invokeMethod('logNetworkRequest', request.toMap());
+
+  /// Log the completion of an HTTP request/response cycle started with
+  /// [logNetworkRequest].
+  ///
+  /// [request] must be the same [HttpRequestInfo] (or one built with the
+  /// same [HttpRequestInfo.spanId]) passed to the matching
+  /// [logNetworkRequest] call.
+  static Future<void> logNetworkResponse(
+    HttpRequestInfo request,
+    HttpResponse response, {
+    required int durationMs,
+    HttpRequestMetrics? metrics,
+    Map<String, String>? extraFields,
+  }) =>
+      _channel.invokeMethod('logNetworkResponse', {
+        'request': request.toMap(),
+        'response': response.toMap(),
+        'durationMs': durationMs,
+        if (metrics != null) 'metrics': metrics.toMap(),
+        if (extraFields != null) 'extraFields': extraFields,
+      });
 
   // -- Spans --
 

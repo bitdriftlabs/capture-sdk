@@ -13,7 +13,7 @@ TODO: Before publishing, update the native SDK dependencies in `android/build.gr
 
 **Added**
 
-- Add customer-facing changes here.
+- Added `Capture.logNetworkRequest` and `Capture.logNetworkResponse` for manual network request/response logging, matching the native `HttpRequestInfo`/`HttpResponseInfo` APIs.
 
 **Changed**
 
