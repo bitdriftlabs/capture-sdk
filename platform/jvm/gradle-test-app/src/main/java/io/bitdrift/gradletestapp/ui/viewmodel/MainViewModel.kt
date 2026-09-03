@@ -32,10 +32,14 @@ import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.BufferOverflow
 import timber.log.Timber
 
 /**
@@ -51,8 +55,26 @@ class MainViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AppState())
     val uiState: StateFlow<AppState> = _uiState.asStateFlow()
+    private val diskPressureCommands =
+        MutableSharedFlow<DiskPressureCommand>(
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
 
     init {
+        viewModelScope.launch {
+            diskPressureCommands.collectLatest { command ->
+                val diskPressureFlow =
+                    when (command) {
+                        DiskPressureCommand.Fill -> stressTestRepository.fillDiskSpace()
+                        DiskPressureCommand.Clear -> stressTestRepository.clearDiskSpace()
+                    }
+                diskPressureFlow.collect { diskPressure ->
+                    _uiState.update { it.copy(diskPressure = diskPressure) }
+                }
+            }
+        }
+        refreshDiskSpace()
         viewModelScope.launch {
             initializeSdkConfig()
         }
@@ -189,6 +211,9 @@ class MainViewModel(
             is StressTestAction.TriggerJankyFrames -> stressTestRepository.triggerJankyFrames(action.type.durationMs)
             is StressTestAction.TriggerStrictModeViolation -> stressTestRepository.triggerStrictModeViolation(action.type)
             is StressTestAction.TriggerScreenReplayCapture -> stressTestRepository.triggerScreenReplayCapture(action.activity)
+            is StressTestAction.FillDiskSpace -> fillDiskSpace()
+            is StressTestAction.ClearDiskSpace -> clearDiskSpace()
+            is StressTestAction.RefreshDiskSpace -> refreshDiskSpace()
             is ClearError -> clearError()
 
             // For now, navigation actions are handled at the Fragment level
@@ -202,6 +227,25 @@ class MainViewModel(
             is NavigationAction.InvokeService -> {}
 
         }
+    }
+
+    private fun fillDiskSpace() {
+        diskPressureCommands.tryEmit(DiskPressureCommand.Fill)
+    }
+
+    private fun clearDiskSpace() {
+        diskPressureCommands.tryEmit(DiskPressureCommand.Clear)
+    }
+
+    private fun refreshDiskSpace() {
+        _uiState.update {
+            it.copy(diskPressure = stressTestRepository.refreshDiskSpace())
+        }
+    }
+
+    private enum class DiskPressureCommand {
+        Fill,
+        Clear,
     }
 
     private fun initializeSdk() {

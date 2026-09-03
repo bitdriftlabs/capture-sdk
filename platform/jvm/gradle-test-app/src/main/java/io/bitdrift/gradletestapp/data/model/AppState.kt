@@ -15,6 +15,13 @@ data class AppState(
     val session: SessionState = SessionState(),
     val diagnostics: DiagnosticsState = DiagnosticsState(),
     val globalFields: List<GlobalFieldEntry> = emptyList(),
+    val diskPressure: DiskPressureState = DiskPressureState(),
     val isLoading: Boolean = false,
+    val error: String? = null,
+)
+
+data class DiskPressureState(
+    val availableBytes: Long? = null,
+    val isFilling: Boolean = false,
     val error: String? = null,
 )

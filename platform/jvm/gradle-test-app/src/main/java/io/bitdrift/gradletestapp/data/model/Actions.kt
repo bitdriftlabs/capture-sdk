@@ -120,6 +120,12 @@ sealed class StressTestAction : AppAction {
     data class TriggerStrictModeViolation(val type: StrictModeViolationType) : StressTestAction()
 
     data class TriggerScreenReplayCapture(val activity: android.app.Activity) : StressTestAction()
+
+    object FillDiskSpace : StressTestAction()
+
+    object ClearDiskSpace : StressTestAction()
+
+    object RefreshDiskSpace : StressTestAction()
 }
 
 enum class StrictModeViolationType(val displayName: String) {

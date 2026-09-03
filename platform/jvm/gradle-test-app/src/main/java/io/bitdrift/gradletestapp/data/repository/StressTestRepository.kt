@@ -14,6 +14,7 @@ import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.StatFs
 import android.os.StrictMode
 import android.view.Gravity
 import android.view.View
@@ -25,21 +26,71 @@ import android.widget.TextView
 import android.widget.Toast
 import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.FatalIssueGenerator
+import io.bitdrift.gradletestapp.data.model.DiskPressureState
 import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import timber.log.Timber
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 
 class StressTestRepository(
     private val context: Context,
 ) {
     private val oomList = mutableListOf<ByteArray>()
     private var memoryPressureThread: Thread? = null
+
+    fun fillDiskSpace(): Flow<DiskPressureState> =
+        flow {
+            val fillerFile = File(context.filesDir, DISK_FILLER_FILE_NAME)
+            val buffer = ByteArray(DISK_FILL_CHUNK_SIZE_BYTES)
+            var availableBytes = clearDiskSpaceFile()
+
+            emit(DiskPressureState(availableBytes = availableBytes, isFilling = true))
+
+            try {
+                FileOutputStream(fillerFile).use { output ->
+                    while (availableBytes > 0) {
+                        currentCoroutineContext().ensureActive()
+                        output.write(buffer)
+                        availableBytes = availableDiskSpace()
+                        emit(DiskPressureState(availableBytes = availableBytes, isFilling = true))
+                    }
+                }
+            } catch (e: IOException) {
+                emit(
+                    DiskPressureState(
+                        availableBytes = availableDiskSpace(),
+                        error = e.message ?: "Disk write failed",
+                    ),
+                )
+                return@flow
+            }
+
+            emit(DiskPressureState(availableBytes = availableBytes))
+        }.flowOn(Dispatchers.IO)
+
+    fun clearDiskSpace(): Flow<DiskPressureState> =
+        flow { emit(DiskPressureState(availableBytes = clearDiskSpaceFile())) }.flowOn(Dispatchers.IO)
+
+    fun refreshDiskSpace(): DiskPressureState =
+        DiskPressureState(availableBytes = availableDiskSpace())
+
+    private fun clearDiskSpaceFile(): Long {
+        File(context.filesDir, DISK_FILLER_FILE_NAME).delete()
+        return availableDiskSpace()
+    }
 
     fun increaseMemoryPressure(targetPercent: Int) {
         Capture.Logger.logWarning {
@@ -265,6 +316,8 @@ class StressTestRepository(
     }
 
     companion object {
+        private const val DISK_FILLER_FILE_NAME = "disk-pressure-filler"
+        private const val DISK_FILL_CHUNK_SIZE_BYTES = 1024 * 1024
         private const val REPLAY_RACE_DURATION_MS = 10_000L
         private const val REPLAY_CAPTURE_INTERVAL_MS = 20L
         private const val CHURN_INTERVAL_MS = 16L
@@ -357,4 +410,6 @@ class StressTestRepository(
     private fun usedMemory(): Long {
         return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
     }
+
+    private fun availableDiskSpace(): Long = StatFs(context.filesDir.path).availableBytes
 }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import android.app.Activity
+import android.text.format.Formatter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
@@ -26,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
+import io.bitdrift.gradletestapp.data.model.DiskPressureState
 import io.bitdrift.gradletestapp.data.model.JankType
 import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import io.bitdrift.gradletestapp.data.model.StressTestAction
@@ -36,7 +38,12 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 fun StressTestScreen(
     onAction: (AppAction) -> Unit,
     onNavigateBack: () -> Unit,
+    diskPressure: DiskPressureState,
 ) {
+    LaunchedEffect(Unit) {
+        onAction(StressTestAction.RefreshDiskSpace)
+    }
+
     LazyColumn(
         modifier =
             Modifier
@@ -49,6 +56,12 @@ fun StressTestScreen(
             MemoryPressureCard(onAction = onAction)
         }
         item {
+            DiskPressureCard(
+                diskPressure = diskPressure,
+                onAction = onAction,
+            )
+        }
+        item {
             ThreadCountCard(onAction = onAction)
         }
         item {
@@ -59,6 +72,59 @@ fun StressTestScreen(
         }
         item {
             ScreenReplayCard(onAction = onAction)
+        }
+    }
+}
+
+@Composable
+private fun DiskPressureCard(
+    diskPressure: DiskPressureState,
+    onAction: (AppAction) -> Unit,
+) {
+    val context = LocalContext.current
+
+    StressTestCard(title = "Disk Pressure") {
+        Text(
+            text = "Enable Deferred SDK Start in Settings, fill storage, then manually start the SDK to test initialization under ENOSPC.",
+            style = MaterialTheme.typography.bodySmall,
+            color = BitdriftColors.TextSecondary,
+        )
+
+        Text(
+            text = diskPressure.availableBytes?.let { "Available: ${Formatter.formatFileSize(context, it)}" } ?: "Available: loading",
+            style = MaterialTheme.typography.bodySmall,
+            color = BitdriftColors.TextPrimary,
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        diskPressure.error?.let { error ->
+            Text(
+                text = "Disk filler error: $error",
+                style = MaterialTheme.typography.bodySmall,
+                color = BitdriftColors.Error,
+            )
+        }
+
+        Button(
+            onClick = { onAction(StressTestAction.FillDiskSpace) },
+            enabled = !diskPressure.isFilling,
+            modifier = Modifier.fillMaxWidth(),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = BitdriftColors.Error,
+                    contentColor = Color.White,
+                ),
+        ) {
+            Text(if (diskPressure.isFilling) "Filling Internal Storage" else "Fill Internal Storage")
+        }
+
+        OutlinedButton(
+            onClick = { onAction(StressTestAction.ClearDiskSpace) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
+        ) {
+            Text("Clear Disk Pressure")
         }
     }
 }
@@ -391,5 +457,5 @@ private fun StressTestCard(
 @Preview
 @Composable
 fun StressTestScreenPreview(){
-    StressTestScreen({},{})
+    StressTestScreen({}, {}, DiskPressureState())
 }
