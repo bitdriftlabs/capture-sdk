@@ -103,7 +103,7 @@ Capture.stopSessionReplay();
 
 ## Releases
 
-The `version` in `pubspec.yaml` is the release source of truth. The matching customer-facing Git tag is `flutter-prototype-<version>`; with the current version, use `flutter-prototype-0.0.1`.
+The `version` in `pubspec.yaml` is the release source of truth. The matching customer-facing Git tag is `flutter-prototype-<version>`.
 
 Prepare a release in a PR: update `pubspec.yaml`, the installation tag above, and move the reviewed notes from `## [Next release]` to a matching versioned entry in `ALPHA_RELEASES.md`; then restore the empty `Next release` template. When that PR merges to `main`, the `Publish Flutter Alpha Release Tag` GitHub Actions workflow validates the prepared release metadata and creates `flutter-prototype-<version>` from the merge commit.
 
