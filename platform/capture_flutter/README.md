@@ -4,7 +4,7 @@
 
 Official Flutter plugin for the [Bitdrift Capture SDK](https://bitdrift.io).
 
-Provides logging, session management, and distributed tracing for Flutter apps on iOS and Android. Wireframe session replay is currently available on Android only.
+Provides logging, session management, entity correlation, and distributed tracing for Flutter apps on iOS and Android. Wireframe session replay is currently available on Android only.
 
 ## Installation
 
@@ -61,6 +61,8 @@ Capture.removeField('app_version');
 ```
 
 ## Entity
+
+Set an entity identifier to correlate events from this device with an application entity.
 
 ```dart
 Capture.setEntityId('user-123');
