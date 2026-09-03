@@ -15,6 +15,7 @@
 .claude/settings.local.json
 
 .bazelrc.local
+.maestro.local.mk
 .buildrc.bb
 
 compile_commands.json
@@ -34,6 +35,7 @@ ios_app_size_output.log
 rust-project.json
 .cache
 .kotlin
+.tools/
 
 # Profiling
 /buffers

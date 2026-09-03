@@ -1,0 +1,5 @@
+# Copy this file to .maestro.local.mk and set the CoreDevice ID of the iPhone
+# used for local physical-device Maestro smoke tests. Find it with:
+#
+#   make list-ios-devices
+IOS_DEVICE_ID := <COREDEVICE_ID>

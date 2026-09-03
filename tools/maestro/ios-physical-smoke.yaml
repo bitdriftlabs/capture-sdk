@@ -1,0 +1,9 @@
+appId: io.bitdrift.example.swiftapp.helloworld
+---
+- launchApp:
+    arguments:
+      bitdrift-test-scenario: physical-crash-smoke
+- assertVisible:
+    id: physical-device-smoke.title
+- tapOn:
+    id: physical-device-smoke.trigger-fatal-error

@@ -3,9 +3,39 @@
 SHELL=bash
 FORMAT_MAKE_FLAGS=--no-print-directory --silent
 
+BITDRIFT_MAESTRO_VERSION ?= 2.11.0
+BITDRIFT_MAESTRO_DIR ?= $(CURDIR)/.tools/bitdrift-maestro/$(BITDRIFT_MAESTRO_VERSION)
+MAESTRO_BIN ?= $(BITDRIFT_MAESTRO_DIR)/bin/maestro
+IOS_PHYSICAL_SMOKE_APP_IPA ?= $(CURDIR)/bazel-bin/examples/swift/hello_world/hello_world_app.ipa
+APPLE_TEAM_ID ?= $(shell grep -E '^[[:space:]]*build[[:space:]]+--repo_env=APPLE_TEAM_ID=' .bazelrc.local 2>/dev/null | sed 's/.*APPLE_TEAM_ID=//' | awk '{ print $$1 }' | tail -n 1)
+
+-include .maestro.local.mk
+
 .PHONY: build
 build:
 	echo "This command exists as CI expects BUILD command to be available"
+
+.PHONY: install-bitdrift-maestro
+install-bitdrift-maestro:
+	BITDRIFT_MAESTRO_VERSION="$(BITDRIFT_MAESTRO_VERSION)" \
+	BITDRIFT_MAESTRO_DIR="$(BITDRIFT_MAESTRO_DIR)" \
+	./tools/maestro/install_bitdrift_maestro.sh
+
+.PHONY: build-ios-smoke-app
+build-ios-smoke-app:
+	./bazelw build --config=release-ios --cpu=ios_arm64 //examples/swift/hello_world:hello_world_app
+
+.PHONY: list-ios-devices
+list-ios-devices:
+	python3 ./tools/maestro/resolve_ios_hardware_udid.py
+
+.PHONY: test-ios-smoke
+test-ios-smoke: install-bitdrift-maestro build-ios-smoke-app
+	MAESTRO_BIN="$(MAESTRO_BIN)" \
+	APPLE_TEAM_ID="$(APPLE_TEAM_ID)" \
+	IOS_DEVICE_ID="$(IOS_DEVICE_ID)" \
+	IOS_PHYSICAL_SMOKE_APP_IPA="$(IOS_PHYSICAL_SMOKE_APP_IPA)" \
+	./tools/maestro/run_ios_physical_smoke.sh
 
 .PHONY: ktlint
 ktlint:
