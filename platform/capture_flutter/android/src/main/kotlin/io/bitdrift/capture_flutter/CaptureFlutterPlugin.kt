@@ -122,6 +122,7 @@ class CaptureFlutterPlugin : FlutterPlugin, MethodCallHandler {
             "info" -> LogLevel.INFO
             "warning" -> LogLevel.WARNING
             "error" -> LogLevel.ERROR
+            "critical" -> LogLevel.CRITICAL
             else -> LogLevel.INFO
         }
         val message = call.argument<String>("message")!!
@@ -156,6 +157,7 @@ class CaptureFlutterPlugin : FlutterPlugin, MethodCallHandler {
             "debug" -> LogLevel.DEBUG
             "warning" -> LogLevel.WARNING
             "error" -> LogLevel.ERROR
+            "critical" -> LogLevel.CRITICAL
             else -> LogLevel.INFO
         }
         val fields = call.argument<Map<String, String>>("fields") ?: emptyMap()

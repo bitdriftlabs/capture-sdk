@@ -575,6 +575,24 @@ public final class LoggerObjc: NSObject {
         )
     }
 
+    /// Logs a critical level message to the default logger instance.
+    ///
+    /// - parameter message: The message to log.
+    /// - parameter fields:  The extra fields to send as part of the log.
+    @objc
+    public static func logCritical(_ message: String, fields: [String: String]?) {
+        // TODO(Augustyniak): Support passing of `file`, `line`, and potentially `function` arguments to
+        // this function. It would require us to have macros that folks could use to log instead of calling
+        // Logger's methods directly.
+        Capture.Logger.logCritical(
+            message,
+            file: nil,
+            line: nil,
+            function: nil,
+            fields: fields
+        )
+    }
+
     /// Logs a message at a specified level to the default logger instance.
     ///
     /// - parameter level:   The severity of the log.

@@ -90,6 +90,9 @@ class Capture {
   static Future<void> logError(String msg, {Map<String, String>? fields}) =>
       log(LogLevel.error, msg, fields: fields);
 
+  static Future<void> logCritical(String msg, {Map<String, String>? fields}) =>
+      log(LogLevel.critical, msg, fields: fields);
+
   /// Log a screen view event.
   static Future<void> logScreenView(String screenName) =>
       _channel.invokeMethod('logScreenView', {'screenName': screenName});

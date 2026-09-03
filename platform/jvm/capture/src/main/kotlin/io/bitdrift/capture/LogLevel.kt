@@ -18,7 +18,13 @@ enum class LogLevel(
     val value: Int,
 ) {
     /**
-     * Represents an error log level, which is the most severe log level.
+     * Represents a critical log level, which is the most severe log level. Reserve it for
+     * unrecoverable failures that demand immediate attention.
+     */
+    CRITICAL(5),
+
+    /**
+     * Represents an error log level, which is less severe than critical.
      */
     ERROR(4),
 

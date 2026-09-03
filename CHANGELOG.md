@@ -14,6 +14,10 @@
   ID at every SDK start.
 - Added `initialFields` to seed custom global fields during Capture SDK startup.
 
+- Added a `critical` log level, one step above `error`, along with `logCritical` convenience methods
+  on iOS, Android, and Flutter. The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to
+  `critical` instead of `debug`, and the WebView custom-log bridge accepts `"critical"`.
+
 **Changed**
 
 - Reduced logging overhead when using the default system timestamp and no custom field providers.
