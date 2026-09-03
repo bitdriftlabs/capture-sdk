@@ -25,6 +25,7 @@ struct CustomLogMessage: WebViewLoggableMessage, Equatable {
         case "info": .info
         case "warn": .warning
         case "error": .error
+        case "critical": .critical
         case "trace": .trace
         default: .debug
         }

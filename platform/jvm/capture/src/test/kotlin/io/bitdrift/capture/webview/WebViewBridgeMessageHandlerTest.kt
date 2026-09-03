@@ -819,4 +819,55 @@ class WebViewBridgeMessageHandlerTest {
         assertThat(fields).doesNotContainKey("_time_window_ms")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.userInteraction")
     }
+
+    @Test
+    fun log_whenCustomLogCritical_shouldLogCritical() {
+        val message =
+            """
+            {
+                "v":1,
+                "type":"customLog",
+                "timestamp":1234567890,
+                "level":"critical",
+                "message":"Critical message"
+            }
+            """.trimIndent()
+
+        val fieldsCaptor = argumentCaptor<Map<String, String>>()
+        handler.log(message)
+
+        verify(logger).log(
+            eq(LogLevel.CRITICAL),
+            fieldsCaptor.capture(),
+            eq(null),
+            logMessageCaptor.capture(),
+        )
+        assertThat(fieldsCaptor.firstValue["_source"]).isEqualTo("webview")
+        assertThat(logMessageCaptor.firstValue()).isEqualTo("Critical message")
+    }
+
+    @Test
+    fun log_whenCustomLogUnrecognizedLevel_shouldLogDebug() {
+        val message =
+            """
+            {
+                "v":1,
+                "type":"customLog",
+                "timestamp":1234567890,
+                "level":"fatal",
+                "message":"Unrecognized level message"
+            }
+            """.trimIndent()
+
+        val fieldsCaptor = argumentCaptor<Map<String, String>>()
+        handler.log(message)
+
+        verify(logger).log(
+            eq(LogLevel.DEBUG),
+            fieldsCaptor.capture(),
+            eq(null),
+            logMessageCaptor.capture(),
+        )
+        assertThat(logMessageCaptor.firstValue()).isEqualTo("Unrecognized level message")
+    }
 }
