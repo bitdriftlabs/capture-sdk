@@ -1,6 +1,7 @@
 [versions]
 androidBenchmark     = "1.4.1"
 androidGradlePlugin  = "8.13.2"
+androidxCollection   = "1.4.5"
 androidxCore         = "1.13.1"
 androidxTestCore     = "1.6.1"
 androidxWebkit       = "1.14.0"
@@ -33,12 +34,14 @@ ui                   = "1.7.6"
 [libraries]
 androidx-appcompat         = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-benchmark-junit4  = { module = "androidx.benchmark:benchmark-junit4", version.ref = "androidBenchmark" }
+androidx-collection-jvm    = { module = "androidx.collection:collection-jvm", version.ref = "androidxCollection" }
 androidx-core              = { group = "androidx.core", name = "core", version.ref = "androidxCore" }
 androidx-lifecycle-common  = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleCommon" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleCommon" }
 androidx-startup-runtime   = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
 androidx-test-core         = { module = "androidx.test:core", version.ref = "androidxTestCore" }
 androidx-ui                = { module = "androidx.compose.ui:ui", version.ref = "ui" }
+androidx-ui-android        = { module = "androidx.compose.ui:ui-android", version.ref = "ui" }
 androidx-webkit            = { module = "androidx.webkit:webkit", version.ref = "androidxWebkit" }
 apollo-runtime             = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
 assertj-core               = { module = "org.assertj:assertj-core", version.ref = "assertjCore" }
