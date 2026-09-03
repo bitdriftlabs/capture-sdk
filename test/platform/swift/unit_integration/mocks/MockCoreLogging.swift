@@ -67,15 +67,33 @@ public final class MockCoreLogging {
     public private(set) var setEntityIDs = [String]()
 
     public private(set) var clearEntityIDCallCount = 0
-    public private(set) var ootbFields = [String: String]()
-    public private(set) var ootbFieldUpdateCount = 0
-    public private(set) var ootbFieldUpdates = [OotbFieldUpdate]()
+    private let ootbFieldsLock = NSLock()
+    private var storedOotbFields = [String: String]()
+    private var storedOotbFieldUpdates = [OotbFieldUpdate]()
+
+    public var ootbFields: [String: String] {
+        self.withOotbFieldsLock { self.storedOotbFields }
+    }
+
+    public var ootbFieldUpdateCount: Int {
+        self.withOotbFieldsLock { self.storedOotbFieldUpdates.count }
+    }
+
+    public var ootbFieldUpdates: [OotbFieldUpdate] {
+        self.withOotbFieldsLock { self.storedOotbFieldUpdates }
+    }
 
     public init() {}
 
     public func mockRuntimeVariable<T: RuntimeValue>(_ variable: RuntimeVariable<T>, with value: T) {
         let values = [variable.name: value]
         self.mockedRuntimeVariables.mergeOverwritingConflictingKeys(values)
+    }
+
+    private func withOotbFieldsLock<T>(_ body: () -> T) -> T {
+        self.ootbFieldsLock.lock()
+        defer { self.ootbFieldsLock.unlock() }
+        return body()
     }
 }
 
@@ -160,9 +178,10 @@ extension MockCoreLogging: CoreLogging {
     public func addField(withKey _: String, value _: String) {}
 
     public func updateOotbField(withKey key: String, value: String) {
-        self.ootbFieldUpdateCount += 1
-        self.ootbFieldUpdates.append(OotbFieldUpdate(key: key, value: value))
-        self.ootbFields[key] = value
+        self.withOotbFieldsLock {
+            self.storedOotbFieldUpdates.append(OotbFieldUpdate(key: key, value: value))
+            self.storedOotbFields[key] = value
+        }
     }
 
     public func removeField(withKey _: String) {}
