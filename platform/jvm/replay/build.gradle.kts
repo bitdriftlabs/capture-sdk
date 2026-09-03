@@ -12,7 +12,10 @@ plugins {
 dependencies {
     implementation(project(":common"))
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.ui)
+    compileOnly(libs.androidx.ui)
+    // Replay uses Compose Android internals and its collection types without shipping Compose.
+    compileOnly(libs.androidx.ui.android)
+    compileOnly(libs.androidx.collection.jvm)
     implementation(libs.okhttp)
 
     testImplementation(libs.mockito.core)
