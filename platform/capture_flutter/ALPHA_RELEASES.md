@@ -8,6 +8,7 @@ Before releasing, update `pubspec.yaml` with the new Flutter alpha version, move
 
 TODO: Before publishing, update the native SDK dependencies in `android/build.gradle.kts` and `ios/capture_flutter.podspec` to the latest compatible published Capture SDK releases.
 
+## [Unreleased notes here]
 ### Both
 
 **Added**
