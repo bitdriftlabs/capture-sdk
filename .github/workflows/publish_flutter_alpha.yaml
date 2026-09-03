@@ -1,0 +1,64 @@
+name: Publish Flutter Alpha Release Tag
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'platform/capture_flutter/ALPHA_RELEASES.md'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Read release version and tag
+        id: release
+        run: |
+          set -euo pipefail
+          package_dir=platform/capture_flutter
+          VERSION=$(sed -n 's/^version: //p' "$package_dir/pubspec.yaml")
+          if ! [[ "$VERSION" =~ ^0\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Flutter alpha version must match 0.<minor>.<patch>: $VERSION" >&2
+            exit 1
+          fi
+          tag="flutter-prototype-$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+          elif git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify release files
+        run: |
+          set -euo pipefail
+          package_dir=platform/capture_flutter
+          VERSION=$(sed -n 's/^version: //p' "$package_dir/pubspec.yaml")
+          grep -Fqx "      ref: flutter-prototype-$VERSION" "$package_dir/README.md"
+          grep -Fqx "## [$VERSION]" "$package_dir/ALPHA_RELEASES.md"
+          grep -Fqx "[$VERSION]: https://github.com/bitdriftlabs/capture-sdk/tree/flutter-prototype-$VERSION" "$package_dir/ALPHA_RELEASES.md"
+          grep -Fqx '## [Next release]' "$package_dir/ALPHA_RELEASES.md"
+
+      - name: Create immutable consumer tag
+        if: steps.release.outputs.already_published == 'false'
+        run: |
+          set -euo pipefail
+          tag="${{ steps.release.outputs.tag }}"
+          git tag -a "$tag" -m "Flutter alpha ${{ steps.release.outputs.version }}"
+          git push origin "$tag"
+
+      - name: Report existing release tag
+        if: steps.release.outputs.already_published == 'true'
+        run: echo "${{ steps.release.outputs.tag }} is already published; skipping tag creation."
