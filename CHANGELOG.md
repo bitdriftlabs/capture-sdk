@@ -70,6 +70,9 @@
 - Invalid inactivity timeouts now disable activity-based session rotation instead of preventing
   SDK initialization.
 
+- The Objective-C `logWarning` and `logError` entry points now log at warning and error level.
+  They previously logged at info level.
+
 ## [0.23.12]
 [0.23.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.12
 

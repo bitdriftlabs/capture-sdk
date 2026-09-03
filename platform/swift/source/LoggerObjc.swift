@@ -548,7 +548,7 @@ public final class LoggerObjc: NSObject {
         // TODO(Augustyniak): Support passing of `file`, `line`, and potentially `function` arguments to
         // this function. It would require us to have macros that folks could use to log instead of calling
         // Logger's methods directly.
-        Capture.Logger.logInfo(
+        Capture.Logger.logWarning(
             message,
             file: nil,
             line: nil,
@@ -566,7 +566,7 @@ public final class LoggerObjc: NSObject {
         // TODO(Augustyniak): Support passing of `file`, `line`, and potentially `function` arguments to
         // this function. It would require us to have macros that folks could use to log instead of calling
         // Logger's methods directly.
-        Capture.Logger.logInfo(
+        Capture.Logger.logError(
             message,
             file: nil,
             line: nil,
