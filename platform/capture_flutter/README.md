@@ -13,7 +13,7 @@ dependencies:
   capture_flutter:
     git:
       url: https://github.com/bitdriftlabs/capture-sdk.git
-      ref: flutter-prototype-0.0.1
+      ref: flutter-prototype-0.0.2
       path: platform/capture_flutter
 ```
 
@@ -58,6 +58,13 @@ await Capture.startNewSession();
 ```dart
 Capture.addField('app_version', '2.1.0');
 Capture.removeField('app_version');
+```
+
+## Entity
+
+```dart
+Capture.setEntityId('user-123');
+Capture.clearEntityId();
 ```
 
 ## Spans

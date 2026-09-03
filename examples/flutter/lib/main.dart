@@ -30,6 +30,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String _status = 'Not initialized';
   String? _sessionId;
+  String? _entityId;
   String? _apiKey;
   String _apiUrl = 'https://api.bitdrift.io';
 
@@ -62,9 +63,14 @@ class _HomePageState extends State<HomePage> {
         enableSessionReplay: true,
       );
       final sessionId = await Capture.sessionId;
+      const entityId = 'flutter-example-user';
+      if (success) {
+        await Capture.setEntityId(entityId);
+      }
       setState(() {
         _status = success ? 'Started successfully' : 'Start failed';
         _sessionId = sessionId;
+        _entityId = success ? entityId : null;
       });
     } catch (e) {
       setState(() => _status = 'Error: $e');
@@ -94,15 +100,17 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Status: $_status'),
-            if (_sessionId != null) Text('Session ID: $_sessionId'),
-            const SizedBox(height: 24),
-            ElevatedButton(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Status: $_status'),
+              if (_sessionId != null) Text('Session ID: $_sessionId'),
+              if (_entityId != null) Text('Entity ID: $_entityId'),
+              const SizedBox(height: 24),
+              ElevatedButton(
               onPressed: () =>
                   Capture.logInfo('Button tapped', fields: {'screen': 'home'}),
               child: const Text('Log Info'),
@@ -140,6 +148,33 @@ class _HomePageState extends State<HomePage> {
                 setState(() => _sessionId = id);
               },
               child: const Text('New Session'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async {
+                const entityId = 'flutter-example-user';
+                await Capture.setEntityId(entityId);
+                setState(() => _entityId = entityId);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Entity ID set')),
+                  );
+                }
+              },
+              child: const Text('Set Entity ID'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async {
+                await Capture.clearEntityId();
+                setState(() => _entityId = null);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Entity ID cleared')),
+                  );
+                }
+              },
+              child: const Text('Clear Entity ID'),
             ),
             const SizedBox(height: 8),
             ElevatedButton.icon(
@@ -199,7 +234,8 @@ class _HomePageState extends State<HomePage> {
               icon: const Icon(Icons.info_outline),
               label: const Text('SDK Status'),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -73,6 +73,17 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             }
             Logger.removeField(withKey: key)
             result(nil)
+        case "setEntityId":
+            guard let args = call.arguments as? [String: Any],
+                  let entityId = args["entityId"] as? String else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing entityId", details: nil))
+                return
+            }
+            Logger.setEntityID(entityId)
+            result(nil)
+        case "clearEntityId":
+            Logger.clearEntityID()
+            result(nil)
         case "startSpan":
             handleStartSpan(call, result: result)
         case "endSpan":

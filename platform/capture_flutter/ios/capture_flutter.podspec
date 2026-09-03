@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'BitdriftCapture', '~> 0.22'
+  s.dependency 'BitdriftCapture', '0.23.12'
   s.static_framework = true
   s.platform         = :ios, '15.0'
   s.swift_version    = '5.9'

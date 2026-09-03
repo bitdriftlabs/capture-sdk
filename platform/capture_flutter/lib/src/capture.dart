@@ -132,6 +132,15 @@ class Capture {
   static Future<void> removeField(String key) =>
       _channel.invokeMethod('removeField', {'key': key});
 
+  // -- Entity --
+
+  /// Sets the entity identifier used for backend correlation with this device.
+  static Future<void> setEntityId(String entityId) =>
+      _channel.invokeMethod('setEntityId', {'entityId': entityId});
+
+  /// Clears the entity identifier used for backend correlation with this device.
+  static Future<void> clearEntityId() => _channel.invokeMethod('clearEntityId');
+
   // -- Spans --
 
   /// Start a new span for tracing.

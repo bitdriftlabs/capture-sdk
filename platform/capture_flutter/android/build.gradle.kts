@@ -28,6 +28,6 @@ android {
 }
 
 dependencies {
-    implementation("io.bitdrift:capture:0.23.0")
+    implementation("io.bitdrift:capture:0.23.12")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
