@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import 'log_level.dart';
 import 'network.dart';
+import 'network_instrumentation.dart';
 import 'session_replay.dart';
 import 'span.dart';
 
@@ -171,6 +172,27 @@ class Capture {
         if (metrics != null) 'metrics': metrics.toMap(),
         if (extraFields != null) 'extraFields': extraFields,
       });
+
+  /// Enables automatic instrumentation for the default `dart:io`-backed HTTP
+  /// stack — raw [HttpClient], `package:http`'s default client, and `dio`'s
+  /// default adapter on mobile all ultimately create their `HttpClient`
+  /// through the same factory this hooks. Chains any `HttpOverrides` the app
+  /// already installed (e.g. for certificate pinning) rather than replacing
+  /// it — call this after any such override is set, or call it again after.
+  ///
+  /// This is a per-isolate override: call it again in any isolate that
+  /// performs networking (e.g. one spawned via `compute()`).
+  ///
+  /// Not covered — use [logNetworkRequest]/[logNetworkResponse] directly for
+  /// these:
+  /// - HTTP clients that bypass `dart:io` (e.g. `dio` configured with
+  ///   `CronetHttpAdapter` on Android or `CupertinoHttpAdapter` on iOS).
+  /// - Native SDKs making their own requests (Firebase, ad/payment SDKs).
+  /// - WebViews — a page's own requests run inside the native WebView engine,
+  ///   outside Dart entirely.
+  static void enableNetworkInstrumentation() {
+    installCaptureNetworkInstrumentation();
+  }
 
   // -- Spans --
 

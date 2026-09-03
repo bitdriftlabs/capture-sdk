@@ -70,6 +70,7 @@ class _HomePageState extends State<HomePage> {
       const entityId = 'flutter-example-user';
       if (success) {
         await Capture.setEntityId(entityId);
+        Capture.enableNetworkInstrumentation();
       }
       setState(() {
         _status = success ? 'Started successfully' : 'Start failed';
@@ -136,6 +137,39 @@ class _HomePageState extends State<HomePage> {
       );
       if (mounted) {
         setState(() => _networkStatus = 'GET / -> error: $e');
+      }
+    } finally {
+      client.close();
+      if (mounted) {
+        setState(() => _networkInFlight = false);
+      }
+    }
+  }
+
+  /// Fires a plain request with NO manual logNetworkRequest/logNetworkResponse
+  /// calls around it — proves Capture.enableNetworkInstrumentation() alone
+  /// captures it automatically.
+  Future<void> _pingGoogleAuto() async {
+    setState(() {
+      _networkInFlight = true;
+      _networkStatus = null;
+    });
+    final stopwatch = Stopwatch()..start();
+    final client = HttpClient();
+    try {
+      final request = await client.getUrl(Uri.https('www.google.com', '/'));
+      final response = await request.close();
+      final bytesReceived = await response.fold<int>(0, (total, chunk) => total + chunk.length);
+      stopwatch.stop();
+      if (mounted) {
+        setState(() {
+          _networkStatus =
+              '[auto] GET / -> ${response.statusCode} (${stopwatch.elapsedMilliseconds}ms, $bytesReceived bytes)';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _networkStatus = '[auto] GET / -> error: $e');
       }
     } finally {
       client.close();
@@ -271,6 +305,12 @@ class _HomePageState extends State<HomePage> {
                     )
                   : const Icon(Icons.wifi),
               label: const Text('Network Request (ping google)'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: _networkInFlight ? null : _pingGoogleAuto,
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Network Request — auto (ping google)'),
             ),
             if (_networkStatus != null) ...[
               const SizedBox(height: 4),

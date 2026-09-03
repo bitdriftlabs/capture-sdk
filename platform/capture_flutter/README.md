@@ -81,6 +81,56 @@ try {
 }
 ```
 
+## Network Requests
+
+### Manual logging
+
+Log a request/response pair explicitly — works regardless of what HTTP client you use.
+
+```dart
+final request = HttpRequestInfo(
+  method: 'GET',
+  host: 'api.example.com',
+  path: const HttpUrlPath('/v1/users/123', template: '/v1/users/<id>'),
+);
+await Capture.logNetworkRequest(request);
+
+// ... perform the actual request ...
+
+await Capture.logNetworkResponse(
+  request,
+  HttpResponse(result: HttpResult.success, statusCode: 200),
+  durationMs: elapsedMs,
+);
+```
+
+### Automatic instrumentation
+
+`Capture.enableNetworkInstrumentation()` installs a `dart:io` `HttpOverrides` that
+automatically logs every request/response made through the default HTTP stack —
+no code changes needed at each call site.
+
+```dart
+await Capture.start(apiKey: 'YOUR_API_KEY');
+Capture.enableNetworkInstrumentation();
+```
+
+### When automatic works vs. when manual is required
+
+| | Automatic | Manual |
+|---|---|---|
+| Raw `dart:io HttpClient`, `package:http`'s default client, `dio`'s default adapter (mobile) | ✅ | — |
+| `dio` with `CronetHttpAdapter`/`CupertinoHttpAdapter`, or any client that bypasses `dart:io` | ❌ — invisible to `HttpOverrides` | ✅ required |
+| Native SDKs making their own requests (Firebase, ad/payment SDKs, crash reporters) | ❌ — never touches Dart | ✅ required |
+| WebViews | ❌ — requests run inside the native WebView engine, outside Dart | Not yet exposed at all (native `webViewConfiguration`-style hook not bridged to Flutter yet) |
+| An `HttpClient` created **before** `enableNetworkInstrumentation()` was called | ❌ that instance was already constructed via the un-overridden factory | ✅ required for that instance |
+| Networking in an isolate other than the one that called `enableNetworkInstrumentation()` | ❌ — it's a per-isolate override | ✅ required, or call `enableNetworkInstrumentation()` again in that isolate |
+| Path template collapsing (e.g. `/users/<id>`) | Only if the request sets the `x-capture-path-template` header | Pass `HttpUrlPath(value, template:)` directly |
+
+This mirrors the native SDKs' own automatic-vs-manual split (OkHttp `EventListener` /
+`URLSession` swizzling vs. the manual `HttpRequestInfo`/`HttpResponseInfo` API) — the
+manual API is always the fallback for anything the automatic path can't see.
+
 ## Session Replay
 
 Session replay captures a wireframe representation of your Flutter UI (no screenshots, no PII) and sends it to the Capture backend.

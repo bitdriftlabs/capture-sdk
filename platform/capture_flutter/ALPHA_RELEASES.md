@@ -14,6 +14,7 @@ TODO: Before publishing, update the native SDK dependencies in `android/build.gr
 **Added**
 
 - Added `Capture.logNetworkRequest` and `Capture.logNetworkResponse` for manual network request/response logging, matching the native `HttpRequestInfo`/`HttpResponseInfo` APIs.
+- Added `Capture.enableNetworkInstrumentation` for automatic network logging via a `dart:io` `HttpOverrides`, covering the default HTTP stack (raw `HttpClient`, `package:http`, `dio`'s default adapter on mobile). See the README's Network Requests section for exact coverage vs. when the manual API above is still required.
 
 **Changed**
 
