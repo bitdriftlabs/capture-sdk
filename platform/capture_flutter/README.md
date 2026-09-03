@@ -96,7 +96,7 @@ Capture.stopSessionReplay();
 
 The `version` in `pubspec.yaml` is the release source of truth. The matching customer-facing Git tag is `flutter-prototype-<version>`; with the current version, use `flutter-prototype-0.0.1`.
 
-Prepare a release in a PR: update `pubspec.yaml`, the installation tag above, and move the reviewed notes from `## [Next release]` to a matching versioned entry in `ALPHA_RELEASES.md`; then restore the empty `Next release` template. After that PR merges to `main`, run the `Publish Flutter Alpha Tag` GitHub Actions workflow. It validates the prepared release metadata and creates `flutter-prototype-<version>` from the current `main` commit.
+Prepare a release in a PR: update `pubspec.yaml`, the installation tag above, and move the reviewed notes from `## [Next release]` to a matching versioned entry in `ALPHA_RELEASES.md`; then restore the empty `Next release` template. When that PR merges to `main`, the `Publish Flutter Alpha Release Tag` GitHub Actions workflow validates the prepared release metadata and creates `flutter-prototype-<version>` from the merge commit.
 
 The CocoaPods `capture_flutter` version follows the native iOS SDK release line and is independent of the Flutter prototype tag.
 
