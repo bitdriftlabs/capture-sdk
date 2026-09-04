@@ -38,7 +38,7 @@ TODO: Before publishing, update the native SDK dependencies in `android/build.gr
 
 **Fixed**
 
-- Fixed Android builds for apps using `capture_flutter` by applying the Kotlin Android Gradle plugin.
+- Fixed Android builds for apps using `capture_flutter` by explicitly applying the Kotlin Android Gradle plugin.
 
 ## [0.0.2]
 [0.0.2]: https://github.com/bitdriftlabs/capture-sdk/tree/flutter-prototype-0.0.2
