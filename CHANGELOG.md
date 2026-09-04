@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- SDK was erronously reporting `_jvm_used_percent` in Resource Utilization logs using the device Locale
 
 ### iOS
 
