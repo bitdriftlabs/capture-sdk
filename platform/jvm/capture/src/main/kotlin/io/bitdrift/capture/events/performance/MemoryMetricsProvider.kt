@@ -15,6 +15,7 @@ import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.fieldsOfOptional
+import java.util.Locale
 
 private const val KB = 1024L
 
@@ -40,7 +41,7 @@ internal class MemoryMetricsProvider(
                 "_native_used_kb" to allocatedNativeHeapSizeBytes().bToKb(),
                 "_native_total_kb" to totalNativeHeapSizeBytes().bToKb(),
                 "_memory_class" to memoryClassMB().toString(),
-                "_jvm_used_percent" to "%.3f".format(jvmUsedPercent()),
+                "_jvm_used_percent" to String.format(Locale.ROOT, "%.3f", jvmUsedPercent()),
             ),
             fieldsOfOptional(
                 "_is_memory_low" to appCriticalMemoryConfigThreshold?.let { if (isMemoryLow()) "1" else "0" },
