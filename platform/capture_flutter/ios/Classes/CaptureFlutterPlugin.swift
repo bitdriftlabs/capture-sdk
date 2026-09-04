@@ -84,6 +84,10 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
         case "clearEntityId":
             Logger.clearEntityID()
             result(nil)
+        case "logNetworkRequest":
+            handleLogNetworkRequest(call, result: result)
+        case "logNetworkResponse":
+            handleLogNetworkResponse(call, result: result)
         case "startSpan":
             handleStartSpan(call, result: result)
         case "endSpan":
@@ -158,6 +162,101 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             return
         }
         Logger.logScreenView(screenName: screenName)
+        result(nil)
+    }
+
+    private static func parseHTTPURLPath(_ any: Any?) -> HTTPURLPath? {
+        guard let map = any as? [String: Any], let value = map["value"] as? String else {
+            return nil
+        }
+        return HTTPURLPath(value: value, template: map["template"] as? String)
+    }
+
+    private static func parseHTTPRequestInfo(_ map: [String: Any]) -> HTTPRequestInfo? {
+        guard let method = map["method"] as? String, let spanID = map["spanId"] as? String else {
+            return nil
+        }
+        return HTTPRequestInfo(
+            method: method,
+            host: map["host"] as? String,
+            path: Self.parseHTTPURLPath(map["path"]),
+            query: map["query"] as? String,
+            headers: map["headers"] as? [String: String],
+            bytesExpectedToSendCount: (map["bytesExpectedToSendCount"] as? NSNumber)?.int64Value,
+            spanID: spanID,
+            extraFields: map["extraFields"] as? [String: String]
+        )
+    }
+
+    private func handleLogNetworkRequest(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let args = call.arguments as? [String: Any],
+              let request = Self.parseHTTPRequestInfo(args) else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing/invalid request", details: nil))
+            return
+        }
+        Logger.log(request)
+        result(nil)
+    }
+
+    private func handleLogNetworkResponse(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let args = call.arguments as? [String: Any],
+              let requestMap = args["request"] as? [String: Any],
+              let request = Self.parseHTTPRequestInfo(requestMap),
+              let responseMap = args["response"] as? [String: Any],
+              let resultStr = responseMap["result"] as? String,
+              let durationMs = (args["durationMs"] as? NSNumber)?.doubleValue else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing/invalid response", details: nil))
+            return
+        }
+
+        let httpResult: HTTPResponse.HTTPResult
+        switch resultStr {
+        case "success": httpResult = .success
+        case "canceled": httpResult = .canceled
+        default: httpResult = .failure
+        }
+
+        let error: Error? = (responseMap["error"] as? String).map {
+            NSError(domain: "io.bitdrift.capture_flutter", code: 0, userInfo: [NSLocalizedDescriptionKey: $0])
+        }
+
+        let response = HTTPResponse(
+            result: httpResult,
+            host: responseMap["host"] as? String,
+            path: Self.parseHTTPURLPath(responseMap["path"]),
+            query: responseMap["query"] as? String,
+            headers: responseMap["headers"] as? [String: String],
+            statusCode: (responseMap["statusCode"] as? NSNumber)?.intValue,
+            error: error
+        )
+
+        // Native metrics durations are seconds; the Dart API uses milliseconds throughout.
+        let metricsMap = args["metrics"] as? [String: Any]
+        let metrics: HTTPRequestMetrics? = metricsMap.map { m in
+            func seconds(_ key: String) -> TimeInterval? {
+                (m[key] as? NSNumber).map { $0.doubleValue / 1000.0 }
+            }
+            return HTTPRequestMetrics(
+                requestBodyBytesSentCount: (m["requestBodyBytesSentCount"] as? NSNumber)?.int64Value,
+                responseBodyBytesReceivedCount: (m["responseBodyBytesReceivedCount"] as? NSNumber)?.int64Value,
+                requestHeadersBytesCount: (m["requestHeadersBytesCount"] as? NSNumber)?.int64Value,
+                responseHeadersBytesCount: (m["responseHeadersBytesCount"] as? NSNumber)?.int64Value,
+                dnsResolutionDuration: seconds("dnsResolutionDurationMs"),
+                tlsDuration: seconds("tlsDurationMs"),
+                tcpDuration: seconds("tcpDurationMs"),
+                fetchInitializationDuration: seconds("fetchInitializationMs"),
+                responseLatency: seconds("responseLatencyMs"),
+                protocolName: m["protocolName"] as? String
+            )
+        }
+
+        Logger.log(HTTPResponseInfo(
+            requestInfo: request,
+            response: response,
+            duration: durationMs / 1000.0,
+            metrics: metrics,
+            extraFields: args["extraFields"] as? [String: String]
+        ))
         result(nil)
     }
 

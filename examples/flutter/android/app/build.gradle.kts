@@ -20,6 +20,10 @@ android {
 
     buildTypes {
         release {
+            // No release signing config is set up for this example app, so sign with the
+            // debug key for now — this lets `flutter build/run --release` produce an
+            // installable APK.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
