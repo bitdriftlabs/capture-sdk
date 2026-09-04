@@ -20,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
@@ -193,5 +194,32 @@ class MemoryMetricsProviderTest {
         val result = memoryMetricsProvider.getCurrentJvmMemoryPressureLevel()
 
         assertThat(result).isEqualTo(MemoryPressureLevel.Critical)
+    }
+
+    @Test
+    fun getMemoryAttributes_jvmUsedPercent_isLocaleIndependent() {
+        val originalLocale = Locale.getDefault()
+        try {
+            whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(16_664L)
+            whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
+
+            val locales = listOf(
+                Locale.US, Locale.UK,
+                Locale.forLanguageTag("ar-EG"), Locale.forLanguageTag("fa-IR"),
+                Locale.FRANCE, Locale.GERMANY,
+                Locale.forLanguageTag("pt-BR"), Locale.forLanguageTag("in-ID"), Locale.forLanguageTag("tr-TR"),
+            )
+
+            locales.forEach { locale ->
+                Locale.setDefault(locale)
+                val result = memoryMetricsProvider.getMemoryAttributes()
+                val value = result["_jvm_used_percent"]
+                assertThat(value)
+                    .withFailMessage("Failed for locale: $locale. Expected 16.664 but got $value")
+                    .isEqualTo("16.664")
+            }
+        } finally {
+            Locale.setDefault(originalLocale)
+        }
     }
 }

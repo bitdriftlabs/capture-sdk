@@ -9,6 +9,7 @@ package io.bitdrift.capture.events.performance
 
 import android.app.ActivityManager
 import android.os.Debug
+import java.util.Locale
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
@@ -40,7 +41,7 @@ internal class MemoryMetricsProvider(
                 "_native_used_kb" to allocatedNativeHeapSizeBytes().bToKb(),
                 "_native_total_kb" to totalNativeHeapSizeBytes().bToKb(),
                 "_memory_class" to memoryClassMB().toString(),
-                "_jvm_used_percent" to "%.3f".format(jvmUsedPercent()),
+                "_jvm_used_percent" to String.format(Locale.ROOT, "%.3f", jvmUsedPercent()),
             ),
             fieldsOfOptional(
                 "_is_memory_low" to appCriticalMemoryConfigThreshold?.let { if (isMemoryLow()) "1" else "0" },
