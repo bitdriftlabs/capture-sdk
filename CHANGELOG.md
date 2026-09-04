@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.24.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.24.1...HEAD
 
 ### Both
 
@@ -44,6 +44,15 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.24.1]
+[0.24.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.1
+
+### iOS
+
+**Fixed**
+
+- Release packaging now includes the Xcode 27 `.xcframework` for iOS 27 MetricKit support.
 
 ## [0.24.0]
 [0.24.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.0
