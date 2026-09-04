@@ -1,7 +1,52 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.12...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.24.0...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.24.0]
+[0.24.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.0
 
 ### Both
 
@@ -58,7 +103,7 @@
 
 **Added**
 
-- Nothing yet!
+- Crash, hangs, and (new) OOM diagnostics are now read through the iOS 27 `MetricManager` API when running on iOS 27 and compiling with Xcode 27; earlier OS versions continue to use `MXMetricManager`.
 
 **Changed**
 
@@ -69,6 +114,7 @@
 
 - Invalid inactivity timeouts now disable activity-based session rotation instead of preventing
   SDK initialization.
+- Fixed a link failure in apps that was caused by exceeding Apple's limit of personality routines for compact unwind.
 
 ## [0.23.12]
 [0.23.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.12
