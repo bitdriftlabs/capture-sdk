@@ -203,12 +203,18 @@ class MemoryMetricsProviderTest {
             whenever(jvmMemoryProvider.usedMemoryBytes()).thenReturn(16_664L)
             whenever(jvmMemoryProvider.maxMemoryBytes()).thenReturn(100_000L)
 
-            val locales = listOf(
-                Locale.US, Locale.UK,
-                Locale.forLanguageTag("ar-EG"), Locale.forLanguageTag("fa-IR"),
-                Locale.FRANCE, Locale.GERMANY,
-                Locale.forLanguageTag("pt-BR"), Locale.forLanguageTag("in-ID"), Locale.forLanguageTag("tr-TR"),
-            )
+            val locales =
+                listOf(
+                    Locale.US,
+                    Locale.UK,
+                    Locale.forLanguageTag("ar-EG"),
+                    Locale.forLanguageTag("fa-IR"),
+                    Locale.FRANCE,
+                    Locale.GERMANY,
+                    Locale.forLanguageTag("pt-BR"),
+                    Locale.forLanguageTag("in-ID"),
+                    Locale.forLanguageTag("tr-TR"),
+                )
 
             locales.forEach { locale ->
                 Locale.setDefault(locale)
