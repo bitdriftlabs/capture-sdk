@@ -135,6 +135,7 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
         case "info": Logger.logInfo(message, fields: fields)
         case "warning": Logger.logWarning(message, fields: fields)
         case "error": Logger.logError(message, fields: fields)
+        case "critical": Logger.logCritical(message, fields: fields)
         default: Logger.logInfo(message, fields: fields)
         }
         result(nil)
@@ -174,6 +175,7 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
         case "debug": level = .debug
         case "warning": level = .warning
         case "error": level = .error
+        case "critical": level = .critical
         default: level = .info
         }
         let fields = (args["fields"] as? [String: String]) ?? [:]

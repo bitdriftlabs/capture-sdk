@@ -133,6 +133,7 @@ internal class WebViewBridgeMessageHandler(
                 "info" -> LogLevel.INFO
                 "warn" -> LogLevel.WARNING
                 "error" -> LogLevel.ERROR
+                "critical" -> LogLevel.CRITICAL
                 "trace" -> LogLevel.TRACE
                 else -> LogLevel.DEBUG
             }

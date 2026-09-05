@@ -177,6 +177,7 @@ class SdkRepository(
             LogLevel.INFO -> Timber.i(message)
             LogLevel.WARNING -> Timber.w(message)
             LogLevel.ERROR -> Timber.e(message)
+            LogLevel.CRITICAL -> Timber.wtf(message)
         }
     }
 
