@@ -34,6 +34,7 @@ mod test {
       "org.jetbrains.kotlin:kotlin-stdlib",
     ];
     let excluded_deps = vec![
+      "androidx.compose.ui:ui",
       "androidx.webkit:webkit",
       "com.google.code.findbugs:jsr305",
       "com.squareup.retrofit2:retrofit",
