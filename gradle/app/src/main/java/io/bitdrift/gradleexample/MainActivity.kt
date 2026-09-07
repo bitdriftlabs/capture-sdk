@@ -8,6 +8,7 @@
 package io.bitdrift.gradleexample
 
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
@@ -18,11 +19,14 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import com.google.android.material.snackbar.Snackbar
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.Configuration
-import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradleexample.databinding.ActivityMainBinding
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import timber.log.Timber
+import kotlin.random.Random
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 class MainActivity : AppCompatActivity() {
 
@@ -40,7 +44,11 @@ class MainActivity : AppCompatActivity() {
         Logger.start(
             apiKey = "<YOUR API KEY GOES HERE>",
             apiUrl = "https://api.bitdrift.io".toHttpUrl(),
-            sessionStrategy = SessionStrategy.Fixed(),
+            sessionConfiguration = SessionConfiguration(
+                inactivityTimeout = 30.toDuration(DurationUnit.MINUTES)
+            ) {
+                Timber.i("Created new bitdrift session with UUID: $it")
+            },
             configuration = Configuration(enableFatalIssueReporting = true),
         )
 
