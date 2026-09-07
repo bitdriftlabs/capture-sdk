@@ -479,7 +479,7 @@ internal class CaptureOkHttpEventListener internal constructor(
             tcpDurationMs = tcpDurationMs,
             fetchInitializationMs = fetchInitializationMs,
             responseLatencyMs = responseLatencyMs,
-            protocolName = lastResponse?.protocol.toString(),
+            protocolName = lastResponse?.protocol?.toString(),
         )
 
     private fun isInterruptedException(e: Throwable): Boolean {

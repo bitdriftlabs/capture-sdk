@@ -21,6 +21,7 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 @Composable
 fun NetworkTestingCard(
     onOkHttpRequest: () -> Unit,
+    onOkHttpFailureBeforeResponseHeaders: () -> Unit,
     onGraphQlRequest: () -> Unit,
     onRetrofitRequest: () -> Unit,
     onPreExistingW3cRequest: () -> Unit,
@@ -69,6 +70,17 @@ fun NetworkTestingCard(
                         ),
                 ) {
                     Text("OkHttp", maxLines = 1, softWrap = false)
+                }
+
+                OutlinedButton(
+                    onClick = onOkHttpFailureBeforeResponseHeaders,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = BitdriftColors.TextPrimary,
+                        ),
+                ) {
+                    Text("Fail DNS", maxLines = 1, softWrap = false)
                 }
             }
 

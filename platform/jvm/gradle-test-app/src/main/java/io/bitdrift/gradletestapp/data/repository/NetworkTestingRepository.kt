@@ -191,6 +191,17 @@ class NetworkTestingRepository(context: Context) {
         )
     }
 
+    fun performOkHttpFailureBeforeResponseHeaders() {
+        val request =
+            Request
+                .Builder()
+                .url("https://nonexistent.invalid/")
+                .build()
+
+        Timber.i("Performing OkHttp request expected to fail before response headers: ${request.url}")
+        performRequestWithPreExistingHeaders(request, "Pre-response failure")
+    }
+
     fun performGraphQlRequest() {
         val operation = graphQlOperations.random()
         MainScope().launch {

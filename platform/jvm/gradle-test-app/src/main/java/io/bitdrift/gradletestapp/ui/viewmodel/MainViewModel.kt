@@ -146,6 +146,9 @@ class MainViewModel(
             is NetworkTestAction.PerformOkHttpRequest -> {
                 networkTestingRepository.performOkHttpRequest()
             }
+            is NetworkTestAction.PerformOkHttpFailureBeforeResponseHeaders -> {
+                networkTestingRepository.performOkHttpFailureBeforeResponseHeaders()
+            }
             is NetworkTestAction.PerformGraphQlRequest -> {
                 networkTestingRepository.performGraphQlRequest()
             }
