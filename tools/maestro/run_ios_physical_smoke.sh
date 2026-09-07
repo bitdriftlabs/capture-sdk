@@ -8,10 +8,16 @@ readonly maestro_bin="${MAESTRO_BIN:?Set MAESTRO_BIN to the bitdrift-maestro exe
 readonly apple_team_id="${APPLE_TEAM_ID:?Set APPLE_TEAM_ID or add it to .bazelrc.local.}"
 readonly ios_device_id="${IOS_DEVICE_ID:?Set IOS_DEVICE_ID to the CoreDevice ID of the connected iPhone. Run make list-ios-devices to list available devices.}"
 readonly ipa_path="${IOS_PHYSICAL_SMOKE_APP_IPA:?Set IOS_PHYSICAL_SMOKE_APP_IPA to the signed Hello World IPA.}"
-readonly flow_path="$script_dir/ios-physical-smoke.yaml"
+readonly flow_path="${IOS_MAESTRO_FLOW:-$script_dir/ios-physical-smoke.yaml}"
+readonly crash_ids="${IOS_MAESTRO_CRASH_IDS:-}"
 
 if [[ ! -f "$ipa_path" ]]; then
   echo "Hello World IPA does not exist: $ipa_path" >&2
+  exit 1
+fi
+
+if [[ ! -f "$flow_path" ]]; then
+  echo "Maestro flow does not exist: $flow_path" >&2
   exit 1
 fi
 
@@ -19,6 +25,18 @@ hardware_udid="$(python3 "$script_dir/resolve_ios_hardware_udid.py" "$ios_device
 readonly hardware_udid
 xcrun devicectl device install app --device "$ios_device_id" "$ipa_path"
 
-"$maestro_bin" --device "$hardware_udid" test \
-  --apple-team-id "$apple_team_id" \
-  "$flow_path"
+if [[ -z "$crash_ids" ]]; then
+  "$maestro_bin" --device "$hardware_udid" test \
+    --apple-team-id "$apple_team_id" \
+    "$flow_path"
+  exit 0
+fi
+
+IFS=' ' read -r -a crash_identifiers <<< "$crash_ids"
+for crash_identifier in "${crash_identifiers[@]}"; do
+  echo "Running crash catalog entry: $crash_identifier"
+  "$maestro_bin" --device "$hardware_udid" test \
+    --apple-team-id "$apple_team_id" \
+    -e "CRASH_ID=$crash_identifier" \
+    "$flow_path"
+done

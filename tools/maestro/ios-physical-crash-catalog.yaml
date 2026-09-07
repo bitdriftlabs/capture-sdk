@@ -1,0 +1,17 @@
+# The runner invokes this flow once per CrashRegistry entry, in order, so every fatal crash gets
+# a fresh iOS XCTest runner. See IOS_CRASH_CATALOG_IDS in the Makefile for the ordered catalog.
+appId: io.bitdrift.example.swiftapp.helloworld
+---
+- launchApp:
+    arguments:
+      bitdrift-initial-screen: crashes
+- scrollUntilVisible:
+    element:
+      id: ${CRASH_ID}
+    direction: DOWN
+    visibilityPercentage: 95
+    centerElement: false
+- tapOn:
+    id: ${CRASH_ID}
+- tapOn:
+    id: crash.trigger-now

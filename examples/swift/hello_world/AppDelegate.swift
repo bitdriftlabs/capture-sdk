@@ -11,11 +11,14 @@ import UIKit
 
 @UIApplicationMain
 final class AppDelegate: UIResponder, UIApplicationDelegate {
+    private(set) lazy var loggerCustomer = LoggerCustomer()
+
     func application(
         _: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         Theme.applyNavigationAppearance()
+        _ = self.loggerCustomer
         return true
     }
 

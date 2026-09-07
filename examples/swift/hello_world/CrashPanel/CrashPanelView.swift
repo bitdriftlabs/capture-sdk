@@ -76,6 +76,7 @@ struct CrashesView: View {
                             )
                         }
                         .buttonStyle(PressableCardButtonStyle())
+                        .accessibilityIdentifier(crash.accessibilityIdentifier)
                     }
                 }
             }
@@ -100,6 +101,7 @@ struct CrashesView: View {
                 Button("Trigger now", role: .destructive) {
                     selectedCrashAction.crash.trigger()
                 }
+                .accessibilityIdentifier("crash.trigger-now")
 
                 if selectedCrashAction.crash.supportsStartupTrigger {
                     Button("Crash on next launch") {

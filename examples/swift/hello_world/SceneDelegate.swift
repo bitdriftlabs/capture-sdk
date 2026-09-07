@@ -18,21 +18,21 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         options _: UIScene.ConnectionOptions
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
-        let window = UIWindow(windowScene: windowScene)
-        window.rootViewController = UIHostingController(rootView: createContentView())
-        window.makeKeyAndVisible()
-        self.window = window
-    }
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return }
 
-    private func createContentView() -> some View {
         let startupCrashStorage = StartupCrashStorage()
         let crashRegistry = CrashRegistry(startupStorage: startupCrashStorage)
-        let loggerCustomer = LoggerCustomer()
         let crashPanelViewModel = CrashPanelViewModel(crashRegistry: crashRegistry)
         crashPanelViewModel.refreshEnvironment()
-        return ContentView(
-            loggerCustomer: loggerCustomer,
-            crashPanelViewModel: crashPanelViewModel
+
+        let mainViewFactory = MainViewFactory(
+            loggerCustomer: appDelegate.loggerCustomer,
+            crashPanelViewModel: crashPanelViewModel,
+            launchArguments: ProcessInfo.processInfo.arguments
         )
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = UIHostingController(rootView: mainViewFactory.makeView())
+        window.makeKeyAndVisible()
+        self.window = window
     }
 }

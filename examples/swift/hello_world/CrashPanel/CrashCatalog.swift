@@ -32,6 +32,7 @@ enum CrashCategory: String, CaseIterable {
 }
 
 protocol Crash: AnyObject {
+    var accessibilityIdentifier: String { get }
     var category: CrashCategory { get }
     var title: String { get }
     var crashDescription: String { get }
@@ -41,6 +42,7 @@ protocol Crash: AnyObject {
 
 extension Crash {
     var identifier: String { String(describing: type(of: self)) }
+    var accessibilityIdentifier: String { "crash.\(self.identifier)" }
     var supportsStartupTrigger: Bool { false }
 }
 
@@ -142,6 +144,7 @@ final class StackOverflowCrash: Crash {
 }
 
 final class FatalErrorCrash: Crash {
+    let accessibilityIdentifier = "crash.fatal-error"
     let category: CrashCategory = .swiftRuntime
     let title = "fatalError()"
     let crashDescription = "Call fatalError() with a message. Produces EXC_BAD_INSTRUCTION with the message in the crash report."

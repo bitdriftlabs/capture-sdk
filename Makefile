@@ -8,6 +8,7 @@ BITDRIFT_MAESTRO_DIR ?= $(CURDIR)/.tools/bitdrift-maestro/$(BITDRIFT_MAESTRO_VER
 MAESTRO_BIN ?= $(BITDRIFT_MAESTRO_DIR)/bin/maestro
 IOS_PHYSICAL_SMOKE_APP_IPA ?= $(CURDIR)/bazel-bin/examples/swift/hello_world/hello_world_app.ipa
 APPLE_TEAM_ID ?= $(shell grep -E '^[[:space:]]*build[[:space:]]+--repo_env=APPLE_TEAM_ID=' .bazelrc.local 2>/dev/null | sed 's/.*APPLE_TEAM_ID=//' | awk '{ print $$1 }' | tail -n 1)
+IOS_CRASH_CATALOG_IDS := crash.ForceUnwrapCrash crash.ArrayOutOfBoundsCrash crash.StackOverflowCrash crash.fatal-error crash.AssertionCrash crash.PreconditionCrash crash.IntegerOverflowCrash crash.DivisionByZeroCrash crash.AbortCrash crash.NullPointerCrash crash.SIGSEGVCrash crash.SIGBUSCrash crash.SIGILLCrash crash.SIGFPECrash crash.StackSmashCrash crash.MainThreadSyncDispatch crash.WatchdogSceneUpdateCrash crash.WatchdogProcessExitCrash crash.AsyncSafeThreadCrash crash.ObjCExceptionCrash crash.CXXExceptionCrash crash.ObjCMsgSendCrash crash.UnrecognizedSelectorCrash crash.KVOCrash crash.ReleasedObjectCrash crash.CorruptMallocCrash crash.OOMKillCrash crash.BackgroundOOMKillCrash
 
 -include .maestro.local.mk
 
@@ -35,6 +36,16 @@ test-ios-smoke: install-bitdrift-maestro build-ios-smoke-app
 	APPLE_TEAM_ID="$(APPLE_TEAM_ID)" \
 	IOS_DEVICE_ID="$(IOS_DEVICE_ID)" \
 	IOS_PHYSICAL_SMOKE_APP_IPA="$(IOS_PHYSICAL_SMOKE_APP_IPA)" \
+	./tools/maestro/run_ios_physical_smoke.sh
+
+.PHONY: test-ios-crash-catalog
+test-ios-crash-catalog: install-bitdrift-maestro build-ios-smoke-app
+	MAESTRO_BIN="$(MAESTRO_BIN)" \
+	APPLE_TEAM_ID="$(APPLE_TEAM_ID)" \
+	IOS_DEVICE_ID="$(IOS_DEVICE_ID)" \
+	IOS_PHYSICAL_SMOKE_APP_IPA="$(IOS_PHYSICAL_SMOKE_APP_IPA)" \
+	IOS_MAESTRO_FLOW="$(CURDIR)/tools/maestro/ios-physical-crash-catalog.yaml" \
+	IOS_MAESTRO_CRASH_IDS="$(IOS_CRASH_CATALOG_IDS)" \
 	./tools/maestro/run_ios_physical_smoke.sh
 
 .PHONY: ktlint
