@@ -355,6 +355,26 @@ class CaptureOkHttpEventListenerFactoryTest {
     }
 
     @Test
+    fun testRequestFailureBeforeResponseHeadersOmitsProtocol() {
+        val request =
+            Request
+                .Builder()
+                .url(endpoint)
+                .build()
+        val call: Call = mock()
+        whenever(call.request()).thenReturn(request)
+
+        val listener = createListenerFactory().create(call)
+        listener.callStart(call)
+        listener.callFailed(call, FileNotFoundException("test error"))
+
+        val httpResponseInfoCapture = argumentCaptor<HttpResponseInfo>()
+        verify(logger).log(httpResponseInfoCapture.capture())
+
+        assertThat(httpResponseInfoCapture.firstValue.arrayFields.toStringMap()).doesNotContainKey("_protocol")
+    }
+
+    @Test
     fun testRequestAndErrorThrownCanceled() {
         // ARRANGE
         val request =
