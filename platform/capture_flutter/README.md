@@ -99,7 +99,7 @@ Capture.stopSessionReplay();
 
 - iOS 15.0+
 - Android minSdk 23
-- Flutter 3.10+
+- Flutter 3.44+ / Dart 3.12+ (required for Android's Built-in Kotlin support — see `ALPHA_RELEASES.md`)
 
 ## Releases
 
