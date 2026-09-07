@@ -91,6 +91,7 @@ dependencies {
     implementation libs.androidx.navigation.ui.ktx
     implementation libs.material
     implementation libs.timber
+    implementation libs.okhttp
 
     testImplementation libs.junit
 
