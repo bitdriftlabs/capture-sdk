@@ -24,19 +24,31 @@ open class InstrumentationExtension
                 .convention(false)
 
         /**
-         * Enables automatic WebView instrumentation via bytecode transformation.
+         * Enables full automatic WebView instrumentation.
          *
-         * When enabled, the plugin injects calls to [io.bitdrift.capture.webview.WebViewCapture]
-         * at WebView load sites. For instrumentation to be active at runtime, a valid
-         * [io.bitdrift.capture.webview.WebViewConfiguration] must be provided when calling
-         * `Capture.Logger.start()`. If `null` is passed, the injected calls will be no-op.
-         *
-         * **Experimental:** This API may change in future releases.
+         * @deprecated Use [webViewAutomaticInstrumentationMode] with
+         * [WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED].
          */
+        @Deprecated(
+            message = "Use webViewAutomaticInstrumentationMode = ONLY_IF_JAVASCRIPT_ALREADY_ENABLED.",
+            replaceWith = ReplaceWith("webViewAutomaticInstrumentationMode.set(ONLY_IF_JAVASCRIPT_ALREADY_ENABLED)"),
+        )
         val automaticWebViewInstrumentation: Property<Boolean> =
             objects
                 .property(Boolean::class.java)
                 .convention(false)
+
+        /**
+         * Controls automatic WebView instrumentation via bytecode transformation.
+         *
+         * When unset, WebViews are not instrumented automatically. [WebViewAutomaticInstrumentationMode.FULL]
+         * instruments all detected WebViews; [WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED]
+         * instruments only WebViews whose application already enabled JavaScript.
+         *
+         * **Experimental:** This API may change in future releases.
+         */
+        val webViewAutomaticInstrumentationMode: Property<WebViewAutomaticInstrumentationMode> =
+            objects.property(WebViewAutomaticInstrumentationMode::class.java)
 
         val debug: Property<Boolean> =
             objects.property(Boolean::class.java).convention(
@@ -54,7 +66,18 @@ open class InstrumentationExtension
             OVERWRITE,
         }
 
+        enum class WebViewAutomaticInstrumentationMode {
+            /** Instruments all detected WebViews and enables JavaScript when needed. */
+            FULL,
+
+            /** Instruments only WebViews whose application already enabled JavaScript. */
+            ONLY_IF_JAVASCRIPT_ALREADY_ENABLED,
+        }
+
         // Helpers so that these values can be used directly in the DSL
         val PROXY = OkHttpInstrumentationType.PROXY
         val OVERWRITE = OkHttpInstrumentationType.OVERWRITE
+        val FULL = WebViewAutomaticInstrumentationMode.FULL
+        val ONLY_IF_JAVASCRIPT_ALREADY_ENABLED =
+            WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED
     }

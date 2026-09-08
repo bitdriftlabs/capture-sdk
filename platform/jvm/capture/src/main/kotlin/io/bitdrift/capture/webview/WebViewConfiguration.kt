@@ -14,9 +14,8 @@ import org.json.JSONObject
 /**
  * Configuration for WebView instrumentation.
  *
- * **Note:** In order for this configuration to take effect, the `io.bitdrift.capture-plugin`
- * Gradle plugin must be applied to your project with `automaticWebViewInstrumentation` set to `true`.
- * Without the plugin, this configuration has no effect.
+ * Configure `webViewAutomaticInstrumentationMode` in the Capture Gradle plugin to instrument WebViews
+ * automatically, or call [WebViewCapture.instrument] to instrument selected WebViews.
  *
  * When provided to [io.bitdrift.capture.Configuration], enables automatic WebView monitoring including
  * Core Web Vitals, page load events, and network activity capture.

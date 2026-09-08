@@ -7,6 +7,8 @@
 
 **Added**
 
+- Added `WebViewCapture.instrument(webView)` for explicitly instrumenting selected WebViews.
+- Added the `webViewAutomaticInstrumentationMode` Gradle plugin property with `FULL` and `JS_ENABLED` modes.
 - Added a `critical` log level, one step above `error`, with `logCritical` convenience methods on iOS and Android. The WebView custom-log bridge accepts `"critical"` as a level.
 
 **Changed**

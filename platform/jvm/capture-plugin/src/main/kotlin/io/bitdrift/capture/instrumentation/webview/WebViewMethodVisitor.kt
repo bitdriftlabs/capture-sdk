@@ -8,31 +8,33 @@
 package io.bitdrift.capture.instrumentation.webview
 
 import com.android.build.api.instrumentation.ClassContext
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationMode
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 
 /**
  * ASM MethodVisitor that intercepts calls to WebView.loadUrl() and injects
- * WebViewCapture.instrument(webView) before each call.
+ * mode-aware WebView instrumentation before each call.
  *
  * This works by scanning for INVOKEVIRTUAL instructions that target:
  * - android/webkit/WebView.loadUrl(String)V
  * - android/webkit/WebView.loadUrl(String, Map)V
  *
- * When found, it duplicates the WebView reference on the stack and calls
- * WebViewCapture.instrument() before the original loadUrl() call proceeds.
+ * When found, it duplicates the WebView reference on the stack and calls the appropriate
+ * [WebViewCapture] automatic instrumentation entry point before the original loadUrl() call proceeds.
  *
  * Transforms:
  *   webView.loadUrl(url)
  *
  * Into:
- *   WebViewCapture.instrument(webView)
+ *   WebViewCaptureInternals.instrumentInternally(webView, logger, runtimeProvider, mode)
  *   webView.loadUrl(url)
  */
 class WebViewMethodVisitor(
     apiVersion: Int,
     methodVisitor: MethodVisitor,
     private val classContext: ClassContext,
+    private val mode: WebViewAutomaticInstrumentationMode = WebViewAutomaticInstrumentationMode.FULL,
 ) : MethodVisitor(apiVersion, methodVisitor) {
 
     companion object {
@@ -42,9 +44,12 @@ class WebViewMethodVisitor(
         private const val LOAD_URL_DESCRIPTOR = "(Ljava/lang/String;)V"
         private const val LOAD_URL_WITH_HEADERS_DESCRIPTOR = "(Ljava/lang/String;Ljava/util/Map;)V"
 
-        private const val WEBVIEW_CAPTURE_CLASS = "io/bitdrift/capture/webview/WebViewCapture"
-        private const val INSTRUMENT_METHOD = "instrument"
-        private const val INSTRUMENT_DESCRIPTOR = "(Landroid/webkit/WebView;)V"
+        private const val WEBVIEW_CAPTURE_INTERNALS_CLASS = "io/bitdrift/capture/webview/WebViewCaptureInternals"
+        private const val INSTRUMENT_METHOD = "instrumentInternally"
+        private const val INSTRUMENT_DESCRIPTOR = "(Landroid/webkit/WebView;Lio/bitdrift/capture/ILogger;Lio/bitdrift/capture/IRuntimeProvider;Lio/bitdrift/capture/webview/WebViewInstrumentationMode;)V"
+        private const val WEBVIEW_INSTRUMENTATION_MODE_CLASS = "io/bitdrift/capture/webview/WebViewInstrumentationMode"
+        private const val CAPTURE_RUNTIME_PROVIDER_CLASS = "io/bitdrift/capture/CaptureRuntimeProvider"
+        private const val CAPTURE_RUNTIME_PROVIDER_INSTANCE_DESCRIPTOR = "Lio/bitdrift/capture/CaptureRuntimeProvider;"
     }
 
     override fun visitMethodInsn(
@@ -62,7 +67,7 @@ class WebViewMethodVisitor(
         if (isWebViewLoadUrl) {
             // Before the loadUrl call, we need to:
             // 1. Duplicate the WebView reference that's already on the stack
-            // 2. Call WebViewCapture.instrument(webView)
+            // 2. Call the mode-aware internal WebView instrumentation entry point
             // 3. Let the original loadUrl() proceed
 
             // Stack before: [..., webView, url] or [..., webView, url, headers]
@@ -78,13 +83,7 @@ class WebViewMethodVisitor(
                     mv.visitInsn(Opcodes.DUP_X1)  // url, webView, url
                     mv.visitInsn(Opcodes.POP)      // url, webView
                     mv.visitInsn(Opcodes.DUP_X1)  // webView, url, webView
-                    mv.visitMethodInsn(
-                        Opcodes.INVOKESTATIC,
-                        WEBVIEW_CAPTURE_CLASS,
-                        INSTRUMENT_METHOD,
-                        INSTRUMENT_DESCRIPTOR,
-                        false,
-                    )
+                    instrumentWebView()
                     // Stack now: webView, url - ready for original loadUrl
                 }
                 LOAD_URL_WITH_HEADERS_DESCRIPTOR -> {
@@ -97,19 +96,44 @@ class WebViewMethodVisitor(
                     mv.visitInsn(Opcodes.DUP2_X1)  // url, headers, webView, url, headers
                     mv.visitInsn(Opcodes.POP2)      // url, headers, webView
                     mv.visitInsn(Opcodes.DUP_X2)   // webView, url, headers, webView
-                    mv.visitMethodInsn(
-                        Opcodes.INVOKESTATIC,
-                        WEBVIEW_CAPTURE_CLASS,
-                        INSTRUMENT_METHOD,
-                        INSTRUMENT_DESCRIPTOR,
-                        false,
-                    )
+                    instrumentWebView()
                     // Stack now: webView, url, headers - ready for original loadUrl
                 }
             }
         }
         super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
     }
+
+    private fun instrumentWebView() {
+        mv.visitInsn(Opcodes.ACONST_NULL)
+        mv.visitFieldInsn(
+            Opcodes.GETSTATIC,
+            CAPTURE_RUNTIME_PROVIDER_CLASS,
+            "INSTANCE",
+            CAPTURE_RUNTIME_PROVIDER_INSTANCE_DESCRIPTOR,
+        )
+        mv.visitFieldInsn(
+            Opcodes.GETSTATIC,
+            WEBVIEW_INSTRUMENTATION_MODE_CLASS,
+            mode.internalModeName,
+            "L$WEBVIEW_INSTRUMENTATION_MODE_CLASS;",
+        )
+        mv.visitMethodInsn(
+            Opcodes.INVOKESTATIC,
+            WEBVIEW_CAPTURE_INTERNALS_CLASS,
+            INSTRUMENT_METHOD,
+            INSTRUMENT_DESCRIPTOR,
+            false,
+        )
+    }
+
+    private val WebViewAutomaticInstrumentationMode.internalModeName: String
+        get() =
+            when (this) {
+                WebViewAutomaticInstrumentationMode.FULL -> "AUTOMATIC_FULL"
+                WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED ->
+                    "AUTOMATIC_JAVASCRIPT_ENABLED_ONLY"
+            }
 
     private fun String?.isWebViewClassOwner(classContext: ClassContext): Boolean {
         if (this == null) {

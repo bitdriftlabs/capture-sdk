@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -55,13 +56,27 @@ fun WebViewCard(onAction: (AppAction) -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                WebViewFragment.WEBVIEW_URLS.forEach { (name, url) ->
-                    OutlinedButton(
-                        onClick = { onAction(NavigationAction.NavigateToWebView(url)) },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                    ) {
-                        Text(name, maxLines = 1, softWrap = false)
-                    }
+                val automatic = WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.FULL_AUTOMATIC)
+                Button(
+                    onClick = { onAction(NavigationAction.NavigateToWebView(WebViewFragment.FULL_AUTOMATIC)) },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = BitdriftColors.WebViewJavaScriptDisabled,
+                            contentColor = BitdriftColors.TextBright,
+                        ),
+                ) {
+                    Text(automatic.buttonName, maxLines = 1, softWrap = false)
+                }
+                val manual = WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.MANUAL)
+                Button(
+                    onClick = { onAction(NavigationAction.NavigateToWebView(WebViewFragment.MANUAL)) },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = BitdriftColors.WebViewJavaScriptEnabled,
+                            contentColor = BitdriftColors.TextBright,
+                        ),
+                ) {
+                    Text(manual.buttonName, maxLines = 1, softWrap = false)
                 }
             }
         }
