@@ -5,17 +5,19 @@ using platform channels.
 
 ## Setup
 
-1. Install dependencies:
+1. Install Flutter 3.44+ / Dart 3.12+.
+
+2. Install dependencies:
    ```bash
    flutter pub get
    ```
 
-2. Run:
+3. Run:
    ```bash
    flutter run
    ```
 
-3. Tap the settings icon and enter your Bitdrift API key (and optionally override the API URL).
+4. Tap the settings icon and enter your Bitdrift API key (and optionally override the API URL).
 
 ## Architecture
 
