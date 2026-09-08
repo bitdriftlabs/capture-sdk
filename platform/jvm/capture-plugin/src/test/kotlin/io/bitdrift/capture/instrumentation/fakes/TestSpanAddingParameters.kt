@@ -34,6 +34,7 @@
 package io.bitdrift.capture.instrumentation.fakes
 
 import io.bitdrift.capture.extension.InstrumentationExtension.OkHttpInstrumentationType
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationMode
 import io.bitdrift.capture.instrumentation.ClassInstrumentable
 import io.bitdrift.capture.instrumentation.SpanAddingClassVisitorFactory
 import org.gradle.api.internal.provider.DefaultProperty
@@ -44,7 +45,7 @@ import java.io.File
 class TestSpanAddingParameters(
     private val debugOutput: Boolean = true,
     private val okHttpInstrumentationEnabled: Boolean = true,
-    private val webViewInstrumentationEnabled: Boolean = true,
+    private val webViewInstrumentationModeValue: WebViewAutomaticInstrumentationMode? = WebViewAutomaticInstrumentationMode.FULL,
     private val inMemoryDir: File,
 ) : SpanAddingClassVisitorFactory.SpanAddingParameters {
     override val debug: Property<Boolean>
@@ -61,10 +62,10 @@ class TestSpanAddingParameters(
             DefaultProperty(PropertyHost.NO_OP, Boolean::class.javaObjectType)
                 .convention(okHttpInstrumentationEnabled)
 
-    override val enableWebViewInstrumentation: Property<Boolean>
+    override val webViewInstrumentationMode: Property<WebViewAutomaticInstrumentationMode>
         get() =
-            DefaultProperty(PropertyHost.NO_OP, Boolean::class.javaObjectType)
-                .convention(webViewInstrumentationEnabled)
+            DefaultProperty(PropertyHost.NO_OP, WebViewAutomaticInstrumentationMode::class.java)
+                .also { property -> webViewInstrumentationModeValue?.let(property::set) }
 
     override val tmpDir: Property<File>
         get() = DefaultProperty<File>(PropertyHost.NO_OP, File::class.java).convention(inMemoryDir)

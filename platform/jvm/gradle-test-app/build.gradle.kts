@@ -207,7 +207,9 @@ apollo {
 bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = enableAutoCaptureOkHttpInstrumentation
-        automaticWebViewInstrumentation = true
+        // Comment out when release 0.24.2 puglin is published -> For now, verifying locally
+        //webViewAutomaticInstrumentationMode = FULL
+        automaticWebViewInstrumentation = true // This
         // Comment out to change the default type. e.g. okHttpInstrumentationType = OVERWRITE
     }
 }

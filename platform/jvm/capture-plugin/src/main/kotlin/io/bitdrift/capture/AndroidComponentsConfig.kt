@@ -41,7 +41,9 @@ import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.Variant
 import io.bitdrift.capture.CapturePlugin.Companion.sep
 import io.bitdrift.capture.extension.BitdriftPluginExtension
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationMode
 import io.bitdrift.capture.instrumentation.SpanAddingClassVisitorFactory
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import java.io.File
 
@@ -52,12 +54,25 @@ fun AndroidComponentsExtension<*, *, *>.configure(
     // Temp folder for outputting debug logs
     val tmpDir = File("${project.layout.buildDirectory}${sep}tmp${sep}bitdrift")
     tmpDir.mkdirs()
+    var legacyWebViewWarningLogged = false
 
     onVariants { variant ->
         val enableOkHttp = extension.instrumentation.automaticOkHttpInstrumentation.get()
-        val enableWebView = extension.instrumentation.automaticWebViewInstrumentation.get()
+        @Suppress("DEPRECATION")
+        val legacyWebViewInstrumentation = extension.instrumentation.automaticWebViewInstrumentation.get()
+        val configuredWebViewMode = extension.instrumentation.webViewAutomaticInstrumentationMode.orNull
+        val webViewInstrumentationMode =
+            resolveWebViewAutomaticInstrumentationMode(legacyWebViewInstrumentation, configuredWebViewMode)
+        if (legacyWebViewInstrumentation && !legacyWebViewWarningLogged) {
+            project.logger.warn(
+                "automaticWebViewInstrumentation is deprecated. Use " +
+                    "webViewAutomaticInstrumentationMode = ONLY_IF_JAVASCRIPT_ALREADY_ENABLED. " +
+                    "The deprecated setting continues to use FULL behavior for compatibility.",
+            )
+            legacyWebViewWarningLogged = true
+        }
 
-        if (enableOkHttp || enableWebView) {
+        if (enableOkHttp || webViewInstrumentationMode != null) {
             variant.configureInstrumentation(
                 SpanAddingClassVisitorFactory::class.java,
                 InstrumentationScope.ALL,
@@ -67,10 +82,25 @@ fun AndroidComponentsExtension<*, *, *>.configure(
                 params.debug.set(extension.instrumentation.debug)
                 params.okHttpInstrumentationType.set(extension.instrumentation.okHttpInstrumentationType)
                 params.enableOkHttpInstrumentation.set(enableOkHttp)
-                params.enableWebViewInstrumentation.set(enableWebView)
+                webViewInstrumentationMode?.let(params.webViewInstrumentationMode::set)
             }
         }
     }
+}
+
+internal fun resolveWebViewAutomaticInstrumentationMode(
+    legacyEnabled: Boolean,
+    configuredMode: WebViewAutomaticInstrumentationMode?,
+): WebViewAutomaticInstrumentationMode? {
+    if (legacyEnabled && configuredMode != null) {
+        throw GradleException(
+            "automaticWebViewInstrumentation and webViewAutomaticInstrumentationMode cannot both be " +
+                "configured. Replace automaticWebViewInstrumentation = true with " +
+                "webViewAutomaticInstrumentationMode = ONLY_IF_JAVASCRIPT_ALREADY_ENABLED/FULL.",
+        )
+    }
+
+    return configuredMode ?: WebViewAutomaticInstrumentationMode.FULL.takeIf { legacyEnabled }
 }
 
 private fun <T : InstrumentationParameters> Variant.configureInstrumentation(
