@@ -3,5 +3,6 @@ library capture_flutter;
 
 export 'src/capture.dart';
 export 'src/log_level.dart';
+export 'src/network.dart';
 export 'src/session_replay.dart' show FlutterReplayCapture;
 export 'src/span.dart';

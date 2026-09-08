@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,6 +35,8 @@ class _HomePageState extends State<HomePage> {
   String? _entityId;
   String? _apiKey;
   String _apiUrl = 'https://api.bitdrift.io';
+  String? _networkStatus;
+  bool _networkInFlight = false;
 
   @override
   void initState() {
@@ -66,6 +70,7 @@ class _HomePageState extends State<HomePage> {
       const entityId = 'flutter-example-user';
       if (success) {
         await Capture.setEntityId(entityId);
+        Capture.enableNetworkInstrumentation();
       }
       setState(() {
         _status = success ? 'Started successfully' : 'Start failed';
@@ -74,6 +79,103 @@ class _HomePageState extends State<HomePage> {
       });
     } catch (e) {
       setState(() => _status = 'Error: $e');
+    }
+  }
+
+  /// Performs a real network request (GET https://www.google.com/) and logs
+  /// it via [Capture.logNetworkRequest]/[Capture.logNetworkResponse], so the
+  /// resulting HTTPRequest/HTTPResponse span is visible in the session
+  /// timeline and exercises the backend's built-in network matchers.
+  Future<void> _pingGoogle() async {
+    setState(() {
+      _networkInFlight = true;
+      _networkStatus = null;
+    });
+
+    final request = HttpRequestInfo(
+      method: 'GET',
+      host: 'www.google.com',
+      path: const HttpUrlPath('/'),
+    );
+    await Capture.logNetworkRequest(request);
+
+    final stopwatch = Stopwatch()..start();
+    final client = HttpClient();
+    try {
+      final httpRequest = await client.getUrl(Uri.https('www.google.com', '/'));
+      final httpResponse = await httpRequest.close();
+      final bytesReceived = await httpResponse.fold<int>(
+        0,
+        (total, chunk) => total + chunk.length,
+      );
+      stopwatch.stop();
+
+      await Capture.logNetworkResponse(
+        request,
+        HttpResponse(
+          result: HttpResult.success,
+          statusCode: httpResponse.statusCode,
+        ),
+        durationMs: stopwatch.elapsedMilliseconds,
+        metrics: HttpRequestMetrics(
+          responseBodyBytesReceivedCount: bytesReceived,
+        ),
+      );
+
+      if (mounted) {
+        setState(() {
+          _networkStatus =
+              'GET / -> ${httpResponse.statusCode} (${stopwatch.elapsedMilliseconds}ms, $bytesReceived bytes)';
+        });
+      }
+    } catch (e) {
+      stopwatch.stop();
+      await Capture.logNetworkResponse(
+        request,
+        HttpResponse(result: HttpResult.failure, error: '$e'),
+        durationMs: stopwatch.elapsedMilliseconds,
+      );
+      if (mounted) {
+        setState(() => _networkStatus = 'GET / -> error: $e');
+      }
+    } finally {
+      client.close();
+      if (mounted) {
+        setState(() => _networkInFlight = false);
+      }
+    }
+  }
+
+  /// Fires a plain request with NO manual logNetworkRequest/logNetworkResponse
+  /// calls around it — proves Capture.enableNetworkInstrumentation() alone
+  /// captures it automatically.
+  Future<void> _pingGoogleAuto() async {
+    setState(() {
+      _networkInFlight = true;
+      _networkStatus = null;
+    });
+    final stopwatch = Stopwatch()..start();
+    final client = HttpClient();
+    try {
+      final request = await client.getUrl(Uri.https('www.google.com', '/'));
+      final response = await request.close();
+      final bytesReceived = await response.fold<int>(0, (total, chunk) => total + chunk.length);
+      stopwatch.stop();
+      if (mounted) {
+        setState(() {
+          _networkStatus =
+              '[auto] GET / -> ${response.statusCode} (${stopwatch.elapsedMilliseconds}ms, $bytesReceived bytes)';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _networkStatus = '[auto] GET / -> error: $e');
+      }
+    } finally {
+      client.close();
+      if (mounted) {
+        setState(() => _networkInFlight = false);
+      }
     }
   }
 
@@ -192,6 +294,28 @@ class _HomePageState extends State<HomePage> {
               icon: const Icon(Icons.copy),
               label: const Text('Copy Session URL'),
             ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: _networkInFlight ? null : _pingGoogle,
+              icon: _networkInFlight
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.wifi),
+              label: const Text('Network Request (ping google)'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: _networkInFlight ? null : _pingGoogleAuto,
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Network Request — auto (ping google)'),
+            ),
+            if (_networkStatus != null) ...[
+              const SizedBox(height: 4),
+              Text(_networkStatus!),
+            ],
             const SizedBox(height: 8),
             ElevatedButton.icon(
               onPressed: () {
