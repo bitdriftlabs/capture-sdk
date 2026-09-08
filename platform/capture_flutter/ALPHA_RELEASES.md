@@ -17,12 +17,30 @@ TODO: Before publishing, update the native SDK dependencies in `android/build.gr
 
 **Changed**
 
-- **Breaking:** minimum Flutter bumped to 3.44+ and Dart to 3.12+ (was 3.10+), required for Android's migration to Flutter's Built-in Kotlin support (below).
+- Add customer-facing changes here.
+
+**Fixed**
+
+- Add customer-facing changes here.
+
+## [0.0.4]
+[0.0.4]: https://github.com/bitdriftlabs/capture-sdk/tree/flutter-prototype-0.0.4
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- **Breaking:** minimum Flutter bumped to 3.44+ and Dart to 3.12+ (was 3.10+), required for Android's migration to Flutter's Built-in Kotlin support.
+- Updated the Android and iOS Capture SDK dependencies to 0.24.1.
 
 **Fixed**
 
 - Android: plugin no longer applies `org.jetbrains.kotlin.android` directly, which was triggering Flutter's Kotlin Gradle Plugin (KGP) deprecation warning and could cause a JVM-target mismatch build failure in consuming apps. Migrated to Flutter's Built-in Kotlin support instead.
-- iOS: fixed `ios/capture_flutter/Package.swift` — the `swift-tools-version` comment must be the first line of the manifest; it was preceded by a (duplicated) license header, which made Swift Package Manager reject the manifest entirely (`the manifest is backward-incompatible with Swift < 6.0...`).
+- iOS: fixed `ios/capture_flutter/Package.swift` by keeping the `swift-tools-version` comment on the first line, as required by Swift Package Manager.
 
 ## [0.0.3]
 [0.0.3]: https://github.com/bitdriftlabs/capture-sdk/tree/flutter-prototype-0.0.3
