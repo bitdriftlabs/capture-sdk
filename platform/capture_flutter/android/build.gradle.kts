@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "io.bitdrift"
-version = "0.22.16"
+version = "0.24.1"
 
 android {
     namespace = "io.bitdrift.capture_flutter"
@@ -31,6 +31,6 @@ kotlin {
 }
 
 dependencies {
-    implementation("io.bitdrift:capture:0.23.12")
+    implementation("io.bitdrift:capture:0.24.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

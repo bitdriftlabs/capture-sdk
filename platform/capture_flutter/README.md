@@ -13,7 +13,7 @@ dependencies:
   capture_flutter:
     git:
       url: https://github.com/bitdriftlabs/capture-sdk.git
-      ref: flutter-prototype-0.0.3
+      ref: flutter-prototype-0.0.4
       path: platform/capture_flutter
 ```
 

@@ -17,7 +17,7 @@ let package = Package(
         .library(name: "capture-flutter", targets: ["capture_flutter"])
     ],
     dependencies: [
-        .package(url: "https://github.com/bitdriftlabs/capture-ios.git", from: "0.22.0")
+        .package(url: "https://github.com/bitdriftlabs/capture-ios.git", from: "0.24.1")
     ],
     targets: [
         .target(
