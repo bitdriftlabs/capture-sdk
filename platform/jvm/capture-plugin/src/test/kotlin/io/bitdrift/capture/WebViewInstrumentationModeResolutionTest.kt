@@ -21,9 +21,9 @@ class WebViewInstrumentationModeResolutionTest {
     }
 
     @Test
-    fun `legacy enabled maps to full`() {
+    fun `legacy enabled maps to javascript enabled only`() {
         assertEquals(
-            WebViewAutomaticInstrumentationMode.FULL,
+            WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
             resolveWebViewAutomaticInstrumentationMode(legacyEnabled = true, configuredMode = null),
         )
     }

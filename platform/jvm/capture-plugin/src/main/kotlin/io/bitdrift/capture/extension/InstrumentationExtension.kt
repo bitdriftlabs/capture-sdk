@@ -24,10 +24,11 @@ open class InstrumentationExtension
                 .convention(false)
 
         /**
-         * Enables full automatic WebView instrumentation.
+         * Enables automatic instrumentation only for WebViews whose application already enabled JavaScript.
          *
          * @deprecated Use [automaticWebViewInstrumentationMode] with
-         * [WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY].
+         * [WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY]. Use [WebViewAutomaticInstrumentationMode.FULL]
+         * to explicitly allow Capture to enable JavaScript.
          */
         @Deprecated(
             message = "Use automaticWebViewInstrumentationMode = JS_ENABLED_ONLY.",

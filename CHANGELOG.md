@@ -27,6 +27,7 @@
 **Changed**
 
 - The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to `critical` instead of `debug`.
+- Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values now instrument only WebViews where JavaScript is already enabled; use `automaticWebViewInstrumentationMode = FULL` to preserve the previous behavior that enables JavaScript when needed.
 
 **Fixed**
 
