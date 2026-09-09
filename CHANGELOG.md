@@ -26,7 +26,7 @@
 
 **Changed**
 
-- Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values continue to use `FULL` behavior; migrate to `automaticWebViewInstrumentationMode`.
+- Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values now instrument only WebViews where JavaScript is already enabled; use `automaticWebViewInstrumentationMode = FULL` to preserve the previous behavior that enables JavaScript when needed.
 
 **Fixed**
 

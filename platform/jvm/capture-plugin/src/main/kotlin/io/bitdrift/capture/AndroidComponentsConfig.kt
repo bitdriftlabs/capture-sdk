@@ -67,7 +67,7 @@ fun AndroidComponentsExtension<*, *, *>.configure(
             project.logger.warn(
                 "automaticWebViewInstrumentation is deprecated. Use " +
                     "automaticWebViewInstrumentationMode = JS_ENABLED_ONLY. " +
-                    "The deprecated setting continues to use FULL behavior for compatibility.",
+                    "Set automaticWebViewInstrumentationMode = FULL to allow Capture to enable JavaScript.",
             )
             legacyWebViewWarningLogged = true
         }
@@ -100,7 +100,7 @@ internal fun resolveWebViewAutomaticInstrumentationMode(
         )
     }
 
-    return configuredMode ?: WebViewAutomaticInstrumentationMode.FULL.takeIf { legacyEnabled }
+    return configuredMode ?: WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY.takeIf { legacyEnabled }
 }
 
 private fun <T : InstrumentationParameters> Variant.configureInstrumentation(
