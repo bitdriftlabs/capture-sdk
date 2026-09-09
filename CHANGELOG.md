@@ -22,11 +22,11 @@
 **Added**
 
 - Added `WebViewCapture.instrument(webView)` for explicitly instrumenting selected WebViews.
-- Added the `webViewAutomaticInstrumentationMode` Gradle plugin property with `FULL` and `ONLY_IF_JAVASCRIPT_ALREADY_ENABLED` modes.
+- Added the `automaticWebViewInstrumentationMode` Gradle plugin property with `FULL` and `JS_ENABLED_ONLY` modes.
 
 **Changed**
 
-- Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values continue to use `FULL` behavior; migrate to `webViewAutomaticInstrumentationMode`.
+- Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values continue to use `FULL` behavior; migrate to `automaticWebViewInstrumentationMode`.
 
 **Fixed**
 

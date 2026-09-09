@@ -78,7 +78,7 @@ class WebViewCaptureTest {
             webView,
             spyLogger,
             CaptureRuntimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_FULL,
+            WebViewInstrumentationMode.AUTOMATIC_ALWAYS,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isFalse()
@@ -103,7 +103,7 @@ class WebViewCaptureTest {
             webView,
             spyLogger,
             CaptureRuntimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_FULL,
+            WebViewInstrumentationMode.AUTOMATIC_ALWAYS,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isTrue()
@@ -188,7 +188,7 @@ class WebViewCaptureTest {
             webView,
             Capture.logger(),
             runtimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_FULL,
+            WebViewInstrumentationMode.AUTOMATIC_ALWAYS,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isFalse()
@@ -203,7 +203,7 @@ class WebViewCaptureTest {
             webView,
             Capture.logger(),
             runtimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_FULL,
+            WebViewInstrumentationMode.AUTOMATIC_ALWAYS,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isTrue()

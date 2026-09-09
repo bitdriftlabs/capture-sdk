@@ -26,12 +26,12 @@ open class InstrumentationExtension
         /**
          * Enables full automatic WebView instrumentation.
          *
-         * @deprecated Use [webViewAutomaticInstrumentationMode] with
-         * [WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED].
+         * @deprecated Use [automaticWebViewInstrumentationMode] with
+         * [WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY].
          */
         @Deprecated(
-            message = "Use webViewAutomaticInstrumentationMode = ONLY_IF_JAVASCRIPT_ALREADY_ENABLED.",
-            replaceWith = ReplaceWith("webViewAutomaticInstrumentationMode.set(ONLY_IF_JAVASCRIPT_ALREADY_ENABLED)"),
+            message = "Use automaticWebViewInstrumentationMode = JS_ENABLED_ONLY.",
+            replaceWith = ReplaceWith("automaticWebViewInstrumentationMode.set(JS_ENABLED_ONLY)"),
         )
         val automaticWebViewInstrumentation: Property<Boolean> =
             objects
@@ -42,12 +42,12 @@ open class InstrumentationExtension
          * Controls automatic WebView instrumentation via bytecode transformation.
          *
          * When unset, WebViews are not instrumented automatically. [WebViewAutomaticInstrumentationMode.FULL]
-         * instruments all detected WebViews; [WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED]
+         * instruments all detected WebViews; [WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY]
          * instruments only WebViews whose application already enabled JavaScript.
          *
          * **Experimental:** This API may change in future releases.
          */
-        val webViewAutomaticInstrumentationMode: Property<WebViewAutomaticInstrumentationMode> =
+        val automaticWebViewInstrumentationMode: Property<WebViewAutomaticInstrumentationMode> =
             objects.property(WebViewAutomaticInstrumentationMode::class.java)
 
         val debug: Property<Boolean> =
@@ -71,13 +71,12 @@ open class InstrumentationExtension
             FULL,
 
             /** Instruments only WebViews whose application already enabled JavaScript. */
-            ONLY_IF_JAVASCRIPT_ALREADY_ENABLED,
+            JS_ENABLED_ONLY,
         }
 
         // Helpers so that these values can be used directly in the DSL
         val PROXY = OkHttpInstrumentationType.PROXY
         val OVERWRITE = OkHttpInstrumentationType.OVERWRITE
         val FULL = WebViewAutomaticInstrumentationMode.FULL
-        val ONLY_IF_JAVASCRIPT_ALREADY_ENABLED =
-            WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED
+        val JS_ENABLED_ONLY = WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY
     }

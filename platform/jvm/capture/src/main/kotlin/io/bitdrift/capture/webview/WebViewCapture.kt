@@ -26,21 +26,14 @@ import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.fieldsOf
 
-/** Describes how a specific WebView was instrumented for internal telemetry. */
-internal enum class WebViewInstrumentationMode {
-    AUTOMATIC_FULL,
-    AUTOMATIC_JAVASCRIPT_ENABLED_ONLY,
-    MANUAL,
-}
-
 /**
  * Instruments WebViews to capture page loads, performance metrics, and network activity.
  *
  * WebViews can be instrumented explicitly with [instrument], or automatically by applying the
- * `io.bitdrift.capture-plugin` Gradle plugin and configuring `webViewAutomaticInstrumentationMode`:
+ * `io.bitdrift.capture-plugin` Gradle plugin and configuring `automaticWebViewInstrumentationMode`:
  *
  * - `FULL` instruments detected WebViews and enables JavaScript when needed.
- * - `ONLY_IF_JAVASCRIPT_ALREADY_ENABLED` instruments only WebViews where the application already enabled
+ * - `JS_ENABLED_ONLY` instruments only WebViews where the application already enabled
  *   JavaScript; Capture does not enable it.
  * - If the property is unset, automatic WebView instrumentation is disabled.
  *
@@ -50,12 +43,13 @@ object WebViewCapture {
     /**
      * Explicitly instruments a selected WebView.
      *
-     * This call is an explicit per-WebView opt-in. It enables JavaScript when needed, registers the Capture bridge,
-     * and injects the monitoring script before the WebView loads content. Call it before [WebView.loadUrl].
+     * This call is an explicit per-WebView opt-in. Manual instrumentation always enables JavaScript when it is
+     * disabled, registers the Capture bridge, and injects the monitoring script before the WebView loads content.
+     * Call it before [WebView.loadUrl].
      *
      * Automatic instrumentation provides the same monitoring without an explicit call when the Capture Gradle
-     * plugin configures `webViewAutomaticInstrumentationMode` as `FULL` or
-     * `ONLY_IF_JAVASCRIPT_ALREADY_ENABLED`. The latter never enables JavaScript on behalf of the application.
+     * plugin configures `automaticWebViewInstrumentationMode` as `FULL` or `JS_ENABLED_ONLY`. The latter never
+     * enables JavaScript on behalf of the application.
      *
      * @param webview The WebView to instrument
      */
@@ -211,4 +205,11 @@ internal object WebViewCaptureInternals {
             }
         }
     }
+}
+
+/** Describes how a specific WebView was instrumented for internal telemetry. */
+internal enum class WebViewInstrumentationMode {
+    AUTOMATIC_ALWAYS,
+    AUTOMATIC_JAVASCRIPT_ENABLED_ONLY,
+    MANUAL,
 }

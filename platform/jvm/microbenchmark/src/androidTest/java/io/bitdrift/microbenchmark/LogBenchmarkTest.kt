@@ -192,7 +192,7 @@ class LogBenchmarkTest {
 
     @Test
     fun webViewBridgeInvalidJson() {
-        val handler = WebViewBridgeMessageHandler(getInternalLogger(), "AUTOMATIC_FULL")
+        val handler = WebViewBridgeMessageHandler(getInternalLogger(), "AUTOMATIC_ALWAYS")
         val invalidJson = "invalid json {"
 
         benchmarkRule.measureRepeated {
@@ -202,7 +202,7 @@ class LogBenchmarkTest {
 
     @Test
     fun webViewBridgeBridgeReady() {
-        val handler = WebViewBridgeMessageHandler(getInternalLogger(), "AUTOMATIC_FULL")
+        val handler = WebViewBridgeMessageHandler(getInternalLogger(), "AUTOMATIC_ALWAYS")
         val message =
             """{"v":1,"type":"bridgeReady","url":"https://example.com","instrumentationConfig":{"capturePageViews":true,"captureErrors":false}}"""
 

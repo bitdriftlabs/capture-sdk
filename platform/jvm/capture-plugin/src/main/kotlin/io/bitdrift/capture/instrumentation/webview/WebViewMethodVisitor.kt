@@ -130,8 +130,8 @@ class WebViewMethodVisitor(
     private val WebViewAutomaticInstrumentationMode.internalModeName: String
         get() =
             when (this) {
-                WebViewAutomaticInstrumentationMode.FULL -> "AUTOMATIC_FULL"
-                WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED ->
+                WebViewAutomaticInstrumentationMode.FULL -> "AUTOMATIC_ALWAYS"
+                WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY ->
                     "AUTOMATIC_JAVASCRIPT_ENABLED_ONLY"
             }
 
