@@ -37,7 +37,7 @@ class WebViewMethodVisitorTest {
                 "INSN:DUP_X1",
                 "INSN:ACONST_NULL",
                 "FIELD:GETSTATIC:io/bitdrift/capture/CaptureRuntimeProvider.INSTANCE:Lio/bitdrift/capture/CaptureRuntimeProvider;",
-                "FIELD:GETSTATIC:io/bitdrift/capture/webview/WebViewInstrumentationMode.AUTOMATIC_FULL:Lio/bitdrift/capture/webview/WebViewInstrumentationMode;",
+                "FIELD:GETSTATIC:io/bitdrift/capture/webview/WebViewInstrumentationMode.AUTOMATIC_ALWAYS:Lio/bitdrift/capture/webview/WebViewInstrumentationMode;",
                 "METHOD:INVOKESTATIC:io/bitdrift/capture/webview/WebViewCaptureInternals.instrumentInternally(Landroid/webkit/WebView;Lio/bitdrift/capture/ILogger;Lio/bitdrift/capture/IRuntimeProvider;Lio/bitdrift/capture/webview/WebViewInstrumentationMode;)V",
                 "METHOD:INVOKEVIRTUAL:android/webkit/WebView.loadUrl(Ljava/lang/String;)V",
             ),
@@ -83,7 +83,7 @@ class WebViewMethodVisitorTest {
                 "INSN:DUP_X1",
                 "INSN:ACONST_NULL",
                 "FIELD:GETSTATIC:io/bitdrift/capture/CaptureRuntimeProvider.INSTANCE:Lio/bitdrift/capture/CaptureRuntimeProvider;",
-                "FIELD:GETSTATIC:io/bitdrift/capture/webview/WebViewInstrumentationMode.AUTOMATIC_FULL:Lio/bitdrift/capture/webview/WebViewInstrumentationMode;",
+                "FIELD:GETSTATIC:io/bitdrift/capture/webview/WebViewInstrumentationMode.AUTOMATIC_ALWAYS:Lio/bitdrift/capture/webview/WebViewInstrumentationMode;",
                 "METHOD:INVOKESTATIC:io/bitdrift/capture/webview/WebViewCaptureInternals.instrumentInternally(Landroid/webkit/WebView;Lio/bitdrift/capture/ILogger;Lio/bitdrift/capture/IRuntimeProvider;Lio/bitdrift/capture/webview/WebViewInstrumentationMode;)V",
                 "METHOD:INVOKEVIRTUAL:com/reactnativecommunity/webview/RNCWebView.loadUrl(Ljava/lang/String;)V",
             ),
@@ -99,7 +99,7 @@ class WebViewMethodVisitorTest {
                 Opcodes.ASM7,
                 recorder,
                 TestClassContext("com.example.Caller"),
-                WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED,
+                WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
             )
 
         sut.visitMethodInsn(
@@ -133,7 +133,7 @@ class WebViewMethodVisitorTest {
                 Opcodes.ASM7,
                 recorder,
                 TestClassContext("com.example.Caller"),
-                WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED,
+                WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
             )
 
         sut.visitMethodInsn(

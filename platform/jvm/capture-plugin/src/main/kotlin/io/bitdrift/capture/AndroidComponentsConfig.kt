@@ -60,13 +60,13 @@ fun AndroidComponentsExtension<*, *, *>.configure(
         val enableOkHttp = extension.instrumentation.automaticOkHttpInstrumentation.get()
         @Suppress("DEPRECATION")
         val legacyWebViewInstrumentation = extension.instrumentation.automaticWebViewInstrumentation.get()
-        val configuredWebViewMode = extension.instrumentation.webViewAutomaticInstrumentationMode.orNull
+        val configuredWebViewMode = extension.instrumentation.automaticWebViewInstrumentationMode.orNull
         val webViewInstrumentationMode =
             resolveWebViewAutomaticInstrumentationMode(legacyWebViewInstrumentation, configuredWebViewMode)
         if (legacyWebViewInstrumentation && !legacyWebViewWarningLogged) {
             project.logger.warn(
                 "automaticWebViewInstrumentation is deprecated. Use " +
-                    "webViewAutomaticInstrumentationMode = ONLY_IF_JAVASCRIPT_ALREADY_ENABLED. " +
+                    "automaticWebViewInstrumentationMode = JS_ENABLED_ONLY. " +
                     "The deprecated setting continues to use FULL behavior for compatibility.",
             )
             legacyWebViewWarningLogged = true
@@ -94,9 +94,9 @@ internal fun resolveWebViewAutomaticInstrumentationMode(
 ): WebViewAutomaticInstrumentationMode? {
     if (legacyEnabled && configuredMode != null) {
         throw GradleException(
-            "automaticWebViewInstrumentation and webViewAutomaticInstrumentationMode cannot both be " +
+            "automaticWebViewInstrumentation and automaticWebViewInstrumentationMode cannot both be " +
                 "configured. Replace automaticWebViewInstrumentation = true with " +
-                "webViewAutomaticInstrumentationMode = ONLY_IF_JAVASCRIPT_ALREADY_ENABLED/FULL.",
+                "automaticWebViewInstrumentationMode = JS_ENABLED_ONLY/FULL.",
         )
     }
 

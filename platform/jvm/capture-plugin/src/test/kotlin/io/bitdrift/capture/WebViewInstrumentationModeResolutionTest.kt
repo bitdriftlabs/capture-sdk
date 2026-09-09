@@ -31,10 +31,10 @@ class WebViewInstrumentationModeResolutionTest {
     @Test
     fun `configured mode is retained`() {
         assertEquals(
-            WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED,
+            WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
             resolveWebViewAutomaticInstrumentationMode(
                 legacyEnabled = false,
-                configuredMode = WebViewAutomaticInstrumentationMode.ONLY_IF_JAVASCRIPT_ALREADY_ENABLED,
+                configuredMode = WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
             ),
         )
     }

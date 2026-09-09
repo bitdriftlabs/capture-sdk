@@ -14,7 +14,7 @@ import org.json.JSONObject
 /**
  * Configuration for WebView instrumentation.
  *
- * Configure `webViewAutomaticInstrumentationMode` in the Capture Gradle plugin to instrument WebViews
+ * Configure `automaticWebViewInstrumentationMode` in the Capture Gradle plugin to instrument WebViews
  * automatically, or call [WebViewCapture.instrument] to instrument selected WebViews.
  *
  * When provided to [io.bitdrift.capture.Configuration], enables automatic WebView monitoring including

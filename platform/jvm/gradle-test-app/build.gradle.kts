@@ -207,9 +207,17 @@ apollo {
 bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = enableAutoCaptureOkHttpInstrumentation
-        // Comment out when release 0.24.2 puglin is published -> For now, verifying locally
-        //webViewAutomaticInstrumentationMode = FULL
-        automaticWebViewInstrumentation = true // This
+
+        // Defaults to PROXY.
         // Comment out to change the default type. e.g. okHttpInstrumentationType = OVERWRITE
+        // okHttpInstrumentationType = OVERWRITE
+
+        // Remove automaticWebViewInstrumentation when release 0.24.2 plugin is published
+        automaticWebViewInstrumentation = true // This is going to be deprecated in 0.24.2
+
+        // Instruments only WebViews where the application already enabled JavaScript. Update once 0.24.2 is available
+        // automaticWebViewInstrumentationMode = JS_ENABLED_ONLY
+        // FULL instruments every detected WebView and enables JavaScript when needed.
+        // automaticWebViewInstrumentationMode = FULL
     }
 }
