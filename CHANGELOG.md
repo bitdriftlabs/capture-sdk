@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.24.1...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.24.2...HEAD
 
 ### Both
 
@@ -45,6 +45,15 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.24.2]
+[0.24.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.2
+
+### iOS
+
+**Fixed**
+
+- Fixed an issue that could cause linking issues in Xcode 26.
 
 ## [0.24.1]
 [0.24.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.1
