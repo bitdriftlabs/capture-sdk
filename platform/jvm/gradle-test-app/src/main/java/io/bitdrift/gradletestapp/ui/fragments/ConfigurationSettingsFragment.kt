@@ -180,7 +180,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         buildSwitchPreference(context, SESSION_REPLAY_ENABLED_PREFS_KEY, SESSION_REPLAY_TITLE, true)
 
     private fun buildDiagnosticsSwitch(context: Context): SwitchPreference =
-        buildSwitchPreference(context, DIAGNOSTICS_ENABLED_KEY, DIAGNOSTICS_TITLE, false)
+        buildSwitchPreference(context, DIAGNOSTICS_ENABLED_KEY, DIAGNOSTICS_TITLE, true)
 
     private fun showApiKeysDialog(context: Context) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)

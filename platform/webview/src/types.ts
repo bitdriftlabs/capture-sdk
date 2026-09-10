@@ -39,7 +39,7 @@ export type MessageType =
     | 'userInteraction'
     | 'internalAutoInstrumentation';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'trace';
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'trace' | 'critical';
 
 /**
  * Base interface for all bridge messages

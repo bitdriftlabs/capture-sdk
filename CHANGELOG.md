@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added a `critical` log level, one step above `error`, with `logCritical` convenience methods on iOS and Android. The WebView custom-log bridge accepts `"critical"` as a level.
 
 **Changed**
 
@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Nothing yet!
+- The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to `critical` instead of `debug`.
 
 **Fixed**
 
@@ -44,7 +44,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- The Objective-C `logWarning` and `logError` entry points now log at warning and error level. They previously logged at info level.
 
 ## [0.24.2]
 [0.24.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.2

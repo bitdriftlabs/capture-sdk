@@ -52,6 +52,7 @@ class GradleTestApp : Application() {
         sharedPreferences.getBoolean(DEFERRED_START_PREFS_KEY, false)
 
     private fun attachDiagnosticTools() {
+        Timber.plant(Timber.DebugTree())
         StrictModeConfigurator.install()
         ActivitySpanCallbacks.create()
         AppStartInfoLogger.register(this)

@@ -109,12 +109,29 @@ class CaptureTreeTest {
     }
 
     @Test
-    fun `tree logs default level debug message`() {
+    fun `tree logs assert as critical message`() {
         // ARRANGE
 
         // ACT
         Timber.plant(captureTree)
         Timber.wtf(message)
+
+        // ASSERT
+        val argCaptor = argumentCaptor<() -> String>()
+        verify(mockLogger).log(eq(LogLevel.CRITICAL), any<ArrayFields>(), anyOrNull(), argCaptor.capture())
+        assertThat(argCaptor.firstValue()).isEqualTo(message)
+    }
+
+    @Test
+    fun `tree logs unrecognized priority as debug message`() {
+        // ARRANGE
+        // Timber allows an arbitrary priority. Every android.util.Log constant now maps
+        // explicitly, so an out-of-range value is what reaches the default branch.
+        val unrecognizedPriority = 99
+
+        // ACT
+        Timber.plant(captureTree)
+        Timber.log(unrecognizedPriority, message)
 
         // ASSERT
         val argCaptor = argumentCaptor<() -> String>()

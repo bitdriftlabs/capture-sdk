@@ -20,36 +20,36 @@ android_logger = { version = "0.15.1", default-features = false }
 anyhow = "1.0.104"
 assert_matches = "1.5.0"
 async-trait = "0.1.92"
-bd-api = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-bonjson = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-bonjson-ffi = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-buffer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-client-common = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-client-stats-store = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-crash-handler = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-device = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-error-reporter = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-grpc = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-hyper-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1", default-features = false, features = [
+bd-api = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-bonjson = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-bonjson-ffi = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-buffer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-client-common = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-client-stats-store = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-crash-handler = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-device = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-error-reporter = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-grpc = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-hyper-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104", default-features = false, features = [
   "ring",
 ] }
-bd-key-value = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-log = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-log-metadata = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-log-primitives = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-logger = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-noop-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-proto = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-report-parsers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-report-writer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-runtime = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-session = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-shutdown = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-test-helpers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1", default-features = false, features = [
+bd-key-value = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-log = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-log-metadata = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-log-primitives = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-logger = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-noop-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-proto = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-report-parsers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-report-writer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-runtime = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-session = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-shutdown = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-test-helpers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104", default-features = false, features = [
   "ring",
 ] }
-bd-test-helpers-core = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
-bd-time = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "b9a2d9ca45618fd55d928a591ac492a312d5dce1" }
+bd-test-helpers-core = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
+bd-time = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "ec8811211ecc5423d9c4e9964002f389e6c16104" }
 clap = { version = "4.6.6", features = ["derive", "env"] }
 crc32fast = "1.5.1"
 ctor = "1.0.13"

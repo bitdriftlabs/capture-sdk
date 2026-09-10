@@ -46,6 +46,7 @@ open class CaptureTree internal constructor(
             Log.INFO -> LogLevel.INFO
             Log.WARN -> LogLevel.WARNING
             Log.ERROR -> LogLevel.ERROR
+            Log.ASSERT -> LogLevel.CRITICAL
             else -> LogLevel.DEBUG // default level
         }
 
