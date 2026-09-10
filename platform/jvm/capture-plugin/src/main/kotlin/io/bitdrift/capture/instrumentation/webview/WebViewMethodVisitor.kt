@@ -8,7 +8,7 @@
 package io.bitdrift.capture.instrumentation.webview
 
 import com.android.build.api.instrumentation.ClassContext
-import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationMode
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationScope
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 
@@ -34,7 +34,7 @@ class WebViewMethodVisitor(
     apiVersion: Int,
     methodVisitor: MethodVisitor,
     private val classContext: ClassContext,
-    private val mode: WebViewAutomaticInstrumentationMode = WebViewAutomaticInstrumentationMode.FULL,
+    private val scope: WebViewAutomaticInstrumentationScope = WebViewAutomaticInstrumentationScope.ALL,
 ) : MethodVisitor(apiVersion, methodVisitor) {
 
     companion object {
@@ -115,7 +115,7 @@ class WebViewMethodVisitor(
         mv.visitFieldInsn(
             Opcodes.GETSTATIC,
             WEBVIEW_INSTRUMENTATION_MODE_CLASS,
-            mode.internalModeName,
+            scope.internalModeName,
             "L$WEBVIEW_INSTRUMENTATION_MODE_CLASS;",
         )
         mv.visitMethodInsn(
@@ -127,11 +127,11 @@ class WebViewMethodVisitor(
         )
     }
 
-    private val WebViewAutomaticInstrumentationMode.internalModeName: String
+    private val WebViewAutomaticInstrumentationScope.internalModeName: String
         get() =
             when (this) {
-                WebViewAutomaticInstrumentationMode.FULL -> "AUTOMATIC_ALWAYS"
-                WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY ->
+                WebViewAutomaticInstrumentationScope.ALL -> "AUTOMATIC_ALWAYS"
+                WebViewAutomaticInstrumentationScope.JS_ENABLED ->
                     "AUTOMATIC_JAVASCRIPT_ENABLED_ONLY"
             }
 

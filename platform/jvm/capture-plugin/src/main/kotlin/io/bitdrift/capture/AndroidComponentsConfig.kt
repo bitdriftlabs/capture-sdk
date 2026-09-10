@@ -41,7 +41,7 @@ import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.Variant
 import io.bitdrift.capture.CapturePlugin.Companion.sep
 import io.bitdrift.capture.extension.BitdriftPluginExtension
-import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationMode
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationScope
 import io.bitdrift.capture.instrumentation.SpanAddingClassVisitorFactory
 import org.gradle.api.GradleException
 import org.gradle.api.Project
@@ -60,19 +60,19 @@ fun AndroidComponentsExtension<*, *, *>.configure(
         val enableOkHttp = extension.instrumentation.automaticOkHttpInstrumentation.get()
         @Suppress("DEPRECATION")
         val legacyWebViewInstrumentation = extension.instrumentation.automaticWebViewInstrumentation.get()
-        val configuredWebViewMode = extension.instrumentation.automaticWebViewInstrumentationMode.orNull
-        val webViewInstrumentationMode =
-            resolveWebViewAutomaticInstrumentationMode(legacyWebViewInstrumentation, configuredWebViewMode)
+        val configuredWebViewScope = extension.instrumentation.webViewAutomaticInstrumentationScope.orNull
+        val webViewInstrumentationScope =
+            resolveWebViewAutomaticInstrumentationScope(legacyWebViewInstrumentation, configuredWebViewScope)
         if (legacyWebViewInstrumentation && !legacyWebViewWarningLogged) {
             project.logger.warn(
                 "automaticWebViewInstrumentation is deprecated. Use " +
-                    "automaticWebViewInstrumentationMode = JS_ENABLED_ONLY. " +
-                    "Set automaticWebViewInstrumentationMode = FULL to allow Capture to enable JavaScript.",
+                    "webViewAutomaticInstrumentationScope = JS_ENABLED. " +
+                    "Set webViewAutomaticInstrumentationScope = ALL to allow Capture to enable JavaScript.",
             )
             legacyWebViewWarningLogged = true
         }
 
-        if (enableOkHttp || webViewInstrumentationMode != null) {
+        if (enableOkHttp || webViewInstrumentationScope != null) {
             variant.configureInstrumentation(
                 SpanAddingClassVisitorFactory::class.java,
                 InstrumentationScope.ALL,
@@ -82,25 +82,25 @@ fun AndroidComponentsExtension<*, *, *>.configure(
                 params.debug.set(extension.instrumentation.debug)
                 params.okHttpInstrumentationType.set(extension.instrumentation.okHttpInstrumentationType)
                 params.enableOkHttpInstrumentation.set(enableOkHttp)
-                webViewInstrumentationMode?.let(params.webViewInstrumentationMode::set)
+                webViewInstrumentationScope?.let(params.webViewInstrumentationScope::set)
             }
         }
     }
 }
 
-internal fun resolveWebViewAutomaticInstrumentationMode(
+internal fun resolveWebViewAutomaticInstrumentationScope(
     legacyEnabled: Boolean,
-    configuredMode: WebViewAutomaticInstrumentationMode?,
-): WebViewAutomaticInstrumentationMode? {
-    if (legacyEnabled && configuredMode != null) {
+    configuredScope: WebViewAutomaticInstrumentationScope?,
+): WebViewAutomaticInstrumentationScope? {
+    if (legacyEnabled && configuredScope != null) {
         throw GradleException(
-            "automaticWebViewInstrumentation and automaticWebViewInstrumentationMode cannot both be " +
+            "automaticWebViewInstrumentation and webViewAutomaticInstrumentationScope cannot both be " +
                 "configured. Replace automaticWebViewInstrumentation = true with " +
-                "automaticWebViewInstrumentationMode = JS_ENABLED_ONLY/FULL.",
+                "webViewAutomaticInstrumentationScope = JS_ENABLED/ALL.",
         )
     }
 
-    return configuredMode ?: WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY.takeIf { legacyEnabled }
+    return configuredScope ?: WebViewAutomaticInstrumentationScope.JS_ENABLED.takeIf { legacyEnabled }
 }
 
 private fun <T : InstrumentationParameters> Variant.configureInstrumentation(

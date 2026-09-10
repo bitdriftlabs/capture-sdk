@@ -216,8 +216,8 @@ bitdrift {
         automaticWebViewInstrumentation = true // This is going to be deprecated in 0.24.2
 
         // Instruments only WebViews where the application already enabled JavaScript. Update once 0.24.2 is available
-        // automaticWebViewInstrumentationMode = JS_ENABLED_ONLY
-        // FULL instruments every detected WebView and enables JavaScript when needed.
-        // automaticWebViewInstrumentationMode = FULL
+        // webViewAutomaticInstrumentationScope = JS_ENABLED
+        // ALL instruments every detected WebView and enables JavaScript when needed.
+        // webViewAutomaticInstrumentationScope = ALL
     }
 }
