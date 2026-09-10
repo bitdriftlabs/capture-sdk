@@ -30,10 +30,10 @@ import io.bitdrift.capture.providers.fieldsOf
  * Instruments WebViews to capture page loads, performance metrics, and network activity.
  *
  * WebViews can be instrumented explicitly with [instrument], or automatically by applying the
- * `io.bitdrift.capture-plugin` Gradle plugin and configuring `automaticWebViewInstrumentationMode`:
+ * `io.bitdrift.capture-plugin` Gradle plugin and configuring `webViewAutomaticInstrumentationScope`:
  *
- * - `FULL` instruments detected WebViews and enables JavaScript when needed.
- * - `JS_ENABLED_ONLY` instruments only WebViews where the application already enabled
+ * - `ALL` instruments detected WebViews and enables JavaScript when needed.
+ * - `JS_ENABLED` instruments only WebViews where the application already enabled
  *   JavaScript; Capture does not enable it.
  * - If the property is unset, automatic WebView instrumentation is disabled.
  *
@@ -48,7 +48,7 @@ object WebViewCapture {
      * Call it before [WebView.loadUrl].
      *
      * Automatic instrumentation provides the same monitoring without an explicit call when the Capture Gradle
-     * plugin configures `automaticWebViewInstrumentationMode` as `FULL` or `JS_ENABLED_ONLY`. The latter never
+     * plugin configures `webViewAutomaticInstrumentationScope` as `ALL` or `JS_ENABLED`. The latter never
      * enables JavaScript on behalf of the application.
      *
      * @param webview The WebView to instrument

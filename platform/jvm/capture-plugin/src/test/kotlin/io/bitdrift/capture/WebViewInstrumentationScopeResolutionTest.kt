@@ -7,34 +7,34 @@
 
 package io.bitdrift.capture
 
-import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationMode
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationScope
 import org.gradle.api.GradleException
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
-class WebViewInstrumentationModeResolutionTest {
+class WebViewInstrumentationScopeResolutionTest {
     @Test
     fun `unset properties disable automatic webview instrumentation`() {
-        assertNull(resolveWebViewAutomaticInstrumentationMode(legacyEnabled = false, configuredMode = null))
+        assertNull(resolveWebViewAutomaticInstrumentationScope(legacyEnabled = false, configuredScope = null))
     }
 
     @Test
     fun `legacy enabled maps to javascript enabled only`() {
         assertEquals(
-            WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
-            resolveWebViewAutomaticInstrumentationMode(legacyEnabled = true, configuredMode = null),
+            WebViewAutomaticInstrumentationScope.JS_ENABLED,
+            resolveWebViewAutomaticInstrumentationScope(legacyEnabled = true, configuredScope = null),
         )
     }
 
     @Test
     fun `configured mode is retained`() {
         assertEquals(
-            WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
-            resolveWebViewAutomaticInstrumentationMode(
+            WebViewAutomaticInstrumentationScope.JS_ENABLED,
+            resolveWebViewAutomaticInstrumentationScope(
                 legacyEnabled = false,
-                configuredMode = WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
+                configuredScope = WebViewAutomaticInstrumentationScope.JS_ENABLED,
             ),
         )
     }
@@ -42,9 +42,9 @@ class WebViewInstrumentationModeResolutionTest {
     @Test
     fun `legacy and configured modes cannot be combined`() {
         assertFailsWith<GradleException> {
-            resolveWebViewAutomaticInstrumentationMode(
+            resolveWebViewAutomaticInstrumentationScope(
                 legacyEnabled = true,
-                configuredMode = WebViewAutomaticInstrumentationMode.FULL,
+                configuredScope = WebViewAutomaticInstrumentationScope.ALL,
             )
         }
     }

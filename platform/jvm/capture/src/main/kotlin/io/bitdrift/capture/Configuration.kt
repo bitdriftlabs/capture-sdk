@@ -19,7 +19,7 @@ import io.bitdrift.capture.webview.WebViewConfiguration
  *                                  without requiring third-party integrations.
  * @param sleepMode SleepMode.ENABLED if Capture should initialize in minimal activity mode
  * @param webViewConfiguration The WebView instrumentation configuration. Set
- *                             `automaticWebViewInstrumentationMode` in the `io.bitdrift.capture-plugin` Gradle
+ *                             `webViewAutomaticInstrumentationScope` in the `io.bitdrift.capture-plugin` Gradle
  *                             plugin, or instrument WebViews manually with `WebViewCapture.instrument(webView)`.
  *                             Passing `null` disables monitoring.
  * @param issueCallbackConfiguration Optional callback configuration used for issue report callbacks.

@@ -39,7 +39,7 @@ import com.android.build.api.instrumentation.ClassData
 import com.android.build.api.instrumentation.InstrumentationParameters
 import io.bitdrift.capture.CapturePlugin
 import io.bitdrift.capture.extension.InstrumentationExtension.OkHttpInstrumentationType
-import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationMode
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationScope
 import io.bitdrift.capture.instrumentation.okhttp.OkHttpEventListener
 import io.bitdrift.capture.instrumentation.util.findClassReader
 import io.bitdrift.capture.instrumentation.util.findClassWriter
@@ -65,7 +65,7 @@ abstract class SpanAddingClassVisitorFactory : AsmClassVisitorFactory<SpanAdding
 
         @get:Input
         @get:Optional
-        val webViewInstrumentationMode: Property<WebViewAutomaticInstrumentationMode>
+        val webViewInstrumentationScope: Property<WebViewAutomaticInstrumentationScope>
 
         @get:Internal
         val tmpDir: Property<File>
@@ -84,7 +84,7 @@ abstract class SpanAddingClassVisitorFactory : AsmClassVisitorFactory<SpanAdding
             val instrumentable = ChainedInstrumentable(
                 listOfNotNull(
                     OkHttpEventListener().takeIf { parameters.get().enableOkHttpInstrumentation.get() },
-                    parameters.get().webViewInstrumentationMode.orNull?.let(::WebViewLoadUrlInstrumentable),
+                    parameters.get().webViewInstrumentationScope.orNull?.let(::WebViewLoadUrlInstrumentable),
                 ),
             )
             CapturePlugin.logger.info(

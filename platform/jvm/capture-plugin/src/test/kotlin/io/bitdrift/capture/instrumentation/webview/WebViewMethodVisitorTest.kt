@@ -9,7 +9,7 @@ package io.bitdrift.capture.instrumentation.webview
 
 import io.bitdrift.capture.instrumentation.fakes.TestClassContext
 import io.bitdrift.capture.instrumentation.fakes.TestClassData
-import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationMode
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationScope
 import org.junit.Test
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
@@ -99,7 +99,7 @@ class WebViewMethodVisitorTest {
                 Opcodes.ASM7,
                 recorder,
                 TestClassContext("com.example.Caller"),
-                WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
+                WebViewAutomaticInstrumentationScope.JS_ENABLED,
             )
 
         sut.visitMethodInsn(
@@ -133,7 +133,7 @@ class WebViewMethodVisitorTest {
                 Opcodes.ASM7,
                 recorder,
                 TestClassContext("com.example.Caller"),
-                WebViewAutomaticInstrumentationMode.JS_ENABLED_ONLY,
+                WebViewAutomaticInstrumentationScope.JS_ENABLED,
             )
 
         sut.visitMethodInsn(
