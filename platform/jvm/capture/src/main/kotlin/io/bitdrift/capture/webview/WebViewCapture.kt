@@ -118,7 +118,10 @@ internal object WebViewCaptureInternals {
             return
         }
 
-        if (shouldForceEnableJavaScript(instrumentationMode, webview)) {
+        if (
+            instrumentationMode != WebViewInstrumentationMode.AUTOMATIC_JAVASCRIPT_ENABLED_ONLY &&
+            !webview.settings.javaScriptEnabled
+        ) {
             webview.settings.javaScriptEnabled = true
         }
 
@@ -129,13 +132,6 @@ internal object WebViewCaptureInternals {
 
         webview.markAsInstrumented()
     }
-
-    private fun shouldForceEnableJavaScript(
-        instrumentationMode: WebViewInstrumentationMode,
-        webview: WebView,
-    ): Boolean =
-        instrumentationMode != WebViewInstrumentationMode.AUTOMATIC_JAVASCRIPT_ENABLED_ONLY &&
-            !webview.settings.javaScriptEnabled
 
     private fun isWebkitAvailable(): Boolean =
         runCatching {
