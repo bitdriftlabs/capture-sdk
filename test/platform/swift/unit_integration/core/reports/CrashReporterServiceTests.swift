@@ -252,7 +252,8 @@ final class CrashReporterServiceTests: XCTestCase {
     // MARK: - previousRunInfo (revamped path)
 
     func testPreviousRunInfoComesFromControllerWhenRevampedEnabled() throws {
-        let controller = try XCTUnwrap(PreviousRunInfoController(baseDirectory: sdkBaseURL, osVersion: "18.0"))
+        let controller = PreviousRunInfoController(baseDirectory: sdkBaseURL, osVersion: "18.0")
+        XCTAssertTrue(controller.startTrackingCurrentRun())
         givenCrashReporterService(previousRunInfoRevamped: true, previousRunInfoController: controller)
         whenInvokingSetup()
         // on first launch, controller always resolves to .unknown regardless of didCrashLastLaunch
@@ -261,12 +262,12 @@ final class CrashReporterServiceTests: XCTestCase {
 
     func testPreviousRunInfoIsFatalCrashFromControllerOnSecondLaunchWithCrash() throws {
         // Simulate first launch to write state to disk
-        let firstController = try XCTUnwrap(
-            PreviousRunInfoController(baseDirectory: sdkBaseURL, osVersion: "18.0")
-        )
+        let firstController = PreviousRunInfoController(baseDirectory: sdkBaseURL, osVersion: "18.0")
+        XCTAssertTrue(firstController.startTrackingCurrentRun())
         firstController.resolve(didCrashLastLaunch: false)
 
-        let controller = try XCTUnwrap(PreviousRunInfoController(baseDirectory: sdkBaseURL, osVersion: "18.0"))
+        let controller = PreviousRunInfoController(baseDirectory: sdkBaseURL, osVersion: "18.0")
+        XCTAssertTrue(controller.startTrackingCurrentRun())
         givenCrashReporterService(previousRunInfoRevamped: true, previousRunInfoController: controller)
         givenKSCrashDidCrashLastLaunch(true)
         whenInvokingSetup()
