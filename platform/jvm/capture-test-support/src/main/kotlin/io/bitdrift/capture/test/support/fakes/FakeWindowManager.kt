@@ -5,14 +5,14 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.fakes
+package io.bitdrift.capture.test.support.fakes
 
 import android.app.Activity
 import android.view.View
 import io.bitdrift.capture.common.IWindowManager
 
 /** [IWindowManager] fake; set [firstValidActivity] to simulate an already-started activity. */
-internal class FakeWindowManager(
+class FakeWindowManager(
     var firstValidActivity: Activity? = null,
 ) : IWindowManager {
     override fun getBottomMostRootView(): View? = null

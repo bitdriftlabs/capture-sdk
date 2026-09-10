@@ -5,12 +5,13 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.fakes
+package io.bitdrift.capture.test.support.fakes
 
 import okhttp3.Interceptor
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
+import java.util.concurrent.TimeUnit
 
 class FakeOkHttpInterceptorChain(
     private val originalRequest: Request,
@@ -38,20 +39,20 @@ class FakeOkHttpInterceptorChain(
 
     override fun withConnectTimeout(
         timeout: Int,
-        unit: java.util.concurrent.TimeUnit,
+        unit: TimeUnit,
     ): Interceptor.Chain = this
 
     override fun readTimeoutMillis(): Int = 0
 
     override fun withReadTimeout(
         timeout: Int,
-        unit: java.util.concurrent.TimeUnit,
+        unit: TimeUnit,
     ): Interceptor.Chain = this
 
     override fun writeTimeoutMillis(): Int = 0
 
     override fun withWriteTimeout(
         timeout: Int,
-        unit: java.util.concurrent.TimeUnit,
+        unit: TimeUnit,
     ): Interceptor.Chain = this
 }

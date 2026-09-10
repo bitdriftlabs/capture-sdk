@@ -127,6 +127,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             logger.setFeatureFlagExposure("dark_mode", "enabled")
             logger.setFeatureFlagExposure("new_ui", "variant_b")
             logger.setFeatureFlagExposure("experimental_feature", false)
+            logger.flush(blocking = true)
 
             // Simulate a crash by calling persistJvmCrash on the issue processor
             val processor = logger.getIssueProcessor()

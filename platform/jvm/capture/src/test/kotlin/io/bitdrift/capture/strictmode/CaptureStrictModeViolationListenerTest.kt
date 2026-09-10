@@ -15,8 +15,7 @@ import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
-import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
-import io.bitdrift.capture.strictmode.IStrictModeReporter
+import io.bitdrift.capture.test.support.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.threading.CaptureDispatchers
 import org.junit.Before
 import org.junit.Test

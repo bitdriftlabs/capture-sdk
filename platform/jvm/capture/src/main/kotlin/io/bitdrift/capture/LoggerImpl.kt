@@ -18,6 +18,7 @@ import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
+import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.RuntimeStringConfig
@@ -110,9 +111,11 @@ internal class LoggerImpl(
         },
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
-    bridge: IBridge = CaptureJniLibrary,
+    private val bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
+    runtimeFactory: (LoggerId) -> Runtime = { loggerId -> JniRuntime(loggerId) },
+    ootbFieldProviders: List<IOotbFieldProvider> = listOf(LocaleAttributes(context), NetworkAttributes(context)),
 ) : IInternalLogger,
     ICompletedReportsProcessor,
     IRuntimeProvider {
@@ -130,10 +133,7 @@ internal class LoggerImpl(
     private val diskUsageMonitor: DiskUsageMonitor
     private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
-    private val runtime: JniRuntime
-    private val localeAttributes = LocaleAttributes(context)
-    private val networkAttributes = NetworkAttributes(context)
-    private val ootbFieldProviders: List<IOotbFieldProvider> = listOf(localeAttributes, networkAttributes)
+    private val runtime: Runtime
     private var jankStatsMonitor: JankStatsMonitor? = null
 
     // Session URLs are only needed when queried externally, so derive the
@@ -262,7 +262,7 @@ internal class LoggerImpl(
 
         this.loggerId = loggerId
 
-        runtime = JniRuntime(this.loggerId)
+        runtime = runtimeFactory(this.loggerId)
         ootbFieldProviders.forEach { it.start(this) }
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime
@@ -320,7 +320,7 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        CaptureJniLibrary.startLogger(this.loggerId)
+        bridge.startLogger(this.loggerId)
 
         startDebugOperationsAsNeeded(context)
     }
@@ -522,7 +522,7 @@ internal class LoggerImpl(
                     else -> 0
                 }
 
-            CaptureJniLibrary.writeLog(
+            bridge.writeLog(
                 this.loggerId,
                 type.value,
                 level.value,

@@ -5,7 +5,14 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.fakes
+@file:Suppress(
+    "EXPOSED_PARAMETER_TYPE",
+    "EXPOSED_SUPER_INTERFACE",
+    "INVISIBLE_MEMBER",
+    "INVISIBLE_REFERENCE",
+)
+
+package io.bitdrift.capture.test.support.fakes
 
 import android.app.Activity
 import io.bitdrift.capture.events.lifecycle.IWindowFocusRegistrar
@@ -14,7 +21,7 @@ import io.bitdrift.capture.events.lifecycle.IWindowFocusRegistrar
  * [IWindowFocusRegistrar] fake that lets tests drive focus changes directly. Like a real
  * `ViewTreeObserver`, a never-unregistered callback keeps receiving changes.
  */
-internal class FakeWindowFocusRegistrar : IWindowFocusRegistrar {
+class FakeWindowFocusRegistrar : IWindowFocusRegistrar {
     private val callbacks = LinkedHashMap<Activity, (hasFocus: Boolean) -> Unit>()
 
     /** The activities that currently have a focus observer registered. */

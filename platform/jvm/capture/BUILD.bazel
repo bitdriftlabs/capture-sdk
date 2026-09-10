@@ -120,6 +120,7 @@ bitdrift_kt_android_local_test(
         "--add-opens=java.base/java.lang=ALL-UNNAMED",
     ],
     deps = [
+        "//platform/jvm/capture-test-support:lib",
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
         "@rules_robolectric//bazel:android-all",

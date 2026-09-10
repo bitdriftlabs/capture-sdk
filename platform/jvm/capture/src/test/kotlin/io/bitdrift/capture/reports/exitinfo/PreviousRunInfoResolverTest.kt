@@ -12,10 +12,9 @@ import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.MockPreferences
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.test.support.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.utils.BuildVersionChecker
-import io.bitdrift.capture.utils.assertPreviousRunInfo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test

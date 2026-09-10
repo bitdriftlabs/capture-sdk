@@ -22,13 +22,13 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.MemoryPressureLevel
-import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
-import io.bitdrift.capture.fakes.FakeDateProvider
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
+import io.bitdrift.capture.test.support.fakes.FakeBackgroundThreadHandler
+import io.bitdrift.capture.test.support.fakes.FakeDateProvider
 import io.bitdrift.capture.utils.SdkDirectory
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After

@@ -24,9 +24,9 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.common.PowerMonitor
-import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
-import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW
 import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.test.support.fakes.FakeMemoryMetricsProvider
+import io.bitdrift.capture.test.support.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW
 import io.bitdrift.capture.utils.toStringMap
 import org.junit.After
 import org.junit.Test

@@ -11,7 +11,6 @@ import android.app.ApplicationExitInfo
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -21,6 +20,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.ExitReason
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.test.support.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.assertPreviousRunInfo
 import io.bitdrift.capture.utils.setIsDebuggable

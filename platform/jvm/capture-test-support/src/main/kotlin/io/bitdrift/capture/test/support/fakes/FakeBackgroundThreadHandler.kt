@@ -5,18 +5,13 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.fakes
+package io.bitdrift.capture.test.support.fakes
 
-import com.google.common.util.concurrent.MoreExecutors
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 
-/**
- * Fake [IBackgroundThreadHandler] that relies on newDirectExecutorService
- */
+/** Fake [IBackgroundThreadHandler] that runs work synchronously. */
 class FakeBackgroundThreadHandler : IBackgroundThreadHandler {
-    private val fakeExecutorService = MoreExecutors.newDirectExecutorService()
-
     override fun runAsync(task: () -> Unit) {
-        fakeExecutorService.execute(task)
+        task()
     }
 }

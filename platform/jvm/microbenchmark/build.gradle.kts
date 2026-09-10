@@ -50,6 +50,7 @@ android {
 dependencies {
     // the module containing code to benchmark
     androidTestImplementation(project(":capture"))
+    androidTestImplementation(project(":capture-test-support"))
     androidTestImplementation(project(":common"))
     androidTestImplementation(project(":replay"))
 

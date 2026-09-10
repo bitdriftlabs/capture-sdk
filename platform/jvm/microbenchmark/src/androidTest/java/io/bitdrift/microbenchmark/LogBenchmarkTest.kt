@@ -16,27 +16,18 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.Configuration
-import io.bitdrift.capture.IBridge
-import io.bitdrift.capture.IEventsListenerTarget
+import io.bitdrift.capture.test.support.fakes.FakeBridge
+import io.bitdrift.capture.test.support.fakes.FakeRuntime
 import io.bitdrift.capture.IInternalLogger
-import io.bitdrift.capture.IPreferences
-import io.bitdrift.capture.IResourceUtilizationTarget
-import io.bitdrift.capture.ISessionReplayTarget
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
-import io.bitdrift.capture.common.RuntimeConfig
-import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.common.RuntimeStringConfig
-import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponse.HttpResult
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
-import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.webview.WebViewBridgeMessageHandler
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.After
@@ -44,7 +35,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.time.DurationUnit
-import kotlin.time.measureTime
 import kotlin.time.toDuration
 
 private const val LOG_MESSAGE = "50 characters long test message - 0123456789012345"
@@ -67,8 +57,8 @@ class LogBenchmarkTest {
         CaptureJniLibrary.load()
 
         Capture.Logger.start(
-            apiKey = "[test_api_key]",
-            apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
+            apiKey = FAKE_API_KEY,
+            apiUrl = FAKE_API_URL,
             context = InstrumentationRegistry.getInstrumentation().targetContext,
             sessionStrategy = SessionStrategy.Fixed(),
             initialFields = initialFields,
@@ -237,14 +227,14 @@ class LogBenchmarkTest {
     }
 
     @Test
-    fun loggerImplCreation() {
+    fun loggerImplCreationWithRealNativeLayer() {
         benchmarkRule.measureRepeated {
             runWithMeasurementDisabled {
                 CaptureJniLibrary.load()
             }
             val logger = LoggerImpl(
-                apiKey = "[test_api_key]",
-                apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
+                apiKey = FAKE_API_KEY,
+                apiUrl = FAKE_API_URL,
                 context = InstrumentationRegistry.getInstrumentation().targetContext,
                 customFieldGetters = emptyList(),
                 dateProvider = null,
@@ -255,6 +245,24 @@ class LogBenchmarkTest {
                 CaptureJniLibrary.shutdown(logger.loggerId)
                 CaptureJniLibrary.destroyLogger(logger.loggerId)
             }
+        }
+    }
+
+    @Test
+    fun loggerImplCreationWithFakeNativeLayer() {
+        benchmarkRule.measureRepeated {
+            LoggerImpl(
+                apiKey = FAKE_API_KEY,
+                apiUrl = FAKE_API_URL,
+                context = InstrumentationRegistry.getInstrumentation().targetContext,
+                customFieldGetters = emptyList(),
+                dateProvider = null,
+                bridge = FakeBridge,
+                configuration = Configuration(),
+                sessionStrategy = SessionStrategy.Fixed(),
+                runtimeFactory = { FakeRuntime() },
+                ootbFieldProviders = emptyList(),
+            )
         }
     }
 
@@ -288,4 +296,9 @@ class LogBenchmarkTest {
 
     private fun buildFieldsMap(size: Int, keyIdentifier: String = "key_"): Map<String, String> =
         (1..size).associate { "$keyIdentifier$it" to "value_$it" }
+
+    private companion object {
+        const val FAKE_API_KEY = "[test_api_key]"
+        val FAKE_API_URL = "https://api-test.bitdrift.dev".toHttpUrl()
+    }
 }

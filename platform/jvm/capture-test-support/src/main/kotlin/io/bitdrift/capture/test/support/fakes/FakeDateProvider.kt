@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.fakes
+package io.bitdrift.capture.test.support.fakes
 
 import io.bitdrift.capture.providers.DateProvider
 import java.util.Date

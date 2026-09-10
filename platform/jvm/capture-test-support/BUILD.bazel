@@ -1,0 +1,18 @@
+load("@rules_jvm_external//:defs.bzl", "artifact")
+load("//bazel/android:build.bzl", "bitdrift_kt_android_library")
+
+bitdrift_kt_android_library(
+    name = "lib",
+    require_javadocs = False,
+    testonly = True,
+    srcs = glob(["src/main/**/*.kt"]),
+    associates = ["//platform/jvm/capture:capture_logger_lib"],
+    custom_package = "io.bitdrift.capture.test.support",
+    visibility = ["//platform/jvm/capture:__pkg__"],
+    deps = [
+        "//platform/jvm/common:lib",
+        artifact("com.nhaarman.mockitokotlin2:mockito-kotlin"),
+        artifact("com.squareup.okhttp3:okhttp"),
+        artifact("org.mockito:mockito-core"),
+    ],
+)

@@ -103,7 +103,7 @@ internal object CaptureJniLibrary : IBridge {
      *
      * @param loggerId the ID of the logger to start.
      */
-    external fun startLogger(loggerId: Long)
+    external override fun startLogger(loggerId: Long)
 
     /**
      * Returns a point-in-time snapshot of the SDK's operational status.
@@ -247,7 +247,7 @@ internal object CaptureJniLibrary : IBridge {
      *        corresponding to the last session ID during the previous process run.
      * @param overrideOccurredAtUnixMilliseconds used to override the timestamp of the log.
      */
-    external fun writeLog(
+    external override fun writeLog(
         loggerId: Long,
         logType: Int,
         logLevel: Int,

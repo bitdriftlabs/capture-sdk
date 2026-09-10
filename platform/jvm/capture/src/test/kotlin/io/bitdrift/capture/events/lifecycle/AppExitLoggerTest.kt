@@ -26,11 +26,6 @@ import io.bitdrift.capture.LogType
 import io.bitdrift.capture.MockPreferences
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
-import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
-import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
@@ -38,6 +33,11 @@ import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.Companion.
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoBelowApi30State
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoBelowApi30Store
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.test.support.fakes.FakeLatestAppExitInfoProvider
+import io.bitdrift.capture.test.support.fakes.FakeLatestAppExitInfoProvider.Companion.FAKE_EXCEPTION
+import io.bitdrift.capture.test.support.fakes.FakeLatestAppExitInfoProvider.Companion.TIME_STAMP
+import io.bitdrift.capture.test.support.fakes.FakeMemoryMetricsProvider
+import io.bitdrift.capture.test.support.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES
 import io.bitdrift.capture.utils.BuildVersionChecker
 import io.bitdrift.capture.utils.toStringMap
 import org.assertj.core.api.Assertions.assertThat

@@ -12,6 +12,7 @@ pluginManagement {
 }
 
 include(":capture")
+include(":capture-test-support")
 include(":capture-apollo")
 include(":capture-timber")
 include(":common")

@@ -158,7 +158,7 @@ def generate_markdown_report(results, baseline=None, device_info=None, baseline_
         # Add note about emulator variance if running on emulator
         if device_info.get("is_emulator"):
             lines.append(">")
-            lines.append("> **Note:** Benchmarks run on emulator. Results may vary between runs and may differ from physical devices.")
+            lines.append("> **Note:** Benchmarks run on emulator. Timing results may vary between runs and may differ from physical devices.")
     lines.append("")
 
     # Allocations table

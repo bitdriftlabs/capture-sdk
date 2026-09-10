@@ -13,7 +13,7 @@ import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.LoggerImpl
 import io.bitdrift.capture.LoggerState
 import io.bitdrift.capture.common.RuntimeStringConfig
-import io.bitdrift.capture.fakes.FakeOkHttpInterceptorChain
+import io.bitdrift.capture.test.support.fakes.FakeOkHttpInterceptorChain
 import okhttp3.Request
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After

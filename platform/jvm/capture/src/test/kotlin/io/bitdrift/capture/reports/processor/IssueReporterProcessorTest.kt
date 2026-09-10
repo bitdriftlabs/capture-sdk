@@ -25,15 +25,15 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.events.performance.MemoryPressureLevel
-import io.bitdrift.capture.fakes.FakeDateProvider
-import io.bitdrift.capture.fakes.FakeDateProvider.DEFAULT_TEST_TIMESTAMP
-import io.bitdrift.capture.fakes.FakeJvmException
-import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider.Companion.createTraceInputStream
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Architecture
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Platform
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import io.bitdrift.capture.reports.persistence.IIssueReporterStore
+import io.bitdrift.capture.test.support.fakes.FakeDateProvider
+import io.bitdrift.capture.test.support.fakes.FakeDateProvider.DEFAULT_TEST_TIMESTAMP
+import io.bitdrift.capture.test.support.fakes.FakeJvmException
+import io.bitdrift.capture.test.support.fakes.FakeLatestAppExitInfoProvider.Companion.createTraceInputStream
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -104,7 +104,7 @@ class IssueReporterProcessorTest {
         val report = Report.getRootAsReport(buffer)
         val error = report.errors(0)!!
         assertThat(error.reason).isEqualTo("Fake JVM exception")
-        assertThat(error.name).isEqualTo("io.bitdrift.capture.fakes.FakeJvmException")
+        assertThat(error.name).isEqualTo("io.bitdrift.capture.test.support.fakes.FakeJvmException")
         assertThat(error.stackTrace(0)!!.type).isEqualTo(1)
         assertThat(error.stackTrace(0)!!.state(0)).isNull()
         assertThat(
