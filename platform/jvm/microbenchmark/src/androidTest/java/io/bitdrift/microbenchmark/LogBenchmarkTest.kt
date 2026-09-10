@@ -16,6 +16,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.test.support.FakeBridge
+import io.bitdrift.capture.test.support.FakeRuntime
+import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.IBridge
 import io.bitdrift.capture.IEventsListenerTarget
 import io.bitdrift.capture.IInternalLogger
@@ -237,24 +240,20 @@ class LogBenchmarkTest {
     }
 
     @Test
-    fun loggerImplCreation() {
+    fun loggerImplJvmInstantiationWithFakeNativeLayer() {
         benchmarkRule.measureRepeated {
-            runWithMeasurementDisabled {
-                CaptureJniLibrary.load()
-            }
-            val logger = LoggerImpl(
+            LoggerImpl(
                 apiKey = "[test_api_key]",
                 apiUrl = "https://api-test.bitdrift.dev".toHttpUrl(),
                 context = InstrumentationRegistry.getInstrumentation().targetContext,
                 customFieldGetters = emptyList(),
                 dateProvider = null,
+                bridge = FakeBridge,
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
+                runtimeFactory = { FakeRuntime() },
+                ootbFieldProviders = emptyList<IOotbFieldProvider>(),
             )
-            runWithMeasurementDisabled {
-                CaptureJniLibrary.shutdown(logger.loggerId)
-                CaptureJniLibrary.destroyLogger(logger.loggerId)
-            }
         }
     }
 

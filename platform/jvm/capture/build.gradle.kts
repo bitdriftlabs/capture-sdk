@@ -46,6 +46,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.mockwebserver)
     testImplementation(libs.retrofit)
+    testImplementation(project(":capture-test-support"))
 }
 
 android {

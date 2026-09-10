@@ -5,16 +5,31 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture
+@file:Suppress(
+    "EXPOSED_PARAMETER_TYPE",
+    "EXPOSED_SUPER_INTERFACE",
+    "INVISIBLE_MEMBER",
+    "INVISIBLE_REFERENCE"
+)
 
+package io.bitdrift.capture.test.support
+
+import io.bitdrift.capture.IBridge
+import io.bitdrift.capture.ICustomFieldsProvider
+import io.bitdrift.capture.IEventsListenerTarget
+import io.bitdrift.capture.IPreferences
+import io.bitdrift.capture.IResourceUtilizationTarget
+import io.bitdrift.capture.ISessionReplayTarget
+import io.bitdrift.capture.ITimestampProvider
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionCallback
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 
-internal interface IBridge {
-    fun createLogger(
+object FakeBridge : IBridge {
+    const val FAKE_LOGGER_ID = 1000L
+    override fun createLogger(
         sdkDirectory: String,
         apiKey: String,
         targetDomain: String,
@@ -40,13 +55,15 @@ internal interface IBridge {
         errorReporter: IErrorReporter,
         startInSleepMode: Boolean,
         issueCallbackConfiguration: IssueCallbackConfiguration?,
-        initialFields: Array<Field> = emptyArray(),
-    ): Long
+        initialFields: Array<Field>,
+    ): Long {
+        return FAKE_LOGGER_ID
+    }
 
-    fun startLogger(loggerId: LoggerId)
+    override fun startLogger(loggerId: Long) = Unit
 
-    fun writeLog(
-        loggerId: LoggerId,
+    override fun writeLog(
+        loggerId: Long,
         logType: Int,
         logLevel: Int,
         log: String,
@@ -56,5 +73,5 @@ internal interface IBridge {
         matchingFieldValues: Array<String>?,
         usePreviousProcessSessionId: Boolean,
         overrideOccurredAtUnixMilliseconds: Long,
-    )
+    ) = Unit
 }
