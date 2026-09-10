@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added a `critical` log level, one step above `error`, with `logCritical` convenience methods on iOS and Android. The WebView custom-log bridge accepts `"critical"` as a level.
 
 **Changed**
 
@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Nothing yet!
+- The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to `critical` instead of `debug`.
 
 **Fixed**
 
@@ -44,7 +44,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- The Objective-C `logWarning` and `logError` entry points now log at warning and error level. They previously logged at info level.
 
 ## [0.24.2]
 [0.24.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.2
@@ -77,10 +77,6 @@
   Capture reuses a persisted session until it expires; without one, it uses the configured initial
   ID at every SDK start.
 - Added `initialFields` to seed custom global fields during Capture SDK startup.
-
-- Added a `critical` log level, one step above `error`, along with `logCritical` convenience methods
-  on iOS and Android. The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to `critical`
-  instead of `debug`, and the WebView custom-log bridge accepts `"critical"`.
 
 **Changed**
 
@@ -138,9 +134,6 @@
 - Invalid inactivity timeouts now disable activity-based session rotation instead of preventing
   SDK initialization.
 - Fixed a link failure in apps that was caused by exceeding Apple's limit of personality routines for compact unwind.
-
-- The Objective-C `logWarning` and `logError` entry points now log at warning and error level.
-  They previously logged at info level.
 
 ## [0.23.12]
 [0.23.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.12
