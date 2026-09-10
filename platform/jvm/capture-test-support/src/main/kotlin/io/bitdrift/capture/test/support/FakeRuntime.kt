@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.fakes
+package io.bitdrift.capture.test.support
 
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
@@ -13,7 +13,7 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.RuntimeStringConfig
 
 /** [Runtime] fake that answers with each flag's declared default unless a test overrides it. */
-internal class FakeRuntime : Runtime {
+class FakeRuntime : Runtime {
     private val overrides = mutableMapOf<RuntimeFeature, Boolean>()
 
     fun setEnabled(

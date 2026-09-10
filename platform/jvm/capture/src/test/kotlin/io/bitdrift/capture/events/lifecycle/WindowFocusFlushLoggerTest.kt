@@ -16,9 +16,9 @@ import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.Mocks
 import io.bitdrift.capture.common.RuntimeFeature
-import io.bitdrift.capture.fakes.FakeRuntime
 import io.bitdrift.capture.fakes.FakeWindowFocusRegistrar
 import io.bitdrift.capture.fakes.FakeWindowManager
+import io.bitdrift.capture.test.support.FakeRuntime
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
