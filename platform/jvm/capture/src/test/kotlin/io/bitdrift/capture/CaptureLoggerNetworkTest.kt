@@ -110,7 +110,6 @@ class CaptureLoggerNetworkTest {
             errorReporter = mock(),
             startInSleepMode = false,
             issueCallbackConfiguration = null,
-            startupReplayEligibility = StartupReplayEligibility.Unknown.nativeValue,
         )
 
     @Test

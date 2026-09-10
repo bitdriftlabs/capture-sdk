@@ -12,7 +12,6 @@ import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.MockPreferences
-import io.bitdrift.capture.StartupReplayEligibility
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -132,33 +131,6 @@ class PreviousRunInfoResolverTest {
     }
 
     @Test
-    fun startupReplayEligibility_usesAppExitReasonConfidence() {
-        latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_CRASH)
-        assertThat(newResolver().startupReplayEligibility())
-            .isEqualTo(StartupReplayEligibility.MayHavePriorCrash)
-
-        latestAppExitInfoProvider.reset()
-        latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_USER_REQUESTED)
-        assertThat(newResolver().startupReplayEligibility())
-            .isEqualTo(StartupReplayEligibility.NoPriorCrash)
-
-        latestAppExitInfoProvider.reset()
-        latestAppExitInfoProvider.setAsEmptyReason()
-        assertThat(newResolver().startupReplayEligibility())
-            .isEqualTo(StartupReplayEligibility.Unknown)
-
-        latestAppExitInfoProvider.reset()
-        latestAppExitInfoProvider.setAsErrorResult()
-        assertThat(newResolver().startupReplayEligibility())
-            .isEqualTo(StartupReplayEligibility.Unknown)
-
-        latestAppExitInfoProvider.reset()
-        latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_UNKNOWN)
-        assertThat(newResolver().startupReplayEligibility())
-            .isEqualTo(StartupReplayEligibility.Unknown)
-    }
-
-    @Test
     fun get_belowApi30_returnsNullWhenNoPreviousStateWasPersisted() {
         whenever(buildVersionChecker.isAtLeast(android.os.Build.VERSION_CODES.R)).thenReturn(false)
 
@@ -207,21 +179,6 @@ class PreviousRunInfoResolverTest {
     }
 
     @Test
-    fun startupReplayEligibility_belowApi30_onlyTrustsTheJvmCrashMarker() {
-        whenever(buildVersionChecker.isAtLeast(android.os.Build.VERSION_CODES.R)).thenReturn(false)
-        assertThat(newResolver().startupReplayEligibility())
-            .isEqualTo(StartupReplayEligibility.Unknown)
-
-        previousRunInfoBelowApi30Store.writeState(PreviousRunInfoBelowApi30State.Started)
-        assertThat(newResolver().startupReplayEligibility())
-            .isEqualTo(StartupReplayEligibility.Unknown)
-
-        previousRunInfoBelowApi30Store.writeState(PreviousRunInfoBelowApi30State.JvmCrash)
-        assertThat(newResolver().startupReplayEligibility())
-            .isEqualTo(StartupReplayEligibility.MayHavePriorCrash)
-    }
-
-    @Test
     fun get_belowApi30_ignoresUnknownPersistedState() {
         whenever(buildVersionChecker.isAtLeast(android.os.Build.VERSION_CODES.R)).thenReturn(false)
         preferences.setString("io.bitdrift.capture.previous_run_info.state", "unknown", blocking = true)
@@ -262,12 +219,4 @@ class PreviousRunInfoResolverTest {
         assertThat(actual?.hasFatallyTerminated).isEqualTo(hasFatallyTerminated)
         assertThat(actual?.terminationReason).isEqualTo(terminationReason)
     }
-
-    private fun newResolver() =
-        PreviousRunInfoResolver(
-            latestAppExitInfoProvider,
-            preferences,
-            captureUncaughtExceptionHandler,
-            buildVersionChecker,
-        )
 }

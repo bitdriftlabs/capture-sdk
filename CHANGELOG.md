@@ -11,7 +11,7 @@
 
 **Changed**
 
-- Startup waits briefly for crash work from a prior process before replaying it.
+- Nothing yet!
 
 **Fixed**
 
@@ -40,7 +40,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Startup waits briefly for crash work from a prior process before replaying it.
 
 **Fixed**
 

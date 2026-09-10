@@ -8,7 +8,6 @@ package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.anyOrNull
-import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
@@ -62,7 +61,6 @@ class ConfigurationTest {
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
-                anyOrNull(),
             ),
         ).thenReturn(-1L)
 
@@ -81,7 +79,6 @@ class ConfigurationTest {
         Assertions.assertThat(Capture.logger()).isNull()
 
         // We confirm that we actually tried to configure the logger.
-        val startupReplayEligibilityCaptor = argumentCaptor<Int>()
         verify(bridge, times(1)).createLogger(
             anyOrNull(),
             anyOrNull(),
@@ -108,12 +105,8 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
-            startupReplayEligibilityCaptor.capture(),
             anyOrNull(),
         )
-        Assertions
-            .assertThat(startupReplayEligibilityCaptor.firstValue)
-            .isEqualTo(StartupReplayEligibility.Unknown.nativeValue)
 
         // We perform another attempt to configure the logger to verify that
         // consecutive configure calls are no-ops.
@@ -154,7 +147,6 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
-            anyOrNull(),
         )
     }
 
@@ -166,7 +158,6 @@ class ConfigurationTest {
         val bridge: IBridge = mock {}
         whenever(
             bridge.createLogger(
-                anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
