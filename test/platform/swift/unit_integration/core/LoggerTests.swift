@@ -81,6 +81,35 @@ final class LoggerTests: XCTestCase {
         withExtendedLifetime(logger) {}
     }
 
+    func testStartsPreviousRunTrackingAfterStartingCoreLogger() throws {
+        let directoryURL = try XCTUnwrap(Logger.tempBufferDirectory())
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let bridge = MockLoggerBridging()
+        let startExpectation = self.expectation(description: "core logger starts")
+        bridge.onStart = {
+            XCTAssertFalse(FileManager.default.fileExists(
+                atPath: directoryURL
+                    .appendingPathComponent("previous_run/previous_run_info.bin")
+                    .path
+            ))
+            startExpectation.fulfill()
+        }
+
+        let logger = try Logger.testLogger(
+            configuration: Configuration(rootFileURL: directoryURL),
+            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
+        )
+
+        self.wait(for: [startExpectation], timeout: 0)
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: directoryURL
+                .appendingPathComponent("previous_run/previous_run_info.bin")
+                .path
+        ))
+        withExtendedLifetime(logger) {}
+    }
+
     func testPassesUnknownReplayEligibilityWhenFatalIssueReportingIsDisabled() throws {
         let directoryURL = try XCTUnwrap(Logger.tempBufferDirectory())
         defer { try? FileManager.default.removeItem(at: directoryURL) }

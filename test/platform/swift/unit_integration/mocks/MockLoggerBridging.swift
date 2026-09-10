@@ -40,6 +40,8 @@ public final class MockLoggerBridging {
 
     public private(set) var startLog: Atomic<([Field], TimeInterval)?> = Atomic(nil)
 
+    public var onStart: (() -> Void)?
+
     public private(set) var errors: [HandledError] = []
 
     public private(set) var sleepMode: SleepMode = .disabled
@@ -67,7 +69,9 @@ public final class MockLoggerBridging {
 extension MockLoggerBridging: LoggerBridging {
     public var isTracingActive: Bool { self.tracingActive }
 
-    public func start() {}
+    public func start() {
+        self.onStart?()
+    }
 
     public func getSessionID() -> String { "foo" }
 
