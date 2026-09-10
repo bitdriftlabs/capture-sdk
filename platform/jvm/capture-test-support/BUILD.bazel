@@ -1,0 +1,13 @@
+load("//bazel/android:build.bzl", "bitdrift_kt_android_library")
+
+bitdrift_kt_android_library(
+    name = "lib",
+    srcs = glob(["src/main/**/*.kt"]),
+    associates = ["//platform/jvm/capture:capture_logger_lib"],
+    custom_package = "io.bitdrift.capture.test.support",
+    testonly = True,
+    visibility = ["//visibility:public"],
+    deps = [
+        "//platform/jvm/common:lib",
+    ],
+)
