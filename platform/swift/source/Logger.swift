@@ -263,10 +263,9 @@ public final class Logger {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
             Logger.previousRunInfoValue = .unknown
         } else {
+            let isTrackingPreviousRun = previousRunInfoController?.startTrackingCurrentRun() == true
             self.crashReporterService = CrashReporterService(
-                previousRunInfoController: previousRunInfoController?.startTrackingCurrentRun() == true
-                    ? previousRunInfoController
-                    : nil
+                previousRunInfoController: isTrackingPreviousRun ? previousRunInfoController : nil
             )
             if let result = self.crashReporterService?.setup(
                 sdkBaseURL: directoryURL,
