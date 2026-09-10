@@ -9,7 +9,9 @@ package io.bitdrift.capture.instrumentation.webview
 
 import io.bitdrift.capture.instrumentation.fakes.TestClassContext
 import io.bitdrift.capture.instrumentation.fakes.TestClassData
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationScope
 import org.junit.Test
+import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import kotlin.test.assertEquals
@@ -33,7 +35,10 @@ class WebViewMethodVisitorTest {
                 "INSN:DUP_X1",
                 "INSN:POP",
                 "INSN:DUP_X1",
-                "METHOD:INVOKESTATIC:io/bitdrift/capture/webview/WebViewCapture.instrument(Landroid/webkit/WebView;)V",
+                "INSN:ACONST_NULL",
+                "FIELD:GETSTATIC:io/bitdrift/capture/CaptureRuntimeProvider.INSTANCE:Lio/bitdrift/capture/CaptureRuntimeProvider;",
+                "FIELD:GETSTATIC:io/bitdrift/capture/webview/WebViewInstrumentationMode.AUTOMATIC_ALWAYS:Lio/bitdrift/capture/webview/WebViewInstrumentationMode;",
+                "METHOD:INVOKESTATIC:io/bitdrift/capture/webview/WebViewCaptureInternals.instrumentInternally(Landroid/webkit/WebView;Lio/bitdrift/capture/ILogger;Lio/bitdrift/capture/IRuntimeProvider;Lio/bitdrift/capture/webview/WebViewInstrumentationMode;)V",
                 "METHOD:INVOKEVIRTUAL:android/webkit/WebView.loadUrl(Ljava/lang/String;)V",
             ),
             recorder.events,
@@ -76,8 +81,79 @@ class WebViewMethodVisitorTest {
                 "INSN:DUP_X1",
                 "INSN:POP",
                 "INSN:DUP_X1",
-                "METHOD:INVOKESTATIC:io/bitdrift/capture/webview/WebViewCapture.instrument(Landroid/webkit/WebView;)V",
+                "INSN:ACONST_NULL",
+                "FIELD:GETSTATIC:io/bitdrift/capture/CaptureRuntimeProvider.INSTANCE:Lio/bitdrift/capture/CaptureRuntimeProvider;",
+                "FIELD:GETSTATIC:io/bitdrift/capture/webview/WebViewInstrumentationMode.AUTOMATIC_ALWAYS:Lio/bitdrift/capture/webview/WebViewInstrumentationMode;",
+                "METHOD:INVOKESTATIC:io/bitdrift/capture/webview/WebViewCaptureInternals.instrumentInternally(Landroid/webkit/WebView;Lio/bitdrift/capture/ILogger;Lio/bitdrift/capture/IRuntimeProvider;Lio/bitdrift/capture/webview/WebViewInstrumentationMode;)V",
                 "METHOD:INVOKEVIRTUAL:com/reactnativecommunity/webview/RNCWebView.loadUrl(Ljava/lang/String;)V",
+            ),
+            recorder.events,
+        )
+    }
+
+    @Test
+    fun `javascript enabled only mode passes automatic javascript enabled only mode`() {
+        val recorder = RecordingMethodVisitor()
+        val sut =
+            WebViewMethodVisitor(
+                Opcodes.ASM7,
+                recorder,
+                TestClassContext("com.example.Caller"),
+                WebViewAutomaticInstrumentationScope.JS_ENABLED,
+            )
+
+        sut.visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            "android/webkit/WebView",
+            "loadUrl",
+            "(Ljava/lang/String;)V",
+            false,
+        )
+
+        assertEquals(
+            listOf(
+                "INSN:DUP_X1",
+                "INSN:POP",
+                "INSN:DUP_X1",
+                "INSN:ACONST_NULL",
+                "FIELD:GETSTATIC:io/bitdrift/capture/CaptureRuntimeProvider.INSTANCE:Lio/bitdrift/capture/CaptureRuntimeProvider;",
+                "FIELD:GETSTATIC:io/bitdrift/capture/webview/WebViewInstrumentationMode.AUTOMATIC_JAVASCRIPT_ENABLED_ONLY:Lio/bitdrift/capture/webview/WebViewInstrumentationMode;",
+                "METHOD:INVOKESTATIC:io/bitdrift/capture/webview/WebViewCaptureInternals.instrumentInternally(Landroid/webkit/WebView;Lio/bitdrift/capture/ILogger;Lio/bitdrift/capture/IRuntimeProvider;Lio/bitdrift/capture/webview/WebViewInstrumentationMode;)V",
+                "METHOD:INVOKEVIRTUAL:android/webkit/WebView.loadUrl(Ljava/lang/String;)V",
+            ),
+            recorder.events,
+        )
+    }
+
+    @Test
+    fun `javascript enabled only mode preserves headers loadUrl arguments`() {
+        val recorder = RecordingMethodVisitor()
+        val sut =
+            WebViewMethodVisitor(
+                Opcodes.ASM7,
+                recorder,
+                TestClassContext("com.example.Caller"),
+                WebViewAutomaticInstrumentationScope.JS_ENABLED,
+            )
+
+        sut.visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            "android/webkit/WebView",
+            "loadUrl",
+            "(Ljava/lang/String;Ljava/util/Map;)V",
+            false,
+        )
+
+        assertEquals(
+            listOf(
+                "INSN:DUP2_X1",
+                "INSN:POP2",
+                "INSN:DUP_X2",
+                "INSN:ACONST_NULL",
+                "FIELD:GETSTATIC:io/bitdrift/capture/CaptureRuntimeProvider.INSTANCE:Lio/bitdrift/capture/CaptureRuntimeProvider;",
+                "FIELD:GETSTATIC:io/bitdrift/capture/webview/WebViewInstrumentationMode.AUTOMATIC_JAVASCRIPT_ENABLED_ONLY:Lio/bitdrift/capture/webview/WebViewInstrumentationMode;",
+                "METHOD:INVOKESTATIC:io/bitdrift/capture/webview/WebViewCaptureInternals.instrumentInternally(Landroid/webkit/WebView;Lio/bitdrift/capture/ILogger;Lio/bitdrift/capture/IRuntimeProvider;Lio/bitdrift/capture/webview/WebViewInstrumentationMode;)V",
+                "METHOD:INVOKEVIRTUAL:android/webkit/WebView.loadUrl(Ljava/lang/String;Ljava/util/Map;)V",
             ),
             recorder.events,
         )
@@ -143,10 +219,24 @@ private class RecordingMethodVisitor : MethodVisitor(Opcodes.ASM7) {
         events += "METHOD:${opcodeName(opcode)}:$owner.$name$descriptor"
     }
 
+    override fun visitFieldInsn(
+        opcode: Int,
+        owner: String?,
+        name: String?,
+        descriptor: String?,
+    ) {
+        events += "FIELD:${opcodeName(opcode)}:$owner.$name:$descriptor"
+    }
+
     private fun opcodeName(opcode: Int): String =
         when (opcode) {
             Opcodes.DUP_X1 -> "DUP_X1"
+            Opcodes.DUP2_X1 -> "DUP2_X1"
+            Opcodes.DUP_X2 -> "DUP_X2"
             Opcodes.POP -> "POP"
+            Opcodes.POP2 -> "POP2"
+            Opcodes.ACONST_NULL -> "ACONST_NULL"
+            Opcodes.GETSTATIC -> "GETSTATIC"
             Opcodes.INVOKESTATIC -> "INVOKESTATIC"
             Opcodes.INVOKEVIRTUAL -> "INVOKEVIRTUAL"
             else -> opcode.toString()

@@ -31,7 +31,7 @@ class WebViewBridgeMessageHandlerTest {
     @Before
     fun setUp() {
         logger = mock()
-        handler = WebViewBridgeMessageHandler(logger)
+        handler = WebViewBridgeMessageHandler(logger, "AUTOMATIC_ALWAYS")
     }
 
     @Test
@@ -118,6 +118,7 @@ class WebViewBridgeMessageHandlerTest {
         val fields = arrayFieldsCaptor.firstValue.toStringMap()
         val logMessage = logMessageCaptor.firstValue()
         assertThat(fields["_source"]).isEqualTo("webview")
+        assertThat(fields["_instrumentation_mode"]).isEqualTo("AUTOMATIC_ALWAYS")
         assertThat(fields["_config"]).isEqualTo("{\"capturePageViews\":true,\"captureErrors\":false}")
         assertThat(fields["_url"]).isEqualTo("https://example.com")
         assertThat(logMessage).isEqualTo("webview.initialized")

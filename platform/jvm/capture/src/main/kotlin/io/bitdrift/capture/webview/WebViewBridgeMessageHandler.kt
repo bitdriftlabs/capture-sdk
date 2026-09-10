@@ -32,6 +32,7 @@ import java.util.UUID
  */
 internal class WebViewBridgeMessageHandler(
     private val logger: IInternalLogger,
+    private val instrumentationMode: String,
 ) {
     /**
      * TODO(Fran): BIT-5074. Consider switching to kotlinx.serialization
@@ -143,7 +144,11 @@ internal class WebViewBridgeMessageHandler(
     }
 
     private fun handleBridgeReady(msg: WebViewBridgeMessage) {
-        val baseFields = fieldsOf("_source" to "webview")
+        val baseFields =
+            fieldsOf(
+                "_instrumentation_mode" to instrumentationMode,
+                "_source" to "webview",
+            )
         val optionalFields =
             fieldsOfOptional(
                 "_url" to msg.url,
