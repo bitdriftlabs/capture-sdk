@@ -128,6 +128,10 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             logger.setFeatureFlagExposure("new_ui", "variant_b")
             logger.setFeatureFlagExposure("experimental_feature", false)
 
+            // A blocking flush is an ordered barrier: it waits until the preceding feature flag
+            // state updates are durable before the simulated crash snapshots the previous run.
+            logger.flush(true)
+
             // Simulate a crash by calling persistJvmCrash on the issue processor
             val processor = logger.getIssueProcessor()
             assertThat(processor).isNotNull
