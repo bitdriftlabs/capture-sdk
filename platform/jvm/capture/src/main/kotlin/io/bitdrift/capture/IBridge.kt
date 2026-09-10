@@ -40,6 +40,7 @@ internal interface IBridge {
         errorReporter: IErrorReporter,
         startInSleepMode: Boolean,
         issueCallbackConfiguration: IssueCallbackConfiguration?,
+        startupReplayEligibility: Int,
         initialFields: Array<Field> = emptyArray(),
     ): Long
 }
