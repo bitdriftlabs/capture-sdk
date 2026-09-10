@@ -27,7 +27,6 @@ import io.bitdrift.capture.reports.IssueReportCallback
 import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.capture.webview.WebViewConfiguration
-import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
@@ -76,7 +75,7 @@ object CaptureSdkInitializer {
             is PersistedSdkConfigResult.Success -> {
                 startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext)
                 logPreviousRunInfoToBitdrift()
-                return Capture.Logger.getSdkStatus().initializationState != InitializationState.NOT_STARTED
+                Capture.Logger.getSdkStatus().initializationState != InitializationState.NOT_STARTED
             }
 
             is PersistedSdkConfigResult.Failed -> {
