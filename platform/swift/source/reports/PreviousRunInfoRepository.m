@@ -237,6 +237,18 @@ static BOOL bdpri_prepare_current_record(
 
 @implementation BDPreviousRunInfoRepository
 
++ (BDPreviousRunInfoSnapshot *)loadExistingPreviousRunInfoFromDirectory:(NSURL *)directory {
+    NSString *filePath = [directory.path stringByAppendingPathComponent:@"previous_run_info.bin"];
+    int fileDescriptor = open(filePath.fileSystemRepresentation, O_RDONLY);
+    if (fileDescriptor == BDPreviousRunInfoInvalidFileDescriptor) {
+        return nil;
+    }
+
+    BDPreviousRunInfoSnapshot *snapshot = bdpri_load_previous_run_info(fileDescriptor);
+    close(fileDescriptor);
+    return snapshot;
+}
+
 - (instancetype)initWithDirectory:(NSURL *)directory error:(NSError **)error {
     self = [super init];
     if (self == nil) {

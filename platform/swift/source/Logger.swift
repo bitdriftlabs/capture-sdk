@@ -180,6 +180,10 @@ public final class Logger {
             SessionReplayController(configuration: $0)
         }
 
+        let startupReplayEligibility = configuration.enableFatalIssueReporting
+            ? PreviousRunInfoController.startupReplayEligibility(baseDirectory: directoryURL)
+            : .unknown
+
         guard let logger = loggerBridgingFactoryProvider.makeLogger(
             apiKey: apiKey,
             bufferDirectoryPath: directoryURL.path,
@@ -205,6 +209,7 @@ public final class Logger {
             network: network,
             errorReporting: self.remoteErrorReporter,
             sleepMode: configuration.sleepMode,
+            startupReplayEligibility: startupReplayEligibility.rawValue,
             initialFields: initialFields.compactMap { try? Field.make(keyValue: $0) },
             issueCallbackConfiguration: configuration.enableFatalIssueReporting
                 ? configuration.issueCallbackConfiguration

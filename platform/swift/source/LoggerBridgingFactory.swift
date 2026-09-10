@@ -28,6 +28,7 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
         network: Network?,
         errorReporting: RemoteErrorReporting,
         sleepMode: SleepMode,
+        startupReplayEligibility: Int32,
         initialFields: [CapturePassable.Field],
         issueCallbackConfiguration: IssueCallbackConfiguration?
     ) -> LoggerBridging? {
@@ -50,6 +51,7 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
             network: network,
             errorReporting: errorReporting,
             sleepMode: sleepMode,
+            startupReplayEligibility: startupReplayEligibility,
             initialFields: initialFields,
             issueCallbackConfiguration: issueCallbackConfiguration
         )

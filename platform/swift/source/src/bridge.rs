@@ -512,6 +512,7 @@ extern "C" fn capture_create_logger(
   bd_network_nsobject: *mut Object,
   error_reporter_ns_object: *mut Object,
   start_in_sleep_mode: bool,
+  startup_replay_eligibility: i32,
   initial_fields: *const Object,
   issue_callback_configuration: *mut Object,
 ) -> LoggerId<'static> {
@@ -620,6 +621,9 @@ extern "C" fn capture_create_logger(
         },
       )
       .with_internal_logger(true)
+      .with_startup_replay_eligibility(bd_logger::StartupReplayEligibility::from_i32(
+        startup_replay_eligibility,
+      ))
       .build()
       .map(|(logger, _, future, _)| {
         LoggerHolder::new_with_static_metadata(logger, future, Some(static_metadata))

@@ -32,6 +32,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable instancetype)initWithDirectory:(NSURL *)directory error:(NSError **)error NS_DESIGNATED_INITIALIZER;
 - (instancetype)init NS_UNAVAILABLE;
 
+/// Reads a previously persisted snapshot without creating or modifying any files.
++ (nullable BDPreviousRunInfoSnapshot *)loadExistingPreviousRunInfoFromDirectory:(NSURL *)directory;
 - (nullable BDPreviousRunInfoSnapshot *)loadPreviousRunInfoAndReturnError:(NSError **)error;
 - (BOOL)prepareCurrentRunInfoWithOsVersion:(NSString *)osVersion
                                 binaryUUID:(NSString *)binaryUUID
