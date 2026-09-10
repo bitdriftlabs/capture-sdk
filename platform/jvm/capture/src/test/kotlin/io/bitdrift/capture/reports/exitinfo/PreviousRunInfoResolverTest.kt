@@ -145,7 +145,7 @@ class PreviousRunInfoResolverTest {
         latestAppExitInfoProvider.reset()
         latestAppExitInfoProvider.setAsEmptyReason()
         assertThat(newResolver().startupReplayEligibility())
-            .isEqualTo(StartupReplayEligibility.NoPriorCrash)
+            .isEqualTo(StartupReplayEligibility.Unknown)
 
         latestAppExitInfoProvider.reset()
         latestAppExitInfoProvider.setAsErrorResult()

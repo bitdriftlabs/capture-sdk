@@ -121,9 +121,7 @@ internal class PreviousRunInfoResolver(
                         }
                 }
             }
-            // No matching process record is expected for a first installation, so no prior
-            // process can have crash work in this SDK directory.
-            is LatestAppExitReasonResult.None -> StartupReplayEligibility.NoPriorCrash
+            is LatestAppExitReasonResult.None -> StartupReplayEligibility.Unknown
             is LatestAppExitReasonResult.Error -> StartupReplayEligibility.Unknown
         }
 
