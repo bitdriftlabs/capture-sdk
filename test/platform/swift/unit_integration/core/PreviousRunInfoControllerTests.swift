@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @testable import Capture
+import CaptureLoggerBridge
 import Foundation
 import XCTest
 
@@ -69,9 +70,48 @@ final class PreviousRunInfoControllerTests: XCTestCase {
         // `resolve` is idempotent: only the first call has an effect.
         thenResultEquals(result, .unknown)
     }
+
+    func testStartupReplayEligibilityUsesCleanExitMarker() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: true)
+
+        XCTAssertEqual(
+            PreviousRunInfoController.startupReplayEligibility(baseDirectory: baseDirectoryURL),
+            .noPriorCrash
+        )
+    }
+
+    func testStartupReplayEligibilityUsesUncleanExitMarker() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: false)
+
+        XCTAssertEqual(
+            PreviousRunInfoController.startupReplayEligibility(baseDirectory: baseDirectoryURL),
+            .mayHavePriorCrash
+        )
+    }
+
+    func testStartupReplayEligibilityReturnsUnknownWithoutSentinelAndDoesNotCreateOne() {
+        XCTAssertFalse(FileManager.default.fileExists(atPath: previousRunDirectoryURL.path))
+
+        XCTAssertEqual(
+            PreviousRunInfoController.startupReplayEligibility(baseDirectory: baseDirectoryURL),
+            .unknown
+        )
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: previousRunDirectoryURL.path))
+    }
+
+    func testStartupReplayEligibilityRawValuesMatchSharedCore() {
+        XCTAssertEqual(StartupReplayEligibility.noPriorCrash.rawValue, 0)
+        XCTAssertEqual(StartupReplayEligibility.mayHavePriorCrash.rawValue, 1)
+        XCTAssertEqual(StartupReplayEligibility.unknown.rawValue, 2)
+    }
 }
 
 private extension PreviousRunInfoControllerTests {
+    var previousRunDirectoryURL: URL {
+        baseDirectoryURL.appendingPathComponent("previous_run", isDirectory: true)
+    }
+
     @discardableResult
     func givenController() throws -> PreviousRunInfoController {
         try XCTUnwrap(PreviousRunInfoController(
@@ -86,6 +126,19 @@ private extension PreviousRunInfoControllerTests {
         // A regular file at the target path makes directory creation fail, exercising the
         // `init?` failure path.
         try Data().write(to: baseDirectoryURL)
+    }
+
+    func givenPersistedPreviousRunInfo(wasCleanExit: Bool) throws {
+        let store = try BDPreviousRunInfoRepository(directory: previousRunDirectoryURL)
+        try store.prepareCurrentRunInfo(
+            withOsVersion: osVersion,
+            binaryUUID: "4f179445-15d8-4ec1-a86f-0dfe9d2bb425",
+            bootTime: 123_456_789,
+            wasDebuggerAttached: false
+        )
+        if wasCleanExit {
+            store.markTerminating()
+        }
     }
 
     @discardableResult

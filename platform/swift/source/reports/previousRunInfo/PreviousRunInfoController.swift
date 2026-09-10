@@ -16,6 +16,24 @@ final class PreviousRunInfoController {
     private let previousRunInfoStorage = Atomic<PreviousRunInfo?>(nil)
     var previousRunInfo: PreviousRunInfo { self.previousRunInfoStorage.load() ?? .unknown }
 
+    /// Returns an early, read-only indication of whether the prior process terminated cleanly.
+    /// This only controls startup replay timing; KSCrash and MetricKit still determine the
+    /// previous-run crash result later in `resolve(didCrashLastLaunch:)`.
+    ///
+    /// - parameter baseDirectory: The SDK root directory containing the previous-run sentinel.
+    ///
+    /// - returns: Confidence that controls whether startup replay needs a hold.
+    static func startupReplayEligibility(baseDirectory: URL) -> StartupReplayEligibility {
+        let storeDirectory = baseDirectory.appendingPathComponent("previous_run", isDirectory: true)
+        guard let previousState = BDPreviousRunInfoRepository
+                .loadExistingPreviousRunInfo(fromDirectory: storeDirectory)
+        else {
+            return .unknown
+        }
+
+        return previousState.wasCleanExit ? .noPriorCrash : .mayHavePriorCrash
+    }
+
     init?(baseDirectory: URL, osVersion: String) {
         let storeDirectory = baseDirectory.appendingPathComponent("previous_run", isDirectory: true)
         guard let store = try? BDPreviousRunInfoRepository(directory: storeDirectory) else {
