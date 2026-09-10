@@ -18,11 +18,11 @@ TODO: Before publishing, update the native SDK dependencies in `android/build.gr
 
 **Changed**
 
-- Nothing yet!
+- Updated the Android and iOS Capture SDK dependencies to 0.24.1.
 
 **Fixed**
 
-- Nothing yet!
+- iOS: fixed `ios/capture_flutter/Package.swift` — the `swift-tools-version` comment must be the first line of the manifest; it was preceded by a (duplicated) license header, which made Swift Package Manager reject the manifest entirely (`the manifest is backward-incompatible with Swift < 6.0...`).
 
 ## [0.0.2]
 [0.0.2]: https://github.com/bitdriftlabs/capture-sdk/tree/flutter-prototype-0.0.2
