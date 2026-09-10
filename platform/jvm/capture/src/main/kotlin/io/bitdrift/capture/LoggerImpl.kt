@@ -157,7 +157,6 @@ internal class LoggerImpl(
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
     private val previousRunInfoResolver =
         PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler)
-    private val startupReplayEligibility = previousRunInfoResolver.startupReplayEligibility()
     private val isSdkDirectoryFirstCreated: Boolean
 
     private val issueReporter: IssueReporter? =
@@ -254,7 +253,6 @@ internal class LoggerImpl(
                 localErrorReporter,
                 configuration.sleepMode == SleepMode.ENABLED,
                 getIssueCallbackConfiguration(configuration),
-                startupReplayEligibility.nativeValue,
                 initialFields
                     .map { (key, value) -> Field(key, value.toFieldValue()) }
                     .toTypedArray(),

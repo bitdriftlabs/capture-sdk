@@ -11,7 +11,6 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.IPreferences
-import io.bitdrift.capture.StartupReplayEligibility
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -52,24 +51,6 @@ internal class PreviousRunInfoResolver(
         }
 
     /**
-     * Returns the confidence needed to decide whether startup may replay previous-run crash work.
-     *
-     * Pre-Android 11 only persists a JVM-crash marker. A [PreviousRunInfoBelowApi30State.Started]
-     * marker cannot rule out a native crash or process kill, so it deliberately remains unknown.
-     */
-    fun startupReplayEligibility(): StartupReplayEligibility =
-        if (buildVersionChecker.isAtLeast(Build.VERSION_CODES.R)) {
-            getStartupReplayEligibilityFromAppExitInfo()
-        } else {
-            when (previousRunInfoBelowApi30State) {
-                PreviousRunInfoBelowApi30State.JvmCrash -> StartupReplayEligibility.MayHavePriorCrash
-                PreviousRunInfoBelowApi30State.Started,
-                null,
-                -> StartupReplayEligibility.Unknown
-            }
-        }
-
-    /**
      * Will only trigger below OS 11
      */
     override fun onJvmCrash(
@@ -105,24 +86,6 @@ internal class PreviousRunInfoResolver(
             }
             is LatestAppExitReasonResult.None -> PreviousRunInfo(hasFatallyTerminated = false)
             is LatestAppExitReasonResult.Error -> null
-        }
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    private fun getStartupReplayEligibilityFromAppExitInfo(): StartupReplayEligibility =
-        when (val result = latestAppExitInfoProvider.get()) {
-            is LatestAppExitReasonResult.Valid -> {
-                when (val reason = result.applicationExitInfo.reason.toExitReason()) {
-                    ExitReason.Unknown -> StartupReplayEligibility.Unknown
-                    else ->
-                        if (isFatalReason(reason)) {
-                            StartupReplayEligibility.MayHavePriorCrash
-                        } else {
-                            StartupReplayEligibility.NoPriorCrash
-                        }
-                }
-            }
-            is LatestAppExitReasonResult.None -> StartupReplayEligibility.Unknown
-            is LatestAppExitReasonResult.Error -> StartupReplayEligibility.Unknown
         }
 
     private fun isFatalReason(exitReason: ExitReason): Boolean =

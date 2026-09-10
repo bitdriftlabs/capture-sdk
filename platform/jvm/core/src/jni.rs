@@ -782,7 +782,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   error_reporter: JObject<'_>,
   start_in_sleep_mode: jboolean,
   issue_report_callback: JObject<'_>,
-  startup_replay_eligibility: jint,
   initial_fields: JObject<'_>,
 ) -> jlong {
   with_handle_unexpected_or(
@@ -903,9 +902,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       })
       .with_internal_logger(true)
       .with_crash_report_hook(crash_report_hook)
-      .with_startup_replay_eligibility(bd_logger::StartupReplayEligibility::from_i32(
-        startup_replay_eligibility,
-      ))
       .build()
       .map(|(logger, _, future, _)| {
         LoggerHolder::new_with_static_metadata(
