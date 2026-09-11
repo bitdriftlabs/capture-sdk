@@ -231,7 +231,8 @@ jobs:
             const soBaseline = process.env.SO_BASELINE_KB;
             const soDiff = process.env.SO_DIFF_KB;
 
-            let body = '## Android Size Comparison Report (x86_64)\n\n';
+            const marker = '<!-- android-size-report-comment -->';
+            let body = `${marker}\n## Android Size Comparison Report (x86_64)\n\n`;
 
             // Combined table for both APK and SO sizes
             if ((apkBaseline && apkBaseline !== '') || (soBaseline && soBaseline !== '')) {
@@ -273,13 +274,17 @@ jobs:
             } else {
               body += `Current sizes: APK ${apkCurrent} KB, SO ${soCurrent} KB (No baselines available for comparison).`;
             }
-            const comments = await github.rest.issues.listComments({
+            const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
+              per_page: 100,
             });
 
-            const foundComment = comments.data.find((x) => x.user.login === 'github-actions[bot]');
+            const foundComment = comments.find((comment) =>
+              comment.user.login === 'github-actions[bot]' &&
+              (comment.body.includes(marker) || comment.body.startsWith('## Android Size Comparison Report')),
+            );
             const comment = {
               issue_number: context.payload.pull_request.number,
               comment_id: foundComment?.id,
