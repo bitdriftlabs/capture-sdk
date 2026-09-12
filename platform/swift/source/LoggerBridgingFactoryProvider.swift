@@ -30,6 +30,7 @@ protocol LoggerBridgingFactoryProvider {
     /// - parameter network:                    The interface to use for network operations.
     /// - parameter errorReporting:             The interface to use for reporting errors.
     /// - parameter sleepMode:                  .enabled if sleep mode should be initialized now.
+    /// - parameter startupReplayEligibility:   Previous-run confidence used for startup replay timing.
     /// - parameter initialFields:              Fields to seed at SDK startup and later update with addField.
     /// - parameter issueCallbackConfiguration: Optional callback configuration for issue reports.
     ///
@@ -53,6 +54,7 @@ protocol LoggerBridgingFactoryProvider {
         network: Network?,
         errorReporting: RemoteErrorReporting,
         sleepMode: SleepMode,
+        startupReplayEligibility: Int32,
         initialFields: [CapturePassable.Field],
         issueCallbackConfiguration: IssueCallbackConfiguration?
     ) -> LoggerBridging?

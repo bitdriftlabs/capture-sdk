@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @testable import Capture
+import CaptureLoggerBridge
 import Foundation
 import XCTest
 
@@ -25,59 +26,106 @@ final class PreviousRunInfoControllerTests: XCTestCase {
         try? FileManager.default.removeItem(at: baseDirectoryURL)
     }
 
-    func testOnFirstLaunchReturnsUnknown() throws {
-        let controller = try givenController()
+    func testOnFirstLaunchReturnsUnknown() {
+        let controller = givenStartedController()
 
         let result = whenResolving(controller, didCrashLastLaunch: false)
 
         thenResultEquals(result, .unknown)
     }
 
-    func testOnRelaunchWithCrashReturnsFatalCrash() throws {
-        try givenController()
+    func testOnRelaunchWithCrashReturnsFatalCrash() {
+        givenStartedController()
 
-        let controller = try givenController()
+        let controller = givenStartedController()
         let result = whenResolving(controller, didCrashLastLaunch: true)
 
         thenResultEquals(result, PreviousRunInfo(terminationReason: .fatalCrash))
     }
 
-    func testOnRelaunchWithoutCrashOrCleanExitReturnsUnknown() throws {
-        try givenController()
+    func testOnRelaunchWithoutCrashOrCleanExitReturnsUnknown() {
+        givenStartedController()
 
-        let controller = try givenController()
+        let controller = givenStartedController()
         let result = whenResolving(controller, didCrashLastLaunch: false)
 
         thenResultEquals(result, .unknown)
     }
 
-    func testOnDirectoryUnavailableReturnsNil() throws {
+    func testDoesNotStartWhenDirectoryIsUnavailable() throws {
         try givenBaseDirectoryIsBlockedByAFile()
 
-        let controller = whenCreatingController()
+        let controller = givenController()
 
-        thenControllerIsNil(controller)
+        XCTAssertFalse(controller.startTrackingCurrentRun())
     }
 
-    func testOnResolveCalledTwiceKeepsFirstResult() throws {
-        try givenController()
+    func testOnResolveCalledTwiceKeepsFirstResult() {
+        givenStartedController()
 
-        let controller = try givenController()
+        let controller = givenStartedController()
         whenResolving(controller, didCrashLastLaunch: false)
         let result = whenResolving(controller, didCrashLastLaunch: true)
 
         // `resolve` is idempotent: only the first call has an effect.
         thenResultEquals(result, .unknown)
     }
+
+    func testStartupReplayEligibilityUsesCleanExitMarker() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: true)
+        let controller = givenController()
+
+        XCTAssertEqual(
+            controller.startupReplayEligibility,
+            .noPriorCrash
+        )
+    }
+
+    func testStartupReplayEligibilityUsesUncleanExitMarker() throws {
+        try givenPersistedPreviousRunInfo(wasCleanExit: false)
+        let controller = givenController()
+
+        XCTAssertEqual(
+            controller.startupReplayEligibility,
+            .mayHavePriorCrash
+        )
+    }
+
+    func testDoesNotCreateSentinelUntilCurrentRunTrackingStarts() {
+        XCTAssertFalse(FileManager.default.fileExists(atPath: previousRunDirectoryURL.path))
+        let controller = givenController()
+
+        XCTAssertEqual(controller.startupReplayEligibility, .unknown)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: previousRunDirectoryURL.path))
+
+        XCTAssertTrue(controller.startTrackingCurrentRun())
+        XCTAssertTrue(FileManager.default.fileExists(atPath: previousRunDirectoryURL.path))
+    }
+
+    func testStartupReplayEligibilityRawValuesMatchSharedCore() {
+        XCTAssertEqual(StartupReplayEligibility.noPriorCrash.rawValue, 0)
+        XCTAssertEqual(StartupReplayEligibility.mayHavePriorCrash.rawValue, 1)
+        XCTAssertEqual(StartupReplayEligibility.unknown.rawValue, 2)
+    }
 }
 
 private extension PreviousRunInfoControllerTests {
-    @discardableResult
-    func givenController() throws -> PreviousRunInfoController {
-        try XCTUnwrap(PreviousRunInfoController(
+    var previousRunDirectoryURL: URL {
+        baseDirectoryURL.appendingPathComponent("previous_run", isDirectory: true)
+    }
+
+    func givenController() -> PreviousRunInfoController {
+        PreviousRunInfoController(
             baseDirectory: baseDirectoryURL,
             osVersion: osVersion
-        ))
+        )
+    }
+
+    @discardableResult
+    func givenStartedController() -> PreviousRunInfoController {
+        let controller = givenController()
+        XCTAssertTrue(controller.startTrackingCurrentRun())
+        return controller
     }
 
     func givenBaseDirectoryIsBlockedByAFile() throws {
@@ -88,21 +136,26 @@ private extension PreviousRunInfoControllerTests {
         try Data().write(to: baseDirectoryURL)
     }
 
+    func givenPersistedPreviousRunInfo(wasCleanExit: Bool) throws {
+        let store = try BDPreviousRunInfoRepository(directory: previousRunDirectoryURL)
+        try store.prepareCurrentRunInfo(
+            withOsVersion: osVersion,
+            binaryUUID: "4f179445-15d8-4ec1-a86f-0dfe9d2bb425",
+            bootTime: 123_456_789,
+            wasDebuggerAttached: false
+        )
+        if wasCleanExit {
+            store.markTerminating()
+        }
+    }
+
     @discardableResult
     func whenResolving(_ controller: PreviousRunInfoController, didCrashLastLaunch: Bool) -> PreviousRunInfo {
         controller.resolve(didCrashLastLaunch: didCrashLastLaunch)
         return controller.previousRunInfo
     }
 
-    func whenCreatingController() -> PreviousRunInfoController? {
-        return PreviousRunInfoController(baseDirectory: baseDirectoryURL, osVersion: osVersion)
-    }
-
     func thenResultEquals(_ result: PreviousRunInfo, _ expected: PreviousRunInfo) {
         XCTAssertEqual(result, expected)
-    }
-
-    func thenControllerIsNil(_ controller: PreviousRunInfoController?) {
-        XCTAssertNil(controller)
     }
 }

@@ -180,6 +180,11 @@ public final class Logger {
             SessionReplayController(configuration: $0)
         }
 
+        let previousRunInfoController = configuration.enableFatalIssueReporting
+            ? PreviousRunInfoController(baseDirectory: directoryURL, osVersion: clientAttributes.osVersion)
+            : nil
+        let startupReplayEligibility = previousRunInfoController?.startupReplayEligibility ?? .unknown
+
         guard let logger = loggerBridgingFactoryProvider.makeLogger(
             apiKey: apiKey,
             bufferDirectoryPath: directoryURL.path,
@@ -205,6 +210,7 @@ public final class Logger {
             network: network,
             errorReporting: self.remoteErrorReporter,
             sleepMode: configuration.sleepMode,
+            startupReplayEligibility: startupReplayEligibility.rawValue,
             initialFields: initialFields.compactMap { try? Field.make(keyValue: $0) },
             issueCallbackConfiguration: configuration.enableFatalIssueReporting
                 ? configuration.issueCallbackConfiguration
@@ -257,11 +263,9 @@ public final class Logger {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
             Logger.previousRunInfoValue = .unknown
         } else {
+            let isTrackingPreviousRun = previousRunInfoController?.startTrackingCurrentRun() == true
             self.crashReporterService = CrashReporterService(
-                previousRunInfoController: .init(
-                    baseDirectory: directoryURL,
-                    osVersion: clientAttributes.osVersion
-                )
+                previousRunInfoController: isTrackingPreviousRun ? previousRunInfoController : nil
             )
             if let result = self.crashReporterService?.setup(
                 sdkBaseURL: directoryURL,

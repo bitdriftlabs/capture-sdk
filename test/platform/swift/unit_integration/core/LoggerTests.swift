@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @testable import Capture
+import CaptureLoggerBridge
 import CaptureMocks
 import CapturePassable
 import Foundation
@@ -55,10 +56,92 @@ final class LoggerTests: XCTestCase {
         withExtendedLifetime(logger) {}
     }
 
+    func testPassesPriorCleanShutdownHintToBridge() throws {
+        let directoryURL = try XCTUnwrap(Logger.tempBufferDirectory())
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let previousRunDirectoryURL = directoryURL.appendingPathComponent("previous_run", isDirectory: true)
+        let store = try BDPreviousRunInfoRepository(directory: previousRunDirectoryURL)
+        try store.prepareCurrentRunInfo(
+            withOsVersion: "18.0",
+            binaryUUID: "4f179445-15d8-4ec1-a86f-0dfe9d2bb425",
+            bootTime: 123_456_789,
+            wasDebuggerAttached: false
+        )
+        store.markTerminating()
+
+        let factory = MockLoggerBridgingFactory(logger: MockLoggerBridging())
+        let configuration = Configuration(rootFileURL: directoryURL)
+        let logger = try Logger.testLogger(
+            configuration: configuration,
+            loggerBridgingFactoryProvider: factory
+        )
+
+        XCTAssertEqual(factory.startupReplayEligibilities, [StartupReplayEligibility.noPriorCrash.rawValue])
+        withExtendedLifetime(logger) {}
+    }
+
+    func testStartsPreviousRunTrackingAfterStartingCoreLogger() throws {
+        let directoryURL = try XCTUnwrap(Logger.tempBufferDirectory())
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let bridge = MockLoggerBridging()
+        let startExpectation = self.expectation(description: "core logger starts")
+        bridge.onStart = {
+            XCTAssertFalse(FileManager.default.fileExists(
+                atPath: directoryURL
+                    .appendingPathComponent("previous_run/previous_run_info.bin")
+                    .path
+            ))
+            startExpectation.fulfill()
+        }
+
+        let logger = try Logger.testLogger(
+            configuration: Configuration(rootFileURL: directoryURL),
+            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
+        )
+
+        self.wait(for: [startExpectation], timeout: 0)
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: directoryURL
+                .appendingPathComponent("previous_run/previous_run_info.bin")
+                .path
+        ))
+        withExtendedLifetime(logger) {}
+    }
+
+    func testPassesUnknownReplayEligibilityWhenFatalIssueReportingIsDisabled() throws {
+        let directoryURL = try XCTUnwrap(Logger.tempBufferDirectory())
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let previousRunDirectoryURL = directoryURL.appendingPathComponent("previous_run", isDirectory: true)
+        let store = try BDPreviousRunInfoRepository(directory: previousRunDirectoryURL)
+        try store.prepareCurrentRunInfo(
+            withOsVersion: "18.0",
+            binaryUUID: "4f179445-15d8-4ec1-a86f-0dfe9d2bb425",
+            bootTime: 123_456_789,
+            wasDebuggerAttached: false
+        )
+        store.markTerminating()
+
+        let factory = MockLoggerBridgingFactory(logger: MockLoggerBridging())
+        let configuration = Configuration(
+            enableFatalIssueReporting: false,
+            rootFileURL: directoryURL
+        )
+        let logger = try Logger.testLogger(
+            configuration: configuration,
+            loggerBridgingFactoryProvider: factory
+        )
+
+        XCTAssertEqual(factory.startupReplayEligibilities, [StartupReplayEligibility.unknown.rawValue])
+        withExtendedLifetime(logger) {}
+    }
+
     // Verifies that we don't end up recursing forever (resulting in a stack overflow) when a provider ends
     // up calling back into the logger.
     func testPreventsLoggingReEntryFromWithinRegisteredProviders() throws {
-        var logger: Logger?
+        var logger: Capture.Logger?
         defer {
             logger?.enableBlockingShutdown()
             logger = nil
@@ -118,7 +201,7 @@ final class LoggerTests: XCTestCase {
             return Date()
         }
 
-        var logger: Logger? = try Logger.testLogger(
+        var logger: Capture.Logger? = try Capture.Logger.testLogger(
             withAPIKey: "test_api_key",
             sessionStrategy: .configuration(.init()),
             dateProvider: dateProvider,
