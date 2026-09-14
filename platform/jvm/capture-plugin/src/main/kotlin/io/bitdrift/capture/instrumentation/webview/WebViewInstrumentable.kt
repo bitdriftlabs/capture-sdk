@@ -8,6 +8,7 @@
 package io.bitdrift.capture.instrumentation.webview
 
 import com.android.build.api.instrumentation.ClassContext
+import io.bitdrift.capture.extension.InstrumentationExtension.WebViewAutomaticInstrumentationScope
 import io.bitdrift.capture.instrumentation.ClassInstrumentable
 import io.bitdrift.capture.instrumentation.SpanAddingClassVisitorFactory
 import org.objectweb.asm.ClassVisitor
@@ -15,12 +16,14 @@ import org.objectweb.asm.MethodVisitor
 
 /**
  * Instrumentable that scans all classes for calls to WebView.loadUrl() and injects
- * WebViewCapture.instrument(webView) before each call.
+ * mode-aware WebView instrumentation before each call.
  *
  * We use bytecode manipulation to automatically capture each WebView instance
  * at the point where loadUrl() is called, avoiding the need for manual instrumentation.
  */
-class WebViewLoadUrlInstrumentable : ClassInstrumentable {
+class WebViewLoadUrlInstrumentable(
+    private val scope: WebViewAutomaticInstrumentationScope,
+) : ClassInstrumentable {
     override fun isInstrumentable(data: ClassContext): Boolean = true
 
     override fun getVisitor(
@@ -33,6 +36,7 @@ class WebViewLoadUrlInstrumentable : ClassInstrumentable {
             apiVersion = apiVersion,
             classVisitor = originalVisitor,
             classContext = instrumentableContext,
+            scope = scope,
         )
 }
 
@@ -43,6 +47,7 @@ class WebViewClassVisitor(
     apiVersion: Int,
     classVisitor: ClassVisitor,
     private val classContext: ClassContext,
+    private val scope: WebViewAutomaticInstrumentationScope,
 ) : ClassVisitor(apiVersion, classVisitor) {
 
     override fun visitMethod(
@@ -53,6 +58,6 @@ class WebViewClassVisitor(
         exceptions: Array<out String>?,
     ): MethodVisitor {
         val methodVisitor = super.visitMethod(access, name, descriptor, signature, exceptions)
-        return WebViewMethodVisitor(api, methodVisitor, classContext)
+        return WebViewMethodVisitor(api, methodVisitor, classContext, scope)
     }
 }

@@ -95,7 +95,7 @@ sealed class FeatureFlagsTestAction : AppAction {
 sealed class NavigationAction : AppAction {
     object NavigateToConfig : NavigationAction()
 
-    data class NavigateToWebView(val url: String) : NavigationAction()
+    data class NavigateToWebView(val demoKey: String) : NavigationAction()
 
     object NavigateToCompose : NavigationAction()
 

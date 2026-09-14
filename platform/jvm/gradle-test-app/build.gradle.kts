@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     id("com.google.firebase.crashlytics") version "3.0.6" apply false
-    id("io.bitdrift.capture-plugin") version "0.23.10" // To verify new changes at capture-plugin use your maven local published version
+    id("io.bitdrift.capture-plugin") version "0.24.1" // To verify new changes at capture-plugin use your maven local published version
 }
 
 val enableAutoCaptureOkHttpInstrumentation =
@@ -207,7 +207,17 @@ apollo {
 bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = enableAutoCaptureOkHttpInstrumentation
-        automaticWebViewInstrumentation = true
+
+        // Defaults to PROXY.
         // Comment out to change the default type. e.g. okHttpInstrumentationType = OVERWRITE
+        // okHttpInstrumentationType = OVERWRITE
+
+        // Remove automaticWebViewInstrumentation when release 0.24.2 plugin is published
+        automaticWebViewInstrumentation = true // This is going to be deprecated in 0.24.2
+
+        // Instruments only WebViews where the application already enabled JavaScript. Update once 0.24.2 is available
+        // webViewAutomaticInstrumentationScope = JS_ENABLED
+        // ALL instruments every detected WebView and enables JavaScript when needed.
+        // webViewAutomaticInstrumentationScope = ALL
     }
 }
