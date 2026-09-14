@@ -37,6 +37,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppState
@@ -355,6 +356,12 @@ private fun SdkApisTabContent(
         }
         item {
             NetworkTestingCard(
+                instrumentationMode =
+                    if (BuildConfig.ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION) {
+                        "Automatic (${BuildConfig.AUTO_CAPTURE_OKHTTP_INSTRUMENTATION_TYPE})"
+                    } else {
+                        "Manual"
+                    },
                 onOkHttpRequest = { onAction(NetworkTestAction.PerformOkHttpRequest) },
                 onOkHttpFailureBeforeResponseHeaders = {
                     onAction(NetworkTestAction.PerformOkHttpFailureBeforeResponseHeaders)
