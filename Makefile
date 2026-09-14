@@ -25,7 +25,7 @@ buildifier:
 
 .PHONY: lint-yaml
 lint-yaml:
-	taplo lint $$(git ls-files -- '*.toml')
+	taplo fmt --check $$(git ls-files -- '*.toml')
 
 .PHONY: lint-shell
 lint-shell:
@@ -58,7 +58,8 @@ format-bazel:
 .PHONY: format
 format:
 	+@$(MAKE) $(FORMAT_MAKE_FLAGS) buildifier && \
-	$(MAKE) $(FORMAT_MAKE_FLAGS) -j4 format-bazel lint-shell fix-swiftlint lint-yaml && \
+	$(MAKE) $(FORMAT_MAKE_FLAGS) lint-yaml && \
+	$(MAKE) $(FORMAT_MAKE_FLAGS) -j4 format-bazel lint-shell fix-swiftlint && \
 	$(MAKE) $(FORMAT_MAKE_FLAGS) lint-docstrings
 
 # Use repin when you get Error: Digests do not match
