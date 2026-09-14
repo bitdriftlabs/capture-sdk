@@ -106,6 +106,19 @@ class OkHttpEventListenerMethodVisitor(
         // Add the following call at the beginning of the constructor with the Builder parameter:
         // builder.eventListenerFactory(new CaptureOkHttpEventListenerFactory(builder.eventListenerFactory));
 
+        // Avoid wrapping again when a client copied via newBuilder() already carries a Capture factory.
+        val listenerConfigured = newLabel()
+        visitVarInsn(Opcodes.ALOAD, 1)
+        visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            "okhttp3/OkHttpClient\$Builder",
+            "getEventListenerFactory\$okhttp",
+            "()Lokhttp3/EventListener\$Factory;",
+            false,
+        )
+        visitTypeInsn(Opcodes.INSTANCEOF, captureOkHttpEventListenerFactory)
+        visitJumpInsn(Opcodes.IFNE, listenerConfigured)
+
         // OkHttpClient.Builder is the parameter, retrieved here
         visitVarInsn(Opcodes.ALOAD, 1)
 
@@ -148,6 +161,7 @@ class OkHttpEventListenerMethodVisitor(
         )
         visitInsn(Opcodes.POP)
 
+        visitLabel(listenerConfigured)
         addTracingInterceptor()
     }
 

@@ -15,6 +15,16 @@ val enableAutoCaptureOkHttpInstrumentation =
         .orElse(true)
         .get()
 
+val autoCaptureOkHttpInstrumentationType =
+    providers.gradleProperty("autoCaptureOkHttpInstrumentationType")
+        .map(String::uppercase)
+        .orElse("PROXY")
+        .get()
+
+require(autoCaptureOkHttpInstrumentationType in setOf("PROXY", "OVERWRITE")) {
+    "autoCaptureOkHttpInstrumentationType must be PROXY or OVERWRITE"
+}
+
 val requestedDebugVariant =
     gradle.startParameter.taskNames.any { taskName ->
         taskName.contains("Debug", ignoreCase = true)
@@ -122,6 +132,11 @@ android {
             "ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION",
             enableAutoCaptureOkHttpInstrumentation.toString(),
         )
+        buildConfigField(
+            "String",
+            "AUTO_CAPTURE_OKHTTP_INSTRUMENTATION_TYPE",
+            "\"$autoCaptureOkHttpInstrumentationType\"",
+        )
     }
 
     packaging {
@@ -207,10 +222,12 @@ apollo {
 bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = enableAutoCaptureOkHttpInstrumentation
-
-        // Defaults to PROXY.
-        // Comment out to change the default type. e.g. okHttpInstrumentationType = OVERWRITE
-        // okHttpInstrumentationType = OVERWRITE
+        okHttpInstrumentationType =
+            when (autoCaptureOkHttpInstrumentationType) {
+                "PROXY" -> PROXY
+                "OVERWRITE" -> OVERWRITE
+                else -> error("Unsupported OkHttp instrumentation type")
+            }
 
         // Remove automaticWebViewInstrumentation when release 0.24.2 plugin is published
         automaticWebViewInstrumentation = true // This is going to be deprecated in 0.24.2
