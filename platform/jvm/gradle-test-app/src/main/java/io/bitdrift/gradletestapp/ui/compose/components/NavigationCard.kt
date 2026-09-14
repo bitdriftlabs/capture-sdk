@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -102,7 +103,7 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
                             },
                     )
 
-                    WebViewGroup("Manual instrumentation - (No plugin required)") {
+                    WebViewGroup("Manual Instrumentation") {
                         WebViewDemoButton(
                             WebViewFragment.MANUAL,
                             WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.MANUAL),
@@ -110,20 +111,26 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
                         )
                     }
 
-                    WebViewGroup("Auto - With JavaScript enabled (Only when plugin is applied)") {
+                    WebViewGroup("Auto - WebViews With JavaScript") {
                         WebViewDemoButton(
                             WebViewFragment.JAVASCRIPT_ENABLED,
                             WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.JAVASCRIPT_ENABLED),
                             onAction,
+                            containerColor = BitdriftColors.WebViewJavaScriptDisabled,
                         )
                     }
 
-                    WebViewGroup("Auto - With JavaScript disable (Only when plugin is applied)") {
+                    WebViewGroup("Auto - WebViews Without JavaScript") {
                         WebViewFragment.WEBVIEW_DEMOS
                             .filterKeys {
                                 it !in setOf(WebViewFragment.MANUAL, WebViewFragment.JAVASCRIPT_ENABLED)
                             }.forEach { (key, demo) ->
-                                WebViewDemoButton(key, demo, onAction)
+                                WebViewDemoButton(
+                                    key,
+                                    demo,
+                                    onAction,
+                                    containerColor = BitdriftColors.WebViewJavaScriptEnabled,
+                                )
                             }
                     }
                 }
@@ -155,17 +162,18 @@ private fun WebViewDemoButton(
     key: String,
     demo: WebViewFragment.DemoWebView,
     onAction: (AppAction) -> Unit,
+    containerColor: Color =
+        if (demo.hasJavaScript) {
+            BitdriftColors.WebViewJavaScriptEnabled
+        } else {
+            BitdriftColors.WebViewJavaScriptDisabled
+        },
 ) {
     Button(
         onClick = { onAction(NavigationAction.NavigateToWebView(key)) },
         colors =
             ButtonDefaults.buttonColors(
-                containerColor =
-                    if (demo.hasJavaScript) {
-                        BitdriftColors.WebViewJavaScriptEnabled
-                    } else {
-                        BitdriftColors.WebViewJavaScriptDisabled
-                    },
+                containerColor = containerColor,
                 contentColor = BitdriftColors.TextBright,
             ),
     ) {

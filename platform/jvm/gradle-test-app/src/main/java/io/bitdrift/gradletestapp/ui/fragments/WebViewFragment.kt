@@ -59,28 +59,28 @@ class WebViewFragment : Fragment() {
         const val MANUAL = "manual"
 
         val WEBVIEW_DEMOS = linkedMapOf(
-            TEST_PAGE to DemoWebView("Test Web Page - No JavaScript", "file:///android_asset/test-page/index.html"),
+            TEST_PAGE to DemoWebView("Test Web Page", "file:///android_asset/test-page/index.html"),
             FULL_AUTOMATIC to
                 DemoWebView(
-                    buttonName = "Android Developers - No JavaScript",
+                    buttonName = "Android Developers",
                     url = "https://developer.android.com/",
                 ),
             JAVASCRIPT_ENABLED to
                 DemoWebView(
-                    buttonName = "Android Developers - With JavaScript",
+                    buttonName = "Android Developers",
                     url = "https://developer.android.com/",
                     enableJavaScript = true,
                 ),
             MANUAL to
                 DemoWebView(
-                    buttonName = "bitdrift.io - Manual Instrumentation",
-                    url = "https://bitdrift.io/",
+                    buttonName = "Test Web Page",
+                    url = "file:///android_asset/test-page/index.html",
                     instrumentManually = true,
                 ),
-            "bitdrift" to DemoWebView("bitdrift.io - No JavaScript", "https://bitdrift.io/"),
-            "bitdrift_404" to DemoWebView("bitdrift.io/hello (404) - No JavaScript", "https://bitdrift.io/hello"),
-            "bitdrift_timeout" to DemoWebView("bitdrift.ai (timeout) - No JavaScript", "https://bitdrift.ai/"),
-            "wikipedia" to DemoWebView("Wikipedia - No JavaScript", "https://www.wikipedia.org/"),
+            "bitdrift" to DemoWebView("bitdrift.io", "https://bitdrift.io/"),
+            "bitdrift_404" to DemoWebView("bitdrift.io/hello (404)", "https://bitdrift.io/hello"),
+            "bitdrift_timeout" to DemoWebView("bitdrift.ai (timeout)", "https://bitdrift.ai/"),
+            "wikipedia" to DemoWebView("Wikipedia", "https://www.wikipedia.org/"),
         )
     }
 

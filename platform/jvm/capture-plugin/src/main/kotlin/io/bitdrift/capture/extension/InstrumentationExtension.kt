@@ -26,13 +26,14 @@ open class InstrumentationExtension
         /**
          * Enables automatic instrumentation only for WebViews whose application already enabled JavaScript.
          *
-         * @deprecated Use [webViewAutomaticInstrumentationScope] with
-         * [WebViewAutomaticInstrumentationScope.JS_ENABLED]. Use [WebViewAutomaticInstrumentationScope.ALL]
-         * to explicitly allow Capture to enable JavaScript.
+         * @deprecated Use [webViewAutomaticInstrumentationScope] with [WebViewAutomaticInstrumentationScope.JS_ENABLED]
+         * to instrument only WebViews with JavaScript already enabled, or [WebViewAutomaticInstrumentationScope.ALL]
+         * to allow Capture to enable JavaScript on all detected WebViews.
          */
         @Deprecated(
-            message = "Use webViewAutomaticInstrumentationScope = JS_ENABLED.",
-            replaceWith = ReplaceWith("webViewAutomaticInstrumentationScope.set(JS_ENABLED)"),
+            message =
+                "Use webViewAutomaticInstrumentationScope = JS_ENABLED to instrument only WebViews with " +
+                    "JavaScript already enabled, or ALL to allow Capture to enable JavaScript on all detected WebViews.",
         )
         val automaticWebViewInstrumentation: Property<Boolean> =
             objects
@@ -71,7 +72,7 @@ open class InstrumentationExtension
             /** Instruments all detected WebViews and enables JavaScript when needed. */
             ALL,
 
-            /** Instruments only WebViews whose application already enabled JavaScript. */
+            /** Instruments only WebViews that already has enabled JavaScript. */
             JS_ENABLED,
         }
 

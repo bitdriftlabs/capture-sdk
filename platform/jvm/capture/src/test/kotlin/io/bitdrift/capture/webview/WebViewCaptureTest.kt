@@ -78,7 +78,7 @@ class WebViewCaptureTest {
             webView,
             spyLogger,
             CaptureRuntimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_ALWAYS,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isFalse()
@@ -103,7 +103,7 @@ class WebViewCaptureTest {
             webView,
             spyLogger,
             CaptureRuntimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_ALWAYS,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isTrue()
@@ -128,7 +128,7 @@ class WebViewCaptureTest {
             webView,
             spyLogger,
             CaptureRuntimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_JAVASCRIPT_ENABLED_ONLY,
+            WebViewInstrumentationMode.AUTOMATIC_JS_ENABLED_ONLY,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isFalse()
@@ -139,7 +139,7 @@ class WebViewCaptureTest {
             messageCaptor.capture(),
         )
         assertThat(fieldsCaptor.firstValue.toStringMap())
-            .containsEntry("_instrumentation_mode", "AUTOMATIC_JAVASCRIPT_ENABLED_ONLY")
+            .containsEntry("_instrumentation_mode", "automatic_js_enabled_only")
             .containsEntry("reason", "JavaScript is not already enabled")
         assertThat(messageCaptor.firstValue()).isEqualTo("webview.automaticInstrumentationSkipped")
     }
@@ -154,7 +154,7 @@ class WebViewCaptureTest {
             webView,
             spyLogger,
             CaptureRuntimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_JAVASCRIPT_ENABLED_ONLY,
+            WebViewInstrumentationMode.AUTOMATIC_JS_ENABLED_ONLY,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isTrue()
@@ -188,7 +188,7 @@ class WebViewCaptureTest {
             webView,
             Capture.logger(),
             runtimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_ALWAYS,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isFalse()
@@ -203,7 +203,7 @@ class WebViewCaptureTest {
             webView,
             Capture.logger(),
             runtimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_ALWAYS,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
         )
 
         assertThat(webView.settings.javaScriptEnabled).isTrue()

@@ -105,7 +105,7 @@ internal object WebViewCaptureInternals {
         }
 
         if (
-            instrumentationMode == WebViewInstrumentationMode.AUTOMATIC_JAVASCRIPT_ENABLED_ONLY &&
+            instrumentationMode == WebViewInstrumentationMode.AUTOMATIC_JS_ENABLED_ONLY &&
             !webview.settings.javaScriptEnabled
         ) {
             effectiveLogger.logAutomaticInstrumentationSkipped()
@@ -119,13 +119,13 @@ internal object WebViewCaptureInternals {
         }
 
         if (
-            instrumentationMode != WebViewInstrumentationMode.AUTOMATIC_JAVASCRIPT_ENABLED_ONLY &&
+            instrumentationMode != WebViewInstrumentationMode.AUTOMATIC_JS_ENABLED_ONLY &&
             !webview.settings.javaScriptEnabled
         ) {
             webview.settings.javaScriptEnabled = true
         }
 
-        val bridgeHandler = WebViewBridgeMessageHandler(loggerImpl, instrumentationMode.name)
+        val bridgeHandler = WebViewBridgeMessageHandler(loggerImpl, instrumentationMode.displayName)
         webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
         injectScript(webview, effectiveLogger, webViewConfig)
@@ -158,7 +158,7 @@ internal object WebViewCaptureInternals {
         log(
             LogLevel.WARNING,
             fieldsOf(
-                "_instrumentation_mode" to WebViewInstrumentationMode.AUTOMATIC_JAVASCRIPT_ENABLED_ONLY.name,
+                "_instrumentation_mode" to WebViewInstrumentationMode.AUTOMATIC_JS_ENABLED_ONLY.displayName,
                 "_source" to "webview",
                 "reason" to "JavaScript is not already enabled",
             ),
@@ -203,9 +203,23 @@ internal object WebViewCaptureInternals {
     }
 }
 
-/** Describes how a specific WebView was instrumented for internal telemetry. */
-internal enum class WebViewInstrumentationMode {
-    AUTOMATIC_ALWAYS,
-    AUTOMATIC_JAVASCRIPT_ENABLED_ONLY,
-    MANUAL,
+/** Describes how a specific WebView was instrumented */
+internal enum class WebViewInstrumentationMode(
+    val displayName: String,
+) {
+    /**
+     * Instruments WebViews automatically and enables JavaScript bridge if needed.
+     */
+    AUTOMATIC_FULL("automatic_full"),
+
+    /**
+     * Instruments WebViews automatically only if JavaScript bridge is already enabled.
+     */
+    AUTOMATIC_JS_ENABLED_ONLY("automatic_js_enabled_only"),
+
+    /**
+     * Manual mode used when consumers uses WebViewIntrument.instrument(view)
+     * This mode enables JavaScript bridge if needed.
+     */
+    MANUAL("manual"),
 }

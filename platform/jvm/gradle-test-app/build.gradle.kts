@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     id("com.google.firebase.crashlytics") version "3.0.6" apply false
-    id("io.bitdrift.capture-plugin") version "0.23.10" // To verify new changes at capture-plugin use your maven local published version
+    id("io.bitdrift.capture-plugin") version "0.24.1" // To verify new changes at capture-plugin use your maven local published version
 }
 
 val enableAutoCaptureOkHttpInstrumentation =
