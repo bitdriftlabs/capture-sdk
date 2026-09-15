@@ -85,7 +85,7 @@ ${escapeForKotlin(beforePlaceholder)}"""
      * @param config The WebView instrumentation configuration
      * @return The complete JavaScript bundle with config injected
      */
-    fun getScript(config: WebViewConfiguration): String = SCRIPT_PREFIX + config.toJson() + SCRIPT_SUFFIX
+    fun getScript(config: WebViewScriptConfiguration): String = SCRIPT_PREFIX + config.toJson() + SCRIPT_SUFFIX
 }
 `;
 

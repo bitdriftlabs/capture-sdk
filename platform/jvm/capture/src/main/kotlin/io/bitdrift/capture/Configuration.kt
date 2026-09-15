@@ -10,7 +10,6 @@ package io.bitdrift.capture
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
-import io.bitdrift.capture.webview.WebViewConfiguration
 
 /**
  * A configuration object representing the feature set enabled for Capture.
@@ -18,10 +17,6 @@ import io.bitdrift.capture.webview.WebViewConfiguration
  * @param enableFatalIssueReporting When set to true captures fatal issues automatically (JVM crash, ANR, etc.)
  *                                  without requiring third-party integrations.
  * @param sleepMode SleepMode.ENABLED if Capture should initialize in minimal activity mode
- * @param webViewConfiguration The WebView instrumentation configuration. Set
- *                             `webViewAutomaticInstrumentationScope` in the `io.bitdrift.capture-plugin` Gradle
- *                             plugin, or instrument WebViews manually with `WebViewCapture.instrument(webView)`.
- *                             Passing `null` disables monitoring.
  * @param issueCallbackConfiguration Optional callback configuration used for issue report callbacks.
  *                                   This is only effective when [enableFatalIssueReporting] is true.
  */
@@ -31,8 +26,6 @@ data class Configuration
         val sessionReplayConfiguration: SessionReplayConfiguration? = SessionReplayConfiguration(),
         val enableFatalIssueReporting: Boolean = true,
         val sleepMode: SleepMode = SleepMode.DISABLED,
-        @property:ExperimentalBitdriftApi
-        val webViewConfiguration: WebViewConfiguration? = null,
         @property:ExperimentalBitdriftApi
         val issueCallbackConfiguration: IssueCallbackConfiguration? = null,
     )
