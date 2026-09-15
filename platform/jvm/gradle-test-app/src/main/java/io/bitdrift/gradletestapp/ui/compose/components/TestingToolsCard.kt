@@ -31,6 +31,7 @@ fun TestingToolsCard(
     onLogLevelChange: (LogLevel) -> Unit,
     onLogSingleMessage: () -> Unit,
     onLogManyMessages: () -> Unit,
+    onOverflowPreInitBuffer: () -> Unit,
     onLogJsonField: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -85,6 +86,18 @@ fun TestingToolsCard(
                     ),
             ) {
                 Text("Log Many Messages")
+            }
+
+            Button(
+                onClick = onOverflowPreInitBuffer,
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = BitdriftColors.TextSecondary,
+                        contentColor = Color.Black,
+                    ),
+            ) {
+                Text("Overflow Pre-Init Buffer")
             }
 
             Button(
