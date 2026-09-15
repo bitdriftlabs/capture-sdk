@@ -8,10 +8,9 @@
 internal import CaptureLoggerBridge
 
 final class PreviousRunInfoController {
-    private let storeDirectory: URL
     private let currentState: PreviousRunCurrentState
     private let previousState: PreviousRunStoredState?
-    private var terminationObserver: PreviousRunTerminationObserver?
+    private let terminationObserver: PreviousRunTerminationObserver
     private let resolver = PreviousRunResolver()
 
     private let previousRunInfoStorage = Atomic<PreviousRunInfo?>(nil)
@@ -27,27 +26,14 @@ final class PreviousRunInfoController {
         return previousState.wasCleanExit ? .noPriorCrash : .mayHavePriorCrash
     }
 
-    init(baseDirectory: URL, osVersion: String) {
-        self.storeDirectory = baseDirectory.appendingPathComponent("previous_run", isDirectory: true)
+    init?(baseDirectory: URL, osVersion: String) {
+        let storeDirectory = baseDirectory.appendingPathComponent("previous_run", isDirectory: true)
+        guard let store = try? BDPreviousRunInfoRepository(directory: storeDirectory) else {
+            return nil
+        }
+
         self.currentState = PreviousRunCurrentState.create(osVersion: osVersion)
-        self.previousState = BDPreviousRunInfoRepository
-            .loadExistingPreviousRunInfo(fromDirectory: self.storeDirectory)
-            .map(PreviousRunStoredState.init)
-    }
-
-    /// Persists the current-run sentinel and begins observing termination after the startup replay
-    /// decision has consumed the read-only previous-run snapshot.
-    ///
-    /// - returns: Whether the current-run sentinel was prepared and lifecycle observation started.
-    @discardableResult
-    func startTrackingCurrentRun() -> Bool {
-        guard self.terminationObserver == nil else {
-            return true
-        }
-
-        guard let store = try? BDPreviousRunInfoRepository(directory: self.storeDirectory) else {
-            return false
-        }
+        self.previousState = (try? store.loadPreviousRunInfo()).map(PreviousRunStoredState.init)
 
         guard (try? store.prepareCurrentRunInfo(
             withOsVersion: self.currentState.osVersion,
@@ -55,13 +41,11 @@ final class PreviousRunInfoController {
             bootTime: self.currentState.bootTime,
             wasDebuggerAttached: self.currentState.wasDebuggerAttached
         )) != nil else {
-            return false
+            return nil
         }
 
-        let terminationObserver = PreviousRunTerminationObserver(store: store)
-        terminationObserver.start()
-        self.terminationObserver = terminationObserver
-        return true
+        self.terminationObserver = PreviousRunTerminationObserver(store: store)
+        self.terminationObserver.start()
     }
 
     /// Resolves the previous-run status. Only the first call has an effect, since the previous/current

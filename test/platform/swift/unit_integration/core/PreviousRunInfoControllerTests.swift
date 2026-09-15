@@ -27,7 +27,7 @@ final class PreviousRunInfoControllerTests: XCTestCase {
     }
 
     func testOnFirstLaunchReturnsUnknown() {
-        let controller = givenStartedController()
+        let controller = givenController()
 
         let result = whenResolving(controller, didCrashLastLaunch: false)
 
@@ -35,35 +35,33 @@ final class PreviousRunInfoControllerTests: XCTestCase {
     }
 
     func testOnRelaunchWithCrashReturnsFatalCrash() {
-        givenStartedController()
+        _ = givenController()
 
-        let controller = givenStartedController()
+        let controller = givenController()
         let result = whenResolving(controller, didCrashLastLaunch: true)
 
         thenResultEquals(result, PreviousRunInfo(terminationReason: .fatalCrash))
     }
 
     func testOnRelaunchWithoutCrashOrCleanExitReturnsUnknown() {
-        givenStartedController()
+        _ = givenController()
 
-        let controller = givenStartedController()
+        let controller = givenController()
         let result = whenResolving(controller, didCrashLastLaunch: false)
 
         thenResultEquals(result, .unknown)
     }
 
-    func testDoesNotStartWhenDirectoryIsUnavailable() throws {
+    func testDoesNotInitializeWhenDirectoryIsUnavailable() throws {
         try givenBaseDirectoryIsBlockedByAFile()
 
-        let controller = givenController()
-
-        XCTAssertFalse(controller.startTrackingCurrentRun())
+        XCTAssertNil(PreviousRunInfoController(baseDirectory: baseDirectoryURL, osVersion: osVersion))
     }
 
     func testOnResolveCalledTwiceKeepsFirstResult() {
-        givenStartedController()
+        _ = givenController()
 
-        let controller = givenStartedController()
+        let controller = givenController()
         whenResolving(controller, didCrashLastLaunch: false)
         let result = whenResolving(controller, didCrashLastLaunch: true)
 
@@ -91,14 +89,10 @@ final class PreviousRunInfoControllerTests: XCTestCase {
         )
     }
 
-    func testDoesNotCreateSentinelUntilCurrentRunTrackingStarts() {
+    func testCreatesSentinelWhenInitialized() {
         XCTAssertFalse(FileManager.default.fileExists(atPath: previousRunDirectoryURL.path))
-        let controller = givenController()
+        _ = givenController()
 
-        XCTAssertEqual(controller.startupReplayEligibility, .unknown)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: previousRunDirectoryURL.path))
-
-        XCTAssertTrue(controller.startTrackingCurrentRun())
         XCTAssertTrue(FileManager.default.fileExists(atPath: previousRunDirectoryURL.path))
     }
 
@@ -115,24 +109,20 @@ private extension PreviousRunInfoControllerTests {
     }
 
     func givenController() -> PreviousRunInfoController {
-        PreviousRunInfoController(
+        guard let controller = PreviousRunInfoController(
             baseDirectory: baseDirectoryURL,
             osVersion: osVersion
-        )
-    }
-
-    @discardableResult
-    func givenStartedController() -> PreviousRunInfoController {
-        let controller = givenController()
-        XCTAssertTrue(controller.startTrackingCurrentRun())
+        ) else {
+            XCTFail("PreviousRunInfoController should initialize")
+            fatalError("PreviousRunInfoController initialization failed")
+        }
         return controller
     }
 
     func givenBaseDirectoryIsBlockedByAFile() throws {
         let parent = baseDirectoryURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
-        // A regular file at the target path makes directory creation fail, exercising the
-        // `init?` failure path.
+        // A regular file at the target path makes directory creation fail.
         try Data().write(to: baseDirectoryURL)
     }
 

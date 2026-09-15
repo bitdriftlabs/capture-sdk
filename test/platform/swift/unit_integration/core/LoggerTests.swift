@@ -81,14 +81,14 @@ final class LoggerTests: XCTestCase {
         withExtendedLifetime(logger) {}
     }
 
-    func testStartsPreviousRunTrackingAfterStartingCoreLogger() throws {
+    func testStartsPreviousRunTrackingBeforeStartingCoreLogger() throws {
         let directoryURL = try XCTUnwrap(Logger.tempBufferDirectory())
         defer { try? FileManager.default.removeItem(at: directoryURL) }
 
         let bridge = MockLoggerBridging()
         let startExpectation = self.expectation(description: "core logger starts")
         bridge.onStart = {
-            XCTAssertFalse(FileManager.default.fileExists(
+            XCTAssertTrue(FileManager.default.fileExists(
                 atPath: directoryURL
                     .appendingPathComponent("previous_run/previous_run_info.bin")
                     .path
@@ -110,7 +110,7 @@ final class LoggerTests: XCTestCase {
         withExtendedLifetime(logger) {}
     }
 
-    func testPassesUnknownReplayEligibilityWhenFatalIssueReportingIsDisabled() throws {
+    func testPassesNoPriorCrashReplayEligibilityWhenFatalIssueReportingIsDisabled() throws {
         let directoryURL = try XCTUnwrap(Logger.tempBufferDirectory())
         defer { try? FileManager.default.removeItem(at: directoryURL) }
 
@@ -124,6 +124,8 @@ final class LoggerTests: XCTestCase {
         )
         store.markTerminating()
 
+        try givenCrashReportingConfig(enabled: true, at: directoryURL)
+
         let factory = MockLoggerBridgingFactory(logger: MockLoggerBridging())
         let configuration = Configuration(
             enableFatalIssueReporting: false,
@@ -131,6 +133,32 @@ final class LoggerTests: XCTestCase {
         )
         let logger = try Logger.testLogger(
             configuration: configuration,
+            loggerBridgingFactoryProvider: factory
+        )
+
+        XCTAssertEqual(factory.startupReplayEligibilities, [StartupReplayEligibility.noPriorCrash.rawValue])
+        withExtendedLifetime(logger) {}
+    }
+
+    func testPassesUnknownReplayEligibilityWhenCrashReportingIsDisabledOnDisk() throws {
+        let directoryURL = try XCTUnwrap(Logger.tempBufferDirectory())
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let previousRunDirectoryURL = directoryURL.appendingPathComponent("previous_run", isDirectory: true)
+        let store = try BDPreviousRunInfoRepository(directory: previousRunDirectoryURL)
+        try store.prepareCurrentRunInfo(
+            withOsVersion: "18.0",
+            binaryUUID: "4f179445-15d8-4ec1-a86f-0dfe9d2bb425",
+            bootTime: 123_456_789,
+            wasDebuggerAttached: false
+        )
+        store.markTerminating()
+
+        try givenCrashReportingConfig(enabled: false, at: directoryURL)
+
+        let factory = MockLoggerBridgingFactory(logger: MockLoggerBridging())
+        let logger = try Logger.testLogger(
+            configuration: Configuration(rootFileURL: directoryURL),
             loggerBridgingFactoryProvider: factory
         )
 
@@ -557,6 +585,15 @@ final class LoggerTests: XCTestCase {
         logger.logScreenView(screenName: "test_screen")
 
         XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 1))
+    }
+}
+
+private extension LoggerTests {
+    func givenCrashReportingConfig(enabled: Bool, at directoryURL: URL) throws {
+        let reportsDirectoryURL = directoryURL.appendingPathComponent("reports", isDirectory: true)
+        try FileManager.default.createDirectory(at: reportsDirectoryURL, withIntermediateDirectories: true)
+        let configURL = reportsDirectoryURL.appendingPathComponent("config.csv", isDirectory: false)
+        try "crash_reporting.enabled,\(enabled)".write(to: configURL, atomically: true, encoding: .utf8)
     }
 }
 

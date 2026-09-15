@@ -180,7 +180,7 @@ public final class Logger {
             SessionReplayController(configuration: $0)
         }
 
-        let previousRunInfoController = configuration.enableFatalIssueReporting
+        let previousRunInfoController = CrashReporterService.isMonitoringEnabled(fromCachedConfigAt: directoryURL)
             ? PreviousRunInfoController(baseDirectory: directoryURL, osVersion: clientAttributes.osVersion)
             : nil
         let startupReplayEligibility = previousRunInfoController?.startupReplayEligibility ?? .unknown
@@ -263,9 +263,8 @@ public final class Logger {
             Logger.issueReporterInitResult = (.initialized(.clientNotEnabled), 0)
             Logger.previousRunInfoValue = .unknown
         } else {
-            let isTrackingPreviousRun = previousRunInfoController?.startTrackingCurrentRun() == true
             self.crashReporterService = CrashReporterService(
-                previousRunInfoController: isTrackingPreviousRun ? previousRunInfoController : nil
+                previousRunInfoController: previousRunInfoController
             )
             if let result = self.crashReporterService?.setup(
                 sdkBaseURL: directoryURL,
