@@ -55,6 +55,7 @@ class WebViewCaptureTest {
         val initializer = ContextHolder()
         initializer.create(appContext)
         webView = WebView(appContext)
+        ShadowWebViewCompat.lastInjectedScript = null
     }
 
     @After
@@ -70,33 +71,30 @@ class WebViewCaptureTest {
     }
 
     @Test
-    fun instrument_withSdkStartedButNoWebViewConfiguration_shouldLogNotInitialized() {
-        startSdk(webViewConfiguration = null)
-        val spyLogger = spyLogger()
+    fun instrument_withSdkStarted_shouldInjectScriptWithAllFeaturesEnabled() {
+        startSdk()
 
-        WebViewCaptureInternals.instrumentInternally(
-            webView,
-            spyLogger,
-            CaptureRuntimeProvider,
-            WebViewInstrumentationMode.AUTOMATIC_FULL,
-        )
+        WebViewCapture.instrument(webView)
 
-        assertThat(webView.settings.javaScriptEnabled).isFalse()
-        verify(spyLogger).log(
-            eq(LogLevel.WARNING),
-            fieldsCaptor.capture(),
-            eq(null),
-            messageCaptor.capture(),
-        )
-        val fields = fieldsCaptor.firstValue.toStringMap()
-        assertThat(fields["reason"]).isEqualTo("WebViewConfiguration not provided")
-        assertThat(fields["_source"]).isEqualTo("webview")
-        assertThat(messageCaptor.firstValue()).isEqualTo("webview.notInitialized")
+        val script = ShadowWebViewCompat.lastInjectedScript
+        assertThat(script).isNotNull()
+        listOf(
+            "capturePageViews",
+            "captureNetworkRequests",
+            "captureNavigationEvents",
+            "captureWebVitals",
+            "captureLongTasks",
+            "captureConsoleLogs",
+            "captureUserInteractions",
+            "captureErrors",
+        ).forEach { feature ->
+            assertThat(script).contains("\"$feature\":true")
+        }
     }
 
     @Test
-    fun instrument_withValidWebViewConfiguration_shouldEnableJavascriptAndLogSuccess() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+    fun instrument_withSdkStarted_shouldEnableJavascriptAndLogSuccess() {
+        startSdk()
         val spyLogger = spyLogger()
 
         WebViewCaptureInternals.instrumentInternally(
@@ -121,7 +119,7 @@ class WebViewCaptureTest {
 
     @Test
     fun instrument_whenJavascriptEnabledOnlyAndJavascriptDisabled_shouldLogAutomaticSkipWarning() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+        startSdk()
         val spyLogger = spyLogger()
 
         WebViewCaptureInternals.instrumentInternally(
@@ -146,7 +144,7 @@ class WebViewCaptureTest {
 
     @Test
     fun instrument_whenJavascriptEnabledOnlyAndJavascriptEnabled_shouldInstrumentWithoutChangingJavascript() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+        startSdk()
         val spyLogger = spyLogger()
         webView.settings.javaScriptEnabled = true
 
@@ -172,7 +170,7 @@ class WebViewCaptureTest {
 
     @Test
     fun publicInstrument_shouldEnableJavascriptForExplicitlySelectedWebView() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+        startSdk()
 
         WebViewCapture.instrument(webView)
 
@@ -181,7 +179,7 @@ class WebViewCaptureTest {
 
     @Test
     fun instrument_withRuntimeFeatureDisabled_shouldSkipInstrumentation() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+        startSdk()
         whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(false)
 
         WebViewCaptureInternals.instrumentInternally(
@@ -196,7 +194,7 @@ class WebViewCaptureTest {
 
     @Test
     fun instrument_withRuntimeFeatureEnabled_shouldProceedWithInstrumentation() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+        startSdk()
         whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
 
         WebViewCaptureInternals.instrumentInternally(
@@ -210,12 +208,12 @@ class WebViewCaptureTest {
     }
 
     @Suppress("DEPRECATION")
-    private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
+    private fun startSdk() {
         Capture.Logger.start(
             apiKey = "test",
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
-            configuration = Configuration(webViewConfiguration = webViewConfiguration),
+            configuration = Configuration(),
             dateProvider = SystemDateProvider(),
             context = appContext,
         )

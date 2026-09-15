@@ -14,13 +14,15 @@ import org.robolectric.annotation.Implements
 
 @Implements(WebViewCompat::class, isInAndroidSdk = false)
 object ShadowWebViewCompat {
+    var lastInjectedScript: String? = null
+
     @Implementation
     @JvmStatic
     fun addDocumentStartJavaScript(
         @Suppress("UNUSED_PARAMETER") webView: WebView,
-        @Suppress("UNUSED_PARAMETER") script: String,
+        script: String,
         @Suppress("UNUSED_PARAMETER") allowedOriginRules: Set<String>,
     ) {
-        // no-op
+        lastInjectedScript = script
     }
 }

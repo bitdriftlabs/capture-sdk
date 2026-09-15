@@ -16,43 +16,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.preference.PreferenceManager
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.NavigationAction
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
 import io.bitdrift.gradletestapp.ui.fragments.WebViewFragment
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun NavigationCard(onAction: (AppAction) -> Unit) {
-    val context = LocalContext.current
-    val preferences = remember(context) { PreferenceManager.getDefaultSharedPreferences(context) }
-    var webViewMonitoringEnabled by remember {
-        mutableStateOf(preferences.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false))
-    }
-    DisposableEffect(preferences) {
-        val listener =
-            android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
-                if (key == WEBVIEW_MONITORING_ENABLED_KEY) {
-                    webViewMonitoringEnabled = sharedPreferences.getBoolean(key, false)
-                }
-            }
-        preferences.registerOnSharedPreferenceChangeListener(listener)
-        onDispose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
-    }
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -87,22 +63,6 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(
-                        text =
-                            if (webViewMonitoringEnabled) {
-                                "WebView monitoring: Enabled"
-                            } else {
-                                "WebView monitoring: Disabled"
-                            },
-                        style = MaterialTheme.typography.labelLarge,
-                        color =
-                            if (webViewMonitoringEnabled) {
-                                BitdriftColors.Primary
-                            } else {
-                                BitdriftColors.Error
-                            },
-                    )
-
                     WebViewGroup("Manual Instrumentation") {
                         WebViewDemoButton(
                             WebViewFragment.MANUAL,

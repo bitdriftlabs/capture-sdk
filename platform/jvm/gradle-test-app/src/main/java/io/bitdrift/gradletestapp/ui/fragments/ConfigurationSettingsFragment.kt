@@ -20,7 +20,6 @@ import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreference
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
@@ -103,7 +102,6 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         backendCategory.addPreference(buildSwitchPreference(context))
         backendCategory.addPreference(buildSessionReplaySwitch(context))
         backendCategory.addPreference(buildDeferredStartSwitch(context))
-        backendCategory.addPreference(buildWebViewMonitoringPreference(context))
         backendCategory.addPreference(buildDiagnosticsSwitch(context))
 
         preferenceScreen = screen
@@ -187,28 +185,6 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         SettingsApiKeysDialogFragment(sharedPreferences).show(parentFragmentManager, "")
     }
 
-    private fun buildWebViewMonitoringPreference(context: Context): Preference {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val preference = Preference(context)
-        preference.key = WEBVIEW_MONITORING_PREFS_KEY
-        preference.title = WEBVIEW_MONITORING_TITLE
-        val isEnabled = sharedPreferences.getBoolean(
-            WebViewSettingsDialog.WEBVIEW_MONITORING_ENABLED_KEY,
-            false,
-        )
-        preference.summary = if (isEnabled) "Enabled" else "Disabled"
-        preference.setOnPreferenceClickListener {
-            showWebViewSettingsDialog(context)
-            true
-        }
-        return preference
-    }
-
-    private fun showWebViewSettingsDialog(context: Context) {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        WebViewSettingsDialog(sharedPreferences).show(parentFragmentManager, "webview_settings")
-    }
-
     enum class SessionStrategyPreferences(
         val displayName: String,
     ) {
@@ -224,7 +200,6 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
         const val SESSION_REPLAY_ENABLED_PREFS_KEY = "sessionReplayEnabled"
         const val DIAGNOSTICS_ENABLED_KEY = "diagnosticsEnabled"
-        const val WEBVIEW_MONITORING_PREFS_KEY = "webviewMonitoring"
 
         const val INACTIVITY_THRESHOLD_PREFS_KEY = "inactivityThresholdMins"
         const val PREFS_SLEEP_MODE_ENABLED = "sleep_mode_enabled"
@@ -235,7 +210,6 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"
         private const val SESSION_REPLAY_TITLE = "Session Replay"
         private const val DIAGNOSTICS_TITLE = "Diagnostics Tools"
-        private const val WEBVIEW_MONITORING_TITLE = "WebView Monitoring"
 
         private val SESSION_STRATEGY_ENTRIES =
             arrayOf(
