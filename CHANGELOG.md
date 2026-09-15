@@ -34,6 +34,7 @@
 
 - SDK was erronously reporting `_jvm_used_percent` in Resource Utilization logs using the device Locale
 - Fixed OkHttp logs including an invalid `_protocol` value when a request fails before receiving a response.
+- Prevent automatic OkHttp instrumentation from adding duplicate Capture listeners and tracing interceptors when clients are copied.
 
 ### iOS
 

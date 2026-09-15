@@ -37,6 +37,7 @@ import io.bitdrift.capture.extension.InstrumentationExtension.OkHttpInstrumentat
 import io.bitdrift.capture.instrumentation.MethodContext
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
 import org.objectweb.asm.commons.AdviceAdapter
 
 class OkHttpEventListenerMethodVisitor(
@@ -60,9 +61,33 @@ class OkHttpEventListenerMethodVisitor(
         super.onMethodEnter()
 
         when (okHttpInstrumentationType) {
-            OkHttpInstrumentationType.PROXY -> addProxyingEventListener()
-            OkHttpInstrumentationType.OVERWRITE -> addOverwritingEventListener()
+            OkHttpInstrumentationType.PROXY -> addInstrumentation(proxyEventListener = true)
+            OkHttpInstrumentationType.OVERWRITE -> addInstrumentation(proxyEventListener = false)
         }
+    }
+
+    private fun addInstrumentation(proxyEventListener: Boolean) {
+        if (proxyEventListener) {
+            // Avoid adding another Capture factory when a client copied with newBuilder() is constructed.
+            val listenerConfigured = newLabel()
+            visitVarInsn(Opcodes.ALOAD, 1)
+            visitMethodInsn(
+                Opcodes.INVOKEVIRTUAL,
+                "okhttp3/OkHttpClient\$Builder",
+                "getEventListenerFactory\$okhttp",
+                "()Lokhttp3/EventListener\$Factory;",
+                false,
+            )
+            visitTypeInsn(Opcodes.INSTANCEOF, captureOkHttpEventListenerFactory)
+            visitJumpInsn(Opcodes.IFNE, listenerConfigured)
+
+            addProxyingEventListener()
+            visitLabel(listenerConfigured)
+        } else {
+            addOverwritingEventListener()
+        }
+
+        addTracingInterceptor()
     }
 
     private fun addOverwritingEventListener() {
@@ -80,7 +105,7 @@ class OkHttpEventListenerMethodVisitor(
         // Dup will give a reference to the CaptureOkHttpEventListenerFactory after the constructor call
         visitInsn(Opcodes.DUP)
 
-        // Call CaptureOkHttpEventListenerFactory constructor passing "eventListenerFactory" as parameter
+        // Call CaptureOkHttpEventListenerFactory constructor
         visitMethodInsn(
             Opcodes.INVOKESPECIAL,
             captureOkHttpEventListenerFactory,
@@ -89,7 +114,7 @@ class OkHttpEventListenerMethodVisitor(
             false,
         )
 
-        // Call "eventListener" function of OkHttpClient.Builder passing CaptureOkHttpEventListenerFactory
+        // Call "eventListenerFactory" on OkHttpClient.Builder passing CaptureOkHttpEventListenerFactory
         visitMethodInsn(
             Opcodes.INVOKEVIRTUAL,
             "okhttp3/OkHttpClient\$Builder",
@@ -98,8 +123,6 @@ class OkHttpEventListenerMethodVisitor(
             false,
         )
         visitInsn(Opcodes.POP)
-
-        addTracingInterceptor()
     }
 
     private fun addProxyingEventListener() {
@@ -138,7 +161,7 @@ class OkHttpEventListenerMethodVisitor(
             false,
         )
 
-        // Call "eventListener" function of OkHttpClient.Builder passing CaptureOkHttpEventListenerFactory
+        // Call "eventListenerFactory" on OkHttpClient.Builder passing CaptureOkHttpEventListenerFactory
         visitMethodInsn(
             Opcodes.INVOKEVIRTUAL,
             "okhttp3/OkHttpClient\$Builder",
@@ -147,13 +170,68 @@ class OkHttpEventListenerMethodVisitor(
             false,
         )
         visitInsn(Opcodes.POP)
-
-        addTracingInterceptor()
     }
 
     private fun addTracingInterceptor() {
         // Add the following call at the beginning of the constructor with the Builder parameter:
         // builder.addInterceptor(new CaptureOkHttpTracingInterceptor());
+
+        val iterator = newLocal(Type.getType("Ljava/util/Iterator;"))
+        val existingInterceptor = newLocal(Type.getType("Lokhttp3/Interceptor;"))
+        val loop = newLabel()
+        val addInterceptor = newLabel()
+        val moveInterceptor = newLabel()
+        val instrumentationComplete = newLabel()
+
+        visitVarInsn(Opcodes.ALOAD, 1)
+        visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            "okhttp3/OkHttpClient\$Builder",
+            "interceptors",
+            "()Ljava/util/List;",
+            false,
+        )
+        visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/List", "iterator", "()Ljava/util/Iterator;", true)
+        visitVarInsn(Opcodes.ASTORE, iterator)
+        visitLabel(loop)
+        visitVarInsn(Opcodes.ALOAD, iterator)
+        visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Iterator", "hasNext", "()Z", true)
+        visitJumpInsn(Opcodes.IFEQ, addInterceptor)
+        visitVarInsn(Opcodes.ALOAD, iterator)
+        visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Iterator", "next", "()Ljava/lang/Object;", true)
+        visitTypeInsn(Opcodes.CHECKCAST, "okhttp3/Interceptor")
+        visitVarInsn(Opcodes.ASTORE, existingInterceptor)
+        visitVarInsn(Opcodes.ALOAD, existingInterceptor)
+        visitTypeInsn(Opcodes.INSTANCEOF, captureOkHttpTracingInterceptor)
+        visitJumpInsn(Opcodes.IFNE, moveInterceptor)
+        visitJumpInsn(Opcodes.GOTO, loop)
+
+        visitLabel(moveInterceptor)
+        visitVarInsn(Opcodes.ALOAD, 1)
+        visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            "okhttp3/OkHttpClient\$Builder",
+            "interceptors",
+            "()Ljava/util/List;",
+            false,
+        )
+        visitVarInsn(Opcodes.ALOAD, existingInterceptor)
+        visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/List", "remove", "(Ljava/lang/Object;)Z", true)
+        visitInsn(Opcodes.POP)
+        visitVarInsn(Opcodes.ALOAD, 1)
+        visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL,
+            "okhttp3/OkHttpClient\$Builder",
+            "interceptors",
+            "()Ljava/util/List;",
+            false,
+        )
+        visitVarInsn(Opcodes.ALOAD, existingInterceptor)
+        visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/List", "add", "(Ljava/lang/Object;)Z", true)
+        visitInsn(Opcodes.POP)
+        visitJumpInsn(Opcodes.GOTO, instrumentationComplete)
+
+        visitLabel(addInterceptor)
 
         // OkHttpClient.Builder is the parameter, retrieved here
         visitVarInsn(Opcodes.ALOAD, 1)
@@ -161,13 +239,7 @@ class OkHttpEventListenerMethodVisitor(
         // Create CaptureOkHttpTracingInterceptor instance
         visitTypeInsn(Opcodes.NEW, captureOkHttpTracingInterceptor)
         visitInsn(Opcodes.DUP)
-        visitMethodInsn(
-            Opcodes.INVOKESPECIAL,
-            captureOkHttpTracingInterceptor,
-            "<init>",
-            "()V",
-            false,
-        )
+        visitMethodInsn(Opcodes.INVOKESPECIAL, captureOkHttpTracingInterceptor, "<init>", "()V", false)
 
         // Call addInterceptor(Interceptor)
         visitMethodInsn(
@@ -178,5 +250,6 @@ class OkHttpEventListenerMethodVisitor(
             false,
         )
         visitInsn(Opcodes.POP)
+        visitLabel(instrumentationComplete)
     }
 }

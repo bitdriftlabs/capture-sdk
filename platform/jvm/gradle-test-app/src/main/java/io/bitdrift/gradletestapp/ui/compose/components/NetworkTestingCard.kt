@@ -20,6 +20,7 @@ import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
  */
 @Composable
 fun NetworkTestingCard(
+    instrumentationMode: String,
     onOkHttpRequest: () -> Unit,
     onOkHttpFailureBeforeResponseHeaders: () -> Unit,
     onGraphQlRequest: () -> Unit,
@@ -55,6 +56,11 @@ fun NetworkTestingCard(
                 text = "Network Testing",
                 style = MaterialTheme.typography.titleMedium,
                 color = BitdriftColors.TextPrimary,
+            )
+            Text(
+                text = "OkHttp instrumentation: $instrumentationMode",
+                style = MaterialTheme.typography.labelMedium,
+                color = BitdriftColors.Primary,
             )
 
             Row(
