@@ -48,7 +48,9 @@ internal sealed class LoggerState {
     /**
      * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
      */
-    data object Starting : LoggerState()
+    class Starting(
+        val logger: PreInitInMemoryLogger,
+    ) : LoggerState()
 
     /**
      * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
@@ -75,10 +77,17 @@ object Capture {
      *
      * @return ILogger a logger handle
      */
-    fun logger(): ILogger? =
+    fun logger(): ILogger? = (default.get() as? LoggerState.Started)?.logger
+
+    /**
+     * Similar to [Capture.logger], but also returns the pre-init buffer while Capture is starting.
+     * This is required for internal SDK calls that shouldn't be dropped. E.g. Timber, network calls,
+     * etc
+     */
+    internal fun getInternalLogger(): IInternalLogger? =
         when (val state = default.get()) {
             is LoggerState.NotStarted -> null
-            is LoggerState.Starting -> null
+            is LoggerState.Starting -> state.logger
             is LoggerState.Started -> state.logger
             is LoggerState.StartFailure -> null
         }
@@ -363,8 +372,10 @@ object Capture {
                 return
             }
 
+            val preInitInMemoryLogger = PreInitInMemoryLogger(dateProvider)
+
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
+            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting(preInitInMemoryLogger))) {
                 initSdk(
                     apiKey = apiKey,
                     sessionStrategy = sessionStrategy,
@@ -376,6 +387,7 @@ object Capture {
                     context = context,
                     startResult = startResult,
                     initialFields = initialFields,
+                    preInitInMemoryLogger = preInitInMemoryLogger,
                 )
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
@@ -385,6 +397,10 @@ object Capture {
         /**
          * The Id for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
+         *
+         * Alternatively, use the ILogger from start's startResult callback for a non-null
+         * instance once started, and SessionConfiguration.onSessionIdChanged for live updates
+         * as the session changes.
          */
         @JvmStatic
         val sessionId: String?
@@ -393,6 +409,10 @@ object Capture {
         /**
          * The URL for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
+         *
+         * Alternatively, use the ILogger from start's startResult callback for a non-null
+         * instance once started, and re-read its sessionUrl when
+         * SessionConfiguration.onSessionIdChanged fires to track session changes.
          */
         @JvmStatic
         val sessionUrl: String?
@@ -404,6 +424,9 @@ object Capture {
          *
          * The value of this property is different for apps from the same vendor running on
          * the same device. It is equal to null prior to the start of bitdrift Capture SDK.
+         *
+         * Alternatively, use the ILogger from start's startResult callback for a non-null
+         * instance once started.
          */
         @JvmStatic
         val deviceId: String?
@@ -440,9 +463,9 @@ object Capture {
          */
         @JvmStatic
         fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
-            logger()?.also {
-                it.createTemporaryDeviceCode {
-                    mainThreadHandler.run { completion(it) }
+            getInternalLogger()?.also { logger ->
+                logger.createTemporaryDeviceCode { captureResult ->
+                    mainThreadHandler.run { completion(captureResult) }
                 }
             } ?: run {
                 mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }
@@ -483,9 +506,7 @@ object Capture {
             key: String,
             value: String,
         ) {
-            logger()?.let {
-                it.addField(key, value)
-            }
+            getInternalLogger()?.addField(key, value)
         }
 
         /**
@@ -496,7 +517,7 @@ object Capture {
          */
         @JvmStatic
         fun removeField(key: String) {
-            logger()?.removeField(key)
+            getInternalLogger()?.removeField(key)
         }
 
         /**
@@ -513,7 +534,7 @@ object Capture {
             name: String,
             variant: String,
         ) {
-            logger()?.setFeatureFlagExposure(name, variant)
+            getInternalLogger()?.setFeatureFlagExposure(name, variant)
         }
 
         /**
@@ -524,7 +545,7 @@ object Capture {
          */
         @JvmStatic
         fun setEntityId(entityId: String) {
-            logger()?.setEntityId(entityId)
+            getInternalLogger()?.setEntityId(entityId)
         }
 
         /**
@@ -533,7 +554,7 @@ object Capture {
          */
         @JvmStatic
         fun clearEntityId() {
-            logger()?.clearEntityId()
+            getInternalLogger()?.clearEntityId()
         }
 
         /**
@@ -550,7 +571,7 @@ object Capture {
             name: String,
             variant: Boolean,
         ) {
-            logger()?.setFeatureFlagExposure(name, variant)
+            getInternalLogger()?.setFeatureFlagExposure(name, variant)
         }
 
         /**
@@ -567,7 +588,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.TRACE, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(level = LogLevel.TRACE, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -584,7 +605,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -601,7 +622,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -618,7 +639,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -635,7 +656,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.ERROR, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(level = LogLevel.ERROR, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -652,7 +673,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = LogLevel.CRITICAL, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(level = LogLevel.CRITICAL, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -671,7 +692,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            logger()?.log(level = level, fields = fields, throwable = throwable, message = message)
+            getInternalLogger()?.log(level = level, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -683,7 +704,7 @@ object Capture {
          */
         @JvmStatic
         fun logAppLaunchTTI(duration: Duration) {
-            logger()?.logAppLaunchTTI(duration)
+            getInternalLogger()?.logAppLaunchTTI(duration)
         }
 
         /**
@@ -693,7 +714,7 @@ object Capture {
          */
         @JvmStatic
         fun logScreenView(screenName: String) {
-            logger()?.logScreenView(screenName)
+            getInternalLogger()?.logScreenView(screenName)
         }
 
         /**
@@ -717,7 +738,7 @@ object Capture {
             fields: Map<String, String>? = null,
             startTimeMs: Long? = null,
             parentSpanId: UUID? = null,
-        ): Span? = logger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
+        ): Span? = getInternalLogger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
 
         /**
          * Wrap the specified [block] in calls to [startSpan] (with the supplied params)
@@ -753,7 +774,7 @@ object Capture {
          */
         @JvmStatic
         fun log(httpRequestInfo: HttpRequestInfo) {
-            logger()?.log(httpRequestInfo)
+            getInternalLogger()?.log(httpRequestInfo)
         }
 
         /**
@@ -764,7 +785,7 @@ object Capture {
          */
         @JvmStatic
         fun log(httpResponseInfo: HttpResponseInfo) {
-            logger()?.log(httpResponseInfo)
+            getInternalLogger()?.log(httpResponseInfo)
         }
 
         /**
@@ -775,7 +796,7 @@ object Capture {
          */
         @JvmStatic
         fun setSleepMode(sleepMode: SleepMode) {
-            logger()?.setSleepMode(sleepMode)
+            getInternalLogger()?.setSleepMode(sleepMode)
         }
 
         /**
@@ -881,6 +902,7 @@ object Capture {
         context: Context?,
         startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         initialFields: Fields,
+        preInitInMemoryLogger: PreInitInMemoryLogger,
     ) {
         try {
             val startSdkTimer = TimeSource.Monotonic.markNow()
@@ -916,6 +938,10 @@ object Capture {
                     )
                 }
 
+            val flushToNativeDuration =
+                measureTime {
+                    preInitInMemoryLogger.flushToNative(loggerImpl)
+                }
             default.set(LoggerState.Started(loggerImpl))
 
             // Must be initialized right after the logger state is set to avoid a null
@@ -927,6 +953,7 @@ object Capture {
                     wholeStartDuration = startSdkTimer.elapsedNow(),
                     nativeLoadDuration = nativeLoadDuration,
                     loggerImplBuildDuration = loggerImplBuildDuration,
+                    flushPreInitToNativeDuration = flushToNativeDuration,
                 )
 
             loggerImpl.writeSdkStartLog(
@@ -937,6 +964,7 @@ object Capture {
 
             startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Success(loggerImpl))
         } catch (throwable: Throwable) {
+            preInitInMemoryLogger.cleanUp()
             if (throwable.shouldReThrowOnDebugBuild()) throw throwable
             val errorDetails = "Failed to start Capture: ${throwable.message}"
             Log.w(LOG_TAG, errorDetails, throwable)

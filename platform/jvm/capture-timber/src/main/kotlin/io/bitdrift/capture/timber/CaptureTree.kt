@@ -5,6 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+
 package io.bitdrift.capture.timber
 
 import android.util.Log
@@ -24,11 +26,11 @@ import timber.log.Timber
 open class CaptureTree internal constructor(
     private val internalLogger: ILogger?,
 ) : Timber.Tree() {
-    constructor() : this(Capture.logger())
+    constructor() : this(Capture.getInternalLogger())
 
     // attempts to get the latest logger if one wasn't found at construction time
     private val logger: ILogger?
-        get() = internalLogger ?: Capture.logger()
+        get() = internalLogger ?: Capture.getInternalLogger()
 
     final override fun log(
         priority: Int,

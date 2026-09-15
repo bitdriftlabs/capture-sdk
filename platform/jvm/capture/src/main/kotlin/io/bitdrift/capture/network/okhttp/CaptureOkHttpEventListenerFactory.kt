@@ -60,7 +60,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
         responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
     ) : this(
         targetEventListenerFactory = targetEventListenerFactory,
-        logger = Capture.logger(),
+        logger = Capture.getInternalLogger(),
         clock = DefaultClock.getInstance(),
         runtimeProvider = CaptureRuntimeProvider,
         requestFieldProvider = requestFieldProvider,
@@ -84,7 +84,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     }
 
     // attempts to get the latest logger if one wasn't found at construction time
-    private fun getLogger(): ILogger? = logger ?: Capture.logger()
+    private fun getLogger(): ILogger? = logger ?: Capture.getInternalLogger()
 
     private companion object {
         private val DEFAULT_REQUEST_FIELD_PROVIDER = OkHttpRequestFieldProvider { emptyMap() }

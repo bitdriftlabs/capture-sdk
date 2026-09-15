@@ -63,6 +63,34 @@ class MainViewModel(
 
     init {
         viewModelScope.launch {
+            CaptureSdkInitializer.sdkInitializationState.collect { initialized ->
+                when (initialized) {
+                    true -> {
+                        updateSdkState()
+                        _uiState.update { it.copy(isLoading = false, error = null) }
+                    }
+
+                    false -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = "Failed to initialize SDK. Please check your API key and URL.",
+                            )
+                        }
+                    }
+
+                    null -> Unit
+                }
+            }
+        }
+        viewModelScope.launch {
+            CaptureSdkInitializer.isStarting.collect { isStarting ->
+                if (isStarting) {
+                    _uiState.update { it.copy(isLoading = true, error = null) }
+                }
+            }
+        }
+        viewModelScope.launch {
             diskPressureCommands.collectLatest { command ->
                 val diskPressureFlow =
                     when (command) {
@@ -137,6 +165,8 @@ class MainViewModel(
             is DiagnosticsAction.LogSingleMessage -> logSingleMessage()
             is DiagnosticsAction.LogManyMessages -> logManyMessages()
             is DiagnosticsAction.LogJsonField -> logJsonField()
+            is DiagnosticsAction.StartSpan -> sdkRepository.startSpan()
+            is DiagnosticsAction.EndSpan -> sdkRepository.endSpan()
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
             is DiagnosticsAction.TriggerRandomNativeCrash -> triggerRandomNativeCrash()
             is DiagnosticsAction.TriggerRandomJvmCrash -> triggerRandomJvmCrash()
@@ -148,6 +178,9 @@ class MainViewModel(
             }
             is NetworkTestAction.PerformOkHttpFailureBeforeResponseHeaders -> {
                 networkTestingRepository.performOkHttpFailureBeforeResponseHeaders()
+            }
+            is NetworkTestAction.PerformDelayedOkHttpRequest -> {
+                networkTestingRepository.performDelayedOkHttpRequest()
             }
             is NetworkTestAction.PerformGraphQlRequest -> {
                 networkTestingRepository.performGraphQlRequest()

@@ -23,6 +23,7 @@ fun NetworkTestingCard(
     instrumentationMode: String,
     onOkHttpRequest: () -> Unit,
     onOkHttpFailureBeforeResponseHeaders: () -> Unit,
+    onDelayedOkHttpRequest: () -> Unit,
     onGraphQlRequest: () -> Unit,
     onRetrofitRequest: () -> Unit,
     onPreExistingW3cRequest: () -> Unit,
@@ -42,6 +43,7 @@ fun NetworkTestingCard(
         ButtonRow(
             "OkHttp" to onOkHttpRequest,
             "Fail DNS" to onOkHttpFailureBeforeResponseHeaders,
+            "Delay 3s" to onDelayedOkHttpRequest,
         )
 
         ButtonRow(
