@@ -1,8 +1,18 @@
+load("@rules_java//java:defs.bzl", "java_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
 load("//bazel/android:build.bzl", "bitdrift_kt_android_library", "bitdrift_kt_android_local_test")
 
 # export proguard library rules
 exports_files(["consumer-rules.pro"])
+
+# Compose support is optional: applications that use Compose supply its runtime version.
+java_library(
+    name = "compose_ui_compile_only",
+    neverlink = True,
+    tags = ["maven:compile-only"],
+    visibility = ["//visibility:public"],
+    exports = [artifact("androidx.compose.ui:ui")],
+)
 
 bitdrift_kt_android_library(
     name = "lib",
@@ -21,7 +31,7 @@ bitdrift_kt_android_library(
     deps = [
         "//platform/jvm/common:lib",
         artifact("androidx.appcompat:appcompat"),
-        artifact("androidx.compose.ui:ui"),
+        ":compose_ui_compile_only",
         artifact("org.jetbrains.kotlin:kotlin-stdlib"),
         artifact("com.squareup.okhttp3:okhttp"),
     ],
