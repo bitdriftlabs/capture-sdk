@@ -93,13 +93,6 @@ internal object WebViewCaptureInternals {
             return
         }
 
-        @OptIn(ExperimentalBitdriftApi::class)
-        val webViewConfig = loggerImpl.webViewConfiguration
-        if (webViewConfig == null) {
-            effectiveLogger.logInstrumentationNotInitialized("WebViewConfiguration not provided")
-            return
-        }
-
         if (webview.isAlreadyInstrumented()) {
             return
         }
@@ -128,7 +121,7 @@ internal object WebViewCaptureInternals {
         val bridgeHandler = WebViewBridgeMessageHandler(loggerImpl, instrumentationMode.displayName)
         webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
-        injectScript(webview, effectiveLogger, webViewConfig)
+        injectScript(webview, effectiveLogger)
 
         webview.markAsInstrumented()
     }
@@ -183,10 +176,9 @@ internal object WebViewCaptureInternals {
     private fun injectScript(
         webview: WebView,
         logger: IInternalLogger?,
-        config: WebViewConfiguration,
     ) {
         runCatching {
-            val script = WebViewBridgeScript.getScript(config)
+            val script = WebViewBridgeScript.getScript(WebViewScriptConfiguration())
             WebViewCompat.addDocumentStartJavaScript(
                 webview,
                 script,
