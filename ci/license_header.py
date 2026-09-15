@@ -26,6 +26,10 @@ exclude_dirs = (
     './.git',
     './target/',
 )
+exclude_files = (
+    # Swift Package Manager requires swift-tools-version to be the first line.
+    './platform/capture_flutter/ios/capture_flutter/Package.swift',
+)
 
 extensions_to_check = ('.rs', '.toml', '.kt', '.java', '.swift', '.js', '.ts')
 
@@ -34,6 +38,9 @@ def check_file(file_path):
     for dir in exclude_dirs:
         if file_path.startswith(dir):
             return
+
+    if file_path in exclude_files:
+        return
 
     _, ext = os.path.splitext(file_path)
     if not ext in extensions_to_check:

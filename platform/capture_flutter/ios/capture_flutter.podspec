@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'capture_flutter'
-  s.version          = '0.22.16'
+  s.version          = '0.24.1'
   s.summary          = 'Flutter plugin for the Bitdrift Capture SDK'
   s.description      = 'Official Flutter plugin for the Bitdrift Capture SDK, providing logging, session management, and session replay.'
   s.homepage         = 'https://bitdrift.io'
@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'BitdriftCapture', '0.23.12'
+  s.dependency 'BitdriftCapture', '0.24.1'
   s.static_framework = true
   s.platform         = :ios, '15.0'
   s.swift_version    = '5.9'
