@@ -63,6 +63,27 @@ class MainViewModel(
 
     init {
         viewModelScope.launch {
+            CaptureSdkInitializer.sdkInitializationState.collect { initialized ->
+                when (initialized) {
+                    true -> {
+                        updateSdkState()
+                        _uiState.update { it.copy(isLoading = false, error = null) }
+                    }
+
+                    false -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = "Failed to initialize SDK. Please check your API key and URL.",
+                            )
+                        }
+                    }
+
+                    null -> Unit
+                }
+            }
+        }
+        viewModelScope.launch {
             diskPressureCommands.collectLatest { command ->
                 val diskPressureFlow =
                     when (command) {

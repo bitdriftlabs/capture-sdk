@@ -509,6 +509,7 @@ class CaptureLoggerTest {
                 wholeStartDuration = Duration.ZERO,
                 nativeLoadDuration = Duration.ZERO,
                 loggerImplBuildDuration = Duration.ZERO,
+                flushPreInitToNativeDuration = Duration.ZERO,
             )
         loggerImpl.writeSdkStartLog(
             appContext = ContextHolder.APP_CONTEXT,

@@ -48,7 +48,9 @@ internal sealed class LoggerState {
     /**
      * The logger is in the process of being started. Subsequent attempts to start the logger will be ignored.
      */
-    data object Starting : LoggerState()
+    class Starting(
+        val logger: PreInitInMemoryLogger,
+    ) : LoggerState()
 
     /**
      * The logger has been successfully started and is ready for use. Subsequent attempts to start the logger will be ignored.
@@ -78,7 +80,7 @@ object Capture {
     fun logger(): ILogger? =
         when (val state = default.get()) {
             is LoggerState.NotStarted -> null
-            is LoggerState.Starting -> null
+            is LoggerState.Starting -> state.logger
             is LoggerState.Started -> state.logger
             is LoggerState.StartFailure -> null
         }
@@ -363,8 +365,10 @@ object Capture {
                 return
             }
 
+            val preInitInMemoryLogger = PreInitInMemoryLogger(dateProvider)
+
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting)) {
+            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting(preInitInMemoryLogger))) {
                 initSdk(
                     apiKey = apiKey,
                     sessionStrategy = sessionStrategy,
@@ -376,6 +380,7 @@ object Capture {
                     context = context,
                     startResult = startResult,
                     initialFields = initialFields,
+                    preInitInMemoryLogger = preInitInMemoryLogger,
                 )
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
@@ -388,7 +393,7 @@ object Capture {
          */
         @JvmStatic
         val sessionId: String?
-            get() = logger()?.sessionId
+            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.sessionId
 
         /**
          * The URL for the current ongoing session.
@@ -396,7 +401,7 @@ object Capture {
          */
         @JvmStatic
         val sessionUrl: String?
-            get() = logger()?.sessionUrl
+            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.sessionUrl
 
         /**
          * A canonical identifier for a device that remains consistent as long as an application
@@ -407,7 +412,7 @@ object Capture {
          */
         @JvmStatic
         val deviceId: String?
-            get() = logger()?.deviceId
+            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.deviceId
 
         /**
          * Whether workflow-controlled tracing is currently active for this session.
@@ -415,7 +420,7 @@ object Capture {
          */
         @JvmStatic
         val isTracingActive: Boolean?
-            get() = logger()?.isTracingActive
+            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.isTracingActive
 
         /**
          * Creates a new session with an optional app-provided ID within the currently running logger.
@@ -440,9 +445,9 @@ object Capture {
          */
         @JvmStatic
         fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
-            logger()?.also {
-                it.createTemporaryDeviceCode {
-                    mainThreadHandler.run { completion(it) }
+            logger()?.takeUnless { it is PreInitInMemoryLogger }?.also { logger ->
+                logger.createTemporaryDeviceCode { captureResult ->
+                    mainThreadHandler.run { completion(captureResult) }
                 }
             } ?: run {
                 mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }
@@ -881,6 +886,7 @@ object Capture {
         context: Context?,
         startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         initialFields: Fields,
+        preInitInMemoryLogger: PreInitInMemoryLogger,
     ) {
         try {
             val startSdkTimer = TimeSource.Monotonic.markNow()
@@ -916,6 +922,10 @@ object Capture {
                     )
                 }
 
+            val flushToNativeDuration =
+                measureTime {
+                    preInitInMemoryLogger.flushToNative(loggerImpl)
+                }
             default.set(LoggerState.Started(loggerImpl))
 
             // Must be initialized right after the logger state is set to avoid a null
@@ -927,6 +937,7 @@ object Capture {
                     wholeStartDuration = startSdkTimer.elapsedNow(),
                     nativeLoadDuration = nativeLoadDuration,
                     loggerImplBuildDuration = loggerImplBuildDuration,
+                    flushPreInitToNativeDuration = flushToNativeDuration,
                 )
 
             loggerImpl.writeSdkStartLog(
@@ -937,6 +948,7 @@ object Capture {
 
             startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Success(loggerImpl))
         } catch (throwable: Throwable) {
+            preInitInMemoryLogger.clear()
             if (throwable.shouldReThrowOnDebugBuild()) throw throwable
             val errorDetails = "Failed to start Capture: ${throwable.message}"
             Log.w(LOG_TAG, errorDetails, throwable)

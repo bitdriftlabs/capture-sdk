@@ -33,12 +33,28 @@ import okhttp3.EventListener
  */
 class CaptureOkHttpEventListenerFactory internal constructor(
     private val targetEventListenerFactory: EventListener.Factory?,
-    private val logger: ILogger?,
+    private val loggerProvider: () -> ILogger?,
     private val clock: IClock,
     private val runtimeProvider: IRuntimeProvider,
     private val requestFieldProvider: OkHttpRequestFieldProvider,
     private val responseFieldProvider: OkHttpResponseFieldProvider,
 ) : EventListener.Factory {
+    internal constructor(
+        targetEventListenerFactory: EventListener.Factory?,
+        logger: ILogger?,
+        clock: IClock,
+        runtimeProvider: IRuntimeProvider,
+        requestFieldProvider: OkHttpRequestFieldProvider,
+        responseFieldProvider: OkHttpResponseFieldProvider,
+    ) : this(
+        targetEventListenerFactory = targetEventListenerFactory,
+        loggerProvider = { logger },
+        clock = clock,
+        runtimeProvider = runtimeProvider,
+        requestFieldProvider = requestFieldProvider,
+        responseFieldProvider = responseFieldProvider,
+    )
+
     private val configuredPropagationMode by lazy {
         TracePropagationMode.fromRuntimeValue(
             runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE),
@@ -60,7 +76,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
         responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
     ) : this(
         targetEventListenerFactory = targetEventListenerFactory,
-        logger = Capture.logger(),
+        loggerProvider = Capture::logger,
         clock = DefaultClock.getInstance(),
         runtimeProvider = CaptureRuntimeProvider,
         requestFieldProvider = requestFieldProvider,
@@ -68,7 +84,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     )
 
     override fun create(call: Call): EventListener {
-        val currentLogger = getLogger()
+        val currentLogger = loggerProvider()
         val targetEventListener = targetEventListenerFactory?.create(call)
         if (currentLogger == null || requestIgnorePolicy.shouldIgnore(call.request())) {
             return targetEventListener ?: EventListener.NONE
@@ -82,9 +98,6 @@ class CaptureOkHttpEventListenerFactory internal constructor(
             responseExtraFieldsProvider = responseFieldProvider,
         )
     }
-
-    // attempts to get the latest logger if one wasn't found at construction time
-    private fun getLogger(): ILogger? = logger ?: Capture.logger()
 
     private companion object {
         private val DEFAULT_REQUEST_FIELD_PROVIDER = OkHttpRequestFieldProvider { emptyMap() }
