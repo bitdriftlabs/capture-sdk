@@ -63,6 +63,27 @@ class MainViewModel(
 
     init {
         viewModelScope.launch {
+            CaptureSdkInitializer.sdkInitializationState.collect { initialized ->
+                when (initialized) {
+                    true -> {
+                        updateSdkState()
+                        _uiState.update { it.copy(isLoading = false, error = null) }
+                    }
+
+                    false -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = "Failed to initialize SDK. Please check your API key and URL.",
+                            )
+                        }
+                    }
+
+                    null -> Unit
+                }
+            }
+        }
+        viewModelScope.launch {
             diskPressureCommands.collectLatest { command ->
                 val diskPressureFlow =
                     when (command) {
@@ -136,6 +157,7 @@ class MainViewModel(
 
             is DiagnosticsAction.LogSingleMessage -> logSingleMessage()
             is DiagnosticsAction.LogManyMessages -> logManyMessages()
+            is DiagnosticsAction.OverflowPreInitBuffer -> overflowPreInitBuffer()
             is DiagnosticsAction.LogJsonField -> logJsonField()
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
             is DiagnosticsAction.TriggerRandomNativeCrash -> triggerRandomNativeCrash()
@@ -386,6 +408,17 @@ class MainViewModel(
         }
     }
 
+    private fun overflowPreInitBuffer() {
+        if (Logger.sessionUrl != null) {
+            _uiState.update { it.copy(error = "Pre-init buffer test must run while the SDK is starting.") }
+            return
+        }
+
+        Logger.logInfo { "pre-init buffer overflow test started" }
+        Logger.logInfo { "x".repeat(PRE_INIT_OVERFLOW_LOG_SIZE_BYTES) }
+        Logger.logInfo { "pre-init buffer overflow test finished" }
+    }
+
     private fun logJsonField() {
         val jsonField = mapOf(
             "myJsonFieldKey" to
@@ -516,6 +549,8 @@ class MainViewModel(
         }
     }
 }
+
+private const val PRE_INIT_OVERFLOW_LOG_SIZE_BYTES = 600 * 1024
 
 private val NATIVE_CRASH_REASONS =
     listOf(

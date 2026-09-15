@@ -47,6 +47,7 @@ sealed class SessionAction : AppAction {
 sealed class DiagnosticsAction : AppAction {
     object LogSingleMessage : DiagnosticsAction()
     object LogManyMessages : DiagnosticsAction()
+    object OverflowPreInitBuffer : DiagnosticsAction()
     object LogJsonField : DiagnosticsAction()
 
     object ForceAppExit : DiagnosticsAction()

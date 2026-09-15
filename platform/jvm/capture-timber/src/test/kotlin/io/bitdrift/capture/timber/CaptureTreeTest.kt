@@ -138,4 +138,17 @@ class CaptureTreeTest {
         verify(mockLogger).log(eq(LogLevel.DEBUG), any<ArrayFields>(), anyOrNull(), argCaptor.capture())
         assertThat(argCaptor.firstValue()).isEqualTo(message)
     }
+
+    @Test
+    fun `tree resolves logger when each message is logged`() {
+        var currentLogger: ILogger? = null
+        val dynamicTree = CaptureTree { currentLogger }
+
+        Timber.plant(dynamicTree)
+        Timber.i("before logger")
+        currentLogger = mockLogger
+        Timber.i("after logger")
+
+        verify(mockLogger).log(eq(LogLevel.INFO), any<ArrayFields>(), anyOrNull(), any())
+    }
 }
