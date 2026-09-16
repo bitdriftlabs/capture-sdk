@@ -20,6 +20,7 @@ import io.bitdrift.gradletestapp.ui.theme.BdSpacing
  */
 @Composable
 fun NetworkTestingCard(
+    instrumentationMode: String,
     onOkHttpRequest: () -> Unit,
     onOkHttpFailureBeforeResponseHeaders: () -> Unit,
     onGraphQlRequest: () -> Unit,
@@ -35,6 +36,7 @@ fun NetworkTestingCard(
 ) {
     BdSectionCard(
         title = "Network Testing",
+        subtitle = "OkHttp instrumentation: $instrumentationMode",
         modifier = modifier,
     ) {
         ButtonRow(
