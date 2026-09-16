@@ -7,33 +7,35 @@
 
 package io.bitdrift.gradletestapp.ui.compose
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import android.app.Activity
+import android.text.format.Formatter
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import android.app.Activity
-import android.text.format.Formatter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.DiskPressureState
 import io.bitdrift.gradletestapp.data.model.JankType
-import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import io.bitdrift.gradletestapp.data.model.StressTestAction
+import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
+import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
+import io.bitdrift.gradletestapp.ui.designsystem.BdDropdownField
+import io.bitdrift.gradletestapp.ui.designsystem.BdPrimaryButton
+import io.bitdrift.gradletestapp.ui.designsystem.BdSecondaryButton
+import io.bitdrift.gradletestapp.ui.designsystem.BdSectionCard
+import io.bitdrift.gradletestapp.ui.designsystem.BdTintedButton
+import io.bitdrift.gradletestapp.ui.designsystem.bdFieldColors
+import io.bitdrift.gradletestapp.ui.theme.BdShape
+import io.bitdrift.gradletestapp.ui.theme.BdSpacing
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StressTestScreen(
     onAction: (AppAction) -> Unit,
@@ -48,9 +50,9 @@ fun StressTestScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(vertical = 8.dp),
+                .padding(horizontal = BdSpacing.screenGutter),
+        verticalArrangement = Arrangement.spacedBy(BdSpacing.cardGap),
+        contentPadding = PaddingValues(vertical = BdSpacing.md),
     ) {
         item {
             MemoryPressureCard(onAction = onAction)
@@ -77,6 +79,15 @@ fun StressTestScreen(
 }
 
 @Composable
+private fun CardHint(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = BitdriftColors.TextSecondary,
+    )
+}
+
+@Composable
 private fun DiskPressureCard(
     diskPressure: DiskPressureState,
     onAction: (AppAction) -> Unit,
@@ -91,29 +102,28 @@ private fun DiskPressureCard(
             DiskPressureState.UnsupportedDevice -> null
         }
 
-    StressTestCard(title = "Disk Pressure") {
-        Text(
-            text =
-                if (diskPressure == DiskPressureState.Loading) {
+    BdSectionCard(
+        title = "Disk Pressure",
+    ) {
+        CardHint(
+            when {
+                diskPressure == DiskPressureState.Loading ->
                     "Checking whether disk pressure testing is supported."
-                } else if (diskPressure != DiskPressureState.UnsupportedDevice) {
-                    "Enable Deferred SDK Start in Settings, fill storage, then manually start the SDK to test initialization under ENOSPC."
-                } else {
+                diskPressure != DiskPressureState.UnsupportedDevice ->
+                    "Enable Deferred SDK Start in Settings, fill storage, then manually start the " +
+                        "SDK to test initialization under ENOSPC."
+                else ->
                     "Unavailable. Disk pressure testing requires an Android emulator."
-                },
-            style = MaterialTheme.typography.bodySmall,
-            color = BitdriftColors.TextSecondary,
+            },
         )
 
         availableBytes?.let {
             Text(
                 text = "Available: ${Formatter.formatFileSize(context, it)}",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = BitdriftColors.TextPrimary,
             )
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         (diskPressure as? DiskPressureState.Failed)?.let { failure ->
             Text(
@@ -123,29 +133,23 @@ private fun DiskPressureCard(
             )
         }
 
-        Button(
+        BdTintedButton(
+            text = if (diskPressure is DiskPressureState.Filling) "Filling Internal Storage" else "Fill Internal Storage",
+            accent = BitdriftColors.Error,
             onClick = { onAction(StressTestAction.FillDiskSpace) },
             enabled = diskPressure is DiskPressureState.Ready || diskPressure is DiskPressureState.Failed,
             modifier = Modifier.fillMaxWidth(),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = BitdriftColors.Error,
-                    contentColor = Color.White,
-                ),
-        ) {
-            Text(if (diskPressure is DiskPressureState.Filling) "Filling Internal Storage" else "Fill Internal Storage")
-        }
+        )
 
-        OutlinedButton(
+        BdSecondaryButton(
+            text = "Clear Disk Pressure",
             onClick = { onAction(StressTestAction.ClearDiskSpace) },
-            enabled = diskPressure is DiskPressureState.Ready ||
-                diskPressure is DiskPressureState.Filling ||
-                diskPressure is DiskPressureState.Failed,
+            enabled =
+                diskPressure is DiskPressureState.Ready ||
+                    diskPressure is DiskPressureState.Filling ||
+                    diskPressure is DiskPressureState.Failed,
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-        ) {
-            Text("Clear Disk Pressure")
-        }
+        )
     }
 }
 
@@ -155,15 +159,10 @@ private fun ThreadCountCard(onAction: (AppAction) -> Unit) {
     val threadCount = threadCountInput.toIntOrNull()
     val isValid = threadCount != null && threadCount > 0
 
-    StressTestCard(title = "Threads") {
-        Text(
-            text = "Create an exact number of sleeping background threads.",
-            style = MaterialTheme.typography.bodySmall,
-            color = BitdriftColors.TextSecondary,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
+    BdSectionCard(
+        title = "Threads",
+        subtitle = "Create an exact number of sleeping background threads.",
+    ) {
         OutlinedTextField(
             value = threadCountInput,
             onValueChange = { value ->
@@ -172,310 +171,126 @@ private fun ThreadCountCard(onAction: (AppAction) -> Unit) {
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Thread count", color = BitdriftColors.TextSecondary) },
+            label = { Text("Thread count") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
             isError = threadCountInput.isNotEmpty() && !isValid,
-            colors =
-                OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = BitdriftColors.TextBright,
-                    unfocusedTextColor = BitdriftColors.TextBright,
-                    focusedBorderColor = BitdriftColors.Primary,
-                    unfocusedBorderColor = BitdriftColors.Border,
-                    focusedLabelColor = BitdriftColors.Primary,
-                    unfocusedLabelColor = BitdriftColors.TextSecondary,
-                    cursorColor = BitdriftColors.TextBright,
-                    selectionColors =
-                        TextSelectionColors(
-                            handleColor = BitdriftColors.TextBright,
-                            backgroundColor = BitdriftColors.Primary.copy(alpha = 0.3f),
-                        ),
-                ),
+            shape = BdShape.Field,
+            colors = bdFieldColors(),
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
+        BdPrimaryButton(
+            text = "Create Threads",
             onClick = { threadCount?.let { onAction(StressTestAction.CreateThreads(it)) } },
             enabled = isValid,
             modifier = Modifier.fillMaxWidth(),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = BitdriftColors.Primary,
-                    contentColor = Color.White,
-                    disabledContainerColor = BitdriftColors.Border,
-                ),
-        ) {
-            Text("Create Threads")
-        }
+        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MemoryPressureCard(onAction: (AppAction) -> Unit) {
     var selectedPercent by remember { mutableIntStateOf(95) }
     val percentOptions = listOf(50, 70, 80, 90, 95, 98, 100)
 
-    StressTestCard(title = stringResource(id = R.string.memory_pressure)) {
-        var expanded by remember { mutableStateOf(false) }
+    BdSectionCard(title = stringResource(id = R.string.memory_pressure)) {
+        BdDropdownField(
+            label = "Target %",
+            selected = selectedPercent,
+            options = percentOptions,
+            onSelected = { selectedPercent = it },
+            optionLabel = { "$it%" },
+        )
 
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            OutlinedTextField(
-                value = "$selectedPercent%",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Target %", color = BitdriftColors.TextSecondary) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = BitdriftColors.TextBright,
-                        unfocusedTextColor = BitdriftColors.TextBright,
-                        focusedBorderColor = BitdriftColors.Primary,
-                        unfocusedBorderColor = BitdriftColors.Border,
-                        focusedLabelColor = BitdriftColors.Primary,
-                        unfocusedLabelColor = BitdriftColors.TextSecondary,
-                        cursorColor = BitdriftColors.TextBright,
-                        selectionColors =
-                            TextSelectionColors(
-                                handleColor = BitdriftColors.TextBright,
-                                backgroundColor = BitdriftColors.Primary.copy(alpha = 0.3f),
-                            ),
-                    ),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                containerColor = MaterialTheme.colorScheme.surface,
-            ) {
-                percentOptions.forEach { percent ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "$percent%",
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        },
-                        onClick = {
-                            selectedPercent = percent
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
+        BdPrimaryButton(
+            text = "Increase to $selectedPercent% (static)",
             onClick = { onAction(StressTestAction.IncreaseMemoryPressure(selectedPercent)) },
             modifier = Modifier.fillMaxWidth(),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = BitdriftColors.Primary,
-                    contentColor = Color.White,
-                ),
-        ) {
-            Text("Increase to $selectedPercent% (static)")
-        }
+        )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(
+        BdTintedButton(
+            text = "GC-Induced ANR (98% + allocations)",
+            accent = BitdriftColors.Error,
             onClick = { onAction(StressTestAction.TriggerMemoryPressureAnr) },
             modifier = Modifier.fillMaxWidth(),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = BitdriftColors.Error,
-                    contentColor = Color.White,
-                ),
-        ) {
-            Text("GC-Induced ANR (98% + allocations)")
-        }
+        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun JankyFramesCard(onAction: (AppAction) -> Unit) {
     var selectedJankType by remember { mutableStateOf(JankType.SLOW) }
 
-    StressTestCard(title = stringResource(id = R.string.janky_frames)) {
-        Text(
-            text = "Blocks main thread with Thread.sleep",
-            style = MaterialTheme.typography.bodySmall,
-            color = BitdriftColors.TextSecondary,
+    BdSectionCard(
+        title = stringResource(id = R.string.janky_frames),
+        subtitle = "Blocks main thread with Thread.sleep",
+    ) {
+        BdDropdownField(
+            label = "Jank Type",
+            selected = selectedJankType,
+            options = JankType.entries,
+            onSelected = { selectedJankType = it },
+            optionLabel = { it.displayName },
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        var expanded by remember { mutableStateOf(false) }
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            OutlinedTextField(
-                value = selectedJankType.displayName,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Jank Type", color = BitdriftColors.TextSecondary) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = BitdriftColors.TextBright,
-                        unfocusedTextColor = BitdriftColors.TextBright,
-                        focusedBorderColor = BitdriftColors.Primary,
-                        unfocusedBorderColor = BitdriftColors.Border,
-                        focusedLabelColor = BitdriftColors.Primary,
-                        unfocusedLabelColor = BitdriftColors.TextSecondary,
-                        cursorColor = BitdriftColors.TextBright,
-                        selectionColors =
-                            TextSelectionColors(
-                                handleColor = BitdriftColors.TextBright,
-                                backgroundColor = BitdriftColors.Primary.copy(alpha = 0.3f),
-                            ),
-                    ),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                containerColor = MaterialTheme.colorScheme.surface,
-            ) {
-                JankType.entries.forEach { jankType ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                jankType.displayName,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        },
-                        onClick = {
-                            selectedJankType = jankType
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
+        BdTintedButton(
+            text = "Trigger ${selectedJankType.displayName}",
+            accent = BitdriftColors.Warning,
             onClick = { onAction(StressTestAction.TriggerJankyFrames(selectedJankType)) },
             modifier = Modifier.fillMaxWidth(),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = BitdriftColors.Warning,
-                    contentColor = Color.Black,
-                ),
-        ) {
-            Text("Trigger ${selectedJankType.displayName}")
-        }
+        )
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StrictModeCard(onAction: (AppAction) -> Unit) {
-    StressTestCard(title = stringResource(id = R.string.strict_mode)) {
-        Text(
-            text = "Trigger deterministic StrictMode violations that map to the reporter fallbacks",
-            style = MaterialTheme.typography.bodySmall,
-            color = BitdriftColors.TextSecondary,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+    BdSectionCard(
+        title = stringResource(id = R.string.strict_mode),
+        subtitle = "Trigger deterministic StrictMode violations that map to the reporter fallbacks",
+    ) {
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(BdSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(BdSpacing.sm),
         ) {
             StrictModeViolationType.entries.forEach { type ->
-                OutlinedButton(
+                BdSecondaryButton(
+                    text = type.displayName,
                     onClick = { onAction(StressTestAction.TriggerStrictModeViolation(type)) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) {
-                    Text(type.displayName, maxLines = 1)
-                }
+                    size = BdButtonSize.Compact,
+                )
             }
         }
     }
 }
-
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ScreenReplayCard(onAction: (AppAction) -> Unit) {
     @Suppress("ContextCastToActivity")
     val activity = LocalContext.current as Activity
-    StressTestCard(title = stringResource(id = R.string.screen_capture)) {
-        Text(
-            text = "Stress replay with window mutations",
-            style = MaterialTheme.typography.bodySmall,
-            color = BitdriftColors.TextSecondary,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+
+    BdSectionCard(
+        title = stringResource(id = R.string.screen_capture),
+        subtitle = "Stress replay with window mutations",
+    ) {
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(BdSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(BdSpacing.sm),
         ) {
-            OutlinedButton(
+            BdSecondaryButton(
+                text = "Trigger",
                 onClick = { onAction(StressTestAction.TriggerScreenReplayCapture(activity)) },
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-            ) {
-                Text("Trigger", maxLines = 1)
-            }
-        }
-    }
-}
-
-@Composable
-private fun StressTestCard(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = BitdriftColors.BackgroundPaper,
-            ),
-        shape = MaterialTheme.shapes.medium,
-        border =
-            BorderStroke(
-                width = 1.dp,
-                color = BitdriftColors.Border.copy(alpha = 0.3f),
-            ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = BitdriftColors.TextPrimary,
+                size = BdButtonSize.Compact,
             )
-            content()
         }
     }
 }
 
 @Preview
 @Composable
-fun StressTestScreenPreview(){
+fun StressTestScreenPreview() {
     StressTestScreen({}, {}, DiskPressureState.Ready(0))
 }

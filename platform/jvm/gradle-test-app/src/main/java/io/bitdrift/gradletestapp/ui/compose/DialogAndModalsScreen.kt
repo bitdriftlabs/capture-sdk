@@ -12,7 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import io.bitdrift.gradletestapp.ui.designsystem.BdPrimaryButton
+import io.bitdrift.gradletestapp.ui.designsystem.BdSecondaryButton
+import io.bitdrift.gradletestapp.ui.theme.BdSpacing
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -21,43 +23,27 @@ fun DialogAndModalsScreen() {
     var showBottomSheet by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = BitdriftColors.Background,
-    ) { paddingValues ->
+    Scaffold(containerColor = BitdriftColors.Background) { paddingValues ->
         Column(
             modifier =
                 Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(16.dp),
+                    .padding(BdSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(BdSpacing.lg, Alignment.CenterVertically),
         ) {
-            Button(
+            BdPrimaryButton(
+                text = "Show Dialog",
                 onClick = { showDialog = true },
                 modifier = Modifier.fillMaxWidth(),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = BitdriftColors.Primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-            ) {
-                Text("Show Dialog")
-            }
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
+            BdSecondaryButton(
+                text = "Show Modal Bottom Sheet",
                 onClick = { showBottomSheet = true },
                 modifier = Modifier.fillMaxWidth(),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = BitdriftColors.Primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-            ) {
-                Text("Show Modal Bottom Sheet")
-            }
+            )
         }
 
         if (showDialog) {
@@ -66,7 +52,7 @@ fun DialogAndModalsScreen() {
                 title = {
                     Text(
                         text = "Dialog",
-                        color = BitdriftColors.TextPrimary,
+                        color = BitdriftColors.TextBright,
                     )
                 },
                 text = {
@@ -77,7 +63,7 @@ fun DialogAndModalsScreen() {
                 },
                 confirmButton = {
                     TextButton(onClick = { showDialog = false }) {
-                        Text("OK")
+                        Text("OK", color = BitdriftColors.PrimaryBright)
                     }
                 },
                 containerColor = BitdriftColors.BackgroundPaper,
@@ -93,32 +79,28 @@ fun DialogAndModalsScreen() {
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                            .padding(BdSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(BdSpacing.lg),
                 ) {
                     Text(
                         text = "Modal Bottom Sheet",
                         style = MaterialTheme.typography.headlineSmall,
-                        color = BitdriftColors.TextPrimary,
+                        color = BitdriftColors.TextBright,
                     )
 
                     Text(
-                        text = "This is a modal bottom sheet example. You can dismiss it by swiping down or tapping outside.",
+                        text =
+                            "This is a modal bottom sheet example. You can dismiss it by swiping " +
+                                "down or tapping outside.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = BitdriftColors.TextSecondary,
                     )
 
-                    Button(
+                    BdPrimaryButton(
+                        text = "Dismiss",
                         onClick = { showBottomSheet = false },
                         modifier = Modifier.fillMaxWidth(),
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = BitdriftColors.Primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                    ) {
-                        Text("Dismiss")
-                    }
+                    )
                 }
             }
         }
