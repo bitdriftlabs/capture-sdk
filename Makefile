@@ -25,7 +25,7 @@ buildifier:
 
 .PHONY: lint-yaml
 lint-yaml:
-	taplo fmt --check $$(git ls-files -- '*.toml')
+	taplo fmt --config ../taplo.toml --check $$(git ls-files -- '*.toml')
 
 .PHONY: lint-shell
 lint-shell:
@@ -33,7 +33,7 @@ lint-shell:
 
 .PHONY: fix-yaml
 fix-yaml:
-	taplo fmt
+	taplo fmt --config ../taplo.toml
 
 .PHONY: fix-swiftlint
 fix-swiftlint:
