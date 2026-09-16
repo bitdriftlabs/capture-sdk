@@ -7,14 +7,11 @@
 
 package io.bitdrift.gradletestapp.ui.compose.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -25,18 +22,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.NavigationAction
 import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
+import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
+import io.bitdrift.gradletestapp.ui.designsystem.BdGroupLabel
+import io.bitdrift.gradletestapp.ui.designsystem.BdSecondaryButton
+import io.bitdrift.gradletestapp.ui.designsystem.BdSectionCard
+import io.bitdrift.gradletestapp.ui.designsystem.BdStatusPill
+import io.bitdrift.gradletestapp.ui.designsystem.BdTintedButton
 import io.bitdrift.gradletestapp.ui.fragments.WebViewFragment
+import io.bitdrift.gradletestapp.ui.theme.BdSpacing
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun NavigationCard(onAction: (AppAction) -> Unit) {
+fun NavigationCard(
+    onAction: (AppAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val preferences = remember(context) { PreferenceManager.getDefaultSharedPreferences(context) }
     var webViewMonitoringEnabled by remember {
@@ -53,106 +59,79 @@ fun NavigationCard(onAction: (AppAction) -> Unit) {
         onDispose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = BitdriftColors.BackgroundPaper),
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(width = 1.dp, color = BitdriftColors.Border.copy(alpha = 0.3f)),
+    BdSectionCard(
+        title = stringResource(id = R.string.navigation),
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                text = stringResource(id = R.string.navigation),
-                style = MaterialTheme.typography.titleMedium,
-                color = BitdriftColors.TextPrimary,
+        NavigationSection("Views") {
+            BdSecondaryButton(
+                text = "Compose",
+                onClick = { onAction(NavigationAction.NavigateToCompose) },
+                size = BdButtonSize.Compact,
+            )
+            BdSecondaryButton(
+                text = "XML",
+                onClick = { onAction(NavigationAction.NavigateToXml) },
+                size = BdButtonSize.Compact,
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(BdSpacing.md)) {
+            BdGroupLabel("WebViews")
+
+            BdStatusPill(
+                text = if (webViewMonitoringEnabled) "WebView monitoring: Enabled" else "WebView monitoring: Disabled",
+                tone = if (webViewMonitoringEnabled) BitdriftColors.Primary else BitdriftColors.Error,
             )
 
-            NavigationSection("Views") {
-                OutlinedButton(
-                    onClick = { onAction(NavigationAction.NavigateToCompose) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text("Compose", maxLines = 1, softWrap = false) }
-
-                OutlinedButton(
-                    onClick = { onAction(NavigationAction.NavigateToXml) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text("XML", maxLines = 1, softWrap = false) }
+            WebViewGroup("Manual Instrumentation") {
+                WebViewDemoButton(
+                    WebViewFragment.MANUAL,
+                    WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.MANUAL),
+                    onAction,
+                )
             }
 
-            NavigationSection("WebViews") {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        text =
-                            if (webViewMonitoringEnabled) {
-                                "WebView monitoring: Enabled"
-                            } else {
-                                "WebView monitoring: Disabled"
-                            },
-                        style = MaterialTheme.typography.labelLarge,
-                        color =
-                            if (webViewMonitoringEnabled) {
-                                BitdriftColors.Primary
-                            } else {
-                                BitdriftColors.Error
-                            },
-                    )
+            WebViewGroup("Auto - WebViews With JavaScript") {
+                WebViewDemoButton(
+                    WebViewFragment.JAVASCRIPT_ENABLED,
+                    WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.JAVASCRIPT_ENABLED),
+                    onAction,
+                    accent = BitdriftColors.WebViewJavaScriptDisabled,
+                )
+            }
 
-                    WebViewGroup("Manual Instrumentation") {
+            WebViewGroup("Auto - WebViews Without JavaScript") {
+                WebViewFragment.WEBVIEW_DEMOS
+                    .filterKeys {
+                        it !in setOf(WebViewFragment.MANUAL, WebViewFragment.JAVASCRIPT_ENABLED)
+                    }.forEach { (key, demo) ->
                         WebViewDemoButton(
-                            WebViewFragment.MANUAL,
-                            WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.MANUAL),
+                            key,
+                            demo,
                             onAction,
+                            accent = BitdriftColors.WebViewJavaScriptEnabled,
                         )
                     }
-
-                    WebViewGroup("Auto - WebViews With JavaScript") {
-                        WebViewDemoButton(
-                            WebViewFragment.JAVASCRIPT_ENABLED,
-                            WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.JAVASCRIPT_ENABLED),
-                            onAction,
-                            containerColor = BitdriftColors.WebViewJavaScriptDisabled,
-                        )
-                    }
-
-                    WebViewGroup("Auto - WebViews Without JavaScript") {
-                        WebViewFragment.WEBVIEW_DEMOS
-                            .filterKeys {
-                                it !in setOf(WebViewFragment.MANUAL, WebViewFragment.JAVASCRIPT_ENABLED)
-                            }.forEach { (key, demo) ->
-                                WebViewDemoButton(
-                                    key,
-                                    demo,
-                                    onAction,
-                                    containerColor = BitdriftColors.WebViewJavaScriptEnabled,
-                                )
-                            }
-                    }
-                }
             }
+        }
 
-            NavigationSection("Other") {
-                OutlinedButton(
-                    onClick = { onAction(NavigationAction.NavigateToFocusMatrix) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text(stringResource(id = R.string.focus_matrix), maxLines = 1, softWrap = false) }
-
-                OutlinedButton(
-                    onClick = { onAction(NavigationAction.NavigateToDialogAndModals) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text(stringResource(id = R.string.navigate_to_modal_bottom_sheet), maxLines = 1, softWrap = false) }
-
-                OutlinedButton(
-                    onClick = { onAction(NavigationAction.InvokeService) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BitdriftColors.TextPrimary),
-                ) { Text("Invoke Service", maxLines = 1, softWrap = false) }
-
-            }
+        NavigationSection("Other") {
+            BdSecondaryButton(
+                text = stringResource(id = R.string.focus_matrix),
+                onClick = { onAction(NavigationAction.NavigateToFocusMatrix) },
+                size = BdButtonSize.Compact,
+            )
+            BdSecondaryButton(
+                text = stringResource(id = R.string.navigate_to_modal_bottom_sheet),
+                onClick = { onAction(NavigationAction.NavigateToDialogAndModals) },
+                size = BdButtonSize.Compact,
+            )
+            BdSecondaryButton(
+                text = "Invoke Service",
+                onClick = { onAction(NavigationAction.InvokeService) },
+                size = BdButtonSize.Compact,
+            )
         }
     }
 }
@@ -162,23 +141,19 @@ private fun WebViewDemoButton(
     key: String,
     demo: WebViewFragment.DemoWebView,
     onAction: (AppAction) -> Unit,
-    containerColor: Color =
+    accent: Color =
         if (demo.hasJavaScript) {
             BitdriftColors.WebViewJavaScriptEnabled
         } else {
             BitdriftColors.WebViewJavaScriptDisabled
         },
 ) {
-    Button(
+    BdTintedButton(
+        text = demo.buttonName,
+        accent = accent,
         onClick = { onAction(NavigationAction.NavigateToWebView(key)) },
-        colors =
-            ButtonDefaults.buttonColors(
-                containerColor = containerColor,
-                contentColor = BitdriftColors.TextBright,
-            ),
-    ) {
-        Text(demo.buttonName, maxLines = 1, softWrap = false)
-    }
+        size = BdButtonSize.Compact,
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -186,23 +161,7 @@ private fun WebViewDemoButton(
 private fun WebViewGroup(
     title: String,
     content: @Composable () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = BitdriftColors.TextPrimary,
-        )
-        HorizontalDivider(color = BitdriftColors.Border)
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            content()
-        }
-    }
-}
+) = NavigationSection(title = title, content = content)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -210,17 +169,12 @@ private fun NavigationSection(
     title: String,
     content: @Composable () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = BitdriftColors.TextSecondary,
-        )
-        HorizontalDivider(color = BitdriftColors.Border)
+    Column(verticalArrangement = Arrangement.spacedBy(BdSpacing.sm)) {
+        BdGroupLabel(title)
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(BdSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(BdSpacing.sm),
         ) {
             content()
         }

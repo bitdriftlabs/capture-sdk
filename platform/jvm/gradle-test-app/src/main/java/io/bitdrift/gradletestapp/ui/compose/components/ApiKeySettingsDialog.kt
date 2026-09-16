@@ -12,26 +12,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-//noinspection UsingMaterialAndMaterial3Libraries
-import androidx.compose.material.AlertDialog
-//noinspection UsingMaterialAndMaterial3Libraries
-import androidx.compose.material.Button
-//noinspection UsingMaterialAndMaterial3Libraries
-import androidx.compose.material.ButtonDefaults
-//noinspection UsingMaterialAndMaterial3Libraries
-import androidx.compose.material.Text
-//noinspection UsingMaterialAndMaterial3Libraries
-import androidx.compose.material.TextField
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,14 +24,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.input.ImeAction
-
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import androidx.fragment.app.DialogFragment
-import io.bitdrift.gradletestapp.R
+import io.bitdrift.gradletestapp.ui.designsystem.BdAlertDialog
+import io.bitdrift.gradletestapp.ui.designsystem.bdFieldColors
+import io.bitdrift.gradletestapp.ui.theme.BdShape
+import io.bitdrift.gradletestapp.ui.theme.BitdriftTheme
 
 class SettingsApiKeysDialogFragment(
     private val sharedPreferences: SharedPreferences,
@@ -58,10 +43,12 @@ class SettingsApiKeysDialogFragment(
     ): View =
         ComposeView(requireContext()).apply {
             setContent {
-                ApiKeysDialog(
-                    onDismiss = { dismiss() },
-                    sharedPreferences = sharedPreferences,
-                )
+                BitdriftTheme {
+                    ApiKeysDialog(
+                        onDismiss = { dismiss() },
+                        sharedPreferences = sharedPreferences,
+                    )
+                }
             }
         }
 
@@ -80,129 +67,80 @@ class SettingsApiKeysDialogFragment(
         var firebaseSenderId by remember { getCurrentApiKeyValue(FIREBASE_SENDER_ID) }
 
         fun persistApiKeysAndDismiss() {
-            val bugSnagSdkApiKeyTrimmed = bugSnagSdkApiKey.text.trim()
-            val sentrySdkApiKeyTrimmed = sentrySdkDsnKey.text.trim()
-            val firebaseApiKeyTrimmed = firebaseApiKey.text.trim()
-            val firebaseAppIdTrimmed = firebaseAppId.text.trim()
-            val firebaseProjectIdTrimmed = firebaseProjectId.text.trim()
-            val firebaseSenderIdTrimmed = firebaseSenderId.text.trim()
-            with(sharedPreferences.edit()) {
-                putString(BUG_SNAG_SDK_API_KEY, bugSnagSdkApiKeyTrimmed)
-                putString(SENTRY_SDK_DSN_KEY, sentrySdkApiKeyTrimmed)
-                putString(FIREBASE_API_KEY, firebaseApiKeyTrimmed)
-                putString(FIREBASE_APP_ID, firebaseAppIdTrimmed)
-                putString(FIREBASE_PROJECT_ID, firebaseProjectIdTrimmed)
-                putString(FIREBASE_SENDER_ID, firebaseSenderIdTrimmed)
-                apply()
+            sharedPreferences.edit {
+                putString(BUG_SNAG_SDK_API_KEY, bugSnagSdkApiKey.text.trim())
+                putString(SENTRY_SDK_DSN_KEY, sentrySdkDsnKey.text.trim())
+                putString(FIREBASE_API_KEY, firebaseApiKey.text.trim())
+                putString(FIREBASE_APP_ID, firebaseAppId.text.trim())
+                putString(FIREBASE_PROJECT_ID, firebaseProjectId.text.trim())
+                putString(FIREBASE_SENDER_ID, firebaseSenderId.text.trim())
             }
             onDismiss()
         }
 
-        AlertDialog(
-            onDismissRequest = { onDismiss() },
-            title = {
-                Text(
-                    text = "Enter API Keys",
-                    fontSize = 20.sp,
-                    modifier =
-                        Modifier
-                            .padding(bottom = 16.dp)
-                            .fillMaxWidth(),
-                )
-            },
-            text = {
-                Column(
-                    modifier =
-                        Modifier
-                            .padding(24.dp)
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState()),
-                ) {
-                    ApiKeyTextField(
-                        value = bugSnagSdkApiKey,
-                        onValueChange = { bugSnagSdkApiKey = it },
-                        label = "Bugsnag API key",
-                        imeAction = ImeAction.Next,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ApiKeyTextField(
-                        value = sentrySdkDsnKey,
-                        onValueChange = { sentrySdkDsnKey = it },
-                        label = "Sentry DSN API key",
-                        imeAction = ImeAction.Next,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ApiKeyTextField(
-                        value = firebaseApiKey,
-                        onValueChange = { firebaseApiKey = it },
-                        label = "Firebase API key",
-                        imeAction = ImeAction.Next,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ApiKeyTextField(
-                        value = firebaseAppId,
-                        onValueChange = { firebaseAppId = it },
-                        label = "Firebase App ID",
-                        imeAction = ImeAction.Next,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ApiKeyTextField(
-                        value = firebaseProjectId,
-                        onValueChange = { firebaseProjectId = it },
-                        label = "Firebase Project ID",
-                        imeAction = ImeAction.Next,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ApiKeyTextField(
-                        value = firebaseSenderId,
-                        onValueChange = { firebaseSenderId = it },
-                        label = "Firebase Sender ID",
-                        imeAction = ImeAction.Done,
-                        onDoneAction = { persistApiKeysAndDismiss() },
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { persistApiKeysAndDismiss() },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            backgroundColor = colorResource(id = R.color.green),
-                        ),
-                ) {
-                    Text("OK")
-                }
-            },
-        )
+        BdAlertDialog(
+            title = "Enter API Keys",
+            onDismiss = onDismiss,
+            onConfirm = { persistApiKeysAndDismiss() },
+        ) {
+            ApiKeyTextField(
+                value = bugSnagSdkApiKey,
+                onValueChange = { bugSnagSdkApiKey = it },
+                label = "Bugsnag API key",
+                imeAction = ImeAction.Next,
+            )
+            ApiKeyTextField(
+                value = sentrySdkDsnKey,
+                onValueChange = { sentrySdkDsnKey = it },
+                label = "Sentry DSN API key",
+                imeAction = ImeAction.Next,
+            )
+            ApiKeyTextField(
+                value = firebaseApiKey,
+                onValueChange = { firebaseApiKey = it },
+                label = "Firebase API key",
+                imeAction = ImeAction.Next,
+            )
+            ApiKeyTextField(
+                value = firebaseAppId,
+                onValueChange = { firebaseAppId = it },
+                label = "Firebase App ID",
+                imeAction = ImeAction.Next,
+            )
+            ApiKeyTextField(
+                value = firebaseProjectId,
+                onValueChange = { firebaseProjectId = it },
+                label = "Firebase Project ID",
+                imeAction = ImeAction.Next,
+            )
+            ApiKeyTextField(
+                value = firebaseSenderId,
+                onValueChange = { firebaseSenderId = it },
+                label = "Firebase Sender ID",
+                imeAction = ImeAction.Done,
+                onDoneAction = { persistApiKeysAndDismiss() },
+            )
+        }
     }
 
     @Composable
-    fun ApiKeyTextField(
+    private fun ApiKeyTextField(
         value: TextFieldValue,
         onValueChange: (TextFieldValue) -> Unit,
         label: String,
         imeAction: ImeAction,
         onDoneAction: (() -> Unit)? = null,
     ) {
-        TextField(
+        OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             label = { Text(label) },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-                    .wrapContentHeight(),
-            keyboardOptions =
-                KeyboardOptions.Default.copy(
-                    imeAction = imeAction,
-                ),
-            keyboardActions =
-                KeyboardActions(
-                    onDone = {
-                        onDoneAction?.invoke()
-                    },
-                ),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = BdShape.Field,
+            colors = bdFieldColors(),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = imeAction),
+            keyboardActions = KeyboardActions(onDone = { onDoneAction?.invoke() }),
         )
     }
 

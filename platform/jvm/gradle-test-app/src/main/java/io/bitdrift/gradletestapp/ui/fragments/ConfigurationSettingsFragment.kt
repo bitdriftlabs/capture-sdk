@@ -9,7 +9,11 @@ package io.bitdrift.gradletestapp.ui.fragments
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.View
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
@@ -17,6 +21,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
+import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment
@@ -32,15 +37,53 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val screen = preferenceManager.createPreferenceScreen(context)
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 
-        val backendCategory = PreferenceCategory(context)
-        backendCategory.key = "control_plane_category"
-        screen.addPreference(backendCategory)
+        addRestartCategory(context, screen)
+        addInitialConfigurationCategory(context, screen, sharedPreferences)
+        addConfigurationOptionsCategory(context, screen)
+
+        preferenceScreen = screen
+    }
+
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
+        super.onViewCreated(view, savedInstanceState)
+        view.setBackgroundColor(ContextCompat.getColor(view.context, R.color.bitdrift_background))
+        setDivider(ColorDrawable(ContextCompat.getColor(view.context, R.color.bitdrift_border)))
+        setDividerHeight(1)
+        listView.clipToPadding = false
+        listView.setPadding(0, 0, 0, LIST_BOTTOM_PADDING_PX)
+    }
+
+    /** Attaches the category to [screen] up front: adding children before that throws. */
+    private fun newCategory(
+        context: Context,
+        screen: PreferenceScreen,
+        key: String,
+        title: String?,
+    ): PreferenceCategory {
+        val category =
+            PreferenceCategory(context).apply {
+                this.key = key
+                this.title = title
+                isIconSpaceReserved = false
+            }
+        screen.addPreference(category)
+        return category
+    }
+
+    private fun addRestartCategory(
+        context: Context,
+        screen: PreferenceScreen,
+    ) {
+        val category = newCategory(context, screen, "restart_category", null)
 
         val restartPreference = Preference(context)
         restartPreference.key = "restart"
         restartPreference.title = context.getString(R.string.restart_warning_title)
         restartPreference.summary = context.getString(R.string.restart_warning_summary)
-        restartPreference.icon = context.getDrawable(android.R.drawable.ic_dialog_alert)
+        restartPreference.icon = ContextCompat.getDrawable(context, R.drawable.ic_warning_24)
         restartPreference.setOnPreferenceClickListener {
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             val restartIntent = Intent.makeRestartActivityTask(launchIntent!!.component)
@@ -50,18 +93,27 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             context.startActivity(restartIntent)
             exitProcess(0)
         }
-        backendCategory.addPreference(restartPreference)
+        category.addPreference(restartPreference)
+    }
+
+    private fun addInitialConfigurationCategory(
+        context: Context,
+        screen: PreferenceScreen,
+        sharedPreferences: SharedPreferences,
+    ) {
+        val category = newCategory(context, screen, "control_plane_category", "Initial configuration")
 
         val defaultApiUrl = "https://api.bitdrift.io"
 
         // Set default value if not already set
-        if (!sharedPreferences.contains("apiUrl")) {
-            sharedPreferences.edit { putString("apiUrl", defaultApiUrl) }
+        if (!sharedPreferences.contains(BITDRIFT_URL_KEY)) {
+            sharedPreferences.edit { putString(BITDRIFT_URL_KEY, defaultApiUrl) }
         }
 
         val apiUrlPref = EditTextPreference(context)
         apiUrlPref.key = BITDRIFT_URL_KEY
         apiUrlPref.title = "API URL"
+        apiUrlPref.isIconSpaceReserved = false
         val currentUrl = sharedPreferences.getString(BITDRIFT_URL_KEY, "") ?: ""
         apiUrlPref.summary = currentUrl.ifBlank { "Enter API URL" }
         apiUrlPref.setOnBindEditTextListener { edit ->
@@ -73,12 +125,12 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             apiUrlPref.summary = if (isValid) "Valid API URL" else "Invalid API URL (must start with https://)"
             true
         }
-
-        backendCategory.addPreference(apiUrlPref)
+        category.addPreference(apiUrlPref)
 
         val apiKeyPref = EditTextPreference(context)
-        apiKeyPref.key = "api_key"
+        apiKeyPref.key = BITDRIFT_API_KEY
         apiKeyPref.title = "bitdrift's API Key"
+        apiKeyPref.isIconSpaceReserved = false
         val currentKey = sharedPreferences.getString(BITDRIFT_API_KEY, "") ?: ""
         apiKeyPref.summary = if (currentKey.isBlank()) "Enter your bitdrift API key" else "API key set"
         apiKeyPref.setOnPreferenceChangeListener { _, newValue ->
@@ -87,32 +139,41 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
             apiKeyPref.summary = if (isValid) "Valid API key" else "Invalid API key (must be at least 10 characters)"
             true
         }
-
-        backendCategory.addPreference(apiKeyPref)
+        category.addPreference(apiKeyPref)
 
         val apiKeysPreference = Preference(context)
         apiKeysPreference.key = "api_keys"
         apiKeysPreference.title = "Other API Keys"
+        apiKeysPreference.summary = "Manage the keys used by the other backends"
+        apiKeysPreference.isIconSpaceReserved = false
         apiKeysPreference.setOnPreferenceClickListener {
             showApiKeysDialog(context)
             true
         }
-        backendCategory.addPreference(apiKeysPreference)
-        backendCategory.addPreference(buildSessionStrategyList(context))
-        backendCategory.addPreference(buildInactivityThresholdPreference(context))
-        backendCategory.addPreference(buildSwitchPreference(context))
-        backendCategory.addPreference(buildSessionReplaySwitch(context))
-        backendCategory.addPreference(buildDeferredStartSwitch(context))
-        backendCategory.addPreference(buildWebViewMonitoringPreference(context))
-        backendCategory.addPreference(buildDiagnosticsSwitch(context))
-
-        preferenceScreen = screen
+        category.addPreference(apiKeysPreference)
+        category.addPreference(buildSessionStrategyList(context))
+        category.addPreference(buildInactivityThresholdPreference(context))
+        category.addPreference(buildDeferredStartSwitch(context))
     }
+
+    private fun addConfigurationOptionsCategory(
+        context: Context,
+        screen: PreferenceScreen,
+    ) {
+        val category = newCategory(context, screen, "capture_category", "Configuration Options")
+        category.addPreference(buildSwitchPreference(context))
+        category.addPreference(buildSessionReplaySwitch(context))
+        category.addPreference(buildWebViewMonitoringPreference(context))
+        category.addPreference(buildDiagnosticsSwitch(context))
+    }
+
+    private fun enabledSummary(enabled: Boolean): String = if (enabled) "Enabled" else "Disabled"
 
     private fun buildSessionStrategyList(context: Context): ListPreference {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         val listPreference = ListPreference(context)
         listPreference.key = SESSION_STRATEGY_PREFS_KEY
+        listPreference.isIconSpaceReserved = false
         listPreference.title = SESSION_STRATEGY_TITLE
         listPreference.entries = SESSION_STRATEGY_ENTRIES
         listPreference.entryValues = SESSION_STRATEGY_ENTRIES
@@ -134,6 +195,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         val editTextPreference = EditTextPreference(context)
         editTextPreference.key = INACTIVITY_THRESHOLD_PREFS_KEY
+        editTextPreference.isIconSpaceReserved = false
         editTextPreference.title = "Inactivity Threshold (minutes)"
         editTextPreference.setDefaultValue(DEFAULT_INACTIVITY_THRESHOLD_MINS.toString())
         val currentValue = sharedPreferences.getString(INACTIVITY_THRESHOLD_PREFS_KEY, DEFAULT_INACTIVITY_THRESHOLD_MINS.toString())
@@ -161,10 +223,14 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val switchPreference = SwitchPreference(context)
         switchPreference.key = key
         switchPreference.title = title
+        switchPreference.isIconSpaceReserved = false
         switchPreference.setDefaultValue(defaultValue)
+        switchPreference.summary =
+            enabledSummary(
+                PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, defaultValue),
+            )
         switchPreference.setOnPreferenceChangeListener { _, newValue ->
-            val summaryText = if (newValue == true) "Enabled" else "Disabled"
-            switchPreference.summary = summaryText
+            switchPreference.summary = enabledSummary(newValue == true)
             true
         }
         return switchPreference
@@ -191,6 +257,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         val preference = Preference(context)
         preference.key = WEBVIEW_MONITORING_PREFS_KEY
+        preference.isIconSpaceReserved = false
         preference.title = WEBVIEW_MONITORING_TITLE
         val isEnabled = sharedPreferences.getBoolean(
             WebViewSettingsDialog.WEBVIEW_MONITORING_ENABLED_KEY,
@@ -230,6 +297,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val PREFS_SLEEP_MODE_ENABLED = "sleep_mode_enabled"
 
         private const val DEFAULT_INACTIVITY_THRESHOLD_MINS = 30L
+        private const val LIST_BOTTOM_PADDING_PX = 48
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"

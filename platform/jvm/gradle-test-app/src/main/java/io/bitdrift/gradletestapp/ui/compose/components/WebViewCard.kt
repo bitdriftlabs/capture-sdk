@@ -7,78 +7,53 @@
 
 package io.bitdrift.gradletestapp.ui.compose.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.NavigationAction
+import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
+import io.bitdrift.gradletestapp.ui.designsystem.BdSectionCard
+import io.bitdrift.gradletestapp.ui.designsystem.BdTintedButton
 import io.bitdrift.gradletestapp.ui.fragments.WebViewFragment
+import io.bitdrift.gradletestapp.ui.theme.BdSpacing
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun WebViewCard(onAction: (AppAction) -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = BitdriftColors.BackgroundPaper),
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(width = 1.dp, color = BitdriftColors.Border.copy(alpha = 0.3f)),
+fun WebViewCard(
+    onAction: (AppAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BdSectionCard(
+        title = stringResource(id = R.string.webview_testing),
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(BdSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(BdSpacing.sm),
         ) {
-            Text(
-                text = stringResource(id = R.string.webview_testing),
-                style = MaterialTheme.typography.titleMedium,
-                color = BitdriftColors.TextPrimary,
+            val automatic = WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.FULL_AUTOMATIC)
+            BdTintedButton(
+                text = automatic.buttonName,
+                accent = BitdriftColors.WebViewJavaScriptDisabled,
+                onClick = { onAction(NavigationAction.NavigateToWebView(WebViewFragment.FULL_AUTOMATIC)) },
+                size = BdButtonSize.Compact,
             )
 
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                val automatic = WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.FULL_AUTOMATIC)
-                Button(
-                    onClick = { onAction(NavigationAction.NavigateToWebView(WebViewFragment.FULL_AUTOMATIC)) },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = BitdriftColors.WebViewJavaScriptDisabled,
-                            contentColor = BitdriftColors.TextBright,
-                        ),
-                ) {
-                    Text(automatic.buttonName, maxLines = 1, softWrap = false)
-                }
-                val manual = WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.MANUAL)
-                Button(
-                    onClick = { onAction(NavigationAction.NavigateToWebView(WebViewFragment.MANUAL)) },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = BitdriftColors.WebViewJavaScriptEnabled,
-                            contentColor = BitdriftColors.TextBright,
-                        ),
-                ) {
-                    Text(manual.buttonName, maxLines = 1, softWrap = false)
-                }
-            }
+            val manual = WebViewFragment.WEBVIEW_DEMOS.getValue(WebViewFragment.MANUAL)
+            BdTintedButton(
+                text = manual.buttonName,
+                accent = BitdriftColors.WebViewJavaScriptEnabled,
+                onClick = { onAction(NavigationAction.NavigateToWebView(WebViewFragment.MANUAL)) },
+                size = BdButtonSize.Compact,
+            )
         }
     }
 }

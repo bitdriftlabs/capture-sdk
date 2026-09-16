@@ -15,22 +15,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -40,10 +30,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.fragment.app.DialogFragment
+import io.bitdrift.gradletestapp.ui.designsystem.BdAlertDialog
+import io.bitdrift.gradletestapp.ui.designsystem.BdGroupLabel
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 import io.bitdrift.gradletestapp.ui.theme.BitdriftTheme
 
@@ -101,123 +91,79 @@ class WebViewSettingsDialog(
             onDismiss()
         }
 
-        AlertDialog(
-            onDismissRequest = { onDismiss() },
-            containerColor = BitdriftColors.BackgroundPaper,
-            title = {
-                Text(
-                    text = "WebView Monitoring",
-                    fontSize = 20.sp,
-                    color = BitdriftColors.TextPrimary,
-                    modifier = Modifier.fillMaxWidth(),
+        BdAlertDialog(
+            title = "WebView Monitoring",
+            onDismiss = onDismiss,
+            onConfirm = { persistSettingsAndDismiss() },
+            dismissText = "Cancel",
+        ) {
+            SettingsSwitchRow(
+                label = "Enable Monitoring",
+                description = "Enable WebView instrumentation",
+                checked = monitoringEnabled,
+                onCheckedChange = { monitoringEnabled = it },
+            )
+
+            if (monitoringEnabled) {
+                BdGroupLabel("Capture Options")
+
+                SettingsSwitchRow(
+                    label = "Console Logs",
+                    description = "Capture console.log/warn/error",
+                    checked = captureConsoleLogs,
+                    onCheckedChange = { captureConsoleLogs = it },
                 )
-            },
-            text = {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState()),
-                ) {
-                    SettingsSwitchRow(
-                        label = "Enable Monitoring",
-                        description = "Enable WebView instrumentation",
-                        checked = monitoringEnabled,
-                        onCheckedChange = { monitoringEnabled = it },
-                    )
 
-                    if (monitoringEnabled) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                SettingsSwitchRow(
+                    label = "Errors",
+                    description = "Capture JS errors and resource failures",
+                    checked = captureErrors,
+                    onCheckedChange = { captureErrors = it },
+                )
 
-                        Text(
-                            text = "Capture Options",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = BitdriftColors.TextPrimary,
-                            modifier = Modifier.padding(bottom = 8.dp),
-                        )
+                SettingsSwitchRow(
+                    label = "Network Requests",
+                    description = "Capture fetch/XHR requests",
+                    checked = captureNetworkRequests,
+                    onCheckedChange = { captureNetworkRequests = it },
+                )
 
-                        SettingsSwitchRow(
-                            label = "Console Logs",
-                            description = "Capture console.log/warn/error",
-                            checked = captureConsoleLogs,
-                            onCheckedChange = { captureConsoleLogs = it },
-                        )
+                SettingsSwitchRow(
+                    label = "Navigation Events",
+                    description = "Capture navigation timing",
+                    checked = captureNavigationEvents,
+                    onCheckedChange = { captureNavigationEvents = it },
+                )
 
-                        SettingsSwitchRow(
-                            label = "Errors",
-                            description = "Capture JS errors and resource failures",
-                            checked = captureErrors,
-                            onCheckedChange = { captureErrors = it },
-                        )
+                SettingsSwitchRow(
+                    label = "Page Views",
+                    description = "Capture page view spans",
+                    checked = capturePageViews,
+                    onCheckedChange = { capturePageViews = it },
+                )
 
-                        SettingsSwitchRow(
-                            label = "Network Requests",
-                            description = "Capture fetch/XHR requests",
-                            checked = captureNetworkRequests,
-                            onCheckedChange = { captureNetworkRequests = it },
-                        )
+                SettingsSwitchRow(
+                    label = "Web Vitals",
+                    description = "Capture CLS, FCP, LCP, etc.",
+                    checked = captureWebVitals,
+                    onCheckedChange = { captureWebVitals = it },
+                )
 
-                        SettingsSwitchRow(
-                            label = "Navigation Events",
-                            description = "Capture navigation timing",
-                            checked = captureNavigationEvents,
-                            onCheckedChange = { captureNavigationEvents = it },
-                        )
+                SettingsSwitchRow(
+                    label = "Long Tasks",
+                    description = "Capture tasks >50ms",
+                    checked = captureLongTasks,
+                    onCheckedChange = { captureLongTasks = it },
+                )
 
-                        SettingsSwitchRow(
-                            label = "Page Views",
-                            description = "Capture page view spans",
-                            checked = capturePageViews,
-                            onCheckedChange = { capturePageViews = it },
-                        )
-
-                        SettingsSwitchRow(
-                            label = "Web Vitals",
-                            description = "Capture CLS, FCP, LCP, etc.",
-                            checked = captureWebVitals,
-                            onCheckedChange = { captureWebVitals = it },
-                        )
-
-                        SettingsSwitchRow(
-                            label = "Long Tasks",
-                            description = "Capture tasks >50ms",
-                            checked = captureLongTasks,
-                            onCheckedChange = { captureLongTasks = it },
-                        )
-
-                        SettingsSwitchRow(
-                            label = "User Interactions",
-                            description = "Capture clicks and taps",
-                            checked = captureUserInteractions,
-                            onCheckedChange = { captureUserInteractions = it },
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { persistSettingsAndDismiss() },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = BitdriftColors.Primary,
-                            contentColor = BitdriftColors.TextBright,
-                        ),
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { onDismiss() },
-                ) {
-                    Text(
-                        text = "Cancel",
-                        color = BitdriftColors.TextSecondary,
-                    )
-                }
-            },
-        )
+                SettingsSwitchRow(
+                    label = "User Interactions",
+                    description = "Capture clicks and taps",
+                    checked = captureUserInteractions,
+                    onCheckedChange = { captureUserInteractions = it },
+                )
+            }
+        }
     }
 
     @Composable
@@ -237,13 +183,13 @@ class WebViewSettingsDialog(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
-                    fontSize = 16.sp,
-                    color = BitdriftColors.TextPrimary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = BitdriftColors.TextBright,
                 )
                 Text(
                     text = description,
-                    fontSize = 12.sp,
-                    color = BitdriftColors.TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = BitdriftColors.TextMuted,
                 )
             }
             Switch(
@@ -251,10 +197,12 @@ class WebViewSettingsDialog(
                 onCheckedChange = onCheckedChange,
                 colors =
                     SwitchDefaults.colors(
-                        checkedThumbColor = BitdriftColors.TextBright,
+                        checkedThumbColor = BitdriftColors.Background,
                         checkedTrackColor = BitdriftColors.Primary,
+                        checkedBorderColor = BitdriftColors.Primary,
                         uncheckedThumbColor = BitdriftColors.TextTertiary,
-                        uncheckedTrackColor = BitdriftColors.Border,
+                        uncheckedTrackColor = BitdriftColors.BackgroundElevated,
+                        uncheckedBorderColor = BitdriftColors.BorderStrong,
                     ),
             )
         }

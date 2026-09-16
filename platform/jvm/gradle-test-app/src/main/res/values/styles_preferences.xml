@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Bd.PreferenceThemeOverlay" parent="@style/PreferenceThemeOverlay">
+        <item name="android:textColorPrimary">@color/bitdrift_text_bright</item>
+        <item name="android:textColorSecondary">@color/bitdrift_text_muted</item>
+        <item name="colorAccent">@color/bitdrift_primary</item>
+        <item name="colorControlActivated">@color/bitdrift_primary</item>
+        <item name="android:colorControlActivated">@color/bitdrift_primary</item>
+        <item name="colorPrimary">@color/bitdrift_primary</item>
+
+        <item name="textAppearanceListItem">@style/Bd.Preference.Title</item>
+        <item name="android:textAppearanceListItem">@style/Bd.Preference.Title</item>
+        <item name="textAppearanceListItemSecondary">@style/Bd.Preference.Summary</item>
+        <item name="android:textAppearanceListItemSecondary">@style/Bd.Preference.Summary</item>
+
+        <item name="preferenceCategoryTitleTextAppearance">@style/Bd.Preference.CategoryTitle</item>
+        <item name="preferenceCategoryTitleTextColor">@color/bitdrift_text_muted</item>
+    </style>
+
+    <style name="Bd.Preference.Title" parent="TextAppearance.AppCompat.Subhead">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/bitdrift_text_bright</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="Bd.Preference.Summary" parent="TextAppearance.AppCompat.Body1">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/bitdrift_text_muted</item>
+    </style>
+
+    <style name="Bd.Preference.CategoryTitle" parent="TextAppearance.AppCompat.Caption">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">@color/bitdrift_text_muted</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.12</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+</resources>

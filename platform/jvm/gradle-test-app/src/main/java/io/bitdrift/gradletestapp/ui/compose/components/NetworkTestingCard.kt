@@ -7,13 +7,13 @@
 
 package io.bitdrift.gradletestapp.ui.compose.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
+import io.bitdrift.gradletestapp.ui.designsystem.BdGroupLabel
+import io.bitdrift.gradletestapp.ui.designsystem.BdSecondaryButton
+import io.bitdrift.gradletestapp.ui.designsystem.BdSectionCard
+import io.bitdrift.gradletestapp.ui.theme.BdSpacing
 
 /**
  * Network Testing Card component
@@ -33,189 +33,61 @@ fun NetworkTestingCard(
     onLocalBackendDeleteCartItemRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = BitdriftColors.BackgroundPaper,
-            ),
-        shape = MaterialTheme.shapes.medium,
-        border =
-            BorderStroke(
-                width = 1.dp,
-                color = BitdriftColors.Border.copy(alpha = 0.3f),
-            ),
+    BdSectionCard(
+        title = "Network Testing",
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                text = "Network Testing",
-                style = MaterialTheme.typography.titleMedium,
-                color = BitdriftColors.TextPrimary,
+        ButtonRow(
+            "OkHttp" to onOkHttpRequest,
+            "Fail DNS" to onOkHttpFailureBeforeResponseHeaders,
+        )
+
+        ButtonRow(
+            "GraphQL" to onGraphQlRequest,
+            "Retrofit" to onRetrofitRequest,
+        )
+
+        BdGroupLabel("Pre-existing Trace Headers")
+
+        ButtonRow(
+            "W3C" to onPreExistingW3cRequest,
+            "B3 Single" to onPreExistingB3SingleRequest,
+        )
+
+        ButtonRow(
+            "B3 Multi" to onPreExistingB3MultiRequest,
+            "DD" to onPreExistingDatadogRequest,
+            fillRemaining = true,
+        )
+
+        BdGroupLabel("Local Backend")
+
+        ButtonRow(
+            "Add" to onLocalBackendAddToCartRequest,
+            "Get" to onLocalBackendGetCartRequest,
+            "Delete" to onLocalBackendDeleteCartItemRequest,
+        )
+    }
+}
+
+@Composable
+private fun ButtonRow(
+    vararg actions: Pair<String, () -> Unit>,
+    fillRemaining: Boolean = false,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(BdSpacing.sm),
+    ) {
+        actions.forEach { (label, action) ->
+            BdSecondaryButton(
+                text = label,
+                onClick = action,
+                modifier = Modifier.weight(1f),
             )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = onOkHttpRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("OkHttp", maxLines = 1, softWrap = false)
-                }
-
-                OutlinedButton(
-                    onClick = onOkHttpFailureBeforeResponseHeaders,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("Fail DNS", maxLines = 1, softWrap = false)
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = onGraphQlRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("GraphQL", maxLines = 1, softWrap = false)
-                }
-
-                OutlinedButton(
-                    onClick = onRetrofitRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("Retrofit", maxLines = 1, softWrap = false)
-                }
-            }
-
-            Text(
-                text = "Pre-existing Trace Headers",
-                style = MaterialTheme.typography.labelMedium,
-                color = BitdriftColors.TextPrimary,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = onPreExistingW3cRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("W3C", maxLines = 1, softWrap = false)
-                }
-
-                OutlinedButton(
-                    onClick = onPreExistingB3SingleRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("B3 Single", maxLines = 1, softWrap = false)
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = onPreExistingB3MultiRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("B3 Multi", maxLines = 1, softWrap = false)
-                }
-
-                OutlinedButton(
-                    onClick = onPreExistingDatadogRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("DD", maxLines = 1, softWrap = false)
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-            }
-
-            Text(
-                text = "Local Backend",
-                style = MaterialTheme.typography.labelMedium,
-                color = BitdriftColors.TextPrimary,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = onLocalBackendAddToCartRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("Add", maxLines = 1, softWrap = false)
-                }
-
-                OutlinedButton(
-                    onClick = onLocalBackendGetCartRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("Get", maxLines = 1, softWrap = false)
-                }
-
-                OutlinedButton(
-                    onClick = onLocalBackendDeleteCartItemRequest,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = BitdriftColors.TextPrimary,
-                        ),
-                ) {
-                    Text("Delete", maxLines = 1, softWrap = false)
-                }
-            }
+        }
+        if (fillRemaining) {
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }

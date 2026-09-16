@@ -1,22 +1,27 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.MyApplication" parent="Theme.Material3.DayNight">
+    <!-- Dark only: identical to the default theme. -->
+    <style name="Theme.MyApplication" parent="Theme.Material3.Dark">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/green</item>
-        <item name="colorPrimaryVariant">@color/green</item>
-        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimary">@color/bitdrift_primary</item>
+        <item name="colorPrimaryVariant">@color/bitdrift_primary_dark</item>
+        <item name="colorOnPrimary">@color/bitdrift_background</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondary">@color/bitdrift_text_secondary</item>
+        <item name="colorSecondaryVariant">@color/bitdrift_text_secondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/bitdrift_background</item>
+        <item name="colorSurface">@color/bitdrift_background_paper</item>
+        <item name="colorOnSurface">@color/bitdrift_text_primary</item>
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:statusBarColor">@color/bitdrift_background</item>
         <!-- Customize your theme here. -->
-        <item name="dividerColor">@color/white</item>
+        <item name="dividerColor">@color/bitdrift_border</item>
+        <item name="preferenceTheme">@style/Bd.PreferenceThemeOverlay</item>
         <item name="android:itemTextAppearance">@style/SettingsMenuStyle</item>
     </style>
 
     <style name="SettingsMenuStyle">
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/bitdrift_text_primary</item>
     </style>
 </resources>
