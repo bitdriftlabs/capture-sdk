@@ -25,7 +25,6 @@ import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog
 import kotlin.system.exitProcess
 
 class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
@@ -163,7 +162,6 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         val category = newCategory(context, screen, "capture_category", "Configuration Options")
         category.addPreference(buildSwitchPreference(context))
         category.addPreference(buildSessionReplaySwitch(context))
-        category.addPreference(buildWebViewMonitoringPreference(context))
         category.addPreference(buildDiagnosticsSwitch(context))
     }
 
@@ -251,29 +249,6 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     private fun showApiKeysDialog(context: Context) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         SettingsApiKeysDialogFragment(sharedPreferences).show(parentFragmentManager, "")
-    }
-
-    private fun buildWebViewMonitoringPreference(context: Context): Preference {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val preference = Preference(context)
-        preference.key = WEBVIEW_MONITORING_PREFS_KEY
-        preference.isIconSpaceReserved = false
-        preference.title = WEBVIEW_MONITORING_TITLE
-        val isEnabled = sharedPreferences.getBoolean(
-            WebViewSettingsDialog.WEBVIEW_MONITORING_ENABLED_KEY,
-            false,
-        )
-        preference.summary = if (isEnabled) "Enabled" else "Disabled"
-        preference.setOnPreferenceClickListener {
-            showWebViewSettingsDialog(context)
-            true
-        }
-        return preference
-    }
-
-    private fun showWebViewSettingsDialog(context: Context) {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        WebViewSettingsDialog(sharedPreferences).show(parentFragmentManager, "webview_settings")
     }
 
     enum class SessionStrategyPreferences(

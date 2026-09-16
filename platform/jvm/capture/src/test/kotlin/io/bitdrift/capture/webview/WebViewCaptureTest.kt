@@ -25,6 +25,7 @@ import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.SystemDateProvider
@@ -90,6 +91,47 @@ class WebViewCaptureTest {
         ).forEach { feature ->
             assertThat(script).contains("\"$feature\":true")
         }
+    }
+
+    @Test
+    fun webViewRuntimeFlags_shouldAllBeEnabledByDefault() {
+        val webViewFlags =
+            listOf(
+                RuntimeFeature.WEBVIEW_INSTRUMENTATION,
+                RuntimeFeature.WEBVIEW_PAGE_VIEWS,
+                RuntimeFeature.WEBVIEW_NETWORK_REQUESTS,
+                RuntimeFeature.WEBVIEW_NAVIGATION_EVENTS,
+                RuntimeFeature.WEBVIEW_WEB_VITALS,
+                RuntimeFeature.WEBVIEW_LONG_TASKS,
+                RuntimeFeature.WEBVIEW_CONSOLE_LOGS,
+                RuntimeFeature.WEBVIEW_USER_INTERACTIONS,
+                RuntimeFeature.WEBVIEW_ERRORS,
+            )
+
+        webViewFlags.forEach { flag ->
+            assertThat(flag.defaultValue)
+                .withFailMessage("${flag.featureName} should be enabled by default")
+                .isTrue()
+        }
+    }
+
+    @Test
+    fun instrument_withFeatureRuntimeFlagDisabled_shouldOnlyDisableThatFeature() {
+        startSdk()
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(eq(RuntimeFeature.WEBVIEW_CONSOLE_LOGS))).thenReturn(false)
+
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            Capture.logger(),
+            runtimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
+        )
+
+        val script = ShadowWebViewCompat.lastInjectedScript
+        assertThat(script).contains("\"captureConsoleLogs\":false")
+        assertThat(script).contains("\"capturePageViews\":true")
+        assertThat(script).contains("\"captureErrors\":true")
     }
 
     @Test

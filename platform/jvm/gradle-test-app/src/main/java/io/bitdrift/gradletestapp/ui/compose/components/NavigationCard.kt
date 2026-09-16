@@ -13,25 +13,16 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.preference.PreferenceManager
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.NavigationAction
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
 import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
 import io.bitdrift.gradletestapp.ui.designsystem.BdGroupLabel
 import io.bitdrift.gradletestapp.ui.designsystem.BdSecondaryButton
 import io.bitdrift.gradletestapp.ui.designsystem.BdSectionCard
-import io.bitdrift.gradletestapp.ui.designsystem.BdStatusPill
 import io.bitdrift.gradletestapp.ui.designsystem.BdTintedButton
 import io.bitdrift.gradletestapp.ui.fragments.WebViewFragment
 import io.bitdrift.gradletestapp.ui.theme.BdSpacing
@@ -43,21 +34,6 @@ fun NavigationCard(
     onAction: (AppAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val preferences = remember(context) { PreferenceManager.getDefaultSharedPreferences(context) }
-    var webViewMonitoringEnabled by remember {
-        mutableStateOf(preferences.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false))
-    }
-    DisposableEffect(preferences) {
-        val listener =
-            android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
-                if (key == WEBVIEW_MONITORING_ENABLED_KEY) {
-                    webViewMonitoringEnabled = sharedPreferences.getBoolean(key, false)
-                }
-            }
-        preferences.registerOnSharedPreferenceChangeListener(listener)
-        onDispose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
-    }
 
     BdSectionCard(
         title = stringResource(id = R.string.navigation),
@@ -78,11 +54,6 @@ fun NavigationCard(
 
         Column(verticalArrangement = Arrangement.spacedBy(BdSpacing.md)) {
             BdGroupLabel("WebViews")
-
-            BdStatusPill(
-                text = if (webViewMonitoringEnabled) "WebView monitoring: Enabled" else "WebView monitoring: Disabled",
-                tone = if (webViewMonitoringEnabled) BitdriftColors.Primary else BitdriftColors.Error,
-            )
 
             WebViewGroup("Manual Instrumentation") {
                 WebViewDemoButton(
