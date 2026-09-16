@@ -61,6 +61,19 @@ private struct RuntimeFileState {
         self.previousRunInfoController = previousRunInfoController
     }
 
+    /// Determines whether startup replay should wait for reports using only the persisted crash
+    /// reporting setting, which is available before the native runtime configuration is loaded.
+    ///
+    /// - parameter sdkBaseURL: The base directory containing the cached runtime configuration.
+    ///
+    /// - returns: Whether the cached crash reporting configuration enables monitoring.
+    static func isMonitoringEnabled(fromCachedConfigAt sdkBaseURL: URL) -> Bool {
+        let configPath = sdkBaseURL.appendingPathComponent(Constants.configCSV, isDirectory: false)
+        let contents = FileManager.default.contents(atPath: configPath.path)
+            .flatMap { String(data: $0, encoding: .utf8) }
+        return Capture.resolveRuntimeState(from: contents) == .monitoring
+    }
+
     /// Initializes all crash handlers, resolves the previous-run status, and builds the
     /// `DiagnosticEventReporter`.
     ///

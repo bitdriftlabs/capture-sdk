@@ -16,6 +16,16 @@ final class PreviousRunInfoController {
     private let previousRunInfoStorage = Atomic<PreviousRunInfo?>(nil)
     var previousRunInfo: PreviousRunInfo { self.previousRunInfoStorage.load() ?? .unknown }
 
+    /// This only controls startup replay timing; KSCrash and MetricKit still determine the
+    /// previous-run crash result later in `resolve(didCrashLastLaunch:)`.
+    var startupReplayEligibility: StartupReplayEligibility {
+        guard let previousState else {
+            return .unknown
+        }
+
+        return previousState.wasCleanExit ? .noPriorCrash : .mayHavePriorCrash
+    }
+
     init?(baseDirectory: URL, osVersion: String) {
         let storeDirectory = baseDirectory.appendingPathComponent("previous_run", isDirectory: true)
         guard let store = try? BDPreviousRunInfoRepository(directory: storeDirectory) else {
