@@ -83,6 +83,7 @@ class CaptureOkHttpTracingInterceptor
 
                 TracePropagationMode.NONE -> return chain.proceed(request)
             }
+            requestBuilder.header(BITDRIFT_INITIATED_TRACE_HEADER, "true")
             return chain.proceed(requestBuilder.build())
         }
 
@@ -119,5 +120,6 @@ class CaptureOkHttpTracingInterceptor
 
         private companion object {
             private const val BITDRIFT_API_KEY_HEADER = "x-bitdrift-api-key"
+            private const val BITDRIFT_INITIATED_TRACE_HEADER = "x-bitdrift-initiated-trace"
         }
     }

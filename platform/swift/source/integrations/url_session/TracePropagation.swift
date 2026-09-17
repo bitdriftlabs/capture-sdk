@@ -39,6 +39,7 @@ enum URLSessionTracePropagationMode {
 enum URLSessionTracePropagation {
     static let traceIDField = "_trace_id"
     static let traceparentHeader = "traceparent"
+    static let bitdriftInitiatedTraceHeader = "x-bitdrift-initiated-trace"
     static let b3Header = "b3"
     static let xB3TraceIDHeader = "X-B3-TraceId"
     static let xB3SpanIDHeader = "X-B3-SpanId"

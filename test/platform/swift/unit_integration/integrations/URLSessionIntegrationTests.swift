@@ -1107,6 +1107,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         XCTAssertEqual(traceparent, "00-\(traceContext.traceID)-\(traceContext.spanID)-01")
         XCTAssertNil(headers?["b3"])
         XCTAssertNil(headers?["X-B3-TraceId"])
+        XCTAssertEqual(headers?["x-bitdrift-initiated-trace"], "true")
 
         task.cancel()
         session.invalidateAndCancel()
@@ -1144,6 +1145,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         XCTAssertNil(headers?["b3"])
         XCTAssertNil(headers?["X-B3-TraceId"])
+        XCTAssertEqual(headers?["x-bitdrift-initiated-trace"], "true")
 
         task.cancel()
         session.invalidateAndCancel()
@@ -1168,6 +1170,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         XCTAssertNil(headers?["traceparent"])
         XCTAssertNil(headers?["X-B3-TraceId"])
+        XCTAssertEqual(headers?["x-bitdrift-initiated-trace"], "true")
 
         task.cancel()
         session.invalidateAndCancel()
@@ -1193,6 +1196,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         XCTAssertNil(headers?["traceparent"])
         XCTAssertNil(headers?["b3"])
+        XCTAssertEqual(headers?["x-bitdrift-initiated-trace"], "true")
 
         task.cancel()
         session.invalidateAndCancel()
@@ -1216,6 +1220,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         XCTAssertNil(headers?["traceparent"])
         XCTAssertNil(headers?["b3"])
         XCTAssertNil(headers?["X-B3-TraceId"])
+        XCTAssertEqual(headers?["x-bitdrift-initiated-trace"], "true")
 
         task.cancel()
         session.invalidateAndCancel()
@@ -1286,6 +1291,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         XCTAssertNil(headers?["traceparent"])
         XCTAssertNil(headers?["b3"])
         XCTAssertNil(headers?["X-B3-TraceId"])
+        XCTAssertNil(headers?["x-bitdrift-initiated-trace"])
 
         task.cancel()
         session.invalidateAndCancel()
@@ -1311,6 +1317,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
 
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertEqual(headers?["traceparent"], "00-abcdef1234567890abcdef1234567890-1234567890abcdef-01")
+        XCTAssertNil(headers?["x-bitdrift-initiated-trace"])
 
         task.cancel()
         session.invalidateAndCancel()
