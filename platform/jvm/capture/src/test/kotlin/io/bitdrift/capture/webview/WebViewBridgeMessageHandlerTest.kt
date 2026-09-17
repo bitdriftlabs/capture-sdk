@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.webview
 
+import androidx.webkit.WebMessageCompat
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
@@ -19,6 +20,7 @@ import io.bitdrift.capture.utils.toStringMap
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito.verifyNoInteractions
 
 class WebViewBridgeMessageHandlerTest {
     private lateinit var logger: IInternalLogger
@@ -870,5 +872,40 @@ class WebViewBridgeMessageHandlerTest {
             logMessageCaptor.capture(),
         )
         assertThat(logMessageCaptor.firstValue()).isEqualTo("Unrecognized level message")
+    }
+
+    @Test
+    fun onPostMessage_withStringMessage_shouldDelegateToLog() {
+        val message =
+            """{"v":1,"type":"bridgeReady","timestamp":1234567890,"url":"https://example.com"}"""
+        val webMessage = WebMessageCompat(message)
+
+        handler.onPostMessage(mock(), webMessage, mock(), true, mock())
+
+        verify(logger).log(
+            eq(LogLevel.DEBUG),
+            arrayFieldsCaptor.capture(),
+            eq(null),
+            logMessageCaptor.capture(),
+        )
+        assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.initialized")
+    }
+
+    @Test
+    fun onPostMessage_withNonStringMessage_shouldBeIgnoredSilently() {
+        val webMessage = WebMessageCompat(ByteArray(1))
+
+        handler.onPostMessage(mock(), webMessage, mock(), true, mock())
+
+        verifyNoInteractions(logger)
+    }
+
+    @Test
+    fun log_withNullType_shouldDoNothing() {
+        val message = """{"v":1,"timestamp":1234567890}"""
+
+        handler.log(message)
+
+        verifyNoInteractions(logger)
     }
 }

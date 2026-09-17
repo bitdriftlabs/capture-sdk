@@ -48,8 +48,8 @@ describe('bridge', () => {
                 }),
             );
 
-            expect(androidMock.log).toHaveBeenCalled();
-            const call = androidMock.log.mock.calls[0][0];
+            expect(androidMock.postMessage).toHaveBeenCalled();
+            const call = androidMock.postMessage.mock.calls[0][0];
             const parsed = JSON.parse(call);
             expect(parsed.type).toBe('bridgeReady');
         });
@@ -161,7 +161,7 @@ describe('bridge', () => {
     describe('error handling', () => {
         it('should not crash when bridge throws', async () => {
             const androidMock = createAndroidBridgeMock();
-            androidMock.log.mockImplementation(() => {
+            androidMock.postMessage.mockImplementation(() => {
                 throw new Error('Bridge error');
             });
 
@@ -284,8 +284,8 @@ describe('bridge', () => {
                 }),
             );
 
-            expect(androidMock.log).toHaveBeenCalled();
-            const serialized = androidMock.log.mock.calls[0][0] as string;
+            expect(androidMock.postMessage).toHaveBeenCalled();
+            const serialized = androidMock.postMessage.mock.calls[0][0] as string;
             // Should be truncated to 32KB + truncation marker
             expect(serialized.length).toBeLessThanOrEqual(32_768 + '...<truncated>'.length);
         });
