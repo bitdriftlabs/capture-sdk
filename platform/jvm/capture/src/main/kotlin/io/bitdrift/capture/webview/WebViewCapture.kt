@@ -141,6 +141,11 @@ internal object WebViewCaptureInternals {
         webview.markAsInstrumented()
     }
 
+    internal fun isWebViewFeatureSupported(feature: String): Boolean =
+        runCatching {
+            WebViewFeature.isFeatureSupported(feature)
+        }.getOrDefault(false)
+
     private fun isWebkitAvailable(): Boolean =
         runCatching {
             Class.forName("androidx.webkit.WebViewFeature")
@@ -178,13 +183,13 @@ internal object WebViewCaptureInternals {
     private fun getNotSupportedReason(): String? =
         when {
             !isWebkitAvailable() -> "androidx.webkit not available"
-            !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT) ->
+            !isWebViewFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT) ->
                 "WebViewFeature.DOCUMENT_START_SCRIPT not supported"
 
-            !WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT) ->
+            !isWebViewFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT) ->
                 "WebViewFeature.GET_WEB_VIEW_CLIENT not supported"
 
-            !WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) ->
+            !isWebViewFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) ->
                 "WebViewFeature.WEB_MESSAGE_LISTENER not supported"
 
             else -> null
@@ -249,10 +254,14 @@ private class WebMessageListenerDetachCleanup(
 ) : View.OnAttachStateChangeListener {
     override fun onViewAttachedToWindow(view: View) = Unit
 
+    @SuppressLint("RequiresFeature") // Handled internally via `isWebViewFeatureSupported`
     override fun onViewDetachedFromWindow(view: View) {
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
-            runCatching { WebViewCompat.removeWebMessageListener(webView, BRIDGE_NAME) }
+        if (WebViewCaptureInternals.isWebViewFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            runCatching {
+                WebViewCompat.removeWebMessageListener(webView, BRIDGE_NAME)
+            }
         }
+
         webView.removeOnAttachStateChangeListener(this)
     }
 }
