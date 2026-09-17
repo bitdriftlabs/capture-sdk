@@ -10,7 +10,12 @@
 mod bridge_tests;
 
 use crate::bridge::ffi::make_nsstring;
-use crate::ffi::{make_empty_nsstring, nsstring_into_arc_str, nsstring_into_string};
+use crate::ffi::{
+  FromObjcObject,
+  make_empty_nsstring,
+  nsstring_into_arc_str,
+  nsstring_into_string,
+};
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::session::{SessionCallback, timeout_from_seconds};
 use crate::{events, ffi, resource_utilization, session_replay};
@@ -808,19 +813,21 @@ extern "C" fn capture_write_session_replay_screen_log(
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn capture_write_session_replay_screenshot_log(
-  logger_id: LoggerId<'_>,
-  fields: *const Object,
-  duration_s: f64,
+extern "C" fn capture_complete_device_command_screenshot(
+  request_id: u64,
+  screenshot: *const Object,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = unsafe { ffi::convert_annotated_fields(fields, LogFieldKind::Ootb) }?;
-
-      logger_id.log_session_replay_screenshot(fields, time::Duration::seconds_f64(duration_s));
+      let screenshot = if screenshot.is_null() {
+        None
+      } else {
+        Some(unsafe { <[u8]>::from_objc(screenshot)? }.to_vec())
+      };
+      session_replay::complete_device_command_screenshot(request_id, screenshot);
       Ok(())
     },
-    "swift write session replay screenshot log",
+    "swift complete device command screenshot",
   );
 }
 

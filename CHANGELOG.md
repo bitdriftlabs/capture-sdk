@@ -12,7 +12,8 @@
 
 **Changed**
 
-- Nothing yet!
+- Removed normal session replay screenshot capture APIs. Screenshots are now captured only for
+  remote device commands.
 
 **Fixed**
 
@@ -30,7 +31,7 @@
 - The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to `critical` instead of `debug`.
 - Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values now instrument only WebViews where JavaScript is already enabled; use `automaticWebViewInstrumentationMode = FULL` to preserve the previous behavior that enables JavaScript when needed.
 - Removed `WebViewConfiguration` and `Configuration.webViewConfiguration`. Instrumented WebViews now capture every WebView feature.
-- The WebView JavaScript bridge now uses `WebViewCompat.addWebMessageListener` instead of `addJavascriptInterface`, removing the reflection-based JS-to-native bridge surface. 
+- The WebView JavaScript bridge now uses `WebViewCompat.addWebMessageListener` instead of `addJavascriptInterface`, removing the reflection-based JS-to-native bridge surface.
 
 **Fixed**
 

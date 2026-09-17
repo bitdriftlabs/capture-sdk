@@ -8,7 +8,7 @@
 package io.bitdrift.capture
 
 /**
- * Responsible for emitting session replay screen and screenshot logs.
+ * Responsible for emitting session replay screen logs and command screenshots.
  */
 interface ISessionReplayTarget {
     /**
@@ -16,13 +16,8 @@ interface ISessionReplayTarget {
      */
     fun captureScreen()
 
-    /**
-     * Called to indicate that the target should prepare and emit a session replay screenshot log.
-     * The Rust logger does not request another screenshot until it receives the previously
-     * requested one. This mechanism is designed to ensure that there are no situations where
-     * the Rust logger requests screenshots at a rate faster than the platform layer can handle.
-     */
-    fun captureScreenshot()
+    /** Requests a screenshot whose JPEG bytes are returned to the remote command executor. */
+    fun captureDeviceCommandScreenshot(requestId: Long)
 }
 
 /**
@@ -33,7 +28,7 @@ internal class NoopSessionReplayTarget : ISessionReplayTarget {
         // no-op
     }
 
-    override fun captureScreenshot() {
-        // no-op
+    override fun captureDeviceCommandScreenshot(requestId: Long) {
+        CaptureJniLibrary.completeDeviceCommandScreenshot(requestId, null)
     }
 }

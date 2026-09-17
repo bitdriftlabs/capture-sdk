@@ -8,16 +8,13 @@
 package io.bitdrift.capture.replay
 
 /**
- * Screenshots will be received through this interface
+ * Device command screenshot results are received through this interface.
  */
 interface IScreenshotLogger : IReplayInternalLogger {
     /**
-     * Called when a screenshot is received
-     * @param compressedScreen The compressed screenshot in binary format
-     * @param metrics Metrics about the screenshot and compression process
+     * Called when a device command screenshot is received.
+     *
+     * @param compressedScreen The compressed screenshot in binary format.
      */
-    fun onScreenshotCaptured(
-        compressedScreen: ByteArray,
-        metrics: ScreenshotCaptureMetrics,
-    )
+    fun onDeviceCommandScreenshotCaptured(compressedScreen: ByteArray)
 }

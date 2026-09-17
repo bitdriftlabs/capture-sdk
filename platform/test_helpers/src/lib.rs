@@ -588,7 +588,6 @@ pub fn run_resource_utilization_target_tests(target: &dyn bd_logger::ResourceUti
 
 pub fn run_session_replay_target_tests(target: &dyn bd_logger::SessionReplayTarget) {
   target.capture_screen();
-  target.capture_screenshot();
 }
 
 pub fn run_events_listener_target_tests(target: &dyn bd_logger::EventsListenerTarget) {

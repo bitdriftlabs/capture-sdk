@@ -93,14 +93,6 @@ extension CoreLogger: CoreLogging {
         )
     }
 
-    func logSessionReplayScreenshot(screen: SessionReplayCapture?, duration: TimeInterval) {
-        let fields = screen.flatMap { screen in self.convertFields(fields: ["screen_px": screen]) } ?? []
-        self.underlyingLogger.logSessionReplayScreenshot(
-            fields: fields,
-            duration: duration
-        )
-    }
-
     func logResourceUtilization(fields: Fields, duration: TimeInterval) {
         self.underlyingLogger.logResourceUtilization(
             fields: self.convertFields(fields: fields),
