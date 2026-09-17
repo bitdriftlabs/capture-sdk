@@ -8,6 +8,7 @@
 **Added**
 
 - Added a `critical` log level, one step above `error`, with `logCritical` convenience methods on iOS and Android. The WebView custom-log bridge accepts `"critical"` as a level.
+- Added an `x-bitdrift-initiated-trace: true` header alongside injected trace propagation headers.
 
 **Changed**
 

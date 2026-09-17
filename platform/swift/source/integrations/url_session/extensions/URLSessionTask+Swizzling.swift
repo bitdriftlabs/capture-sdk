@@ -86,6 +86,8 @@ extension URLSessionTask {
             break
         }
 
+        mutableRequest.setValue("true", forHTTPHeaderField: URLSessionTracePropagation.bitdriftInitiatedTraceHeader)
+
         try? ObjCWrapper.doTry {
             self.setValue(mutableRequest as URLRequest, forKey: "originalRequest")
         }
