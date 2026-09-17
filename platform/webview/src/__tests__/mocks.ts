@@ -13,7 +13,7 @@ import type { AnyBridgeMessage } from '../types';
  */
 export const createAndroidBridgeMock = () => {
     const mock = {
-        log: vi.fn(),
+        postMessage: vi.fn(),
     };
     (window as { BitdriftLogger?: typeof mock }).BitdriftLogger = mock;
     return mock;
@@ -40,7 +40,7 @@ export const createIOSBridgeMock = () => {
 export const createMessageCollector = () => {
     const messages: AnyBridgeMessage[] = [];
     const androidMock = createAndroidBridgeMock();
-    androidMock.log.mockImplementation((serialized: string) => {
+    androidMock.postMessage.mockImplementation((serialized: string) => {
         messages.push(JSON.parse(serialized) as AnyBridgeMessage);
     });
     return {

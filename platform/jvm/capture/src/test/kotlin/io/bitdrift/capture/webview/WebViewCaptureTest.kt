@@ -7,8 +7,11 @@
 
 package io.bitdrift.capture.webview
 
+import android.app.Activity
 import android.content.Context
+import android.os.Looper
 import android.webkit.WebView
+import android.widget.FrameLayout
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
@@ -37,7 +40,9 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -57,6 +62,9 @@ class WebViewCaptureTest {
         initializer.create(appContext)
         webView = WebView(appContext)
         ShadowWebViewCompat.lastInjectedScript = null
+        ShadowWebViewCompat.lastWebMessageListenerName = null
+        ShadowWebViewCompat.lastWebMessageListener = null
+        ShadowWebViewCompat.lastRemovedWebMessageListenerName = null
     }
 
     @After
@@ -69,6 +77,41 @@ class WebViewCaptureTest {
         WebViewCapture.instrument(webView)
 
         assertThat(webView.settings.javaScriptEnabled).isFalse()
+    }
+
+    @Test
+    fun instrument_withSdkStarted_shouldRegisterWebMessageListenerForBridge() {
+        startSdk()
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(ShadowWebViewCompat.lastWebMessageListenerName).isEqualTo("BitdriftLogger")
+        assertThat(ShadowWebViewCompat.lastWebMessageListener)
+            .isInstanceOf(WebViewBridgeMessageHandler::class.java)
+    }
+
+    @Test
+    fun instrument_whenWebViewDetachedFromWindow_shouldRemoveWebMessageListener() {
+        startSdk()
+        val activity =
+            Robolectric
+                .buildActivity(Activity::class.java)
+                .create()
+                .start()
+                .resume()
+                .visible()
+                .get()
+        val container = FrameLayout(appContext)
+        activity.setContentView(container)
+        container.addView(webView)
+
+        WebViewCapture.instrument(webView)
+        assertThat(ShadowWebViewCompat.lastRemovedWebMessageListenerName).isNull()
+
+        container.removeView(webView)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(ShadowWebViewCompat.lastRemovedWebMessageListenerName).isEqualTo("BitdriftLogger")
     }
 
     @Test

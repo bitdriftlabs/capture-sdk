@@ -15,6 +15,9 @@ import org.robolectric.annotation.Implements
 @Implements(WebViewCompat::class, isInAndroidSdk = false)
 object ShadowWebViewCompat {
     var lastInjectedScript: String? = null
+    var lastWebMessageListenerName: String? = null
+    var lastWebMessageListener: WebViewCompat.WebMessageListener? = null
+    var lastRemovedWebMessageListenerName: String? = null
 
     @Implementation
     @JvmStatic
@@ -24,5 +27,26 @@ object ShadowWebViewCompat {
         @Suppress("UNUSED_PARAMETER") allowedOriginRules: Set<String>,
     ) {
         lastInjectedScript = script
+    }
+
+    @Implementation
+    @JvmStatic
+    fun addWebMessageListener(
+        @Suppress("UNUSED_PARAMETER") webView: WebView,
+        jsObjectName: String,
+        @Suppress("UNUSED_PARAMETER") allowedOriginRules: Set<String>,
+        listener: WebViewCompat.WebMessageListener,
+    ) {
+        lastWebMessageListenerName = jsObjectName
+        lastWebMessageListener = listener
+    }
+
+    @Implementation
+    @JvmStatic
+    fun removeWebMessageListener(
+        @Suppress("UNUSED_PARAMETER") webView: WebView,
+        jsObjectName: String,
+    ) {
+        lastRemovedWebMessageListenerName = jsObjectName
     }
 }

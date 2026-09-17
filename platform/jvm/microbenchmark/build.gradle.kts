@@ -52,6 +52,7 @@ dependencies {
     androidTestImplementation(project(":capture"))
     androidTestImplementation(project(":common"))
     androidTestImplementation(project(":replay"))
+    androidTestImplementation(libs.androidx.webkit)
 
     // ComposeTreeParser needs a real AndroidComposeView, which needs a composition hosted in an
     // activity; ui-test-manifest supplies the ComponentActivity for that.

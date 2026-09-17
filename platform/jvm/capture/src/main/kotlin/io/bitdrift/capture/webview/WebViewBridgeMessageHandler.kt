@@ -7,7 +7,11 @@
 
 package io.bitdrift.capture.webview
 
-import android.webkit.JavascriptInterface
+import android.net.Uri
+import android.webkit.WebView
+import androidx.webkit.JavaScriptReplyProxy
+import androidx.webkit.WebMessageCompat
+import androidx.webkit.WebViewCompat
 import com.google.gson.Gson
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
@@ -33,7 +37,7 @@ import java.util.UUID
 internal class WebViewBridgeMessageHandler(
     private val logger: IInternalLogger,
     private val instrumentationMode: String,
-) {
+) : WebViewCompat.WebMessageListener {
     /**
      * TODO(Fran): BIT-5074. Consider switching to kotlinx.serialization
      */
@@ -43,10 +47,24 @@ internal class WebViewBridgeMessageHandler(
     private val activePageViewSpans = mutableMapOf<String, Span>()
 
     /**
-     * JavaScript interface that receives messages from the injected bridge script.
+     * Receives messages posted by the injected bridge script via `window.BitdriftLogger.postMessage(...)`.
      */
-    @JavascriptInterface
-    fun log(message: String) {
+    override fun onPostMessage(
+        view: WebView,
+        webMessageCompat: WebMessageCompat,
+        sourceOrigin: Uri,
+        isMainFrame: Boolean,
+        replyProxy: JavaScriptReplyProxy,
+    ) {
+        if (webMessageCompat.type != WebMessageCompat.TYPE_STRING) {
+            return
+        }
+        webMessageCompat.data?.let { message ->
+            log(message)
+        }
+    }
+
+    internal fun log(message: String) {
         val bridgeMessage =
             runCatching {
                 gson.fromJson(message, WebViewBridgeMessage::class.java)
