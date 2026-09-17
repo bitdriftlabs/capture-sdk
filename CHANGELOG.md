@@ -36,6 +36,7 @@
 
 - SDK was erronously reporting `_jvm_used_percent` in Resource Utilization logs using the device Locale
 - Fixed OkHttp logs including an invalid `_protocol` value when a request fails before receiving a response.
+- Fixed a potential thread-safety issue in OkHttp request/response instrumentation.
 - Prevent automatic OkHttp instrumentation from wrapping an `OkHttpClient` with a duplicate Capture event listener when the client is copied via `newBuilder()`.
 
 ### iOS
