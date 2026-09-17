@@ -26,16 +26,6 @@ import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
 import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.timber.CaptureTree
-import io.bitdrift.capture.webview.WebViewConfiguration
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_PAGE_VIEWS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_WEB_VITALS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.sentry.Sentry
@@ -148,7 +138,6 @@ object CaptureSdkInitializer {
             )
 
         val sessionStrategy = getSessionStrategy(applicationContext, sharedPreferences)
-        val webViewConfig = getWebViewConfiguration(sharedPreferences)
 
         @OptIn(ExperimentalBitdriftApi::class)
         val issueCallbackConfiguration = IssueCallbackConfiguration(
@@ -161,7 +150,6 @@ object CaptureSdkInitializer {
                 sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
                 issueCallbackConfiguration = issueCallbackConfiguration,
-                webViewConfiguration = webViewConfig,
             )
         val initialFields = mapOf("user_id" to userUuid)
 
@@ -175,11 +163,6 @@ object CaptureSdkInitializer {
             )
         return PersistedSdkConfigResult.Success(captureSdkInitSettings)
     }
-
-    private fun SharedPreferences.getPersistedFlag(keyName: String): Boolean = getBoolean(
-        keyName,
-        false
-    )
 
     private fun getSessionStrategy(
         applicationContext: Context,
@@ -206,31 +189,6 @@ object CaptureSdkInitializer {
                 },
             )
         }
-
-    private fun getWebViewConfiguration(sharedPrefs: SharedPreferences): WebViewConfiguration? {
-        if (!sharedPrefs.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false)
-        ) {
-            return null
-        }
-
-        @OptIn(ExperimentalBitdriftApi::class)
-        return WebViewConfiguration(
-            captureConsoleLogs = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY),
-            captureErrors = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_ERRORS_KEY),
-            captureNetworkRequests = sharedPrefs.getPersistedFlag(
-                WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY
-            ),
-            captureNavigationEvents = sharedPrefs.getPersistedFlag(
-                WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY
-            ),
-            capturePageViews = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_PAGE_VIEWS_KEY),
-            captureWebVitals = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_WEB_VITALS_KEY),
-            captureLongTasks = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_LONG_TASKS_KEY),
-            captureUserInteractions = sharedPrefs.getPersistedFlag(
-                WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
-            ),
-        )
-    }
 
     private fun buildIssueReportCallbackExecutor(): ExecutorService =
         Executors.newSingleThreadExecutor { runnable ->

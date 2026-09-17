@@ -93,13 +93,6 @@ internal object WebViewCaptureInternals {
             return
         }
 
-        @OptIn(ExperimentalBitdriftApi::class)
-        val webViewConfig = loggerImpl.webViewConfiguration
-        if (webViewConfig == null) {
-            effectiveLogger.logInstrumentationNotInitialized("WebViewConfiguration not provided")
-            return
-        }
-
         if (webview.isAlreadyInstrumented()) {
             return
         }
@@ -128,7 +121,19 @@ internal object WebViewCaptureInternals {
         val bridgeHandler = WebViewBridgeMessageHandler(loggerImpl, instrumentationMode.displayName)
         webview.addJavascriptInterface(bridgeHandler, BRIDGE_NAME)
 
-        injectScript(webview, effectiveLogger, webViewConfig)
+        val scriptConfiguration =
+            WebViewScriptConfiguration(
+                capturePageViews = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_PAGE_VIEWS),
+                captureNetworkRequests = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_NETWORK_REQUESTS),
+                captureNavigationEvents = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_NAVIGATION_EVENTS),
+                captureWebVitals = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_WEB_VITALS),
+                captureLongTasks = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_LONG_TASKS),
+                captureConsoleLogs = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_CONSOLE_LOGS),
+                captureUserInteractions = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_USER_INTERACTIONS),
+                captureErrors = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_ERRORS),
+            )
+
+        injectScript(webview, effectiveLogger, scriptConfiguration)
 
         webview.markAsInstrumented()
     }
@@ -183,7 +188,7 @@ internal object WebViewCaptureInternals {
     private fun injectScript(
         webview: WebView,
         logger: IInternalLogger?,
-        config: WebViewConfiguration,
+        config: WebViewScriptConfiguration,
     ) {
         runCatching {
             val script = WebViewBridgeScript.getScript(config)

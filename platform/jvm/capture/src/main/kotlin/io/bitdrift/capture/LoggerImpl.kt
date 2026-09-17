@@ -73,8 +73,6 @@ import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
-import io.bitdrift.capture.webview.WebViewConfiguration
-import io.bitdrift.capture.webview.toFields
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import java.io.File
@@ -116,9 +114,6 @@ internal class LoggerImpl(
 ) : IInternalLogger,
     ICompletedReportsProcessor,
     IRuntimeProvider {
-    @OptIn(ExperimentalBitdriftApi::class)
-    internal val webViewConfiguration: WebViewConfiguration? = configuration.webViewConfiguration
-
     private val timestampProvider = dateProvider?.let(::TimestampProvider)
     private val customFieldsProvider =
         customFieldGetters.takeIf { it.isNotEmpty() }?.let {
@@ -723,7 +718,6 @@ internal class LoggerImpl(
                 clientAttributes
                     .getInstallationSource(appContext, errorHandler)
             val isSessionReplayEnabled = sessionReplayTarget is SessionReplayTarget
-            val isWebViewMonitoringEnabled = webViewConfiguration != null
             val baseFields =
                 fieldsOf(
                     "_app_installation_source" to installationSource,
@@ -734,7 +728,6 @@ internal class LoggerImpl(
                     "_logger_build_duration_ms" to
                         sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
-                    "_webview_monitoring_enabled" to isWebViewMonitoringEnabled.toString(),
                 )
             val fatalIssueFields =
                 (
@@ -742,7 +735,7 @@ internal class LoggerImpl(
                         ?: IssueReporter.getDisabledStatusFieldsMap()
                 ).toFields()
 
-            val sdkStartFields = combineFields(baseFields, fatalIssueFields, webViewConfiguration.toFields())
+            val sdkStartFields = combineFields(baseFields, fatalIssueFields)
             CaptureJniLibrary.writeSDKStartLog(
                 this.loggerId,
                 sdkStartFields.toLegacyJniFields(),
