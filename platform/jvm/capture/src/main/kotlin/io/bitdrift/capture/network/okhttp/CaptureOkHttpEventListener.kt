@@ -38,19 +38,24 @@ internal class CaptureOkHttpEventListener internal constructor(
     private val requestExtraFieldsProvider: OkHttpRequestFieldProvider,
     private val responseExtraFieldsProvider: OkHttpResponseFieldProvider,
 ) : EventListener() {
+    @Volatile
     private var requestBodyBytesSentCount: Long = 0
+
+    @Volatile
     private var responseBodyBytesReceivedCount: Long = 0
 
     /**
      *  It's number of bytes required to encode these headers using HTTP/1.1. This is also the
      *  approximate size of HTTP/2 headers before they are compressed with HPACK.
      */
+    @Volatile
     private var requestHeadersBytesCount: Long = 0
 
     /**
      *  It's number of bytes required to encode these headers using HTTP/1.1. This is also the
      *  approximate size of HTTP/2 headers before they are compressed with HPACK.
      */
+    @Volatile
     private var responseHeadersBytesCount: Long = 0
 
     /**
@@ -58,6 +63,7 @@ internal class CaptureOkHttpEventListener internal constructor(
      * of a given HTTP request. Due to retries of different routes or redirects a single pair of
      * `callStart` and `callEnd`/`callFailed` may include multiple DNS queries.
      */
+    @Volatile
     private var dnsResolutionDurationMs: Long? = null
 
     /**
@@ -65,6 +71,7 @@ internal class CaptureOkHttpEventListener internal constructor(
      * request. Due to retries of different routes or redirects a single pair of
      * `callStart` and `callEnd`/`callFailed` may include multiple TLS handshakes.
      */
+    @Volatile
     private var tlsDurationMs: Long? = null
 
     /**
@@ -72,11 +79,13 @@ internal class CaptureOkHttpEventListener internal constructor(
      * HTTP request. Due to retries of different routes or redirects a single pair of
      * `callStart` and `callEnd`/`callFailed` may include multiple TCP handshakes.
      */
+    @Volatile
     private var tcpDurationMs: Long? = null
 
     /**
      * The duration between the `callStart` and the first DNS resolution.
      */
+    @Volatile
     private var fetchInitializationMs: Long? = null
 
     /**
@@ -84,17 +93,31 @@ internal class CaptureOkHttpEventListener internal constructor(
      * the first byte from the server. Due to retries of different routes or redirects a single pair
      * of `callStart` and `callEnd`/`callFailed` may include multiple request/responses.
      */
+    @Volatile
     private var responseLatencyMs: Long? = null
 
+    @Volatile
     private var connectStartTimeMs: Long? = null
+
+    @Volatile
     private var dnsStartTimeMs: Long? = null
+
+    @Volatile
     private var callStartTimeMs: Long = 0
+
+    @Volatile
     private var tlsStartTimeMs: Long? = null
+
+    @Volatile
     private var requestEndTimeMs: Long? = null
 
+    @Volatile
     private var requestInfo: HttpRequestInfo? = null
+
+    @Volatile
     private var lastResponse: Response? = null
 
+    @Volatile
     private var previousThreadStatsTag: Int? = null
 
     override fun callStart(call: Call) {
