@@ -44,6 +44,7 @@ use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
   GlobalRef,
+  JByteArray,
   JClass,
   JMethodID,
   JObject,
@@ -1320,23 +1321,23 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenshotLog(
-  mut env: JNIEnv<'_>,
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeDeviceCommandScreenshot(
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
-  logger_id: jlong,
-  fields: JObjectArray<'_>,
-  duration_s: jdouble,
+  request_id: jlong,
+  screenshot: JObject<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
-
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_session_replay_screenshot(fields, Duration::seconds_f64(duration_s));
-
+      let screenshot = if screenshot.is_null() {
+        None
+      } else {
+        Some(env.convert_byte_array(JByteArray::from(screenshot))?)
+      };
+      session_replay::complete_device_command_screenshot(request_id as u64, screenshot);
       Ok(())
     },
-    "jni write replay screenshot log",
+    "jni complete device command screenshot",
   );
 }
 

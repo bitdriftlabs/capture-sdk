@@ -279,17 +279,10 @@ internal object CaptureJniLibrary : IBridge {
         duration: Double,
     )
 
-    /**
-     * Writes a session replay screenshot log.
-     *
-     * @param loggerId the ID of the logger to write to.
-     * @param fields the fields to include with the log.
-     * @param duration the duration of time the preparation of the session replay log took, in seconds.
-     */
-    external fun writeSessionReplayScreenshotLog(
-        loggerId: Long,
-        fields: Array<Field>,
-        duration: Double,
+    /** Completes an in-flight remote device-command screenshot request. */
+    external fun completeDeviceCommandScreenshot(
+        requestId: Long,
+        screenshot: ByteArray?,
     )
 
     /**
