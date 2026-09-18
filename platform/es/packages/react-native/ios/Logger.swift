@@ -28,6 +28,7 @@ let CAPRNStartResultDidEmitNotification = Notification.Name("BdReactNative.onSta
         sessionStrategy: String,
         url: String?,
         enableNetworkInstrumentation: Bool,
+        enableWebViewInstrumentation: Bool,
         enableNativeFatalIssues: Bool,
         enableJsErrors: Bool,
         enableIssueCallbackBridge: Bool,
@@ -89,10 +90,16 @@ let CAPRNStartResultDidEmitNotification = Notification.Name("BdReactNative.onSta
                 }
             }
         )
-        
 
+        var integrations: [Integration] = []
         if enableNetworkInstrumentation {
-            integrator?.enableIntegrations([.urlSession()])
+            integrations.append(.urlSession())
+        }
+        if enableWebViewInstrumentation {
+            integrations.append(.webView())
+        }
+        if !integrations.isEmpty {
+            integrator?.enableIntegrations(integrations)
         }
     }
 

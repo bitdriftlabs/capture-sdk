@@ -396,7 +396,23 @@ When using the Expo plugin with `networkInstrumentation: true`, the Android Grad
 
 ### WebView Integration
 
-`UNSTABLE_webViewInstrumentation` is currently Android-only and is intended for Android app builds.
+WebView instrumentation captures telemetry from `react-native-webview` webviews like page views, network requests, navigation events, Web Vitals, long tasks, console logs, user interactions and errors. Call `init(...)` before any WebView is mounted.
+
+#### iOS
+
+Enable automatic instrumentation of every WebView by passing `UNSTABLE_enableWebViewInstrumentation: true` to `init`:
+
+```ts
+import { init, SessionStrategy } from '@bitdrift/react-native';
+
+init('<api key>', SessionStrategy.Activity, {
+  UNSTABLE_enableWebViewInstrumentation: true,
+});
+```
+
+#### Android
+
+`UNSTABLE_webViewInstrumentation` is intended for Android app builds.
 
 Runtime capture is enabled separately with `UNSTABLE_webView` in `init(...)`:
 
@@ -436,8 +452,7 @@ For Expo-generated Android apps, enable build-time WebView bytecode instrumentat
 
 Notes:
 
-- `UNSTABLE_webViewInstrumentation` currently only affects Android app builds.
-- It is not used by iOS.
+- `UNSTABLE_webViewInstrumentation` only affects Android app builds. On iOS, use `UNSTABLE_enableWebViewInstrumentation` in `init`.
 - It is not automatically applied to vanilla React Native Android builds outside the Expo config plugin flow.
 - For non-Expo Android apps, apply the Gradle plugin and `bitdrift { instrumentation { automaticWebViewInstrumentation = true } }` manually.
 

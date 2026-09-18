@@ -174,7 +174,8 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
 {
   NSString* apiURL = options[@"url"];
   BOOL enableNetworkInstrumentation = [options[@"enableNetworkInstrumentation"] boolValue];
-  
+  BOOL enableWebViewInstrumentation = [options[@"UNSTABLE_enableWebViewInstrumentation"] boolValue];
+
   NSDictionary* crashReportingOptions = options[@"crashReporting"];
   NSNumber* enableNativeFatalIssuesValue = crashReportingOptions[@"enableNativeFatalIssues"];
   BOOL enableNativeFatalIssues = enableNativeFatalIssuesValue != nil ? [enableNativeFatalIssuesValue boolValue] : YES;
@@ -189,6 +190,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
     sessionStrategy:sessionStrategy
     url:apiURL
     enableNetworkInstrumentation:enableNetworkInstrumentation
+    enableWebViewInstrumentation:enableWebViewInstrumentation
     enableNativeFatalIssues:enableNativeFatalIssues
     enableJsErrors:enableJsErrors
     enableIssueCallbackBridge:enableIssueCallbackBridge
@@ -203,7 +205,8 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
   options:(JS::NativeBdReactNative::InitOptions& )options)
 {
   BOOL enableNetworkInstrumentation = options.enableNetworkInstrumentation().has_value() ? options.enableNetworkInstrumentation().value() : false;
-  
+  BOOL enableWebViewInstrumentation = options.UNSTABLE_enableWebViewInstrumentation().has_value() ? options.UNSTABLE_enableWebViewInstrumentation().value() : false;
+
   BOOL enableNativeFatalIssues = true;
   BOOL enableJsErrors = false;
   BOOL enableIssueCallbackBridge = false;
@@ -220,6 +223,7 @@ RCT_EXPORT_METHOD(init:(NSString*)apiKey
     sessionStrategy:sessionStrategy
     url:options.url()
     enableNetworkInstrumentation:enableNetworkInstrumentation
+    enableWebViewInstrumentation:enableWebViewInstrumentation
     enableNativeFatalIssues:enableNativeFatalIssues
     enableJsErrors:enableJsErrors
     enableIssueCallbackBridge:enableIssueCallbackBridge
