@@ -51,6 +51,8 @@ public final class Logger {
     private static let syncedShared = Atomic<State>(.notStarted)
 
     private let network: URLSessionNetworkClient?
+    let commandRegistry = CommandRegistry()
+
     // Used for benchmarking purposes.
     var metrics: URLSessionNetworkClient.Metrics? {
         return self.network?.metrics

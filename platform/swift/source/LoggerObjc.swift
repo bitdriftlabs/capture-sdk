@@ -684,6 +684,26 @@ public final class LoggerObjc: NSObject {
         ]
     }
 
+    /// Registers a command that can be executed repeatedly until it is unregistered.
+    @discardableResult
+    @objc(registerCommandWithKey:handler:)
+    public static func registerCommand(
+        withKey key: String,
+        handler: @escaping ([String], @escaping (CommandResultObjc) -> Void) -> Void
+    ) -> CommandHandle {
+        Logger.registerCommand(key: key) { arguments, completion in
+            handler(arguments) { result in
+                completion(result.swiftResult)
+            }
+        }
+    }
+
+    /// Removes the command currently registered for `key`.
+    @objc(unregisterCommandWithKey:)
+    public static func unregisterCommand(withKey key: String) {
+        Logger.unregisterCommand(key: key)
+    }
+
     // MARK: - Extra
 
     /// Adds a field to all logs emitted by the logger from this point forward.
