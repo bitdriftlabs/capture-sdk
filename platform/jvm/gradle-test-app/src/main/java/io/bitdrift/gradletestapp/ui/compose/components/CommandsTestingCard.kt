@@ -34,9 +34,11 @@ fun CommandsTestingCard(
     onUnregister: () -> Unit,
     onInvoke: () -> Unit,
     modifier: Modifier = Modifier,
+    title: String = "Live Session Commands (prototype)",
+    commandLabel: String = "flip_flag",
 ) {
     BdSectionCard(
-        title = "Live Session Commands (prototype)",
+        title = title,
         modifier = modifier,
     ) {
         Row(
@@ -45,7 +47,7 @@ fun CommandsTestingCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = if (isRegistered) "\"flip_flag\" registered" else "\"flip_flag\" not registered",
+                text = if (isRegistered) "\"$commandLabel\" registered" else "\"$commandLabel\" not registered",
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
                 color = BitdriftColors.TextPrimary,

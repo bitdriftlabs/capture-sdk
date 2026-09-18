@@ -32,6 +32,7 @@ dependencies {
     implementation(libs.jsr305)
     implementation(libs.gson)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.jdk8)
     implementation(libs.performance)
     implementation(libs.protobuf.kotlinlite)
 

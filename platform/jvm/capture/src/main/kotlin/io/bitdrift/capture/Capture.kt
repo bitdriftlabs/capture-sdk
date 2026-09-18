@@ -17,6 +17,7 @@ import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
 import io.bitdrift.capture.commands.CommandHandle
+import io.bitdrift.capture.commands.CommandHandler
 import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
@@ -36,8 +37,11 @@ import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.future.await
 import okhttp3.HttpUrl
 import java.util.UUID
+import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 import kotlin.time.TimeSource
@@ -810,6 +814,34 @@ object Capture {
             dispatcher: CoroutineDispatcher? = null,
             handler: suspend CommandScope.(String) -> CommandResult,
         ): CommandHandle = commandRegistry.register(key, dispatcher, handler)
+
+        /**
+         * Java-friendly alternative to the suspend [registerCommand] overload. [handler] returns a
+         * [CompletableFuture] instead of being a suspend function; internally it's adapted into a
+         * suspend call via [CompletableFuture.await] and routed through the same registry as the
+         * suspend overload, so cancellation and dispatch behave identically either way.
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun registerCommand(
+            key: String,
+            handler: CommandHandler,
+        ): CommandHandle = registerCommand(key, dispatcher = null) { arg -> handler.handle(this, arg).await() }
+
+        /**
+         * @param executor when null (the default), same as the suspend overload's default -- see
+         * its [dispatcher] parameter. Pass one explicitly for the same reasons documented there.
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun registerCommand(
+            key: String,
+            executor: Executor,
+            handler: CommandHandler,
+        ): CommandHandle {
+            val dispatcher = executor.asCoroutineDispatcher()
+            return registerCommand(key, dispatcher) { arg -> handler.handle(this, arg).await() }
+        }
 
         /**
          * PROTOTYPE-ONLY: stands in for the native-triggered invocation path, which isn't built

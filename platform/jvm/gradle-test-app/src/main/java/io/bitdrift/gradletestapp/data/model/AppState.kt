@@ -17,6 +17,7 @@ data class AppState(
     val globalFields: List<GlobalFieldEntry> = emptyList(),
     val diskPressure: DiskPressureState = DiskPressureState.Loading,
     val commands: CommandsTestState = CommandsTestState(),
+    val javaCommands: CommandsTestState = CommandsTestState(),
     val isLoading: Boolean = false,
     val error: String? = null,
 )

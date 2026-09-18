@@ -101,6 +101,15 @@ sealed class CommandsTestAction : AppAction {
     object InvokeFlipFlagCommand : CommandsTestAction()
 }
 
+/** Exercises the Java-friendly, `CompletableFuture`-based `registerCommand` overload. */
+sealed class JavaCommandsTestAction : AppAction {
+    object RegisterFlipFlagCommand : JavaCommandsTestAction()
+
+    object UnregisterFlipFlagCommand : JavaCommandsTestAction()
+
+    object InvokeFlipFlagCommand : JavaCommandsTestAction()
+}
+
 sealed class NavigationAction : AppAction {
     object NavigateToConfig : NavigationAction()
 

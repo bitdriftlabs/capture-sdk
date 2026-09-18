@@ -20,7 +20,9 @@ import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.data.model.AppState
 import io.bitdrift.gradletestapp.data.model.ClearError
+import io.bitdrift.gradletestapp.commands.JavaCommandsDemo
 import io.bitdrift.gradletestapp.data.model.CommandsTestAction
+import io.bitdrift.gradletestapp.data.model.JavaCommandsTestAction
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
 import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
@@ -216,6 +218,10 @@ class MainViewModel(
             is CommandsTestAction.RegisterFlipFlagCommand -> registerFlipFlagCommand()
             is CommandsTestAction.UnregisterFlipFlagCommand -> unregisterFlipFlagCommand()
             is CommandsTestAction.InvokeFlipFlagCommand -> invokeFlipFlagCommand()
+
+            is JavaCommandsTestAction.RegisterFlipFlagCommand -> registerJavaFlipFlagCommand()
+            is JavaCommandsTestAction.UnregisterFlipFlagCommand -> unregisterJavaFlipFlagCommand()
+            is JavaCommandsTestAction.InvokeFlipFlagCommand -> invokeJavaFlipFlagCommand()
 
             is StressTestAction.IncreaseMemoryPressure -> stressTestRepository.increaseMemoryPressure(action.targetPercent)
             is StressTestAction.TriggerMemoryPressureAnr -> stressTestRepository.triggerMemoryPressureAnr()
@@ -426,6 +432,33 @@ class MainViewModel(
                 }
             Timber.i("\"flip_flag\" result: $text")
             _uiState.update { it.copy(commands = it.commands.copy(lastResult = text)) }
+        }
+    }
+
+    // Java counterpart of the three functions above -- delegates to JavaCommandsDemo, a plain
+    // Java class, so this is genuinely exercising Java interop rather than Kotlin calling a
+    // Java-friendly signature.
+    private fun registerJavaFlipFlagCommand() {
+        JavaCommandsDemo.register()
+        Timber.i("Registered \"flip_flag_java\" command")
+        _uiState.update { it.copy(javaCommands = it.javaCommands.copy(isRegistered = true, lastResult = null)) }
+    }
+
+    private fun unregisterJavaFlipFlagCommand() {
+        JavaCommandsDemo.unregister()
+        Timber.i("Unregistered \"flip_flag_java\" command")
+        _uiState.update { it.copy(javaCommands = it.javaCommands.copy(isRegistered = false)) }
+    }
+
+    private fun invokeJavaFlipFlagCommand() {
+        JavaCommandsDemo.invoke { result ->
+            val text =
+                when (result) {
+                    is CommandResult.Success -> "Success: ${result.context}"
+                    is CommandResult.Error -> "Error: ${result.title}"
+                }
+            Timber.i("\"flip_flag_java\" result: $text")
+            _uiState.update { it.copy(javaCommands = it.javaCommands.copy(lastResult = text)) }
         }
     }
 
