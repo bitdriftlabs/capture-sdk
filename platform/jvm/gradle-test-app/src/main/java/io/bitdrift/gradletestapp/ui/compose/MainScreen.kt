@@ -44,6 +44,7 @@ import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppState
 import io.bitdrift.gradletestapp.data.model.ClearError
 import io.bitdrift.gradletestapp.data.model.CommandsTestAction
+import io.bitdrift.gradletestapp.data.model.JavaCommandsTestAction
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
 import io.bitdrift.gradletestapp.data.model.DiskPressureState
@@ -347,6 +348,17 @@ private fun SdkApisTabContent(
                 onRegister = { onAction(CommandsTestAction.RegisterFlipFlagCommand) },
                 onUnregister = { onAction(CommandsTestAction.UnregisterFlipFlagCommand) },
                 onInvoke = { onAction(CommandsTestAction.InvokeFlipFlagCommand) },
+            )
+        }
+        item {
+            CommandsTestingCard(
+                title = "Live Session Commands — Java API (prototype)",
+                commandLabel = "flip_flag_java",
+                isRegistered = uiState.javaCommands.isRegistered,
+                lastResult = uiState.javaCommands.lastResult,
+                onRegister = { onAction(JavaCommandsTestAction.RegisterFlipFlagCommand) },
+                onUnregister = { onAction(JavaCommandsTestAction.UnregisterFlipFlagCommand) },
+                onInvoke = { onAction(JavaCommandsTestAction.InvokeFlipFlagCommand) },
             )
         }
         item {
