@@ -259,6 +259,22 @@ describe('init crash reporting callback wiring', () => {
     expect(callback).toHaveBeenCalledWith(result);
     expect(removeListener).toHaveBeenCalled();
   });
+
+  test('passes automatic WebView instrumentation to the native module', () => {
+    const { sdk, nativeModule } = loadSdk('ios');
+
+    sdk.init('test-key', sdk.SessionStrategy.Fixed, {
+      UNSTABLE_enableWebViewInstrumentation: true,
+    });
+
+    expect(nativeModule.init).toHaveBeenCalledWith(
+      'test-key',
+      sdk.SessionStrategy.Fixed,
+      expect.objectContaining({
+        UNSTABLE_enableWebViewInstrumentation: true,
+      }),
+    );
+  });
 });
 
 describe('generateDeviceCode URL handling', () => {

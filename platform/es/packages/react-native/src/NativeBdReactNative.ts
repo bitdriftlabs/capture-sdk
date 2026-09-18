@@ -48,6 +48,8 @@ export type WebViewOptions = {
 export type InitOptions = {
   url?: string;
   enableNetworkInstrumentation?: boolean;
+  // iOS-only. Android automatic WebView instrumentation is configured at build time.
+  UNSTABLE_enableWebViewInstrumentation?: boolean;
   enableStartResultBridge?: boolean;
   webView?: WebViewOptions;
   crashReporting?: CrashReportingOptions;

@@ -15,7 +15,6 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import {
   clearEntityId,
   generateDeviceCode,
@@ -40,6 +39,7 @@ import {
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
 import { InfoBlock } from './components/InfoBlock';
+import { WebViewDemo } from './components/WebViewDemo';
 import { showToast } from './utils/showToast';
 
 const LOG_LEVELS = new Map([
@@ -125,7 +125,7 @@ const HomeScreen = () => {
   const [previousRunInfo, setPreviousRunInfo] = useState<PreviousRunInfo>(null);
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [showErrorPickerModal, setShowErrorPickerModal] = useState(false);
-  const [showWebViewModal, setShowWebViewModal] = useState(false);
+  const [isWebViewDemoVisible, setIsWebViewDemoVisible] = useState(false);
 
   useEffect(() => {
     setPreviousRunInfo(getPreviousRunInfo());
@@ -293,7 +293,7 @@ const HomeScreen = () => {
             styles.button,
             pressed && styles.buttonActive,
           ]}
-          onPress={() => setShowWebViewModal(true)}
+          onPress={() => setIsWebViewDemoVisible(true)}
         >
           <Text style={styles.buttonText}>Open bitdrift.io WebView</Text>
         </Pressable>
@@ -523,25 +523,17 @@ const HomeScreen = () => {
       </View>
 
       <Modal
-        visible={showWebViewModal}
+        visible={isWebViewDemoVisible}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => setShowWebViewModal(false)}
+        onRequestClose={() => setIsWebViewDemoVisible(false)}
       >
         <SafeAreaView style={styles.webViewContainer}>
-          <View style={styles.webViewHeader}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                styles.webViewCloseButton,
-                pressed && styles.buttonActive,
-              ]}
-              onPress={() => setShowWebViewModal(false)}
-            >
-              <Text style={styles.buttonText}>Close WebView</Text>
-            </Pressable>
-          </View>
-          <WebView source={{ uri: 'https://bitdrift.io/' }} style={styles.webView} />
+          {isWebViewDemoVisible && (
+            <WebViewDemo
+              onClose={() => setIsWebViewDemoVisible(false)}
+            />
+          )}
         </SafeAreaView>
       </Modal>
 
@@ -689,17 +681,6 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   webViewContainer: {
-    flex: 1,
-  },
-  webViewHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 4,
-  },
-  webViewCloseButton: {
-    alignSelf: 'flex-start',
-  },
-  webView: {
     flex: 1,
   },
 });
