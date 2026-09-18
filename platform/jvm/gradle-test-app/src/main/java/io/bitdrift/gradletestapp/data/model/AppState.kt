@@ -16,8 +16,17 @@ data class AppState(
     val diagnostics: DiagnosticsState = DiagnosticsState(),
     val globalFields: List<GlobalFieldEntry> = emptyList(),
     val diskPressure: DiskPressureState = DiskPressureState.Loading,
+    val commands: CommandsTestState = CommandsTestState(),
     val isLoading: Boolean = false,
     val error: String? = null,
+)
+
+/**
+ * UI state for the Live Session Commands prototype (see `Logger.registerCommand`).
+ */
+data class CommandsTestState(
+    val isRegistered: Boolean = false,
+    val lastResult: String? = null,
 )
 
 sealed interface DiskPressureState {

@@ -52,6 +52,12 @@ internal sealed class CaptureDispatchers private constructor(
      */
     data object SessionReplay : CaptureDispatchers("session-replay")
 
+    /**
+     * [ExecutorService] dedicated to custom command handlers (see `io.bitdrift.capture.commands`),
+     * isolated from the SDK's own background pipeline so a slow or stuck handler can't delay it.
+     */
+    data object Commands : CaptureDispatchers("commands")
+
     private fun buildExecutorService(threadName: String): ExecutorService =
         Executors.newSingleThreadExecutor {
             Thread(it, "$CAPTURE_EXECUTOR_SERVICE_NAME.$threadName")
@@ -80,7 +86,7 @@ internal sealed class CaptureDispatchers private constructor(
         @JvmStatic
         @VisibleForTesting
         internal fun setTestExecutorService(testExecutorService: ExecutorService) {
-            listOf(CommonBackground, Network, SessionReplay).forEach {
+            listOf(CommonBackground, Network, SessionReplay, Commands).forEach {
                 it._executorService = testExecutorService
             }
         }

@@ -23,12 +23,14 @@ import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Comp
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.PREFS_SLEEP_MODE_ENABLED
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SESSION_REPLAY_ENABLED_PREFS_KEY
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import kotlin.coroutines.resume
 import java.net.URLDecoder
 import java.net.URLEncoder
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Repository that manages SDK state and operations
@@ -54,6 +56,17 @@ class SdkRepository(
             CaptureSdkInitializer.initFromPreferences(applicationContext, sharedPreferences)
         }
     }
+
+    /**
+     * Dummy async "flag flip" used to exercise `Logger.registerCommand`'s suspend handler --
+     * stands in for a real suspend operation (a network call, a DataStore write) that a command
+     * handler can await directly, without a `runBlocking` bridge.
+     */
+    suspend fun toggleDemoFlag(previous: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            delay(5000.milliseconds)
+            !previous
+        }
 
     suspend fun startNewSession(): String? =
         withContext(Dispatchers.IO) {

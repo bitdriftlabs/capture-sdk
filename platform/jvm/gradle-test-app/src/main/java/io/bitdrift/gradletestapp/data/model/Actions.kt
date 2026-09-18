@@ -92,6 +92,15 @@ sealed class FeatureFlagsTestAction : AppAction {
     object AddManyFeatureFlags : FeatureFlagsTestAction()
 }
 
+/** Exercises the Live Session Commands prototype (`Logger.registerCommand`). */
+sealed class CommandsTestAction : AppAction {
+    object RegisterFlipFlagCommand : CommandsTestAction()
+
+    object UnregisterFlipFlagCommand : CommandsTestAction()
+
+    object InvokeFlipFlagCommand : CommandsTestAction()
+}
+
 sealed class NavigationAction : AppAction {
     object NavigateToConfig : NavigationAction()
 

@@ -16,6 +16,10 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
+import io.bitdrift.capture.commands.CommandHandle
+import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.CommandResult
+import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -31,6 +35,7 @@ import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
+import kotlinx.coroutines.CoroutineDispatcher
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -109,6 +114,9 @@ object Capture {
 
         // This is a lazy property to avoid the need to initialize the main thread handler unless needed here.
         private val mainThreadHandler by lazy { MainThreadHandler() }
+
+        // Prototype: see io.bitdrift.capture.commands.CommandRegistry for the design rationale.
+        private val commandRegistry = CommandRegistry()
 
         /**
          * Get the current version of the Capture library.
@@ -776,6 +784,46 @@ object Capture {
         @JvmStatic
         fun setSleepMode(sleepMode: SleepMode) {
             logger()?.setSleepMode(sleepMode)
+        }
+
+        /**
+         * Registers a custom command that can be invoked from the live debugger or a workflow.
+         *
+         * PROTOTYPE: the Rust/JNI trigger path that will drive real invocations from the debugger
+         * doesn't exist yet -- see [invokeCommandForTesting].
+         *
+         * @param key the command's name, as it will be invoked by the debugger/workflow.
+         * @param dispatcher when null (the default), the command runs on the SDK's own dispatcher,
+         * isolated from both its background pipeline and the host app's own coroutine work. Pass
+         * one explicitly (e.g. `Dispatchers.IO`) to opt this specific command out of that isolation
+         * -- a deliberate trade-off for a command known to do real, possibly slow, work that
+         * shouldn't share the single default thread with other commands.
+         * @param handler invoked with the command's argument; call `success(...)`/`error(...)` on
+         * the receiver to report the outcome.
+         * @return a handle whose [CommandHandle.unregister] removes the command and cancels any
+         * invocation in flight.
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun registerCommand(
+            key: String,
+            dispatcher: CoroutineDispatcher? = null,
+            handler: suspend CommandScope.(String) -> CommandResult,
+        ): CommandHandle = commandRegistry.register(key, dispatcher, handler)
+
+        /**
+         * PROTOTYPE-ONLY: stands in for the native-triggered invocation path, which isn't built
+         * yet. Lets a host app manually trigger a registered command to exercise [registerCommand]
+         * before the real debugger-driven path exists. Not meant to ship.
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun invokeCommandForTesting(
+            key: String,
+            arg: String = "",
+            onResult: (CommandResult) -> Unit,
+        ) {
+            commandRegistry.invoke(key, arg, onResult)
         }
 
         /**

@@ -43,6 +43,7 @@ import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppState
 import io.bitdrift.gradletestapp.data.model.ClearError
+import io.bitdrift.gradletestapp.data.model.CommandsTestAction
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
 import io.bitdrift.gradletestapp.data.model.DiskPressureState
@@ -51,6 +52,7 @@ import io.bitdrift.gradletestapp.data.model.GlobalFieldAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
 import io.bitdrift.gradletestapp.data.model.SessionAction
 import io.bitdrift.gradletestapp.ui.compose.components.AppTerminationsCard
+import io.bitdrift.gradletestapp.ui.compose.components.CommandsTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.EntityIdCard
 import io.bitdrift.gradletestapp.ui.compose.components.FatalIssuesCard
 import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
@@ -336,6 +338,15 @@ private fun SdkApisTabContent(
             FeatureFlagsTestingCard(
                 onAddVariantFlag = { value -> onAction(FeatureFlagsTestAction.AddVariantFlag(value)) },
                 onAddManyFeatureFlags = { onAction(FeatureFlagsTestAction.AddManyFeatureFlags) },
+            )
+        }
+        item {
+            CommandsTestingCard(
+                isRegistered = uiState.commands.isRegistered,
+                lastResult = uiState.commands.lastResult,
+                onRegister = { onAction(CommandsTestAction.RegisterFlipFlagCommand) },
+                onUnregister = { onAction(CommandsTestAction.UnregisterFlipFlagCommand) },
+                onInvoke = { onAction(CommandsTestAction.InvokeFlipFlagCommand) },
             )
         }
         item {

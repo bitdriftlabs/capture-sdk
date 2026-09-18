@@ -252,6 +252,9 @@ maven.install(
         "androidx.lifecycle:lifecycle-process:{}".format(LIFECYCLE_VERSION),
         # Resolves strict Coursier conflicts from Activity/Compose's transitive lifecycle runtime.
         "androidx.lifecycle:lifecycle-runtime:{}".format(LIFECYCLE_VERSION),
+        # Pinned to the version already resolved transitively via androidx.lifecycle-process, and
+        # declared explicitly (matching the Gradle-side pin) so it's tracked for APK size review.
+        "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3",
         "org.jetbrains.kotlin:kotlin-stdlib:{}".format(KOTLIN_STD_VERSION),
         "androidx.emoji2:emoji2:1.5.0",
         "androidx.collection:collection:1.4.5",

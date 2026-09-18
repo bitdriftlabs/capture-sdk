@@ -12,11 +12,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.commands.CommandHandle
+import io.bitdrift.capture.commands.CommandResult
+import io.bitdrift.capture.commands.unregisterOn
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.data.model.AppState
 import io.bitdrift.gradletestapp.data.model.ClearError
+import io.bitdrift.gradletestapp.data.model.CommandsTestAction
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
 import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
@@ -55,6 +59,7 @@ class MainViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AppState())
     val uiState: StateFlow<AppState> = _uiState.asStateFlow()
+    private var flipFlagCommand: CommandHandle? = null
     private val diskPressureCommands =
         MutableSharedFlow<DiskPressureCommand>(
             extraBufferCapacity = 1,
@@ -207,6 +212,10 @@ class MainViewModel(
 
             is FeatureFlagsTestAction.AddVariantFlag -> addVariantFlag(action.value)
             is FeatureFlagsTestAction.AddManyFeatureFlags -> addManyFeatureFlags()
+
+            is CommandsTestAction.RegisterFlipFlagCommand -> registerFlipFlagCommand()
+            is CommandsTestAction.UnregisterFlipFlagCommand -> unregisterFlipFlagCommand()
+            is CommandsTestAction.InvokeFlipFlagCommand -> invokeFlipFlagCommand()
 
             is StressTestAction.IncreaseMemoryPressure -> stressTestRepository.increaseMemoryPressure(action.targetPercent)
             is StressTestAction.TriggerMemoryPressureAnr -> stressTestRepository.triggerMemoryPressureAnr()
@@ -366,6 +375,58 @@ class MainViewModel(
         val variant = if (value) "true" else "false"
         Timber.i("Adding variant_flag feature flag with variant: $variant")
         Logger.setFeatureFlagExposure("variant_flag", variant)
+    }
+
+    // Registering from `init` (app-lifetime) would be more realistic for a real command, but
+    // this is deliberately tied to a button press so it's easy to exercise register/unregister
+    // and to demonstrate `unregisterOn(viewModelScope)` doing real cleanup work when this
+    // ViewModel is cleared, not just when the user taps "Unregister".
+    @OptIn(ExperimentalBitdriftApi::class)
+    private fun registerFlipFlagCommand() {
+        if (flipFlagCommand != null) return
+
+        var flagEnabled = false
+        flipFlagCommand =
+            Logger
+                .registerCommand("flip_flag") { flag ->
+                    // The actual reason to want a suspend handler: awaiting the app's own suspend
+                    // function directly, no runBlocking bridge needed.
+                    val previous = flagEnabled
+                    flagEnabled = sdkRepository.toggleDemoFlag(previous)
+                    success(
+                        context =
+                            mapOf(
+                                "flag" to flag,
+                                "from" to previous.toString(),
+                                "to" to flagEnabled.toString(),
+                            ),
+                    )
+                }.unregisterOn(viewModelScope)
+
+        Timber.i("Registered \"flip_flag\" command")
+        _uiState.update { it.copy(commands = it.commands.copy(isRegistered = true, lastResult = null)) }
+    }
+
+    private fun unregisterFlipFlagCommand() {
+        flipFlagCommand?.unregister()
+        flipFlagCommand = null
+        Timber.i("Unregistered \"flip_flag\" command")
+        _uiState.update { it.copy(commands = it.commands.copy(isRegistered = false)) }
+    }
+
+    @OptIn(ExperimentalBitdriftApi::class)
+    private fun invokeFlipFlagCommand() {
+        // Stands in for the debugger/workflow actually invoking the command -- that native
+        // trigger path doesn't exist yet.
+        Logger.invokeCommandForTesting("flip_flag", "dark_mode") { result ->
+            val text =
+                when (result) {
+                    is CommandResult.Success -> "Success: ${result.context}"
+                    is CommandResult.Error -> "Error: ${result.title}"
+                }
+            Timber.i("\"flip_flag\" result: $text")
+            _uiState.update { it.copy(commands = it.commands.copy(lastResult = text)) }
+        }
     }
 
     private fun logSingleMessage() {
