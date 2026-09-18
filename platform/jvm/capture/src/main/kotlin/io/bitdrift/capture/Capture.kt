@@ -391,17 +391,31 @@ object Capture {
          * The Id for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
          */
+        @Deprecated(
+            message =
+                "This is null while Capture is starting, which callers can no longer distinguish from " +
+                    "'not started'. Use the ILogger from start's startResult callback for a non-null " +
+                    "instance once started, and SessionConfiguration.onSessionIdChanged for live updates " +
+                    "as the session changes.",
+        )
         @JvmStatic
         val sessionId: String?
-            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.sessionId
+            get() = initializedLogger()?.sessionId
 
         /**
          * The URL for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
          */
+        @Deprecated(
+            message =
+                "This is null while Capture is starting, which callers can no longer distinguish from " +
+                    "'not started'. Use the ILogger from start's startResult callback for a non-null " +
+                    "instance once started, and re-read its sessionUrl when " +
+                    "SessionConfiguration.onSessionIdChanged fires to track session changes.",
+        )
         @JvmStatic
         val sessionUrl: String?
-            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.sessionUrl
+            get() = initializedLogger()?.sessionUrl
 
         /**
          * A canonical identifier for a device that remains consistent as long as an application
@@ -410,17 +424,29 @@ object Capture {
          * The value of this property is different for apps from the same vendor running on
          * the same device. It is equal to null prior to the start of bitdrift Capture SDK.
          */
+        @Deprecated(
+            message =
+                "This is null while Capture is starting, which callers can no longer distinguish from " +
+                    "'not started'. Use the ILogger from start's startResult callback for a non-null " +
+                    "instance once started.",
+        )
         @JvmStatic
         val deviceId: String?
-            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.deviceId
+            get() = initializedLogger()?.deviceId
 
         /**
          * Whether workflow-controlled tracing is currently active for this session.
          * Returns `null` prior to SDK start.
          */
+        @Deprecated(
+            message =
+                "This is null while Capture is starting, which callers can no longer distinguish from " +
+                    "'not started'. Use the ILogger from start's startResult callback for a non-null " +
+                    "instance once started.",
+        )
         @JvmStatic
         val isTracingActive: Boolean?
-            get() = logger()?.takeUnless { it is PreInitInMemoryLogger }?.isTracingActive
+            get() = initializedLogger()?.isTracingActive
 
         /**
          * Creates a new session with an optional app-provided ID within the currently running logger.
@@ -445,7 +471,7 @@ object Capture {
          */
         @JvmStatic
         fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
-            logger()?.takeUnless { it is PreInitInMemoryLogger }?.also { logger ->
+            initializedLogger()?.also { logger ->
                 logger.createTemporaryDeviceCode { captureResult ->
                     mainThreadHandler.run { completion(captureResult) }
                 }
@@ -956,6 +982,16 @@ object Capture {
             startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorDetails, throwable)))
         }
     }
+
+    /**
+     * Returns a handle to the underlying logger instance only once Capture has fully started,
+     * i.e. `null` while not started, while starting, and after a start failure.
+     */
+    internal fun initializedLogger(): ILogger? =
+        when (val state = default.get()) {
+            is LoggerState.Started -> state.logger
+            is LoggerState.NotStarted, is LoggerState.Starting, is LoggerState.StartFailure -> null
+        }
 
     private fun Throwable.shouldReThrowOnDebugBuild(): Boolean = this is DebugCustomerCallbackException
 }
