@@ -684,6 +684,28 @@ public final class LoggerObjc: NSObject {
         ]
     }
 
+    /// Registers an Objective-C or callback-based command handler.
+    @discardableResult
+    @objc(registerCommandWithKey:handler:)
+    public static func registerCommand(
+        withKey key: String,
+        handler: @escaping ([String], @escaping (CommandResultObjc) -> Void) -> Void
+    ) -> CommandHandle {
+        Logger.registerCommand(key: key) { arguments in
+            await withCheckedContinuation { continuation in
+                handler(arguments) { result in
+                    continuation.resume(returning: result.swiftResult)
+                }
+            }
+        }
+    }
+
+    /// Removes the command currently registered for `key`.
+    @objc(unregisterCommandWithKey:)
+    public static func unregisterCommand(withKey key: String) {
+        Logger.unregisterCommand(key: key)
+    }
+
     // MARK: - Extra
 
     /// Adds a field to all logs emitted by the logger from this point forward.
