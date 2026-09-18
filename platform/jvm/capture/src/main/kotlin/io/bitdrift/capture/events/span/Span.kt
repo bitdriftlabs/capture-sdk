@@ -76,6 +76,20 @@ class Span internal constructor(
     }
 
     /**
+     * Attaches the real logger to a span created before one existed yet (i.e. while the SDK was
+     * still starting), emitting its deferred start log and letting a subsequent end() call work.
+     */
+    internal fun attachLogger(logger: IInternalLogger) {
+        logger.logInternal(
+            LogType.SPAN,
+            level,
+            startArrayFields,
+            attributesOverrides = customStartTimeMs?.let { LogAttributesOverrides.OccurredAt(it) },
+        ) { "" }
+        this.logger = logger
+    }
+
+    /**
      * Signals that the operation described by this span has now ended. It automatically records
      * its duration up to this point.
      *

@@ -15,20 +15,22 @@ import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.SleepMode
-import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.data.model.GlobalFieldEntry
+import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_URL_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.PREFS_SLEEP_MODE_ENABLED
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SESSION_REPLAY_ENABLED_PREFS_KEY
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import kotlin.coroutines.resume
 import java.net.URLDecoder
 import java.net.URLEncoder
+import kotlin.coroutines.resume
 
 /**
  * Repository that manages SDK state and operations
@@ -50,9 +52,12 @@ class SdkRepository(
                 putString(BITDRIFT_URL_KEY, apiUrl)
             }
         }
-        return withContext(Dispatchers.Main.immediate) {
+        val initializationStarted = withContext(Dispatchers.Main.immediate) {
             CaptureSdkInitializer.initFromPreferences(applicationContext, sharedPreferences)
         }
+        if (!initializationStarted) return false
+
+        return CaptureSdkInitializer.sdkInitializationState.filterNotNull().first()
     }
 
     suspend fun startNewSession(): String? =

@@ -153,6 +153,8 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         category.addPreference(buildSessionStrategyList(context))
         category.addPreference(buildInactivityThresholdPreference(context))
         category.addPreference(buildDeferredStartSwitch(context))
+        category.addPreference(buildStartOnBackgroundThreadSwitch(context))
+        category.addPreference(buildSimulatedStartDelaySwitch(context))
     }
 
     private fun addConfigurationOptionsCategory(
@@ -240,6 +242,12 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     private fun buildDeferredStartSwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, DEFERRED_START_PREFS_KEY, DEFERRED_START_TITLE, false)
 
+    private fun buildStartOnBackgroundThreadSwitch(context: Context): SwitchPreference =
+        buildSwitchPreference(context, START_ON_BACKGROUND_THREAD_PREFS_KEY, START_ON_BACKGROUND_THREAD_TITLE, true)
+
+    private fun buildSimulatedStartDelaySwitch(context: Context): SwitchPreference =
+        buildSwitchPreference(context, SIMULATED_START_DELAY_PREFS_KEY, SIMULATED_START_DELAY_TITLE, false)
+
     private fun buildSessionReplaySwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, SESSION_REPLAY_ENABLED_PREFS_KEY, SESSION_REPLAY_TITLE, true)
 
@@ -264,9 +272,10 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
+        const val START_ON_BACKGROUND_THREAD_PREFS_KEY = "startOnBackgroundThread"
+        const val SIMULATED_START_DELAY_PREFS_KEY = "simulatedStartDelay"
         const val SESSION_REPLAY_ENABLED_PREFS_KEY = "sessionReplayEnabled"
         const val DIAGNOSTICS_ENABLED_KEY = "diagnosticsEnabled"
-        const val WEBVIEW_MONITORING_PREFS_KEY = "webviewMonitoring"
 
         const val INACTIVITY_THRESHOLD_PREFS_KEY = "inactivityThresholdMins"
         const val PREFS_SLEEP_MODE_ENABLED = "sleep_mode_enabled"
@@ -276,6 +285,8 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"
+        private const val START_ON_BACKGROUND_THREAD_TITLE = "Start SDK on Background Thread"
+        private const val SIMULATED_START_DELAY_TITLE = "Start with Simulated SDK Internal Delay"
         private const val SESSION_REPLAY_TITLE = "Session Replay"
         private const val DIAGNOSTICS_TITLE = "Diagnostics Tools"
         private const val WEBVIEW_MONITORING_TITLE = "WebView Monitoring"
