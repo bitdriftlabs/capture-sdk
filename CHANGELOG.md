@@ -60,7 +60,7 @@
 **Added**
 
 - Added `WebViewCapture.instrument(webView)` for explicitly instrumenting selected WebViews.
-- Added the `webViewAutomaticInstrumentationMode` Gradle plugin property with `FULL` and `JS_ENABLED` modes.
+- Added the `webViewAutomaticInstrumentationScope` Gradle plugin property with `ALL` and `JS_ENABLED` scopes.
 
 **Changed**
 
@@ -75,6 +75,7 @@
 - Fixed OkHttp logs including an invalid `_protocol` value when a request fails before receiving a response.
 - Fixed a potential thread-safety issue in OkHttp request/response instrumentation.
 - Prevent automatic OkHttp instrumentation from wrapping an `OkHttpClient` with a duplicate Capture event listener when the client is copied via `newBuilder()`.
+- Fixed a potential crash when checking WebView features with older `androidx.webkit` versions.
 
 ### iOS
 
