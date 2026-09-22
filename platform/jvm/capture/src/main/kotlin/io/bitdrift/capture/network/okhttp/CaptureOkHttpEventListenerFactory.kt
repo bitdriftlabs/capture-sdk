@@ -9,7 +9,6 @@ package io.bitdrift.capture.network.okhttp
 
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureRuntimeProvider
-import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.common.DefaultClock
 import io.bitdrift.capture.common.IClock
@@ -33,7 +32,6 @@ import okhttp3.EventListener
  */
 class CaptureOkHttpEventListenerFactory internal constructor(
     private val targetEventListenerFactory: EventListener.Factory?,
-    private val logger: ILogger?,
     private val clock: IClock,
     private val runtimeProvider: IRuntimeProvider,
     private val requestFieldProvider: OkHttpRequestFieldProvider,
@@ -60,7 +58,6 @@ class CaptureOkHttpEventListenerFactory internal constructor(
         responseFieldProvider: OkHttpResponseFieldProvider = DEFAULT_RESPONSE_FIELD_PROVIDER,
     ) : this(
         targetEventListenerFactory = targetEventListenerFactory,
-        logger = Capture.getInternalLogger(),
         clock = DefaultClock.getInstance(),
         runtimeProvider = CaptureRuntimeProvider,
         requestFieldProvider = requestFieldProvider,
@@ -68,7 +65,7 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     )
 
     override fun create(call: Call): EventListener {
-        val currentLogger = getLogger()
+        val currentLogger = Capture.logger()
         val targetEventListener = targetEventListenerFactory?.create(call)
         if (currentLogger == null || requestIgnorePolicy.shouldIgnore(call.request())) {
             return targetEventListener ?: EventListener.NONE
@@ -82,9 +79,6 @@ class CaptureOkHttpEventListenerFactory internal constructor(
             responseExtraFieldsProvider = responseFieldProvider,
         )
     }
-
-    // attempts to get the latest logger if one wasn't found at construction time
-    private fun getLogger(): ILogger? = logger ?: Capture.getInternalLogger()
 
     private companion object {
         private val DEFAULT_REQUEST_FIELD_PROVIDER = OkHttpRequestFieldProvider { emptyMap() }

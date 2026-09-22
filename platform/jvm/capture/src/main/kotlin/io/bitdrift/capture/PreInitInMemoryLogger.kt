@@ -37,6 +37,7 @@ internal class PreInitInMemoryLogger(
     private val droppedCallCount = AtomicInteger(0)
     private val drainTarget = AtomicReference<IInternalLogger?>()
     private val failed = AtomicBoolean(false)
+    private val drainLock = Any()
 
     // Preserve the non-null ILogger contract while initSdk is still in progress. The outer
     // Capture.Logger getters hide these placeholders by returning null for PreInitInMemoryLogger,
@@ -50,10 +51,15 @@ internal class PreInitInMemoryLogger(
 
     override fun startNewSession(sessionId: String?) = add(BufferedCall.StartNewSession(sessionId))
 
-    // Not adding to the buffer as it needs the SDK started. Capture.Logger.createTemporaryDeviceCode
-    // handles this case
-    override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) =
-        completion(CaptureResult.Failure(SdkNotStartedError))
+    // Needs the SDK started, so it can't be buffered: it has to answer the caller now.
+    override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
+        val target = drainTarget.get()
+        if (target != null) {
+            target.createTemporaryDeviceCode(completion)
+        } else {
+            completion(CaptureResult.Failure(SdkNotStartedError))
+        }
+    }
 
     override fun addField(
         key: String,
@@ -193,7 +199,8 @@ internal class PreInitInMemoryLogger(
 
     override fun notifyMemoryPressureLevel(level: MemoryPressureLevel) = add(BufferedCall.NotifyMemoryPressureLevel(level))
 
-    override fun getPreviousRunMemoryPressureLevel(): MemoryPressureLevel = MemoryPressureLevel.Unknown
+    override fun getPreviousRunMemoryPressureLevel(): MemoryPressureLevel =
+        drainTarget.get()?.getPreviousRunMemoryPressureLevel() ?: MemoryPressureLevel.Unknown
 
     /**
      * Dispatches all buffered calls into the ready native [logger] instance in the order they occurred
@@ -219,8 +226,9 @@ internal class PreInitInMemoryLogger(
     private fun add(call: BufferedCall) {
         if (failed.get()) return
 
-        drainTarget.get()?.let {
-            call.dispatch(it)
+        val target = drainTarget.get()
+        if (target != null && bufferedCalls.isEmpty()) {
+            call.dispatch(target)
             return
         }
 
@@ -235,9 +243,11 @@ internal class PreInitInMemoryLogger(
     }
 
     private fun drainTo(logger: IInternalLogger) {
-        generateSequence { bufferedCalls.poll() }.forEach { call ->
-            bufferedBytes.addAndGet(-call.sizeBytes)
-            call.dispatch(logger)
+        synchronized(drainLock) {
+            generateSequence { bufferedCalls.poll() }.forEach { call ->
+                bufferedBytes.addAndGet(-call.sizeBytes)
+                call.dispatch(logger)
+            }
         }
 
         val droppedCalls = droppedCallCount.getAndSet(0)
@@ -455,7 +465,8 @@ internal class PreInitInMemoryLogger(
             val request: HttpRequestInfo,
             val occurredAtMs: Long,
         ) : BufferedCall {
-            override val sizeBytes = sized(request.toString())
+            override val sizeBytes =
+                OVERHEAD_BYTES + request.arrayFields.sizeBytes() + request.matchingArrayFields.sizeBytes()
 
             override fun dispatch(logger: IInternalLogger) {
                 logger.logInternal(
@@ -472,7 +483,8 @@ internal class PreInitInMemoryLogger(
             val response: HttpResponseInfo,
             val occurredAtMs: Long,
         ) : BufferedCall {
-            override val sizeBytes = sized(response.toString())
+            override val sizeBytes =
+                OVERHEAD_BYTES + response.arrayFields.sizeBytes() + response.matchingArrayFields.sizeBytes()
 
             override fun dispatch(logger: IInternalLogger) {
                 logger.logInternal(

@@ -70,6 +70,7 @@ dependencies {
 
     testImplementation(libs.truth)
     testImplementation(libs.junit)
+    testImplementation(libs.mockito.core)
     testImplementation(libs.kotlin.mockito.kotlin)
 }
 

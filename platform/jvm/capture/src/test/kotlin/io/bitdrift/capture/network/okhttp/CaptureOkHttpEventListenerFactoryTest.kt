@@ -12,6 +12,7 @@ import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.Capture
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.common.IClock
@@ -28,7 +29,11 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import org.mockito.MockedStatic
+import org.mockito.Mockito
 import java.io.FileNotFoundException
 import java.io.InterruptedIOException
 import java.net.InetSocketAddress
@@ -41,6 +46,19 @@ class CaptureOkHttpEventListenerFactoryTest {
     private val runtimeProvider: IRuntimeProvider = mock()
 
     private val call: Call = mock()
+
+    private lateinit var captureMock: MockedStatic<Capture>
+
+    @Before
+    fun setUp() {
+        captureMock = Mockito.mockStatic(Capture::class.java)
+        captureMock.`when`<Any> { Capture.logger() }.thenReturn(logger)
+    }
+
+    @After
+    fun tearDown() {
+        captureMock.close()
+    }
 
     @Test
     fun testRequestAndResponseReuseCommonInfo() {
@@ -614,7 +632,6 @@ class CaptureOkHttpEventListenerFactoryTest {
         val factory =
             CaptureOkHttpEventListenerFactory(
                 targetEventListenerFactory = null,
-                logger = logger,
                 clock = clock,
                 runtimeProvider =
                     runtimeProvider.also {
@@ -762,7 +779,6 @@ class CaptureOkHttpEventListenerFactoryTest {
         val factory =
             CaptureOkHttpEventListenerFactory(
                 targetEventListenerFactory = null,
-                logger = logger,
                 clock = clock,
                 runtimeProvider =
                     runtimeProvider.also {
@@ -886,10 +902,10 @@ class CaptureOkHttpEventListenerFactoryTest {
             OkHttpResponseFieldProvider {
                 emptyMap()
             },
-    ): CaptureOkHttpEventListenerFactory =
-        CaptureOkHttpEventListenerFactory(
+    ): CaptureOkHttpEventListenerFactory {
+        captureMock.`when`<Any> { Capture.logger() }.thenReturn(logger)
+        return CaptureOkHttpEventListenerFactory(
             targetEventListenerFactory = targetEventListenerCreator,
-            logger = logger,
             clock = clock,
             runtimeProvider =
                 runtimeProvider.also {
@@ -904,4 +920,5 @@ class CaptureOkHttpEventListenerFactoryTest {
             requestFieldProvider = requestFieldProvider,
             responseFieldProvider = responseFieldProvider,
         )
+    }
 }

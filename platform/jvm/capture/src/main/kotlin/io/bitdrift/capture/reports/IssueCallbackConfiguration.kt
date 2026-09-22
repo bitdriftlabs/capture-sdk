@@ -60,7 +60,7 @@ class IssueCallbackConfiguration(
         getInternalLogger()?.logInternalError(throwable) { message }
     }
 
-    private fun getInternalLogger(): IInternalLogger? = Capture.getInternalLogger()
+    private fun getInternalLogger(): IInternalLogger? = Capture.logger() as? IInternalLogger
 }
 
 /**

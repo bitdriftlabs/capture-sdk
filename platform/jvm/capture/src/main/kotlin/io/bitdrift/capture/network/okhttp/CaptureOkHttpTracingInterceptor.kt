@@ -10,6 +10,7 @@ package io.bitdrift.capture.network.okhttp
 import androidx.annotation.VisibleForTesting
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureRuntimeProvider
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.LogLevel
@@ -104,7 +105,7 @@ class CaptureOkHttpTracingInterceptor
         }
 
         private fun TracePropagationMode.logInternalStatus() {
-            val internalLogger = Capture.getInternalLogger()
+            val internalLogger = Capture.logger() as? IInternalLogger
             internalLogger?.logInternal(
                 type = LogType.INTERNALSDK,
                 level = LogLevel.INFO,

@@ -75,16 +75,13 @@ object Capture {
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
      *
+     * While Capture is still starting this is the pre-init buffer, which forwards to the real
+     * logger once it exists, so a handle held from here stays usable.
+     *
      * @return ILogger a logger handle
      */
-    fun logger(): ILogger? = (default.get() as? LoggerState.Started)?.logger
-
-    /**
-     * Similar to [Capture.logger], but also returns the pre-init buffer while Capture is starting.
-     * This is required for internal SDK calls that shouldn't be dropped. E.g. Timber, network calls,
-     * etc
-     */
-    internal fun getInternalLogger(): IInternalLogger? =
+    @JvmStatic
+    fun logger(): ILogger? =
         when (val state = default.get()) {
             is LoggerState.NotStarted -> null
             is LoggerState.Starting -> state.logger
@@ -398,39 +395,39 @@ object Capture {
          * The Id for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
          *
-         * Alternatively, use the ILogger from start's startResult callback for a non-null
-         * instance once started, and SessionConfiguration.onSessionIdChanged for live updates
-         * as the session changes.
+         * Alternatively, use the [ILogger] handed to the `startResult` callback of [start] for a
+         * non-null instance once started, and [SessionConfiguration.onSessionIdChanged] for live
+         * updates as the session changes.
          */
         @JvmStatic
         val sessionId: String?
-            get() = logger()?.sessionId
+            get() = initializedLogger()?.sessionId
 
         /**
          * The URL for the current ongoing session.
          * It's equal to `null` prior to the start of Capture SDK.
          *
-         * Alternatively, use the ILogger from start's startResult callback for a non-null
-         * instance once started, and re-read its sessionUrl when
-         * SessionConfiguration.onSessionIdChanged fires to track session changes.
+         * Alternatively, use the [ILogger] handed to the `startResult` callback of [start] for a
+         * non-null instance once started, and re-read its [ILogger.sessionUrl] when
+         * [SessionConfiguration.onSessionIdChanged] fires to track session changes.
          */
         @JvmStatic
         val sessionUrl: String?
-            get() = logger()?.sessionUrl
+            get() = initializedLogger()?.sessionUrl
 
         /**
          * A canonical identifier for a device that remains consistent as long as an application
          * is not reinstalled.
          *
          * The value of this property is different for apps from the same vendor running on
-         * the same device. It is equal to null prior to the start of bitdrift Capture SDK.
+         * the same device. It is equal to `null` prior to the start of bitdrift Capture SDK.
          *
-         * Alternatively, use the ILogger from start's startResult callback for a non-null
-         * instance once started.
+         * Alternatively, use the [ILogger] handed to the `startResult` callback of [start] for a
+         * non-null instance once started.
          */
         @JvmStatic
         val deviceId: String?
-            get() = logger()?.deviceId
+            get() = initializedLogger()?.deviceId
 
         /**
          * Whether workflow-controlled tracing is currently active for this session.
@@ -438,7 +435,7 @@ object Capture {
          */
         @JvmStatic
         val isTracingActive: Boolean?
-            get() = logger()?.isTracingActive
+            get() = initializedLogger()?.isTracingActive
 
         /**
          * Creates a new session with an optional app-provided ID within the currently running logger.
@@ -463,7 +460,7 @@ object Capture {
          */
         @JvmStatic
         fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
-            getInternalLogger()?.also { logger ->
+            initializedLogger()?.also { logger ->
                 logger.createTemporaryDeviceCode { captureResult ->
                     mainThreadHandler.run { completion(captureResult) }
                 }
@@ -506,7 +503,9 @@ object Capture {
             key: String,
             value: String,
         ) {
-            getInternalLogger()?.addField(key, value)
+            logger()?.let {
+                it.addField(key, value)
+            }
         }
 
         /**
@@ -517,7 +516,7 @@ object Capture {
          */
         @JvmStatic
         fun removeField(key: String) {
-            getInternalLogger()?.removeField(key)
+            logger()?.removeField(key)
         }
 
         /**
@@ -534,7 +533,7 @@ object Capture {
             name: String,
             variant: String,
         ) {
-            getInternalLogger()?.setFeatureFlagExposure(name, variant)
+            logger()?.setFeatureFlagExposure(name, variant)
         }
 
         /**
@@ -545,7 +544,7 @@ object Capture {
          */
         @JvmStatic
         fun setEntityId(entityId: String) {
-            getInternalLogger()?.setEntityId(entityId)
+            logger()?.setEntityId(entityId)
         }
 
         /**
@@ -554,7 +553,7 @@ object Capture {
          */
         @JvmStatic
         fun clearEntityId() {
-            getInternalLogger()?.clearEntityId()
+            logger()?.clearEntityId()
         }
 
         /**
@@ -571,7 +570,7 @@ object Capture {
             name: String,
             variant: Boolean,
         ) {
-            getInternalLogger()?.setFeatureFlagExposure(name, variant)
+            logger()?.setFeatureFlagExposure(name, variant)
         }
 
         /**
@@ -588,7 +587,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            getInternalLogger()?.log(level = LogLevel.TRACE, fields = fields, throwable = throwable, message = message)
+            logger()?.log(level = LogLevel.TRACE, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -605,7 +604,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            getInternalLogger()?.log(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
+            logger()?.log(level = LogLevel.DEBUG, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -622,7 +621,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            getInternalLogger()?.log(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
+            logger()?.log(level = LogLevel.INFO, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -639,7 +638,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            getInternalLogger()?.log(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
+            logger()?.log(level = LogLevel.WARNING, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -656,7 +655,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            getInternalLogger()?.log(level = LogLevel.ERROR, fields = fields, throwable = throwable, message = message)
+            logger()?.log(level = LogLevel.ERROR, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -673,7 +672,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            getInternalLogger()?.log(level = LogLevel.CRITICAL, fields = fields, throwable = throwable, message = message)
+            logger()?.log(level = LogLevel.CRITICAL, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -692,7 +691,7 @@ object Capture {
             throwable: Throwable? = null,
             message: () -> String,
         ) {
-            getInternalLogger()?.log(level = level, fields = fields, throwable = throwable, message = message)
+            logger()?.log(level = level, fields = fields, throwable = throwable, message = message)
         }
 
         /**
@@ -704,7 +703,7 @@ object Capture {
          */
         @JvmStatic
         fun logAppLaunchTTI(duration: Duration) {
-            getInternalLogger()?.logAppLaunchTTI(duration)
+            logger()?.logAppLaunchTTI(duration)
         }
 
         /**
@@ -714,7 +713,7 @@ object Capture {
          */
         @JvmStatic
         fun logScreenView(screenName: String) {
-            getInternalLogger()?.logScreenView(screenName)
+            logger()?.logScreenView(screenName)
         }
 
         /**
@@ -738,7 +737,7 @@ object Capture {
             fields: Map<String, String>? = null,
             startTimeMs: Long? = null,
             parentSpanId: UUID? = null,
-        ): Span? = getInternalLogger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
+        ): Span? = logger()?.startSpan(name, level, fields, startTimeMs, parentSpanId)
 
         /**
          * Wrap the specified [block] in calls to [startSpan] (with the supplied params)
@@ -774,7 +773,7 @@ object Capture {
          */
         @JvmStatic
         fun log(httpRequestInfo: HttpRequestInfo) {
-            getInternalLogger()?.log(httpRequestInfo)
+            logger()?.log(httpRequestInfo)
         }
 
         /**
@@ -785,7 +784,7 @@ object Capture {
          */
         @JvmStatic
         fun log(httpResponseInfo: HttpResponseInfo) {
-            getInternalLogger()?.log(httpResponseInfo)
+            logger()?.log(httpResponseInfo)
         }
 
         /**
@@ -796,7 +795,7 @@ object Capture {
          */
         @JvmStatic
         fun setSleepMode(sleepMode: SleepMode) {
-            getInternalLogger()?.setSleepMode(sleepMode)
+            logger()?.setSleepMode(sleepMode)
         }
 
         /**
@@ -972,6 +971,8 @@ object Capture {
             startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorDetails, throwable)))
         }
     }
+
+    private fun initializedLogger(): ILogger? = logger()?.takeUnless { it is PreInitInMemoryLogger }
 
     private fun Throwable.shouldReThrowOnDebugBuild(): Boolean = this is DebugCustomerCallbackException
 }

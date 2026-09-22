@@ -10,10 +10,12 @@ package io.bitdrift.capture
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
+import com.nhaarman.mockitokotlin2.inOrder
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.events.span.SpanField
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -25,6 +27,7 @@ import io.bitdrift.capture.providers.fieldsOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.Date
@@ -35,7 +38,8 @@ import kotlin.time.Duration.Companion.milliseconds
 @Config(sdk = [24])
 class PreInitInMemoryLoggerTest {
     private val logger: IInternalLogger = mock()
-    private val preInitInMemoryLogger = PreInitInMemoryLogger()
+    private var nowMs = CALL_MS
+    private val preInitInMemoryLogger = PreInitInMemoryLogger { Date(nowMs) }
 
     @Test
     fun `identity properties expose placeholders`() {
@@ -87,10 +91,9 @@ class PreInitInMemoryLoggerTest {
                 durationMs = 42L,
             )
 
-        val beforeMs = System.currentTimeMillis()
         preInitInMemoryLogger.log(request)
+        nowMs = 2_000L
         preInitInMemoryLogger.log(response)
-        val afterMs = System.currentTimeMillis()
 
         flush()
 
@@ -108,9 +111,26 @@ class PreInitInMemoryLoggerTest {
 
         assertThat(fields.firstValue[SpanField.Key.TYPE]).isEqualTo("start")
         assertThat(fields.secondValue[SpanField.Key.TYPE]).isEqualTo("end")
-        attributes.allValues.forEach {
-            val occurredAtMs = (it as LogAttributesOverrides.OccurredAt).occurredAtTimestampMs
-            assertThat(occurredAtMs).isBetween(beforeMs, afterMs)
+        assertThat(attributes.allValues.map { (it as LogAttributesOverrides.OccurredAt).occurredAtTimestampMs })
+            .containsExactly(CALL_MS, 2_000L)
+    }
+
+    @Test
+    fun `a call made mid-drain is replayed after the calls queued ahead of it`() {
+        preInitInMemoryLogger.addField("a", "1")
+        preInitInMemoryLogger.addField("b", "queued")
+
+        whenever(logger.addField("a", "1")).then {
+            preInitInMemoryLogger.addField("a", "2")
+            Unit
+        }
+
+        flush()
+
+        inOrder(logger) {
+            verify(logger).addField("a", "1")
+            verify(logger).addField("b", "queued")
+            verify(logger).addField("a", "2")
         }
     }
 
@@ -224,6 +244,53 @@ class PreInitInMemoryLoggerTest {
     }
 
     @Test
+    fun `nothing reaches the real logger before the handoff`() {
+        preInitInMemoryLogger.addField("key", "value")
+        preInitInMemoryLogger.startNewSession("session-id")
+        preInitInMemoryLogger.log(LogLevel.INFO) { "message" }
+
+        verifyNoInteractions(logger)
+    }
+
+    @Test
+    fun `mixed calls hand off in the order they were made`() {
+        preInitInMemoryLogger.addField("first", "1")
+        preInitInMemoryLogger.startNewSession("session-id")
+        preInitInMemoryLogger.setEntityId("entity")
+        preInitInMemoryLogger.log(LogLevel.INFO) { "message" }
+        preInitInMemoryLogger.addField("last", "2")
+
+        flush()
+
+        inOrder(logger) {
+            verify(logger).addField("first", "1")
+            verify(logger).startNewSession("session-id")
+            verify(logger).setEntityId("entity")
+            verify(logger).logInternal(eq(LogType.NORMAL), any(), any(), any(), any(), any(), any())
+            verify(logger).addField("last", "2")
+        }
+    }
+
+    @Test
+    fun `a second handoff does not replay the buffer again`() {
+        preInitInMemoryLogger.addField("key", "value")
+
+        flush()
+        flush()
+
+        verify(logger, times(1)).addField("key", "value")
+    }
+
+    @Test
+    fun `a call made after the handoff reaches the real logger without another flush`() {
+        flush()
+
+        preInitInMemoryLogger.addField("key", "value")
+
+        verify(logger).addField("key", "value")
+    }
+
+    @Test
     fun `calls made after flush replay immediately and only once`() {
         flush()
 
@@ -268,6 +335,7 @@ class PreInitInMemoryLoggerTest {
     }
 
     private fun flush() {
+        nowMs = FLUSH_MS
         preInitInMemoryLogger.flushToNative(logger)
     }
 
@@ -275,16 +343,15 @@ class PreInitInMemoryLoggerTest {
         expectedFields: ArrayFields,
         enqueue: () -> Unit,
     ) {
-        val beforeLogMs = System.currentTimeMillis()
+        val enqueuedAtMs = nowMs
         enqueue()
-        val afterLogMs = System.currentTimeMillis()
         flush()
 
         val replayedLog = captureLog(LogType.NORMAL)
         assertThat(replayedLog.level).isEqualTo(LogLevel.INFO)
         assertThat(replayedLog.fields).isEqualTo(expectedFields)
         assertThat(replayedLog.message).isEqualTo("before")
-        assertThat(replayedLog.occurredAtMs).isBetween(beforeLogMs, afterLogMs)
+        assertThat(replayedLog.occurredAtMs).isEqualTo(enqueuedAtMs)
     }
 
     private fun captureLog(type: LogType): ReplayedLog {
@@ -332,5 +399,7 @@ class PreInitInMemoryLoggerTest {
 
     private companion object {
         private const val MAX_BUFFER_BYTES = 512 * 1024
+        private const val CALL_MS = 1_000L
+        private const val FLUSH_MS = 9_000L
     }
 }
