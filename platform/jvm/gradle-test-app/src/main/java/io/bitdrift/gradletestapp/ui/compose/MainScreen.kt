@@ -60,6 +60,7 @@ import io.bitdrift.gradletestapp.ui.compose.components.NetworkTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.SdkStatusCard
 import io.bitdrift.gradletestapp.ui.compose.components.SessionManagementCard
 import io.bitdrift.gradletestapp.ui.compose.components.SleepModeCard
+import io.bitdrift.gradletestapp.ui.compose.components.SpanTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.TestingToolsCard
 import io.bitdrift.gradletestapp.ui.compose.components.TracingStatusCard
 import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
@@ -317,6 +318,10 @@ private fun SdkApisTabContent(
                     onAction(DiagnosticsAction.LogJsonField)
                     Toast.makeText(context, "Logged JSON field", Toast.LENGTH_SHORT).show()
                 },
+            )
+        }
+        item {
+            SpanTestingCard(
                 onStartSpan = {
                     onAction(DiagnosticsAction.StartSpan)
                     Toast.makeText(context, "Started span", Toast.LENGTH_SHORT).show()

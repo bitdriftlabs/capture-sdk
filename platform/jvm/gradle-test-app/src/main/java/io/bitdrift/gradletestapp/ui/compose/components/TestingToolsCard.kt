@@ -30,8 +30,6 @@ fun TestingToolsCard(
     onLogSingleMessage: () -> Unit,
     onLogManyMessages: () -> Unit,
     onLogJsonField: () -> Unit,
-    onStartSpan: () -> Unit,
-    onEndSpan: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BdSectionCard(
@@ -61,18 +59,6 @@ fun TestingToolsCard(
         BdSecondaryButton(
             text = "Log JSON Field",
             onClick = onLogJsonField,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        BdPrimaryButton(
-            text = "Start Span",
-            onClick = onStartSpan,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        BdSecondaryButton(
-            text = "End Span",
-            onClick = onEndSpan,
             modifier = Modifier.fillMaxWidth(),
         )
     }
