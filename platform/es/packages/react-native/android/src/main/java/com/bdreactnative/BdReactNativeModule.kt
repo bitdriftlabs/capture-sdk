@@ -28,7 +28,6 @@ import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
-import io.bitdrift.capture.webview.WebViewConfiguration
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import java.util.concurrent.ExecutorService
@@ -59,7 +58,6 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
   override fun init(key: String, sessionStrategy: String, options: ReadableMap?) {
     val apiUrl = options?.getString("url") ?: "https://api.bitdrift.io"
     val crashReportingOptions = options.getMapOrNull("crashReporting")
-    val webViewOptions = options.getMapOrNull("webView")
     val enableNativeFatalIssues = crashReportingOptions.getBooleanOrDefault("enableNativeFatalIssues", true)
     val enableJsErrors = crashReportingOptions.getBooleanOrDefault("UNSTABLE_enableJsErrors", false)
     val enableIssueCallbackBridge = crashReportingOptions.getBooleanOrDefault("enableIssueCallbackBridge", false)
@@ -76,7 +74,6 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
 
     val configuration = Configuration(
       enableFatalIssueReporting = enableNativeFatalIssues,
-      webViewConfiguration = buildWebViewConfiguration(webViewOptions),
       issueCallbackConfiguration = buildIssueCallbackConfiguration(enableIssueCallbackBridge),
     )
 
@@ -114,24 +111,6 @@ class BdReactNativeModule internal constructor(context: ReactApplicationContext)
     }
   }
 
-  @OptIn(ExperimentalBitdriftApi::class)
-  private fun buildWebViewConfiguration(webViewOptions: ReadableMap?): WebViewConfiguration? {
-    if (webViewOptions == null) {
-      return null
-    }
-
-    return WebViewConfiguration(
-      capturePageViews = webViewOptions.getBooleanOrDefault("capturePageViews", false),
-      captureNetworkRequests = webViewOptions.getBooleanOrDefault("captureNetworkRequests", false),
-      captureNavigationEvents = webViewOptions.getBooleanOrDefault("captureNavigationEvents", false),
-      captureWebVitals = webViewOptions.getBooleanOrDefault("captureWebVitals", false),
-      captureLongTasks = webViewOptions.getBooleanOrDefault("captureLongTasks", false),
-      captureConsoleLogs = webViewOptions.getBooleanOrDefault("captureConsoleLogs", false),
-      captureUserInteractions = webViewOptions.getBooleanOrDefault("captureUserInteractions", false),
-      captureErrors = webViewOptions.getBooleanOrDefault("captureErrors", false),
-    )
-  }
-  
   private fun emitIssueReport(report: io.bitdrift.capture.reports.Report) {
     if (!reactApplicationContext.hasActiveCatalystInstance()) {
       return

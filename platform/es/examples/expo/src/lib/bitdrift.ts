@@ -24,17 +24,6 @@ if (BITDRIFT_API_KEY) {
       console.log('Start result:', result);
       console.log('SDK status after start result:', getSdkStatus());
     },
-    UNSTABLE_webView: {
-      capturePageViews: true,
-      captureNetworkRequests: true,
-      captureNavigationEvents: true,
-      captureWebVitals: true,
-      captureLongTasks: true,
-      captureConsoleLogs: true,
-      captureUserInteractions: true,
-      captureErrors: true,
-    },
-    
     // enableNativeFatalIssues Should be enabled by default
     crashReporting: {
       UNSTABLE_enableJsErrors: true,
