@@ -1,7 +1,7 @@
 {
   "name": "@bitdrift/react-native",
   "version": "0.13.2",
-  "captureSdkVersion": "0.24.2",
+  "captureSdkVersion": "0.25.0",
   "description": "bitdrift integration for React Native",
   "main": "dist/commonjs/index",
   "module": "dist/module/index",

@@ -34,24 +34,12 @@ export type SdkStatus = {
   lastConfigDeliveryTimeMs?: number;
 };
 
-export type WebViewOptions = {
-  capturePageViews?: boolean;
-  captureNetworkRequests?: boolean;
-  captureNavigationEvents?: boolean;
-  captureWebVitals?: boolean;
-  captureLongTasks?: boolean;
-  captureConsoleLogs?: boolean;
-  captureUserInteractions?: boolean;
-  captureErrors?: boolean;
-};
-
 export type InitOptions = {
   url?: string;
   enableNetworkInstrumentation?: boolean;
   // iOS-only. Android automatic WebView instrumentation is configured at build time.
   UNSTABLE_enableWebViewInstrumentation?: boolean;
   enableStartResultBridge?: boolean;
-  webView?: WebViewOptions;
   crashReporting?: CrashReportingOptions;
 };
 

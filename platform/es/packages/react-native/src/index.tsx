@@ -56,7 +56,6 @@ export type StartResult = {
 };
 
 export type InitOptions = Omit<NativeInitOptions, 'crashReporting'> & {
-  UNSTABLE_webView?: NativeInitOptions['webView'];
   startResult?: (result: StartResult) => void;
   crashReporting?: CrashReportingOptions;
 };
@@ -153,7 +152,6 @@ function toNativeInitOptions(apiUrl: string, options?: InitOptions): NativeInitO
     ...options,
     url: apiUrl,
     enableStartResultBridge: Boolean(options?.startResult),
-    webView: options?.UNSTABLE_webView,
     crashReporting: options?.crashReporting
       ? {
           enableNativeFatalIssues: options.crashReporting.enableNativeFatalIssues,

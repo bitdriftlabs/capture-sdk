@@ -87,7 +87,7 @@ function loadSdk(platform: PlatformName): TestSetup {
 
 describe('init crash reporting callback wiring', () => {
   beforeEach(() => {
-    (global as any).__turboModuleProxy = null;
+    (global as unknown as { __turboModuleProxy: null }).__turboModuleProxy = null;
   });
 
   test('enables native issue callback bridge for UNSTABLE_onBeforeReportSend', () => {
@@ -275,6 +275,26 @@ describe('init crash reporting callback wiring', () => {
       }),
     );
   });
+});
+
+describe('init native options', () => {
+  beforeEach(() => {
+    (global as unknown as { __turboModuleProxy: null }).__turboModuleProxy = null;
+  });
+
+  test.each(['ios', 'android'] as const)(
+    'does not send WebView configuration to the %s native module',
+    (platform) => {
+      const { sdk, nativeModule } = loadSdk(platform);
+
+      sdk.init('test-key', sdk.SessionStrategy.Fixed, {
+        enableNetworkInstrumentation: true,
+      });
+
+      const nativeOptions = nativeModule.init.mock.calls[0][2];
+      expect(nativeOptions).not.toHaveProperty('webView');
+    },
+  );
 });
 
 describe('generateDeviceCode URL handling', () => {
