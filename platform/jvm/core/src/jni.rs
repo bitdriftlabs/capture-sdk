@@ -1334,7 +1334,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeDevice
       } else {
         Some(env.convert_byte_array(JByteArray::from(screenshot))?)
       };
-      session_replay::complete_device_command_screenshot(request_id as u64, screenshot);
+      session_replay::complete_device_command_screenshot(request_id.cast_unsigned(), screenshot);
       Ok(())
     },
     "jni complete device command screenshot",

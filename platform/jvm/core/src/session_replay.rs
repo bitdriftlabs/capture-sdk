@@ -11,7 +11,7 @@ use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
 use jni::JNIEnv;
 use jni::signature::{Primitive, ReturnType};
-use jni::sys::{jlong, jvalue};
+use jni::sys::jvalue;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex, OnceLock};
@@ -107,7 +107,7 @@ impl bd_logger::SessionReplayTarget for TargetHandler {
           target,
           ReturnType::Primitive(Primitive::Void),
           &[jvalue {
-            j: request_id as jlong,
+            j: request_id.cast_signed(),
           }],
         )
         .map(|_| ())
