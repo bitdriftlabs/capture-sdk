@@ -78,6 +78,7 @@ android {
 bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = false
+        webViewAutomaticInstrumentationScope = ALL
     }
 }
 
