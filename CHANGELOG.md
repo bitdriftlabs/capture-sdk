@@ -1,14 +1,13 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.24.2...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.25....HEAD
 
 ### Both
 
 **Added**
 
-- Added a `critical` log level, one step above `error`, with `logCritical` convenience methods on iOS and Android. The WebView custom-log bridge accepts `"critical"` as a level.
-- Added an `x-bitdrift-initiated-trace: true` header alongside injected trace propagation headers.
+- Nothing yet!
 
 **Changed**
 
@@ -17,6 +16,44 @@
 **Fixed**
 
 - Nothing yet!
+
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.25.0]
+[0.25.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.25.0
+
+### Both
+
+**Added**
+
+- Added a `critical` log level, one step above `error`, with `logCritical` convenience methods on iOS and Android. The WebView custom-log bridge accepts `"critical"` as a level.
+- Added an `x-bitdrift-initiated-trace: true` header alongside injected trace propagation headers.
 
 ### Android
 
