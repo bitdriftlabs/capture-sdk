@@ -12,9 +12,8 @@ import Foundation
 public protocol SessionReplayTarget {
     /// Called to indicate that the target is supposed to prepare and emit a session replay screen log.
     func captureScreen()
-    // Called to indicate that the target should prepare and emit a session replay screenshot log.
-    // The Rust logger does not request another screenshot until it receives the previously
-    // requested one. This mechanism is designed to ensure that there are no situations where
-    // the Rust logger requests screenshots at a rate faster than the platform layer can handle.
-    func captureScreenshot()
+    /// Called to capture JPEG bytes for a remote device command.
+    ///
+    /// - parameter requestID: The opaque remote command request ID to complete.
+    func captureDeviceCommandScreenshot(_ requestID: UInt64)
 }

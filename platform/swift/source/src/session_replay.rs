@@ -7,6 +7,30 @@
 
 use objc::rc::autoreleasepool;
 use objc::runtime::Object;
+use parking_lot::Mutex;
+use std::collections::HashMap;
+use std::sync::LazyLock;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT_DEVICE_COMMAND_SCREENSHOT_REQUEST_ID: AtomicU64 = AtomicU64::new(1);
+static DEVICE_COMMAND_SCREENSHOT_COMPLETIONS: LazyLock<
+  Mutex<HashMap<u64, bd_logger::DeviceCommandScreenshotCompletion>>,
+> = LazyLock::new(Mutex::default);
+
+pub fn complete_device_command_screenshot(request_id: u64, screenshot: Option<Vec<u8>>) {
+  let completion = DEVICE_COMMAND_SCREENSHOT_COMPLETIONS
+    .lock()
+    .remove(&request_id);
+  let Some(completion) = completion else {
+    log::debug!("ignoring completion for unknown device command screenshot {request_id}");
+    return;
+  };
+
+  completion(match screenshot {
+    Some(screenshot) if !screenshot.is_empty() => Ok(screenshot),
+    _ => Err("platform did not produce a screenshot".to_string()),
+  });
+}
 
 #[allow(clippy::non_send_fields_in_send_ty)]
 pub struct Target {
@@ -32,9 +56,17 @@ impl bd_logger::SessionReplayTarget for Target {
     });
   }
 
-  fn capture_screenshot(&self) {
+  fn capture_device_command_screenshot(
+    &self,
+    completion: bd_logger::DeviceCommandScreenshotCompletion,
+  ) {
+    let request_id = NEXT_DEVICE_COMMAND_SCREENSHOT_REQUEST_ID.fetch_add(1, Ordering::Relaxed);
+    DEVICE_COMMAND_SCREENSHOT_COMPLETIONS
+      .lock()
+      .insert(request_id, completion);
+
     autoreleasepool(|| {
-      let () = unsafe { msg_send![*self.swift_object, captureScreenshot] };
+      let () = unsafe { msg_send![*self.swift_object, captureDeviceCommandScreenshot: request_id] };
     });
   }
 }
