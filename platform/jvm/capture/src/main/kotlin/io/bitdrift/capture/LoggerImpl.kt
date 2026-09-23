@@ -732,7 +732,7 @@ internal class LoggerImpl(
                         sdkConfiguredDuration.loggerImplBuildDuration
                             .toDouble(DurationUnit.MILLISECONDS)
                             .toString(),
-                    "_flush_pre_init_to_native_duration_ms" to
+                    "_pre_init_flush_to_native_duration_ms" to
                         sdkConfiguredDuration.flushPreInitToNativeDuration
                             .toDouble(DurationUnit.MILLISECONDS)
                             .toString(),

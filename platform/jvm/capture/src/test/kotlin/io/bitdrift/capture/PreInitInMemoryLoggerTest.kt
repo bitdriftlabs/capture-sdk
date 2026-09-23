@@ -32,6 +32,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.Date
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -156,6 +159,91 @@ class PreInitInMemoryLoggerTest {
             verify(logger).addField("a", "1")
             verify(logger).addField("b", "queued")
             verify(logger).addField("a", "2")
+        }
+    }
+
+    @Test
+    fun `concurrent calls wait for every buffered batch to finish before forwarding`() {
+        val firstDispatch = CountDownLatch(1)
+        val releaseFirstDispatch = CountDownLatch(1)
+        val secondDispatch = CountDownLatch(1)
+        val releaseSecondDispatch = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(2)
+        preInitInMemoryLogger.addField("a", "1")
+        whenever(logger.addField("a", "1")).then {
+            firstDispatch.countDown()
+            assertThat(releaseFirstDispatch.await(5, TimeUnit.SECONDS)).isTrue()
+            Unit
+        }
+        whenever(logger.addField("a", "2")).then {
+            secondDispatch.countDown()
+            assertThat(releaseSecondDispatch.await(5, TimeUnit.SECONDS)).isTrue()
+            Unit
+        }
+
+        try {
+            val drain = executor.submit { preInitInMemoryLogger.flushToNative(logger) }
+            assertThat(firstDispatch.await(5, TimeUnit.SECONDS)).isTrue()
+
+            executor.submit { preInitInMemoryLogger.addField("a", "2") }.get(5, TimeUnit.SECONDS)
+            verify(logger, never()).addField("a", "2")
+            releaseFirstDispatch.countDown()
+            assertThat(secondDispatch.await(5, TimeUnit.SECONDS)).isTrue()
+
+            executor.submit { preInitInMemoryLogger.addField("a", "3") }.get(5, TimeUnit.SECONDS)
+            verify(logger, never()).addField("a", "3")
+            releaseSecondDispatch.countDown()
+            drain.get(5, TimeUnit.SECONDS)
+
+            preInitInMemoryLogger.addField("a", "4")
+            inOrder(logger) {
+                verify(logger).addField("a", "1")
+                verify(logger).addField("a", "2")
+                verify(logger).addField("a", "3")
+                verify(logger).addField("a", "4")
+                verifyNoMoreInteractions()
+            }
+        } finally {
+            releaseFirstDispatch.countDown()
+            releaseSecondDispatch.countDown()
+            executor.shutdownNow()
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue()
+        }
+    }
+
+    @Test
+    fun `cleanup during drain discards pending calls and prevents forwarding`() {
+        val dispatchStarted = CountDownLatch(1)
+        val releaseDispatch = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(2)
+        preInitInMemoryLogger.addField("a", "1")
+        preInitInMemoryLogger.addField("a", "2")
+        whenever(logger.addField("a", "1")).then {
+            dispatchStarted.countDown()
+            assertThat(releaseDispatch.await(5, TimeUnit.SECONDS)).isTrue()
+            Unit
+        }
+
+        try {
+            val drain = executor.submit { preInitInMemoryLogger.flushToNative(logger) }
+            assertThat(dispatchStarted.await(5, TimeUnit.SECONDS)).isTrue()
+            executor.submit { preInitInMemoryLogger.addField("a", "3") }.get(5, TimeUnit.SECONDS)
+            executor.submit { preInitInMemoryLogger.cleanUp() }.get(5, TimeUnit.SECONDS)
+            releaseDispatch.countDown()
+            drain.get(5, TimeUnit.SECONDS)
+
+            preInitInMemoryLogger.addField("a", "4")
+            preInitInMemoryLogger.flushToNative(logger)
+
+            verify(logger).addField("a", "1")
+            verify(logger, never()).addField("a", "2")
+            verify(logger, never()).addField("a", "3")
+            verify(logger, never()).addField("a", "4")
+            assertThat(preInitInMemoryLogger.sessionId).isEqualTo("unknown")
+        } finally {
+            releaseDispatch.countDown()
+            executor.shutdownNow()
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue()
         }
     }
 
@@ -347,16 +435,29 @@ class PreInitInMemoryLoggerTest {
     }
 
     @Test
-    fun `oversized call is dropped and reported`() {
-        preInitInMemoryLogger.log(LogLevel.INFO) { "x".repeat(MAX_BUFFER_BYTES) }
+    fun `handoff reports dropped calls only once`() {
+        repeat(2) {
+            preInitInMemoryLogger.log(LogLevel.INFO) { "x".repeat(MAX_BUFFER_BYTES) }
+        }
+
+        flush()
+        flush()
+
+        val warning = captureLog(LogType.INTERNALSDK)
+        assertThat(warning.level).isEqualTo(LogLevel.WARNING)
+        assertThat(warning.fields).isEqualTo(fieldsOf("dropped_call_count" to "2"))
+        assertThat(warning.message).contains("new buffered calls were dropped")
+        verify(logger, never()).logInternal(eq(LogType.NORMAL), any(), any(), any(), any(), any(), any())
+    }
+
+    @Test
+    fun `handoff does not report overflow when no calls were dropped`() {
+        preInitInMemoryLogger.addField("key", "value")
 
         flush()
 
-        verifyNormalLogNotWritten()
-        val warning = captureLog(LogType.INTERNALSDK)
-        assertThat(warning.level).isEqualTo(LogLevel.WARNING)
-        assertThat(warning.fields).isEqualTo(fieldsOf("dropped_call_count" to "1"))
-        assertThat(warning.message).contains("new buffered calls were dropped")
+        verify(logger).addField("key", "value")
+        verify(logger, never()).logInternal(any(), any(), any(), any(), any(), any(), any())
     }
 
     private fun flush() {
@@ -400,18 +501,6 @@ class PreInitInMemoryLoggerTest {
             fields = fields.firstValue,
             occurredAtMs = (attributes.firstValue as? LogAttributesOverrides.OccurredAt)?.occurredAtTimestampMs,
             message = message.firstValue(),
-        )
-    }
-
-    private fun verifyNormalLogNotWritten() {
-        verify(logger, never()).logInternal(
-            eq(LogType.NORMAL),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
         )
     }
 

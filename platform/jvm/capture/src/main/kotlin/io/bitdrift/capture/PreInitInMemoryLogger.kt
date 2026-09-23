@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture
 
+import android.util.Log
+import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -19,10 +21,6 @@ import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.toFields
 import java.nio.charset.StandardCharsets
 import java.util.UUID
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 
 /**
@@ -32,21 +30,26 @@ import kotlin.time.Duration
 internal class PreInitInMemoryLogger(
     private val dateProvider: DateProvider? = null,
 ) : IInternalLogger {
-    private val bufferedCalls = ConcurrentLinkedQueue<BufferedCall>()
-    private val bufferedBytes = AtomicInteger(0)
-    private val droppedCallCount = AtomicInteger(0)
-    private val drainTarget = AtomicReference<IInternalLogger?>()
-    private val failed = AtomicBoolean(false)
+    private var bufferedCalls = ArrayDeque<BufferedCall>()
+    private var bufferedBytes = 0
+    private var droppedCallCount = 0
+    private val bufferLock = Any()
     private val drainLock = Any()
 
+    @Volatile
+    private var drainTarget: IInternalLogger? = null
+
+    @Volatile
+    private var failed = false
+
     override val sessionId: String
-        get() = drainTarget.get()?.sessionId ?: UNKNOWN_VALUE
+        get() = drainTarget?.sessionId ?: UNKNOWN_VALUE
     override val sessionUrl: String
-        get() = drainTarget.get()?.sessionUrl ?: UNKNOWN_VALUE
+        get() = drainTarget?.sessionUrl ?: UNKNOWN_VALUE
     override val deviceId: String
-        get() = drainTarget.get()?.deviceId ?: UNKNOWN_VALUE
+        get() = drainTarget?.deviceId ?: UNKNOWN_VALUE
     override val isTracingActive: Boolean
-        get() = drainTarget.get()?.isTracingActive ?: false
+        get() = drainTarget?.isTracingActive ?: false
 
     override fun startNewSession() = startNewSession(null)
 
@@ -54,7 +57,7 @@ internal class PreInitInMemoryLogger(
 
     // Needs the SDK started, so it can't be buffered: it has to answer the caller now.
     override fun createTemporaryDeviceCode(completion: (CaptureResult<String>) -> Unit) {
-        val target = drainTarget.get()
+        val target = drainTarget
         if (target != null) {
             target.createTemporaryDeviceCode(completion)
         } else {
@@ -201,14 +204,27 @@ internal class PreInitInMemoryLogger(
     override fun notifyMemoryPressureLevel(level: MemoryPressureLevel) = add(BufferedCall.NotifyMemoryPressureLevel(level))
 
     override fun getPreviousRunMemoryPressureLevel(): MemoryPressureLevel =
-        drainTarget.get()?.getPreviousRunMemoryPressureLevel() ?: MemoryPressureLevel.Unknown
+        drainTarget?.getPreviousRunMemoryPressureLevel() ?: MemoryPressureLevel.Unknown
 
     /**
-     * Dispatches all buffered calls into the ready native [logger] instance in the order they occurred
+     * Dispatches buffered calls in order and reports any pre-init buffer overflow.
      */
     fun flushToNative(logger: IInternalLogger) {
-        drainTarget.set(logger)
-        drainTo(logger)
+        synchronized(drainLock) {
+            val droppedCalls = drainTo(logger)
+            if (droppedCalls > 0) {
+                val message =
+                    "Pre-init logger buffer overflowed while SDK was starting; new buffered calls were dropped. "
+                Log.w(LOG_TAG, message)
+                logger.logInternal(
+                    type = LogType.INTERNALSDK,
+                    level = LogLevel.WARNING,
+                    arrayFields = fieldsOf("dropped_call_count" to droppedCalls.toString()),
+                ) {
+                    message
+                }
+            }
+        }
     }
 
     /**
@@ -217,57 +233,69 @@ internal class PreInitInMemoryLogger(
      * failed SDK start.
      */
     fun cleanUp() {
-        failed.set(true)
-        bufferedCalls.clear()
-        bufferedBytes.set(0)
+        synchronized(bufferLock) {
+            failed = true
+            drainTarget = null
+            bufferedCalls.clear()
+            bufferedBytes = 0
+            droppedCallCount = 0
+        }
     }
 
     private fun getTimeStampInMs(): Long = dateProvider?.invoke()?.time ?: System.currentTimeMillis()
 
     private fun add(call: BufferedCall) {
-        if (failed.get()) return
+        if (failed) return
 
-        val target = drainTarget.get()
-        if (target != null && bufferedCalls.isEmpty()) {
+        val target = drainTarget
+        if (target != null) {
             call.dispatch(target)
             return
         }
 
-        if (!tryReserveBytes(call.sizeBytes)) {
-            droppedCallCount.incrementAndGet()
-            return
-        }
+        val readyLogger =
+            synchronized(bufferLock) {
+                if (failed) return
+                val currentTarget = drainTarget
+                if (currentTarget == null) {
+                    if (call.sizeBytes > MAX_BUFFER_BYTES - bufferedBytes) {
+                        droppedCallCount++
+                    } else {
+                        bufferedBytes += call.sizeBytes
+                        bufferedCalls.addLast(call)
+                    }
+                    return
+                }
+                currentTarget
+            }
 
-        bufferedCalls.add(call)
-
-        drainTarget.get()?.let(::drainTo)
+        call.dispatch(readyLogger)
     }
 
-    private fun drainTo(logger: IInternalLogger) {
-        synchronized(drainLock) {
-            generateSequence { bufferedCalls.poll() }.forEach { call ->
-                bufferedBytes.addAndGet(-call.sizeBytes)
-                call.dispatch(logger)
+    private fun drainTo(logger: IInternalLogger): Int {
+        while (!failed && drainTarget == null) {
+            val callsToReplay =
+                synchronized(bufferLock) {
+                    if (failed || drainTarget != null) return 0
+                    if (bufferedCalls.isEmpty()) {
+                        drainTarget = logger
+                        return droppedCallCount.also { droppedCallCount = 0 }
+                    }
+                    bufferedCalls.also { bufferedCalls = ArrayDeque() }
+                }
+
+            val replayBatchBytes = callsToReplay.sumOf { it.sizeBytes }
+            repeat(callsToReplay.size) {
+                if (failed) return 0
+                callsToReplay.removeFirst().dispatch(logger)
+            }
+
+            synchronized(bufferLock) {
+                if (failed) return 0
+                bufferedBytes -= replayBatchBytes
             }
         }
-
-        val droppedCalls = droppedCallCount.getAndSet(0)
-        if (droppedCalls > 0) {
-            logger.logInternal(
-                type = LogType.INTERNALSDK,
-                level = LogLevel.WARNING,
-                arrayFields = fieldsOf("dropped_call_count" to droppedCalls.toString()),
-            ) {
-                "Pre-init logger buffer overflowed while SDK was starting; new buffered calls were dropped"
-            }
-        }
-    }
-
-    private fun tryReserveBytes(bytes: Int): Boolean {
-        if (bufferedBytes.addAndGet(bytes) <= MAX_BUFFER_BYTES) return true
-
-        bufferedBytes.addAndGet(-bytes)
-        return false
+        return 0
     }
 
     private sealed interface BufferedCall {
