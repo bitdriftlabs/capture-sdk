@@ -50,6 +50,31 @@ class PreInitInMemoryLoggerTest {
     }
 
     @Test
+    fun `retained handle exposes live properties after handoff`() {
+        val retainedLogger: ILogger = preInitInMemoryLogger
+        whenever(logger.sessionId).thenReturn("session-1")
+        whenever(logger.sessionUrl).thenReturn("https://timeline.bitdrift.io/s/session-1")
+        whenever(logger.deviceId).thenReturn("device-1")
+        whenever(logger.isTracingActive).thenReturn(true)
+
+        flush()
+
+        assertThat(retainedLogger.sessionId).isEqualTo("session-1")
+        assertThat(retainedLogger.sessionUrl).isEqualTo("https://timeline.bitdrift.io/s/session-1")
+        assertThat(retainedLogger.deviceId).isEqualTo("device-1")
+        assertThat(retainedLogger.isTracingActive).isTrue()
+
+        whenever(logger.sessionId).thenReturn("session-2")
+        whenever(logger.sessionUrl).thenReturn("https://timeline.bitdrift.io/s/session-2")
+        whenever(logger.isTracingActive).thenReturn(false)
+
+        assertThat(retainedLogger.sessionId).isEqualTo("session-2")
+        assertThat(retainedLogger.sessionUrl).isEqualTo("https://timeline.bitdrift.io/s/session-2")
+        assertThat(retainedLogger.deviceId).isEqualTo("device-1")
+        assertThat(retainedLogger.isTracingActive).isFalse()
+    }
+
+    @Test
     fun `buffered calls are replayed`() {
         preInitInMemoryLogger.startNewSession("session-id")
         preInitInMemoryLogger.addField("key", "value")

@@ -39,13 +39,14 @@ internal class PreInitInMemoryLogger(
     private val failed = AtomicBoolean(false)
     private val drainLock = Any()
 
-    // Preserve the non-null ILogger contract while initSdk is still in progress. The outer
-    // Capture.Logger getters hide these placeholders by returning null for PreInitInMemoryLogger,
-    // so we keep consumers of ILogger expecting non-null values
-    override val sessionId: String = UNKNOWN_VALUE
-    override val sessionUrl: String = UNKNOWN_VALUE
-    override val deviceId: String = UNKNOWN_VALUE
-    override val isTracingActive: Boolean = false
+    override val sessionId: String
+        get() = drainTarget.get()?.sessionId ?: UNKNOWN_VALUE
+    override val sessionUrl: String
+        get() = drainTarget.get()?.sessionUrl ?: UNKNOWN_VALUE
+    override val deviceId: String
+        get() = drainTarget.get()?.deviceId ?: UNKNOWN_VALUE
+    override val isTracingActive: Boolean
+        get() = drainTarget.get()?.isTracingActive ?: false
 
     override fun startNewSession() = startNewSession(null)
 
