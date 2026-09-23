@@ -13,7 +13,7 @@ import UIKit
 final class SessionReplayController {
     private let queue = DispatchQueue.serial(withLabelSuffix: "ReplayController", target: .default)
     private let replay: Replay = Replay()
-    private let screenshotCaptureLock = NSLock()
+    private let screenshotCaptureLock = Lock()
     private var screenshotCaptureInProgress = false
     private var deviceCommandScreenshotRequestID: UInt64?
 
@@ -54,14 +54,14 @@ extension SessionReplayController: CapturePassable.SessionReplayTarget {
     }
 
     private func startDeviceCommandScreenshotCapture(requestID: UInt64) -> Bool {
-        self.screenshotCaptureLock.lock()
-        defer { self.screenshotCaptureLock.unlock() }
-        guard !self.screenshotCaptureInProgress else {
-            return false
+        return self.screenshotCaptureLock.withLock {
+            guard !self.screenshotCaptureInProgress else {
+                return false
+            }
+            self.screenshotCaptureInProgress = true
+            self.deviceCommandScreenshotRequestID = requestID
+            return true
         }
-        self.screenshotCaptureInProgress = true
-        self.deviceCommandScreenshotRequestID = requestID
-        return true
     }
 
     private func captureDeviceCommandScreenshotJPEG() {
@@ -87,11 +87,12 @@ extension SessionReplayController: CapturePassable.SessionReplayTarget {
     }
 
     private func completeDeviceCommandScreenshotCapture(jpeg: Data?) {
-        self.screenshotCaptureLock.lock()
-        self.screenshotCaptureInProgress = false
-        let requestID = self.deviceCommandScreenshotRequestID
-        self.deviceCommandScreenshotRequestID = nil
-        self.screenshotCaptureLock.unlock()
+        let requestID = self.screenshotCaptureLock.withLock {
+            self.screenshotCaptureInProgress = false
+            let requestID = self.deviceCommandScreenshotRequestID
+            self.deviceCommandScreenshotRequestID = nil
+            return requestID
+        }
 
         guard let requestID else {
             return
