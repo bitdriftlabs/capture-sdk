@@ -119,14 +119,13 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
         let body = message.body
         processingQueue.async {
             do {
-                guard let decodedMessage = try WebViewMessageParser.decode(from: body) as? any WebViewLoggableMessage else {
+                guard let decodedMessage = try WebViewMessageParser.decode(from: body)
+                        as? any WebViewLoggableMessage
+                else {
                     return
                 }
 
-                let context = WebViewLoggingContext(
-                    currentPageViewSpanID: self.currentPageViewSpanID,
-                    activePageViewSpans: self.activePageViewSpans
-                )
+                let context = WebViewLoggingContext(currentPageViewSpanID: self.currentPageViewSpanID)
 
                 if let action = decodedMessage.makeLoggingAction(context: context) {
                     self.execute(action: action)
@@ -137,6 +136,8 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
         }
     }
 
+    // The switch intentionally keeps all bridge action dispatch in one place.
+    // swiftlint:disable:next function_body_length
     private func execute(action: WebViewLoggingAction) {
         guard let logger = loggingProvider?.getLogging() else {
             return
@@ -149,16 +150,34 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
             logger.log(request, file: nil, line: nil, function: nil)
             logger.log(response, file: nil, line: nil, function: nil)
         case .startSpan(let id, let name, let level, let fields, let startTimeInterval, let parentSpanID):
-            let span = logger.startSpan(
-                name: name,
-                level: level,
-                file: nil,
-                line: nil,
-                function: nil,
-                fields: fields,
-                startTimeInterval: startTimeInterval,
-                parentSpanID: parentSpanID
-            )
+            guard let spanID = UUID(uuidString: id) else {
+                return
+            }
+
+            let span = if let spanIDLogger = logger as? InternalSpanIDLogging {
+                spanIDLogger.startSpan(
+                    name: name,
+                    level: level,
+                    file: nil,
+                    line: nil,
+                    function: nil,
+                    fields: fields,
+                    startTimeInterval: startTimeInterval,
+                    parentSpanID: parentSpanID,
+                    spanID: spanID
+                )
+            } else {
+                logger.startSpan(
+                    name: name,
+                    level: level,
+                    file: nil,
+                    line: nil,
+                    function: nil,
+                    fields: fields,
+                    startTimeInterval: startTimeInterval,
+                    parentSpanID: parentSpanID
+                )
+            }
             activePageViewSpans[id] = span
             currentPageViewSpanID = id
         case .endSpan(let id, let result, let fields, let endTimeInterval):

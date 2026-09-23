@@ -92,6 +92,8 @@ export interface WebVitalMessage extends BridgeMessage {
  */
 export interface NetworkRequestMessage extends BridgeMessage {
     type: 'networkRequest';
+    /** Page view span that initiated the request */
+    parentSpanId?: string;
     /** Unique identifier for correlating start/end */
     requestId: string;
     /** HTTP method */

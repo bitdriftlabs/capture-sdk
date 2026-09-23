@@ -8,19 +8,26 @@
 package io.bitdrift.capture.webview
 
 import androidx.webkit.WebMessageCompat
+import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.events.span.Span
+import io.bitdrift.capture.network.HttpRequestInfo
+import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.utils.toStringMap
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.verifyNoInteractions
+import java.util.UUID
 
 class WebViewBridgeMessageHandlerTest {
     private lateinit var logger: IInternalLogger
@@ -34,6 +41,110 @@ class WebViewBridgeMessageHandlerTest {
     fun setUp() {
         logger = mock()
         handler = WebViewBridgeMessageHandler(logger, "automatic_full")
+    }
+
+    @Test
+    fun log_whenNetworkRequestReferencesEndedPageView_shouldUseJavaScriptPageViewSpanId() {
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"pageView",
+                "timestamp":1000,
+                "action":"start",
+                "spanId":"11111111-1111-4111-8111-111111111111",
+                "url":"https://example.com",
+                "reason":"initial"
+            }
+            """.trimIndent(),
+        )
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"pageView",
+                "timestamp":2000,
+                "action":"end",
+                "spanId":"11111111-1111-4111-8111-111111111111",
+                "url":"https://example.com",
+                "reason":"navigation"
+            }
+            """.trimIndent(),
+        )
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"networkRequest",
+                "timestamp":2100,
+                "parentSpanId":"11111111-1111-4111-8111-111111111111",
+                "requestId":"req_1",
+                "method":"GET",
+                "url":"https://example.com/data",
+                "statusCode":200,
+                "durationMs":100,
+                "success":true,
+                "requestType":"fetch"
+            }
+            """.trimIndent(),
+        )
+
+        val requestCaptor = argumentCaptor<HttpRequestInfo>()
+        val responseCaptor = argumentCaptor<HttpResponseInfo>()
+        verify(logger).log(requestCaptor.capture())
+        verify(logger).log(responseCaptor.capture())
+        assertThat(requestCaptor.firstValue.arrayFields["_span_parent_id"])
+            .isEqualTo("11111111-1111-4111-8111-111111111111")
+        assertThat(responseCaptor.firstValue.arrayFields["_span_parent_id"])
+            .isEqualTo("11111111-1111-4111-8111-111111111111")
+    }
+
+    @Test
+    fun log_whenWebVitalReferencesPageView_shouldUseJavaScriptPageViewSpanId() {
+        val webVitalSpan = Span(mock(), "webview.webVital", LogLevel.DEBUG, clock = mock())
+        whenever(logger.startSpan(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(webVitalSpan)
+
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"pageView",
+                "timestamp":1000,
+                "action":"start",
+                "spanId":"11111111-1111-4111-8111-111111111111",
+                "url":"https://example.com",
+                "reason":"initial"
+            }
+            """.trimIndent(),
+        )
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"webVital",
+                "timestamp":1500,
+                "parentSpanId":"11111111-1111-4111-8111-111111111111",
+                "metric":{
+                    "name":"FCP",
+                    "value":100,
+                    "rating":"good",
+                    "delta":100,
+                    "id":"metric-1",
+                    "navigationType":"navigate",
+                    "entries":[]
+                }
+            }
+            """.trimIndent(),
+        )
+
+        verify(logger).startSpan(
+            eq("webview.webVital"),
+            eq(LogLevel.DEBUG),
+            anyOrNull(),
+            eq(1400L),
+            eq(UUID.fromString("11111111-1111-4111-8111-111111111111")),
+        )
     }
 
     @Test

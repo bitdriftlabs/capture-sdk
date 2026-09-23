@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Attached WebView network request spans and Web Vital spans to their originating page view spans.
 
 ### Android
 

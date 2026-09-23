@@ -6,70 +6,38 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @testable import Capture
-@testable import CaptureLoggerBridge
-@testable import CaptureMocks
 import XCTest
 
 final class WebViewLoggingContextTests: XCTestCase {
-    func testParentLoggerSpanIDWithActiveSpanMatchingWebViewSpanIDReturnsItsID() {
-        let span = makeSpan()
-        let sut = WebViewLoggingContext(
-            currentPageViewSpanID: nil,
-            activePageViewSpans: ["webview-span": span]
-        )
-
-        XCTAssertEqual(sut.parentLoggerSpanID(for: "webview-span"), span.id)
-    }
-
-    func testParentLoggerSpanIDWithUnknownWebViewSpanIDThatIsAValidUUIDFallsBackToParsingIt() {
-        let sut = WebViewLoggingContext(currentPageViewSpanID: nil, activePageViewSpans: [:])
+    func testParentSpanIDWithExplicitUUIDReturnsIt() {
+        let sut = WebViewLoggingContext(currentPageViewSpanID: nil)
         let uuid = UUID()
 
-        XCTAssertEqual(sut.parentLoggerSpanID(for: uuid.uuidString), uuid)
+        XCTAssertEqual(sut.parentSpanID(for: uuid.uuidString), uuid)
     }
 
-    func testParentLoggerSpanIDWithUnknownWebViewSpanIDThatIsNotAUUIDReturnsNil() {
-        let sut = WebViewLoggingContext(currentPageViewSpanID: nil, activePageViewSpans: [:])
+    func testParentSpanIDWithInvalidExplicitIDReturnsNil() {
+        let sut = WebViewLoggingContext(currentPageViewSpanID: nil)
 
-        XCTAssertNil(sut.parentLoggerSpanID(for: "not-a-uuid"))
+        XCTAssertNil(sut.parentSpanID(for: "not-a-uuid"))
     }
 
-    func testParentLoggerSpanIDWithNilWebViewSpanIDFallsBackToCurrentPageViewSpan() {
-        let span = makeSpan()
-        let sut = WebViewLoggingContext(
-            currentPageViewSpanID: "current-span",
-            activePageViewSpans: ["current-span": span]
-        )
+    func testParentSpanIDWithNoExplicitIDUsesCurrentPageViewUUID() {
+        let uuid = UUID()
+        let sut = WebViewLoggingContext(currentPageViewSpanID: uuid.uuidString)
 
-        XCTAssertEqual(sut.parentLoggerSpanID(for: nil), span.id)
+        XCTAssertEqual(sut.parentSpanID(for: nil), uuid)
     }
 
-    func testParentLoggerSpanIDWithNilWebViewSpanIDAndNoCurrentPageViewReturnsNil() {
-        let sut = WebViewLoggingContext(currentPageViewSpanID: nil, activePageViewSpans: [:])
+    func testParentSpanIDWithNoExplicitOrCurrentPageViewReturnsNil() {
+        let sut = WebViewLoggingContext(currentPageViewSpanID: nil)
 
-        XCTAssertNil(sut.parentLoggerSpanID(for: nil))
+        XCTAssertNil(sut.parentSpanID(for: nil))
     }
 
-    func testParentLoggerSpanIDWithNilWebViewSpanIDAndUnknownCurrentPageViewReturnsNil() {
-        let sut = WebViewLoggingContext(currentPageViewSpanID: "missing-span", activePageViewSpans: [:])
+    func testParentSpanIDWithInvalidCurrentPageViewReturnsNil() {
+        let sut = WebViewLoggingContext(currentPageViewSpanID: "not-a-uuid")
 
-        XCTAssertNil(sut.parentLoggerSpanID(for: nil))
-    }
-}
-
-private extension WebViewLoggingContextTests {
-    func makeSpan() -> Span {
-        Span(
-            logger: MockCoreLogging(),
-            name: "test-span",
-            level: .debug,
-            file: nil,
-            line: nil,
-            function: nil,
-            fields: nil,
-            timeProvider: MockTimeProvider(),
-            customStartTimeInterval: nil,
-            parentSpanID: nil
-        )
+        XCTAssertNil(sut.parentSpanID(for: nil))
     }
 }

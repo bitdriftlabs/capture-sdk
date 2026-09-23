@@ -8,7 +8,7 @@
 import { onLCP, onCLS, onINP, onFCP, onTTFB, type MetricType } from 'web-vitals';
 import { log, createMessage } from './bridge';
 import { safeCall, makeSafe } from './safe-call';
-import { getCurrentPageSpanId } from './page-view';
+import { getLatestPageSpanId } from './page-view';
 
 export const makeCloneableMetric = (metric: MetricType): MetricType => {
     const { entries, ...rest } = metric;
@@ -26,7 +26,7 @@ export const makeCloneableMetric = (metric: MetricType): MetricType => {
 export const initWebVitals = (): void => {
     safeCall(() => {
         const reportMetric = makeSafe((metric: MetricType): void => {
-            const parentSpanId = getCurrentPageSpanId();
+            const parentSpanId = getLatestPageSpanId();
             const message = createMessage({
                 type: 'webVital',
                 metric: makeCloneableMetric(metric),

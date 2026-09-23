@@ -11,6 +11,9 @@ import { safeCall, makeSafe } from './safe-call';
 /** Current page view span ID */
 let currentPageSpanId: string | null = null;
 
+/** Most recently ended page view span ID, retained for delayed telemetry such as final Web Vitals. */
+let lastPageSpanId: string | null = null;
+
 /** Start time of current page view (epoch ms) */
 let pageViewStartTimeMs: number = 0;
 
@@ -36,6 +39,14 @@ const generateSpanId = (): string => {
  */
 export const getCurrentPageSpanId = (): string | null => {
     return currentPageSpanId;
+};
+
+/**
+ * Get the active page view span ID, or the most recently ended one when telemetry is reported
+ * after the page view lifecycle listener has run.
+ */
+export const getLatestPageSpanId = (): string | null => {
+    return currentPageSpanId ?? lastPageSpanId;
 };
 
 /**
@@ -99,6 +110,7 @@ export const endPageView = (reason: 'navigation' | 'unload' | 'hidden'): void =>
         });
         log(message);
 
+        lastPageSpanId = currentPageSpanId;
         currentPageSpanId = null;
         pageViewStartTimeMs = 0;
     });

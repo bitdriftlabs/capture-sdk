@@ -373,6 +373,34 @@ describe('integration: network interception', () => {
             expect(message.requestId).toMatch(/^req_/);
         });
 
+        it('should preserve the page view that initiated a request', async () => {
+            const collector = createMessageCollector();
+            const mockFetch = createFetchMock();
+            let resolveFetch: ((response: Response) => void) | undefined;
+            mockFetch.mockImplementation(
+                () =>
+                    new Promise<Response>((resolve) => {
+                        resolveFetch = resolve;
+                    }),
+            );
+
+            const { startPageView } = await import('../page-view');
+            const { initNetworkInterceptor } = await import('../network');
+
+            startPageView('https://example.com/page-1', 'navigation');
+            const initiatingPageSpanId = collector.getMessagesByType('pageView')[0].spanId;
+            initNetworkInterceptor();
+            const request = fetch('https://api.example.com/data');
+
+            startPageView('https://example.com/page-2', 'navigation');
+            resolveFetch?.(new Response('OK', { status: 200 }));
+            await request;
+
+            const messages = collector.getMessagesByType('networkRequest') as NetworkRequestMessage[];
+            expect(messages).toHaveLength(1);
+            expect(messages[0].parentSpanId).toBe(initiatingPageSpanId);
+        });
+
         it('should capture failed fetch requests', async () => {
             const collector = createMessageCollector();
             const mockFetch = createFetchMock();

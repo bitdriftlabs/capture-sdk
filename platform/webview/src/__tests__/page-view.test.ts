@@ -64,6 +64,23 @@ describe('page view tracking', () => {
         });
     });
 
+    describe('getLatestPageSpanId', () => {
+        it('should retain the page view ID after the page view ends', async () => {
+            createMessageCollector();
+            const { endPageView, getCurrentPageSpanId, getLatestPageSpanId, initPageViewTracking } = await import(
+                '../page-view'
+            );
+
+            initPageViewTracking();
+            const spanId = getCurrentPageSpanId();
+            endPageView('hidden');
+
+            expect(spanId).not.toBeNull();
+            expect(getCurrentPageSpanId()).toBeNull();
+            expect(getLatestPageSpanId()).toBe(spanId);
+        });
+    });
+
     describe('startPageView', () => {
         it('should end previous page view before starting new one', async () => {
             const collector = createMessageCollector();

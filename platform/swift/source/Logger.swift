@@ -609,6 +609,32 @@ extension Logger: Logging {
         )
     }
 
+    func startSpan(
+        name: String,
+        level: LogLevel,
+        file: String?,
+        line: Int?,
+        function: String?,
+        fields: Fields?,
+        startTimeInterval: TimeInterval?,
+        parentSpanID: UUID?,
+        spanID: UUID
+    ) -> Span {
+        Span(
+            logger: self.underlyingLogger,
+            name: name,
+            level: level,
+            file: file,
+            line: line,
+            function: function,
+            fields: fields,
+            timeProvider: self.timeProvider,
+            customStartTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID,
+            id: spanID
+        )
+    }
+
     public func startDebugOperationsAsNeeded() {
         if !DebugHeuristics.isDebugLikeEnvironment {
             return
@@ -617,6 +643,8 @@ extension Logger: Logging {
         self.deviceCodeController.createCodeOnDebugConsole(for: self.deviceID)
     }
 }
+
+extension Logger: InternalSpanIDLogging {}
 
 // MARK: - Features
 
