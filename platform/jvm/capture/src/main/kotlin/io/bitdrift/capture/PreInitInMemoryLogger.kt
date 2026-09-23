@@ -214,8 +214,8 @@ internal class PreInitInMemoryLogger(
             val droppedCalls = drainTo(logger)
             if (droppedCalls > 0) {
                 val message =
-                    "Pre-init logger buffer overflowed while SDK was starting; new buffered calls were dropped. "
-                Log.w(LOG_TAG, message)
+                    "Pre-init logger buffer overflowed while SDK was starting; new buffered calls were dropped"
+                Log.w(LOG_TAG, "$message (dropped_call_count=$droppedCalls)")
                 logger.logInternal(
                     type = LogType.INTERNALSDK,
                     level = LogLevel.WARNING,
@@ -228,14 +228,12 @@ internal class PreInitInMemoryLogger(
     }
 
     /**
-     * Discards any buffered calls without dispatching them, and marks this instance permanently
-     * dead so any later call is dropped immediately instead of being buffered. Called after a
-     * failed SDK start.
+     * Discards buffered calls after failed startup.
      */
     fun cleanUp() {
         synchronized(bufferLock) {
+            if (drainTarget != null) return
             failed = true
-            drainTarget = null
             bufferedCalls.clear()
             bufferedBytes = 0
             droppedCallCount = 0

@@ -250,6 +250,25 @@ class PreInitInMemoryLoggerTest {
     }
 
     @Test
+    fun `cleanup after handoff preserves the retained logger handle`() {
+        whenever(logger.sessionId).thenReturn("session-id")
+        preInitInMemoryLogger.addField("before", "handoff")
+        flush()
+
+        preInitInMemoryLogger.cleanUp()
+        preInitInMemoryLogger.addField("after", "cleanup")
+        flush()
+
+        assertThat(preInitInMemoryLogger.sessionId).isEqualTo("session-id")
+        inOrder(logger) {
+            verify(logger).addField("before", "handoff")
+            verify(logger).addField("after", "cleanup")
+        }
+        verify(logger, times(1)).addField("before", "handoff")
+        verify(logger, times(1)).addField("after", "cleanup")
+    }
+
+    @Test
     fun `cleanup during drain discards pending calls and prevents forwarding`() {
         val dispatchStarted = CountDownLatch(1)
         val releaseDispatch = CountDownLatch(1)
