@@ -28,6 +28,8 @@ import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFAULT_SIMULATED_START_DELAY_MILLIS
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SIMULATED_START_DELAY_MILLIS_PREFS_KEY
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -147,6 +149,7 @@ object CaptureSdkInitializer {
                 initialFields = settings.initialFields,
                 context = context,
                 startResult = onStartResult,
+                delayMillis = settings.simulatedStartDelayMillis,
             )
         } else {
             Capture.Logger.start(
@@ -221,6 +224,12 @@ object CaptureSdkInitializer {
                 false
             )
 
+        val simulatedStartDelayMillis =
+            sharedPreferences.getString(SIMULATED_START_DELAY_MILLIS_PREFS_KEY, null)
+                ?.toLongOrNull()
+                ?.takeIf { it >= 0 }
+                ?: DEFAULT_SIMULATED_START_DELAY_MILLIS
+
         val captureSdkInitSettings =
             CaptureSdkInitSettings(
                 apiUrl = apiUrl,
@@ -229,6 +238,7 @@ object CaptureSdkInitializer {
                 configuration = configuration,
                 initialFields = initialFields,
                 simulateStartDelay = simulateStartDelay,
+                simulatedStartDelayMillis = simulatedStartDelayMillis,
             )
         return PersistedSdkConfigResult.Success(captureSdkInitSettings)
     }
@@ -330,5 +340,6 @@ object CaptureSdkInitializer {
         val configuration: Configuration,
         val initialFields: Map<String, String>,
         val simulateStartDelay: Boolean,
+        val simulatedStartDelayMillis: Long,
     )
 }

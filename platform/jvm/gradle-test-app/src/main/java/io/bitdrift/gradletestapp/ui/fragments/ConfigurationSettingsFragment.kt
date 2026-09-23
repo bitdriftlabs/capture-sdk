@@ -12,7 +12,9 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.text.InputType
 import android.view.View
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.preference.EditTextPreference
@@ -155,6 +157,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         category.addPreference(buildDeferredStartSwitch(context))
         category.addPreference(buildStartOnBackgroundThreadSwitch(context))
         category.addPreference(buildSimulatedStartDelaySwitch(context))
+        category.addPreference(buildSimulatedStartDelayMillisPreference(context))
     }
 
     private fun addConfigurationOptionsCategory(
@@ -246,7 +249,40 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         buildSwitchPreference(context, START_ON_BACKGROUND_THREAD_PREFS_KEY, START_ON_BACKGROUND_THREAD_TITLE, true)
 
     private fun buildSimulatedStartDelaySwitch(context: Context): SwitchPreference =
-        buildSwitchPreference(context, SIMULATED_START_DELAY_PREFS_KEY, SIMULATED_START_DELAY_TITLE, false)
+        buildSwitchPreference(context, SIMULATED_START_DELAY_PREFS_KEY, SIMULATED_START_DELAY_TITLE, false).apply {
+            setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue == true
+                summary = enabledSummary(enabled)
+                findPreference<EditTextPreference>(SIMULATED_START_DELAY_MILLIS_PREFS_KEY)?.isVisible = enabled
+                true
+            }
+        }
+
+    private fun buildSimulatedStartDelayMillisPreference(context: Context): EditTextPreference {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        return EditTextPreference(context).apply {
+            key = SIMULATED_START_DELAY_MILLIS_PREFS_KEY
+            title = "Simulated delay (ms)"
+            isIconSpaceReserved = false
+            setDefaultValue(DEFAULT_SIMULATED_START_DELAY_MILLIS.toString())
+            summaryProvider = Preference.SummaryProvider<EditTextPreference> {
+                "${it.text ?: DEFAULT_SIMULATED_START_DELAY_MILLIS.toString()} ms"
+            }
+            isVisible = sharedPreferences.getBoolean(SIMULATED_START_DELAY_PREFS_KEY, false)
+            setOnBindEditTextListener { edit ->
+                edit.inputType = InputType.TYPE_CLASS_NUMBER
+                edit.hint = DEFAULT_SIMULATED_START_DELAY_MILLIS.toString()
+            }
+            setOnPreferenceChangeListener { _, newValue ->
+                val millis = newValue.toString().toLongOrNull()
+                val isValid = millis != null && millis >= 0
+                if (!isValid) {
+                    Toast.makeText(context, "Enter a non-negative whole number of milliseconds", Toast.LENGTH_SHORT).show()
+                }
+                isValid
+            }
+        }
+    }
 
     private fun buildSessionReplaySwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, SESSION_REPLAY_ENABLED_PREFS_KEY, SESSION_REPLAY_TITLE, true)
@@ -274,6 +310,8 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
         const val START_ON_BACKGROUND_THREAD_PREFS_KEY = "startOnBackgroundThread"
         const val SIMULATED_START_DELAY_PREFS_KEY = "simulatedStartDelay"
+        const val SIMULATED_START_DELAY_MILLIS_PREFS_KEY = "simulatedStartDelayMillis"
+        const val DEFAULT_SIMULATED_START_DELAY_MILLIS = 5000L
         const val SESSION_REPLAY_ENABLED_PREFS_KEY = "sessionReplayEnabled"
         const val DIAGNOSTICS_ENABLED_KEY = "diagnosticsEnabled"
 

@@ -36,7 +36,9 @@ import okhttp3.HttpUrl
  * A simulated slow native bridge to ease testing/verification of the recently
  * added PreInitMemoryBuffer
  */
-internal object SlowStartBridge : IBridge {
+internal class SlowStartBridge(
+    private val delayMillis: Long,
+) : IBridge {
 
     override fun createLogger(
         sdkDirectory: String,
@@ -68,7 +70,7 @@ internal object SlowStartBridge : IBridge {
     ): Long {
 
         // Just to simulate a super expensive call on the caller thread while creating the logger
-        Thread.sleep(5000)
+        Thread.sleep(delayMillis)
 
         return CaptureJniLibrary.createLogger(
             sdkDirectory = sdkDirectory,
@@ -114,6 +116,7 @@ internal fun startCaptureSdkWithSimulatedDelay(
     initialFields: Fields,
     context: Context,
     startResult: ((CaptureResult<ILogger>) -> Unit)?,
+    delayMillis: Long,
 ) {
     Capture.Logger.start(
         apiKey = apiKey,
@@ -122,7 +125,7 @@ internal fun startCaptureSdkWithSimulatedDelay(
         customFieldGetters = emptyList<FieldGetter>(),
         dateProvider = null,
         apiUrl = apiUrl,
-        bridge = SlowStartBridge,
+        bridge = SlowStartBridge(delayMillis),
         context = context,
         initialFields = initialFields,
         startResult = startResult,
