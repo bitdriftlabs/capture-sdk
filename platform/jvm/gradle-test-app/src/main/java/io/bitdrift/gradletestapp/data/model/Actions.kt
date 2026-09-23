@@ -48,6 +48,10 @@ sealed class DiagnosticsAction : AppAction {
     object LogSingleMessage : DiagnosticsAction()
     object LogManyMessages : DiagnosticsAction()
     object LogJsonField : DiagnosticsAction()
+    object TestPreInitOrdering : DiagnosticsAction()
+
+    object StartSpan : DiagnosticsAction()
+    object EndSpan : DiagnosticsAction()
 
     object ForceAppExit : DiagnosticsAction()
 
@@ -66,6 +70,8 @@ sealed class NetworkTestAction : AppAction {
     object PerformOkHttpRequest : NetworkTestAction()
 
     object PerformOkHttpFailureBeforeResponseHeaders : NetworkTestAction()
+
+    object PerformDelayedOkHttpRequest : NetworkTestAction()
 
     object PerformGraphQlRequest : NetworkTestAction()
 

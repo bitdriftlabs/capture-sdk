@@ -18,7 +18,7 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
-import io.bitdrift.capture.InitializationState
+import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.replay.SessionReplayConfiguration
@@ -28,13 +28,23 @@ import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFAULT_SIMULATED_START_DELAY_MILLIS
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SIMULATED_START_DELAY_MILLIS_PREFS_KEY
 import io.sentry.Sentry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Starts bitdrift's Captures SDK with the persisted config settings
@@ -42,6 +52,13 @@ import java.util.concurrent.Executors
 object CaptureSdkInitializer {
     private val userUuid = UUID.randomUUID().toString()
     private val bitdriftSessionUrlKey = "bitdrift_session_url"
+    private val backgroundStartScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val isCaptureTreePlanted = AtomicBoolean(false)
+    private val _sdkInitializationState = MutableStateFlow<Boolean?>(null)
+    private val _isStarting = MutableStateFlow(false)
+
+    val sdkInitializationState: StateFlow<Boolean?> = _sdkInitializationState.asStateFlow()
+    val isStarting: StateFlow<Boolean> = _isStarting.asStateFlow()
 
     val currentUserUuid: String
         get() = userUuid
@@ -54,6 +71,12 @@ object CaptureSdkInitializer {
         applicationContext: Context,
         sharedPreferences: SharedPreferences,
     ): Boolean {
+        if (Capture.Logger.sessionUrl != null) {
+            _sdkInitializationState.value = true
+            return true
+        }
+
+        _sdkInitializationState.value = null
 
         val persistedSdkConfigResult = getPersistedCaptureSdkSettings(
             applicationContext,
@@ -63,13 +86,27 @@ object CaptureSdkInitializer {
         return when (persistedSdkConfigResult) {
 
             is PersistedSdkConfigResult.Success -> {
-                startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext)
-                logPreviousRunInfoToBitdrift()
-                Capture.Logger.getSdkStatus().initializationState != InitializationState.NOT_STARTED
+                plantCaptureTree()
+                _isStarting.value = true
+
+                val startAction = {
+                    startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext)
+                    logPreviousRunInfoToBitdrift()
+                }
+
+                if (shouldStartOnBackgroundThread(sharedPreferences)) {
+                    backgroundStartScope.launch { startAction() }
+                } else {
+                    startAction()
+                }
+
+                true
             }
 
             is PersistedSdkConfigResult.Failed -> {
                 Timber.i(persistedSdkConfigResult.message)
+                _isStarting.value = false
+                _sdkInitializationState.value = false
                 false
             }
         }
@@ -81,33 +118,61 @@ object CaptureSdkInitializer {
         settings: CaptureSdkInitSettings,
         context: Context,
     ) {
-
-        Capture.Logger.start(
-            apiKey = settings.apiKey,
-            apiUrl = settings.apiUrl,
-            configuration = settings.configuration,
-            sessionStrategy = settings.sessionStrategy,
-            initialFields = settings.initialFields,
-            context = context,
-        ) { startResult ->
+        val onStartResult: (CaptureResult<ILogger>) -> Unit = { startResult ->
             when (startResult) {
                 is CaptureResult.Success -> {
                     val logger = startResult.value
                     Log.d("bitdrift","SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}, userUuid=${userUuid}")
-                    // Route the app's Timber calls into Capture. Without a planted tree every
-                    // Timber.* call in this app is silently dropped before it reaches the SDK.
-                    Timber.plant(CaptureTree())
                     Capture.Logger.setEntityId(userUuid)
                     addSessionUrlToThirdPartySdks(context, logger.sessionUrl)
+                    _isStarting.value = false
+                    _sdkInitializationState.value = true
                 }
 
                 is CaptureResult.Failure -> {
                     Log.d("bitdrift","SDK failed to start: ${startResult.error.message}")
+                    _isStarting.value = false
+                    _sdkInitializationState.value = false
                     // Re-throwing on debug builds so we can get immediate signal of
                     // any issues at Capture.Logger.start internals during the development phase.
                     throw IllegalStateException(startResult.error.message)
                 }
             }
+        }
+
+        if (settings.simulateStartDelay) {
+            startCaptureSdkWithSimulatedDelay(
+                apiKey = settings.apiKey,
+                apiUrl = settings.apiUrl,
+                configuration = settings.configuration,
+                sessionStrategy = settings.sessionStrategy,
+                initialFields = settings.initialFields,
+                context = context,
+                startResult = onStartResult,
+                delayMillis = settings.simulatedStartDelayMillis,
+            )
+        } else {
+            Capture.Logger.start(
+                apiKey = settings.apiKey,
+                apiUrl = settings.apiUrl,
+                configuration = settings.configuration,
+                sessionStrategy = settings.sessionStrategy,
+                initialFields = settings.initialFields,
+                context = context,
+                startResult = onStartResult,
+            )
+        }
+    }
+
+    private fun shouldStartOnBackgroundThread(sharedPreferences: SharedPreferences): Boolean =
+        sharedPreferences.getBoolean(
+            ConfigurationSettingsFragment.Companion.START_ON_BACKGROUND_THREAD_PREFS_KEY,
+            true,
+        )
+
+    private fun plantCaptureTree() {
+        if (isCaptureTreePlanted.compareAndSet(false, true)) {
+            Timber.plant(CaptureTree())
         }
     }
 
@@ -153,6 +218,18 @@ object CaptureSdkInitializer {
             )
         val initialFields = mapOf("user_id" to userUuid)
 
+        val simulateStartDelay =
+            sharedPreferences.getBoolean(
+                ConfigurationSettingsFragment.Companion.SIMULATED_START_DELAY_PREFS_KEY,
+                false
+            )
+
+        val simulatedStartDelayMillis =
+            sharedPreferences.getString(SIMULATED_START_DELAY_MILLIS_PREFS_KEY, null)
+                ?.toLongOrNull()
+                ?.takeIf { it >= 0 }
+                ?: DEFAULT_SIMULATED_START_DELAY_MILLIS
+
         val captureSdkInitSettings =
             CaptureSdkInitSettings(
                 apiUrl = apiUrl,
@@ -160,6 +237,8 @@ object CaptureSdkInitializer {
                 sessionStrategy = sessionStrategy,
                 configuration = configuration,
                 initialFields = initialFields,
+                simulateStartDelay = simulateStartDelay,
+                simulatedStartDelayMillis = simulatedStartDelayMillis,
             )
         return PersistedSdkConfigResult.Success(captureSdkInitSettings)
     }
@@ -260,5 +339,7 @@ object CaptureSdkInitializer {
         val sessionStrategy: SessionStrategy,
         val configuration: Configuration,
         val initialFields: Map<String, String>,
+        val simulateStartDelay: Boolean,
+        val simulatedStartDelayMillis: Long,
     )
 }

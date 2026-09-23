@@ -702,6 +702,7 @@ internal class LoggerImpl(
         val wholeStartDuration: Duration,
         val nativeLoadDuration: Duration,
         val loggerImplBuildDuration: Duration,
+        val flushPreInitToNativeDuration: Duration,
     )
 
     /**
@@ -712,6 +713,7 @@ internal class LoggerImpl(
         appContext: Context,
         sdkConfiguredDuration: SdkConfiguredDuration,
         captureStartThread: String,
+        preInitDroppedCallCount: Int = 0,
     ) {
         eventListenerDispatcher.executorService.execute {
             val installationSource =
@@ -724,10 +726,19 @@ internal class LoggerImpl(
                     "_capture_start_thread" to captureStartThread,
                     "_is_sdk_directory_first_created" to isSdkDirectoryFirstCreated.toString(),
                     "_native_load_duration_ms" to
-                        sdkConfiguredDuration.nativeLoadDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
+                        sdkConfiguredDuration.nativeLoadDuration
+                            .toDouble(DurationUnit.MILLISECONDS)
+                            .toString(),
                     "_logger_build_duration_ms" to
-                        sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
+                        sdkConfiguredDuration.loggerImplBuildDuration
+                            .toDouble(DurationUnit.MILLISECONDS)
+                            .toString(),
+                    "_pre_init_flush_to_native_duration_ms" to
+                        sdkConfiguredDuration.flushPreInitToNativeDuration
+                            .toDouble(DurationUnit.MILLISECONDS)
+                            .toString(),
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
+                    "_pre_init_dropped_call_count" to preInitDroppedCallCount.toString(),
                 )
             val fatalIssueFields =
                 (

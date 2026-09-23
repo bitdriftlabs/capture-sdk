@@ -60,6 +60,7 @@ import io.bitdrift.gradletestapp.ui.compose.components.NetworkTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.SdkStatusCard
 import io.bitdrift.gradletestapp.ui.compose.components.SessionManagementCard
 import io.bitdrift.gradletestapp.ui.compose.components.SleepModeCard
+import io.bitdrift.gradletestapp.ui.compose.components.SpanTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.TestingToolsCard
 import io.bitdrift.gradletestapp.ui.compose.components.TracingStatusCard
 import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
@@ -139,57 +140,57 @@ fun MainScreen(
             )
         },
     ) { paddingValues ->
-        Column(
+        Box(
             modifier =
                 Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
         ) {
-            ErrorBanner(
-                error = uiState.error,
-                onDismiss = { onAction(ClearError) },
-            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                ErrorBanner(
+                    error = uiState.error,
+                    onDismiss = { onAction(ClearError) },
+                )
 
-            when (currentTab) {
-                BottomNavTab.HOME ->
-                    HomeTabContent(
-                        uiState = uiState,
-                        onAction = onAction,
-                        clipboardManager = clipboardManager,
-                        onOpenSettings = { selectedTab = BottomNavTab.SETTINGS.ordinal },
-                    )
+                when (currentTab) {
+                    BottomNavTab.HOME ->
+                        HomeTabContent(
+                            uiState = uiState,
+                            onAction = onAction,
+                            clipboardManager = clipboardManager,
+                            onOpenSettings = { selectedTab = BottomNavTab.SETTINGS.ordinal },
+                        )
 
-                BottomNavTab.SDK_APIS ->
-                    SdkApisTabContent(
-                        uiState = uiState,
-                        onAction = onAction,
-                        context = context,
-                        currentEntityId = currentEntityId,
-                    )
+                    BottomNavTab.SDK_APIS ->
+                        SdkApisTabContent(
+                            uiState = uiState,
+                            onAction = onAction,
+                            context = context,
+                            currentEntityId = currentEntityId,
+                        )
 
-                BottomNavTab.STRESS_TESTS ->
-                    StressTestsTabContent(
-                        diskPressure = uiState.diskPressure,
-                        onAction = onAction,
-                    )
+                    BottomNavTab.STRESS_TESTS ->
+                        StressTestsTabContent(
+                            diskPressure = uiState.diskPressure,
+                            onAction = onAction,
+                        )
 
-                BottomNavTab.APP_TERMINATIONS ->
-                    AppTerminationsTabContent(
-                        uiState = uiState,
-                        onAction = onAction,
-                    )
+                    BottomNavTab.APP_TERMINATIONS ->
+                        AppTerminationsTabContent(
+                            uiState = uiState,
+                            onAction = onAction,
+                        )
 
-                BottomNavTab.NAVIGATE -> NavigateTabContent(onAction = onAction)
-                BottomNavTab.SETTINGS -> SettingsTabContent()
+                    BottomNavTab.NAVIGATE -> NavigateTabContent(onAction = onAction)
+                    BottomNavTab.SETTINGS -> SettingsTabContent()
+                }
             }
 
             if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(color = BitdriftColors.Primary)
-                }
+                CircularProgressIndicator(
+                    color = BitdriftColors.Primary,
+                    modifier = Modifier.align(Alignment.Center),
+                )
             }
         }
     }
@@ -317,6 +318,19 @@ private fun SdkApisTabContent(
                     onAction(DiagnosticsAction.LogJsonField)
                     Toast.makeText(context, "Logged JSON field", Toast.LENGTH_SHORT).show()
                 },
+                onTestPreInitOrdering = { onAction(DiagnosticsAction.TestPreInitOrdering) },
+            )
+        }
+        item {
+            SpanTestingCard(
+                onStartSpan = {
+                    onAction(DiagnosticsAction.StartSpan)
+                    Toast.makeText(context, "Started span", Toast.LENGTH_SHORT).show()
+                },
+                onEndSpan = {
+                    onAction(DiagnosticsAction.EndSpan)
+                    Toast.makeText(context, "Ended span", Toast.LENGTH_SHORT).show()
+                },
             )
         }
         item {
@@ -361,6 +375,7 @@ private fun SdkApisTabContent(
                 onOkHttpFailureBeforeResponseHeaders = {
                     onAction(NetworkTestAction.PerformOkHttpFailureBeforeResponseHeaders)
                 },
+                onDelayedOkHttpRequest = { onAction(NetworkTestAction.PerformDelayedOkHttpRequest) },
                 onGraphQlRequest = { onAction(NetworkTestAction.PerformGraphQlRequest) },
                 onRetrofitRequest = { onAction(NetworkTestAction.PerformRetrofitRequest) },
                 onPreExistingW3cRequest = { onAction(NetworkTestAction.PerformPreExistingW3cRequest) },

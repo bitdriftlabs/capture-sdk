@@ -30,6 +30,7 @@ fun TestingToolsCard(
     onLogSingleMessage: () -> Unit,
     onLogManyMessages: () -> Unit,
     onLogJsonField: () -> Unit,
+    onTestPreInitOrdering: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BdSectionCard(
@@ -59,6 +60,11 @@ fun TestingToolsCard(
         BdSecondaryButton(
             text = "Log JSON Field",
             onClick = onLogJsonField,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        BdSecondaryButton(
+            text = "Test Ordering During Startup",
+            onClick = onTestPreInitOrdering,
             modifier = Modifier.fillMaxWidth(),
         )
     }

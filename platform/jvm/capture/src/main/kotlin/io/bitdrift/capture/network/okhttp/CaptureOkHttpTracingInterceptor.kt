@@ -38,7 +38,8 @@ class CaptureOkHttpTracingInterceptor
         constructor() : this(CaptureRuntimeProvider)
 
         private val traceContextFactory by lazy { TraceContextFactory() }
-        private val requestIgnorePolicy by lazy { RuntimeOkHttpRequestIgnorePolicy(runtimeProvider) }
+        private val requestIgnorePolicy: RuntimeOkHttpRequestIgnorePolicy
+            get() = RuntimeOkHttpRequestIgnorePolicy(runtimeProvider)
 
         override fun intercept(chain: Interceptor.Chain): Response {
             val currentLogger = Capture.logger()

@@ -199,6 +199,22 @@ class NetworkTestingRepository(context: Context) {
         )
     }
 
+    /**
+     * Requests httpbin's /delay endpoint, which holds the response for the given number of
+     * seconds before returning — useful for testing behavior around slow/late-arriving requests,
+     * e.g. ones started while the SDK is still starting.
+     */
+    fun performDelayedOkHttpRequest() {
+        val request =
+            Request
+                .Builder()
+                .url("https://httpbin.org/delay/3")
+                .build()
+
+        Timber.i("Performing delayed (3s) OkHttp request: ${request.url}")
+        performRequestWithPreExistingHeaders(request, "Delayed 3s")
+    }
+
     fun performOkHttpFailureBeforeResponseHeaders() {
         val request =
             Request
