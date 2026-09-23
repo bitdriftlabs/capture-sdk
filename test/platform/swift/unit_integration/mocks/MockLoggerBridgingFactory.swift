@@ -15,6 +15,7 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
     public private(set) var makeLoggerCallsCount = 0
     public private(set) var targetDomains: [String] = []
     public private(set) var initialOotbFields = [CapturePassable.Field]()
+    public private(set) var startupReplayEligibilities: [Int32] = []
 
     public init(logger: LoggerBridging?) {
         self.logger = logger
@@ -39,12 +40,14 @@ public final class MockLoggerBridgingFactory: LoggerBridgingFactoryProvider {
         network _: Network?,
         errorReporting _: RemoteErrorReporting,
         sleepMode _: Capture.SleepMode,
+        startupReplayEligibility: Int32,
         initialFields _: [CapturePassable.Field],
         issueCallbackConfiguration _: IssueCallbackConfiguration?
     ) -> LoggerBridging? {
         self.makeLoggerCallsCount += 1
         self.targetDomains.append(targetDomain)
         self.initialOotbFields = initialOotbFields
+        self.startupReplayEligibilities.append(startupReplayEligibility)
         return self.logger
     }
 }
