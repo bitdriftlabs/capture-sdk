@@ -318,6 +318,7 @@ private fun SdkApisTabContent(
                     onAction(DiagnosticsAction.LogJsonField)
                     Toast.makeText(context, "Logged JSON field", Toast.LENGTH_SHORT).show()
                 },
+                onTestPreInitOrdering = { onAction(DiagnosticsAction.TestPreInitOrdering) },
             )
         }
         item {

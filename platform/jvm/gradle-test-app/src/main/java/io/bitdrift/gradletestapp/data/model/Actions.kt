@@ -48,6 +48,7 @@ sealed class DiagnosticsAction : AppAction {
     object LogSingleMessage : DiagnosticsAction()
     object LogManyMessages : DiagnosticsAction()
     object LogJsonField : DiagnosticsAction()
+    object TestPreInitOrdering : DiagnosticsAction()
 
     object StartSpan : DiagnosticsAction()
     object EndSpan : DiagnosticsAction()
