@@ -37,12 +37,14 @@ class CaptureOkHttpEventListenerFactory internal constructor(
     private val requestFieldProvider: OkHttpRequestFieldProvider,
     private val responseFieldProvider: OkHttpResponseFieldProvider,
 ) : EventListener.Factory {
-    private val configuredPropagationMode by lazy {
-        TracePropagationMode.fromRuntimeValue(
-            runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE),
-        )
-    }
-    private val requestIgnorePolicy by lazy { RuntimeOkHttpRequestIgnorePolicy(runtimeProvider) }
+    private val configuredPropagationMode: TracePropagationMode
+        get() =
+            TracePropagationMode.fromRuntimeValue(
+                runtimeProvider.getRuntimeStringConfigValue(RuntimeStringConfig.TRACE_PROPAGATION_MODE),
+            )
+
+    private val requestIgnorePolicy: RuntimeOkHttpRequestIgnorePolicy
+        get() = RuntimeOkHttpRequestIgnorePolicy(runtimeProvider)
 
     /**
      * Initializes a new instance of the Capture event listener with an existing event listener factory.
