@@ -145,3 +145,15 @@
     public static void instrument(android.webkit.WebView);
     public static void instrument(android.webkit.WebView, io.bitdrift.capture.ILogger);
 }
+
+# JankStatsWarmer looks up these androidx.metrics classes by name and sets the frame metrics
+# handler field by reflection, so keep their names (they can still be shrunk away if unused).
+-keepnames class androidx.metrics.performance.JankStats*
+-keepnames class androidx.metrics.performance.Delegating*
+-keepnames class androidx.metrics.performance.OnFrameListenerDelegate
+-keepclassmembers class androidx.metrics.performance.DelegatingFrameMetricsListener {
+    static android.os.Handler frameMetricsHandler;
+}
+-keepclassmembers class androidx.metrics.performance.JankStatsApi24Impl {
+    static android.os.Handler frameMetricsHandler;
+}

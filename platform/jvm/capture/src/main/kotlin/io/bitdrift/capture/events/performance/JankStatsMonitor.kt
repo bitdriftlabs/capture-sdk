@@ -41,6 +41,7 @@ import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.threading.CaptureDispatchers
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Reports Jank Frames and its duration in ms
@@ -56,6 +57,8 @@ internal class JankStatsMonitor(
     private val windowManager: IWindowManager,
     private val mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     private val backgroundThreadHandler: IBackgroundThreadHandler = CaptureDispatchers.CommonBackground,
+    private val jankStatsWarmer: IJankStatsWarmer = JankStatsWarmer(logger, backgroundThreadHandler),
+    private val mainThreadIdleScheduler: IMainThreadIdleScheduler = MainThreadIdleScheduler(),
 ) : IEventListenerLogger,
     Application.ActivityLifecycleCallbacks,
     LifecycleEventObserver,
@@ -65,19 +68,41 @@ internal class JankStatsMonitor(
     private var currentWindow: Window? = null
     private var performanceMetricsStateHolder: PerformanceMetricsState.Holder? = null
 
+    // The window waiting for the main thread to go idle before JankStats is attached to it
+    private var pendingWindow: Window? = null
+
+    // Incremented on every start() and stop(), so a start() whose warm-up finishes after a later
+    // stop() or start() doesn't register observers
+    private val lifecycleGeneration = AtomicInteger()
+
     override fun start() {
-        mainThreadHandler.run {
-            // TODO(FranAguilera): BIT-4785. To improve detection of Application/Activity lifecycles
-            processLifecycleOwner.lifecycle.addObserver(this)
-            application.registerActivityLifecycleCallbacks(this)
+        val generation = lifecycleGeneration.incrementAndGet()
+        if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
+            registerObservers(generation)
+            return
         }
+        // Do JankStats' one-time setup off the main thread first, so the main thread never waits on it
+        jankStatsWarmer.warmUp { registerObservers(generation) }
     }
 
     override fun stop() {
+        lifecycleGeneration.incrementAndGet()
         stopCollection()
         mainThreadHandler.run {
+            pendingWindow = null
             processLifecycleOwner.lifecycle.removeObserver(this)
             application.unregisterActivityLifecycleCallbacks(this)
+        }
+    }
+
+    private fun registerObservers(generation: Int) {
+        mainThreadHandler.run {
+            if (generation != lifecycleGeneration.get()) {
+                return@run
+            }
+            // TODO(FranAguilera): BIT-4785. To improve detection of Application/Activity lifecycles
+            processLifecycleOwner.lifecycle.addObserver(this)
+            application.registerActivityLifecycleCallbacks(this)
         }
     }
 
@@ -133,7 +158,7 @@ internal class JankStatsMonitor(
         }
         if (event == Lifecycle.Event.ON_RESUME) {
             windowManager.findFirstValidActivity()?.let {
-                setJankStatsForCurrentWindow(it.window)
+                scheduleJankStatsForWindow(it.window)
             }
             // We are done detecting initial Application ON_RESUME, we don't need to listen anymore
             processLifecycleOwner.lifecycle.removeObserver(this)
@@ -144,7 +169,7 @@ internal class JankStatsMonitor(
         if (!runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)) {
             return
         }
-        setJankStatsForCurrentWindow(activity.window)
+        scheduleJankStatsForWindow(activity.window)
     }
 
     override fun onActivityPaused(activity: Activity) {
@@ -183,6 +208,23 @@ internal class JankStatsMonitor(
         }
     }
 
+    /**
+     * Attaches JankStats once the main thread is idle rather than right away, so the setup never
+     * delays work that is already queued, such as the activity's first frame.
+     */
+    @UiThread
+    private fun scheduleJankStatsForWindow(window: Window) {
+        pendingWindow = window
+        mainThreadIdleScheduler.runWhenIdle {
+            // Skip if the activity was paused or destroyed, or another window was scheduled since
+            if (pendingWindow !== window) {
+                return@runWhenIdle
+            }
+            pendingWindow = null
+            setJankStatsForCurrentWindow(window)
+        }
+    }
+
     @UiThread
     private fun setJankStatsForCurrentWindow(window: Window) {
         try {
@@ -200,6 +242,9 @@ internal class JankStatsMonitor(
     }
 
     private fun stopCollectionIfNeeded(activity: Activity) {
+        if (activity.window === pendingWindow) {
+            pendingWindow = null
+        }
         if (activity.window == currentWindow) {
             stopCollection()
         }

@@ -9,6 +9,8 @@ package io.bitdrift.capture.events.performance
 
 import android.app.Activity
 import android.app.Application
+import android.os.Handler
+import android.os.Looper
 import android.view.Window
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -26,22 +28,31 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.Mocks
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.IWindowManager
+import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.performance.JankStatsMonitor.JankFrameType
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.providers.ArrayFields
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.never
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.util.ReflectionHelpers
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
@@ -52,6 +63,9 @@ class JankStatsMonitorTest {
     private val processLifecycleOwner: LifecycleOwner = mock()
     private val windowManager: IWindowManager = mock()
     private val mainThreadHandler = Mocks.sameThreadHandler
+    private val warmUpCallbacks = mutableListOf<() -> Unit>()
+    private val jankStatsWarmer = IJankStatsWarmer { onComplete -> warmUpCallbacks.add(onComplete) }
+    private val immediateIdleScheduler = IMainThreadIdleScheduler { it() }
 
     private val illegalStateExceptionCaptor = argumentCaptor<IllegalStateException>()
     private val logMessageCaptor = argumentCaptor<() -> String>()
@@ -83,6 +97,8 @@ class JankStatsMonitorTest {
                 runtime,
                 windowManager,
                 mainThreadHandler,
+                jankStatsWarmer = jankStatsWarmer,
+                mainThreadIdleScheduler = immediateIdleScheduler,
             )
     }
 
@@ -339,6 +355,157 @@ class JankStatsMonitorTest {
         jankStatsMonitor.onActivityResumed(activity)
 
         assertThat(jankStatsMonitor.jankStats).isNotNull
+    }
+
+    @Test
+    @Config(shadows = [ShadowRecordingHandlerThread::class])
+    fun start_thenActivityResumed_shouldNotWaitOnHandlerThreadLooperFromMainThread() {
+        // JankStats creates its "FrameMetricsAggregator" HandlerThread lazily, once per process,
+        // and keeps it in a static. Clear it so this test always exercises the first creation.
+        resetJankStatsFrameMetricsHandler()
+        ShadowRecordingHandlerThread.mainThreadGetLooperCalls.clear()
+        val backgroundExecutor = Executors.newSingleThreadExecutor()
+        val monitor =
+            JankStatsMonitor(
+                application,
+                logger,
+                processLifecycleOwner,
+                runtime,
+                windowManager,
+                mainThreadHandler = MainThreadHandler(),
+                backgroundThreadHandler =
+                    object : IBackgroundThreadHandler {
+                        override fun runAsync(task: () -> Unit) = backgroundExecutor.execute(task)
+                    },
+                mainThreadIdleScheduler = MainThreadIdleScheduler(),
+            )
+        val resumedActivity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        markAttachedWindowHardwareAccelerated(resumedActivity.window)
+
+        monitor.start()
+        // The warm-up finishes on its own thread and then registers the observers on the main thread
+        awaitMainThreadCondition { mockingDetails(lifecycle).invocations.any { it.method.name == "addObserver" } }
+        monitor.onActivityResumed(resumedActivity)
+        // Run everything deferred to the main thread, since a main-thread wait inside a posted
+        // runnable or an idle handler ANRs just the same.
+        idleMainLooperAndRunIdleHandlers()
+
+        assertThat(monitor.jankStats).isNotNull
+        assertThat(ShadowRecordingHandlerThread.mainThreadGetLooperCalls).isEmpty()
+    }
+
+    @Test
+    fun start_withFlagEnabled_shouldRegisterObserversOnlyAfterWarmUp() {
+        val monitor = buildMonitor()
+
+        monitor.start()
+
+        verify(lifecycle, never()).addObserver(monitor)
+        warmUpCallbacks.single().invoke()
+        verify(lifecycle).addObserver(monitor)
+    }
+
+    @Test
+    fun start_withFlagDisabled_shouldNotWarmUpJankStats() {
+        whenever(runtime.isEnabled(RuntimeFeature.DROPPED_EVENTS_MONITORING)).thenReturn(false)
+        val monitor = buildMonitor()
+
+        monitor.start()
+
+        assertThat(warmUpCallbacks).isEmpty()
+        verify(lifecycle).addObserver(monitor)
+    }
+
+    @Test
+    fun start_withStopBeforeWarmUpFinishes_shouldNotRegisterObservers() {
+        val monitor = buildMonitor()
+
+        monitor.start()
+        monitor.stop()
+        warmUpCallbacks.single().invoke()
+
+        verify(lifecycle, never()).addObserver(monitor)
+    }
+
+    @Test
+    fun onActivityResumed_shouldAttachJankStatsOnlyOnceMainThreadIsIdle() {
+        val monitor = buildMonitor(mainThreadIdleScheduler = MainThreadIdleScheduler())
+
+        monitor.onActivityResumed(activity)
+
+        assertThat(monitor.jankStats).isNull()
+        idleMainLooperAndRunIdleHandlers()
+        assertThat(monitor.jankStats).isNotNull
+    }
+
+    @Test
+    fun onActivityPaused_beforeMainThreadIsIdle_shouldNotAttachJankStats() {
+        val monitor = buildMonitor(mainThreadIdleScheduler = MainThreadIdleScheduler())
+
+        monitor.onActivityResumed(activity)
+        monitor.onActivityPaused(activity)
+        idleMainLooperAndRunIdleHandlers()
+
+        assertThat(monitor.jankStats).isNull()
+    }
+
+    @Test
+    fun onStateChangedAndOnActivityResumed_forSameWindow_shouldAttachJankStatsOnce() {
+        val monitor = buildMonitor(mainThreadIdleScheduler = MainThreadIdleScheduler())
+
+        monitor.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_RESUME)
+        monitor.onActivityResumed(activity)
+        idleMainLooperAndRunIdleHandlers()
+
+        verify(runtime, times(1)).getConfigValue(RuntimeConfig.JANK_FRAME_HEURISTICS_MULTIPLIER)
+    }
+
+    // Robolectric only runs idle handlers after it processes a message, while a device runs them
+    // whenever the queue goes idle. Post an empty message so pending idle handlers run.
+    private fun idleMainLooperAndRunIdleHandlers() {
+        Handler(Looper.getMainLooper()).post {}
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private fun awaitMainThreadCondition(condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5)
+        while (!condition()) {
+            assertThat(System.currentTimeMillis()).isLessThan(deadline)
+            Thread.sleep(10)
+            shadowOf(Looper.getMainLooper()).idle()
+        }
+    }
+
+    private fun buildMonitor(
+        backgroundThreadHandler: IBackgroundThreadHandler = FakeBackgroundThreadHandler(),
+        mainThreadIdleScheduler: IMainThreadIdleScheduler = immediateIdleScheduler,
+    ): JankStatsMonitor =
+        JankStatsMonitor(
+            application,
+            logger,
+            processLifecycleOwner,
+            runtime,
+            windowManager,
+            mainThreadHandler,
+            backgroundThreadHandler,
+            jankStatsWarmer,
+            mainThreadIdleScheduler,
+        )
+
+    // Real devices render with hardware acceleration, and JankStats only creates its HandlerThread
+    // for hardware-accelerated windows. Robolectric attaches windows without it.
+    private fun markAttachedWindowHardwareAccelerated(window: Window) {
+        val attachInfo = ReflectionHelpers.getField<Any>(window.decorView, "mAttachInfo")
+        ReflectionHelpers.setField(attachInfo, "mHardwareAccelerated", true)
+        assertThat(window.decorView.isHardwareAccelerated).isTrue
+    }
+
+    private fun resetJankStatsFrameMetricsHandler() {
+        Class
+            .forName("androidx.metrics.performance.DelegatingFrameMetricsListener")
+            .getDeclaredField("frameMetricsHandler")
+            .apply { isAccessible = true }
+            .set(null, null)
     }
 
     private fun triggerOnFrame(

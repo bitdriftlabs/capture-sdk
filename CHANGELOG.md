@@ -29,6 +29,7 @@
 
 **Fixed**
 
+- Fixed ANRs during SDK startup caused by setting up dropped-frame tracking (JankStats) on the main thread. Its one-time setup now runs on a background thread, and tracking is attached once the main thread is idle.
 - SDK was erronously reporting `_jvm_used_percent` in Resource Utilization logs using the device Locale
 - Fixed OkHttp logs including an invalid `_protocol` value when a request fails before receiving a response.
 
