@@ -937,8 +937,8 @@ object Capture {
                     )
                 }
 
-            val flushToNativeDuration =
-                measureTime {
+            val (preInitDroppedCallCount, flushToNativeDuration) =
+                measureTimedValue {
                     preInitInMemoryLogger.flushToNative(loggerImpl)
                 }
             default.set(LoggerState.Started(loggerImpl))
@@ -959,6 +959,7 @@ object Capture {
                 appContext = appContext,
                 sdkConfiguredDuration = sdkConfiguredDuration,
                 captureStartThread = Thread.currentThread().name,
+                preInitDroppedCallCount = preInitDroppedCallCount,
             )
 
             startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Success(loggerImpl))

@@ -208,8 +208,9 @@ internal class PreInitInMemoryLogger(
     /**
      * Dispatches buffered calls in order and reports any pre-init buffer overflow.
      * Called only by the startup thread after it wins Capture's atomic start check.
+     * @return Number of calls dropped by the pre-init buffer, or zero if none.
      */
-    fun flushToNative(logger: IInternalLogger) {
+    fun flushToNative(logger: IInternalLogger): Int {
         val droppedCalls = drainTo(logger)
         if (droppedCalls > 0) {
             val message =
@@ -223,6 +224,7 @@ internal class PreInitInMemoryLogger(
                 message
             }
         }
+        return droppedCalls
     }
 
     /**

@@ -713,6 +713,7 @@ internal class LoggerImpl(
         appContext: Context,
         sdkConfiguredDuration: SdkConfiguredDuration,
         captureStartThread: String,
+        preInitDroppedCallCount: Int = 0,
     ) {
         eventListenerDispatcher.executorService.execute {
             val installationSource =
@@ -737,6 +738,7 @@ internal class LoggerImpl(
                             .toDouble(DurationUnit.MILLISECONDS)
                             .toString(),
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
+                    "_pre_init_dropped_call_count" to preInitDroppedCallCount.toString(),
                 )
             val fatalIssueFields =
                 (
