@@ -34,7 +34,6 @@ internal class PreInitInMemoryLogger(
     private var bufferedBytes = 0
     private var droppedCallCount = 0
     private val bufferLock = Any()
-    private val drainLock = Any()
 
     @Volatile
     private var drainTarget: IInternalLogger? = null
@@ -208,21 +207,20 @@ internal class PreInitInMemoryLogger(
 
     /**
      * Dispatches buffered calls in order and reports any pre-init buffer overflow.
+     * Called only by the startup thread after it wins Capture's atomic start check.
      */
     fun flushToNative(logger: IInternalLogger) {
-        synchronized(drainLock) {
-            val droppedCalls = drainTo(logger)
-            if (droppedCalls > 0) {
-                val message =
-                    "Pre-init logger buffer overflowed while SDK was starting; new buffered calls were dropped"
-                Log.w(LOG_TAG, "$message (dropped_call_count=$droppedCalls)")
-                logger.logInternal(
-                    type = LogType.INTERNALSDK,
-                    level = LogLevel.WARNING,
-                    arrayFields = fieldsOf("dropped_call_count" to droppedCalls.toString()),
-                ) {
-                    message
-                }
+        val droppedCalls = drainTo(logger)
+        if (droppedCalls > 0) {
+            val message =
+                "Pre-init logger buffer overflowed while SDK was starting; new buffered calls were dropped"
+            Log.w(LOG_TAG, "$message (dropped_call_count=$droppedCalls)")
+            logger.logInternal(
+                type = LogType.INTERNALSDK,
+                level = LogLevel.WARNING,
+                arrayFields = fieldsOf("dropped_call_count" to droppedCalls.toString()),
+            ) {
+                message
             }
         }
     }
