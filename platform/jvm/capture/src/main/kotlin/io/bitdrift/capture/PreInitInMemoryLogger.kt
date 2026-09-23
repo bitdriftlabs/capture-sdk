@@ -91,28 +91,28 @@ internal class PreInitInMemoryLogger(
         fields: Map<String, String>?,
         throwable: Throwable?,
         message: () -> String,
-    ) = add(
+    ) = addLog {
         BufferedCall.Log(
             level = level,
             fields = fieldsWithThrowable(fields, throwable),
             occurredAtMs = getTimeStampInMs(),
             message = message(),
-        ),
-    )
+        )
+    }
 
     override fun log(
         level: LogLevel,
         arrayFields: ArrayFields,
         throwable: Throwable?,
         message: () -> String,
-    ) = add(
+    ) = addLog {
         BufferedCall.Log(
             level = level,
             fields = combineFields(arrayFields, throwableFields(throwable)),
             occurredAtMs = getTimeStampInMs(),
             message = message(),
-        ),
-    )
+        )
+    }
 
     override fun logAppLaunchTTI(duration: Duration) = add(BufferedCall.AppLaunchTti(duration))
 
@@ -140,7 +140,7 @@ internal class PreInitInMemoryLogger(
         attributesOverrides: LogAttributesOverrides?,
         blocking: Boolean,
         message: () -> String,
-    ) = add(
+    ) = addLog {
         BufferedCall.LogInternal(
             type = type,
             level = level,
@@ -150,8 +150,8 @@ internal class PreInitInMemoryLogger(
             attributesOverrides = attributesOverrides ?: LogAttributesOverrides.OccurredAt(getTimeStampInMs()),
             blocking = blocking,
             message = message(),
-        ),
-    )
+        )
+    }
 
     override fun logInternal(
         type: LogType,
@@ -177,7 +177,7 @@ internal class PreInitInMemoryLogger(
         throwable: Throwable?,
         blocking: Boolean,
         message: () -> String,
-    ) = add(BufferedCall.LogInternalError(throwable, blocking, message()))
+    ) = addLog { BufferedCall.LogInternalError(throwable, blocking, message()) }
 
     override fun handleInternalError(
         detail: String,
@@ -243,6 +243,15 @@ internal class PreInitInMemoryLogger(
     }
 
     private fun getTimeStampInMs(): Long = dateProvider?.invoke()?.time ?: System.currentTimeMillis()
+
+    private inline fun addLog(createCall: () -> BufferedCall) {
+        if (failed) return
+        runCatching {
+            add(createCall())
+        }.onFailure {
+            ErrorHandler().handleError("write log", it)
+        }
+    }
 
     private fun add(call: BufferedCall) {
         if (failed) return

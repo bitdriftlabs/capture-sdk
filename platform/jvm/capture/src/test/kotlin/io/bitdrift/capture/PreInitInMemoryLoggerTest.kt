@@ -45,6 +45,44 @@ class PreInitInMemoryLoggerTest {
     private val preInitInMemoryLogger = PreInitInMemoryLogger { Date(nowMs) }
 
     @Test
+    fun `throwing messages are discarded while buffering without breaking later logs`() {
+        logThrowingMessages()
+
+        preInitInMemoryLogger.log(LogLevel.INFO) { "after failure" }
+        verifyNoInteractions(logger)
+        flush()
+
+        assertThat(captureLog(LogType.NORMAL).message).isEqualTo("after failure")
+        verify(logger, never()).logInternalError(any(), any(), any())
+    }
+
+    @Test
+    fun `throwing messages are discarded after handoff without breaking later logs`() {
+        flush()
+        logThrowingMessages()
+
+        verifyNoInteractions(logger)
+        preInitInMemoryLogger.log(LogLevel.INFO) { "after failure" }
+
+        assertThat(captureLog(LogType.NORMAL).message).isEqualTo("after failure")
+    }
+
+    private fun logThrowingMessages() {
+        val message: () -> String = { throw IllegalStateException("message failure") }
+        preInitInMemoryLogger.log(LogLevel.INFO, fields = null, message = message)
+        preInitInMemoryLogger.log(LogLevel.INFO, arrayFields = ArrayFields.EMPTY, message = message)
+        preInitInMemoryLogger.logInternal(LogType.NORMAL, LogLevel.INFO, message = message)
+        preInitInMemoryLogger.logInternal(
+            LogType.NORMAL,
+            LogLevel.INFO,
+            arrayFields = ArrayFields.EMPTY,
+            throwable = IllegalArgumentException("original error"),
+            message = message,
+        )
+        preInitInMemoryLogger.logInternalError(message = message)
+    }
+
+    @Test
     fun `identity properties expose placeholders`() {
         assertThat(preInitInMemoryLogger.sessionId).isEqualTo("unknown")
         assertThat(preInitInMemoryLogger.sessionUrl).isEqualTo("unknown")
