@@ -81,6 +81,30 @@ describe('page view tracking', () => {
         });
     });
 
+    describe('getPageSpanIdAtTime', () => {
+        it('resolves earlier pages after navigation and excludes gaps between page views', async () => {
+            createMessageCollector();
+            const now = vi.spyOn(performance, 'now').mockReturnValue(100);
+            const { startPageView, endPageView, getCurrentPageSpanId, getPageSpanIdAtTime } = await import(
+                '../page-view'
+            );
+
+            startPageView('https://example.com/first', 'initial');
+            const firstPageSpanId = getCurrentPageSpanId();
+            now.mockReturnValue(200);
+            endPageView('hidden');
+            now.mockReturnValue(300);
+            startPageView('https://example.com/second', 'navigation');
+            const secondPageSpanId = getCurrentPageSpanId();
+
+            expect(getPageSpanIdAtTime(150)).toBe(firstPageSpanId);
+            expect(getPageSpanIdAtTime(250)).toBeNull();
+            expect(getPageSpanIdAtTime(300)).toBe(secondPageSpanId);
+            expect(getPageSpanIdAtTime(-1)).toBeNull();
+            now.mockRestore();
+        });
+    });
+
     describe('startPageView', () => {
         it('should end previous page view before starting new one', async () => {
             const collector = createMessageCollector();

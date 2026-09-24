@@ -40,4 +40,16 @@ final class WebViewLoggingContextTests: XCTestCase {
 
         XCTAssertNil(sut.parentSpanID(for: nil))
     }
+
+    func testParentSpanIDUsesNativeIDForCurrentAndDelayedChildren() {
+        let javascriptID = UUID().uuidString
+        let nativeID = UUID()
+        let sut = WebViewLoggingContext(
+            currentPageViewSpanID: javascriptID,
+            nativePageViewSpanIDs: [javascriptID: nativeID]
+        )
+
+        XCTAssertEqual(sut.parentSpanID(for: nil), nativeID)
+        XCTAssertEqual(sut.parentSpanID(for: javascriptID), nativeID)
+    }
 }

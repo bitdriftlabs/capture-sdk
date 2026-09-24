@@ -17,6 +17,10 @@ let lastPageSpanId: string | null = null;
 /** Start time of current page view (epoch ms) */
 let pageViewStartTimeMs: number = 0;
 
+/** Page intervals use the same time origin as PerformanceEntry.startTime. */
+const pageSpans: { id: string; startTime: number; endTime?: number }[] = [];
+const MAX_RETAINED_PAGE_SPANS = 256;
+
 /**
  * Generate a unique span ID
  */
@@ -49,6 +53,22 @@ export const getLatestPageSpanId = (): string | null => {
     return currentPageSpanId ?? lastPageSpanId;
 };
 
+/** Find the page view in which a browser performance entry began. */
+export const getPageSpanIdAtTime = (startTime: number): string | null => {
+    if (!Number.isFinite(startTime) || startTime < 0) {
+        return null;
+    }
+
+    for (let i = pageSpans.length - 1; i >= 0; i--) {
+        const pageSpan = pageSpans[i];
+        if (startTime >= pageSpan.startTime) {
+            return pageSpan.endTime === undefined || startTime <= pageSpan.endTime ? pageSpan.id : null;
+        }
+    }
+
+    return null;
+};
+
 /**
  * Start a new page view span.
  * This will end any existing page view span first.
@@ -72,6 +92,14 @@ export const startPageView = (url: string, reason: 'initial' | 'navigation' = 'n
             pageViewStartTimeMs = Math.round(performance.timeOrigin);
         } else {
             pageViewStartTimeMs = Date.now();
+        }
+
+        pageSpans.push({
+            id: currentPageSpanId,
+            startTime: reason === 'initial' ? 0 : performance.now(),
+        });
+        if (pageSpans.length > MAX_RETAINED_PAGE_SPANS) {
+            pageSpans.shift();
         }
 
         const message = createMessage({
@@ -98,6 +126,10 @@ export const endPageView = (reason: 'navigation' | 'unload' | 'hidden'): void =>
 
         const now = Date.now();
         const durationMs = now - pageViewStartTimeMs;
+        const currentPageSpan = pageSpans[pageSpans.length - 1];
+        if (currentPageSpan?.id === currentPageSpanId) {
+            currentPageSpan.endTime = performance.now();
+        }
 
         const message = createMessage({
             type: 'pageView',

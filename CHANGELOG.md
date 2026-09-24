@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Attached WebView network request spans and Web Vital spans to their originating page view spans.
+- Attached WebView network request spans and Web Vital spans to their originating page view spans, including telemetry reported after navigation and spans created by custom iOS loggers.
 
 ### Android
 

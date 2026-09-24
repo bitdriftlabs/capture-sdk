@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
-import { getCurrentPageSpanId } from './page-view';
+import { getCurrentPageSpanId, getPageSpanIdAtTime } from './page-view';
 import { safeCall, makeSafe } from './safe-call';
 
 let requestCounter = 0;
@@ -427,7 +427,7 @@ const initResourceObserver = (): void => {
 
                                 const message = createMessage({
                                     type: 'networkRequest',
-                                    parentSpanId: getCurrentPageSpanId() ?? undefined,
+                                    parentSpanId: getPageSpanIdAtTime(resourceEntry.startTime) ?? undefined,
                                     requestId: generateRequestId(),
                                     method: 'GET', // Browser resource loads are typically GET
                                     url: resourceEntry.name,

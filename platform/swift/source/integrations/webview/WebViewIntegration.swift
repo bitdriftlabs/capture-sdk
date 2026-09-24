@@ -120,10 +120,14 @@ extension WKWebView {
 }
 
 class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    private static let maxRetainedPageViewSpanIDs = 256
+
     private let processingQueue: DispatchQueue
     private var loggingProvider: LoggingProvider?
     private var currentPageViewSpanID: String?
     private var activePageViewSpans = [String: Span]()
+    private var nativePageViewSpanIDs = [String: UUID]()
+    private var retainedPageViewSpanIDOrder = [String]()
 
     init(
         loggingProvider: LoggingProvider,
@@ -146,7 +150,10 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
                     return
                 }
 
-                let context = WebViewLoggingContext(currentPageViewSpanID: self.currentPageViewSpanID)
+                let context = WebViewLoggingContext(
+                    currentPageViewSpanID: self.currentPageViewSpanID,
+                    nativePageViewSpanIDs: self.nativePageViewSpanIDs
+                )
 
                 if let action = decodedMessage.makeLoggingAction(context: context) {
                     self.execute(action: action)
@@ -185,6 +192,14 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
             )
             activePageViewSpans[id] = span
             currentPageViewSpanID = id
+            if span.id != spanID {
+                if nativePageViewSpanIDs.updateValue(span.id, forKey: id) == nil {
+                    retainedPageViewSpanIDOrder.append(id)
+                }
+                if retainedPageViewSpanIDOrder.count > Self.maxRetainedPageViewSpanIDs {
+                    nativePageViewSpanIDs.removeValue(forKey: retainedPageViewSpanIDOrder.removeFirst())
+                }
+            }
         case .endSpan(let id, let result, let fields, let endTimeInterval):
             activePageViewSpans.removeValue(forKey: id)?.end(
                 result,

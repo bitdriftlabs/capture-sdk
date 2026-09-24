@@ -8,7 +8,9 @@
 import { onLCP, onCLS, onINP, onFCP, onTTFB, type MetricType } from 'web-vitals';
 import { log, createMessage } from './bridge';
 import { safeCall, makeSafe } from './safe-call';
-import { getLatestPageSpanId } from './page-view';
+import { getCurrentPageSpanId, getLatestPageSpanId, getPageSpanIdAtTime } from './page-view';
+
+const MAX_RETAINED_METRIC_PARENTS = 512;
 
 export const makeCloneableMetric = (metric: MetricType): MetricType => {
     const { entries, ...rest } = metric;
@@ -25,8 +27,30 @@ export const makeCloneableMetric = (metric: MetricType): MetricType => {
  */
 export const initWebVitals = (): void => {
     safeCall(() => {
+        // Metrics without entries still belong to the document in which monitoring began.
+        const initialPageSpanId = getCurrentPageSpanId();
+        const metricParentSpanIds = new Map<string, string>();
+
         const reportMetric = makeSafe((metric: MetricType): void => {
-            const parentSpanId = getLatestPageSpanId();
+            let parentSpanId = metricParentSpanIds.get(metric.id) ?? null;
+            if (!parentSpanId) {
+                const firstEntry = metric.entries[0];
+                parentSpanId = firstEntry
+                    ? getPageSpanIdAtTime(firstEntry.startTime)
+                    : metric.navigationType === 'back-forward-cache'
+                      ? getLatestPageSpanId()
+                      : initialPageSpanId;
+
+                if (parentSpanId) {
+                    metricParentSpanIds.set(metric.id, parentSpanId);
+                    if (metricParentSpanIds.size > MAX_RETAINED_METRIC_PARENTS) {
+                        const oldestMetricId = metricParentSpanIds.keys().next().value;
+                        if (oldestMetricId) {
+                            metricParentSpanIds.delete(oldestMetricId);
+                        }
+                    }
+                }
+            }
             const message = createMessage({
                 type: 'webVital',
                 metric: makeCloneableMetric(metric),

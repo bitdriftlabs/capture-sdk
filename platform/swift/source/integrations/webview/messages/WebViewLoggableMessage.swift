@@ -13,13 +13,14 @@ protocol WebViewLoggableMessage: WebViewMessage {
 
 struct WebViewLoggingContext {
     let currentPageViewSpanID: String?
+    var nativePageViewSpanIDs: [String: UUID] = [:]
 
     func parentSpanID(for webViewSpanID: String?) -> UUID? {
         guard let spanID = webViewSpanID ?? currentPageViewSpanID else {
             return nil
         }
 
-        return UUID(uuidString: spanID)
+        return nativePageViewSpanIDs[spanID] ?? UUID(uuidString: spanID)
     }
 }
 
