@@ -220,7 +220,7 @@ extension URLSessionNetworkClient: URLSessionTaskDelegate {
                         -> Void)
     {
         guard
-            challenge.protectionSpace.host == "localhost",
+            challenge.protectionSpace.host == "127.0.0.1",
             let trust: SecTrust = challenge.protectionSpace.serverTrust
         else {
             completionHandler(.performDefaultHandling, nil)
