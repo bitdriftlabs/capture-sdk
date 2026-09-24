@@ -8,6 +8,27 @@
 import Foundation
 import WebKit
 
+private extension Logging {
+    func startWebViewSpan(
+        name: String, level: LogLevel, fields: Fields?,
+        startTimeInterval: TimeInterval?, parentSpanID: UUID?, spanID: UUID
+    ) -> Span {
+        if let spanIDLogger = self as? InternalSpanIDLogging {
+            return spanIDLogger.startSpan(
+                name: name, level: level, file: nil, line: nil, function: nil,
+                fields: fields, startTimeInterval: startTimeInterval,
+                parentSpanID: parentSpanID, spanID: spanID
+            )
+        }
+
+        return startSpan(
+            name: name, level: level, file: nil, line: nil, function: nil,
+            fields: fields, startTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID
+        )
+    }
+}
+
 extension Integration {
     /// - parameter disableSwizzling: Overrides the global swizzling setting, to disable swizzling in
     ///                               favor of manual instrumentation without affecting other
@@ -154,30 +175,14 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
                 return
             }
 
-            let span = if let spanIDLogger = logger as? InternalSpanIDLogging {
-                spanIDLogger.startSpan(
-                    name: name,
-                    level: level,
-                    file: nil,
-                    line: nil,
-                    function: nil,
-                    fields: fields,
-                    startTimeInterval: startTimeInterval,
-                    parentSpanID: parentSpanID,
-                    spanID: spanID
-                )
-            } else {
-                logger.startSpan(
-                    name: name,
-                    level: level,
-                    file: nil,
-                    line: nil,
-                    function: nil,
-                    fields: fields,
-                    startTimeInterval: startTimeInterval,
-                    parentSpanID: parentSpanID
-                )
-            }
+            let span = logger.startWebViewSpan(
+                name: name,
+                level: level,
+                fields: fields,
+                startTimeInterval: startTimeInterval,
+                parentSpanID: parentSpanID,
+                spanID: spanID
+            )
             activePageViewSpans[id] = span
             currentPageViewSpanID = id
         case .endSpan(let id, let result, let fields, let endTimeInterval):

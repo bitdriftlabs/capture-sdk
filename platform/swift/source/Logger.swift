@@ -595,17 +595,16 @@ extension Logger: Logging {
         parentSpanID: UUID?
     ) -> Span
     {
-        Span(
-            logger: self.underlyingLogger,
+        startSpan(
             name: name,
             level: level,
             file: file,
             line: line,
             function: function,
             fields: fields,
-            timeProvider: self.timeProvider,
-            customStartTimeInterval: startTimeInterval,
-            parentSpanID: parentSpanID
+            startTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID,
+            spanID: UUID()
         )
     }
 
