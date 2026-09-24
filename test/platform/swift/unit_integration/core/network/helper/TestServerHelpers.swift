@@ -58,8 +58,11 @@ public final class TestApiServer: @unchecked Sendable {
         destroy_test_api_server_instance(self.handle)
     }
 
+    /// Uses the IP instead of `localhost` so the SDK's URLSession never depends on
+    /// name resolution inside the simulator. On CI the resolver can stall for over a minute and every
+    /// stream then times out before the client even attempts a TCP connection.
     public var baseURL: URL {
-        URL(string: "https://localhost:\(port)")!
+        URL(string: "https://127.0.0.1:\(port)")!
     }
 
     public var readinessDescription: String {
