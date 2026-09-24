@@ -237,6 +237,7 @@ jobs:
     outputs:
       ios_app_size_kb: ${{ steps.ios_size.outputs.current_kb }}
       capture_binary_size_kb: ${{ steps.capture_binary_size.outputs.current_kb }}
+      capture_archive_breakdown: ${{ steps.capture_archive_breakdown.outputs.json }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -339,6 +340,15 @@ jobs:
           fi
           echo "current_kb=$IOS_CAPTURE_BINARY_SIZE_KB" >> "$GITHUB_OUTPUT"
 
+      - name: Snapshot Capture SDK archive composition
+        id: capture_archive_breakdown
+        env:
+          IOS_CAPTURE_BINARY_PATH: ios_capture_size/Capture.xcframework/ios-arm64/Capture.framework/Capture
+        run: |
+          set -euo pipefail
+          ./ci/capture_ios_archive_breakdown.py "$IOS_CAPTURE_BINARY_PATH" > ios_capture_archive_breakdown.json
+          echo "json=$(cat ios_capture_archive_breakdown.json)" >> "$GITHUB_OUTPUT"
+
       - name: Upload iOS size artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -380,12 +390,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IOS_APP_SIZE_KB: ${{ needs.ios_size_comparison.outputs.ios_app_size_kb }}
           IOS_CAPTURE_BINARY_SIZE_KB: ${{ needs.ios_size_comparison.outputs.capture_binary_size_kb }}
+          IOS_CAPTURE_ARCHIVE_BREAKDOWN: ${{ needs.ios_size_comparison.outputs.capture_archive_breakdown }}
         run: |
           set -euo pipefail
           BASELINE_FILE=ci/baseline_ios_app_size_kb.txt
           CAPTURE_BINARY_BASELINE_FILE=ci/baseline_ios_capture_binary_size_kb.txt
+          CAPTURE_ARCHIVE_BREAKDOWN_BASELINE_FILE=ci/baseline_ios_capture_archive_breakdown.json
           echo "$IOS_APP_SIZE_KB" > "$BASELINE_FILE"
           echo "$IOS_CAPTURE_BINARY_SIZE_KB" > "$CAPTURE_BINARY_BASELINE_FILE"
+          echo "$IOS_CAPTURE_ARCHIVE_BREAKDOWN" > "$CAPTURE_ARCHIVE_BREAKDOWN_BASELINE_FILE"
 
           # main updates a dedicated ci-baseline branch that stores the latest accepted iOS size
           # snapshot. PRs read from that branch so they can compare against main without rebuilding it.
@@ -397,9 +410,10 @@ jobs:
 
           cp "$BASELINE_FILE" temp-worktree/ci/
           cp "$CAPTURE_BINARY_BASELINE_FILE" temp-worktree/ci/
+          cp "$CAPTURE_ARCHIVE_BREAKDOWN_BASELINE_FILE" temp-worktree/ci/
 
           cd temp-worktree
-          git add ci/baseline_ios_app_size_kb.txt ci/baseline_ios_capture_binary_size_kb.txt
+          git add ci/baseline_ios_app_size_kb.txt ci/baseline_ios_capture_binary_size_kb.txt ci/baseline_ios_capture_archive_breakdown.json
 
           if ! git diff --cached --quiet; then
             git commit -m "ci: update iOS size baselines [skip ci]"
@@ -425,6 +439,9 @@ jobs:
             fi
             if [ -f temp-baseline/ci/baseline_ios_capture_binary_size_kb.txt ]; then
               cp temp-baseline/ci/baseline_ios_capture_binary_size_kb.txt ci/
+            fi
+            if [ -f temp-baseline/ci/baseline_ios_capture_archive_breakdown.json ]; then
+              cp temp-baseline/ci/baseline_ios_capture_archive_breakdown.json ci/
             fi
             git worktree remove temp-baseline --force
           else
@@ -473,6 +490,30 @@ jobs:
             echo "diff_kb=$DIFF_KB" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Compare Capture SDK archive composition
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        id: capture_archive_breakdown_compare
+        env:
+          IOS_CAPTURE_ARCHIVE_BREAKDOWN: ${{ needs.ios_size_comparison.outputs.capture_archive_breakdown }}
+        run: |
+          set -euo pipefail
+          CURRENT_PATH=ios_capture_archive_breakdown.json
+          BASELINE_PATH=ci/baseline_ios_capture_archive_breakdown.json
+          REPORT_PATH=ios_capture_archive_breakdown_report.md
+          echo "$IOS_CAPTURE_ARCHIVE_BREAKDOWN" > "$CURRENT_PATH"
+
+          if [ -n "$IOS_CAPTURE_ARCHIVE_BREAKDOWN" ] && [ -f "$BASELINE_PATH" ]; then
+            ./ci/compare_ios_archive_breakdown.py "$BASELINE_PATH" "$CURRENT_PATH" > "$REPORT_PATH"
+          else
+            : > "$REPORT_PATH"
+          fi
+
+          {
+            echo "markdown<<EOF"
+            cat "$REPORT_PATH"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Report iOS app size on PR
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
@@ -484,6 +525,7 @@ jobs:
           IOS_CAPTURE_BINARY_CURRENT_KB: ${{ steps.capture_binary_size_compare.outputs.current_kb }}
           IOS_CAPTURE_BINARY_BASELINE_KB: ${{ steps.capture_binary_size_compare.outputs.baseline_kb }}
           IOS_CAPTURE_BINARY_DIFF_KB: ${{ steps.capture_binary_size_compare.outputs.diff_kb }}
+          IOS_CAPTURE_ARCHIVE_BREAKDOWN: ${{ steps.capture_archive_breakdown_compare.outputs.markdown }}
         with:
           script: |
             const marker = '<!-- ios-size-comparison -->';
@@ -493,6 +535,7 @@ jobs:
             const captureCurrent = process.env.IOS_CAPTURE_BINARY_CURRENT_KB;
             const captureBaseline = process.env.IOS_CAPTURE_BINARY_BASELINE_KB;
             const captureDiff = process.env.IOS_CAPTURE_BINARY_DIFF_KB;
+            const captureArchiveBreakdown = process.env.IOS_CAPTURE_ARCHIVE_BREAKDOWN;
 
             let body = `${marker}
             ## iOS Size Comparison Report
@@ -525,6 +568,10 @@ jobs:
                   body += `\n> Capture SDK binary size decreased by ${Math.abs(captureDiffNumber)} KB.`;
                 } else {
                   body += '\n> Capture SDK binary size unchanged.';
+                }
+
+                if (captureDiffNumber > 0 && captureArchiveBreakdown) {
+                  body += `\n\n${captureArchiveBreakdown}`;
                 }
               }
             } else {
