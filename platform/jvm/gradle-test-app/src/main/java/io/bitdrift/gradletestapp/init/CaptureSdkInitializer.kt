@@ -5,6 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+
 package io.bitdrift.gradletestapp.init
 
 import android.annotation.SuppressLint
@@ -21,6 +23,7 @@ import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
@@ -30,6 +33,9 @@ import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFAULT_SIMULATED_START_DELAY_MILLIS
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SIMULATED_START_DELAY_MILLIS_PREFS_KEY
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.StartModePreferences
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -89,15 +95,24 @@ object CaptureSdkInitializer {
                 plantCaptureTree()
                 _isStarting.value = true
 
-                val startAction = {
-                    startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext)
-                    logPreviousRunInfoToBitdrift()
-                }
+                val settings = persistedSdkConfigResult.captureSdkInitSettings
+                when (getStartMode(sharedPreferences)) {
+                    StartModePreferences.CALLER_THREAD ->
+                        startCaptureSdk(settings, applicationContext, async = false)
 
-                if (shouldStartOnBackgroundThread(sharedPreferences)) {
-                    backgroundStartScope.launch { startAction() }
-                } else {
-                    startAction()
+                    StartModePreferences.COROUTINES_DEFAULT ->
+                        backgroundStartScope.launch {
+                            startCaptureSdk(settings, applicationContext, async = false)
+                        }
+
+                    StartModePreferences.RXJAVA_COMPUTATION ->
+                        Completable
+                            .fromAction { startCaptureSdk(settings, applicationContext, async = false) }
+                            .subscribeOn(Schedulers.computation())
+                            .subscribe()
+
+                    StartModePreferences.START_ASYNC ->
+                        startCaptureSdk(settings, applicationContext, async = true)
                 }
 
                 true
@@ -117,6 +132,7 @@ object CaptureSdkInitializer {
     private fun startCaptureSdk(
         settings: CaptureSdkInitSettings,
         context: Context,
+        async: Boolean,
     ) {
         val onStartResult: (CaptureResult<ILogger>) -> Unit = { startResult ->
             when (startResult) {
@@ -125,6 +141,7 @@ object CaptureSdkInitializer {
                     Log.d("bitdrift","SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}, userUuid=${userUuid}")
                     Capture.Logger.setEntityId(userUuid)
                     addSessionUrlToThirdPartySdks(context, logger.sessionUrl)
+                    logPreviousRunInfoToBitdrift()
                     _isStarting.value = false
                     _sdkInitializationState.value = true
                 }
@@ -140,34 +157,50 @@ object CaptureSdkInitializer {
             }
         }
 
-        if (settings.simulateStartDelay) {
-            startCaptureSdkWithSimulatedDelay(
-                apiKey = settings.apiKey,
-                apiUrl = settings.apiUrl,
-                configuration = settings.configuration,
-                sessionStrategy = settings.sessionStrategy,
-                initialFields = settings.initialFields,
-                context = context,
-                startResult = onStartResult,
-                delayMillis = settings.simulatedStartDelayMillis,
-            )
-        } else {
-            Capture.Logger.start(
-                apiKey = settings.apiKey,
-                apiUrl = settings.apiUrl,
-                configuration = settings.configuration,
-                sessionStrategy = settings.sessionStrategy,
-                initialFields = settings.initialFields,
-                context = context,
-                startResult = onStartResult,
-            )
+        // Calling internal 
+        when {
+            settings.simulateStartDelay ->
+                Capture.Logger.start(
+                    apiKey = settings.apiKey,
+                    sessionStrategy = settings.sessionStrategy,
+                    configuration = settings.configuration,
+                    customFieldGetters = emptyList(),
+                    dateProvider = null,
+                    apiUrl = settings.apiUrl,
+                    bridge = SlowStartBridge(settings.simulatedStartDelayMillis),
+                    context = context,
+                    initialFields = settings.initialFields,
+                    startResult = onStartResult,
+                    backgroundThreadHandler = if (async) CaptureDispatchers.CommonBackground else null,
+                )
+
+            async ->
+                Capture.Logger.startAsync(
+                    apiKey = settings.apiKey,
+                    apiUrl = settings.apiUrl,
+                    configuration = settings.configuration,
+                    sessionStrategy = settings.sessionStrategy,
+                    initialFields = settings.initialFields,
+                    context = context,
+                    startResult = onStartResult,
+                )
+
+            else ->
+                Capture.Logger.start(
+                    apiKey = settings.apiKey,
+                    apiUrl = settings.apiUrl,
+                    configuration = settings.configuration,
+                    sessionStrategy = settings.sessionStrategy,
+                    initialFields = settings.initialFields,
+                    context = context,
+                    startResult = onStartResult,
+                )
         }
     }
 
-    private fun shouldStartOnBackgroundThread(sharedPreferences: SharedPreferences): Boolean =
-        sharedPreferences.getBoolean(
-            ConfigurationSettingsFragment.Companion.START_ON_BACKGROUND_THREAD_PREFS_KEY,
-            true,
+    private fun getStartMode(sharedPreferences: SharedPreferences): StartModePreferences =
+        StartModePreferences.fromDisplayName(
+            sharedPreferences.getString(ConfigurationSettingsFragment.Companion.START_MODE_PREFS_KEY, null),
         )
 
     private fun plantCaptureTree() {

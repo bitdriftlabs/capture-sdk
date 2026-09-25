@@ -155,7 +155,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         category.addPreference(buildSessionStrategyList(context))
         category.addPreference(buildInactivityThresholdPreference(context))
         category.addPreference(buildDeferredStartSwitch(context))
-        category.addPreference(buildStartOnBackgroundThreadSwitch(context))
+        category.addPreference(buildStartModeList(context))
         category.addPreference(buildSimulatedStartDelaySwitch(context))
         category.addPreference(buildSimulatedStartDelayMillisPreference(context))
     }
@@ -245,8 +245,18 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     private fun buildDeferredStartSwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, DEFERRED_START_PREFS_KEY, DEFERRED_START_TITLE, false)
 
-    private fun buildStartOnBackgroundThreadSwitch(context: Context): SwitchPreference =
-        buildSwitchPreference(context, START_ON_BACKGROUND_THREAD_PREFS_KEY, START_ON_BACKGROUND_THREAD_TITLE, true)
+    private fun buildStartModeList(context: Context): ListPreference {
+        val entries = StartModePreferences.entries.map { it.displayName }.toTypedArray()
+        return ListPreference(context).apply {
+            key = START_MODE_PREFS_KEY
+            title = START_MODE_TITLE
+            isIconSpaceReserved = false
+            this.entries = entries
+            entryValues = entries
+            setDefaultValue(StartModePreferences.DEFAULT.displayName)
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        }
+    }
 
     private fun buildSimulatedStartDelaySwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, SIMULATED_START_DELAY_PREFS_KEY, SIMULATED_START_DELAY_TITLE, false).apply {
@@ -302,13 +312,30 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         ACTIVITY_BASED("Activity Based"),
     }
 
+    enum class StartModePreferences(
+        val displayName: String,
+    ) {
+        CALLER_THREAD("Logger.start on caller thread (main)"),
+        COROUTINES_DEFAULT("Logger.start via Coroutines (Dispatchers.Default)"),
+        RXJAVA_COMPUTATION("Logger.start via RxJava (Schedulers.computation)"),
+        START_ASYNC("Logger.startAsync"),
+        ;
+
+        companion object {
+            val DEFAULT = COROUTINES_DEFAULT
+
+            fun fromDisplayName(displayName: String?): StartModePreferences =
+                entries.firstOrNull { it.displayName == displayName } ?: DEFAULT
+        }
+    }
+
     companion object {
         const val BITDRIFT_API_KEY = "api_key"
         const val BITDRIFT_URL_KEY = "apiUrl"
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
-        const val START_ON_BACKGROUND_THREAD_PREFS_KEY = "startOnBackgroundThread"
+        const val START_MODE_PREFS_KEY = "startMode"
         const val SIMULATED_START_DELAY_PREFS_KEY = "simulatedStartDelay"
         const val SIMULATED_START_DELAY_MILLIS_PREFS_KEY = "simulatedStartDelayMillis"
         const val DEFAULT_SIMULATED_START_DELAY_MILLIS = 5000L
@@ -323,7 +350,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         private const val SESSION_STRATEGY_TITLE = "Session Strategy"
         private const val FATAL_ISSUE_TITLE = "Fatal Issue Reporter"
         private const val DEFERRED_START_TITLE = "Deferred SDK Start"
-        private const val START_ON_BACKGROUND_THREAD_TITLE = "Start SDK on Background Thread"
+        private const val START_MODE_TITLE = "SDK Start Mode"
         private const val SIMULATED_START_DELAY_TITLE = "Start with Simulated SDK Internal Delay"
         private const val SESSION_REPLAY_TITLE = "Session Replay"
         private const val DIAGNOSTICS_TITLE = "Diagnostics Tools"

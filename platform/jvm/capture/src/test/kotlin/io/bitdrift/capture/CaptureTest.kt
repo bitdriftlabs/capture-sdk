@@ -11,6 +11,7 @@ import android.app.ApplicationExitInfo
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
@@ -21,6 +22,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.ExitReason
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.assertPreviousRunInfo
 import io.bitdrift.capture.utils.setIsDebuggable
@@ -34,6 +36,8 @@ import org.junit.runners.MethodSorters
 import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
@@ -41,12 +45,14 @@ import org.robolectric.annotation.Config
 @Suppress("DEPRECATION")
 class CaptureTest {
     private val latestAppExitInfoProvider = FakeLatestAppExitInfoProvider()
+    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
     private val preferences = MockPreferences()
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
 
     @Before
     fun tearDown() {
         latestAppExitInfoProvider.reset()
+        backgroundThreadHandler.reset()
         Logger.resetShared()
     }
 
@@ -83,6 +89,25 @@ class CaptureTest {
         assertThat(capturedResult).isInstanceOf(CaptureResult.Failure::class.java)
         val failure = capturedResult as CaptureResult.Failure
         assertThat(failure.error).isInstanceOf(SdkStartFailure::class.java)
+        assertThat(failure.error.message).contains("null context")
+    }
+
+    @Test
+    fun aStart_withBackgroundThreadHandlerAndNullContext_emitsFailureThroughHandler() {
+        var capturedResult: CaptureResult<ILogger>? = null
+
+        Logger.start(
+            apiKey = "test1",
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+            bridge = mock(IBridge::class.java),
+            context = null,
+            backgroundThreadHandler = backgroundThreadHandler,
+        ) { result ->
+            capturedResult = result
+        }
+
+        assertThat(backgroundThreadHandler.runAsyncCallCount).isEqualTo(1)
+        val failure = capturedResult as CaptureResult.Failure
         assertThat(failure.error.message).contains("null context")
     }
 
@@ -158,6 +183,39 @@ class CaptureTest {
 
         // Calling reconfigure a second time does not change the static logger.
         assertThat(logger).isEqualTo(Capture.logger())
+    }
+
+    @Test
+    fun startAsync_returnsBeforeInitAndCompletesOnCommonBackground() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+        val backgroundBlocker = CountDownLatch(1)
+        CaptureDispatchers.CommonBackground.runAsync { backgroundBlocker.await(5, TimeUnit.SECONDS) }
+        val startResultLatch = CountDownLatch(1)
+        var capturedResult: CaptureResult<ILogger>? = null
+        var startResultThreadName: String? = null
+
+        Logger.startAsync(
+            apiKey = "test1",
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+            initialFields = emptyMap(),
+        ) { result ->
+            capturedResult = result
+            startResultThreadName = Thread.currentThread().name
+            startResultLatch.countDown()
+        }
+
+        assertThat(Capture.logger()).isInstanceOf(PreInitInMemoryLogger::class.java)
+        assertThat(startResultLatch.count).isEqualTo(1)
+        Logger.startNewSession("buffered-session-id")
+
+        backgroundBlocker.countDown()
+
+        assertThat(startResultLatch.await(10, TimeUnit.SECONDS)).isTrue()
+        assertThat(capturedResult).isInstanceOf(CaptureResult.Success::class.java)
+        assertThat(startResultThreadName).isEqualTo("io.bitdrift.capture.background-thread-worker")
+        assertThat(Capture.logger()).isInstanceOf(LoggerImpl::class.java)
+        assertThat(Logger.sessionId).isEqualTo("buffered-session-id")
     }
 
     @Test
