@@ -45,6 +45,10 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
+import io.bitdrift.capture.network.okhttp.otel.HttpSpanExportData
+import io.bitdrift.capture.network.okhttp.otel.OtelResourceAttributes
+import io.bitdrift.capture.network.okhttp.otel.OtelSpanBuilder
+import io.bitdrift.capture.network.okhttp.otel.OtelSpanExporter
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.CustomFieldsProvider
 import io.bitdrift.capture.providers.DateProvider
@@ -130,6 +134,12 @@ internal class LoggerImpl(
     private val networkAttributes = NetworkAttributes(context)
     private val ootbFieldProviders: List<IOotbFieldProvider> = listOf(localeAttributes, networkAttributes)
     private var jankStatsMonitor: JankStatsMonitor? = null
+
+    @OptIn(ExperimentalBitdriftApi::class)
+    private val otelSpanExporter: OtelSpanExporter? =
+        configuration.otelExportConfiguration?.let {
+            OtelSpanExporter(it, sharedOkHttpClient, errorHandler)
+        }
 
     // Session URLs are only needed when queried externally, so derive the
     // timeline base URL on first access. We replace only the first "api."
@@ -455,6 +465,13 @@ internal class LoggerImpl(
         value: String,
     ) {
         CaptureJniLibrary.updateOotbLogField(this.loggerId, key, value)
+    }
+
+    override fun exportOtelHttpSpan(data: HttpSpanExportData) {
+        val exporter = otelSpanExporter ?: return
+        val resource = OtelResourceAttributes.build(clientAttributes, this, BuildConfig.SDK_VERSION)
+        val span = OtelSpanBuilder.build(data, networkAttributes, clientAttributes)
+        exporter.export(resource, span)
     }
 
     override fun removeField(key: String) {

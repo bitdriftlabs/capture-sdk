@@ -56,6 +56,13 @@ android {
     defaultConfig {
         minSdk = 23
         consumerProguardFiles("consumer-rules.pro")
+        // Exposes the SDK's own release version to Kotlin, for the OTel `telemetry.sdk.version`
+        // resource attribute.
+        buildConfigField("String", "SDK_VERSION", "\"${project.version}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {

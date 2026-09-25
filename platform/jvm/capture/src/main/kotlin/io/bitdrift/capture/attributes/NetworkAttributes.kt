@@ -73,6 +73,46 @@ internal class NetworkAttributes(
     @Volatile
     private var logger: IInternalLogger? = null
 
+    // Cached alongside the OOTB fields below so OTel span export can read the current network
+    // state without re-touching ConnectivityManager/TelephonyManager (and re-checking
+    // READ_PHONE_STATE) on every single request.
+    @Volatile
+    private var currentNetworkType: String = UNKNOWN_FIELD_VALUE
+
+    @Volatile
+    private var currentRadioType: String = UNKNOWN_FIELD_VALUE
+
+    @Volatile
+    private var currentCarrier: String = UNKNOWN_FIELD_VALUE
+
+    @Volatile
+    private var currentMcc: String? = null
+
+    @Volatile
+    private var currentMnc: String? = null
+
+    /** OTel `network.connection.type`: `wifi`/`cell`/`wired`/`unavailable`/`unknown`. */
+    internal fun otelConnectionType(): String =
+        when (currentNetworkType) {
+            "wlan" -> "wifi"
+            "wwan" -> "cell"
+            "ethernet" -> "wired"
+            "other" -> UNKNOWN_FIELD_VALUE
+            else -> UNKNOWN_FIELD_VALUE
+        }
+
+    /** OTel `network.connection.subtype`, e.g. `lte`, `nr`. */
+    internal fun otelConnectionSubtype(): String = currentRadioType
+
+    /** OTel `network.carrier.name`. */
+    internal fun otelCarrierName(): String = currentCarrier
+
+    /** OTel `network.carrier.mcc`, the first 3 digits of `simOperator`, if available. */
+    internal fun otelCarrierMcc(): String? = currentMcc
+
+    /** OTel `network.carrier.mnc`, the digits of `simOperator` after the MCC, if available. */
+    internal fun otelCarrierMnc(): String? = currentMnc
+
     /** Starts forwarding network changes to the native OOTB field store. */
     override fun start(logger: IInternalLogger) {
         this.logger = logger
@@ -125,12 +165,22 @@ internal class NetworkAttributes(
                 }
             } ?: UNKNOWN_FIELD_VALUE
 
+        currentNetworkType = type
         publishOotbField(KEY_NETWORK_TYPE, type)
     }
 
     private fun updateTelephonyAttributes() {
         val carrier = telephonyManager.networkOperatorName ?: UNKNOWN_FIELD_VALUE
         val radioType = permissiveOperation({ radioType() }, READ_PHONE_STATE)
+        // simOperator is only meaningful if READ_PHONE_STATE is granted and a SIM is present;
+        // "forbidden" (permissiveOperation's own sentinel) or a too-short string both mean "unknown".
+        val simOperator = permissiveOperation({ telephonyManager.simOperator.orEmpty() }, READ_PHONE_STATE)
+        val hasValidSimOperator = simOperator != "forbidden" && simOperator.length >= MCC_LENGTH
+
+        currentCarrier = carrier
+        currentRadioType = radioType
+        currentMcc = if (hasValidSimOperator) simOperator.substring(0, MCC_LENGTH) else null
+        currentMnc = if (hasValidSimOperator && simOperator.length > MCC_LENGTH) simOperator.substring(MCC_LENGTH) else null
 
         publishOotbField(KEY_CARRIER, carrier)
         publishOotbField(KEY_RADIO_TYPE, radioType)
@@ -163,5 +213,9 @@ internal class NetworkAttributes(
         private const val KEY_NETWORK_TYPE = "network_type"
         private const val KEY_RADIO_TYPE = "radio_type"
         private const val UNKNOWN_FIELD_VALUE = "unknown"
+
+        // simOperator is the MCC (3 digits) followed by the MNC (2-3 digits), concatenated with
+        // no separator, e.g. "310260" -> MCC "310", MNC "260".
+        private const val MCC_LENGTH = 3
     }
 }

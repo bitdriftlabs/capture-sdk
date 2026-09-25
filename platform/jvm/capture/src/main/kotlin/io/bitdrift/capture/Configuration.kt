@@ -8,6 +8,7 @@
 package io.bitdrift.capture
 
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.capture.network.okhttp.otel.OtelExportConfiguration
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 
@@ -19,6 +20,9 @@ import io.bitdrift.capture.reports.IssueCallbackConfiguration
  * @param sleepMode SleepMode.ENABLED if Capture should initialize in minimal activity mode
  * @param issueCallbackConfiguration Optional callback configuration used for issue report callbacks.
  *                                   This is only effective when [enableFatalIssueReporting] is true.
+ * @param otelExportConfiguration Optional configuration for exporting OpenTelemetry spans for
+ *                                traced network requests to an external OTLP/HTTP endpoint.
+ *                                Passing `null` (the default) disables the feature.
  */
 data class Configuration
     @JvmOverloads
@@ -28,4 +32,6 @@ data class Configuration
         val sleepMode: SleepMode = SleepMode.DISABLED,
         @property:ExperimentalBitdriftApi
         val issueCallbackConfiguration: IssueCallbackConfiguration? = null,
+        @property:ExperimentalBitdriftApi
+        val otelExportConfiguration: OtelExportConfiguration? = null,
     )

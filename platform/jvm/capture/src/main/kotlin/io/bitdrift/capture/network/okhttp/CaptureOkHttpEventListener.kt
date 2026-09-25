@@ -9,6 +9,7 @@ package io.bitdrift.capture.network.okhttp
 
 import android.net.TrafficStats
 import io.bitdrift.capture.ILogger
+import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.network.HttpField
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -16,6 +17,7 @@ import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.network.okhttp.otel.HttpSpanExportData
 import okhttp3.Call
 import okhttp3.Connection
 import okhttp3.EventListener
@@ -105,6 +107,13 @@ internal class CaptureOkHttpEventListener internal constructor(
     @Volatile
     private var callStartTimeMs: Long = 0
 
+    /**
+     * Wall-clock start time, separate from the monotonic [callStartTimeMs] above, since OTLP spans
+     * need epoch nanos for `startTimeUnixNano`/`endTimeUnixNano`.
+     */
+    @Volatile
+    private var callStartTimeEpochMs: Long = 0
+
     @Volatile
     private var tlsStartTimeMs: Long? = null
 
@@ -124,6 +133,7 @@ internal class CaptureOkHttpEventListener internal constructor(
         runCatching { targetEventListener?.callStart(call) }
 
         callStartTimeMs = clock.elapsedRealtime()
+        callStartTimeEpochMs = System.currentTimeMillis()
 
         val request = call.request()
         val extraFields =
@@ -408,16 +418,20 @@ internal class CaptureOkHttpEventListener internal constructor(
                 headers = response.headers.toMap(),
             )
 
+        val durationMs = (clock.elapsedRealtime() - callStartTimeMs)
+        val metrics = getMetrics()
+
         val httpResponseInfo =
             HttpResponseInfo(
                 request = requestInfo,
                 response = httpResponse,
-                durationMs = (clock.elapsedRealtime() - callStartTimeMs),
-                metrics = getMetrics(),
+                durationMs = durationMs,
+                metrics = metrics,
                 extraFields = extraFields,
             )
 
         logger?.log(httpResponseInfo)
+        exportOtelSpanIfTraced(request, requestInfo, httpResponse, metrics, durationMs)
     }
 
     override fun callFailed(
@@ -451,15 +465,19 @@ internal class CaptureOkHttpEventListener internal constructor(
                 error = ioe,
             )
 
+        val durationMs = (clock.elapsedRealtime() - callStartTimeMs)
+        val metrics = getMetrics()
+
         val httpResponseInfo =
             HttpResponseInfo(
                 request = requestInfo,
                 response = httpResponse,
-                durationMs = (clock.elapsedRealtime() - callStartTimeMs),
-                metrics = getMetrics(),
+                durationMs = durationMs,
+                metrics = metrics,
                 extraFields = extraFields,
             )
         logger?.log(httpResponseInfo)
+        exportOtelSpanIfTraced(request, requestInfo, httpResponse, metrics, durationMs)
     }
 
     override fun canceled(call: Call) {
@@ -489,6 +507,27 @@ internal class CaptureOkHttpEventListener internal constructor(
         cachedResponse: Response,
     ) {
         runCatching { targetEventListener?.cacheConditionalHit(call, cachedResponse) }
+    }
+
+    private fun exportOtelSpanIfTraced(
+        request: Request,
+        requestInfo: HttpRequestInfo,
+        response: HttpResponse,
+        metrics: HttpRequestMetrics,
+        durationMs: Long,
+    ) {
+        val traceContext = request.tag(TraceContext::class.java) ?: return
+        (logger as? IInternalLogger)?.exportOtelHttpSpan(
+            HttpSpanExportData(
+                traceContext = traceContext,
+                request = requestInfo,
+                httpRequest = request,
+                response = response,
+                metrics = metrics,
+                startTimeEpochMs = callStartTimeEpochMs,
+                durationMs = durationMs,
+            ),
+        )
     }
 
     private fun getMetrics(): HttpRequestMetrics =

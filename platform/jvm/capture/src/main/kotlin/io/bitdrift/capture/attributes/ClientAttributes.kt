@@ -82,6 +82,13 @@ internal class ClientAttributes(
             Field(FOREGROUND_KEY, FieldValue.StringField(foregroundValue())),
         )
 
+    /**
+     * OTel `android.app.state`: `foreground`/`background`. There is no generic `app.state` in
+     * the OTel semantic convention registry, only the platform-namespaced
+     * `android.app.state`/`ios.app.state`.
+     */
+    internal fun currentAppState(): String = if (isForeground()) "foreground" else "background"
+
     private fun isForeground(): Boolean {
         // refer to lifecycle states https://developer.android.com/topic/libraries/architecture/lifecycle#lc
         val appState = processLifecycleOwner.lifecycle.currentState

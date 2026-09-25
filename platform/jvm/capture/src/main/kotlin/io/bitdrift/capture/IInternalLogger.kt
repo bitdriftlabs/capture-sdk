@@ -8,6 +8,7 @@
 package io.bitdrift.capture
 
 import io.bitdrift.capture.events.performance.MemoryPressureLevel
+import io.bitdrift.capture.network.okhttp.otel.HttpSpanExportData
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.Field
 import kotlin.time.Duration
@@ -74,4 +75,10 @@ internal interface IInternalLogger : ILogger {
      * as persisted in the native KV state store.
      */
     fun getPreviousRunMemoryPressureLevel(): MemoryPressureLevel
+
+    /**
+     * Exports an OTel span for a completed, traced HTTP request to the configured OTLP/HTTP
+     * endpoint. No-ops when OTel export isn't configured (see [Configuration.otelExportConfiguration]).
+     */
+    fun exportOtelHttpSpan(data: HttpSpanExportData)
 }

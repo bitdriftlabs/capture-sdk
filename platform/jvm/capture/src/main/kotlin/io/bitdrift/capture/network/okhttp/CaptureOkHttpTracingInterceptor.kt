@@ -22,6 +22,15 @@ import okhttp3.Request
 import okhttp3.Response
 
 /**
+ * Request tag marking a request as SDK-internal telemetry (e.g. an OTel span export POST), so
+ * [CaptureOkHttpTracingInterceptor] never injects trace headers or tags it with a [TraceContext].
+ * Without this, an OTel span export request would itself be eligible for tracing, which — since
+ * the OTel span exporter reacts to any traced request — would export a span describing its own
+ * export call, recursively.
+ */
+internal object InternalTelemetryRequestTag
+
+/**
  * Injects tracing headers into outgoing requests when Capture tracing is active for this session.
  *
  * If the request already contains any known tracing headers (W3C `traceparent`, B3 single `b3`,
@@ -45,7 +54,11 @@ class CaptureOkHttpTracingInterceptor
             val currentLogger = Capture.logger()
             val request = chain.request()
 
-            if (currentLogger == null || requestIgnorePolicy.shouldIgnore(request) || TracePropagation.hasExistingTraceHeaders(request)) {
+            if (currentLogger == null ||
+                requestIgnorePolicy.shouldIgnore(request) ||
+                TracePropagation.hasExistingTraceHeaders(request) ||
+                request.tag(InternalTelemetryRequestTag::class.java) != null
+            ) {
                 return chain.proceed(request)
             }
 
@@ -85,6 +98,12 @@ class CaptureOkHttpTracingInterceptor
                 TracePropagationMode.NONE -> return chain.proceed(request)
             }
             requestBuilder.header(BITDRIFT_INITIATED_TRACE_HEADER, "true")
+            // Tag the request with the exact TraceContext used for the header above, so the event
+            // listener can export an OTel span with the same trace/span ID once the call
+            // completes, without re-parsing it back out of whichever header format was used.
+            // `Response.request` (unlike `Call.request()`) reflects this tagged, per-attempt
+            // request instance.
+            requestBuilder.tag(TraceContext::class.java, traceContext)
             return chain.proceed(requestBuilder.build())
         }
 

@@ -13,6 +13,7 @@ import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.network.okhttp.otel.HttpSpanExportData
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
@@ -171,6 +172,8 @@ internal class PreInitInMemoryLogger(
         key: String,
         value: String,
     ) = add(BufferedCall.UpdateOotbField(key, value))
+
+    override fun exportOtelHttpSpan(data: HttpSpanExportData) = add(BufferedCall.ExportOtelHttpSpan(data))
 
     override fun logInternalError(
         throwable: Throwable?,
@@ -525,6 +528,17 @@ internal class PreInitInMemoryLogger(
             override val sizeBytes = OVERHEAD_BYTES
 
             override fun dispatch(logger: IInternalLogger) = logger.setSleepMode(sleepMode)
+        }
+
+        data class ExportOtelHttpSpan(
+            val data: HttpSpanExportData,
+        ) : BufferedCall {
+            // Not expected to happen often (tracing must already be active pre-init), and the
+            // payload isn't string-field-based like the other buffered calls, so a fixed
+            // overhead is a reasonable approximation.
+            override val sizeBytes = OVERHEAD_BYTES
+
+            override fun dispatch(logger: IInternalLogger) = logger.exportOtelHttpSpan(data)
         }
     }
 
