@@ -167,7 +167,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare.outputs.version }}
-        run: gh release delete "v$VERSION-no-jank-stats" --yes
+        run: gh release delete "v$VERSION-no-jank-stats" --repo "$GITHUB_REPOSITORY" --yes
 
       - name: Summary
         env:
