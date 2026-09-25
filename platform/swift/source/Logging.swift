@@ -195,6 +195,14 @@ public protocol Logging {
     ) -> Span
 }
 
+/// Internal span creation support for integrations that receive a span ID from another runtime.
+protocol InternalSpanIDLogging: Logging {
+    func startSpan(
+        name: String, level: LogLevel, file: String?, line: Int?, function: String?,
+        fields: Fields?, startTimeInterval: TimeInterval?, parentSpanID: UUID?, spanID: UUID
+    ) -> Span
+}
+
 extension Logging {
     /// Logs a message at a specified level to the default logger instance. Provides default values for
     /// `file`, `line`, and `function` parameters.

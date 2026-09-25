@@ -8,6 +8,27 @@
 import Foundation
 import WebKit
 
+private extension Logging {
+    func startWebViewSpan(
+        name: String, level: LogLevel, fields: Fields?,
+        startTimeInterval: TimeInterval?, parentSpanID: UUID?, spanID: UUID
+    ) -> Span {
+        if let spanIDLogger = self as? InternalSpanIDLogging {
+            return spanIDLogger.startSpan(
+                name: name, level: level, file: nil, line: nil, function: nil,
+                fields: fields, startTimeInterval: startTimeInterval,
+                parentSpanID: parentSpanID, spanID: spanID
+            )
+        }
+
+        return startSpan(
+            name: name, level: level, file: nil, line: nil, function: nil,
+            fields: fields, startTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID
+        )
+    }
+}
+
 extension Integration {
     /// - parameter disableSwizzling: Overrides the global swizzling setting, to disable swizzling in
     ///                               favor of manual instrumentation without affecting other
@@ -99,10 +120,14 @@ extension WKWebView {
 }
 
 class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    private static let maxRetainedPageViewSpanIDs = 256
+
     private let processingQueue: DispatchQueue
     private var loggingProvider: LoggingProvider?
     private var currentPageViewSpanID: String?
     private var activePageViewSpans = [String: Span]()
+    private var nativePageViewSpanIDs = [String: UUID]()
+    private var retainedPageViewSpanIDOrder = [String]()
 
     init(
         loggingProvider: LoggingProvider,
@@ -119,13 +144,15 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
         let body = message.body
         processingQueue.async {
             do {
-                guard let decodedMessage = try WebViewMessageParser.decode(from: body) as? any WebViewLoggableMessage else {
+                guard let decodedMessage = try WebViewMessageParser.decode(from: body)
+                        as? any WebViewLoggableMessage
+                else {
                     return
                 }
 
                 let context = WebViewLoggingContext(
                     currentPageViewSpanID: self.currentPageViewSpanID,
-                    activePageViewSpans: self.activePageViewSpans
+                    nativePageViewSpanIDs: self.nativePageViewSpanIDs
                 )
 
                 if let action = decodedMessage.makeLoggingAction(context: context) {
@@ -137,6 +164,8 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
         }
     }
 
+    // The switch intentionally keeps all bridge action dispatch in one place.
+    // swiftlint:disable:next function_body_length
     private func execute(action: WebViewLoggingAction) {
         guard let logger = loggingProvider?.getLogging() else {
             return
@@ -149,18 +178,28 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
             logger.log(request, file: nil, line: nil, function: nil)
             logger.log(response, file: nil, line: nil, function: nil)
         case .startSpan(let id, let name, let level, let fields, let startTimeInterval, let parentSpanID):
-            let span = logger.startSpan(
+            guard let spanID = UUID(uuidString: id) else {
+                return
+            }
+
+            let span = logger.startWebViewSpan(
                 name: name,
                 level: level,
-                file: nil,
-                line: nil,
-                function: nil,
                 fields: fields,
                 startTimeInterval: startTimeInterval,
-                parentSpanID: parentSpanID
+                parentSpanID: parentSpanID,
+                spanID: spanID
             )
             activePageViewSpans[id] = span
             currentPageViewSpanID = id
+            if span.id != spanID {
+                if nativePageViewSpanIDs.updateValue(span.id, forKey: id) == nil {
+                    retainedPageViewSpanIDOrder.append(id)
+                }
+                if retainedPageViewSpanIDOrder.count > Self.maxRetainedPageViewSpanIDs {
+                    nativePageViewSpanIDs.removeValue(forKey: retainedPageViewSpanIDOrder.removeFirst())
+                }
+            }
         case .endSpan(let id, let result, let fields, let endTimeInterval):
             activePageViewSpans.removeValue(forKey: id)?.end(
                 result,

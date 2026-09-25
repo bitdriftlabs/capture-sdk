@@ -595,6 +595,30 @@ extension Logger: Logging {
         parentSpanID: UUID?
     ) -> Span
     {
+        startSpan(
+            name: name,
+            level: level,
+            file: file,
+            line: line,
+            function: function,
+            fields: fields,
+            startTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID,
+            spanID: UUID()
+        )
+    }
+
+    func startSpan(
+        name: String,
+        level: LogLevel,
+        file: String?,
+        line: Int?,
+        function: String?,
+        fields: Fields?,
+        startTimeInterval: TimeInterval?,
+        parentSpanID: UUID?,
+        spanID: UUID
+    ) -> Span {
         Span(
             logger: self.underlyingLogger,
             name: name,
@@ -605,7 +629,8 @@ extension Logger: Logging {
             fields: fields,
             timeProvider: self.timeProvider,
             customStartTimeInterval: startTimeInterval,
-            parentSpanID: parentSpanID
+            parentSpanID: parentSpanID,
+            id: spanID
         )
     }
 
@@ -617,6 +642,8 @@ extension Logger: Logging {
         self.deviceCodeController.createCodeOnDebugConsole(for: self.deviceID)
     }
 }
+
+extension Logger: InternalSpanIDLogging {}
 
 // MARK: - Features
 

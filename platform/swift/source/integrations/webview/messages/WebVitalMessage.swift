@@ -41,7 +41,7 @@ struct WebVitalMessage: WebViewMessage, Equatable {
 
 extension WebVitalMessage: WebViewLoggableMessage {
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
-        let parentSpanID = context.parentLoggerSpanID(for: parentSpanId)
+        let parentSpanID = context.parentSpanID(for: parentSpanId)
         let fields = makeFields(
             includeTimestamp: false,
             ("_metric", metric.name),

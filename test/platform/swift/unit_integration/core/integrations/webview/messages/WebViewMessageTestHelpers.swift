@@ -9,7 +9,7 @@
 import XCTest
 
 extension WebViewLoggingContext {
-    static let empty = WebViewLoggingContext(currentPageViewSpanID: nil, activePageViewSpans: [:])
+    static let empty = WebViewLoggingContext(currentPageViewSpanID: nil)
 }
 
 extension XCTestCase {

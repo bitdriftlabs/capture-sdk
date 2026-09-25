@@ -188,8 +188,7 @@ internal class WebViewBridgeMessageHandler(
         val value = metric.value ?: return
         val rating = metric.rating ?: "unknown"
 
-        // Extract parentSpanId from the message (set by JS SDK)
-        val parentSpanId = msg.parentSpanId ?: currentPageSpanId
+        val parentSpanId = parentSpanId(msg.parentSpanId)
 
         // Determine log level based on rating
         val level =
@@ -209,7 +208,7 @@ internal class WebViewBridgeMessageHandler(
                 metric.delta?.let { put("_delta", it.toString()) }
                 metric.id?.let { put("_metric_id", it) }
                 metric.navigationType?.let { put("_navigation_type", it) }
-                parentSpanId?.let { put("_span_parent_id", it) }
+                parentSpanId?.let { put("_span_parent_id", it.toString()) }
                 msg.url?.let { put("_page_url", it) }
                 put("_source", "webview")
             }
@@ -242,7 +241,7 @@ internal class WebViewBridgeMessageHandler(
         value: Double,
         level: LogLevel,
         commonFields: Map<String, String>,
-        parentSpanId: String?,
+        parentSpanId: UUID?,
     ) {
         val fields = commonFields.toMutableMap()
         fields["_metric"] = "LCP"
@@ -266,7 +265,7 @@ internal class WebViewBridgeMessageHandler(
         value: Double,
         level: LogLevel,
         commonFields: Map<String, String>,
-        parentSpanId: String?,
+        parentSpanId: UUID?,
     ) {
         val fields = commonFields.toMutableMap()
         fields["_metric"] = "FCP"
@@ -290,7 +289,7 @@ internal class WebViewBridgeMessageHandler(
         value: Double,
         level: LogLevel,
         commonFields: Map<String, String>,
-        parentSpanId: String?,
+        parentSpanId: UUID?,
     ) {
         val fields = commonFields.toMutableMap()
         fields["_metric"] = "TTFB"
@@ -314,7 +313,7 @@ internal class WebViewBridgeMessageHandler(
         value: Double,
         level: LogLevel,
         commonFields: Map<String, String>,
-        parentSpanId: String?,
+        parentSpanId: UUID?,
     ) {
         val fields = commonFields.toMutableMap()
         fields["_metric"] = "INP"
@@ -355,7 +354,7 @@ internal class WebViewBridgeMessageHandler(
         durationMs: Double,
         level: LogLevel,
         fields: Map<String, String>,
-        parentSpanId: String?,
+        parentSpanId: UUID?,
     ) {
         val startTimeMs = timestamp - durationMs.toLong()
 
@@ -366,15 +365,13 @@ internal class WebViewBridgeMessageHandler(
                 else -> SpanResult.UNKNOWN
             }
 
-        val parentUuid = parentSpanId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-
         val span =
             logger.startSpan(
                 name = "webview.webVital",
                 level = level,
                 fields = fields,
                 startTimeMs = startTimeMs,
-                parentSpanId = parentUuid,
+                parentSpanId = parentSpanId,
             )
         span.end(result = result, fields = fields, endTimeMs = timestamp)
     }
@@ -397,12 +394,14 @@ internal class WebViewBridgeMessageHandler(
         val path = uri?.path?.takeIf { it.isNotEmpty() }
         val query = uri?.query
 
+        val parentSpanId = parentSpanId(msg.parentSpanId)
         val extraFields =
-            mapOf(
-                "_source" to "webview",
-                "_request_type" to requestType,
-                "_timestamp" to timestamp.toString(),
-            )
+            buildMap {
+                put("_source", "webview")
+                put("_request_type", requestType)
+                put("_timestamp", timestamp.toString())
+                parentSpanId?.let { put("_span_parent_id", it.toString()) }
+            }
 
         val requestInfo =
             HttpRequestInfo(
@@ -463,6 +462,7 @@ internal class WebViewBridgeMessageHandler(
 
         when (action) {
             "start" -> {
+                val pageViewSpanId = runCatching { UUID.fromString(spanId) }.getOrNull() ?: return
                 currentPageSpanId = spanId
 
                 val fields =
@@ -475,11 +475,13 @@ internal class WebViewBridgeMessageHandler(
                     )
 
                 val span =
-                    logger.startSpan(
+                    Span(
+                        logger = logger,
                         name = "webview.pageView",
                         level = LogLevel.DEBUG,
-                        fields = fields,
-                        startTimeMs = timestamp,
+                        arrayFields = fields.toFields(),
+                        customStartTimeMs = timestamp,
+                        id = pageViewSpanId,
                     )
                 activePageViewSpans[spanId] = span
             }
@@ -507,6 +509,11 @@ internal class WebViewBridgeMessageHandler(
                 }
             }
         }
+    }
+
+    private fun parentSpanId(webViewSpanId: String?): UUID? {
+        val resolvedWebViewSpanId = webViewSpanId ?: currentPageSpanId ?: return null
+        return runCatching { UUID.fromString(resolvedWebViewSpanId) }.getOrNull()
     }
 
     private fun handleLifecycle(

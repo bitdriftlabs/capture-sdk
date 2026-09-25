@@ -12,6 +12,7 @@ struct NetworkRequestMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let requestId: String
     let method: String
     let url: String
@@ -28,6 +29,7 @@ struct NetworkRequestMessage: WebViewLoggableMessage, Equatable {
         }
 
         let path = components.path.isEmpty ? nil : HTTPURLPath(value: components.path, template: nil)
+        let parentSpanID = context.parentSpanID(for: parentSpanId)
         let request = HTTPRequestInfo(
             method: method,
             host: components.host,
@@ -35,7 +37,8 @@ struct NetworkRequestMessage: WebViewLoggableMessage, Equatable {
             query: components.query,
             spanID: requestId,
             extraFields: makeFields(
-                ("_request_type", requestType)
+                ("_request_type", requestType),
+                ("_span_parent_id", parentSpanID?.uuidString)
             )
         )
 

@@ -23,10 +23,20 @@ import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.utils.toStringMap
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import java.util.UUID
 
 class SpanTest {
     private val logger: IInternalLogger = mock()
     private val clock: IClock = mock()
+
+    @Test
+    fun usesProvidedSpanId() {
+        val id = UUID.fromString("11111111-1111-4111-8111-111111111111")
+
+        val span = Span(logger, "name", LogLevel.INFO, clock = clock, id = id)
+
+        assertThat(span.id).isEqualTo(id)
+    }
 
     @Test
     fun logs() {
