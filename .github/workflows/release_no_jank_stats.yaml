@@ -127,7 +127,7 @@ jobs:
             echo "::error::$PATCH_BRANCH is not based on v$VERSION"
             exit 1
           fi
-          if git grep -nE 'JankStatsMonitor|androidx\.metrics:metrics-performance|libs\.performance' -- ':!*.md'; then
+          if git grep -nwE 'JankStatsMonitor|androidx\.metrics:metrics-performance|libs\.performance' -- ':!*.md'; then
             echo "::error::androidx.metrics:metrics-performance references remain on $PATCH_BRANCH"
             exit 1
           fi
