@@ -9,15 +9,10 @@
 
 package io.bitdrift.gradletestapp.init
 
-import android.content.Context
-import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureJniLibrary
-import io.bitdrift.capture.CaptureResult
-import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.IBridge
 import io.bitdrift.capture.ICustomFieldsProvider
 import io.bitdrift.capture.IEventsListenerTarget
-import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.IPreferences
 import io.bitdrift.capture.IResourceUtilizationTarget
 import io.bitdrift.capture.ISessionReplayTarget
@@ -25,12 +20,8 @@ import io.bitdrift.capture.ITimestampProvider
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.Field
-import io.bitdrift.capture.providers.FieldGetter
-import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.session.SessionCallback
-import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
-import okhttp3.HttpUrl
 
 /**
  * A simulated slow native bridge to ease testing/verification of the recently
@@ -101,33 +92,4 @@ internal class SlowStartBridge(
             initialFields = initialFields,
         )
     }
-}
-
-/**
- * Starts the SDK through [SlowStartBridge], via the internal `bridge`-accepting overload of
- * `Capture.Logger.start`. Isolated here so the "reach into internals" surface stays in this one
- * file instead of spreading into [CaptureSdkInitializer].
- */
-internal fun startCaptureSdkWithSimulatedDelay(
-    apiKey: String,
-    apiUrl: HttpUrl,
-    configuration: Configuration,
-    sessionStrategy: SessionStrategy,
-    initialFields: Fields,
-    context: Context,
-    startResult: ((CaptureResult<ILogger>) -> Unit)?,
-    delayMillis: Long,
-) {
-    Capture.Logger.start(
-        apiKey = apiKey,
-        sessionStrategy = sessionStrategy,
-        configuration = configuration,
-        customFieldGetters = emptyList<FieldGetter>(),
-        dateProvider = null,
-        apiUrl = apiUrl,
-        bridge = SlowStartBridge(delayMillis),
-        context = context,
-        initialFields = initialFields,
-        startResult = startResult,
-    )
 }
