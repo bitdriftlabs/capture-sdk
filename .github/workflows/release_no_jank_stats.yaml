@@ -1,0 +1,181 @@
+name: "[Android] Trigger latest release version without androidx.metrics:metrics-performance (e.g. JankStats dep)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      emergency:
+        description: 'Ignore main branch requirement (SOC2 compliance). Required: this release is built from capture-sdk-android-release-without-androidx-performance.'
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-no-jank-stats
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Update capture-sdk-android-release-without-androidx-performance to latest release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    env:
+      PATCH_BRANCH: capture-sdk-android-release-without-androidx-performance
+      SUFFIX: -no-jank-stats
+    steps:
+      - name: Require emergency rollout (SOC2)
+        if: ${{ !inputs.emergency }}
+        run: |
+          {
+            echo "## Emergency rollout required"
+            echo
+            echo "SOC2 compliance only allows production releases from \`main\`."
+            echo "This release is built from \`capture-sdk-android-release-without-androidx-performance\`, so it must be run with **Ignore main branch requirement** ticked,"
+            echo "which posts an audit notice to #security-alarms. Reply there with the justification."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=Emergency rollout required::Releasing from a non-main branch requires the SOC2 checkbox."
+          exit 1
+
+      - name: Create GitHub App token
+        id: app-token
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+        with:
+          app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
+          private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Resolve latest release version
+        id: version
+        run: |
+          version="$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 | sed 's/^v//')"
+          if [ -z "$version" ]; then
+            echo "::error::No vX.Y.Z release tag found"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$version$SUFFIX" >/dev/null; then
+            echo "::error title=Already released::v$version$SUFFIX already exists."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Reset capture-sdk-android-release-without-androidx-performance to v${{ steps.version.outputs.version }} and re-apply the removal
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git merge-base --is-ancestor "v$VERSION" "origin/$PATCH_BRANCH"; then
+            echo "::notice::$PATCH_BRANCH already contains v$VERSION"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          old_head="$(git rev-parse "origin/$PATCH_BRANCH")"
+          old_base="$(git merge-base "$old_head" "v$VERSION")"
+          patch_commits="$(git rev-list --reverse "$old_base..$old_head")"
+          echo "Removal commits to re-apply:"
+          git log --oneline "$old_base..$old_head"
+
+          git switch -C "$PATCH_BRANCH" "v$VERSION"
+          # shellcheck disable=SC2086
+          if ! git cherry-pick $patch_commits; then
+            conflicts="$(git diff --name-only --diff-filter=U)"
+            git cherry-pick --abort
+            {
+              echo "## Re-applying the removal on top of \`v$VERSION\` conflicted"
+              echo
+              echo '```'
+              echo "$conflicts"
+              echo '```'
+              echo
+              echo "\`$PATCH_BRANCH\` was not changed. Resolve it manually, then run this workflow again:"
+              echo
+              echo '```bash'
+              echo "git fetch origin --tags"
+              echo "git switch -C $PATCH_BRANCH v$VERSION"
+              echo "git cherry-pick ${patch_commits//$'\n'/ }"
+              echo "# resolve conflicts, git cherry-pick --continue"
+              echo "git push --force origin $PATCH_BRANCH"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=Conflict::Re-applying the removal on v$VERSION conflicted in: ${conflicts//$'\n'/ }. Fix it manually (see the run summary)."
+            exit 1
+          fi
+
+          export VERSION
+          # shellcheck disable=SC2016
+          git rebase "v$VERSION" \
+            --exec 'git commit --amend --no-verify -m "$(git log -1 --format=%B | sed -E "1s/^(Remove androidx\.metrics:metrics-performance for ).*/\1$VERSION/")"'
+
+          git push --force-with-lease="$PATCH_BRANCH:$old_head" origin "HEAD:refs/heads/$PATCH_BRANCH"
+
+      - name: Verify release branch
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git fetch origin "$PATCH_BRANCH"
+          git switch -C "$PATCH_BRANCH" FETCH_HEAD
+          if ! git merge-base --is-ancestor "v$VERSION" HEAD; then
+            echo "::error::$PATCH_BRANCH is not based on v$VERSION"
+            exit 1
+          fi
+          if git grep -nE 'JankStatsMonitor|androidx\.metrics:metrics-performance|libs\.performance' -- ':!*.md'; then
+            echo "::error::androidx.metrics:metrics-performance references remain on $PATCH_BRANCH"
+            exit 1
+          fi
+          {
+            echo "## Releasing $VERSION$SUFFIX from \`$PATCH_BRANCH\`"
+            echo
+            echo '```'
+            git log --oneline "v$VERSION..HEAD"
+            git diff --stat "v$VERSION" HEAD
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: Release Android
+    needs: prepare
+    permissions:
+      id-token: write
+      contents: write
+    uses: ./.github/workflows/update_sdk_version.yaml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      emergency: ${{ inputs.emergency }}
+      platform: android
+      android-artifacts: capture-only
+      capture-suffix: -no-jank-stats
+      release-ref: capture-sdk-android-release-without-androidx-performance
+    secrets: inherit
+
+  finalize:
+    name: Remove GitHub release entry
+    needs: [prepare, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete GitHub release entry (keeps the tag)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: gh release delete "v$VERSION-no-jank-stats" --yes
+
+      - name: Summary
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          {
+            echo "## Released io.bitdrift:capture-no-jank-stats:$VERSION"
+            echo
+            echo "- Reply to the #security-alarms post with the justification for releasing from a non-main branch."
+            echo "- Verify it is published: https://central.sonatype.com/artifact/io.bitdrift/capture-no-jank-stats/$VERSION"
+          } >> "$GITHUB_STEP_SUMMARY"
