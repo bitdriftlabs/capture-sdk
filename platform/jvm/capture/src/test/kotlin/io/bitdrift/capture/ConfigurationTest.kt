@@ -13,6 +13,8 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.common.IBackgroundThreadHandler
+import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -26,6 +28,8 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
 class ConfigurationTest {
+    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
+
     @Test
     fun configurationFailure() {
         val targetDomain = "http://capture.example:8080"
@@ -152,6 +156,17 @@ class ConfigurationTest {
 
     @Test
     fun startResult_emitsFailure_whenBridgeReturnsInvalidLogger() {
+        assertStartEmitsInvalidLoggerFailure(backgroundThreadHandler = null)
+    }
+
+    @Test
+    fun startResult_emitsFailureThroughBackgroundThreadHandler_whenBridgeReturnsInvalidLogger() {
+        assertStartEmitsInvalidLoggerFailure(backgroundThreadHandler)
+
+        Assertions.assertThat(backgroundThreadHandler.runAsyncCallCount).isEqualTo(1)
+    }
+
+    private fun assertStartEmitsInvalidLoggerFailure(backgroundThreadHandler: IBackgroundThreadHandler?) {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
 
@@ -194,6 +209,7 @@ class ConfigurationTest {
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             dateProvider = null,
             bridge = bridge,
+            backgroundThreadHandler = backgroundThreadHandler,
         ) { result ->
             capturedResult = result
         }
@@ -207,6 +223,7 @@ class ConfigurationTest {
 
     @After
     fun tearDown() {
+        backgroundThreadHandler.reset()
         Capture.Logger.resetShared()
     }
 }

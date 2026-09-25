@@ -16,6 +16,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -28,6 +29,7 @@ import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
@@ -132,6 +134,9 @@ object Capture {
          * Calling other SDK methods has no effect unless the logger has been initialized.
          * Subsequent calls to this function will have no effect.
          *
+         * SDK initialization runs synchronously on the calling thread, so [start] blocks until it
+         * completes. Use [startAsync] to run it on an SDK-managed background thread instead.
+         *
          * @param apiKey The API key provided by bitdrift. This is required.
          * @param sessionStrategy session strategy for the management of session id.
          * @param configuration A configuration that is used to set up Capture features.
@@ -146,6 +151,7 @@ object Capture {
          *                     On success, it receives a [CaptureResult.Success] containing an [ILogger] instance.
          *                     On failure, it receives a [CaptureResult.Failure] with a [SdkStartFailure].
          * @param initialFields fields to seed at SDK startup. Use [addField] to update their values later.
+         * @see startAsync
          */
         @Synchronized
         @JvmStatic
@@ -171,6 +177,61 @@ object Capture {
                 context = context,
                 initialFields = initialFields,
                 startResult = startResult,
+                backgroundThreadHandler = null,
+            )
+        }
+
+        /**
+         * Initializes the Capture SDK with the specified API key and configuration.
+         * Calling other SDK methods has no effect unless the logger has been initialized.
+         * Subsequent calls to this function will have no effect.
+         *
+         * SDK initialization runs asynchronously on an SDK-managed background thread, so [startAsync]
+         * returns immediately. Logs emitted before initialization completes are buffered in memory and
+         * flushed once the SDK has started. Use [start] to run initialization on the calling thread.
+         *
+         * @param apiKey The API key provided by bitdrift. This is required.
+         * @param sessionStrategy session strategy for the management of session id.
+         * @param configuration A configuration that is used to set up Capture features.
+         * @param dateProvider optional date provider used to override how the current timestamp is computed.
+         * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
+         *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
+         *               Compose API base URL.
+         * @param context an optional context reference. You should provide the context if called from
+         * a [android.content.ContentProvider].
+         * @param startResult an optional callback invoked with the result of the SDK initialization.
+         *                     The callback is always called on a background thread once initialization
+         *                     completes. Switch to the main thread before touching UI.
+         *                     On success, it receives a [CaptureResult.Success] containing an [ILogger] instance.
+         *                     On failure, it receives a [CaptureResult.Failure] with a [SdkStartFailure].
+         * @param initialFields fields to seed at SDK startup. Use [addField] to update their values later.
+         * @see start
+         */
+        @Synchronized
+        @JvmStatic
+        @JvmOverloads
+        fun startAsync(
+            apiKey: String,
+            sessionStrategy: SessionStrategy,
+            initialFields: Fields,
+            configuration: Configuration = Configuration(),
+            dateProvider: DateProvider? = null,
+            apiUrl: HttpUrl = defaultCaptureApiUrl,
+            context: Context? = null,
+            startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
+        ) {
+            start(
+                apiKey = apiKey,
+                sessionStrategy = sessionStrategy,
+                configuration = configuration,
+                customFieldGetters = emptyList(),
+                dateProvider = dateProvider,
+                apiUrl = apiUrl,
+                bridge = CaptureJniLibrary,
+                context = context,
+                initialFields = initialFields,
+                startResult = startResult,
+                backgroundThreadHandler = CaptureDispatchers.CommonBackground,
             )
         }
 
@@ -178,6 +239,9 @@ object Capture {
          * Initializes the Capture SDK with the specified API key, legacy field providers, and configuration.
          * Calling other SDK methods has no effect unless the logger has been initialized.
          * Subsequent calls to this function will have no effect.
+         *
+         * SDK initialization runs synchronously on the calling thread, so [start] blocks until it
+         * completes. Use [startAsync] to run it on an SDK-managed background thread instead.
          *
          * @param apiKey The API key provided by bitdrift. This is required.
          * @param sessionStrategy session strategy for the management of session id.
@@ -188,6 +252,8 @@ object Capture {
          * @param context an optional context reference. You should provide the context if called from
          * a [android.content.ContentProvider].
          * @param startResult an optional callback invoked with the result of the SDK initialization.
+         *                     The callback is always called on the calling thread before [start] returns.
+         * @see startAsync
          */
         @Suppress("DEPRECATION")
         @Deprecated(
@@ -228,6 +294,9 @@ object Capture {
          * Subsequent calls to this function have no effect. See [SessionConfiguration] for the
          * session-ID lifecycle contract.
          *
+         * SDK initialization runs synchronously on the calling thread, so [start] blocks until it
+         * completes. Use [startAsync] to run it on an SDK-managed background thread instead.
+         *
          * @param apiKey The API key provided by bitdrift. This is required.
          * @param sessionConfiguration Session lifecycle configuration. By default, Capture generates an
          * SDK UUID for the current process, does not persist it across SDK restarts, and does not rotate it
@@ -238,6 +307,8 @@ object Capture {
          * @param context An optional context reference. Provide it if called from an
          * `android.content.ContentProvider`.
          * @param startResult Optional callback invoked with the result of SDK initialization.
+         *                     The callback is always called on the calling thread before [start] returns.
+         * @see startAsync
          */
         @Synchronized
         @JvmStatic
@@ -266,6 +337,9 @@ object Capture {
         /**
          * Initializes Capture with the canonical session configuration API and startup fields.
          *
+         * SDK initialization runs synchronously on the calling thread, so [start] blocks until it
+         * completes. Use [startAsync] to run it on an SDK-managed background thread instead.
+         *
          * @param apiKey The API key provided by bitdrift. This is required.
          * @param sessionConfiguration Session lifecycle configuration.
          * @param configuration A configuration that is used to set up Capture features.
@@ -274,6 +348,8 @@ object Capture {
          * @param apiUrl The base URL of Capture API.
          * @param context An optional context reference.
          * @param startResult Optional callback invoked with the result of SDK initialization.
+         *                     The callback is always called on the calling thread before [start] returns.
+         * @see startAsync
          */
         @Synchronized
         @JvmStatic
@@ -303,6 +379,9 @@ object Capture {
         /**
          * Initializes Capture with the canonical session configuration API and legacy field providers.
          *
+         * SDK initialization runs synchronously on the calling thread, so [start] blocks until it
+         * completes. Use [startAsync] to run it on an SDK-managed background thread instead.
+         *
          * @param apiKey The API key provided by bitdrift. This is required.
          * @param sessionConfiguration Session lifecycle configuration.
          * @param configuration A configuration that is used to set up Capture features.
@@ -311,6 +390,8 @@ object Capture {
          * @param apiUrl The base URL of Capture API.
          * @param context An optional context reference.
          * @param startResult Optional callback invoked with the result of SDK initialization.
+         *                     The callback is always called on the calling thread before [start] returns.
+         * @see startAsync
          */
         @Suppress("DEPRECATION")
         @Deprecated(
@@ -359,13 +440,24 @@ object Capture {
             bridge: IBridge,
             context: Context? = null,
             initialFields: Fields = emptyMap(),
+            backgroundThreadHandler: IBackgroundThreadHandler? = null,
             startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         ) {
+            val dispatch: (() -> Unit) -> Unit = { action ->
+                if (backgroundThreadHandler != null) {
+                    backgroundThreadHandler.runAsync(action)
+                } else {
+                    action()
+                }
+            }
+
             // There's nothing we can do if we don't have yet access to the application context.
             if (hasInvalidContext(context)) {
                 val errorMessage = "Attempted to initialize Capture with a null context"
                 Log.w(LOG_TAG, errorMessage)
-                startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorMessage)))
+                dispatch {
+                    startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorMessage)))
+                }
                 return
             }
 
@@ -373,19 +465,21 @@ object Capture {
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
             if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting(preInitInMemoryLogger))) {
-                initSdk(
-                    apiKey = apiKey,
-                    sessionStrategy = sessionStrategy,
-                    configuration = configuration,
-                    customFieldGetters = customFieldGetters,
-                    dateProvider = dateProvider,
-                    apiUrl = apiUrl,
-                    bridge = bridge,
-                    context = context,
-                    startResult = startResult,
-                    initialFields = initialFields,
-                    preInitInMemoryLogger = preInitInMemoryLogger,
-                )
+                dispatch {
+                    initSdk(
+                        apiKey = apiKey,
+                        sessionStrategy = sessionStrategy,
+                        configuration = configuration,
+                        customFieldGetters = customFieldGetters,
+                        dateProvider = dateProvider,
+                        apiUrl = apiUrl,
+                        bridge = bridge,
+                        context = context,
+                        startResult = startResult,
+                        initialFields = initialFields,
+                        preInitInMemoryLogger = preInitInMemoryLogger,
+                    )
+                }
             } else {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
             }

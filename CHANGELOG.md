@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added `Capture.Logger.startAsync`, which initializes the SDK on the SDK's own internal background thread instead of the calling thread. Logs emitted before initialization completes are buffered and delivered once the SDK starts.
 
 **Changed**
 

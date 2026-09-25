@@ -16,7 +16,18 @@ import io.bitdrift.capture.common.IBackgroundThreadHandler
 class FakeBackgroundThreadHandler : IBackgroundThreadHandler {
     private val fakeExecutorService = MoreExecutors.newDirectExecutorService()
 
+    var runAsyncCallCount = 0
+        private set
+
     override fun runAsync(task: () -> Unit) {
+        runAsyncCallCount++
         fakeExecutorService.execute(task)
+    }
+
+    /**
+     * Sets to default state
+     */
+    fun reset() {
+        runAsyncCallCount = 0
     }
 }
