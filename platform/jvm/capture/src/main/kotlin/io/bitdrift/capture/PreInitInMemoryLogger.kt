@@ -190,11 +190,6 @@ internal class PreInitInMemoryLogger(
         duration: Duration,
     ) = add(BufferedCall.LogResourceUtilization(arrayFields, duration))
 
-    override fun logSessionReplayScreenshot(
-        fields: Array<Field>,
-        duration: Duration,
-    ) = add(BufferedCall.LogSessionReplayScreenshot(fields, duration))
-
     override fun logSessionReplayScreen(
         fields: Array<Field>,
         duration: Duration,
@@ -469,15 +464,6 @@ internal class PreInitInMemoryLogger(
             override val sizeBytes = arrayFields.sizeBytes() + OVERHEAD_BYTES
 
             override fun dispatch(logger: IInternalLogger) = logger.logResourceUtilization(arrayFields, duration)
-        }
-
-        data class LogSessionReplayScreenshot(
-            val fields: Array<Field>,
-            val duration: Duration,
-        ) : BufferedCall {
-            override val sizeBytes = fields.sizeBytes() + OVERHEAD_BYTES
-
-            override fun dispatch(logger: IInternalLogger) = logger.logSessionReplayScreenshot(fields, duration)
         }
 
         data class LogSessionReplayScreen(
