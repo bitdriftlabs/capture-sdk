@@ -7,7 +7,7 @@
 
 package io.bitdrift.capture.network.okhttp.otel
 
-import com.google.gson.Gson
+import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.ErrorHandler
 import io.bitdrift.capture.network.okhttp.InternalTelemetryRequestTag
 import okhttp3.Call
@@ -32,27 +32,35 @@ internal class OtelSpanExporter(
     private val configuration: OtelExportConfiguration,
     private val client: OkHttpClient,
     private val errorHandler: ErrorHandler,
-    private val gson: Gson = Gson(),
 ) {
-    fun export(resource: Resource, span: Span) {
+    fun export(
+        resource: OtelAttributes,
+        span: OtelSpan,
+    ) {
         val payload =
-            ResourceSpansPayload(
-                resourceSpans =
-                    listOf(
-                        ResourceSpans(
-                            resource = resource,
-                            scopeSpans =
-                                listOf(
-                                    ScopeSpans(
-                                        scope = Scope(name = SCOPE_NAME),
-                                        spans = listOf(span),
-                                    ),
-                                ),
-                        ),
-                    ),
-            )
+            try {
+                CaptureJniLibrary.buildOtelSpanPayload(
+                    traceId = span.traceId,
+                    spanId = span.spanId,
+                    scopeName = SCOPE_NAME,
+                    name = span.name,
+                    startTimeUnixNano = span.startTimeUnixNano,
+                    endTimeUnixNano = span.endTimeUnixNano,
+                    statusCode = if (span.isError) STATUS_CODE_ERROR else STATUS_CODE_OK,
+                    statusMessage = null,
+                    attributeKeys = span.attributes.keys,
+                    attributeValues = span.attributes.values,
+                    attributeValueTypes = span.attributes.valueTypes,
+                    resourceAttributeKeys = resource.keys,
+                    resourceAttributeValues = resource.values,
+                    resourceAttributeValueTypes = resource.valueTypes,
+                )
+            } catch (e: UnsatisfiedLinkError) {
+                errorHandler.handleError("Failed to build OTel span payload", e)
+                null
+            } ?: return
 
-        val body = gson.toJson(payload).toRequestBody(JSON_MEDIA_TYPE)
+        val body = payload.toRequestBody(JSON_MEDIA_TYPE)
         val request =
             Request
                 .Builder()
@@ -86,6 +94,10 @@ internal class OtelSpanExporter(
 
     private companion object {
         private const val SCOPE_NAME = "bitdrift-capture"
+
+        // OTLP `Status.StatusCode` values, matching the mapping in the Rust payload builder.
+        private const val STATUS_CODE_OK = 1
+        private const val STATUS_CODE_ERROR = 2
         private val JSON_MEDIA_TYPE = "application/json".toMediaType()
     }
 }

@@ -145,6 +145,30 @@ internal object CaptureJniLibrary : IBridge {
     external fun getDeviceId(loggerId: Long): String?
 
     /**
+     * Builds the OTLP/HTTP JSON payload for one span. Stateless -- the caller performs the HTTP
+     * POST itself. Attribute values are passed as strings and reinterpreted using the parallel
+     * type-tag arrays (see [io.bitdrift.capture.network.okhttp.otel.OtelAttributes]). Returns null
+     * if the payload could not be built.
+     */
+    @Suppress("LongParameterList")
+    external fun buildOtelSpanPayload(
+        traceId: String,
+        spanId: String,
+        scopeName: String,
+        name: String,
+        startTimeUnixNano: Long,
+        endTimeUnixNano: Long,
+        statusCode: Int,
+        statusMessage: String?,
+        attributeKeys: Array<String>,
+        attributeValues: Array<String>,
+        attributeValueTypes: ByteArray,
+        resourceAttributeKeys: Array<String>,
+        resourceAttributeValues: Array<String>,
+        resourceAttributeValueTypes: ByteArray,
+    ): ByteArray?
+
+    /**
      * Returns true when workflow-controlled tracing is active for the current session.
      */
     external fun isTracingActive(loggerId: Long): Boolean

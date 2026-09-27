@@ -1067,6 +1067,87 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_isTracingActiv
   logger_id.is_tracing_active().into()
 }
 
+/// Builds the OTLP/HTTP JSON payload for one traced network request's span. Stateless: everything
+/// needed is passed in (trace/span IDs, timing, status, and pre-gathered span/resource attributes),
+/// and the caller performs the actual HTTP POST itself. Returns null if anything goes wrong.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_buildOtelSpanPayload(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  trace_id: JString<'_>,
+  span_id: JString<'_>,
+  scope_name: JString<'_>,
+  name: JString<'_>,
+  start_time_unix_nano: jlong,
+  end_time_unix_nano: jlong,
+  status_code: jint,
+  status_message: JString<'_>,
+  attribute_keys: JObjectArray<'_>,
+  attribute_values: JObjectArray<'_>,
+  attribute_value_types: JByteArray<'_>,
+  resource_attribute_keys: JObjectArray<'_>,
+  resource_attribute_values: JObjectArray<'_>,
+  resource_attribute_value_types: JByteArray<'_>,
+) -> jbyteArray {
+  with_handle_unexpected_or(
+    || {
+      let read_string = |value: &JString<'_>| -> anyhow::Result<String> {
+        Ok(
+          unsafe { env.get_string_unchecked(value) }?
+            .to_string_lossy()
+            .to_string(),
+        )
+      };
+      let trace_id_hex = read_string(&trace_id)?;
+      let span_id_hex = read_string(&span_id)?;
+      let scope_name = read_string(&scope_name)?;
+      let name = read_string(&name)?;
+      let status_message = if status_message.is_null() {
+        None
+      } else {
+        Some(read_string(&status_message)?).filter(|message| !message.is_empty())
+      };
+
+      let attributes = ffi::otlp_attributes_from_arrays(
+        &mut env,
+        &attribute_keys,
+        &attribute_values,
+        &attribute_value_types,
+      )?;
+      let resource_attributes = ffi::otlp_attributes_from_arrays(
+        &mut env,
+        &resource_attribute_keys,
+        &resource_attribute_values,
+        &resource_attribute_value_types,
+      )?;
+
+      let status_code = match status_code {
+        1 => bd_otlp_traces::StatusCode::Ok,
+        2 => bd_otlp_traces::StatusCode::Error,
+        _ => bd_otlp_traces::StatusCode::Unset,
+      };
+
+      let payload = bd_otlp_traces::build_span_payload(&bd_otlp_traces::SpanExportRequest {
+        trace_id_hex,
+        span_id_hex,
+        scope_name,
+        name,
+        kind: bd_otlp_traces::SpanKind::Client,
+        start_time_unix_nano: u64::try_from(start_time_unix_nano).unwrap_or_default(),
+        end_time_unix_nano: u64::try_from(end_time_unix_nano).unwrap_or_default(),
+        status_code,
+        status_message,
+        attributes,
+        resource_attributes,
+      });
+
+      Ok(env.byte_array_from_slice(&payload)?.into_raw())
+    },
+    std::ptr::null_mut(),
+    "jni build otel span payload",
+  )
+}
+
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_addLogField(
   env: JNIEnv<'_>,

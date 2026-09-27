@@ -254,6 +254,72 @@ pub fn string_arrays_to_annotated_fields(
   Ok(fields)
 }
 
+/// Attribute value type tags shared with `CaptureJniLibrary.buildOtelSpanPayload`'s Kotlin caller.
+pub const OTLP_ATTRIBUTE_TYPE_STRING: u8 = 0;
+pub const OTLP_ATTRIBUTE_TYPE_INT: u8 = 1;
+pub const OTLP_ATTRIBUTE_TYPE_BOOL: u8 = 2;
+
+/// Converts parallel Java arrays (String keys, String values, and a byte type tag per attribute)
+/// into OTLP attributes. Values are always passed across the boundary as strings and reinterpreted
+/// according to the tag, so adding a new attribute on the Kotlin side never changes the JNI
+/// signature.
+pub fn otlp_attributes_from_arrays(
+  env: &mut JNIEnv<'_>,
+  keys: &JObjectArray<'_>,
+  values: &JObjectArray<'_>,
+  value_types: &JPrimitiveArray<'_, jni::sys::jbyte>,
+) -> anyhow::Result<Vec<bd_otlp_traces::Attribute>> {
+  if keys.is_null() || values.is_null() || value_types.is_null() {
+    if keys.is_null() && values.is_null() && value_types.is_null() {
+      return Ok(Vec::new());
+    }
+    bail!("keys, values, and value types must all be null or non-null");
+  }
+
+  let len = env.get_array_length(keys)?;
+  if len != env.get_array_length(values)? || len != env.get_array_length(value_types)? {
+    bail!("keys, values, and value types must have the same length");
+  }
+
+  let types = env.convert_byte_array(value_types)?;
+  #[allow(clippy::cast_sign_loss)]
+  let mut attributes = Vec::with_capacity(len as usize);
+
+  // Attribute sets are small and bounded, so a single local frame covers every element lookup.
+  env.with_local_frame(
+    len * STRING_ARRAY_LOCAL_REFS_PER_FIELD,
+    |env| -> anyhow::Result<()> {
+      for i in 0 .. len {
+        let key_obj = JString::from(env.get_object_array_element(keys, i)?);
+        let key = unsafe { env.get_string_unchecked(&key_obj) }?
+          .to_string_lossy()
+          .to_string();
+        let value_obj = JString::from(env.get_object_array_element(values, i)?);
+        let value = unsafe { env.get_string_unchecked(&value_obj) }?
+          .to_string_lossy()
+          .to_string();
+
+        #[allow(clippy::cast_sign_loss)]
+        let tag = types
+          .get(i as usize)
+          .copied()
+          .unwrap_or(OTLP_ATTRIBUTE_TYPE_STRING);
+        attributes.push(match tag {
+          OTLP_ATTRIBUTE_TYPE_INT => match value.parse::<i64>() {
+            Ok(value) => bd_otlp_traces::Attribute::int(key, value),
+            Err(_) => bd_otlp_traces::Attribute::string(key, value),
+          },
+          OTLP_ATTRIBUTE_TYPE_BOOL => bd_otlp_traces::Attribute::bool(key, value == "true"),
+          _ => bd_otlp_traces::Attribute::string(key, value),
+        });
+      }
+      Ok(())
+    },
+  )?;
+
+  Ok(attributes)
+}
+
 // Converts passed rust hash map into Java HashMap.
 pub(crate) fn map_to_jmap<'a, S: std::hash::BuildHasher>(
   env: &mut JNIEnv<'a>,

@@ -22,46 +22,44 @@ internal object OtelSpanBuilder {
         data: HttpSpanExportData,
         networkAttributes: NetworkAttributes,
         clientAttributes: ClientAttributes,
-    ): Span {
+    ): OtelSpan {
         val (protocolName, protocolVersion) = splitProtocol(data.metrics.protocolName)
         val error = data.response.error
 
         val attributes =
-            buildList {
-                add(KeyValue.of("http.request.method", data.request.method))
-                data.response.statusCode?.let { add(KeyValue.of("http.response.status_code", it)) }
-                add(KeyValue.of("url.full", data.httpRequest.url.toString()))
-                data.request.path?.template?.let { add(KeyValue.of("url.template", it)) }
-                add(KeyValue.of("server.address", data.httpRequest.url.host))
-                add(KeyValue.of("server.port", data.httpRequest.url.port))
-                data.metrics.requestBodyBytesSentCount?.let { add(KeyValue.of("http.request.body.size", it)) }
-                data.metrics.responseBodyBytesReceivedCount?.let { add(KeyValue.of("http.response.body.size", it)) }
-                add(KeyValue.of("error.type", error?.let { it::class.java.simpleName } ?: ""))
-                protocolName?.let { add(KeyValue.of("network.protocol.name", it)) }
-                protocolVersion?.let { add(KeyValue.of("network.protocol.version", it)) }
-                add(KeyValue.of("network.connection.type", networkAttributes.otelConnectionType()))
-                add(KeyValue.of("network.connection.subtype", networkAttributes.otelConnectionSubtype()))
-                add(KeyValue.of("network.carrier.name", networkAttributes.otelCarrierName()))
-                networkAttributes.otelCarrierMcc()?.let { add(KeyValue.of("network.carrier.mcc", it)) }
-                networkAttributes.otelCarrierMnc()?.let { add(KeyValue.of("network.carrier.mnc", it)) }
-                add(KeyValue.of("android.app.state", clientAttributes.currentAppState()))
+            OtelAttributes().apply {
+                add("http.request.method", data.request.method)
+                data.response.statusCode?.let { add("http.response.status_code", it) }
+                add("url.full", data.httpRequest.url.toString())
+                data.request.path
+                    ?.template
+                    ?.let { add("url.template", it) }
+                add("server.address", data.httpRequest.url.host)
+                add("server.port", data.httpRequest.url.port)
+                data.metrics.requestBodyBytesSentCount?.let { add("http.request.body.size", it) }
+                data.metrics.responseBodyBytesReceivedCount?.let { add("http.response.body.size", it) }
+                add("error.type", error?.let { it::class.java.simpleName } ?: "")
+                protocolName?.let { add("network.protocol.name", it) }
+                protocolVersion?.let { add("network.protocol.version", it) }
+                add("network.connection.type", networkAttributes.otelConnectionType())
+                add("network.connection.subtype", networkAttributes.otelConnectionSubtype())
+                add("network.carrier.name", networkAttributes.otelCarrierName())
+                networkAttributes.otelCarrierMcc()?.let { add("network.carrier.mcc", it) }
+                networkAttributes.otelCarrierMnc()?.let { add("network.carrier.mnc", it) }
+                add("android.app.state", clientAttributes.currentAppState())
             }
 
         val startTimeUnixNano = data.startTimeEpochMs * NANOS_PER_MILLI
         val endTimeUnixNano = (data.startTimeEpochMs + data.durationMs) * NANOS_PER_MILLI
 
-        return Span(
+        return OtelSpan(
             traceId = data.traceContext.traceId,
             spanId = data.traceContext.spanId,
             name = "${data.request.method} ${data.request.path?.template ?: data.request.path?.value ?: ""}",
-            kind = Span.KIND_CLIENT,
-            startTimeUnixNano = startTimeUnixNano.toString(),
-            endTimeUnixNano = endTimeUnixNano.toString(),
+            startTimeUnixNano = startTimeUnixNano,
+            endTimeUnixNano = endTimeUnixNano,
+            isError = error != null,
             attributes = attributes,
-            status =
-                SpanStatus(
-                    code = if (error != null) SpanStatus.STATUS_CODE_ERROR else SpanStatus.STATUS_CODE_OK,
-                ),
         )
     }
 

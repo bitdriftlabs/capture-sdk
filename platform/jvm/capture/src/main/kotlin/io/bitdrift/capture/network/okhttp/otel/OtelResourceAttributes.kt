@@ -21,19 +21,16 @@ internal object OtelResourceAttributes {
         clientAttributes: ClientAttributes,
         logger: ILogger,
         sdkVersion: String,
-    ): Resource =
-        Resource(
-            attributes =
-                listOf(
-                    KeyValue.of("service.name", clientAttributes.appId),
-                    KeyValue.of("service.version", clientAttributes.appVersion),
-                    KeyValue.of("device.id", logger.deviceId),
-                    KeyValue.of("device.model.name", clientAttributes.model),
-                    KeyValue.of("device.manufacturer", clientAttributes.manufacturer),
-                    KeyValue.of("os.version", clientAttributes.osVersion),
-                    KeyValue.of("telemetry.sdk.name", ClientAttributes.SDK_LIBRARY_ID),
-                    KeyValue.of("telemetry.sdk.version", sdkVersion),
-                    KeyValue.of("bitdrift.session_id", logger.sessionId),
-                ),
-        )
+    ): OtelAttributes =
+        OtelAttributes().apply {
+            add("service.name", clientAttributes.appId)
+            add("service.version", clientAttributes.appVersion)
+            add("device.id", logger.deviceId)
+            add("device.model.name", clientAttributes.model)
+            add("device.manufacturer", clientAttributes.manufacturer)
+            add("os.version", clientAttributes.osVersion)
+            add("telemetry.sdk.name", ClientAttributes.SDK_LIBRARY_ID)
+            add("telemetry.sdk.version", sdkVersion)
+            add("bitdrift.session_id", logger.sessionId)
+        }
 }

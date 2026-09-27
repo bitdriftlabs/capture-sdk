@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.network.okhttp.otel
 
-import com.google.gson.annotations.SerializedName
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
@@ -29,82 +28,60 @@ internal data class HttpSpanExportData(
     val durationMs: Long,
 )
 
-/** Top-level OTLP/HTTP JSON export request body for `/v1/traces`. */
-internal data class ResourceSpansPayload(
-    @SerializedName("resourceSpans") val resourceSpans: List<ResourceSpans>,
-)
-
-internal data class ResourceSpans(
-    @SerializedName("resource") val resource: Resource,
-    @SerializedName("scopeSpans") val scopeSpans: List<ScopeSpans>,
-)
-
-internal data class Resource(
-    @SerializedName("attributes") val attributes: List<KeyValue>,
-)
-
-internal data class ScopeSpans(
-    @SerializedName("scope") val scope: Scope,
-    @SerializedName("spans") val spans: List<Span>,
-)
-
-internal data class Scope(
-    @SerializedName("name") val name: String,
-    @SerializedName("version") val version: String? = null,
-)
-
-internal data class Span(
-    @SerializedName("traceId") val traceId: String,
-    @SerializedName("spanId") val spanId: String,
-    @SerializedName("name") val name: String,
-    @SerializedName("kind") val kind: Int,
-    @SerializedName("startTimeUnixNano") val startTimeUnixNano: String,
-    @SerializedName("endTimeUnixNano") val endTimeUnixNano: String,
-    @SerializedName("attributes") val attributes: List<KeyValue>,
-    @SerializedName("status") val status: SpanStatus,
-) {
-    internal companion object {
-        /** `SPAN_KIND_CLIENT` per the OTLP `Span.SpanKind` enum. */
-        const val KIND_CLIENT = 3
-    }
-}
-
-internal data class SpanStatus(
-    @SerializedName("code") val code: Int,
-) {
-    internal companion object {
-        const val STATUS_CODE_OK = 1
-        const val STATUS_CODE_ERROR = 2
-    }
-}
-
-internal data class KeyValue(
-    @SerializedName("key") val key: String,
-    @SerializedName("value") val value: AnyValue,
-) {
-    internal companion object {
-        fun of(
-            key: String,
-            value: String,
-        ) = KeyValue(key, AnyValue(stringValue = value))
-
-        fun of(
-            key: String,
-            value: Int,
-        ) = KeyValue(key, AnyValue(intValue = value.toString()))
-
-        fun of(
-            key: String,
-            value: Long,
-        ) = KeyValue(key, AnyValue(intValue = value.toString()))
-    }
-}
-
 /**
- * OTLP JSON encodes `int64`/`fixed64` values as strings to avoid precision loss, so [intValue]
- * is a `String`, not a numeric type, matching the wire format rather than the logical type.
+ * A flat list of OTLP attributes, laid out as parallel arrays so it can cross the JNI boundary
+ * without per-attribute objects. Values are always carried as strings and reinterpreted by the
+ * Rust side according to the matching entry in [valueTypes]; adding a new attribute is therefore
+ * a pure Kotlin change, never a JNI signature change.
  */
-internal data class AnyValue(
-    @SerializedName("stringValue") val stringValue: String? = null,
-    @SerializedName("intValue") val intValue: String? = null,
+internal class OtelAttributes {
+    private val keyList = mutableListOf<String>()
+    private val valueList = mutableListOf<String>()
+    private val typeList = mutableListOf<Byte>()
+
+    val keys: Array<String> get() = keyList.toTypedArray()
+    val values: Array<String> get() = valueList.toTypedArray()
+    val valueTypes: ByteArray get() = typeList.toByteArray()
+
+    fun add(
+        key: String,
+        value: String,
+    ) = append(key, value, TYPE_STRING)
+
+    fun add(
+        key: String,
+        value: Int,
+    ) = append(key, value.toString(), TYPE_INT)
+
+    fun add(
+        key: String,
+        value: Long,
+    ) = append(key, value.toString(), TYPE_INT)
+
+    private fun append(
+        key: String,
+        value: String,
+        type: Byte,
+    ) {
+        keyList.add(key)
+        valueList.add(value)
+        typeList.add(type)
+    }
+
+    private companion object {
+        // Must match OTLP_ATTRIBUTE_TYPE_* in platform/jvm/core/src/ffi.rs.
+        const val TYPE_STRING: Byte = 0
+        const val TYPE_INT: Byte = 1
+    }
+}
+
+/** The span-specific fields handed to `CaptureJniLibrary.buildOtelSpanPayload`. */
+internal data class OtelSpan(
+    val traceId: String,
+    val spanId: String,
+    val name: String,
+    val startTimeUnixNano: Long,
+    val endTimeUnixNano: Long,
+    val isError: Boolean,
+    val attributes: OtelAttributes,
 )

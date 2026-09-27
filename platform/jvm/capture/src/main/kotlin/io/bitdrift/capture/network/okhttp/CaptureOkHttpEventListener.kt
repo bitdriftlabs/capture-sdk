@@ -8,8 +8,8 @@
 package io.bitdrift.capture.network.okhttp
 
 import android.net.TrafficStats
-import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.network.HttpField
 import io.bitdrift.capture.network.HttpRequestInfo
