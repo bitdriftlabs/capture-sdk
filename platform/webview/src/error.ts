@@ -24,20 +24,11 @@ export const initErrorMonitoring = (): void => {
                 }
 
                 const error = event.error;
-                let stack: string | undefined;
-
-                if (error instanceof Error) {
-                    stack = error.stack ? truncate(error.stack) : undefined;
-                }
 
                 const message = createMessage({
                     type: 'error',
                     name: error?.name ?? 'Error',
                     message: truncate(event.message || 'Unknown error'),
-                    stack,
-                    filename: event.filename || undefined,
-                    lineno: event.lineno || undefined,
-                    colno: event.colno || undefined,
                 });
                 log(message);
             }),
@@ -54,11 +45,8 @@ export const initPromiseRejectionMonitoring = (): void => {
             'unhandledrejection',
             makeSafe((event: PromiseRejectionEvent) => {
                 let reason = 'Unknown rejection reason';
-                let stack: string | undefined;
-
                 if (event.reason instanceof Error) {
                     reason = event.reason.message;
-                    stack = event.reason.stack ? truncate(event.reason.stack) : undefined;
                 } else if (typeof event.reason === 'string') {
                     reason = event.reason;
                 } else if (event.reason !== null && event.reason !== undefined) {
@@ -68,7 +56,6 @@ export const initPromiseRejectionMonitoring = (): void => {
                 const message = createMessage({
                     type: 'promiseRejection',
                     reason: truncate(reason),
-                    stack: stack,
                 });
                 log(message);
             }),

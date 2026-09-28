@@ -11,7 +11,7 @@
 
 **Changed**
 
-- Nothing yet!
+- WebView error and promise-rejection events no longer report source-location details or stack traces.
 
 **Fixed**
 

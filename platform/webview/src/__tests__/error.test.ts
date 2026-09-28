@@ -36,9 +36,6 @@ describe('error monitoring', () => {
             // Create and manually call the handler with a proper error event
             const errorEvent = {
                 message: 'Test error message',
-                filename: 'test.js',
-                lineno: 42,
-                colno: 10,
                 error: new TypeError('Something went wrong'),
                 target: window,
             } as unknown as ErrorEvent;
@@ -49,9 +46,6 @@ describe('error monitoring', () => {
             expect(messages.length).toBe(1);
             expect(messages[0].message).toBe('Test error message');
             expect(messages[0].name).toBe('TypeError');
-            expect(messages[0].filename).toBe('test.js');
-            expect(messages[0].lineno).toBe(42);
-            expect(messages[0].colno).toBe(10);
 
             window.addEventListener = originalAddEventListener;
         });
@@ -166,7 +160,6 @@ describe('error monitoring', () => {
             const messages = collector.getMessagesByType('promiseRejection');
             expect(messages.length).toBe(1);
             expect(messages[0].reason).toBe('Promise failed');
-            expect(messages[0].stack).toBeDefined();
 
             window.addEventListener = originalAddEventListener;
         });
@@ -259,40 +252,6 @@ describe('error monitoring', () => {
             window.addEventListener = originalAddEventListener;
         });
 
-        it('should truncate very long stack traces', async () => {
-            const collector = createMessageCollector();
-            const { initPromiseRejectionMonitoring } = await import('../error');
-
-            const handlers: Array<(event: Event) => void> = [];
-            const originalAddEventListener = window.addEventListener;
-            window.addEventListener = vi.fn((type: string, handler: EventListener) => {
-                if (type === 'unhandledrejection') {
-                    handlers.push(handler);
-                }
-                originalAddEventListener.call(window, type, handler);
-            }) as typeof window.addEventListener;
-
-            initPromiseRejectionMonitoring();
-
-            const error = new Error('deep error');
-            // Simulate a huge stack trace (e.g., from deep recursion)
-            error.stack = `Error:·deep·error\n${'····at·fn·(/file.js:1:1)\n'.repeat(10_000)}`;
-
-            const event = {
-                reason: error,
-                promise: Promise.resolve(),
-            } as PromiseRejectionEvent;
-
-            handlers[0](event);
-
-            const messages = collector.getMessagesByType('promiseRejection');
-            expect(messages.length).toBe(1);
-            expect(messages[0].stack?.length).toBeLessThan(error.stack?.length);
-            expect(messages[0].stack).toContain('...<truncated>');
-
-            window.addEventListener = originalAddEventListener;
-        });
-
         it('should safely handle circular rejection reasons', async () => {
             const collector = createMessageCollector();
             const { initPromiseRejectionMonitoring } = await import('../error');
@@ -359,38 +318,5 @@ describe('error monitoring', () => {
             window.addEventListener = originalAddEventListener;
         });
 
-        it('should truncate very long error stack traces', async () => {
-            const collector = createMessageCollector();
-            const { initErrorMonitoring } = await import('../error');
-
-            const handlers: Array<(event: Event) => void> = [];
-            const originalAddEventListener = window.addEventListener;
-            window.addEventListener = vi.fn((type: string, handler: EventListener) => {
-                if (type === 'error') {
-                    handlers.push(handler);
-                }
-                originalAddEventListener.call(window, type, handler);
-            }) as typeof window.addEventListener;
-
-            initErrorMonitoring();
-
-            const error = new TypeError('stack test');
-            error.stack = `TypeError: stack test\n${'    at fn (/file.js:1:1)\n'.repeat(10_000)}`;
-
-            const errorEvent = {
-                message: 'stack test',
-                error,
-                target: window,
-            } as unknown as ErrorEvent;
-
-            handlers[0](errorEvent);
-
-            const messages = collector.getMessagesByType('error');
-            expect(messages.length).toBe(1);
-            expect(messages[0].stack?.length).toBeLessThan(error.stack?.length);
-            expect(messages[0].stack).toContain('...<truncated>');
-
-            window.addEventListener = originalAddEventListener;
-        });
     });
 });

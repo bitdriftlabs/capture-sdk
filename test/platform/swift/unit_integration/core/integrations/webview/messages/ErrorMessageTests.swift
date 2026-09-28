@@ -17,34 +17,15 @@ final class ErrorMessageTests: XCTestCase {
         assertWebLogAction(action, message: "webview.error", level: .error)
     }
 
-    func testMakeLoggingActionIncludesAllFields() throws {
+    func testMakeLoggingActionIncludesErrorFields() throws {
         try givenErrorMessage(
             name: "TypeError",
-            message: "Cannot read property 'x' of undefined",
-            stack: "at foo (app.js:1:1)",
-            filename: "app.js",
-            lineno: 10,
-            colno: 5
+            message: "Cannot read property 'x' of undefined"
         )
         let action = whenMakingLoggingAction()
         assertWebLogAction(action, message: "webview.error", level: .error) { fields in
             XCTAssertEqual(fields["_name"], "TypeError")
             XCTAssertEqual(fields["_message"], "Cannot read property 'x' of undefined")
-            XCTAssertEqual(fields["_stack"], "at foo (app.js:1:1)")
-            XCTAssertEqual(fields["_filename"], "app.js")
-            XCTAssertEqual(fields["_lineno"], "10")
-            XCTAssertEqual(fields["_colno"], "5")
-        }
-    }
-
-    func testMakeLoggingActionOmitsMissingOptionalFields() throws {
-        try givenErrorMessage(stack: nil, filename: nil, lineno: nil, colno: nil)
-        let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.error", level: .error) { fields in
-            XCTAssertNil(fields["_stack"])
-            XCTAssertNil(fields["_filename"])
-            XCTAssertNil(fields["_lineno"])
-            XCTAssertNil(fields["_colno"])
         }
     }
 }
@@ -52,14 +33,8 @@ final class ErrorMessageTests: XCTestCase {
 private extension ErrorMessageTests {
     func givenErrorMessage(
         name: String = "Error",
-        message: String = "boom",
-        stack: String? = "stack trace",
-        filename: String? = "app.js",
-        lineno: Int? = 1,
-        colno: Int? = 1
+        message: String = "boom"
     ) throws {
-        let linenoJSON: String = lineno.map { String($0) } ?? "null"
-        let colnoJSON: String = colno.map { String($0) } ?? "null"
         let json = """
         {
             "tag": "bitdrift-webview-sdk",
@@ -67,11 +42,7 @@ private extension ErrorMessageTests {
             "type": "error",
             "timestamp": 1700000000000,
             "name": "\(name)",
-            "message": "\(message)",
-            "stack": \(stack.map { "\"\($0)\"" } ?? "null"),
-            "filename": \(filename.map { "\"\($0)\"" } ?? "null"),
-            "lineno": \(linenoJSON),
-            "colno": \(colnoJSON)
+            "message": "\(message)"
         }
         """
         sut = try decodeWebViewMessage(ErrorMessage.self, from: json)
