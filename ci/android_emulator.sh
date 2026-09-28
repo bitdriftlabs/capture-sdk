@@ -4,10 +4,11 @@
 # require both boot-complete properties, a stopped boot animation, and a responsive package manager.
 wait_for_android_emulator_ready() {
   local serial="${1:-${ANDROID_SERIAL:-emulator-5554}}"
+  local attempts="${2:-45}"
 
   adb -s "$serial" wait-for-device
 
-  for _ in $(seq 1 45); do
+  for _ in $(seq 1 "$attempts"); do
     local sys_boot_completed
     local dev_boot_completed
     local boot_anim

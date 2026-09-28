@@ -26,7 +26,7 @@ import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
 import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.timber.CaptureTree
-import io.bitdrift.gradletestapp.diagnostics.fatalissues.AppExitIntentHandler
+import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFAULT_SIMULATED_START_DELAY_MILLIS
@@ -311,7 +311,7 @@ object CaptureSdkInitializer {
     private class CustomerIssueReportCallback : IssueReportCallback {
         override fun onBeforeReportSend(report: Report) {
             Log.i(
-                AppExitIntentHandler.LOG_TAG,
+                AppExitRepository.LOG_TAG,
                 "onBeforeReportSend reportType=${report.reportType} reason=${report.reason}",
             )
             Capture.Logger.logInfo(

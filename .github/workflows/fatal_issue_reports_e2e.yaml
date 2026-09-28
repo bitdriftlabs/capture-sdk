@@ -2,10 +2,17 @@ name: Android fatal issue reports E2E
 
 on:
   workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: fatal-issue-reports-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build_gradle_test_app:
     name: Build gradle-test-app
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'android-fatal-e2e-test'
     runs-on: ubuntu-latest-8-cores
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
@@ -42,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api-level: [30, 31, 32, 33, 34, 35, 36, 37]
+        api-level: ["30", "31", "32", "33", "34", "35", "36", "37.0"]
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v4
@@ -79,6 +86,14 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
           script: ./ci/verify_fatal_issue_reports.sh
 
+      - name: Record API level for the PR report
+        if: ${{ always() }}
+        env:
+          API_LEVEL: ${{ matrix.api-level }}
+        run: |
+          mkdir -p fatal-issue-reports-logs
+          echo "$API_LEVEL" > fatal-issue-reports-logs/api_level.txt
+
       - name: Upload logcat
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -86,3 +101,134 @@ jobs:
           name: fatal-issue-reports-logs-api-${{ matrix.api-level }}
           path: fatal-issue-reports-logs
           if-no-files-found: ignore
+
+  report_on_pr:
+    name: Report results on PR
+    needs: verify_fatal_issue_reports
+    if: >-
+      always() &&
+      github.event_name == 'pull_request' &&
+      github.event.label.name == 'android-fatal-e2e-test' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fatal-issue-reports-logs-api-*
+          path: results
+
+      - name: Post results comment
+        uses: actions/github-script@v7
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const cases = [
+              ['anr', 'ANR'],
+              ['jvm_crash', 'JVM crash'],
+              ['native_crash', 'Native crash'],
+            ];
+            const androidVersions = {
+              '30': 'Android 11', '31': 'Android 12', '32': 'Android 12L', '33': 'Android 13',
+              '34': 'Android 14', '35': 'Android 15', '36': 'Android 16', '37.0': 'Android 17',
+            };
+
+            const readResults = (dir) => {
+              const resultsPath = path.join(dir, 'results.txt');
+              if (!fs.existsSync(resultsPath)) {
+                return null;
+              }
+              const lines = fs.readFileSync(resultsPath, 'utf8').trim().split('\n').filter(Boolean);
+              return lines.length > 0 ? Object.fromEntries(lines.map((line) => line.split('|'))) : null;
+            };
+
+            const rows = (fs.existsSync('results') ? fs.readdirSync('results') : [])
+              .map((dir) => path.join('results', dir))
+              .filter((dir) => fs.existsSync(path.join(dir, 'api_level.txt')))
+              .map((dir) => ({
+                apiLevel: fs.readFileSync(path.join(dir, 'api_level.txt'), 'utf8').trim(),
+                results: readResults(dir),
+              }))
+              .sort((a, b) => parseFloat(a.apiLevel) - parseFloat(b.apiLevel));
+
+            let passed = 0;
+            let total = 0;
+            const tableRows = rows.map(({ apiLevel, results }) => {
+              const os = `${androidVersions[apiLevel] ?? 'Android'} (API ${apiLevel})`;
+              const cells = cases.map(([key]) => {
+                total += 1;
+                if (!results) {
+                  return '⚠️';
+                }
+                if (results[key] === 'pass') {
+                  passed += 1;
+                  return '✅';
+                }
+                return '❌';
+              });
+              return `| ${os} | ${cells.join(' | ')} |`;
+            });
+
+            const allPassed = total > 0 && passed === total;
+            const marker = '<!-- android-fatal-e2e-report -->';
+            const body = [
+              marker,
+              '## Android Fatal Issue Reports E2E',
+              '',
+              allPassed
+                ? `✅ All fatal issue reports were persisted and processed on the next launch (${passed}/${total}).`
+                : `❌ Some fatal issue reports were not processed on the next launch (${passed}/${total} passed).`,
+              '',
+              `| OS | ${cases.map(([, label]) => label).join(' | ')} |`,
+              `|---|${cases.map(() => ':---:').join('|')}|`,
+              ...tableRows,
+              '',
+              '✅ report processed on next launch · ❌ report missing · ⚠️ emulator did not run',
+              '',
+              `Commit ${process.env.HEAD_SHA.substring(0, 7)} · [Run logs and logcat artifacts](${process.env.RUN_URL}) · Re-add the \`android-fatal-e2e-test\` label to run again.`,
+            ].join('\n');
+
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find(
+              (comment) => comment.user.login === 'github-actions[bot]' && comment.body.includes(marker),
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body,
+              });
+            }
+
+      - name: Remove label so it can be re-added to run again
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              name: 'android-fatal-e2e-test',
+            });
