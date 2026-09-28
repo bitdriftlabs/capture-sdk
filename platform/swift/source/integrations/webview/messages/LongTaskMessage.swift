@@ -12,6 +12,7 @@ struct LongTaskMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let durationMs: Double
     let startTime: Double
     let attribution: LongTaskAttribution?
@@ -27,6 +28,7 @@ struct LongTaskMessage: WebViewLoggableMessage, Equatable {
             level: logLevel,
             message: "webview.longTask",
             fields: makeFields(
+                context: context,
                 ("_duration_ms", String(durationMs)),
                 ("_start_time", String(startTime)),
                 ("_attribution_name", attribution?.name),

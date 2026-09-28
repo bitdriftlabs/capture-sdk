@@ -12,6 +12,7 @@ struct BridgeReadyMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let url: String
     let instrumentationConfig: WebViewScriptConfiguration?
 
@@ -21,6 +22,7 @@ struct BridgeReadyMessage: WebViewLoggableMessage, Equatable {
             message: "webview.initialized",
             fields: makeFields(
                 includeTimestamp: false,
+                context: context,
                 ("_url", url),
                 ("_config", instrumentationConfig?.toJSONString())
             )

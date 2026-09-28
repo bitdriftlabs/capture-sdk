@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import { log, createMessage } from './bridge';
+import { log, createMessage, registerPageViewSpanIdProvider } from './bridge';
 import { safeCall, makeSafe } from './safe-call';
 
 /** Current page view span ID */
@@ -44,6 +44,8 @@ const generateSpanId = (): string => {
 export const getCurrentPageSpanId = (): string | null => {
     return currentPageSpanId;
 };
+
+registerPageViewSpanIdProvider(getCurrentPageSpanId);
 
 /**
  * Get the active page view span ID, or the most recently ended one when telemetry is reported

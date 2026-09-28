@@ -12,6 +12,7 @@ struct ErrorMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let name: String
     let message: String
     let stack: String?
@@ -24,6 +25,7 @@ struct ErrorMessage: WebViewLoggableMessage, Equatable {
             level: .error,
             message: "webview.error",
             fields: makeFields(
+                context: context,
                 ("_name", name),
                 ("_message", message),
                 ("_stack", stack),

@@ -12,6 +12,7 @@ struct ConsoleMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let level: String
     let message: String
     let args: [String]?
@@ -29,6 +30,7 @@ struct ConsoleMessage: WebViewLoggableMessage, Equatable {
             level: logLevel,
             message: "webview.console",
             fields: makeFields(
+                context: context,
                 ("_level", level),
                 ("_message", message),
                 ("_args", args?.prefix(5).joined(separator: ", "))

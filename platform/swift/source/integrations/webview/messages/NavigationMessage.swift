@@ -12,6 +12,7 @@ struct NavigationMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let fromUrl: String
     let toUrl: String
     let method: String
@@ -21,6 +22,7 @@ struct NavigationMessage: WebViewLoggableMessage, Equatable {
             level: .debug,
             message: "webview.navigation",
             fields: makeFields(
+                context: context,
                 ("_fromUrl", fromUrl),
                 ("_toUrl", toUrl),
                 ("_method", method)

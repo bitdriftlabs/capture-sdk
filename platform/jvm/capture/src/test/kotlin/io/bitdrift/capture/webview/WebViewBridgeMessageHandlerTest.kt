@@ -245,6 +245,7 @@ class WebViewBridgeMessageHandlerTest {
                 "v":1,
                 "type":"lifecycle",
                 "timestamp":1234567890,
+                "parentSpanId":"11111111-1111-4111-8111-111111111111",
                 "event":"load",
                 "performanceTime":123.45,
                 "visibilityState":"visible"
@@ -268,6 +269,7 @@ class WebViewBridgeMessageHandlerTest {
         assertThat(fields["_event"]).isEqualTo("load")
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
+        assertThat(fields["_span_parent_id"]).isEqualTo("11111111-1111-4111-8111-111111111111")
         assertThat(fields["_performance_time"]).isEqualTo("123.45")
         assertThat(fields["_visibility_state"]).isEqualTo("visible")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.lifecycle")

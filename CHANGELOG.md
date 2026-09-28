@@ -7,7 +7,7 @@
 
 **Added**
 
-- Nothing yet!
+- WebView events emitted during a Page View are now associated with that Page View span.
 
 **Changed**
 

@@ -37,6 +37,7 @@ struct NetworkRequestMessage: WebViewLoggableMessage, Equatable {
             query: components.query,
             spanID: requestId,
             extraFields: makeFields(
+                context: context,
                 ("_request_type", requestType),
                 ("_span_parent_id", parentSpanID?.uuidString)
             )

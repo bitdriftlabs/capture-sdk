@@ -12,6 +12,7 @@ struct ResourceErrorMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let resourceType: String
     let url: String
     let tagName: String
@@ -21,6 +22,7 @@ struct ResourceErrorMessage: WebViewLoggableMessage, Equatable {
             level: .warning,
             message: "webview.resourceError",
             fields: makeFields(
+                context: context,
                 ("_resource_type", resourceType),
                 ("_url", url),
                 ("_tag_name", tagName)
