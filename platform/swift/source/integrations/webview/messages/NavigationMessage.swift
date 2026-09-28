@@ -19,7 +19,7 @@ struct NavigationMessage: WebViewLoggableMessage, Equatable {
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
         .log(
-            level: .debug,
+            level: .info,
             message: "webview.navigation",
             fields: makeFields(
                 context: context,

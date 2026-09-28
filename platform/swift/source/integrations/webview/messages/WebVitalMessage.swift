@@ -23,7 +23,7 @@ struct WebVitalMessage: WebViewMessage, Equatable {
         case "poor":
             return .warning
         default:
-            return .debug
+            return .info
         }
     }
 

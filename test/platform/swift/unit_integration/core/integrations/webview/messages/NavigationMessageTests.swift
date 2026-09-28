@@ -18,7 +18,7 @@ final class NavigationMessageTests: XCTestCase {
             method: "pushState"
         )
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.navigation", level: .debug) { fields in
+        assertWebLogAction(action, message: "webview.navigation", level: .info) { fields in
             XCTAssertEqual(fields["_fromUrl"], "https://example.com/a")
             XCTAssertEqual(fields["_toUrl"], "https://example.com/b")
             XCTAssertEqual(fields["_method"], "pushState")

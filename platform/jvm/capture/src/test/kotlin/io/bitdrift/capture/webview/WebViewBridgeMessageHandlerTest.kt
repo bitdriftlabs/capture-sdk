@@ -101,7 +101,7 @@ class WebViewBridgeMessageHandlerTest {
 
     @Test
     fun log_whenWebVitalReferencesPageView_shouldUseJavaScriptPageViewSpanId() {
-        val webVitalSpan = Span(mock(), "webview.webVital", LogLevel.DEBUG, clock = mock())
+        val webVitalSpan = Span(mock(), "webview.webVital", LogLevel.INFO, clock = mock())
         whenever(logger.startSpan(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(webVitalSpan)
 
@@ -140,7 +140,7 @@ class WebViewBridgeMessageHandlerTest {
 
         verify(logger).startSpan(
             eq("webview.webVital"),
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             anyOrNull(),
             eq(1400L),
             eq(UUID.fromString("11111111-1111-4111-8111-111111111111")),
@@ -238,7 +238,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenLifecycle_shouldLogUxDebugWithAllFields() {
+    fun log_whenLifecycle_shouldLogUxInfoWithAllFields() {
         val message =
             """
             {
@@ -257,7 +257,7 @@ class WebViewBridgeMessageHandlerTest {
 
         verify(logger).logInternal(
             logTypeCaptor.capture(),
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(ArrayFields.EMPTY),
             eq(null),
@@ -276,7 +276,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenLifecycleWithoutOptionalFields_shouldLogUxDebug() {
+    fun log_whenLifecycleWithoutOptionalFields_shouldLogUxInfo() {
         val message =
             """
             {
@@ -292,7 +292,7 @@ class WebViewBridgeMessageHandlerTest {
 
         verify(logger).logInternal(
             logTypeCaptor.capture(),
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(ArrayFields.EMPTY),
             eq(null),
@@ -310,7 +310,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenNavigation_shouldLogDebugWithAllFields() {
+    fun log_whenNavigation_shouldLogInfoWithAllFields() {
         val message =
             """
             {
@@ -326,7 +326,7 @@ class WebViewBridgeMessageHandlerTest {
         handler.log(message)
 
         verify(logger).log(
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(null),
             logMessageCaptor.capture(),
@@ -341,7 +341,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenNavigationWithoutOptionalFields_shouldLogDebugWithEmptyStrings() {
+    fun log_whenNavigationWithoutOptionalFields_shouldLogInfoWithEmptyStrings() {
         val message =
             """
             {
@@ -354,7 +354,7 @@ class WebViewBridgeMessageHandlerTest {
         handler.log(message)
 
         verify(logger).log(
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(null),
             logMessageCaptor.capture(),
@@ -505,7 +505,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenLongTaskUnder100Ms_shouldLogUxDebug() {
+    fun log_whenLongTaskUnder100Ms_shouldLogUxInfo() {
         val message =
             """
             {
@@ -521,7 +521,7 @@ class WebViewBridgeMessageHandlerTest {
 
         verify(logger).logInternal(
             logTypeCaptor.capture(),
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(ArrayFields.EMPTY),
             eq(null),

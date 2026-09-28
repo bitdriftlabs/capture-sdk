@@ -14,13 +14,13 @@ final class LifecycleMessageTests: XCTestCase {
     func testMakeLoggingActionLogsAtDebugLevel() throws {
         try givenLifecycleMessage()
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.lifecycle", level: .debug, type: .ux)
+        assertWebLogAction(action, message: "webview.lifecycle", level: .info, type: .ux)
     }
 
     func testMakeLoggingActionIncludesEventAndPerformanceTime() throws {
         try givenLifecycleMessage(event: "DOMContentLoaded", performanceTime: 123.456)
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.lifecycle", level: .debug) { fields in
+        assertWebLogAction(action, message: "webview.lifecycle", level: .info) { fields in
             XCTAssertEqual(fields["_event"], "DOMContentLoaded")
             XCTAssertEqual(fields["_performance_time"], "123.456")
         }
@@ -29,7 +29,7 @@ final class LifecycleMessageTests: XCTestCase {
     func testMakeLoggingActionIncludesVisibilityStateWhenPresent() throws {
         try givenLifecycleMessage(visibilityState: "hidden")
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.lifecycle", level: .debug) { fields in
+        assertWebLogAction(action, message: "webview.lifecycle", level: .info) { fields in
             XCTAssertEqual(fields["_visibility_state"], "hidden")
         }
     }
@@ -37,7 +37,7 @@ final class LifecycleMessageTests: XCTestCase {
     func testMakeLoggingActionOmitsVisibilityStateWhenAbsent() throws {
         try givenLifecycleMessage(visibilityState: nil)
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.lifecycle", level: .debug) { fields in
+        assertWebLogAction(action, message: "webview.lifecycle", level: .info) { fields in
             XCTAssertNil(fields["_visibility_state"])
         }
     }
@@ -54,7 +54,7 @@ final class LifecycleMessageTests: XCTestCase {
             )
         )
 
-        assertWebLogAction(action, message: "webview.lifecycle", level: .debug) { fields in
+        assertWebLogAction(action, message: "webview.lifecycle", level: .info) { fields in
             XCTAssertEqual(fields["_span_parent_id"], nativeID.uuidString)
         }
     }

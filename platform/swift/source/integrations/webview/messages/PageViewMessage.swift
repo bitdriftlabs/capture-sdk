@@ -30,7 +30,7 @@ struct PageViewMessage: WebViewLoggableMessage, Equatable {
             return .startSpan(
                 id: spanId,
                 name: "webview.pageView",
-                level: .debug,
+                level: .info,
                 fields: fields,
                 startTimeInterval: timestampTimeInterval,
                 parentSpanID: nil

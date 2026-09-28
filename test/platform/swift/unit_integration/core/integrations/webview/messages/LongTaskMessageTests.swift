@@ -23,16 +23,16 @@ final class LongTaskMessageTests: XCTestCase {
         assertWebLogAction(action, message: "webview.longTask", level: .info)
     }
 
-    func testMakeLoggingActionWithShortDurationLogsAtDebugLevel() throws {
+    func testMakeLoggingActionWithShortDurationLogsAtInfoLevel() throws {
         try givenLongTaskMessage(durationMs: 50)
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.longTask", level: .debug)
+        assertWebLogAction(action, message: "webview.longTask", level: .info)
     }
 
     func testMakeLoggingActionIncludesDurationAndStartTime() throws {
         try givenLongTaskMessage(durationMs: 50, startTime: 12.5)
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.longTask", level: .debug) { fields in
+        assertWebLogAction(action, message: "webview.longTask", level: .info) { fields in
             XCTAssertEqual(fields["_duration_ms"], "50.0")
             XCTAssertEqual(fields["_start_time"], "12.5")
         }
@@ -41,7 +41,7 @@ final class LongTaskMessageTests: XCTestCase {
     func testMakeLoggingActionWithoutAttributionOmitsAttributionFields() throws {
         try givenLongTaskMessage(attribution: nil)
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.longTask", level: .debug) { fields in
+        assertWebLogAction(action, message: "webview.longTask", level: .info) { fields in
             XCTAssertNil(fields["_attribution_name"])
             XCTAssertNil(fields["_container_type"])
             XCTAssertNil(fields["_container_src"])
@@ -59,7 +59,7 @@ final class LongTaskMessageTests: XCTestCase {
             containerName: "ads"
         ))
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.longTask", level: .debug) { fields in
+        assertWebLogAction(action, message: "webview.longTask", level: .info) { fields in
             XCTAssertEqual(fields["_attribution_name"], "script")
             XCTAssertEqual(fields["_container_type"], "iframe")
             XCTAssertEqual(fields["_container_src"], "https://example.com/frame.html")
