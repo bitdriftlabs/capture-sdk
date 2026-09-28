@@ -385,7 +385,7 @@ internal class WebViewBridgeMessageHandler(
 
     private fun webVitalEventName(metricName: String): String =
         when (metricName) {
-            "LCP", "FCP", "TTFB", "INP", "CLS" -> "webview.${metricName.lowercase()}"
+            "LCP", "FCP", "TTFB", "INP", "CLS" -> "webview.webVital.${metricName.lowercase()}"
             else -> "webview.webVital"
         }
 

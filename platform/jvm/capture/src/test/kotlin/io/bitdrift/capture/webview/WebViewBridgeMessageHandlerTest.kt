@@ -101,7 +101,7 @@ class WebViewBridgeMessageHandlerTest {
 
     @Test
     fun log_whenWebVitalReferencesPageView_shouldUseJavaScriptPageViewSpanId() {
-        val webVitalSpan = Span(mock(), "webview.fcp", LogLevel.INFO, clock = mock())
+        val webVitalSpan = Span(mock(), "webview.webVital.fcp", LogLevel.INFO, clock = mock())
         whenever(logger.startSpan(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(webVitalSpan)
 
@@ -139,7 +139,7 @@ class WebViewBridgeMessageHandlerTest {
         )
 
         verify(logger).startSpan(
-            eq("webview.fcp"),
+            eq("webview.webVital.fcp"),
             eq(LogLevel.INFO),
             anyOrNull(),
             eq(1400L),

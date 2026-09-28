@@ -75,7 +75,7 @@ extension WebVitalMessage: WebViewLoggableMessage {
     private var eventName: String {
         switch metric.name {
         case "LCP", "FCP", "TTFB", "INP", "CLS":
-            return "webview.\(metric.name.lowercased())"
+            return "webview.webVital.\(metric.name.lowercased())"
         default:
             return "webview.webVital"
         }
