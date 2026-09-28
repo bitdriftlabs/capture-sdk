@@ -28,7 +28,7 @@ final class PageViewMessageTests: XCTestCase {
 
         XCTAssertEqual(id, "span-1")
         XCTAssertEqual(name, "webview.pageView")
-        XCTAssertEqual(level, .debug)
+        XCTAssertEqual(level, .info)
         XCTAssertEqual((fields as? [String: String])?["_url"], "https://example.com/page")
         XCTAssertEqual((fields as? [String: String])?["_reason"], "initial")
         XCTAssertEqual(startTimeInterval, 1_700_000_000)

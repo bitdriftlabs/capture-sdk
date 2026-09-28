@@ -21,7 +21,7 @@ struct LongTaskMessage: WebViewLoggableMessage, Equatable {
         let logLevel: LogLevel = switch durationMs {
         case 200...: .warning
         case 100...: .info
-        default: .debug
+        default: .info
         }
 
         return .log(
