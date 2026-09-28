@@ -66,6 +66,7 @@ jobs:
           api-level: ${{ matrix.api-level }}
           target: google_apis
           arch: x86_64
+          use-avd-snapshot: ${{ matrix.api-level != '37.0' }}
 
       - name: Verify ANR, JVM crash and native crash reports
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
