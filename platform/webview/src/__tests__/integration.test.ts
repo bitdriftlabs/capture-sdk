@@ -171,9 +171,6 @@ describe('integration: message structure validation', () => {
             const error = new TypeError('Test error');
             const errorEvent = {
                 message: 'Test error message',
-                filename: 'test.js',
-                lineno: 10,
-                colno: 5,
                 error,
                 target: window,
             } as unknown as ErrorEvent;
@@ -190,10 +187,6 @@ describe('integration: message structure validation', () => {
             expect(message.type).toBe('error');
             expect(message.name).toBe('TypeError');
             expect(message.message).toBe('Test error message');
-            expect(message.filename).toBe('test.js');
-            expect(message.lineno).toBe(10);
-            expect(message.colno).toBe(5);
-            expect(message.stack).toBeDefined();
         });
     });
 

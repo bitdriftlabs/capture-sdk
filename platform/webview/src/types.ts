@@ -152,14 +152,6 @@ export interface ErrorMessage extends BridgeMessage {
     name: string;
     /** Error message */
     message: string;
-    /** Stack trace if available */
-    stack?: string;
-    /** Source file */
-    filename?: string;
-    /** Line number */
-    lineno?: number;
-    /** Column number */
-    colno?: number;
 }
 
 /**
@@ -244,8 +236,6 @@ export interface PromiseRejectionMessage extends BridgeMessage {
     type: 'promiseRejection';
     /** Rejection reason/message */
     reason: string;
-    /** Stack trace if available */
-    stack?: string;
 }
 
 /**

@@ -46,10 +46,6 @@ internal data class WebViewBridgeMessage(
     // error
     @SerializedName("name") val name: String? = null,
     @SerializedName("message") val message: String? = null,
-    @SerializedName("stack") val stack: String? = null,
-    @SerializedName("filename") val filename: String? = null,
-    @SerializedName("lineno") val lineno: Int? = null,
-    @SerializedName("colno") val colno: Int? = null,
     // longTask
     @SerializedName("startTime") val startTime: Double? = null,
     @SerializedName("attribution") val attribution: LongTaskAttribution? = null,

@@ -585,10 +585,6 @@ internal class WebViewBridgeMessageHandler(
                 "_message" to errorMessage,
                 "_source" to "webview",
                 "_timestamp" to timestamp.toString(),
-                "_stack" to msg.stack,
-                "_filename" to msg.filename,
-                "_lineno" to msg.lineno?.toString(),
-                "_colno" to msg.colno?.toString(),
             )
         logger.log(LogLevel.ERROR, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.error"
@@ -686,7 +682,6 @@ internal class WebViewBridgeMessageHandler(
             fieldsOfOptional(
                 "_reason" to reason,
                 "_source" to "webview",
-                "_stack" to msg.stack,
                 "_timestamp" to timestamp.toString(),
             )
 

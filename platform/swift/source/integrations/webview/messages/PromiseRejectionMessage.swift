@@ -14,7 +14,6 @@ struct PromiseRejectionMessage: WebViewLoggableMessage, Equatable {
     let timestamp: Int64
     let parentSpanId: String?
     let reason: String
-    let stack: String?
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
         .log(
@@ -22,8 +21,7 @@ struct PromiseRejectionMessage: WebViewLoggableMessage, Equatable {
             message: "webview.promiseRejection",
             fields: makeFields(
                 context: context,
-                ("_reason", reason),
-                ("_stack", stack)
+                ("_reason", reason)
             )
         )
     }

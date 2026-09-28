@@ -369,7 +369,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenError_shouldLogErrorWithAllFields() {
+    fun log_whenError_shouldLogErrorWithFields() {
         val message =
             """
             {
@@ -377,11 +377,7 @@ class WebViewBridgeMessageHandlerTest {
                 "type":"error",
                 "timestamp":1234567890,
                 "name":"TypeError",
-                "message":"Cannot read property 'foo' of undefined",
-                "stack":"TypeError: Cannot read property 'foo' of undefined\n    at main.js:10:5",
-                "filename":"https://example.com/main.js",
-                "lineno":10,
-                "colno":5
+                "message":"Cannot read property 'foo' of undefined"
             }
             """.trimIndent()
 
@@ -398,10 +394,6 @@ class WebViewBridgeMessageHandlerTest {
         assertThat(fields["_message"]).isEqualTo("Cannot read property 'foo' of undefined")
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
-        assertThat(fields["_stack"]).isEqualTo("TypeError: Cannot read property 'foo' of undefined\n    at main.js:10:5")
-        assertThat(fields["_filename"]).isEqualTo("https://example.com/main.js")
-        assertThat(fields["_lineno"]).isEqualTo("10")
-        assertThat(fields["_colno"]).isEqualTo("5")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.error")
     }
 
@@ -764,15 +756,14 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenPromiseRejection_shouldLogErrorWithAllFields() {
+    fun log_whenPromiseRejection_shouldLogErrorWithFields() {
         val message =
             """
             {
                 "v":1,
                 "type":"promiseRejection",
                 "timestamp":1234567890,
-                "reason":"Network request failed",
-                "stack":"Error: Network request failed\n    at fetch.js:20:10"
+                "reason":"Network request failed"
             }
             """.trimIndent()
 
@@ -787,7 +778,6 @@ class WebViewBridgeMessageHandlerTest {
         val fields = arrayFieldsCaptor.firstValue.toStringMap()
         assertThat(fields["_reason"]).isEqualTo("Network request failed")
         assertThat(fields["_source"]).isEqualTo("webview")
-        assertThat(fields["_stack"]).isEqualTo("Error: Network request failed\n    at fetch.js:20:10")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.promiseRejection")
     }
