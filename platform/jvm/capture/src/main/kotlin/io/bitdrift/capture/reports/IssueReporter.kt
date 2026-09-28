@@ -184,7 +184,8 @@ internal class IssueReporter(
     }
 
     private fun persistLastExitReasonIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Build.VERSION.SDK_INT == Build.VERSION_CODES.TIRAMISU) {
+            // This should fail the new e2e test for Android 33 only
             return
         }
         val latestAppExitReasonResult = latestAppExitInfoProvider.get()
