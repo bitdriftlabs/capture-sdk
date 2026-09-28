@@ -1,6 +1,0 @@
-appId: io.bitdrift.gradletestapp
----
-- extendedWaitUntil:
-    visible: "Close app"
-    timeout: 60000
-- tapOn: "Close app"
