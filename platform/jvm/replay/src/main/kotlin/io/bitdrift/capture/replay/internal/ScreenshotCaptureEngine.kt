@@ -29,12 +29,14 @@ internal class ScreenshotCaptureEngine(
     private val mainThreadHandler: MainThreadHandler,
     private val windowManager: IWindowManager,
     private val executor: ExecutorService,
+    private val metrics: ScreenshotMetricsStopwatch = ScreenshotMetricsStopwatch(),
 ) {
-    fun captureDeviceCommandScreenshot() {
+    fun captureScreenshot() {
         try {
+            metrics.start()
             val rootView = windowManager.getBottomMostRootView()
             if (rootView == null || rootView.width <= 0 || rootView.height <= 0 || !rootView.isShown) {
-                finishOnError(expected = true, "Device command screenshot: Root view is invalid")
+                finishOnError(expected = true, "Screenshot triggered: Root view is invalid, skipping capture")
                 return
             }
 
@@ -49,13 +51,13 @@ internal class ScreenshotCaptureEngine(
                 // TODO(murki): Implement on old API levels using Canvas(bitmap) approach
                 finishOnError(
                     expected = true,
-                    "Device command screenshot: Unsupported Android version=${Build.VERSION.SDK_INT}",
+                    "Screenshot triggered: Unsupported Android version=${Build.VERSION.SDK_INT}, skipping capture",
                 )
             }
         } catch (e: Exception) {
             finishOnError(
                 expected = false,
-                "Device command screenshot: PixelCopy request failed. Exception=${e.message}",
+                "Screenshot triggered: PixelCopy request failed. Exception=${e.message}",
                 e,
             )
         }
@@ -75,18 +77,20 @@ internal class ScreenshotCaptureEngine(
                 if (screenshotResult.status != PixelCopy.SUCCESS) {
                     finishOnError(
                         expected = false,
-                        "Device command screenshot: PixelCopy failed. Result.status=${screenshotResult.status}",
+                        "Screenshot triggered: PixelCopy operation failed. Result.status=${screenshotResult.status}",
                     )
                     return@request
                 }
                 // bitmap is only available if the status is SUCCESS
                 resultBitmap = screenshotResult.bitmap
+                metrics.screenshot(resultBitmap.allocationByteCount, resultBitmap.byteCount)
                 val screenshotBytes = compressScreenshot(resultBitmap)
-                logger.onDeviceCommandScreenshotCaptured(screenshotBytes)
+                metrics.compression(screenshotBytes.size)
+                logger.onScreenshotCaptured(screenshotBytes, metrics.data())
             } catch (e: Exception) {
                 finishOnError(
                     expected = false,
-                    "Device command screenshot: PixelCopy compression failed. Exception=${e.message}",
+                    "Screenshot triggered: PixelCopy compression failed. Exception=${e.message}",
                     e,
                 )
             } finally {
@@ -99,7 +103,7 @@ internal class ScreenshotCaptureEngine(
     private fun pixelCopySnapshot(root: View) {
         val window = root.phoneWindow
         if (window == null) {
-            finishOnError(expected = true, "Device command screenshot: Phone window invalid")
+            finishOnError(expected = true, "Screenshot triggered: Phone window invalid, skipping capture")
             return
         }
 
@@ -114,7 +118,7 @@ internal class ScreenshotCaptureEngine(
                     resultBitmap.recycle()
                     finishOnError(
                         expected = false,
-                        "Device command screenshot: PixelCopy failed. Result.status=${screenshotResultStatus.toStatusText()}",
+                        "Screenshot triggered: PixelCopy operation failed. Result.status=${screenshotResultStatus.toStatusText()}",
                     )
                     return@request
                 }
@@ -122,12 +126,14 @@ internal class ScreenshotCaptureEngine(
                 // TODO(murki): Try to avoid so much context switching between main and background threads
                 executor.execute {
                     try {
+                        metrics.screenshot(resultBitmap.allocationByteCount, resultBitmap.byteCount)
                         val screenshotBytes = compressScreenshot(resultBitmap)
-                        logger.onDeviceCommandScreenshotCaptured(screenshotBytes)
+                        metrics.compression(screenshotBytes.size)
+                        logger.onScreenshotCaptured(screenshotBytes, metrics.data())
                     } catch (e: Exception) {
                         finishOnError(
                             expected = false,
-                            "Device command screenshot: Compression failed. Exception=${e.message}",
+                            "Screenshot triggered: Compression operation failed. Exception=${e.message}",
                             e,
                         )
                     } finally {
@@ -148,7 +154,8 @@ internal class ScreenshotCaptureEngine(
             errorHandler.handleError(message, e)
         }
         logger.logErrorInternal(message, e)
-        logger.onDeviceCommandScreenshotCaptured(ByteArray(0))
+        // Log empty screenshot on unblock the rust engine caller
+        logger.onScreenshotCaptured(ByteArray(0), metrics.data())
     }
 
     private fun compressScreenshot(resultBitmap: Bitmap): ByteArray {

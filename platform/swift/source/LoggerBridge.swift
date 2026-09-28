@@ -218,6 +218,10 @@ final class LoggerBridge: LoggerBridging {
         capture_write_session_replay_screen_log(self.loggerID, fields, duration)
     }
 
+    func logSessionReplayScreenshot(fields: [CapturePassable.Field], duration: TimeInterval) {
+        capture_write_session_replay_screenshot_log(self.loggerID, fields, duration)
+    }
+
     func logResourceUtilization(fields: [CapturePassable.Field], duration: TimeInterval) {
         capture_write_resource_utilization_log(self.loggerID, fields, duration)
     }

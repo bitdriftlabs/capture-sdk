@@ -69,9 +69,12 @@ class SessionReplayController(
         replayCaptureEngine.captureScreen(skipReplayComposeViews)
     }
 
-    /** Captures a screenshot for a remote device command. */
-    fun captureDeviceCommandScreenshot() {
-        screenshotCaptureEngine.captureDeviceCommandScreenshot()
+    /**
+     * Captures a screenshot of the current screen and emits a screenshot log using a logger instance passed
+     * at initialization time.
+     */
+    fun captureScreenshot() {
+        screenshotCaptureEngine.captureScreenshot()
     }
 
     internal object L {
