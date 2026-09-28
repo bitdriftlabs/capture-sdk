@@ -949,16 +949,15 @@ class WebViewBridgeMessageHandlerTest {
             }
             """.trimIndent()
 
-        val fieldsCaptor = argumentCaptor<Map<String, String>>()
         handler.log(message)
 
         verify(logger).log(
             eq(LogLevel.CRITICAL),
-            fieldsCaptor.capture(),
+            arrayFieldsCaptor.capture(),
             eq(null),
             logMessageCaptor.capture(),
         )
-        assertThat(fieldsCaptor.firstValue["_source"]).isEqualTo("webview")
+        assertThat(arrayFieldsCaptor.firstValue.toStringMap()["_source"]).isEqualTo("webview")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("Critical message")
     }
 
@@ -975,12 +974,11 @@ class WebViewBridgeMessageHandlerTest {
             }
             """.trimIndent()
 
-        val fieldsCaptor = argumentCaptor<Map<String, String>>()
         handler.log(message)
 
         verify(logger).log(
             eq(LogLevel.DEBUG),
-            fieldsCaptor.capture(),
+            arrayFieldsCaptor.capture(),
             eq(null),
             logMessageCaptor.capture(),
         )
