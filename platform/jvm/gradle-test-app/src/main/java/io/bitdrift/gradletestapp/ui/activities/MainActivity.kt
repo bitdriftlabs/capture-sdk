@@ -18,6 +18,7 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.databinding.ActivityMainBinding
+import io.bitdrift.gradletestapp.diagnostics.fatalissues.AppExitIntentHandler
 import io.bitdrift.gradletestapp.diagnostics.lifecycle.LifecycleEventLogger
 
 class MainActivity : AppCompatActivity() {
@@ -44,6 +45,8 @@ class MainActivity : AppCompatActivity() {
         }
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
+
+        AppExitIntentHandler.handle(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean =
