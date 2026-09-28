@@ -442,6 +442,7 @@ internal object CaptureJniLibrary : IBridge {
      * @param stream          The InputStream containing ANR details
      * @param timestampMillis The time at which the event took place
      * @param destinationPath Target file path to write the report
+     * @param tempDirectoryPath Writable directory used to buffer the ANR trace while parsing
      * @param attributes Client attributes used for dynamic report metadata
      */
     @Throws(IOException::class, IllegalArgumentException::class)
@@ -450,6 +451,7 @@ internal object CaptureJniLibrary : IBridge {
         stream: InputStream?,
         timestampMillis: Long,
         destinationPath: String,
+        tempDirectoryPath: String,
         attributes: IClientAttributes,
         runningState: String?,
         appExitDescription: String?,

@@ -162,6 +162,7 @@ internal class LoggerImpl(
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
                 captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
+                tempDirectoryPath = context.cacheDir.path,
             )
         } else {
             null

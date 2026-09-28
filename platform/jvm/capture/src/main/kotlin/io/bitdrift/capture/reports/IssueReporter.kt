@@ -44,6 +44,7 @@ import kotlin.time.TimeSource
  * @param latestAppExitInfoProvider Provider for retrieving latest app exit information.
  * @param captureUncaughtExceptionHandler Handler for uncaught exceptions.
  * @param dateProvider Date source used when building report payload metadata.
+ * @param tempDirectoryPath Writable directory used to buffer ANR traces while parsing.
  */
 internal class IssueReporter(
     private val internalLogger: IInternalLogger,
@@ -52,6 +53,7 @@ internal class IssueReporter(
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler,
     private val dateProvider: DateProvider,
     private val memoryMetricsProvider: IMemoryMetricsProvider,
+    private val tempDirectoryPath: String,
 ) : IIssueReporter,
     IJvmCrashListener {
     // written on the background worker once prior reports are processed, and read from whichever
@@ -98,6 +100,7 @@ internal class IssueReporter(
                     dateProvider,
                     internalLogger,
                     memoryMetricsProvider,
+                    tempDirectoryPath,
                 )
             captureUncaughtExceptionHandler.install(this)
             processPriorReports(completedReportsProcessor)
@@ -216,6 +219,7 @@ internal class IssueReporter(
             dateProvider: DateProvider,
             internalLogger: IInternalLogger,
             memoryMetricsProvider: IMemoryMetricsProvider,
+            tempDirectoryPath: String,
         ): IIssueReporterProcessor =
             IssueReporterProcessor(
                 IssueReporterStore(sdkDirectory),
@@ -224,6 +228,7 @@ internal class IssueReporter(
                 dateProvider,
                 internalLogger,
                 memoryMetricsProvider,
+                tempDirectoryPath,
             )
     }
 }

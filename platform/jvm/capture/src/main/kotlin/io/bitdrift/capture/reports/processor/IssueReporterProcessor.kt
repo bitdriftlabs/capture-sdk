@@ -46,6 +46,7 @@ internal class IssueReporterProcessor(
     private val dateProvider: DateProvider,
     private val internalLogger: IInternalLogger,
     private val memoryMetricsProvider: IMemoryMetricsProvider,
+    private val tempDirectoryPath: String,
     private val runtimeProvider: IRuntimeProvider = CaptureRuntimeProvider,
 ) : IIssueReporterProcessor {
     companion object {
@@ -124,6 +125,7 @@ internal class IssueReporterProcessor(
                         traceInputStream,
                         timestamp,
                         reporterIssueStore.generateFatalIssueFilePath(),
+                        tempDirectoryPath,
                         runningState,
                         applicationExit.description,
                         internalLogger.getPreviousRunMemoryPressureLevel().nativeValue,
