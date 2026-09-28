@@ -68,7 +68,7 @@ extension WebVitalMessage: WebViewLoggableMessage {
                 result: spanResult
             )
         default:
-            return .log(level: ratingLogLevel, message: "webview.webVital", fields: fields)
+            return .log(level: ratingLogLevel, message: "webview.webVital", fields: fields, type: .ux)
         }
     }
 }

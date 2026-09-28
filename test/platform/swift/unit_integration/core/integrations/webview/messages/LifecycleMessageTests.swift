@@ -14,7 +14,7 @@ final class LifecycleMessageTests: XCTestCase {
     func testMakeLoggingActionLogsAtDebugLevel() throws {
         try givenLifecycleMessage()
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.lifecycle", level: .debug)
+        assertWebLogAction(action, message: "webview.lifecycle", level: .debug, type: .ux)
     }
 
     func testMakeLoggingActionIncludesEventAndPerformanceTime() throws {

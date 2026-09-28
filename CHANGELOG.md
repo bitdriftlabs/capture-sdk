@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed some WebView events appearing with log types that differed from Android in the timeline.
 
 ## [0.25.1]
 [0.25.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.25.1

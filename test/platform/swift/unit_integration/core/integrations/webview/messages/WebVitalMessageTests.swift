@@ -35,7 +35,7 @@ final class WebVitalMessageTests: XCTestCase {
     func testMakeLoggingActionForNonSpanMetricReturnsLogAction() throws {
         try givenWebVitalMessage(metricName: "CLS", rating: "good")
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.webVital", level: .debug)
+        assertWebLogAction(action, message: "webview.webVital", level: .debug, type: .ux)
     }
 
     func testMakeLoggingActionWithPoorRatingLogsAtWarningWithFailureResult() throws {

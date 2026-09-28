@@ -26,7 +26,8 @@ struct LifecycleMessage: WebViewLoggableMessage, Equatable {
                 ("_event", event),
                 ("_performance_time", String(performanceTime)),
                 ("_visibility_state", visibilityState)
-            )
+            ),
+            type: .ux
         )
     }
 }
