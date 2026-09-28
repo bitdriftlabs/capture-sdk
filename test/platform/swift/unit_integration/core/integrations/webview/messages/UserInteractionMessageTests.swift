@@ -14,7 +14,7 @@ final class UserInteractionMessageTests: XCTestCase {
     func testMakeLoggingActionWithClickLogsAtDebugLevel() throws {
         try givenUserInteractionMessage(interactionType: "click", isClickable: true)
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.userInteraction", level: .debug)
+        assertWebLogAction(action, message: "webview.userInteraction", level: .debug, type: .ux)
     }
 
     func testMakeLoggingActionWithRageClickLogsAtWarningLevel() throws {

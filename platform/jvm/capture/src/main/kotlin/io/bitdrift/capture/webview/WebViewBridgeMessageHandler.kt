@@ -200,10 +200,10 @@ internal class WebViewBridgeMessageHandler(
         // Determine log level based on rating
         val level =
             when (rating) {
-                "good" -> LogLevel.DEBUG
+                "good" -> LogLevel.INFO
                 "needs-improvement" -> LogLevel.INFO
                 "poor" -> LogLevel.WARNING
-                else -> LogLevel.DEBUG
+                else -> LogLevel.INFO
             }
 
         // Build common fields for all web vitals
@@ -485,7 +485,7 @@ internal class WebViewBridgeMessageHandler(
                     Span(
                         logger = logger,
                         name = "webview.pageView",
-                        level = LogLevel.DEBUG,
+                        level = LogLevel.INFO,
                         arrayFields = fields.toFields(),
                         customStartTimeMs = timestamp,
                         id = pageViewSpanId,
@@ -545,7 +545,7 @@ internal class WebViewBridgeMessageHandler(
                 "_performance_time" to msg.performanceTime?.toString(),
                 "_visibility_state" to msg.visibilityState,
             )
-        logger.logInternal(LogType.UX, LogLevel.DEBUG, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
+        logger.logInternal(LogType.UX, LogLevel.INFO, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.lifecycle"
         }
     }
@@ -567,7 +567,7 @@ internal class WebViewBridgeMessageHandler(
                 "_timestamp" to timestamp.toString(),
             )
 
-        logger.log(LogLevel.DEBUG, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
+        logger.log(LogLevel.INFO, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.navigation"
         }
     }
@@ -585,10 +585,6 @@ internal class WebViewBridgeMessageHandler(
                 "_message" to errorMessage,
                 "_source" to "webview",
                 "_timestamp" to timestamp.toString(),
-                "_stack" to msg.stack,
-                "_filename" to msg.filename,
-                "_lineno" to msg.lineno?.toString(),
-                "_colno" to msg.colno?.toString(),
             )
         logger.log(LogLevel.ERROR, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.error"
@@ -618,7 +614,7 @@ internal class WebViewBridgeMessageHandler(
             when {
                 durationMsDouble >= 200 -> LogLevel.WARNING
                 durationMsDouble >= 100 -> LogLevel.INFO
-                else -> LogLevel.DEBUG
+                else -> LogLevel.INFO
             }
 
         logger.logInternal(LogType.UX, level, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
@@ -686,7 +682,6 @@ internal class WebViewBridgeMessageHandler(
             fieldsOfOptional(
                 "_reason" to reason,
                 "_source" to "webview",
-                "_stack" to msg.stack,
                 "_timestamp" to timestamp.toString(),
             )
 

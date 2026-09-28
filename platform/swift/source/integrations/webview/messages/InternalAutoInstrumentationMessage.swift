@@ -22,7 +22,8 @@ struct InternalAutoInstrumentationMessage: WebViewLoggableMessage, Equatable {
             fields: makeFields(
                 context: context,
                 ("_event", event)
-            )
+            ),
+            type: .internalsdk
         )
     }
 }

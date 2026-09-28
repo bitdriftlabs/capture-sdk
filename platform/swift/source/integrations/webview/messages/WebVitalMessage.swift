@@ -23,7 +23,7 @@ struct WebVitalMessage: WebViewMessage, Equatable {
         case "poor":
             return .warning
         default:
-            return .debug
+            return .info
         }
     }
 
@@ -68,7 +68,7 @@ extension WebVitalMessage: WebViewLoggableMessage {
                 result: spanResult
             )
         default:
-            return .log(level: ratingLogLevel, message: "webview.webVital", fields: fields)
+            return .log(level: ratingLogLevel, message: "webview.webVital", fields: fields, type: .ux)
         }
     }
 }

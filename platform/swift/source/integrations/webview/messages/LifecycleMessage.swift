@@ -19,14 +19,15 @@ struct LifecycleMessage: WebViewLoggableMessage, Equatable {
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
         .log(
-            level: .debug,
+            level: .info,
             message: "webview.lifecycle",
             fields: makeFields(
                 context: context,
                 ("_event", event),
                 ("_performance_time", String(performanceTime)),
                 ("_visibility_state", visibilityState)
-            )
+            ),
+            type: .ux
         )
     }
 }

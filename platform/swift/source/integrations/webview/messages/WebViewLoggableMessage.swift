@@ -25,7 +25,7 @@ struct WebViewLoggingContext {
 }
 
 enum WebViewLoggingAction {
-    case log(level: LogLevel, message: String, fields: Fields)
+    case log(level: LogLevel, message: String, fields: Fields, type: Capture.Logger.LogType = .normal)
     case network(request: HTTPRequestInfo, response: HTTPResponseInfo)
     case startSpan(
             id: String,

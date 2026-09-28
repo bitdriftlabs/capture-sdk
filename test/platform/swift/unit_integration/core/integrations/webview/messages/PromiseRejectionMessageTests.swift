@@ -12,33 +12,23 @@ final class PromiseRejectionMessageTests: XCTestCase {
     private var sut: PromiseRejectionMessage!
 
     func testMakeLoggingActionLogsAtErrorLevel() throws {
-        try givenPromiseRejectionMessage(reason: "unhandled rejection", stack: "at foo (app.js:1:1)")
+        try givenPromiseRejectionMessage(reason: "unhandled rejection")
         let action = whenMakingLoggingAction()
         assertWebLogAction(action, message: "webview.promiseRejection", level: .error) { fields in
             XCTAssertEqual(fields["_reason"], "unhandled rejection")
-            XCTAssertEqual(fields["_stack"], "at foo (app.js:1:1)")
-        }
-    }
-
-    func testMakeLoggingActionWithoutStackOmitsStackField() throws {
-        try givenPromiseRejectionMessage(stack: nil)
-        let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.promiseRejection", level: .error) { fields in
-            XCTAssertNil(fields["_stack"])
         }
     }
 }
 
 private extension PromiseRejectionMessageTests {
-    func givenPromiseRejectionMessage(reason: String = "reason", stack: String? = nil) throws {
+    func givenPromiseRejectionMessage(reason: String = "reason") throws {
         let json = """
         {
             "tag": "bitdrift-webview-sdk",
             "v": 1,
             "type": "promiseRejection",
             "timestamp": 1700000000000,
-            "reason": "\(reason)",
-            "stack": \(stack.map { "\"\($0)\"" } ?? "null")
+            "reason": "\(reason)"
         }
         """
         sut = try decodeWebViewMessage(PromiseRejectionMessage.self, from: json)

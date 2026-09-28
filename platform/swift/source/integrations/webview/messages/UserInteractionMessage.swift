@@ -37,7 +37,8 @@ struct UserInteractionMessage: WebViewLoggableMessage, Equatable {
                 ("_text_content", textContent),
                 ("_click_count", clickCount.map(String.init)),
                 ("_time_window_ms", timeWindowMs.map { String($0) })
-            )
+            ),
+            type: .ux
         )
     }
 }
