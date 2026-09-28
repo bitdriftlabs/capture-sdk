@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.25....HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.25.1...HEAD
 
 ### Both
 
@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Attached WebView network request spans and Web Vital spans to their originating page view spans, including telemetry reported after navigation and spans created by custom iOS loggers.
+- Nothing yet!
 
 ### Android
 
@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Fixed ANR reports not being persisted on Android 11 and 12.
+- Nothing yet!
 
 ### iOS
 
@@ -44,6 +44,22 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.25.1]
+[0.25.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.25.1
+
+### Both
+
+**Fixed**
+
+- Attached WebView network request spans and Web Vital spans to their originating page view spans, including telemetry reported after navigation and spans created by custom iOS loggers.
+
+### Android
+
+**Fixed**
+
+- Logs emitted while `Capture.Logger.start()` is still running are now buffered in memory and replayed once startup completes.
+- Fixed ANR reports not being persisted on Android 11 and 12.
 
 ## [0.25.0]
 [0.25.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.25.0
@@ -71,7 +87,6 @@
 
 **Fixed**
 
-- Logs emitted while `Capture.Logger.start()` is still running are now buffered in memory and replayed once startup completes.
 - SDK was erronously reporting `_jvm_used_percent` in Resource Utilization logs using the device Locale.
 - Fixed OkHttp logs including an invalid `_protocol` value when a request fails before receiving a response.
 - Fixed a potential thread-safety issue in OkHttp request/response instrumentation.
