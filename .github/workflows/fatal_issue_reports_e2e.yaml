@@ -1,0 +1,88 @@
+name: Android fatal issue reports E2E
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_gradle_test_app:
+    name: Build gradle-test-app
+    runs-on: ubuntu-latest-8-cores
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
+    env:
+      SKIP_PROTO_GEN: 1
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+
+      - name: Setup Android command-line tools
+        uses: ./.github/actions/android-setup
+        with:
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          setup-gradle-cache: "true"
+
+      - name: Build gradle-test-app debug APK
+        timeout-minutes: 45
+        run: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -PskipGradleTestAppLintOnAssemble=true -p platform/jvm gradle-test-app:assembleDebug --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gradle-test-app-debug.apk
+          path: platform/jvm/gradle-test-app/build/outputs/apk/debug/gradle-test-app-debug.apk
+          if-no-files-found: error
+
+  verify_fatal_issue_reports:
+    name: Verify fatal issue reports (API ${{ matrix.api-level }})
+    needs: build_gradle_test_app
+    runs-on: ubuntu-latest-8-cores
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
+      deployment: false
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [30, 31, 32, 33, 34, 35, 36, 37]
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: gradle-test-app-debug.apk
+          path: .
+
+      - name: Setup Android emulator
+        uses: ./.github/actions/setup-android-emulator
+        with:
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+
+      - name: Verify ANR, JVM crash and native crash reports
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
+        timeout-minutes: 30
+        env:
+          APK_PATH: gradle-test-app-debug.apk
+          LOGS_DIR: fatal-issue-reports-logs
+        with:
+          force-avd-creation: false
+          channel: stable
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          ram-size: 2048M
+          arch: x86_64
+          disk-size: 6144M
+          profile: Nexus 6
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
+          script: ./ci/verify_fatal_issue_reports.sh
+
+      - name: Upload logcat
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatal-issue-reports-logs-api-${{ matrix.api-level }}
+          path: fatal-issue-reports-logs
+          if-no-files-found: ignore
