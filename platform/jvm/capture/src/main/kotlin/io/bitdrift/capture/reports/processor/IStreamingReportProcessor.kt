@@ -13,6 +13,7 @@ internal data class AnrReport(
     val stream: InputStream?,
     val timestampMillis: Long,
     val destinationPath: String,
+    val tempDirectoryPath: String,
     val runningState: String?,
     val appExitDescription: String?,
     val memoryPressureLevel: Int,

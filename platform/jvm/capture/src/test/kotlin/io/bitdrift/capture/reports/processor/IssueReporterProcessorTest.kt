@@ -81,6 +81,7 @@ class IssueReporterProcessorTest {
                 FakeDateProvider,
                 internalLogger,
                 memoryMetricsProvider,
+                FAKE_TEMP_DIRECTORY_PATH,
             )
     }
 
@@ -685,6 +686,7 @@ class IssueReporterProcessorTest {
                 stream,
                 FAKE_TIME_STAMP,
                 "/some/path/foo.cap",
+                FAKE_TEMP_DIRECTORY_PATH,
                 runningState,
                 null,
                 MemoryPressureLevel.Warning.nativeValue,
@@ -715,6 +717,7 @@ class IssueReporterProcessorTest {
         const val FAKE_TIME_STAMP = 1241515210914L
         const val FAKE_FATAL_PATH = "/reports/new/fatal-report.cap"
         const val FAKE_NON_FATAL_PATH = "/reports/watcher/current_session/non-fatal-report.cap"
+        const val FAKE_TEMP_DIRECTORY_PATH = "/cache"
         const val FAKE_ERROR_NAME = "TestError"
         const val FAKE_ERROR_MESSAGE = "Test error message"
         const val FAKE_STACK_TRACE = "at testFunction (test.js:1:1)"

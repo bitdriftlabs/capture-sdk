@@ -282,6 +282,7 @@ class IssueReporterTest {
             captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
             dateProvider = FakeDateProvider,
             memoryMetricsProvider = memoryMetricsProvider,
+            tempDirectoryPath = "/cache",
         )
 
     private companion object {

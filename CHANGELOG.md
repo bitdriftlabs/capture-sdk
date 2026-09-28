@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed ANR reports not being persisted on Android 11 and 12.
 
 ### iOS
 
