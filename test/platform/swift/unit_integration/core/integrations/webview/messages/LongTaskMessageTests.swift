@@ -14,7 +14,7 @@ final class LongTaskMessageTests: XCTestCase {
     func testMakeLoggingActionWithDurationAtOrAboveTwoHundredMsLogsAtWarningLevel() throws {
         try givenLongTaskMessage(durationMs: 250)
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.longTask", level: .warning)
+        assertWebLogAction(action, message: "webview.longTask", level: .warning, type: .ux)
     }
 
     func testMakeLoggingActionWithDurationAtOrAboveHundredMsLogsAtInfoLevel() throws {

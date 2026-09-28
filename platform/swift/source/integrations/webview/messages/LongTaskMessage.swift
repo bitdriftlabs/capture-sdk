@@ -36,7 +36,8 @@ struct LongTaskMessage: WebViewLoggableMessage, Equatable {
                 ("_container_src", attribution?.containerSrc),
                 ("_container_id", attribution?.containerId),
                 ("_container_name", attribution?.containerName)
-            )
+            ),
+            type: .ux
         )
     }
 }

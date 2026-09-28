@@ -172,8 +172,12 @@ class ScriptMessageHandler: NSObject, WKScriptMessageHandler {
         }
 
         switch action {
-        case .log(let level, let message, let fields):
-            logger.log(level: level, message: message, fields: fields)
+        case .log(let level, let message, let fields, let type):
+            if let logger = logger as? Logger {
+                logger.log(level: level, message: message, fields: fields, type: type)
+            } else {
+                logger.log(level: level, message: message, fields: fields)
+            }
         case .network(let request, let response):
             logger.log(request, file: nil, line: nil, function: nil)
             logger.log(response, file: nil, line: nil, function: nil)
