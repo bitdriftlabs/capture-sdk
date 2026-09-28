@@ -606,6 +606,17 @@ internal class LoggerImpl(
 
     override fun getRuntimeStringConfigValue(config: RuntimeStringConfig): String = runtime.getConfigValue(config)
 
+    override fun logSessionReplayScreenshot(
+        fields: Array<Field>,
+        duration: Duration,
+    ) {
+        CaptureJniLibrary.writeSessionReplayScreenshotLog(
+            this.loggerId,
+            fields,
+            duration.toDouble(DurationUnit.SECONDS),
+        )
+    }
+
     override fun logResourceUtilization(
         arrayFields: ArrayFields,
         duration: Duration,

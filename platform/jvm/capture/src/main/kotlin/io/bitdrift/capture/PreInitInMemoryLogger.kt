@@ -195,6 +195,11 @@ internal class PreInitInMemoryLogger(
         duration: Duration,
     ) = add(BufferedCall.LogSessionReplayScreen(fields, duration))
 
+    override fun logSessionReplayScreenshot(
+        fields: Array<Field>,
+        duration: Duration,
+    ) = add(BufferedCall.LogSessionReplayScreenshot(fields, duration))
+
     override fun notifyMemoryPressureLevel(level: MemoryPressureLevel) = add(BufferedCall.NotifyMemoryPressureLevel(level))
 
     override fun getPreviousRunMemoryPressureLevel(): MemoryPressureLevel =
@@ -473,6 +478,15 @@ internal class PreInitInMemoryLogger(
             override val sizeBytes = fields.sizeBytes() + OVERHEAD_BYTES
 
             override fun dispatch(logger: IInternalLogger) = logger.logSessionReplayScreen(fields, duration)
+        }
+
+        data class LogSessionReplayScreenshot(
+            val fields: Array<Field>,
+            val duration: Duration,
+        ) : BufferedCall {
+            override val sizeBytes = fields.sizeBytes() + OVERHEAD_BYTES
+
+            override fun dispatch(logger: IInternalLogger) = logger.logSessionReplayScreenshot(fields, duration)
         }
 
         data class NotifyMemoryPressureLevel(

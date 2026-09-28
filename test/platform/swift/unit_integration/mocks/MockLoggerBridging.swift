@@ -105,6 +105,8 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func logSessionReplayScreen(fields _: [Field], duration _: TimeInterval) {}
 
+    public func logSessionReplayScreenshot(fields _: [Field], duration _: TimeInterval) {}
+
     public func logResourceUtilization(fields _: [Field], duration _: TimeInterval) {}
 
     public func logSDKStart(fields: [Field], duration: TimeInterval) {

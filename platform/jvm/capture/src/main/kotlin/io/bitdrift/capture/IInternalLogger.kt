@@ -59,6 +59,11 @@ internal interface IInternalLogger : ILogger {
         duration: Duration,
     )
 
+    fun logSessionReplayScreenshot(
+        fields: Array<Field>,
+        duration: Duration,
+    )
+
     fun logSessionReplayScreen(
         fields: Array<Field>,
         duration: Duration,
