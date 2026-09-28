@@ -23,11 +23,11 @@ import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.session.SessionStrategy
-import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
 import io.bitdrift.capture.reports.Report
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
@@ -161,6 +161,7 @@ object CaptureSdkInitializer {
         // Calling internal 
         when {
             settings.simulateStartDelay ->
+                // Only to be able to simulate an expensive initSdk call for startAsync API
                 Capture.Logger.start(
                     apiKey = settings.apiKey,
                     sessionStrategy = settings.sessionStrategy,
@@ -172,7 +173,7 @@ object CaptureSdkInitializer {
                     context = context,
                     initialFields = settings.initialFields,
                     startResult = onStartResult,
-                    backgroundThreadHandler = if (async) CaptureDispatchers.CommonBackground else null,
+                    initSdkExecutor = if (async) CaptureDispatchers.CommonBackground.executorService else null,
                 )
 
             async ->

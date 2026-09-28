@@ -16,7 +16,6 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
-import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -35,6 +34,7 @@ import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
 import okhttp3.HttpUrl
 import java.util.UUID
+import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 import kotlin.time.TimeSource
@@ -177,7 +177,6 @@ object Capture {
                 context = context,
                 initialFields = initialFields,
                 startResult = startResult,
-                backgroundThreadHandler = null,
             )
         }
 
@@ -200,8 +199,8 @@ object Capture {
          * @param context an optional context reference. You should provide the context if called from
          * a [android.content.ContentProvider].
          * @param startResult an optional callback invoked with the result of the SDK initialization.
-         *                     The callback is always called on a background thread once initialization
-         *                     completes. Switch to the main thread before touching UI.
+         *                     The callback is always called on the main thread once initialization
+         *                     completes.
          *                     On success, it receives a [CaptureResult.Success] containing an [ILogger] instance.
          *                     On failure, it receives a [CaptureResult.Failure] with a [SdkStartFailure].
          * @param initialFields fields to seed at SDK startup. Use [addField] to update their values later.
@@ -231,7 +230,7 @@ object Capture {
                 context = context,
                 initialFields = initialFields,
                 startResult = startResult,
-                backgroundThreadHandler = CaptureDispatchers.CommonBackground,
+                initSdkExecutor = CaptureDispatchers.CommonBackground.executorService,
             )
         }
 
@@ -440,48 +439,56 @@ object Capture {
             bridge: IBridge,
             context: Context? = null,
             initialFields: Fields = emptyMap(),
-            backgroundThreadHandler: IBackgroundThreadHandler? = null,
+            initSdkExecutor: Executor? = null,
             startResult: ((CaptureResult<ILogger>) -> Unit)? = null,
         ) {
-            val dispatch: (() -> Unit) -> Unit = { action ->
-                if (backgroundThreadHandler != null) {
-                    backgroundThreadHandler.runAsync(action)
-                } else {
-                    action()
-                }
-            }
+            val startResultCallback = if (initSdkExecutor != null) invokeOnMainThread(startResult) else startResult
 
             // There's nothing we can do if we don't have yet access to the application context.
             if (hasInvalidContext(context)) {
                 val errorMessage = "Attempted to initialize Capture with a null context"
                 Log.w(LOG_TAG, errorMessage)
-                dispatch {
-                    startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorMessage)))
-                }
+                startResultCallback.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorMessage)))
                 return
             }
 
             val preInitInMemoryLogger = PreInitInMemoryLogger(dateProvider)
 
             // Ideally we would use `getAndUpdate` in here but it's available for API 24 and up only.
-            if (default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting(preInitInMemoryLogger))) {
-                dispatch {
-                    initSdk(
-                        apiKey = apiKey,
-                        sessionStrategy = sessionStrategy,
-                        configuration = configuration,
-                        customFieldGetters = customFieldGetters,
-                        dateProvider = dateProvider,
-                        apiUrl = apiUrl,
-                        bridge = bridge,
-                        context = context,
-                        startResult = startResult,
-                        initialFields = initialFields,
-                        preInitInMemoryLogger = preInitInMemoryLogger,
-                    )
-                }
-            } else {
+            if (!default.compareAndSet(LoggerState.NotStarted, LoggerState.Starting(preInitInMemoryLogger))) {
                 Log.w(LOG_TAG, "Multiple attempts to start Capture")
+                return
+            }
+
+            val initSdkTask = {
+                initSdk(
+                    apiKey = apiKey,
+                    sessionStrategy = sessionStrategy,
+                    configuration = configuration,
+                    customFieldGetters = customFieldGetters,
+                    dateProvider = dateProvider,
+                    apiUrl = apiUrl,
+                    bridge = bridge,
+                    context = context,
+                    startResult = startResultCallback,
+                    initialFields = initialFields,
+                    preInitInMemoryLogger = preInitInMemoryLogger,
+                )
+            }
+
+            if (initSdkExecutor == null) {
+                initSdkTask()
+                return
+            }
+
+            runCatching {
+                initSdkExecutor.execute(initSdkTask)
+            }.onFailure { throwable ->
+                handleStartFailure(
+                    throwable = throwable,
+                    preInitInMemoryLogger = preInitInMemoryLogger,
+                    startResult = startResultCallback,
+                )
             }
         }
 
@@ -578,8 +585,11 @@ object Capture {
          */
         @JvmStatic
         fun getSdkStatus(): SdkStatus =
-            (logger() as? LoggerImpl)?.getSdkStatus()
-                ?: SdkStatus(InitializationState.NOT_STARTED, null, null)
+            when (val state = default.get()) {
+                is LoggerState.Started -> state.logger.getSdkStatus()
+                is LoggerState.Starting -> SdkStatus(InitializationState.STARTING, null, null)
+                is LoggerState.NotStarted, is LoggerState.StartFailure -> SdkStatus(InitializationState.NOT_STARTED, null, null)
+            }
 
         /**
          * Adds a field that should be attached to all logs emitted by the logger going forward.
@@ -949,6 +959,13 @@ object Capture {
         }
 
         private fun hasInvalidContext(context: Context? = null) = context == null && !ContextHolder.isInitialized
+
+        private fun invokeOnMainThread(startResult: ((CaptureResult<ILogger>) -> Unit)?): (CaptureResult<ILogger>) -> Unit =
+            { result ->
+                mainThreadHandler.run {
+                    startResult.invokeCatchingOrThrowOnDebug(result)
+                }
+            }
     }
 
     /**
@@ -1065,6 +1082,18 @@ object Capture {
             default.set(LoggerState.StartFailure)
             startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorDetails, throwable)))
         }
+    }
+
+    private fun handleStartFailure(
+        throwable: Throwable,
+        preInitInMemoryLogger: PreInitInMemoryLogger,
+        startResult: ((CaptureResult<ILogger>) -> Unit)?,
+    ) {
+        preInitInMemoryLogger.cleanUp()
+        val errorDetails = "Failed to schedule Capture start: ${throwable.message}"
+        Log.w(LOG_TAG, errorDetails, throwable)
+        default.set(LoggerState.NotStarted)
+        startResult.invokeCatchingOrThrowOnDebug(CaptureResult.Failure(SdkStartFailure(errorDetails, throwable)))
     }
 
     private fun initializedLogger(): ILogger? = logger()?.takeUnless { it is PreInitInMemoryLogger }

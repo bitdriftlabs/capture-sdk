@@ -8,10 +8,10 @@
 package io.bitdrift.capture
 
 import android.app.ApplicationExitInfo
+import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
-import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeLatestAppExitInfoProvider
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
@@ -35,8 +35,11 @@ import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executor
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
@@ -45,14 +48,12 @@ import java.util.concurrent.TimeUnit
 @Suppress("DEPRECATION")
 class CaptureTest {
     private val latestAppExitInfoProvider = FakeLatestAppExitInfoProvider()
-    private val backgroundThreadHandler = FakeBackgroundThreadHandler()
     private val preferences = MockPreferences()
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = mock()
 
     @Before
     fun tearDown() {
         latestAppExitInfoProvider.reset()
-        backgroundThreadHandler.reset()
         Logger.resetShared()
     }
 
@@ -93,20 +94,21 @@ class CaptureTest {
     }
 
     @Test
-    fun aStart_withBackgroundThreadHandlerAndNullContext_emitsFailureThroughHandler() {
+    fun aStart_withInitExecutorAndNullContext_emitsFailureWithoutScheduling() {
         var capturedResult: CaptureResult<ILogger>? = null
+        var executeCallCount = 0
 
         Logger.start(
             apiKey = "test1",
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
             bridge = mock(IBridge::class.java),
             context = null,
-            backgroundThreadHandler = backgroundThreadHandler,
+            initSdkExecutor = Executor { executeCallCount++ },
         ) { result ->
             capturedResult = result
         }
 
-        assertThat(backgroundThreadHandler.runAsyncCallCount).isEqualTo(1)
+        assertThat(executeCallCount).isEqualTo(0)
         val failure = capturedResult as CaptureResult.Failure
         assertThat(failure.error.message).contains("null context")
     }
@@ -186,14 +188,13 @@ class CaptureTest {
     }
 
     @Test
-    fun startAsync_returnsBeforeInitAndCompletesOnCommonBackground() {
+    fun startAsync_returnsBeforeInitAndDeliversResultOnMainThread() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
         val backgroundBlocker = CountDownLatch(1)
         CaptureDispatchers.CommonBackground.runAsync { backgroundBlocker.await(5, TimeUnit.SECONDS) }
-        val startResultLatch = CountDownLatch(1)
         var capturedResult: CaptureResult<ILogger>? = null
-        var startResultThreadName: String? = null
+        var startResultThread: Thread? = null
 
         Logger.startAsync(
             apiKey = "test1",
@@ -201,21 +202,56 @@ class CaptureTest {
             initialFields = emptyMap(),
         ) { result ->
             capturedResult = result
-            startResultThreadName = Thread.currentThread().name
-            startResultLatch.countDown()
+            startResultThread = Thread.currentThread()
         }
 
         assertThat(Capture.logger()).isInstanceOf(PreInitInMemoryLogger::class.java)
-        assertThat(startResultLatch.count).isEqualTo(1)
+        assertThat(Logger.getSdkStatus().initializationState).isEqualTo(InitializationState.STARTING)
         Logger.startNewSession("buffered-session-id")
 
         backgroundBlocker.countDown()
 
-        assertThat(startResultLatch.await(10, TimeUnit.SECONDS)).isTrue()
+        awaitOnMainLooper { capturedResult != null }
         assertThat(capturedResult).isInstanceOf(CaptureResult.Success::class.java)
-        assertThat(startResultThreadName).isEqualTo("io.bitdrift.capture.background-thread-worker")
+        assertThat(startResultThread).isEqualTo(Looper.getMainLooper().thread)
         assertThat(Capture.logger()).isInstanceOf(LoggerImpl::class.java)
         assertThat(Logger.sessionId).isEqualTo("buffered-session-id")
+        assertThat(Logger.getSdkStatus().initializationState).isNotIn(
+            InitializationState.NOT_STARTED,
+            InitializationState.STARTING,
+        )
+    }
+
+    @Test
+    fun start_withRejectingInitExecutor_emitsFailureAndAllowsRetry() {
+        val initializer = ContextHolder()
+        initializer.create(ApplicationProvider.getApplicationContext())
+        var capturedResult: CaptureResult<ILogger>? = null
+
+        Logger.start(
+            apiKey = "test1",
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+            bridge = CaptureJniLibrary,
+            initSdkExecutor = Executor { throw RejectedExecutionException("rejected") },
+        ) { result ->
+            capturedResult = result
+        }
+
+        val failure = capturedResult as CaptureResult.Failure
+        assertThat(failure.error.message).contains("rejected")
+        assertThat(Capture.logger()).isNull()
+        assertThat(Logger.getSdkStatus().initializationState).isEqualTo(InitializationState.NOT_STARTED)
+
+        Logger.start(
+            apiKey = "test1",
+            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
+            bridge = CaptureJniLibrary,
+        ) { result ->
+            capturedResult = result
+        }
+
+        assertThat(capturedResult).isInstanceOf(CaptureResult.Success::class.java)
+        assertThat(Capture.logger()).isInstanceOf(LoggerImpl::class.java)
     }
 
     @Test
@@ -306,5 +342,14 @@ class CaptureTest {
         assertThat(Capture.logger()).isNotNull()
         val status = Logger.getSdkStatus()
         assertThat(status.initializationState).isNotEqualTo(InitializationState.NOT_STARTED)
+    }
+
+    private fun awaitOnMainLooper(condition: () -> Boolean) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+        while (!condition() && System.nanoTime() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(10)
+        }
+        assertThat(condition()).isTrue()
     }
 }
