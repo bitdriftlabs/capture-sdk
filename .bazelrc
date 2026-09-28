@@ -63,12 +63,10 @@ build:ci --define build_config=ci
 # zipped.
 build:rules_xcodeproj --define=apple.experimental.tree_artifact_outputs=0
 
-# Common release configuration for iOS/Android
-# TODO(mattklein123): Should we be compiling the rust code size optimized?
+# Common release configuration for iOS/Android; Rust is size-optimized below.
 build:release-common --compilation_mode=opt
 
-# Size optimizations, codegen-units=1 go along side LTO, which accounts for
-# about 10% reduction; -z has a non-zero smaller impact (a few pp).
+# Optimize Rust for size on both platforms; Android additionally enables fat LTO below.
 build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Ccodegen-units=1'
 build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Copt-level=z'
 
