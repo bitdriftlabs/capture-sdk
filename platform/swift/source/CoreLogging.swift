@@ -63,12 +63,6 @@ protocol CoreLogging: AnyObject {
     /// - parameter duration: The duration of time the preparation of the log took.
     func logSessionReplayScreen(screen: SessionReplayCapture, duration: TimeInterval)
 
-    /// Writes a session replay screen log.
-    ///
-    /// - parameter screen:   The captured screenshot. `nil` if screenshot couldn't be taken.
-    /// - parameter duration: The duration of time the preparation of the log took.
-    func logSessionReplayScreenshot(screen: SessionReplayCapture?, duration: TimeInterval)
-
     /// Writes a resource utilization log.
     ///
     /// - parameter fields:   The extra fields to include with the log.
