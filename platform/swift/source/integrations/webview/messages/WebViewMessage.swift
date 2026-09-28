@@ -12,6 +12,7 @@ protocol WebViewMessage: Decodable {
     var v: Int { get }
     var type: WebViewMessageType { get }
     var timestamp: Int64 { get }
+    var parentSpanId: String? { get }
 }
 
 enum WebViewMessageType: String, Decodable, Equatable {
@@ -36,19 +37,26 @@ private enum WebViewLogging {
 }
 
 extension WebViewMessage {
-    func makeBaseFields(includeTimestamp: Bool = true) -> Fields {
+    func makeBaseFields(
+        includeTimestamp: Bool = true,
+        context: WebViewLoggingContext? = nil
+    ) -> Fields {
         var fields: Fields = ["_source": WebViewLogging.source]
         if includeTimestamp {
             fields["_timestamp"] = String(timestamp)
+        }
+        if let parentSpanID = context?.parentSpanID(for: parentSpanId) {
+            fields["_span_parent_id"] = parentSpanID.uuidString
         }
         return fields
     }
 
     func makeFields(
         includeTimestamp: Bool = true,
+        context: WebViewLoggingContext? = nil,
         _ values: (String, String?)...
     ) -> Fields {
-        var fields = makeBaseFields(includeTimestamp: includeTimestamp)
+        var fields = makeBaseFields(includeTimestamp: includeTimestamp, context: context)
 
         for (key, value) in values {
             guard let value else {

@@ -12,8 +12,8 @@ struct WebVitalMessage: WebViewMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
-    let metric: WebVitalMetric
     let parentSpanId: String?
+    let metric: WebVitalMetric
     let url: String?
 
     var ratingLogLevel: LogLevel {
@@ -44,6 +44,7 @@ extension WebVitalMessage: WebViewLoggableMessage {
         let parentSpanID = context.parentSpanID(for: parentSpanId)
         let fields = makeFields(
             includeTimestamp: false,
+            context: context,
             ("_metric", metric.name),
             ("_value", String(metric.value)),
             ("_rating", metric.rating),

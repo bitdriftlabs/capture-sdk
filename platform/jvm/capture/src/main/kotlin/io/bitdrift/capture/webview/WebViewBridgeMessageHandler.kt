@@ -23,6 +23,7 @@ import io.bitdrift.capture.network.HttpRequestMetrics
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
+import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.fieldsOfOptional
@@ -126,7 +127,7 @@ internal class WebViewBridgeMessageHandler(
                 "_timestamp" to timestamp.toString(),
             )
 
-        logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG, fields) {
+        logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "[WebView] instrumented $event"
         }
     }
@@ -157,7 +158,13 @@ internal class WebViewBridgeMessageHandler(
                 else -> LogLevel.DEBUG
             }
 
-        logger.log(level, fields) {
+        logger.log(
+            level,
+            fieldsWithPageViewParent(
+                fieldsOf(*fields.map { (key, value) -> key to value }.toTypedArray()),
+                msg.parentSpanId,
+            ),
+        ) {
             message
         }
     }
@@ -174,7 +181,7 @@ internal class WebViewBridgeMessageHandler(
                 "_config" to msg.instrumentationConfig?.let { gson.toJson(it) },
             )
 
-        logger.log(LogLevel.DEBUG, combineFields(baseFields, optionalFields)) {
+        logger.log(LogLevel.DEBUG, fieldsWithPageViewParent(combineFields(baseFields, optionalFields), msg.parentSpanId)) {
             "webview.initialized"
         }
     }
@@ -516,6 +523,14 @@ internal class WebViewBridgeMessageHandler(
         return runCatching { UUID.fromString(resolvedWebViewSpanId) }.getOrNull()
     }
 
+    private fun fieldsWithPageViewParent(
+        fields: ArrayFields,
+        webViewSpanId: String?,
+    ): ArrayFields {
+        val parentSpanId = parentSpanId(webViewSpanId) ?: return fields
+        return combineFields(fields, fieldsOf("_span_parent_id" to parentSpanId.toString()))
+    }
+
     private fun handleLifecycle(
         msg: WebViewBridgeMessage,
         timestamp: Long,
@@ -530,7 +545,7 @@ internal class WebViewBridgeMessageHandler(
                 "_performance_time" to msg.performanceTime?.toString(),
                 "_visibility_state" to msg.visibilityState,
             )
-        logger.logInternal(LogType.UX, LogLevel.DEBUG, fields) {
+        logger.logInternal(LogType.UX, LogLevel.DEBUG, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.lifecycle"
         }
     }
@@ -552,7 +567,7 @@ internal class WebViewBridgeMessageHandler(
                 "_timestamp" to timestamp.toString(),
             )
 
-        logger.log(LogLevel.DEBUG, fields) {
+        logger.log(LogLevel.DEBUG, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.navigation"
         }
     }
@@ -575,7 +590,7 @@ internal class WebViewBridgeMessageHandler(
                 "_lineno" to msg.lineno?.toString(),
                 "_colno" to msg.colno?.toString(),
             )
-        logger.log(LogLevel.ERROR, fields) {
+        logger.log(LogLevel.ERROR, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.error"
         }
     }
@@ -606,7 +621,7 @@ internal class WebViewBridgeMessageHandler(
                 else -> LogLevel.DEBUG
             }
 
-        logger.logInternal(LogType.UX, level, fields) {
+        logger.logInternal(LogType.UX, level, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.longTask"
         }
     }
@@ -624,7 +639,7 @@ internal class WebViewBridgeMessageHandler(
                 "_timestamp" to timestamp.toString(),
             )
 
-        logger.log(LogLevel.WARNING, fields) {
+        logger.log(LogLevel.WARNING, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.resourceError"
         }
     }
@@ -657,7 +672,7 @@ internal class WebViewBridgeMessageHandler(
                 else -> LogLevel.DEBUG
             }
 
-        logger.log(logLevel, fields) {
+        logger.log(logLevel, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.console"
         }
     }
@@ -675,7 +690,7 @@ internal class WebViewBridgeMessageHandler(
                 "_timestamp" to timestamp.toString(),
             )
 
-        logger.log(LogLevel.ERROR, fields) {
+        logger.log(LogLevel.ERROR, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.promiseRejection"
         }
     }
@@ -700,7 +715,7 @@ internal class WebViewBridgeMessageHandler(
                 "_time_window_ms" to msg.timeWindowMs?.toString(),
             )
         val level = if (interactionType == "rageClick") LogLevel.WARNING else LogLevel.DEBUG
-        logger.logInternal(LogType.UX, level, fields) {
+        logger.logInternal(LogType.UX, level, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.userInteraction"
         }
     }

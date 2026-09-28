@@ -12,6 +12,7 @@ struct PageViewMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let action: String
     let spanId: String
     let url: String

@@ -10,12 +10,13 @@ struct CustomLogMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let level: String
     let message: String
     let fields: WebViewSerializableFields?
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
-        var baseFields = makeBaseFields()
+        var baseFields = makeBaseFields(context: context)
 
         self.fields?.forEach { key, value in
             baseFields[key] = value.fieldStringValue

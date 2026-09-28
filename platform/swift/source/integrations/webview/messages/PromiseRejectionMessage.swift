@@ -12,6 +12,7 @@ struct PromiseRejectionMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let reason: String
     let stack: String?
 
@@ -20,6 +21,7 @@ struct PromiseRejectionMessage: WebViewLoggableMessage, Equatable {
             level: .error,
             message: "webview.promiseRejection",
             fields: makeFields(
+                context: context,
                 ("_reason", reason),
                 ("_stack", stack)
             )

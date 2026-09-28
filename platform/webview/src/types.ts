@@ -52,6 +52,8 @@ export interface BridgeMessage {
     type: MessageType;
     /** Timestamp when the event occurred (ms since epoch) */
     timestamp: number;
+    /** Page view span that was active when this event was emitted. */
+    parentSpanId?: string;
 }
 
 export interface InternalAutoInstrumentationMessage extends BridgeMessage {
@@ -82,8 +84,6 @@ export interface BridgeReadyMessage extends BridgeMessage {
 export interface WebVitalMessage extends BridgeMessage {
     type: 'webVital';
     metric: MetricType;
-    /** Parent span ID for nesting under page view */
-    parentSpanId?: string;
     url?: string;
 }
 
@@ -92,8 +92,6 @@ export interface WebVitalMessage extends BridgeMessage {
  */
 export interface NetworkRequestMessage extends BridgeMessage {
     type: 'networkRequest';
-    /** Page view span that initiated the request */
-    parentSpanId?: string;
     /** Unique identifier for correlating start/end */
     requestId: string;
     /** HTTP method */

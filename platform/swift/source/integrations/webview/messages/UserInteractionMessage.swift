@@ -12,6 +12,7 @@ struct UserInteractionMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let interactionType: String
     let tagName: String
     let elementId: String?
@@ -27,6 +28,7 @@ struct UserInteractionMessage: WebViewLoggableMessage, Equatable {
             level: interactionType == "rageClick" ? .warning : .debug,
             message: "webview.userInteraction",
             fields: makeFields(
+                context: context,
                 ("_interaction_type", interactionType),
                 ("_tag_name", tagName),
                 ("_is_clickable", String(isClickable)),
