@@ -151,6 +151,12 @@ fn buffer_write_and_read(c: &mut Criterion) {
     stats.clone(),
     stats,
     |_| {},
+    |_| {},
+    |_| {},
+    None::<fn(Option<&[u8]>)>,
+    None::<fn() -> bool>,
+    None::<fn(Option<&[u8]>)>,
+    None::<fn()>,
   )
   .unwrap();
   let mut producer = buffer.clone().register_producer().unwrap();
