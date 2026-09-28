@@ -44,28 +44,17 @@ final class URLSessionTaskTracker {
         return updatedExtraFields
     }
 
+    /// Returns whatever trace context has *already* been established for this task -- it does
+    /// not generate one. `CaptureURLProtocol.startLoading()` is the sole source of truth for
+    /// `cap_traceContext`, since it's the only place that actually controls what goes out on the
+    /// wire. This is called from `taskWillStart`, which (via the `URLSessionTask.resume` swizzle)
+    /// always runs *before* `CaptureURLProtocol` gets a chance to run for `URLSession.data(for:)`
+    /// and similar calls -- generating a fallback trace context here used to race with it,
+    /// producing two different trace IDs for the same request: a throwaway one on this request's
+    /// own log line, and the real one -- used for the actual header and OTel span export --
+    /// everywhere else.
     private static func ensureTraceContext(for task: URLSessionTask) -> URLSessionTraceContext? {
-        if let traceContext = task.cap_traceContext {
-            return traceContext
-        }
-
-        if task.cap_hasExistingTraceHeaders {
-            return nil
-        }
-
-        let integration = URLSessionIntegration.shared
-        guard integration.tracePropagationMode != .disabled, integration.isTracingActive else {
-            return nil
-        }
-
-        let headers = task.originalRequest?.allHTTPHeaderFields
-        guard !URLSessionTracePropagation.isBitdriftInternalRequest(headers) else {
-            return nil
-        }
-
-        let traceContext = URLSessionTraceContext.make()
-        task.cap_traceContext = traceContext
-        return traceContext
+        task.cap_traceContext
     }
 
     /// Ensures the given task type is supported by our current network instrumentation. Some of these don't
@@ -123,9 +112,18 @@ final class URLSessionTaskTracker {
             return
         }
 
-        self.lock.withLock {
+        // `exportOtelSpanIfNeeded` below resumes a *new* `URLSessionTask` (the exporter's own
+        // POST), which re-enters this same class's `cap_resume` -> `taskWillStart` on the same
+        // thread synchronously (before any actual async I/O begins). `self.lock` is a plain
+        // `os_unfair_lock` (non-reentrant): calling it again while still held aborts the process.
+        // So the export call must happen strictly after this method's own `withLock` has
+        // returned, not from within its closure.
+        let otelExportInfo: (
+            traceContext: URLSessionTraceContext?, requestURL: URL?, requestInfo: HTTPRequestInfo,
+            httpResponse: HTTPResponse, metrics: HTTPRequestMetrics
+        )? = self.lock.withLock {
             guard let requestInfo = task.cap_requestInfo else {
-                return
+                return nil
             }
 
             // Avoid logging response for a given request more than once.
@@ -147,8 +145,59 @@ final class URLSessionTaskTracker {
             )
 
             URLSessionIntegration.shared.logger?.log(responseInfo, file: nil, line: nil, function: nil)
+
+            let traceContext = task.cap_traceContext
+            let requestURL = task.originalRequest?.url
+            let requestMetrics = HTTPRequestMetrics(metrics: metrics)
+
             task.cap_traceContext = nil
-            task.cap_hasExistingTraceHeaders = false
+
+            return (traceContext, requestURL, requestInfo, httpResponse, requestMetrics)
         }
+
+        if let otelExportInfo {
+            self.exportOtelSpanIfNeeded(
+                traceContext: otelExportInfo.traceContext,
+                requestURL: otelExportInfo.requestURL,
+                requestInfo: otelExportInfo.requestInfo,
+                httpResponse: otelExportInfo.httpResponse,
+                metrics: otelExportInfo.metrics,
+                taskMetrics: metrics
+            )
+        }
+    }
+
+    /// Builds and exports an OTel span for this request if OTel export is configured and this
+    /// request carries a trace context bitdrift itself injected (`traceContext.spanID` is empty
+    /// for a trace ID merely *observed* from an existing upstream header -- see
+    /// `URLSessionTaskTracker.ensureTraceContext` -- so there is no span ID to export).
+    private func exportOtelSpanIfNeeded(
+        traceContext: URLSessionTraceContext?,
+        requestURL: URL?,
+        requestInfo: HTTPRequestInfo,
+        httpResponse: HTTPResponse,
+        metrics: HTTPRequestMetrics,
+        taskMetrics: URLSessionTaskMetrics
+    ) {
+        let integration = URLSessionIntegration.shared
+        guard let exporter = integration.otelSpanExporter,
+              let traceContext, !traceContext.spanID.isEmpty,
+              let networkAttributes = integration.networkAttributes,
+              let appStateAttributes = integration.appStateAttributes
+        else {
+            return
+        }
+
+        let span = OtelSpanBuilder.build(
+            traceContext: traceContext,
+            requestURL: requestURL,
+            requestInfo: requestInfo,
+            response: httpResponse,
+            metrics: metrics,
+            taskMetrics: taskMetrics,
+            networkAttributes: networkAttributes,
+            appStateAttributes: appStateAttributes
+        )
+        exporter.export(span)
     }
 }

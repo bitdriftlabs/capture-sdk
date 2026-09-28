@@ -978,6 +978,94 @@ extern "C" fn capture_get_sdk_version() -> *const Object {
     .autorelease()
 }
 
+/// Attribute sets are encoded as a single string to avoid marshaling `NSArray` across this
+/// bridge: attributes are separated by U+001E (record separator), and each attribute's
+/// `key`/`type`/`value` are separated by U+001F (unit separator). `type` is `"s"`/`"i"`/`"b"` for
+/// string/int/bool. An empty string means no attributes. The Swift-side encoder lives in
+/// `OtelAttributes.swift`.
+fn parse_otlp_attributes(encoded: &str) -> Vec<bd_otlp_traces::Attribute> {
+  if encoded.is_empty() {
+    return Vec::new();
+  }
+
+  encoded
+    .split('\u{1e}')
+    .filter_map(|record| {
+      let mut parts = record.splitn(3, '\u{1f}');
+      let key = parts.next()?.to_string();
+      let kind = parts.next()?;
+      let value = parts.next()?;
+
+      Some(match kind {
+        "i" => match value.parse::<i64>() {
+          Ok(value) => bd_otlp_traces::Attribute::int(key, value),
+          Err(_) => bd_otlp_traces::Attribute::string(key, value),
+        },
+        "b" => bd_otlp_traces::Attribute::bool(key, value == "true"),
+        _ => bd_otlp_traces::Attribute::string(key, value),
+      })
+    })
+    .collect()
+}
+
+/// Builds the OTLP/HTTP JSON payload for one span, returned as a UTF-8 JSON string (empty on
+/// failure, matching this bridge's existing "empty string means unavailable" convention rather
+/// than a nullable return). This is deliberately not logger-scoped (no `logger_id`): it performs
+/// no I/O and holds no state (see `bd_otlp_traces::build_span_payload`), the same as
+/// `capture_get_sdk_version` above -- the caller is expected to POST the returned bytes itself
+/// via its own native HTTP client and drop them on any failure, including "device is offline".
+/// See `.plans`/`docs/agent-tasks/otel-span-export-plan.md` for the full design rationale.
+#[unsafe(no_mangle)]
+extern "C" fn capture_build_otel_span_payload(
+  trace_id: *const Object,
+  span_id: *const Object,
+  scope_name: *const Object,
+  name: *const Object,
+  start_time_unix_nano: i64,
+  end_time_unix_nano: i64,
+  status_code: i32,
+  status_message: *const Object,
+  attributes: *const Object,
+  resource_attributes: *const Object,
+) -> *const Object {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<StrongPtr> {
+      let trace_id_hex = unsafe { nsstring_into_string(trace_id) }?;
+      let span_id_hex = unsafe { nsstring_into_string(span_id) }?;
+      let scope_name = unsafe { nsstring_into_string(scope_name) }?;
+      let name = unsafe { nsstring_into_string(name) }?;
+      let status_message = unsafe { nsstring_into_string(status_message) }?;
+      let attributes = unsafe { nsstring_into_string(attributes) }?;
+      let resource_attributes = unsafe { nsstring_into_string(resource_attributes) }?;
+
+      let status_code = match status_code {
+        1 => bd_otlp_traces::StatusCode::Ok,
+        2 => bd_otlp_traces::StatusCode::Error,
+        _ => bd_otlp_traces::StatusCode::Unset,
+      };
+
+      let payload = bd_otlp_traces::build_span_payload(&bd_otlp_traces::SpanExportRequest {
+        trace_id_hex,
+        span_id_hex,
+        scope_name,
+        name,
+        kind: bd_otlp_traces::SpanKind::Client,
+        start_time_unix_nano: u64::try_from(start_time_unix_nano).unwrap_or_default(),
+        end_time_unix_nano: u64::try_from(end_time_unix_nano).unwrap_or_default(),
+        status_code,
+        status_message: (!status_message.is_empty()).then_some(status_message),
+        attributes: parse_otlp_attributes(&attributes),
+        resource_attributes: parse_otlp_attributes(&resource_attributes),
+      });
+
+      make_nsstring(&String::from_utf8_lossy(&payload))
+    },
+    make_empty_nsstring(),
+    "swift build otel span payload",
+  )
+  .autorelease()
+}
+
 /// A C-compatible representation of the SDK status returned to Swift.
 /// Timestamps are epoch milliseconds, or -1 if not yet available.
 #[repr(C)]

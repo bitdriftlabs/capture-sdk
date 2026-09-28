@@ -240,6 +240,36 @@ NSString *capture_get_device_id(logger_id logger_id);
  */
 NSString *capture_get_sdk_version();
 
+/*
+ * Builds the OTLP/HTTP JSON payload for one span (BIT-9050 OTel span export). Not logger-scoped:
+ * performs no I/O, holds no state, and cannot itself fail -- returns an empty string if a payload
+ * could not be built. The caller is responsible for POSTing the returned bytes and dropping them
+ * on any failure, including "device is offline" -- see docs/agent-tasks/otel-span-export-plan.md.
+ *
+ * @param trace_id 32 lowercase hex characters.
+ * @param span_id 16 lowercase hex characters.
+ * @param scope_name the OTel instrumentation scope name.
+ * @param name the span name.
+ * @param start_time_unix_nano span start time, epoch nanoseconds.
+ * @param end_time_unix_nano span end time, epoch nanoseconds.
+ * @param status_code 0 = unset, 1 = ok, 2 = error.
+ * @param status_message optional OTel status message; pass an empty string for none.
+ * @param attributes span attributes, encoded per `OtelAttributes.swift`; pass an empty string for none.
+ * @param resource_attributes resource attributes, encoded the same way; pass an empty string for none.
+ */
+NSString *capture_build_otel_span_payload(
+    NSString *trace_id,
+    NSString *span_id,
+    NSString *scope_name,
+    NSString *name,
+    int64_t start_time_unix_nano,
+    int64_t end_time_unix_nano,
+    int32_t status_code,
+    NSString *status_message,
+    NSString *attributes,
+    NSString *resource_attributes
+);
+
 /**
  * A C-compatible representation of the SDK status.
  * Timestamps are epoch milliseconds, or -1 if not yet available.

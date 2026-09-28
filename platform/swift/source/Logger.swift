@@ -39,9 +39,15 @@ public final class Logger {
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
     private(set) var resourceUtilizationTarget: ResourceUtilizationController
     private(set) var eventsListenerTarget: EventSubscriber
-    private let appStateAttributes: AppStateAttributes
+    let appStateAttributes: AppStateAttributes
     private let deviceAttributes: DeviceAttributes
+    let networkAttributes: NetworkAttributes
     private let ootbFieldProviders: [any OotbFieldProvider]
+
+    /// Non-nil only when `Configuration.otelExportConfiguration` is set. Reached from
+    /// `URLSessionIntegration`/`URLSessionTaskTracker` the same way `isTracingActive` is, via
+    /// `Logger.getShared() as? Logger`, rather than through the public `Logging` protocol.
+    private(set) var otelSpanExporter: OtelSpanExporter?
 
     private let sessionURLBase: URL
     private var crashReporterService: CrashReporterService?
@@ -145,8 +151,10 @@ public final class Logger {
         let localeAttributes = LocaleAttributes()
         let networkAttributes = NetworkAttributes()
 
+        let deviceAttributes = DeviceAttributes()
         self.appStateAttributes = appStateAttributes
-        self.deviceAttributes = DeviceAttributes()
+        self.deviceAttributes = deviceAttributes
+        self.networkAttributes = networkAttributes
         self.ootbFieldProviders = [appStateAttributes, localeAttributes, networkAttributes]
         let clientAttributes = ClientAttributes()
 
@@ -215,7 +223,20 @@ public final class Logger {
             return nil
         }
 
-        self.underlyingLogger = CoreLogger(logger: logger)
+        let coreLogger = CoreLogger(logger: logger)
+        self.underlyingLogger = coreLogger
+
+        // Built from local bindings, not `self`, since not every stored property is assigned yet
+        // at this point in `init`.
+        self.otelSpanExporter = configuration.otelExportConfiguration.map { otelConfiguration in
+            OtelSpanExporter(
+                configuration: otelConfiguration,
+                clientAttributes: clientAttributes,
+                deviceAttributes: deviceAttributes,
+                deviceIDProvider: { coreLogger.getDeviceID() },
+                sessionIDProvider: { coreLogger.getSessionID() }
+            )
+        }
 
         defer {
             let duration = timeProvider.timeIntervalSince(start)

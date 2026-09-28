@@ -100,6 +100,21 @@ extension NetworkAttributes {
             Field(key: "network_type", data: self.reachabilityPath.load().rawValue as NSString, type: .string),
         ] + Self.telephonyNetworkInfo.initialOotbFields()
     }
+
+    /// The current connection type, mapped to OTel's `network.connection.type` semantic
+    /// convention values (`wifi`/`cell`/`wired`/`unknown`). Used by the OTel span exporter.
+    var otelConnectionType: String {
+        switch self.reachabilityPath.load() {
+        case .wlan:
+            "wifi"
+        case .wwan:
+            "cell"
+        case .ethernet:
+            "wired"
+        case .other:
+            "unknown"
+        }
+    }
 }
 
 private extension NetworkAttributes {

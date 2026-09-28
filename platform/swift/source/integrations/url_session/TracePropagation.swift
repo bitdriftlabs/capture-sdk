@@ -69,10 +69,105 @@ enum URLSessionTracePropagation {
         "\(traceContext.traceID)-\(traceContext.spanID)-1"
     }
 
+    /// Builds a copy of `request` with trace headers added, if applicable. Operates on a plain
+    /// `URLRequest` (not a `URLSessionTask`) so it can run *before* a task exists -- mutating
+    /// `URLSessionTask.originalRequest` after task creation (the previous approach) only updates
+    /// that Swift-visible property; it does not affect the bytes actually sent on the wire.
+    static func injectHeaders(
+        into request: URLRequest,
+        mode: URLSessionTracePropagationMode,
+        isTracingActive: Bool,
+        ignorePolicy: URLSessionRequestIgnorePolicy
+    ) -> (request: URLRequest, traceContext: URLSessionTraceContext?) {
+        guard mode != .disabled, isTracingActive else {
+            return (request, nil)
+        }
+
+        let existingHeaders = request.allHTTPHeaderFields
+
+        guard !URLSessionTracePropagation.isBitdriftInternalRequest(existingHeaders) else {
+            return (request, nil)
+        }
+
+        guard !ignorePolicy.shouldIgnore(request) else {
+            return (request, nil)
+        }
+
+        if URLSessionTracePropagation.hasExistingTraceHeaders(in: existingHeaders) {
+            let traceContext = URLSessionTracePropagation
+                .extractSampledTraceID(from: existingHeaders, configuredPropagationMode: mode)
+                .map { URLSessionTraceContext(traceID: $0, spanID: "") }
+            return (request, traceContext)
+        }
+
+        let traceContext = URLSessionTraceContext.make()
+
+        guard let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
+            return (request, traceContext)
+        }
+
+        switch mode {
+        case .w3c:
+            mutableRequest.setValue(
+                URLSessionTracePropagation.traceparentValue(traceContext: traceContext),
+                forHTTPHeaderField: URLSessionTracePropagation.traceparentHeader
+            )
+        case .b3Single:
+            mutableRequest.setValue(
+                URLSessionTracePropagation.b3SingleValue(traceContext: traceContext),
+                forHTTPHeaderField: URLSessionTracePropagation.b3Header
+            )
+        case .b3Multi:
+            mutableRequest.setValue(
+                traceContext.traceID,
+                forHTTPHeaderField: URLSessionTracePropagation.xB3TraceIDHeader
+            )
+            mutableRequest.setValue(
+                traceContext.spanID,
+                forHTTPHeaderField: URLSessionTracePropagation.xB3SpanIDHeader
+            )
+            mutableRequest.setValue("1", forHTTPHeaderField: URLSessionTracePropagation.xB3SampledHeader)
+        case .datadog:
+            mutableRequest.setValue(
+                traceContext.datadogTraceID,
+                forHTTPHeaderField: URLSessionTracePropagation.xDatadogTraceIDHeader
+            )
+            mutableRequest.setValue(
+                "2",
+                forHTTPHeaderField: URLSessionTracePropagation.xDatadogSamplingPriorityHeader
+            )
+        case .disabled:
+            break
+        }
+
+        mutableRequest.setValue("true", forHTTPHeaderField: URLSessionTracePropagation.bitdriftInitiatedTraceHeader)
+
+        return (mutableRequest as URLRequest, traceContext)
+    }
+
     private static let bitdriftAPIKeyHeader = "x-bitdrift-api-key"
 
+    /// Marks the SDK's own outbound OTel span-export POSTs (see `OtelSpanExporter`) so they're
+    /// excluded from trace-header injection and request/response tracking, the same way requests
+    /// carrying `bitdriftAPIKeyHeader` are. A dedicated marker is used here, rather than reusing
+    /// `bitdriftAPIKeyHeader`, because span export targets an arbitrary user-configured
+    /// third-party endpoint -- sending bitdrift's own API key there would be both semantically
+    /// wrong and a real credential leak.
+    static let bitdriftInternalTelemetryHeader = "x-bitdrift-internal-telemetry"
+
     static func isBitdriftInternalRequest(_ headers: [String: String]?) -> Bool {
-        headers?[bitdriftAPIKeyHeader] != nil
+        headers?[bitdriftAPIKeyHeader] != nil || headers?[bitdriftInternalTelemetryHeader] != nil
+    }
+
+    /// Marks `CaptureURLProtocol`'s own internal relay request (the copy it fetches, with trace
+    /// headers injected, to stand in for the real network call -- see `URLProtocol.swift`). The
+    /// *outer* task the caller sees already gets logged normally via the existing
+    /// `URLSessionTask.resume` swizzle; without this marker, the relay's own `resume()` call
+    /// would swizzle-trigger a second, duplicate log entry for the same logical request.
+    static let urlProtocolRelayHeader = "x-bitdrift-urlprotocol-relay"
+
+    static func isURLProtocolRelayRequest(_ headers: [String: String]?) -> Bool {
+        headers?[urlProtocolRelayHeader] != nil
     }
 
     static func hasExistingTraceHeaders(in headers: [String: String]?) -> Bool {

@@ -14,82 +14,24 @@ extension URLSessionTask {
     func cap_resume() {
         defer { self.cap_resume() }
         if self.state == .completed || self.state == .canceling ||
-            !URLSessionTaskTracker.supports(task: self)
+            !URLSessionTaskTracker.supports(task: self) ||
+            URLSessionTracePropagation.isURLProtocolRelayRequest(self.originalRequest?.allHTTPHeaderFields)
         {
             return
         }
 
-        self.injectTraceHeadersIfNeeded()
-
+        // Trace-header injection happens in `CaptureURLProtocol` (`URLProtocol.swift`), which
+        // sets `cap_traceContext` on *this* (outer) task once its relay fetch starts -- including
+        // for `URLSession.data(for:)`, which bypasses ordinary `URLSession` method swizzling
+        // entirely. This used to also attempt injection here as a fallback, via a KVO mutation of
+        // `originalRequest` -- confirmed (via a standalone repro) not to affect the actual wire
+        // request, and worse, racing with `CaptureURLProtocol.startLoading()`: both generated
+        // their own independent trace context for the same task, and whichever ran first got
+        // logged as this request's `_trace_id` even though the *other* one was what actually
+        // went out on the wire.
         URLSessionTaskTracker.shared.taskWillStart(self)
         try? ObjCWrapper.doTry {
             self.delegate = ProxyURLSessionTaskDelegate(target: self.delegate)
-        }
-    }
-
-    private func injectTraceHeadersIfNeeded() {
-        let integration = URLSessionIntegration.shared
-        let mode = integration.tracePropagationMode
-        guard mode != .disabled, integration.isTracingActive else {
-            return
-        }
-
-        let ignorePolicy = integration.requestIgnorePolicy
-
-        let existingHeaders = self.originalRequest?.allHTTPHeaderFields
-
-        guard !URLSessionTracePropagation.isBitdriftInternalRequest(existingHeaders) else {
-            return
-        }
-
-        guard !ignorePolicy.shouldIgnore(self.originalRequest) else {
-            return
-        }
-
-        if URLSessionTracePropagation.hasExistingTraceHeaders(in: existingHeaders) {
-            self.cap_hasExistingTraceHeaders = true
-            if let sampledTraceID = URLSessionTracePropagation.extractSampledTraceID(from: existingHeaders, configuredPropagationMode: mode) {
-                self.cap_traceContext = URLSessionTraceContext(traceID: sampledTraceID, spanID: "")
-            }
-            return
-        }
-
-        let traceContext = URLSessionTraceContext.make()
-        self.cap_hasExistingTraceHeaders = false
-        self.cap_traceContext = traceContext
-
-        guard let request = self.originalRequest,
-              let mutableRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest
-        else {
-            return
-        }
-
-        switch mode {
-        case .w3c:
-            mutableRequest.setValue(
-                URLSessionTracePropagation.traceparentValue(traceContext: traceContext),
-                forHTTPHeaderField: URLSessionTracePropagation.traceparentHeader
-            )
-        case .b3Single:
-            mutableRequest.setValue(
-                URLSessionTracePropagation.b3SingleValue(traceContext: traceContext),
-                forHTTPHeaderField: URLSessionTracePropagation.b3Header
-            )
-        case .b3Multi:
-            mutableRequest.setValue(traceContext.traceID, forHTTPHeaderField: URLSessionTracePropagation.xB3TraceIDHeader)
-            mutableRequest.setValue(traceContext.spanID, forHTTPHeaderField: URLSessionTracePropagation.xB3SpanIDHeader)
-            mutableRequest.setValue("1", forHTTPHeaderField: URLSessionTracePropagation.xB3SampledHeader)
-        case .datadog:
-            mutableRequest.setValue(traceContext.datadogTraceID, forHTTPHeaderField: URLSessionTracePropagation.xDatadogTraceIDHeader)
-            mutableRequest.setValue("2", forHTTPHeaderField: URLSessionTracePropagation.xDatadogSamplingPriorityHeader)
-        case .disabled:
-            break
-        }
-
-        mutableRequest.setValue("true", forHTTPHeaderField: URLSessionTracePropagation.bitdriftInitiatedTraceHeader)
-
-        try? ObjCWrapper.doTry {
-            self.setValue(mutableRequest as URLRequest, forKey: "originalRequest")
         }
     }
 }

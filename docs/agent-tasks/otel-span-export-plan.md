@@ -26,19 +26,23 @@ kept identical on purpose — whichever repo you're looking at, you have the who
 
 ## Status (read this first)
 
-**Android + shared-core (Path A) is built and manually verified end to end. iOS and the wrappers are
-not started.** "Verified" means: with the rebuilt local AAR in the `bitdrift-shop-opentelemetry` demo app
-(Android emulator) and a local ClickStack/HyperDX container, traced requests produced spans that
-reached ClickStack, confirmed by hand. It does **not** mean tested in the automated sense — see
-"Not yet verified" below.
+**Android + shared-core (Path A) and iOS are both built and manually verified end to end. Only the
+wrappers remain.** "Verified" means: with the rebuilt local AAR/xcframework in the
+`bitdrift-shop-opentelemetry` demo app (Android emulator / iOS simulator) and a local
+ClickStack/HyperDX container, traced requests produced spans that reached ClickStack **and joined
+the backend's own distributed trace as the root span** (confirmed via direct ClickHouse queries —
+parent/child span IDs match up across `ai.bitdrift.oteldemo[.ios]` → `frontend-proxy` →
+`frontend`/`checkout` → downstream services). It does **not** mean tested in the automated sense —
+see "Not yet verified" below.
 
 | Piece | State |
 |---|---|
 | `shared-core`: `bd-otlp-traces::build_span_payload` | Done. Builds, Clippy-clean (repo nursery/pedantic config), license-header and nightly-rustfmt clean. No tests written. |
 | Android JNI export `buildOtelSpanPayload` (`platform/jvm/core`) | Done. `cargo check`, `CARGO_BAZEL_REPIN=true ./bazelw build //platform/jvm/core:capture_core`, and `--config=clippy` all pass. |
 | Android Kotlin (`platform/jvm/capture`) | Done. Gson OTLP models removed; `OtelSpanExporter` now calls the JNI function and POSTs the returned bytes once. |
-| Demo app (`sa-public/misc-demos/bitdrift-shop-opentelemetry`) | Works with the rebuilt AAR. Header shows the AAR's SHA-256 prefix and a "Rust span builder: yes/no" check. |
-| iOS (`platform/swift/source`) | Not started. |
+| iOS Rust bridge (`platform/swift/source/src/bridge.rs`) | Done. `capture_build_otel_span_payload` FFI export, same shape as Android's JNI function. |
+| iOS Swift (`platform/swift/source`) | Done. `OtelSpanExporter`/`OtelSpanBuilder`/`OtelResourceAttributes`/`OtelAttributes` call the FFI function and POST once. Required a from-scratch redesign of trace-header injection itself — see "What we learned building iOS" below, it's not a small delta from Android. |
+| Demo apps (`sa-public/misc-demos/bitdrift-shop-opentelemetry/{android,ios}`) | Both work with their respective rebuilt local SDK artifact. Android's header shows the AAR's SHA-256 prefix; iOS's shows `Capture.xcframework (local)` + a `dlsym` check for the new symbol. |
 | Wrappers (`platform/capture_flutter`, `platform/webview`) | Not investigated. They sit on the native layers, so they may inherit span export for free — confirm before assuming. |
 
 **Where the code lives right now (for an agent picking this up on a different machine):** both
@@ -52,22 +56,27 @@ continue. Same branch name in both repos on purpose, to make the pairing obvious
   HEAD" (a doc commit updating that claim is immediately one commit stale); run
   `git log --oneline origin/slerner/otel-span-export-shared-core` in `shared-core` for the real
   answer.
-- **`capture-sdk`**, branch `slerner/otel-span-export-shared-core`, based on `origin/main`. Two
-  commits: `459077d4` (the original Android POC, cherry-picked from a now-deleted branch) and
-  `c225e462` (the Rust/Kotlin wiring to `bd-otlp-traces` + this plan doc, copied to
-  `docs/agent-tasks/`). Its `Cargo.toml` pins every `shared-core` rev to `74c81ef1`, which still
-  resolves correctly since the crate content hasn't changed at any later `shared-core` commit
-  above — **but if you push a `shared-core` commit that changes actual code**, bump the `rev` in
-  `capture-sdk/Cargo.toml` to match (see "Cross-repo build order" below) and re-run with
-  `CARGO_BAZEL_REPIN=true`.
+- **`capture-sdk`**, branch `slerner/otel-span-export-shared-core`, based on `origin/main`. Commits
+  `459077d4` (the original Android POC, cherry-picked from a now-deleted branch), `c225e462` (the
+  Rust/Kotlin wiring to `bd-otlp-traces` + this plan doc, copied to `docs/agent-tasks/`), plus
+  later commits adding the full iOS implementation (Rust FFI export, `OtelSpanExporter` and
+  friends) and — the larger part of the iOS work — reworking `TracePropagation.swift`/
+  `URLProtocol.swift`/`URLSessionTaskTracker.swift`'s trace-header injection mechanism itself (see
+  "What we learned building iOS" below). Its `Cargo.toml` pins every `shared-core` rev to
+  `74c81ef1`, which still resolves correctly since the crate content hasn't changed at any later
+  `shared-core` commit above — **but if you push a `shared-core` commit that changes actual code**,
+  bump the `rev` in `capture-sdk/Cargo.toml` to match (see "Cross-repo build order" below) and
+  re-run with `CARGO_BAZEL_REPIN=true`.
 - **A history note, not a live pointer:** an earlier version of this plan referenced a
   `shared-core` branch that was pushed, then deliberately deleted, then re-created fresh under the
   same branch name at a new commit. If you see a `shared-core` commit SHA referenced anywhere
   outside this doc (an old local clone, a stale note) that doesn't appear in
   `git log origin/slerner/otel-span-export-shared-core`, it's from the deleted branch and no
   longer exists on the remote.
-- `sa-public` branch `slerner/bit-9050-otel-demo-fixes` (PR #72) is unrelated to this cleanup and
-  untouched.
+- `sa-public` branch `slerner/bit-9050-otel-demo-fixes` now also carries the iOS demo app
+  (`misc-demos/bitdrift-shop-opentelemetry/ios/`, a SwiftUI port of the Android demo, used to
+  drive and manually verify all of the iOS SDK work above) plus README/appendix updates splitting
+  Android- and iOS-specific instructions into their own files.
 
 ### What we learned building Android (reuse this for iOS and the wrappers)
 
@@ -96,12 +105,102 @@ continue. Same branch name in both repos on purpose, to make the pairing obvious
 - **OTLP JSON specifics are spec-mandated, not collector quirks:** hex `traceId`/`spanId`, integer enums,
   lowerCamelCase, int64 as strings (see the `bd-otlp-traces` crate docs).
 
+### What we learned building iOS (the hard part wasn't the FFI)
+
+The Rust/Swift FFI bridge itself was a straightforward mirror of Android's (see the recipe steps
+this section replaces, further down). Everything genuinely hard about iOS was in **making trace
+headers actually reach the network** — the existing `TracePropagation.swift`/
+`URLSessionTask+Swizzling.swift` mechanism (mutating `URLSessionTask.originalRequest` via a
+private KVO key inside a swizzled `resume()`) turned out not to work at all on current iOS
+(confirmed on the iOS 26/27 simulator runtimes available at the time), and this was never caught
+before because nothing had exercised it against a real backend end to end. Four distinct bugs,
+found in this order, each hiding the next:
+
+1. **Static-framework `-ObjC` linker flag.** `Capture.xcframework` is a static library, and the
+   network-capture hook (`URLSessionTask.cap_resume`) is a Swift extension adding an `@objc` method
+   to Foundation's `URLSessionTask` -- i.e. an Objective-C category. The linker silently drops
+   object files containing only categories/unreferenced methods from a static library unless
+   `OTHER_LDFLAGS` includes `-ObjC` in the **consuming app's** build settings. Without it, the
+   `resume()` swizzle never installs at all (visible as `method replacing field: failed to find
+   cap_resume in ... class` in the device log if you go looking) -- no network logs, no spans,
+   with zero compile-time or even runtime-crash signal. This is a demo-app build-setting
+   requirement, not something `capture-sdk` itself can enforce; call it out in iOS integration
+   docs for anyone shipping the SDK as a static framework.
+2. **`URLSession.data(for:)` bypasses `URLSessionTask.resume` swizzling's assumptions.** Once the
+   `-ObjC` fix let the swizzle install, headers still never reached the wire. Confirmed via a
+   minimal standalone repro (a `URLSessionTask`, `resume()`'d after mutating `originalRequest` via
+   the same private KVO key, against a local `nc` listener): the Swift-visible property reflects
+   the mutation, but the actual bytes on the wire don't. By the time a swizzled `resume()` runs,
+   the request has already been captured for transmission. This is likely an iOS-version-specific
+   regression in a technique that was arguably always fragile, not a new API contract change.
+3. **The fix is `URLProtocol`, not a different swizzle target -- and the task-based `canInit` is
+   the one that matters.** Swizzling `URLSession.dataTask(with:completionHandler:)` /
+   `dataTask(with:)` instead (to inject headers *before* task creation) compiles and installs
+   fine, but empirically never fires for `URLSession.shared.data(for:)` callers -- confirmed by
+   instrumenting the swizzle and observing it only invoked for code that calls that exact ObjC
+   selector directly (`.data(for:)` is a pure Swift async method with no ObjC selector to swizzle
+   at all). Registering a `URLProtocol` subclass (`CaptureURLProtocol.canInit(with: request:)` +
+   `startLoading()`, relaying the request through an internal ephemeral `URLSession` with headers
+   injected) was confirmed via the same `nc`-listener repro to actually affect the wire, including
+   for `.data(for:)`. But `canInit(with: request:)` alone wasn't sufficient either: Foundation
+   calls `canInit(with: task:)` (a *separate* overload, historically used in this codebase only to
+   log the request and unconditionally return `false`) for `URLSession`-based loads, and that
+   overload's answer wins -- the request-based `canInit` returning `true` had no effect while the
+   task-based one still said no. Both overloads now share one `shouldIntercept` decision. Net
+   result: the request-creation-time swizzle approach was abandoned entirely (deleted, along with
+   its now-provably-unreachable-for-the-common-case associated-object bookkeeping) once
+   `URLProtocol` was confirmed to cover every case, including direct
+   `dataTask(with:completionHandler:)` callers like the SDK's own `OtelSpanExporter`.
+4. **A same-thread reentrant-lock crash, once the swizzle actually started firing.** With tracing
+   genuinely active for the first time, `URLSessionTaskTracker.task(_:didFinishCollecting:)` (which
+   holds `self.lock`, a plain non-reentrant `os_unfair_lock`) called `exportOtelSpanIfNeeded`,
+   which resumes a *new* `URLSessionTask` (the exporter's own POST) from inside that same lock.
+   That new task's `resume()` re-enters the same swizzle → `taskWillStart` → tries to acquire the
+   same lock again on the same thread → `os_unfair_lock_recursive_abort` → hard crash, deterministically, on every
+   completed traced request once tracing was active. Root-caused via the crash report's own stack
+   trace (`_os_unfair_lock_recursive_abort` → ... → `URLSessionTaskTracker.taskWillStart` →
+   `OtelSpanExporter.export` → the *same* `task(_:didFinishCollecting:)` frame further down). Fixed
+   by restructuring that method so the lock's closure only *computes and returns* what's needed for
+   export; the actual `exportOtelSpanIfNeeded` call happens after `withLock` returns.
+5. **A trace-context race, once headers were actually reaching the backend.** Even after all of the
+   above, the trace ID shown on a request's own log line sometimes didn't match the ID that
+   actually reached the backend (confirmed by cross-referencing bitdrift's own session-timeline
+   `_trace_id` field against direct ClickHouse queries for that exact ID -- zero rows). Root
+   cause: `URLSessionTaskTracker.ensureTraceContext(for:)` used to *generate* a fallback trace
+   context at request-log time if none was set yet, racing `CaptureURLProtocol.startLoading()`
+   (which runs later and sets the real one) -- two independent random trace IDs for the same
+   logical request, and whichever ran first got logged. Fixed by making `ensureTraceContext` purely
+   read `cap_traceContext` rather than ever generating one; `CaptureURLProtocol.startLoading()` is
+   now the sole source of truth. The practical effect: a request's own log line may show no
+   `_trace_id` if logged before `startLoading()` runs, but the response log line (necessarily
+   logged after) always shows the one real ID -- correlate off the response, not the request.
+- **Verification method worth reusing:** don't trust the bitdrift UI/session-timeline trace ID
+  alone -- cross-reference directly against the backend's own trace store
+  (`docker exec clickstack clickhouse-client --query "SELECT ServiceName, SpanName, hex(SpanId),
+  hex(ParentSpanId) FROM otel_traces WHERE TraceId = '<id>'"`) to confirm both that spans exist at
+  all for that ID *and* that the bitdrift span is a genuine parent of the backend's own root span,
+  not just a same-trace-ID coincidence.
+- **A same-thread reentrant crash reproduces identically on the standalone repro pattern used
+  throughout this investigation** (a plain Swift script + a local listener) -- that pattern (no
+  Xcode project, no simulator boot, just `swift some_script.swift` against `nc -l <port>` or
+  `python3 -m http.server`) is the fastest way to test a hypothesis about `URLSession`/
+  `URLSessionTask` behavior in isolation before touching real SDK code, and was used for findings
+  2, 3, and the crash's root cause above.
+
 ### Not yet verified
 
-- **No automated tests** were written or run for `bd-otlp-traces`, the JNI bridge, or the Kotlin exporter.
+- **No automated tests** were written or run for `bd-otlp-traces`, the JNI bridge, the Kotlin exporter, the
+  Swift bridge export, or the new `URLProtocol`-based header injection (`test/platform/swift/unit_integration/`
+  has none of this yet).
 - **No offline check:** the airplane-mode behaviour (export fails immediately and silently, traced request
-  unaffected) has not been exercised on a device.
-- **Only arm64-v8a** was built/run (Apple-silicon emulator). x86_64/other ABIs untested.
+  unaffected) has not been exercised on a device, on either platform.
+- **Only arm64-v8a / arm64 simulator** was built/run (Apple-silicon emulator/simulator). x86_64/other ABIs untested.
+- **iOS was only tested on iOS 26/27 simulator runtimes** (the only ones available on the machine this was built
+  on) — the `-ObjC`/`URLProtocol`/reentrant-lock findings above were all confirmed on that OS, not against an
+  older stable iOS release or a physical device.
+- **The `-ObjC` linker flag requirement isn't documented anywhere a real integrator would see it** — it's only
+  called out in `ios/README.md` in the demo app repo right now. If `Capture.xcframework` ships as a static
+  framework in a real release, this needs to be in the public iOS integration docs, not just this plan.
 - **Release-quality concerns not addressed:** the API is still `@ExperimentalBitdriftApi`; the `shared-core` pin
   points at a commit that is not on any remote; no `CHANGELOG.md` entry (required for user-facing behaviour
   changes in `capture-sdk`); no size-delta check against the CI binary-size reports.
@@ -300,67 +399,41 @@ on Android. What remains:
 4. [ ] **Productionize:** commit, push `shared-core` and repoint the `Cargo.toml` pin at a merged commit,
    `CHANGELOG.md` entry, size-delta review, decide whether the API stays experimental.
 
-### iOS (`platform/swift/source`)
+### iOS (`platform/swift/source`) — done
 
-No implementation exists yet. The underlying trace-header injection infrastructure already exists
-and is structurally equivalent to Android's:
+Built following the Android recipe for the FFI/span-building part (as originally planned below),
+plus a from-scratch rework of trace-header injection itself that the original plan didn't
+anticipate (see "What we learned building iOS" above — that part, not the FFI, was the real work):
 
-- `TracePropagation.swift` already generates and carries a `URLSessionTraceContext` (trace ID +
-  span ID) per traced request, exactly like Android's `TraceContextFactory`/`TraceContext`.
-- `URLSessionTaskTracker.swift`'s `task(_:didFinishCollecting:)` is the structural equivalent of
-  Android's `CaptureOkHttpEventListener.callEnd()`/`callFailed()` — timing, status code, byte
-  counts, and the stashed trace context are all present simultaneously at this one call site.
-
-**Recipe, mirroring what was done on Android** (do these in order; each bullet names the Android file it copies):
-
-1. `shared-core` must be reachable by `capture-sdk` (pushed commit or merged), and `bd-otlp-traces` added as a
-   `capture-sdk` workspace dependency and to the Swift bridge crate's `Cargo.toml` (Android: `platform/jvm/core/Cargo.toml`).
-2. In `platform/swift/source/src/bridge.rs`, add one `extern "C"` export that takes the same inputs as the JNI
-   function (trace/span ID, scope name, name, start/end nanos, status code, optional status message, and the two
-   attribute triples of keys/values/type tags), builds a `bd_otlp_traces::SpanExportRequest` with
-   `SpanKind::Client`, calls `build_span_payload`, and returns the bytes (Android: `jni.rs`
-   `Java_..._buildOtelSpanPayload`; type tags 0/1/2 must match `OTLP_ATTRIBUTE_TYPE_*` in `ffi.rs`).
-3. Declare it in `platform/swift/source/CaptureRustBridge.h`, add the Swift call site in `LoggerBridge.swift`, and
-   follow the `CLAUDE.md` FFI/ABI-safety rules exactly (no extra trailing params, nullable `NSString *` for
-   optional strings, update every layer together). Run focused bridge compilation, not just `cargo check`.
-4. Build the attribute arrays in Swift from `HTTPRequestInfo`/`HTTPResponse`/`HTTPRequestMetrics` and iOS network
-   and app-state APIs, at `URLSessionTaskTracker.task(_:didFinishCollecting:)`; POST once via the shared
-   `URLSession`, tag the request so the SDK does not trace its own export (Android: `InternalTelemetryRequestTag`),
-   and drop on any failure.
-5. Manual check: iOS simulator + local ClickStack, trace appears; then the airplane-mode check.
-6. First Bazel command after the rev bump needs `CARGO_BAZEL_REPIN=true`; use
-   `./bazelw test //test/platform/swift/unit_integration/core:test --ios_simulator_device="iPhone 17"` for the iOS tests.
-   Xcode here is 27.0 vs. the documented 16.2 — expect to look at the linker/toolchain first if the iOS build misbehaves.
+- `platform/swift/source/src/bridge.rs`: `capture_build_otel_span_payload`, same shape as
+  Android's JNI export (trace/span ID, scope name, name, start/end nanos, status code, optional
+  status message, two attribute triples of keys/values/type tags). Declared in
+  `CaptureRustBridge.h`, called from `OtelSpanExporter.swift`.
+- `OtelSpanBuilder.swift`/`OtelResourceAttributes.swift`/`OtelAttributes.swift`: build the FFI
+  call's inputs from `HTTPRequestInfo`/`HTTPResponse`/`HTTPRequestMetrics` plus iOS's
+  `NetworkAttributes`/app-state equivalents of Android's `ClientAttributes`/`NetworkAttributes`.
+- `OtelExportConfiguration.swift` added to `Configuration.swift`, matching Android's shape
+  (endpoint URL, auth header name/value); wired into `Logger.start()`.
+- `OtelSpanExporter.swift`: POSTs the built payload once via the SDK's existing shared
+  `URLSession`, tagged so the SDK doesn't trace its own export (`x-bitdrift-internal-telemetry`,
+  the iOS equivalent of Android's `InternalTelemetryRequestTag`), drops on any failure — no retry,
+  no queue, matching Android. Called from `URLSessionTaskTracker.task(_:didFinishCollecting:)`,
+  *outside* that method's lock (see finding 4 above).
+- Trace-header injection itself: `CaptureURLProtocol` (`URLProtocol.swift`), registered globally
+  via `URLProtocol.registerClass` in `URLSessionIntegration.start()`. Replaces the old
+  `URLSessionTask+Swizzling.swift`-only approach, which is confirmed not to affect the wire (see
+  findings 1–3 above). `URLSessionTask+Swizzling.swift` still exists for `taskWillStart`/response
+  logging (unrelated to header injection now) but no longer attempts injection itself.
+- First Bazel command after the `rev` bump needs `CARGO_BAZEL_REPIN=true`; use
+  `./bazelw test //test/platform/swift/unit_integration/core:test --ios_simulator_device="iPhone 17"`
+  for the iOS tests (not run for this change yet — see "Not yet verified"). Xcode here is 27.0 vs.
+  the documented 16.2 — the `-ObjC` linker-flag and `URLProtocol` findings above were both surfaced
+  on that newer toolchain/OS combination.
 
 **Wrappers (`platform/capture_flutter`, `platform/webview`):** not investigated. First question to answer: do they
 route network requests through the native Android/iOS instrumentation (in which case span export is inherited
 once the native layers ship it) or do they have their own network path that would need its own hook? Only then
 decide whether they need any work.
-
-**Milestone roadmap:**
-
-1. [ ] **(Path A)** Call the new `build_otel_span_payload` FFI function from
-   `didFinishCollecting`, passing the same inputs Android passes. **(Path B)** port
-   `OtelSpanModels.kt`/`OtelSpanBuilder.kt`/`OtelResourceAttributes.kt` to Swift by hand instead —
-   per detailed reference §9, this logic is OS-independent pure data transformation, so it's a
-   faithful line-by-line port either way (the one Android-only dependency, `okhttp3.HttpUrl`, has
-   an obvious `URL`-based Swift equivalent).
-2. [ ] **Gather the OS-specific attributes iOS needs**, using iOS's existing equivalents of
-   Android's `ClientAttributes`/`NetworkAttributes` (device model/OS version already gathered today
-   for other OOTB fields; network connection type via `NWPathMonitor`, cellular carrier via
-   `CTTelephonyNetworkInfo`, foreground/background state via
-   `UIApplication.shared.applicationState`). This is the iOS equivalent of what Android already
-   does for other fields, applied to this feature — not new gathering logic in spirit.
-3. [ ] **Add `OtelExportConfiguration` to `Configuration.swift`**, matching Android's shape
-   (endpoint URL, auth header name/value), and wire it into `Logger.start()`'s existing
-   `Configuration` handling. This config stays entirely on the Swift side — it's just "where does
-   this platform's own HTTP POST go" — regardless of which path you picked above; it never needs
-   to cross FFI.
-4. [ ] **Hook into `URLSessionTaskTracker`'s `didFinishCollecting`**: build the payload (via FFI or
-   the ported Swift code), POST it once via the SDK's existing shared `URLSession`, and drop it on
-   any failure — no retry, no queue, matching Android.
-5. [ ] **Verify** with the same offline manual test as Android, plus the standard iOS unit/
-   integration test locations (`test/platform/swift/unit_integration/`).
 
 ---
 
@@ -573,20 +646,26 @@ the architectural fact from §2: capture-sdk deliberately implements native
 `PlatformNetworkManager`s per platform rather than shipping `hyper`+`hyper-rustls` in the mobile
 binary. This plan treats that as the operative constraint even though no document states a number.
 
-### §8. iOS network tracing today (capture-sdk)
+### §8. iOS network tracing today (capture-sdk) — historical, see "What we learned building iOS" above
+
+This section describes the mechanism as it existed *before* the iOS OTel-export work. Header
+injection has since moved from `URLSessionTask+Swizzling.swift`'s `cap_resume()` to
+`CaptureURLProtocol` (`URLProtocol.swift`) — the description below of `cap_resume()` injecting
+headers no longer reflects the code; kept for historical context on what the starting point was.
 
 - `platform/swift/source/integrations/url_session/TracePropagation.swift` —
   `URLSessionTracePropagationMode` enum (w3c/b3Single/b3Multi/datadog/disabled) and
   `URLSessionTraceContext` struct, generated via `SecRandomCopyBytes`.
-- Header injection: `URLSessionTask+Swizzling.swift`, `URLSessionTask.cap_resume()` →
-  `injectTraceHeadersIfNeeded()` — the swizzled replacement for `URLSessionTask.resume()`, which
-  sets the trace header per mode and stashes the `URLSessionTraceContext` on the task via
-  associated objects.
+- Header injection (superseded, see above): `URLSessionTask+Swizzling.swift`,
+  `URLSessionTask.cap_resume()` → `injectTraceHeadersIfNeeded()` — the swizzled replacement for
+  `URLSessionTask.resume()`, which set the trace header per mode and stashed the
+  `URLSessionTraceContext` on the task via associated objects. Confirmed not to affect the actual
+  wire request on current iOS.
 - Completion hook (Android `CaptureOkHttpEventListener` equivalent):
   `URLSessionTaskTracker.swift`, `task(_:didFinishCollecting:)`, called from
   `ProxyURLSessionDelegate` once `URLSessionTaskMetrics` are available — timing, status code, and
-  the stashed trace context are all present simultaneously, same as Android. No existing OTel span
-  code uses this hook point today; it currently only builds and logs `HTTPResponseInfo`.
+  the stashed trace context are all present simultaneously, same as Android. This hook point now
+  also calls `exportOtelSpanIfNeeded` (outside its lock — see finding 4 above).
 
 ### §9. Portability of today's Android OTel-export Kotlin code
 

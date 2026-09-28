@@ -3765,6 +3765,7 @@ dependencies = [
  "bd-log-primitives",
  "bd-logger",
  "bd-noop-network",
+ "bd-otlp-traces",
  "bd-proto",
  "bd-report-parsers",
  "bd-report-writer",

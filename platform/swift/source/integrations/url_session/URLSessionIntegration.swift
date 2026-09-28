@@ -94,6 +94,19 @@ final class URLSessionIntegration {
         (Logger.getShared() as? Logger)?.isTracingActive == true
     }
 
+    /// Non-nil only when `Configuration.otelExportConfiguration` was set at `Logger.start()` time.
+    var otelSpanExporter: OtelSpanExporter? {
+        (Logger.getShared() as? Logger)?.otelSpanExporter
+    }
+
+    var networkAttributes: NetworkAttributes? {
+        (Logger.getShared() as? Logger)?.networkAttributes
+    }
+
+    var appStateAttributes: AppStateAttributes? {
+        (Logger.getShared() as? Logger)?.appStateAttributes
+    }
+
     func start(
         logger: Logging,
         disableSwizzling: Bool,
@@ -109,6 +122,7 @@ final class URLSessionIntegration {
         }
 
         self.toggleURLSessionTaskSwizzling()
+        URLProtocol.registerClass(CaptureURLProtocol.self)
     }
 
     // MARK: - Private

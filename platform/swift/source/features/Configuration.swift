@@ -26,6 +26,11 @@ public struct Configuration {
     /// This is only effective when `enableFatalIssueReporting` is true.
     public var issueCallbackConfiguration: IssueCallbackConfiguration?
 
+    /// Optional configuration for exporting an OTel `CLIENT` span for each traced network
+    /// request. Pass `nil` (the default) to disable the feature.
+    /// This API is experimental and may change in the future.
+    public var otelExportConfiguration: OtelExportConfiguration?
+
     /// The base URL of Capture API. Depend on its default value unless specifically instructed otherwise during discussions with
     /// bitdrift. Defaults to bitdrift's hosted API base URL.
     let apiURL: URL
@@ -42,6 +47,9 @@ public struct Configuration {
     ///                                         the default location (i.e. The app's document directory).
     /// - parameter issueCallbackConfiguration: Optional callback configuration for issue reports.
     ///                                         This API is in experimental phase and may change in the future.
+    /// - parameter otelExportConfiguration:    Optional configuration for exporting an OTel `CLIENT` span for
+    ///                                         each traced network request. This API is experimental and may
+    ///                                         change in the future.
     public init(
         sessionReplayConfiguration: SessionReplayConfiguration? = .init(),
         sleepMode: SleepMode = .disabled,
@@ -49,7 +57,8 @@ public struct Configuration {
         // swiftlint:disable:next force_unwrapping use_static_string_url_init
         apiURL: URL = URL(string: "https://api.bitdrift.io")!,
         rootFileURL: URL? = nil,
-        issueCallbackConfiguration: IssueCallbackConfiguration? = nil
+        issueCallbackConfiguration: IssueCallbackConfiguration? = nil,
+        otelExportConfiguration: OtelExportConfiguration? = nil
     ) {
         self.sessionReplayConfiguration = sessionReplayConfiguration
         self.sleepMode = sleepMode
@@ -57,5 +66,6 @@ public struct Configuration {
         self.apiURL = apiURL
         self.rootFileURL = rootFileURL
         self.issueCallbackConfiguration = issueCallbackConfiguration
+        self.otelExportConfiguration = otelExportConfiguration
     }
 }
