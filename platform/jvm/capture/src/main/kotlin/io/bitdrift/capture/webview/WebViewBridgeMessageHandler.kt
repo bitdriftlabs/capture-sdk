@@ -231,7 +231,7 @@ internal class WebViewBridgeMessageHandler(
             else -> {
                 // Unknown metric type - log as regular log with UX type
                 logger.logInternal(LogType.UX, level, commonFields.toFields()) {
-                    "webview.webVital"
+                    webVitalEventName(name)
                 }
             }
         }
@@ -352,7 +352,7 @@ internal class WebViewBridgeMessageHandler(
         }
 
         logger.logInternal(LogType.UX, level, fields.toFields()) {
-            "webview.webVital"
+            webVitalEventName("CLS")
         }
     }
 
@@ -374,7 +374,7 @@ internal class WebViewBridgeMessageHandler(
 
         val span =
             logger.startSpan(
-                name = "webview.webVital",
+                name = webVitalEventName(fields.getValue("_metric")),
                 level = level,
                 fields = fields,
                 startTimeMs = startTimeMs,
@@ -382,6 +382,12 @@ internal class WebViewBridgeMessageHandler(
             )
         span.end(result = result, fields = fields, endTimeMs = timestamp)
     }
+
+    private fun webVitalEventName(metricName: String): String =
+        when (metricName) {
+            "LCP", "FCP", "TTFB", "INP", "CLS" -> "webview.${metricName.lowercase()}"
+            else -> "webview.webVital"
+        }
 
     private fun handleNetworkRequest(
         msg: WebViewBridgeMessage,
