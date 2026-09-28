@@ -523,10 +523,10 @@ internal class WebViewBridgeMessageHandler(
         return runCatching { UUID.fromString(resolvedWebViewSpanId) }.getOrNull()
     }
 
-private fun fieldsWithPageViewParent(
-    fields: ArrayFields,
-    webViewSpanId: String?,
-): ArrayFields {
+    private fun fieldsWithPageViewParent(
+        fields: ArrayFields,
+        webViewSpanId: String?,
+    ): ArrayFields {
         val parentSpanId = parentSpanId(webViewSpanId) ?: return fields
         return combineFields(fields, fieldsOf("_span_parent_id" to parentSpanId.toString()))
     }
