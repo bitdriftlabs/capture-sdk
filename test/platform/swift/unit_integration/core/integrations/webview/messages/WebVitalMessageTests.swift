@@ -25,7 +25,7 @@ final class WebVitalMessageTests: XCTestCase {
             return
         }
 
-        XCTAssertEqual(name, "webview.webVital")
+        XCTAssertEqual(name, "webview.webVital.lcp")
         XCTAssertEqual(level, .info)
         XCTAssertEqual(result, .success)
         XCTAssertEqual(endTimeInterval, 1_700_000_000)
@@ -35,7 +35,7 @@ final class WebVitalMessageTests: XCTestCase {
     func testMakeLoggingActionForNonSpanMetricReturnsLogAction() throws {
         try givenWebVitalMessage(metricName: "CLS", rating: "good")
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.webVital", level: .info, type: .ux)
+        assertWebLogAction(action, message: "webview.webVital.cls", level: .info, type: .ux)
     }
 
     func testMakeLoggingActionWithPoorRatingLogsAtWarningWithFailureResult() throws {
@@ -95,7 +95,7 @@ final class WebVitalMessageTests: XCTestCase {
     func testMakeLoggingActionWithEmptyEntriesOmitsEntriesField() throws {
         try givenWebVitalMessage(metricName: "CLS", rating: "good")
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.webVital", level: .info) { fields in
+        assertWebLogAction(action, message: "webview.webVital.cls", level: .info) { fields in
             XCTAssertNil(fields["_entries"])
         }
     }
@@ -107,7 +107,7 @@ final class WebVitalMessageTests: XCTestCase {
             parentSpanId: "11111111-1111-1111-1111-111111111111"
         )
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "webview.webVital", level: .info) { fields in
+        assertWebLogAction(action, message: "webview.webVital.cls", level: .info) { fields in
             XCTAssertEqual(fields["_span_parent_id"], "11111111-1111-1111-1111-111111111111")
         }
     }
