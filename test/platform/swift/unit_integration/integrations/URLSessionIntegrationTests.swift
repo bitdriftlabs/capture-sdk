@@ -33,14 +33,10 @@ private final class URLSessionIncompleteDelegate: NSObject, URLSessionTaskDelega
 }
 
 private final class URLSessionCustomDelegate: NSObject, URLSessionDelegate {
-    var didReceiveChallenge: XCTestExpectation?
+    var didBecomeInvalid: XCTestExpectation?
 
-    func urlSession(
-        _ session: URLSession,
-        didReceive challenge: URLAuthenticationChallenge
-    ) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
-        self.didReceiveChallenge?.fulfill()
-        return (.performDefaultHandling, nil)
+    func urlSession(_: URLSession, didBecomeInvalidWithError _: Error?) {
+        self.didBecomeInvalid?.fulfill()
     }
 }
 
@@ -235,9 +231,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "api-fe.bitdrift.io",
+                "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/fe/ping",
+                "_path": "/ping",
                 "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
@@ -297,15 +293,9 @@ final class URLSessionIntegrationTests: XCTestCase {
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: false)
 
-            let expectation = self.expectation(description: "delegate callbacks are called")
-            expectation.expectedFulfillmentCount = 1
-            // HTTPS may issue more than one authentication challenge while establishing a
-            // connection. This test verifies that the caller's session delegate is retained,
-            // not the number of challenges issued by the transport.
-            expectation.assertForOverFulfill = false
-
+            let expectation = self.expectation(description: "session delegate callback is called")
             let delegate = URLSessionCustomDelegate()
-            delegate.didReceiveChallenge = expectation
+            delegate.didBecomeInvalid = expectation
 
             let session = URLSession(
                 instrumentedSessionWithConfiguration: .default,
@@ -315,7 +305,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             defer {
                 self.logger.logRequestExpectation = nil
                 self.logger.logResponseExpectation = nil
-                delegate.didReceiveChallenge = nil
+                delegate.didBecomeInvalid = nil
                 session.invalidateAndCancel()
                 self.customTearDown()
             }
@@ -326,7 +316,8 @@ final class URLSessionIntegrationTests: XCTestCase {
                 return
             }
 
-            XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 0.1))
+            session.finishTasksAndInvalidate()
+            XCTAssertEqual(.completed, XCTWaiter().wait(for: [expectation], timeout: 5))
         }
     }
 
@@ -736,9 +727,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "api-fe.bitdrift.io",
+                "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/fe/ping",
+                "_path": "/ping",
                 "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
@@ -759,9 +750,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "api-fe.bitdrift.io",
+                "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/fe/ping",
+                "_path": "/ping",
                 "_query": self.caseQuery,
                 "_result": "success",
                 "_span_name": "_http",
@@ -809,9 +800,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "api-fe.bitdrift.io",
+                "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/fe/ping",
+                "_path": "/ping",
                 "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
@@ -832,9 +823,9 @@ final class URLSessionIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             [
-                "_host": "api-fe.bitdrift.io",
+                "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/fe/ping",
+                "_path": "/ping",
                 "_query": self.caseQuery,
                 "_result": "canceled",
                 "_span_name": "_http",
@@ -986,11 +977,7 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     private func makeURL() -> URL {
-        // `https` requires us to run tests inside of a host application which causes the tests to take
-        // significantly more time when ran on the CI.
-        // TODO(Augustyniak): Move to using bitdrift ping.
-        // swiftlint:disable:next force_unwrapping
-        return URL(string: "https://api-fe.bitdrift.io/fe/ping?\(self.caseQuery)")!
+        return LocalHTTPServer.shared.url(path: "/ping", query: self.caseQuery)
     }
 
     private func makeTempFileURL(name: String) throws -> URL {
@@ -1070,7 +1057,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
 
         task.resume()
 
@@ -1084,7 +1071,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "none")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
 
         task.resume()
 
@@ -1097,7 +1084,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
 
         task.resume()
 
@@ -1118,7 +1105,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
 
         task.resume()
 
@@ -1134,7 +1121,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
 
         task.resume()
 
@@ -1156,7 +1143,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-single")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
 
         task.resume()
 
@@ -1181,7 +1168,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
 
         task.resume()
 
@@ -1207,7 +1194,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
 
         task.resume()
 
@@ -1230,7 +1217,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("00-88c131f5a4a41657a4cc039862759571-1234567890abcdef-01", forHTTPHeaderField: "traceparent")
 
         let session = URLSession(configuration: .default)
@@ -1303,7 +1290,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("00-abcdef1234567890abcdef1234567890-1234567890abcdef-01", forHTTPHeaderField: "traceparent")
 
         let session = URLSession(configuration: .default)
@@ -1327,7 +1314,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-single")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("abcdef1234567890abcdef1234567890-1234567890abcdef-1", forHTTPHeaderField: "b3")
 
         let session = URLSession(configuration: .default)
@@ -1350,7 +1337,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("abcdef1234567890abcdef1234567890", forHTTPHeaderField: "X-B3-TraceId")
         request.setValue("1", forHTTPHeaderField: "X-B3-Sampled")
 
@@ -1374,7 +1361,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("abcdef1234567890abcdef1234567890", forHTTPHeaderField: "X-B3-TraceId")
         request.setValue("0", forHTTPHeaderField: "X-B3-Sampled")
 
@@ -1397,7 +1384,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("5498017814432956682", forHTTPHeaderField: "x-datadog-trace-id")
         request.setValue("4063799684456813420", forHTTPHeaderField: "x-datadog-parent-id")
         request.setValue("1", forHTTPHeaderField: "x-datadog-sampling-priority")
@@ -1423,7 +1410,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("5498017814432956682", forHTTPHeaderField: "x-datadog-trace-id")
         request.setValue("0", forHTTPHeaderField: "x-datadog-sampling-priority")
 
@@ -1446,7 +1433,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("00-abcdef1234567890abcdef1234567890-1234567890abcdef-00", forHTTPHeaderField: "traceparent")
 
         let session = URLSession(configuration: .default)
@@ -1470,7 +1457,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("abcdef1234567890abcdef1234567890-1234567890abcdef-1", forHTTPHeaderField: "b3")
 
         let session = URLSession(configuration: .default)
@@ -1492,7 +1479,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-single")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("00-abcdef1234567890abcdef1234567890-1234567890abcdef-01", forHTTPHeaderField: "traceparent")
 
         let session = URLSession(configuration: .default)
@@ -1514,7 +1501,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
 
-        var request = URLRequest(url: URL(staticString: "https://api-fe.bitdrift.io/fe/ping?q=test"))
+        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
         request.setValue("abcdef1234567890abcdef1234567890-1234567890abcdef-1", forHTTPHeaderField: "b3")
 
         let session = URLSession(configuration: .default)
