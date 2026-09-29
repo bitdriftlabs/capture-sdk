@@ -80,7 +80,7 @@ save_logcat() {
 save_maestro_debug_output() {
   local name="$1"
   local latest_output
-  latest_output="$(ls -td "$HOME"/.maestro/tests/*/ 2>/dev/null | head -1)"
+  latest_output="$(find "$HOME/.maestro/tests" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)"
   if [[ -n "$latest_output" ]]; then
     mkdir -p "$logs_dir/maestro"
     cp -R "$latest_output" "$logs_dir/maestro/$name" || true
