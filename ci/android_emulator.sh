@@ -22,6 +22,10 @@ wait_for_android_emulator_ready() {
     dev_boot_completed="$(adb -s "$serial" shell getprop dev.bootcomplete 2>/dev/null | tr -d '\r')"
     boot_anim="$(adb -s "$serial" shell getprop init.svc.bootanim 2>/dev/null | tr -d '\r')"
     system_server_pid="$(adb -s "$serial" shell pidof system_server 2>/dev/null | tr -d '\r')"
+    if [[ ! "$system_server_pid" =~ ^[0-9]+$ ]]; then
+      system_server_pid="$(adb -s "$serial" shell ps 2>/dev/null | tr -d '\r' |
+        awk '$NF == "system_server" { print $2 }')"
+    fi
 
     if [[ "$sys_boot_completed" == "1" ]] &&
       [[ "$dev_boot_completed" == "1" ]] &&
