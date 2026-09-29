@@ -31,6 +31,7 @@ public final class Logger {
 
     private let underlyingLogger: CoreLogging
     private let timeProvider: TimeProvider
+    let commandRegistry: CommandRegistry
 
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
@@ -139,6 +140,7 @@ public final class Logger {
         )
     {
         self.timeProvider = timeProvider
+        self.commandRegistry = CommandRegistry()
         let start = timeProvider.uptime()
 
         let appStateAttributes = AppStateAttributes()
