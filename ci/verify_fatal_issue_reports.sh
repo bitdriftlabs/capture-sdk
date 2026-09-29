@@ -12,6 +12,7 @@ readonly results_file="$logs_dir/results.txt"
 readonly log_tag="BitdriftE2E"
 readonly sdk_log_tag="bitdrift"
 readonly maestro_flow="tools/maestro/force-app-exit.yaml"
+readonly maestro_version="${MAESTRO_VERSION:-2.10.0}"
 readonly sdk_start_timeout_seconds=90
 readonly trigger_timeout_seconds=30
 readonly exit_timeout_seconds=90
@@ -132,8 +133,19 @@ fi
 mkdir -p "$logs_dir"
 
 if ! command -v maestro >/dev/null; then
-  curl -Ls "https://get.maestro.mobile.dev" | bash
+  for attempt in 1 2 3; do
+    if curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION="$maestro_version" bash &&
+      [[ -x "$HOME/.maestro/bin/maestro" ]]; then
+      break
+    fi
+    echo "Maestro install attempt $attempt failed"
+    sleep $((attempt * 10))
+  done
   export PATH="$PATH:$HOME/.maestro/bin"
+fi
+if ! command -v maestro >/dev/null; then
+  echo "::error::Maestro is not installed"
+  exit 1
 fi
 export MAESTRO_CLI_NO_ANALYTICS=1
 export ANDROID_SERIAL="$emulator_serial"
@@ -143,7 +155,16 @@ wait_for_android_emulator_ready "$emulator_serial" "$emulator_ready_attempts"
 adb_shell settings put global hide_error_dialogs 1
 api_level="$(adb_shell getprop ro.build.version.sdk | tr -d '\r')"
 
-adb -s "$emulator_serial" install -r "$apk_path"
+install_attempt=1
+until adb -s "$emulator_serial" install -r "$apk_path"; do
+  save_logcat "install-attempt-$install_attempt"
+  if [[ "$install_attempt" -ge 3 ]]; then
+    echo "::error::Failed to install $apk_path"
+    exit 1
+  fi
+  install_attempt=$((install_attempt + 1))
+  wait_for_android_emulator_ready "$emulator_serial" "$emulator_ready_attempts"
+done
 adb_shell input keyevent 82 >/dev/null 2>&1 || true
 seed_gradle_test_app_settings
 
@@ -153,11 +174,11 @@ summary="| Case | API $api_level |"$'\n'"|---|---|"
 for test_case in "${cases[@]}"; do
   IFS='|' read -r name reason expected_type <<< "$test_case"
   if run_case "$name" "$reason" "$expected_type"; then
-    summary+=$'\n'"| $name | ✅ |"
+    summary+=$'\n'"| $name | pass |"
     echo "$name|pass" >> "$results_file"
   else
     failed_cases+=("$name")
-    summary+=$'\n'"| $name | ❌ |"
+    summary+=$'\n'"| $name | fail |"
     echo "$name|fail" >> "$results_file"
   fi
 done
