@@ -396,8 +396,7 @@ internal class WebViewBridgeMessageHandler(
         hostKey: String = "_host",
         pathKey: String = "_path",
         queryKey: String = "_query",
-    ): ArrayFields =
-        urlFieldsMap(url, hostKey, pathKey, queryKey).toFields()
+    ): ArrayFields = urlFieldsMap(url, hostKey, pathKey, queryKey).toFields()
 
     private fun urlFieldsMap(
         url: String?,
