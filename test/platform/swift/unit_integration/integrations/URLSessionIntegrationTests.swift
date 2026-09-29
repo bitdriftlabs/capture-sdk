@@ -72,6 +72,7 @@ final class URLSessionIntegrationTests: XCTestCase {
     private var logger: MockLogging!
 
     private var caseQuery: String { self.logger.acceptedQuery ?? "" }
+    private var requestPath = "/ping"
 
     override func setUp() {
         super.setUp()
@@ -233,7 +234,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             [
                 "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/ping",
+                "_path": self.requestPath,
                 "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
@@ -451,6 +452,8 @@ final class URLSessionIntegrationTests: XCTestCase {
     // MARK: - Cancelling Tasks
 
     func testCancelRequestsSharedSession() throws {
+        self.requestPath = LocalHTTPServer.unansweredPath
+
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
 
@@ -460,6 +463,8 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     func testCancelRequestsCustomSession() throws {
+        self.requestPath = LocalHTTPServer.unansweredPath
+
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
 
@@ -476,6 +481,8 @@ final class URLSessionIntegrationTests: XCTestCase {
     // MARK: - Cancelling Tasks With Task Delegates
 
     func testCancelRequestsSharedSessionWithTaskDelegates() throws {
+        self.requestPath = LocalHTTPServer.unansweredPath
+
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
 
@@ -493,6 +500,8 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     func testCancelRequestsCustomSessionWithTaskDelegates() throws {
+        self.requestPath = LocalHTTPServer.unansweredPath
+
         for taskTestCase in self.makeTaskWithoutCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
 
@@ -515,6 +524,8 @@ final class URLSessionIntegrationTests: XCTestCase {
     // MARK: - Cancelling Tasks With Completion Closures
 
     func testCancelRequestsSharedSessionWithCompletionClosures() throws {
+        self.requestPath = LocalHTTPServer.unansweredPath
+
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
 
@@ -530,6 +541,8 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     func testCancelRequestsCustomSessionWithCompletionClosures() throws {
+        self.requestPath = LocalHTTPServer.unansweredPath
+
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
 
@@ -549,6 +562,8 @@ final class URLSessionIntegrationTests: XCTestCase {
     // MARK: - Cancelling Tasks With Task Delegates And Completion Closures
 
     func testCancelRequestsSharedSessionWithTaskDelegatesAndCompletionClosures() throws {
+        self.requestPath = LocalHTTPServer.unansweredPath
+
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
 
@@ -571,6 +586,8 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     func testCancelRequestsCustomSessionWithTaskDelegatesAndCompletionClosures() throws {
+        self.requestPath = LocalHTTPServer.unansweredPath
+
         for taskTestCase in self.makeTaskWithCompletionClosureTestCases() {
             self.customSetUp(swizzle: true)
 
@@ -729,7 +746,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             [
                 "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/ping",
+                "_path": self.requestPath,
                 "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
@@ -752,7 +769,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             [
                 "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/ping",
+                "_path": self.requestPath,
                 "_query": self.caseQuery,
                 "_result": "success",
                 "_span_name": "_http",
@@ -802,7 +819,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             [
                 "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/ping",
+                "_path": self.requestPath,
                 "_query": self.caseQuery,
                 "_span_name": "_http",
                 "_span_type": "start",
@@ -825,7 +842,7 @@ final class URLSessionIntegrationTests: XCTestCase {
             [
                 "_host": LocalHTTPServer.host,
                 "_method": "GET",
-                "_path": "/ping",
+                "_path": self.requestPath,
                 "_query": self.caseQuery,
                 "_result": "canceled",
                 "_span_name": "_http",
@@ -977,7 +994,7 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     private func makeURL() -> URL {
-        return LocalHTTPServer.shared.url(path: "/ping", query: self.caseQuery)
+        return LocalHTTPServer.shared.url(path: self.requestPath, query: self.caseQuery)
     }
 
     private func makeTempFileURL(name: String) throws -> URL {
