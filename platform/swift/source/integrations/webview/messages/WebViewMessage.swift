@@ -68,6 +68,23 @@ extension WebViewMessage {
         return fields
     }
 
+    func makeURLFields(
+        url: String?,
+        hostKey: String = "_host",
+        pathKey: String = "_path",
+        queryKey: String = "_query"
+    ) -> Fields {
+        guard let url, let components = URLComponents(string: url) else {
+            return [:]
+        }
+
+        var fields: Fields = [:]
+        fields[hostKey] = components.host
+        fields[pathKey] = components.path.isEmpty ? nil : components.path
+        fields[queryKey] = components.query
+        return fields
+    }
+
     var timestampTimeInterval: TimeInterval {
         TimeInterval(timestamp) / 1_000
     }

@@ -42,7 +42,7 @@ struct WebVitalMessage: WebViewMessage, Equatable {
 extension WebVitalMessage: WebViewLoggableMessage {
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
         let parentSpanID = context.parentSpanID(for: parentSpanId)
-        let fields = makeFields(
+        var fields = makeFields(
             includeTimestamp: false,
             context: context,
             ("_metric", metric.name),
@@ -55,6 +55,7 @@ extension WebVitalMessage: WebViewLoggableMessage {
             ("_page_url", url),
             ("_entries", metric.entries.jsonString)
         )
+        fields.merge(makeURLFields(url: url)) { _, urlField in urlField }
 
         switch metric.name {
         case "LCP", "FCP", "TTFB", "INP":

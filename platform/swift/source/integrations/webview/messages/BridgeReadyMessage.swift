@@ -17,15 +17,18 @@ struct BridgeReadyMessage: WebViewLoggableMessage, Equatable {
     let instrumentationConfig: WebViewScriptConfiguration?
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
-        .log(
+        var fields = makeFields(
+            includeTimestamp: false,
+            context: context,
+            ("_url", url),
+            ("_config", instrumentationConfig?.toJSONString())
+        )
+        fields.merge(makeURLFields(url: url)) { _, urlField in urlField }
+
+        return .log(
             level: .debug,
             message: "webview.initialized",
-            fields: makeFields(
-                includeTimestamp: false,
-                context: context,
-                ("_url", url),
-                ("_config", instrumentationConfig?.toJSONString())
-            )
+            fields: fields
         )
     }
 }

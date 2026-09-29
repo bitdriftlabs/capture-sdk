@@ -181,7 +181,8 @@ internal class WebViewBridgeMessageHandler(
                 "_config" to msg.instrumentationConfig?.let { gson.toJson(it) },
             )
 
-        logger.log(LogLevel.DEBUG, fieldsWithPageViewParent(combineFields(baseFields, optionalFields), msg.parentSpanId)) {
+        val fields = combineFields(baseFields, optionalFields, urlFields(msg.url))
+        logger.log(LogLevel.DEBUG, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.initialized"
         }
     }
@@ -217,6 +218,7 @@ internal class WebViewBridgeMessageHandler(
                 metric.navigationType?.let { put("_navigation_type", it) }
                 parentSpanId?.let { put("_span_parent_id", it.toString()) }
                 msg.url?.let { put("_page_url", it) }
+                putAll(urlFieldsMap(msg.url))
                 put("_source", "webview")
             }
 
@@ -389,6 +391,29 @@ internal class WebViewBridgeMessageHandler(
             else -> "webview.webVital"
         }
 
+    private fun urlFields(
+        url: String?,
+        hostKey: String = "_host",
+        pathKey: String = "_path",
+        queryKey: String = "_query",
+    ): ArrayFields =
+        urlFieldsMap(url, hostKey, pathKey, queryKey).toFields()
+
+    private fun urlFieldsMap(
+        url: String?,
+        hostKey: String = "_host",
+        pathKey: String = "_path",
+        queryKey: String = "_query",
+    ): Map<String, String> {
+        val uri = url?.let { runCatching { URI(it) }.getOrNull() } ?: return emptyMap()
+
+        return buildMap {
+            uri.host?.let { put(hostKey, it) }
+            uri.path?.takeIf { it.isNotEmpty() }?.let { put(pathKey, it) }
+            uri.query?.let { put(queryKey, it) }
+        }
+    }
+
     private fun handleNetworkRequest(
         msg: WebViewBridgeMessage,
         timestamp: Long,
@@ -479,13 +504,14 @@ internal class WebViewBridgeMessageHandler(
                 currentPageSpanId = spanId
 
                 val fields =
-                    mapOf(
-                        "_span_id" to spanId,
-                        "_url" to url,
-                        "_reason" to reason,
-                        "_source" to "webview",
-                        "_timestamp" to timestamp.toString(),
-                    )
+                    buildMap {
+                        put("_span_id", spanId)
+                        put("_url", url)
+                        put("_reason", reason)
+                        put("_source", "webview")
+                        put("_timestamp", timestamp.toString())
+                        putAll(urlFieldsMap(url))
+                    }
 
                 val span =
                     Span(
@@ -509,6 +535,7 @@ internal class WebViewBridgeMessageHandler(
                         put("_source", "webview")
                         put("_timestamp", timestamp.toString())
                         durationMs?.let { put("_duration_ms", it.toString()) }
+                        putAll(urlFieldsMap(url))
                     }
 
                 activePageViewSpans.remove(spanId)?.end(
@@ -565,12 +592,16 @@ internal class WebViewBridgeMessageHandler(
         val method = msg.method ?: ""
 
         val fields =
-            fieldsOf(
-                "_fromUrl" to fromUrl,
-                "_toUrl" to toUrl,
-                "_method" to method,
-                "_source" to "webview",
-                "_timestamp" to timestamp.toString(),
+            combineFields(
+                fieldsOf(
+                    "_fromUrl" to fromUrl,
+                    "_toUrl" to toUrl,
+                    "_method" to method,
+                    "_source" to "webview",
+                    "_timestamp" to timestamp.toString(),
+                ),
+                urlFields(fromUrl, "_from_host", "_from_path", "_from_query"),
+                urlFields(toUrl, "_to_host", "_to_path", "_to_query"),
             )
 
         logger.log(LogLevel.INFO, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
@@ -633,12 +664,15 @@ internal class WebViewBridgeMessageHandler(
         timestamp: Long,
     ) {
         val fields =
-            fieldsOf(
-                "_resource_type" to (msg.resourceType ?: "unknown"),
-                "_url" to (msg.url ?: ""),
-                "_tag_name" to (msg.tagName ?: ""),
-                "_source" to "webview",
-                "_timestamp" to timestamp.toString(),
+            combineFields(
+                fieldsOf(
+                    "_resource_type" to (msg.resourceType ?: "unknown"),
+                    "_url" to (msg.url ?: ""),
+                    "_tag_name" to (msg.tagName ?: ""),
+                    "_source" to "webview",
+                    "_timestamp" to timestamp.toString(),
+                ),
+                urlFields(msg.url),
             )
 
         logger.log(LogLevel.WARNING, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
