@@ -23,7 +23,7 @@ enum class InitializationState {
     /** The SDK has been force-disabled by the server (e.g., authentication failure). */
     DISABLED,
 
-    /** The SDK is being started asynchronously via [Capture.Logger.startAsync] and has not finished initializing. */
+    /** The SDK is being started and has not finished initializing. */
     STARTING,
 }
 

@@ -181,17 +181,22 @@ object Capture {
         }
 
         /**
-         * Initializes the Capture SDK with the specified API key and configuration.
+         * Initializes Capture with the canonical session configuration API.
+         *
          * Calling other SDK methods has no effect unless the logger has been initialized.
-         * Subsequent calls to this function will have no effect.
+         * Subsequent calls to this function have no effect. See [SessionConfiguration] for the
+         * session-ID lifecycle contract.
          *
          * SDK initialization runs asynchronously on an SDK-managed background thread, so [startAsync]
          * returns immediately. Logs emitted before initialization completes are buffered in memory and
          * flushed once the SDK has started. Use [start] to run initialization on the calling thread.
          *
          * @param apiKey The API key provided by bitdrift. This is required.
-         * @param sessionStrategy session strategy for the management of session id.
+         * @param sessionConfiguration Session lifecycle configuration. By default, Capture generates an
+         * SDK UUID for the current process, does not persist it across SDK restarts, and does not rotate it
+         * due to inactivity.
          * @param configuration A configuration that is used to set up Capture features.
+         * @param initialFields fields to seed at SDK startup. Use [addField] to update their values later.
          * @param dateProvider optional date provider used to override how the current timestamp is computed.
          * @param apiUrl The base URL of Capture API. Depend on its default value unless specifically
          *               instructed otherwise during discussions with bitdrift. Defaults to bitdrift's hosted
@@ -203,7 +208,6 @@ object Capture {
          *                     completes.
          *                     On success, it receives a [CaptureResult.Success] containing an [ILogger] instance.
          *                     On failure, it receives a [CaptureResult.Failure] with a [SdkStartFailure].
-         * @param initialFields fields to seed at SDK startup. Use [addField] to update their values later.
          * @see start
          */
         @Synchronized
@@ -211,9 +215,9 @@ object Capture {
         @JvmOverloads
         fun startAsync(
             apiKey: String,
-            sessionStrategy: SessionStrategy,
-            initialFields: Fields,
+            sessionConfiguration: SessionConfiguration = SessionConfiguration(),
             configuration: Configuration = Configuration(),
+            initialFields: Fields = emptyMap(),
             dateProvider: DateProvider? = null,
             apiUrl: HttpUrl = defaultCaptureApiUrl,
             context: Context? = null,
@@ -221,7 +225,7 @@ object Capture {
         ) {
             start(
                 apiKey = apiKey,
-                sessionStrategy = sessionStrategy,
+                sessionStrategy = SessionStrategy.Configuration(sessionConfiguration),
                 configuration = configuration,
                 customFieldGetters = emptyList(),
                 dateProvider = dateProvider,

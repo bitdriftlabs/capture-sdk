@@ -181,7 +181,7 @@ object CaptureSdkInitializer {
                     apiKey = settings.apiKey,
                     apiUrl = settings.apiUrl,
                     configuration = settings.configuration,
-                    sessionStrategy = settings.sessionStrategy,
+                    sessionConfiguration = settings.sessionStrategy.makeSessionConfiguration(),
                     initialFields = settings.initialFields,
                     context = context,
                     startResult = onStartResult,

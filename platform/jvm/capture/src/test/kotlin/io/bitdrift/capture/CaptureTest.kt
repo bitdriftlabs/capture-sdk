@@ -196,11 +196,7 @@ class CaptureTest {
         var capturedResult: CaptureResult<ILogger>? = null
         var startResultThread: Thread? = null
 
-        Logger.startAsync(
-            apiKey = "test1",
-            sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
-            initialFields = emptyMap(),
-        ) { result ->
+        Logger.startAsync(apiKey = "test1") { result ->
             capturedResult = result
             startResultThread = Thread.currentThread()
         }
