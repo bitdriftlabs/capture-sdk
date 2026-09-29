@@ -464,6 +464,13 @@ object Capture {
                 return
             }
 
+            val initSdkStartResult =
+                if (initSdkExecutor != null) {
+                    invokeAfterPendingTasks(initSdkExecutor, startResultCallback)
+                } else {
+                    startResult
+                }
+
             val initSdkTask = {
                 initSdk(
                     apiKey = apiKey,
@@ -474,7 +481,7 @@ object Capture {
                     apiUrl = apiUrl,
                     bridge = bridge,
                     context = context,
-                    startResult = startResultCallback,
+                    startResult = initSdkStartResult,
                     initialFields = initialFields,
                     preInitInMemoryLogger = preInitInMemoryLogger,
                 )
@@ -967,6 +974,16 @@ object Capture {
         private fun invokeOnMainThread(startResult: ((CaptureResult<ILogger>) -> Unit)?): (CaptureResult<ILogger>) -> Unit =
             { result ->
                 mainThreadHandler.run {
+                    startResult.invokeCatchingOrThrowOnDebug(result)
+                }
+            }
+
+        private fun invokeAfterPendingTasks(
+            executor: Executor,
+            startResult: ((CaptureResult<ILogger>) -> Unit)?,
+        ): (CaptureResult<ILogger>) -> Unit =
+            { result ->
+                executor.execute {
                     startResult.invokeCatchingOrThrowOnDebug(result)
                 }
             }
