@@ -1069,12 +1069,18 @@ final class URLSessionTracePropagationTests: XCTestCase {
         super.tearDown()
     }
 
+    // The instrumentation clears the task's trace state when the task completes, so these tests point at a
+    // path that never answers: the task stays in flight until the test cancels it.
+    private func makeURL() -> URL {
+        LocalHTTPServer.shared.url(path: LocalHTTPServer.unansweredPath, query: "q=test")
+    }
+
     func testCapResume_whenTracingInactive_shouldNotAttachTraceContext() throws {
         self.loggerBridge.tracingActive = false
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        let task = session.dataTask(with: self.makeURL())
 
         task.resume()
 
@@ -1088,7 +1094,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "none")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        let task = session.dataTask(with: self.makeURL())
 
         task.resume()
 
@@ -1101,7 +1107,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        let task = session.dataTask(with: self.makeURL())
 
         task.resume()
 
@@ -1122,7 +1128,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        let task = session.dataTask(with: self.makeURL())
 
         task.resume()
 
@@ -1138,7 +1144,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        let task = session.dataTask(with: self.makeURL())
 
         task.resume()
 
@@ -1160,7 +1166,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-single")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        let task = session.dataTask(with: self.makeURL())
 
         task.resume()
 
@@ -1185,7 +1191,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        let task = session.dataTask(with: self.makeURL())
 
         task.resume()
 
@@ -1211,7 +1217,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        let task = session.dataTask(with: self.makeURL())
 
         task.resume()
 
@@ -1234,7 +1240,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("00-88c131f5a4a41657a4cc039862759571-1234567890abcdef-01", forHTTPHeaderField: "traceparent")
 
         let session = URLSession(configuration: .default)
@@ -1307,7 +1313,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("00-abcdef1234567890abcdef1234567890-1234567890abcdef-01", forHTTPHeaderField: "traceparent")
 
         let session = URLSession(configuration: .default)
@@ -1331,7 +1337,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-single")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("abcdef1234567890abcdef1234567890-1234567890abcdef-1", forHTTPHeaderField: "b3")
 
         let session = URLSession(configuration: .default)
@@ -1354,7 +1360,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("abcdef1234567890abcdef1234567890", forHTTPHeaderField: "X-B3-TraceId")
         request.setValue("1", forHTTPHeaderField: "X-B3-Sampled")
 
@@ -1378,7 +1384,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("abcdef1234567890abcdef1234567890", forHTTPHeaderField: "X-B3-TraceId")
         request.setValue("0", forHTTPHeaderField: "X-B3-Sampled")
 
@@ -1401,7 +1407,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("5498017814432956682", forHTTPHeaderField: "x-datadog-trace-id")
         request.setValue("4063799684456813420", forHTTPHeaderField: "x-datadog-parent-id")
         request.setValue("1", forHTTPHeaderField: "x-datadog-sampling-priority")
@@ -1427,7 +1433,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "dd")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("5498017814432956682", forHTTPHeaderField: "x-datadog-trace-id")
         request.setValue("0", forHTTPHeaderField: "x-datadog-sampling-priority")
 
@@ -1450,7 +1456,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("00-abcdef1234567890abcdef1234567890-1234567890abcdef-00", forHTTPHeaderField: "traceparent")
 
         let session = URLSession(configuration: .default)
@@ -1474,7 +1480,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "w3c")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("abcdef1234567890abcdef1234567890-1234567890abcdef-1", forHTTPHeaderField: "b3")
 
         let session = URLSession(configuration: .default)
@@ -1496,7 +1502,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-single")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("00-abcdef1234567890abcdef1234567890-1234567890abcdef-01", forHTTPHeaderField: "traceparent")
 
         let session = URLSession(configuration: .default)
@@ -1518,7 +1524,7 @@ final class URLSessionTracePropagationTests: XCTestCase {
         self.loggerBridge.tracingActive = true
         self.loggerBridge.mockRuntimeVariable(.tracePropagationMode, with: "b3-multi")
 
-        var request = URLRequest(url: LocalHTTPServer.shared.url(path: "/ping", query: "q=test"))
+        var request = URLRequest(url: self.makeURL())
         request.setValue("abcdef1234567890abcdef1234567890-1234567890abcdef-1", forHTTPHeaderField: "b3")
 
         let session = URLSession(configuration: .default)
