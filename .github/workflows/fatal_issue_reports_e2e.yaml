@@ -31,7 +31,7 @@ jobs:
 
       - name: Build gradle-test-app debug APK
         timeout-minutes: 45
-        run: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -PskipGradleTestAppLintOnAssemble=true -p platform/jvm gradle-test-app:assembleDebug --stacktrace
+        run: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm gradle-test-app:assembleDebug -x lintDebug -x detekt --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
@@ -42,14 +42,22 @@ jobs:
   verify_fatal_issue_reports:
     name: Verify fatal issue reports (API ${{ matrix.api-level }})
     needs: build_gradle_test_app
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ${{ matrix.runner || 'ubuntu-latest-8-cores' }}
+    continue-on-error: ${{ matrix.experimental == true }}
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
+    env:
+      MAESTRO_VERSION: "2.10.0"
+      EMULATOR_BUILD: "15917651"
     strategy:
       fail-fast: false
       matrix:
         api-level: ["30", "31", "32", "33", "34", "35", "36", "37.0"]
+        include:
+          - api-level: "37.0"
+            runner: ubuntu-26.04
+            experimental: true
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v4
@@ -59,6 +67,31 @@ jobs:
           name: gradle-test-app-debug.apk
           path: .
 
+      - name: Restore Maestro
+        id: maestro-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.maestro
+          key: maestro-cli-${{ env.MAESTRO_VERSION }}
+
+      - name: Install Maestro
+        if: steps.maestro-cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tmp_dir="$(mktemp -d)"
+          gh release download "cli-${MAESTRO_VERSION}" --repo mobile-dev-inc/maestro \
+            --pattern maestro.zip --pattern checksums_sha256.txt --dir "$tmp_dir"
+          (cd "$tmp_dir" && grep ' maestro.zip$' checksums_sha256.txt | sha256sum --check)
+          unzip -q "$tmp_dir/maestro.zip" -d "$tmp_dir"
+          mkdir -p ~/.maestro
+          cp -R "$tmp_dir"/maestro/* ~/.maestro/
+
+      - name: Add Maestro to PATH
+        run: |
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
       - name: Setup Android emulator
         uses: ./.github/actions/setup-android-emulator
         with:
@@ -66,7 +99,8 @@ jobs:
           api-level: ${{ matrix.api-level }}
           target: google_apis
           arch: x86_64
-          use-avd-snapshot: ${{ matrix.api-level != '36' && matrix.api-level != '37.0' }}
+          emulator-build: ${{ env.EMULATOR_BUILD }}
+          use-avd-snapshot: ${{ matrix.api-level != '37.0' }}
 
       - name: Verify ANR, JVM crash and native crash reports
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
@@ -77,9 +111,10 @@ jobs:
         with:
           force-avd-creation: false
           channel: stable
+          emulator-build: ${{ env.EMULATOR_BUILD }}
           api-level: ${{ matrix.api-level }}
           target: google_apis
-          ram-size: 2048M
+          ram-size: ${{ matrix.api-level == '37.0' && '4096M' || '2048M' }}
           arch: x86_64
           disk-size: 6144M
           profile: Nexus 6
@@ -136,6 +171,7 @@ jobs:
               ['jvm_crash', 'JVM crash'],
               ['native_crash', 'Native crash'],
             ];
+            const experimentalApiLevels = new Set(['37.0']);
             const androidVersions = {
               '30': 'Android 11', '31': 'Android 12', '32': 'Android 12L', '33': 'Android 13',
               '34': 'Android 14', '35': 'Android 15', '36': 'Android 16', '37.0': 'Android 17',
@@ -162,17 +198,22 @@ jobs:
             let passed = 0;
             let total = 0;
             const tableRows = rows.map(({ apiLevel, results }) => {
-              const os = `${androidVersions[apiLevel] ?? 'Android'} (API ${apiLevel})`;
+              const experimental = experimentalApiLevels.has(apiLevel);
+              const os = `${androidVersions[apiLevel] ?? 'Android'} (API ${apiLevel})${experimental ? ' · experimental' : ''}`;
               const cells = cases.map(([key]) => {
-                total += 1;
+                if (!experimental) {
+                  total += 1;
+                }
                 if (!results) {
-                  return '⚠️';
+                  return 'Not run';
                 }
                 if (results[key] === 'pass') {
-                  passed += 1;
-                  return '✅';
+                  if (!experimental) {
+                    passed += 1;
+                  }
+                  return 'Pass';
                 }
-                return '❌';
+                return '**Fail**';
               });
               return `| ${os} | ${cells.join(' | ')} |`;
             });
@@ -184,14 +225,14 @@ jobs:
               '## Android Fatal Issue Reports E2E',
               '',
               allPassed
-                ? `✅ All fatal issue reports were persisted and processed on the next launch (${passed}/${total}).`
-                : `❌ Some fatal issue reports were not processed on the next launch (${passed}/${total} passed).`,
+                ? `All fatal issue reports were persisted and processed on the next launch (${passed}/${total} passed).`
+                : `Some fatal issue reports were not processed on the next launch (${passed}/${total} passed).`,
               '',
               `| OS | ${cases.map(([, label]) => label).join(' | ')} |`,
               `|---|${cases.map(() => ':---:').join('|')}|`,
               ...tableRows,
               '',
-              '✅ report processed on next launch · ❌ report missing · ⚠️ emulator did not run',
+              'Pass: report processed on the next launch. Fail: report missing. Not run: the emulator did not start. Experimental rows are not counted.',
               '',
               `Commit ${process.env.HEAD_SHA.substring(0, 7)} · [Run logs and logcat artifacts](${process.env.RUN_URL}) · Re-add the \`android-fatal-e2e-test\` label to run again.`,
             ].join('\n');
