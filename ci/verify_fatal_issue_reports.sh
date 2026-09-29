@@ -17,6 +17,7 @@ readonly sdk_start_timeout_seconds=90
 readonly trigger_timeout_seconds=30
 readonly exit_timeout_seconds=90
 readonly report_timeout_seconds=120
+readonly foreground_timeout_seconds=30
 readonly emulator_ready_attempts=120
 
 # name|app exit reason|expected IssueReportCallback reportType
@@ -76,6 +77,34 @@ save_logcat() {
   adb -s "$emulator_serial" logcat -d -v threadtime > "$logs_dir/$name.log" || true
 }
 
+save_maestro_debug_output() {
+  local name="$1"
+  local latest_output
+  latest_output="$(ls -td "$HOME"/.maestro/tests/*/ 2>/dev/null | head -1)"
+  if [[ -n "$latest_output" ]]; then
+    mkdir -p "$logs_dir/maestro"
+    cp -R "$latest_output" "$logs_dir/maestro/$name" || true
+  fi
+}
+
+focused_window() {
+  adb_shell dumpsys window | grep -E 'mCurrentFocus|mFocusedWindow' | tr -d '\r' || true
+}
+
+bring_app_to_foreground() {
+  for _ in $(seq 1 "$foreground_timeout_seconds"); do
+    adb_shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+    adb_shell wm dismiss-keyguard >/dev/null 2>&1 || true
+    adb_shell cmd statusbar collapse >/dev/null 2>&1 || true
+    if focused_window | grep -qF "$package_name"; then
+      return 0
+    fi
+    adb_shell am start -n "$main_activity" >/dev/null 2>&1 || true
+    sleep 1
+  done
+  return 1
+}
+
 run_case() {
   local name="$1"
   local reason="$2"
@@ -94,11 +123,19 @@ run_case() {
     return 1
   fi
 
+  if ! bring_app_to_foreground; then
+    echo "::error::$name: app did not reach the foreground (focus: $(focused_window))"
+    save_logcat "$name-foreground"
+    echo "::endgroup::"
+    return 1
+  fi
+
   maestro test -e APP_EXIT_REASON="$reason" "$maestro_flow" ||
     echo "Maestro exited with an error, which is expected when the app exits mid-flow"
   if ! wait_for_logcat "Triggering app exit reason=$reason" "$trigger_timeout_seconds"; then
-    echo "::error::$name: app never triggered $reason"
+    echo "::error::$name: app never triggered $reason (focus: $(focused_window))"
     save_logcat "$name-trigger"
+    save_maestro_debug_output "$name"
     echo "::endgroup::"
     return 1
   fi
@@ -153,6 +190,8 @@ export ANDROID_SERIAL="$emulator_serial"
 adb start-server
 wait_for_android_emulator_ready "$emulator_serial" "$emulator_ready_attempts"
 adb_shell settings put global hide_error_dialogs 1
+adb_shell svc power stayon true || true
+adb_shell locksettings set-disabled true || true
 api_level="$(adb_shell getprop ro.build.version.sdk | tr -d '\r')"
 
 install_attempt=1
