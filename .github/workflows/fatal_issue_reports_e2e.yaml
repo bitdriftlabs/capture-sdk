@@ -43,7 +43,6 @@ jobs:
     name: Verify fatal issue reports (API ${{ matrix.api-level }})
     needs: build_gradle_test_app
     runs-on: ${{ matrix.runner || 'ubuntu-latest-8-cores' }}
-    continue-on-error: ${{ matrix.experimental == true }}
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
@@ -105,6 +104,7 @@ jobs:
       - name: Verify ANR, JVM crash and native crash reports
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         timeout-minutes: 30
+        continue-on-error: ${{ matrix.experimental == true }}
         env:
           APK_PATH: gradle-test-app-debug.apk
           LOGS_DIR: fatal-issue-reports-logs
@@ -205,15 +205,15 @@ jobs:
                   total += 1;
                 }
                 if (!results) {
-                  return 'Not run';
+                  return '⏭️';
                 }
                 if (results[key] === 'pass') {
                   if (!experimental) {
                     passed += 1;
                   }
-                  return 'Pass';
+                  return '✅';
                 }
-                return '**Fail**';
+                return '❌';
               });
               return `| ${os} | ${cells.join(' | ')} |`;
             });
@@ -232,7 +232,10 @@ jobs:
               `|---|${cases.map(() => ':---:').join('|')}|`,
               ...tableRows,
               '',
-              'Pass: report processed on the next launch. Fail: report missing. Not run: the emulator did not start. Experimental rows are not counted.',
+              '- ✅ Report processed on the next launch',
+              '- ❌ Report missing',
+              '- ⏭️ Not run: the emulator did not start',
+              '- Experimental rows are not counted',
               '',
               `Commit ${process.env.HEAD_SHA.substring(0, 7)} · [Run logs and logcat artifacts](${process.env.RUN_URL}) · Re-add the \`android-fatal-e2e-test\` label to run again.`,
             ].join('\n');
