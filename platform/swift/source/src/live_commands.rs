@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::ffi::{make_nsstring, nsstring_into_string};
+use crate::ffi::{append_array_value, make_nsstring, nsstring_into_string, set_dictionary_value};
 use anyhow::{Result, anyhow};
 use bd_artifact_upload::UploadSource;
 use bd_logger::{CommandAttachment, CommandInvocation, CommandResult, RegisteredCommandHandler};
@@ -172,21 +172,22 @@ fn make_arguments(arguments: &HashMap<String, Data>) -> Result<StrongPtr> {
         return Err(anyhow!("command argument {name} has no value"));
       };
       let (argument_type, value) = make_argument_value(data_type)?;
-      let argument = unsafe { StrongPtr::new(msg_send![class!(NSMutableDictionary), new]) };
-      let name_key = make_nsstring(ARGUMENT_NAME_KEY)?;
-      let type_key = make_nsstring(ARGUMENT_TYPE_KEY)?;
-      let value_key = make_nsstring(ARGUMENT_VALUE_KEY)?;
-      let name = make_nsstring(name)?;
-      let argument_type = number_with_unsigned_integer(argument_type);
-      unsafe {
-        let (): () = msg_send![*argument, setObject:*name forKey:*name_key];
-        let (): () = msg_send![*argument, setObject:*argument_type forKey:*type_key];
-        let (): () = msg_send![*argument, setObject:*value forKey:*value_key];
-        let (): () = msg_send![*arguments_array, addObject:*argument];
-      }
+      let argument = make_command_argument(name, argument_type, &value)?;
+      append_array_value(&arguments_array, &argument);
     }
     Ok(arguments_array)
   })
+}
+
+/// Creates the Foundation representation consumed by `LiveCommandsTarget`.
+fn make_command_argument(name: &str, argument_type: usize, value: &StrongPtr) -> Result<StrongPtr> {
+  let argument = unsafe { StrongPtr::new(msg_send![class!(NSMutableDictionary), new]) };
+  let argument_name = make_nsstring(name)?;
+  let argument_type = number_with_unsigned_integer(argument_type);
+  set_dictionary_value(&argument, ARGUMENT_NAME_KEY, &argument_name)?;
+  set_dictionary_value(&argument, ARGUMENT_TYPE_KEY, &argument_type)?;
+  set_dictionary_value(&argument, ARGUMENT_VALUE_KEY, value)?;
+  Ok(argument)
 }
 
 fn make_argument_value(data_type: &Data_type) -> Result<(usize, StrongPtr)> {

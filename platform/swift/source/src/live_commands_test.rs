@@ -7,6 +7,32 @@
 
 use super::*;
 
+#[test]
+fn command_argument_dictionary_preserves_name_type_and_value() {
+  autoreleasepool(|| {
+    let value = make_nsstring("include_stack_traces").unwrap();
+    let argument = make_command_argument("argument_name", ARGUMENT_TYPE_STRING, &value).unwrap();
+
+    let name_key = make_nsstring(ARGUMENT_NAME_KEY).unwrap();
+    let type_key = make_nsstring(ARGUMENT_TYPE_KEY).unwrap();
+    let value_key = make_nsstring(ARGUMENT_VALUE_KEY).unwrap();
+    let name: *const Object = unsafe { msg_send![*argument, objectForKey: *name_key] };
+    let argument_type: *const Object = unsafe { msg_send![*argument, objectForKey: *type_key] };
+    let stored_value: *const Object = unsafe { msg_send![*argument, objectForKey: *value_key] };
+
+    assert_eq!(
+      unsafe { nsstring_into_string(name) }.unwrap(),
+      "argument_name"
+    );
+    let stored_argument_type: usize = unsafe { msg_send![argument_type, unsignedIntegerValue] };
+    assert_eq!(stored_argument_type, ARGUMENT_TYPE_STRING);
+    assert_eq!(
+      unsafe { nsstring_into_string(stored_value) }.unwrap(),
+      "include_stack_traces"
+    );
+  });
+}
+
 #[tokio::test]
 async fn completion_with_attachment_returns_completed_result() {
   let request_id = NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed);
