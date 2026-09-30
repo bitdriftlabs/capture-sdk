@@ -31,7 +31,7 @@ group = "io.bitdrift"
 android {
     namespace = "io.bitdrift.capture.replay"
 
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 23

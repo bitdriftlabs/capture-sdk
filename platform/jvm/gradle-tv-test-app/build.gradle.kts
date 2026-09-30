@@ -13,12 +13,12 @@ dependencies {
 
 android {
     namespace = "io.bitdrift.gradletvtestapp"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.bitdrift.gradletvtestapp"
         minSdk = 23
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "tv-dev"
     }
