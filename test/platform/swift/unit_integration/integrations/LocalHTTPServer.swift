@@ -10,6 +10,8 @@ import Network
 
 final class LocalHTTPServer: @unchecked Sendable {
     static let host = "127.0.0.1"
+    /// Requests to this path never get a response, so a task stays in flight until the client cancels it.
+    static let unansweredPath = "/hang"
 
     static let shared = LocalHTTPServer()
 
@@ -93,7 +95,11 @@ final class LocalHTTPServer: @unchecked Sendable {
             }
 
             if self.isCompleteRequest(buffered) {
-                self.respond(on: connection)
+                if self.path(of: buffered) == self.unansweredPath {
+                    self.discardUntilClosed(connection)
+                } else {
+                    self.respond(on: connection)
+                }
             } else if isComplete {
                 connection.cancel()
             } else {
@@ -116,6 +122,25 @@ final class LocalHTTPServer: @unchecked Sendable {
         }
 
         return body.count >= self.contentLength(in: headers)
+    }
+
+    private static func discardUntilClosed(_ connection: NWConnection) {
+        connection.receive(
+            minimumIncompleteLength: 1,
+            maximumLength: self.readChunkSize
+        ) { _, _, isComplete, error in
+            if isComplete || error != nil {
+                connection.cancel()
+            } else {
+                self.discardUntilClosed(connection)
+            }
+        }
+    }
+
+    private static func path(of request: Data) -> String {
+        let requestLine = String(decoding: request.prefix { $0 != UInt8(ascii: "\r") }, as: UTF8.self)
+        let target = requestLine.split(separator: " ").dropFirst().first ?? ""
+        return String(target.split(separator: "?", maxSplits: 1).first ?? "")
     }
 
     private static func contentLength(in headers: String) -> Int {
