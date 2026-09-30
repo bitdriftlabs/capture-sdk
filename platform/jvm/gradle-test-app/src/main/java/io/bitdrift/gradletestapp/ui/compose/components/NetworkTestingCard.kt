@@ -33,6 +33,10 @@ fun NetworkTestingCard(
     onLocalBackendAddToCartRequest: () -> Unit,
     onLocalBackendGetCartRequest: () -> Unit,
     onLocalBackendDeleteCartItemRequest: () -> Unit,
+    onWireGrpcUnaryRequest: () -> Unit,
+    onWireGrpcErrorRequest: () -> Unit,
+    onWireGrpcServerStreamRequest: () -> Unit,
+    onGrpcJavaUnaryRequest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BdSectionCard(
@@ -70,6 +74,19 @@ fun NetworkTestingCard(
             "Add" to onLocalBackendAddToCartRequest,
             "Get" to onLocalBackendGetCartRequest,
             "Delete" to onLocalBackendDeleteCartItemRequest,
+        )
+
+        BdGroupLabel("gRPC (grpcb.in)")
+
+        ButtonRow(
+            "Wire" to onWireGrpcUnaryRequest,
+            "Wire Error" to onWireGrpcErrorRequest,
+            "Wire Stream" to onWireGrpcServerStreamRequest,
+        )
+
+        ButtonRow(
+            "grpc-java" to onGrpcJavaUnaryRequest,
+            fillRemaining = true,
         )
     }
 }

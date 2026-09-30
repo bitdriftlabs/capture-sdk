@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.apollo.graphql)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    id("com.squareup.wire") version "6.4.7"
     id("com.google.firebase.crashlytics") version "3.0.6" apply false
     id("io.bitdrift.capture-plugin") version "0.25.0" // To verify new changes at capture-plugin use your maven local published version
 }
@@ -85,6 +86,9 @@ dependencies {
     implementation("androidx.webkit:webkit:1.14.0")
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+    implementation("com.squareup.wire:wire-grpc-client:6.4.7")
+    implementation("io.grpc:grpc-okhttp:1.84.0")
+    implementation("io.grpc:grpc-stub:1.84.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     // Raises the floor AGP's consistent resolution pins androidTest to; Espresso <3.7 calls
@@ -216,6 +220,12 @@ apollo {
     service("service") {
         // https://apollo-fullstack-tutorial.herokuapp.com/graphql
         packageName.set("com.example.rocketreserver")
+    }
+}
+
+wire {
+    kotlin {
+        rpcRole = "client"
     }
 }
 

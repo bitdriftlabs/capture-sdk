@@ -215,6 +215,18 @@ class MainViewModel(
             is NetworkTestAction.PerformLocalBackendDeleteCartItemRequest -> {
                 networkTestingRepository.performLocalBackendDeleteCartItemRequest()
             }
+            is NetworkTestAction.PerformWireGrpcUnaryRequest -> {
+                networkTestingRepository.performWireGrpcUnaryRequest()
+            }
+            is NetworkTestAction.PerformWireGrpcErrorRequest -> {
+                networkTestingRepository.performWireGrpcErrorRequest()
+            }
+            is NetworkTestAction.PerformWireGrpcServerStreamRequest -> {
+                networkTestingRepository.performWireGrpcServerStreamRequest()
+            }
+            is NetworkTestAction.PerformGrpcJavaUnaryRequest -> {
+                networkTestingRepository.performGrpcJavaUnaryRequest()
+            }
 
             is GlobalFieldAction.AddFieldAction -> {
                 viewModelScope.launch {

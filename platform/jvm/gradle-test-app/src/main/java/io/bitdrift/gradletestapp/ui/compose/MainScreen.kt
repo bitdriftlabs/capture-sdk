@@ -387,6 +387,10 @@ private fun SdkApisTabContent(
                 onLocalBackendDeleteCartItemRequest = {
                     onAction(NetworkTestAction.PerformLocalBackendDeleteCartItemRequest)
                 },
+                onWireGrpcUnaryRequest = { onAction(NetworkTestAction.PerformWireGrpcUnaryRequest) },
+                onWireGrpcErrorRequest = { onAction(NetworkTestAction.PerformWireGrpcErrorRequest) },
+                onWireGrpcServerStreamRequest = { onAction(NetworkTestAction.PerformWireGrpcServerStreamRequest) },
+                onGrpcJavaUnaryRequest = { onAction(NetworkTestAction.PerformGrpcJavaUnaryRequest) },
             )
         }
     }

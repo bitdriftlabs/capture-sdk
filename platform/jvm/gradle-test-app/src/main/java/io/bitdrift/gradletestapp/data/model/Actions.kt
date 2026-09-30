@@ -90,6 +90,14 @@ sealed class NetworkTestAction : AppAction {
     object PerformLocalBackendGetCartRequest : NetworkTestAction()
 
     object PerformLocalBackendDeleteCartItemRequest : NetworkTestAction()
+
+    object PerformWireGrpcUnaryRequest : NetworkTestAction()
+
+    object PerformWireGrpcErrorRequest : NetworkTestAction()
+
+    object PerformWireGrpcServerStreamRequest : NetworkTestAction()
+
+    object PerformGrpcJavaUnaryRequest : NetworkTestAction()
 }
 
 sealed class FeatureFlagsTestAction : AppAction {

@@ -16,6 +16,18 @@ import com.chuckerteam.chucker.api.RetentionManager
 import com.example.rocketreserver.BookTripsMutation
 import com.example.rocketreserver.LaunchListQuery
 import com.example.rocketreserver.LoginMutation
+import com.squareup.wire.GrpcClient
+import com.squareup.wire.GrpcException
+import com.squareup.wire.ProtoAdapter
+import grpcbin.DummyMessage
+import grpcbin.GRPCBinClient
+import grpcbin.SpecificErrorRequest
+import io.grpc.CallOptions
+import io.grpc.ManagedChannel
+import io.grpc.MethodDescriptor
+import io.grpc.StatusRuntimeException
+import io.grpc.okhttp.OkHttpChannelBuilder
+import io.grpc.stub.ClientCalls
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.apollo.CaptureApolloInterceptor
 import io.bitdrift.capture.network.okhttp.CaptureOkHttpEventListenerFactory
@@ -25,6 +37,7 @@ import io.bitdrift.capture.network.okhttp.OkHttpResponseFieldProvider
 import io.bitdrift.capture.network.retrofit.RetrofitUrlPathProvider
 import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.data.service.BinaryJazzRetrofitService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -39,6 +52,8 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
+import java.io.InputStream
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
@@ -68,23 +83,7 @@ class NetworkTestingRepository(context: Context) {
         OkHttpClient
             .Builder()
             .addInterceptor(chuckerInterceptor)
-            .apply {
-                if (BuildConfig.ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION) {
-                    // The Gradle plugin installs Capture's listener and tracing interceptor.
-                    eventListenerFactory { TimberOkHttpEventListener() }
-                } else {
-                    // Manual instrumentation is used when automatic instrumentation is disabled.
-                    addInterceptor(CaptureOkHttpTracingInterceptor())
-                    eventListenerFactory(
-                        CaptureOkHttpEventListenerFactory(
-                            requestFieldProvider = RetrofitUrlPathProvider(
-                                CustomRequestFieldProvider()
-                            ),
-                            responseFieldProvider = CustomResponseFieldProvider(),
-                        ),
-                    )
-                }
-            }
+            .applyCaptureInstrumentation()
             .build()
 
     // Exercises automatic instrumentation when libraries derive clients from an existing client.
@@ -105,6 +104,36 @@ class NetworkTestingRepository(context: Context) {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
         .create(BinaryJazzRetrofitService::class.java)
+
+    private val wireGrpcClient: GRPCBinClient =
+        GrpcClient
+            .Builder()
+            .client(
+                OkHttpClient
+                    .Builder()
+                    .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+                    .applyCaptureInstrumentation()
+                    .build(),
+            ).baseUrl(GRPCBIN_BASE_URL)
+            .minMessageToCompress(Long.MAX_VALUE)
+            .build()
+            .create(GRPCBinClient::class)
+
+    private val grpcJavaChannel: ManagedChannel by lazy {
+        OkHttpChannelBuilder
+            .forAddress(GRPCBIN_HOST, GRPCBIN_PORT)
+            .useTransportSecurity()
+            .build()
+    }
+
+    private val grpcJavaDummyUnaryMethod: MethodDescriptor<DummyMessage, DummyMessage> =
+        MethodDescriptor
+            .newBuilder<DummyMessage, DummyMessage>()
+            .setType(MethodDescriptor.MethodType.UNARY)
+            .setFullMethodName(MethodDescriptor.generateFullMethodName("grpcbin.GRPCBin", "DummyUnary"))
+            .setRequestMarshaller(WireMarshaller(DummyMessage.ADAPTER))
+            .setResponseMarshaller(WireMarshaller(DummyMessage.ADAPTER))
+            .build()
 
     private data class RequestDefinition(
         val method: String,
@@ -327,6 +356,67 @@ class NetworkTestingRepository(context: Context) {
         performRequestWithPreExistingHeaders(request, "Local Backend Delete Cart Item")
     }
 
+    fun performWireGrpcUnaryRequest() {
+        MainScope().launch(Dispatchers.IO) {
+            try {
+                val response = wireGrpcClient.DummyUnary().execute(DummyMessage(f_string = "bitdrift"))
+                Timber.v("Wire gRPC unary completed with response=$response")
+            } catch (e: Exception) {
+                Timber.e(e, "Wire gRPC unary failed")
+            }
+        }
+    }
+
+    fun performWireGrpcErrorRequest() {
+        MainScope().launch(Dispatchers.IO) {
+            try {
+                wireGrpcClient
+                    .SpecificError()
+                    .execute(SpecificErrorRequest(code = GRPC_STATUS_NOT_FOUND, reason = "bitdrift"))
+                Timber.v("Wire gRPC error call unexpectedly succeeded")
+            } catch (e: GrpcException) {
+                Timber.v("Wire gRPC error call completed with grpc-status=${e.grpcStatus.code} message=${e.grpcMessage}")
+            } catch (e: Exception) {
+                Timber.e(e, "Wire gRPC error call failed")
+            }
+        }
+    }
+
+    fun performWireGrpcServerStreamRequest() {
+        MainScope().launch(Dispatchers.IO) {
+            try {
+                val (requests, responses) =
+                    wireGrpcClient.DummyServerStream().executeIn(this)
+                requests.send(DummyMessage(f_string = "bitdrift"))
+                requests.close()
+                var count = 0
+                for (response in responses) {
+                    count++
+                }
+                Timber.v("Wire gRPC server stream completed with $count messages")
+            } catch (e: Exception) {
+                Timber.e(e, "Wire gRPC server stream failed")
+            }
+        }
+    }
+
+    fun performGrpcJavaUnaryRequest() {
+        MainScope().launch(Dispatchers.IO) {
+            try {
+                val response =
+                    ClientCalls.blockingUnaryCall(
+                        grpcJavaChannel,
+                        grpcJavaDummyUnaryMethod,
+                        CallOptions.DEFAULT,
+                        DummyMessage(f_string = "bitdrift"),
+                    )
+                Timber.v("grpc-java unary completed with response=$response")
+            } catch (e: StatusRuntimeException) {
+                Timber.e(e, "grpc-java unary failed with status=${e.status}")
+            }
+        }
+    }
+
     private fun performRequestWithPreExistingHeaders(request: Request, label: String) {
         Timber.i("Performing OkHttp request ($label): ${request.url}")
         okHttpClient.newCall(request).enqueue(
@@ -371,6 +461,33 @@ class NetworkTestingRepository(context: Context) {
         return value.toString()
     }
 
+    private fun OkHttpClient.Builder.applyCaptureInstrumentation(): OkHttpClient.Builder =
+        apply {
+            if (BuildConfig.ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION) {
+                // The Gradle plugin installs Capture's listener and tracing interceptor.
+                eventListenerFactory { TimberOkHttpEventListener() }
+            } else {
+                // Manual instrumentation is used when automatic instrumentation is disabled.
+                addInterceptor(CaptureOkHttpTracingInterceptor())
+                eventListenerFactory(
+                    CaptureOkHttpEventListenerFactory(
+                        requestFieldProvider = RetrofitUrlPathProvider(
+                            CustomRequestFieldProvider()
+                        ),
+                        responseFieldProvider = CustomResponseFieldProvider(),
+                    ),
+                )
+            }
+        }
+
+    private class WireMarshaller<T : Any>(
+        private val adapter: ProtoAdapter<T>,
+    ) : MethodDescriptor.Marshaller<T> {
+        override fun stream(value: T): InputStream = ByteArrayInputStream(adapter.encode(value))
+
+        override fun parse(stream: InputStream): T = adapter.decode(stream)
+    }
+
     /**
      * Logs OkHttp events via Timber. Used with auto-instrumentation to test PROXY vs OVERWRITE.
      */
@@ -402,22 +519,57 @@ class NetworkTestingRepository(context: Context) {
     }
 
     private class CustomRequestFieldProvider : OkHttpRequestFieldProvider {
-        override fun provideExtraFields(request: Request): Map<String, String> =
-            mapOf("additional_network_request_host_field" to request.url.host)
+        override fun provideExtraFields(request: Request): Map<String, String> {
+            if (request.isGrpc()) {
+                Timber.i("[CaptureGrpc] request method=${request.method} url=${request.url}")
+            }
+            return mapOf("additional_network_request_host_field" to request.url.host)
+        }
     }
 
     private class CustomResponseFieldProvider : OkHttpResponseFieldProvider {
-        override fun provideExtraFields(response: Response): Map<String, String> =
-            if (response.code >= 400) {
-                mapOf("additional_network_response_error_code_field" to response.code.toString())
-            } else {
-                emptyMap()
+        override fun provideExtraFields(response: Response): Map<String, String> {
+            val fields =
+                if (response.code >= 400) {
+                    mapOf("additional_network_response_error_code_field" to response.code.toString())
+                } else {
+                    emptyMap()
+                }
+            if (!response.request.isGrpc()) {
+                return fields
             }
+            val grpcFields = response.grpcStatusFields()
+            Timber.i(
+                "[CaptureGrpc] response path=${response.request.url.encodedPath} " +
+                    "http_status=${response.code} protocol=${response.protocol} grpc=$grpcFields",
+            )
+            return fields + grpcFields
+        }
+
+        private fun Response.grpcStatusFields(): Map<String, String> {
+            val trailers =
+                runCatching { trailers() }
+                    .onFailure { Timber.i("[CaptureGrpc] trailers unavailable: $it") }
+                    .getOrNull()
+            Timber.i("[CaptureGrpc] headers=${headers.toMultimap()} trailers=${trailers?.toMultimap()}")
+            val source = header("grpc-status")?.let { headers } ?: trailers
+            val status = source?.get("grpc-status") ?: return emptyMap()
+            return buildMap {
+                put("grpc_status", status)
+                source["grpc-message"]?.let { put("grpc_message", it) }
+            }
+        }
     }
 
     private companion object {
+        private fun Request.isGrpc(): Boolean = header("content-type")?.startsWith("application/grpc") == true
+
         private const val LOCAL_BACKEND_BASE_URL = "http://10.0.2.2:5173/api"
         private const val LOCAL_BACKEND_PRODUCT_ID = "classic-tee"
+        private const val GRPCBIN_HOST = "grpcb.in"
+        private const val GRPCBIN_PORT = 9001
+        private const val GRPCBIN_BASE_URL = "https://$GRPCBIN_HOST:$GRPCBIN_PORT"
+        private const val GRPC_STATUS_NOT_FOUND = 5
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }
