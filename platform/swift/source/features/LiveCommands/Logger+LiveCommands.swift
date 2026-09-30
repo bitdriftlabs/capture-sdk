@@ -7,6 +7,12 @@
 
 extension Logger {
     /// Registers an asynchronous command that can be invoked from a live session or workflow.
+    ///
+    /// - parameter key:     The command identifier configured in the bitdrift console.
+    ///
+    /// - parameter handler: The asynchronous application handler for this command.
+    ///
+    /// - returns: A handle that can be used to unregister this command.
     @discardableResult
     public static func registerCommand(
         key: String,
@@ -15,12 +21,18 @@ extension Logger {
         guard let logger = Self.getShared() as? Logger else {
             throw CommandRegistrationError.loggerNotStarted
         }
-        return try await logger.commandRegistry.register(key: key, handler: handler)
+        _ = try await logger.commandRegistry.register(key: key, handler: handler)
+        logger.underlyingLogger.registerLiveCommand(key: key, target: logger.liveCommandsTarget)
+        return CommandHandle { [weak logger] in
+            await logger?.unregisterCommand(key: key)
+        }
     }
 
     /// Unregisters a previously registered command. Calling this for an unknown key is a no-op.
+    ///
+    /// - parameter key: The command identifier to unregister.
     public static func unregisterCommand(key: String) async {
-        await (Self.getShared() as? Logger)?.commandRegistry.unregister(key: key)
+        await (Self.getShared() as? Logger)?.unregisterCommand(key: key)
     }
 
     func executeCommand(
@@ -28,5 +40,10 @@ extension Logger {
         arguments: CommandArguments
     ) async -> Result<CommandResult, CommandError> {
         await commandRegistry.execute(key: key, arguments: arguments)
+    }
+
+    private func unregisterCommand(key: String) async {
+        underlyingLogger.unregisterLiveCommand(key: key)
+        await commandRegistry.unregister(key: key)
     }
 }

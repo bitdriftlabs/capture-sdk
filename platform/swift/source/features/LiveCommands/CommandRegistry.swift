@@ -47,6 +47,10 @@ actor CommandRegistry {
         entry.waiters.forEach { $0.resume(returning: .unregistered) }
     }
 
+    func queuedExecutionCount(for key: String) -> Int {
+        entries[key]?.waiters.count ?? 0
+    }
+
     private func acquireHandler(for key: String) async -> HandlerAcquisition {
         guard var entry = entries[key] else { return .notFound }
         guard !entry.isExecuting else {

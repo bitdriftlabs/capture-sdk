@@ -121,7 +121,7 @@ final class CommandRegistryTests: XCTestCase {
         async let activeResult = whenExecutingCommand(key: "serial")
         await fulfillment(of: [firstExecutionStarted])
         async let queuedResult = whenExecutingCommand(key: "serial")
-        await Task.yield()
+        await whenExecutionIsQueued(for: "serial")
 
         await whenUnregistering(handle)
         whenOpeningGate(allowFirstExecutionToFinish)
@@ -138,7 +138,6 @@ final class CommandRegistryTests: XCTestCase {
 
         thenResultIsCommandNotFound(result)
     }
-
 }
 
 private extension CommandRegistryTests {
@@ -170,6 +169,16 @@ private extension CommandRegistryTests {
 
     func whenUnregisteringCommand(key: String) async {
         await sut.unregister(key: key)
+    }
+
+    func whenExecutionIsQueued(for key: String) async {
+        for _ in 0 ..< 100 {
+            if await sut.queuedExecutionCount(for: key) == 1 {
+                return
+            }
+            await Task.yield()
+        }
+        XCTFail("Expected execution to be queued")
     }
 
     func whenOpeningGate(_ gate: AsyncGate) {

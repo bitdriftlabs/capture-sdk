@@ -4,7 +4,7 @@ load("@rules_apple//apple:ios.bzl", "ios_static_framework")
 load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("@sdk_version//:sdk_version.bzl", "SDK_VERSION")
-load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library", "bitdrift_rust_test")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 load("//bazel:swift_header_collector.bzl", "swift_header_collector")
 
@@ -76,6 +76,12 @@ bitdrift_rust_library(
     deps = [
         "//platform/shared:platform-shared",
     ],
+)
+
+bitdrift_rust_test(
+    name = "live_commands_rust_test",
+    crate = ":swift_bridge",
+    tags = ["macos_only"],
 )
 
 objc_library(
