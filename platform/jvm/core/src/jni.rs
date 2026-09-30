@@ -19,6 +19,7 @@ use crate::{
   events,
   ffi,
   key_value_storage,
+  native_registration,
   report_processing,
   resource_utilization,
   session,
@@ -410,6 +411,7 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   report_processing::initialize(&mut env)?;
   resource_utilization::initialize(&mut env)?;
   session_replay::initialize(&mut env)?;
+  native_registration::initialize(&mut env)?;
 
   Ok(env.get_version()?.into())
 }

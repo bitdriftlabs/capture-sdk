@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture
 
+import dalvik.annotation.optimization.CriticalNative
+import dalvik.annotation.optimization.FastNative
 import io.bitdrift.capture.attributes.IClientAttributes
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
@@ -147,6 +149,8 @@ internal object CaptureJniLibrary : IBridge {
     /**
      * Returns true when workflow-controlled tracing is active for the current session.
      */
+    @JvmStatic
+    @CriticalNative
     external fun isTracingActive(loggerId: Long): Boolean
 
     /**
@@ -161,6 +165,7 @@ internal object CaptureJniLibrary : IBridge {
      * @param key the name of the field to add.
      * @param value the value of the field to add.
      */
+    @FastNative
     external fun addLogField(
         loggerId: Long,
         key: String,
@@ -184,6 +189,7 @@ internal object CaptureJniLibrary : IBridge {
      * @param loggerId the logger to remove the field from.
      * @param key the name of the field to remove.
      */
+    @FastNative
     external fun removeLogField(
         loggerId: Long,
         key: String,
@@ -431,6 +437,8 @@ internal object CaptureJniLibrary : IBridge {
         level: Int,
     )
 
+    @JvmStatic
+    @CriticalNative
     external fun previousMemoryPressureLevel(loggerId: Long): Int
 
     /**

@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture
 
+import dalvik.annotation.optimization.FastNative
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -24,18 +25,21 @@ internal class JniRuntime(
 }
 
 internal object Jni {
+    @FastNative
     external fun isRuntimeEnabled(
         logger: LoggerId,
         feature: String,
         defaultValue: Boolean,
     ): Boolean
 
+    @FastNative
     external fun runtimeValue(
         logger: LoggerId,
         variableName: String,
         defaultValue: Int,
     ): Int
 
+    @FastNative
     external fun runtimeStringValue(
         logger: LoggerId,
         variableName: String,
