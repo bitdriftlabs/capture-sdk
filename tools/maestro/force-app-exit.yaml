@@ -1,0 +1,20 @@
+appId: io.bitdrift.gradletestapp
+---
+- extendedWaitUntil:
+    visible: "App Exits"
+    timeout: 30000
+- tapOn: "App Exits"
+- scrollUntilVisible:
+    element: "Exit Reason"
+    direction: DOWN
+- tapOn: "Exit Reason"
+- scrollUntilVisible:
+    element: ${APP_EXIT_REASON}
+    direction: DOWN
+- tapOn: ${APP_EXIT_REASON}
+- scrollUntilVisible:
+    element: "Force App Exit"
+    direction: DOWN
+- tapOn:
+    text: "Force App Exit"
+    retryTapIfNoChange: false

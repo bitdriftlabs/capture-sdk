@@ -1,0 +1,162 @@
+name: Shared-core changes
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  comment:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      # Only the trusted base revision is checked out. The PR's Cargo.toml is read through git
+      # to find its dependency pin; no PR code is executed.
+      - name: Checkout base revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+
+      - name: Collect shared-core commits
+        id: shared_core
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          git fetch --no-tags --depth=1 origin \
+            "pull/${PR_NUMBER}/head:refs/remotes/origin/pr-head"
+
+          shared_core_revision() {
+            local ref="$1"
+            local revisions
+            revisions="$({
+              git show "${ref}:Cargo.toml" |
+                sed -nE 's|.*shared-core\.git",[[:space:]]*rev[[:space:]]*=[[:space:]]*"([0-9a-f]{40})".*|\1|p' |
+                sort -u
+            })"
+
+            if [[ $(wc -l <<<"${revisions}") -ne 1 || -z "${revisions}" ]]; then
+              echo "Expected exactly one shared-core revision in ${ref}:Cargo.toml" >&2
+              printf '%s\n' "${revisions}" >&2
+              exit 1
+            fi
+
+            printf '%s\n' "${revisions}"
+          }
+
+          base_revision="$(shared_core_revision HEAD)"
+          head_revision="$(shared_core_revision origin/pr-head)"
+
+          if [[ "${base_revision}" == "${head_revision}" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git fetch --no-tags https://github.com/bitdriftlabs/shared-core.git \
+            "${base_revision}" "${head_revision}"
+          git log --reverse --format='%H' "${base_revision}..${head_revision}" \
+            > "${RUNNER_TEMP}/shared-core-commits"
+
+          {
+            echo "changed=true"
+            echo "base_revision=${base_revision}"
+            echo "head_revision=${head_revision}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create or update shared-core changes comment
+        uses: actions/github-script@v7
+        env:
+          SHARED_CORE_CHANGED: ${{ steps.shared_core.outputs.changed }}
+          BASE_REVISION: ${{ steps.shared_core.outputs.base_revision }}
+          HEAD_REVISION: ${{ steps.shared_core.outputs.head_revision }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- shared-core-diff-comment -->';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+            const existingComment = comments.find((comment) =>
+              comment.user.login === 'github-actions[bot]' && comment.body.includes(marker),
+            );
+
+            if (process.env.SHARED_CORE_CHANGED !== 'true') {
+              if (existingComment) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existingComment.id,
+                });
+              }
+              return;
+            }
+
+            const baseRevision = process.env.BASE_REVISION;
+            const headRevision = process.env.HEAD_REVISION;
+            const comparisonUrl = `https://github.com/bitdriftlabs/shared-core/compare/${baseRevision}...${headRevision}`;
+            const shortBaseRevision = baseRevision.slice(0, 7);
+            const shortHeadRevision = headRevision.slice(0, 7);
+            const commitsPath = `${process.env.RUNNER_TEMP}/shared-core-commits`;
+            const commits = fs.readFileSync(commitsPath, 'utf8')
+              .trim()
+              .split('\n')
+              .filter(Boolean);
+            const pullRequests = new Map();
+
+            for (const commit of commits) {
+              const associatedPullRequests = await github.paginate(
+                github.rest.repos.listPullRequestsAssociatedWithCommit,
+                {
+                  owner: 'bitdriftlabs',
+                  repo: 'shared-core',
+                  commit_sha: commit,
+                  per_page: 100,
+                },
+              );
+
+              for (const pullRequest of associatedPullRequests) {
+                if (!pullRequests.has(pullRequest.number)) {
+                  pullRequests.set(pullRequest.number, pullRequest);
+                }
+              }
+            }
+
+            const pullRequestLines = [...pullRequests.values()]
+              .map((pullRequest) => `- [#${pullRequest.number}](${pullRequest.html_url}) ${pullRequest.title}`);
+            const changes = pullRequestLines.length > 0
+              ? pullRequestLines.join('\n')
+              : `No pull requests were associated with these commits. [View the comparison](${comparisonUrl}).`;
+            const body = `${marker}
+            ## shared-core changes
+
+            Updated shared-core from [\`${shortBaseRevision}\`](https://github.com/bitdriftlabs/shared-core/commit/${baseRevision}) to [\`${shortHeadRevision}\`](https://github.com/bitdriftlabs/shared-core/commit/${headRevision}).
+
+            ${changes}`;
+
+            const comment = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body,
+            };
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                ...comment,
+                comment_id: existingComment.id,
+              });
+            } else {
+              await github.rest.issues.createComment(comment);
+            }

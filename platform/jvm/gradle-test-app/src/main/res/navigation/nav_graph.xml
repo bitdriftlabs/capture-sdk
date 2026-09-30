@@ -55,9 +55,9 @@
         tools:layout="@layout/fragment_web_view">
 
         <argument
-            android:name="url"
+            android:name="demo_key"
             app:argType="string"
-            android:defaultValue="https://bitdrift.io/" />
+            android:defaultValue="test_page" />
 
         <action
             android:id="@+id/action_FirstFragment_to_WebViewFragment"

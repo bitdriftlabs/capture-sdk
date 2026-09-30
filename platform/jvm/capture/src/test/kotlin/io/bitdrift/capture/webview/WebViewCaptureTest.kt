@@ -7,8 +7,11 @@
 
 package io.bitdrift.capture.webview
 
+import android.app.Activity
 import android.content.Context
+import android.os.Looper
 import android.webkit.WebView
+import android.widget.FrameLayout
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
@@ -18,12 +21,15 @@ import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.CaptureRuntimeProvider
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.common.RuntimeFeature
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.session.SessionConfiguration
@@ -34,11 +40,14 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24], shadows = [ShadowWebViewFeature::class, ShadowWebViewCompat::class])
+@OptIn(ExperimentalBitdriftApi::class)
 class WebViewCaptureTest {
     private lateinit var webView: WebView
     private lateinit var appContext: Context
@@ -52,6 +61,10 @@ class WebViewCaptureTest {
         val initializer = ContextHolder()
         initializer.create(appContext)
         webView = WebView(appContext)
+        ShadowWebViewCompat.lastInjectedScript = null
+        ShadowWebViewCompat.lastWebMessageListenerName = null
+        ShadowWebViewCompat.lastWebMessageListener = null
+        ShadowWebViewCompat.lastRemovedWebMessageListenerName = null
     }
 
     @After
@@ -67,31 +80,114 @@ class WebViewCaptureTest {
     }
 
     @Test
-    fun instrument_withSdkStartedButNoWebViewConfiguration_shouldLogNotInitialized() {
-        startSdk(webViewConfiguration = null)
-        val spyLogger = spyLogger()
+    fun instrument_withSdkStarted_shouldRegisterWebMessageListenerForBridge() {
+        startSdk()
 
-        WebViewCapture.instrument(webView, spyLogger)
+        WebViewCapture.instrument(webView)
 
-        assertThat(webView.settings.javaScriptEnabled).isFalse()
-        verify(spyLogger).log(
-            eq(LogLevel.WARNING),
-            fieldsCaptor.capture(),
-            eq(null),
-            messageCaptor.capture(),
-        )
-        val fields = fieldsCaptor.firstValue.toStringMap()
-        assertThat(fields["reason"]).isEqualTo("WebViewConfiguration not provided")
-        assertThat(fields["_source"]).isEqualTo("webview")
-        assertThat(messageCaptor.firstValue()).isEqualTo("webview.notInitialized")
+        assertThat(ShadowWebViewCompat.lastWebMessageListenerName).isEqualTo("BitdriftLogger")
+        assertThat(ShadowWebViewCompat.lastWebMessageListener)
+            .isInstanceOf(WebViewBridgeMessageHandler::class.java)
     }
 
     @Test
-    fun instrument_withValidWebViewConfiguration_shouldEnableJavascriptAndLogSuccess() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+    fun instrument_whenWebViewDetachedFromWindow_shouldRemoveWebMessageListener() {
+        startSdk()
+        val activity =
+            Robolectric
+                .buildActivity(Activity::class.java)
+                .create()
+                .start()
+                .resume()
+                .visible()
+                .get()
+        val container = FrameLayout(appContext)
+        activity.setContentView(container)
+        container.addView(webView)
+
+        WebViewCapture.instrument(webView)
+        assertThat(ShadowWebViewCompat.lastRemovedWebMessageListenerName).isNull()
+
+        container.removeView(webView)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(ShadowWebViewCompat.lastRemovedWebMessageListenerName).isEqualTo("BitdriftLogger")
+    }
+
+    @Test
+    fun instrument_withSdkStarted_shouldInjectScriptWithAllFeaturesEnabled() {
+        startSdk()
+
+        WebViewCapture.instrument(webView)
+
+        val script = ShadowWebViewCompat.lastInjectedScript
+        assertThat(script).isNotNull()
+        listOf(
+            "capturePageViews",
+            "captureNetworkRequests",
+            "captureNavigationEvents",
+            "captureWebVitals",
+            "captureLongTasks",
+            "captureConsoleLogs",
+            "captureUserInteractions",
+            "captureErrors",
+        ).forEach { feature ->
+            assertThat(script).contains("\"$feature\":true")
+        }
+    }
+
+    @Test
+    fun webViewRuntimeFlags_shouldAllBeEnabledByDefault() {
+        val webViewFlags =
+            listOf(
+                RuntimeFeature.WEBVIEW_INSTRUMENTATION,
+                RuntimeFeature.WEBVIEW_PAGE_VIEWS,
+                RuntimeFeature.WEBVIEW_NETWORK_REQUESTS,
+                RuntimeFeature.WEBVIEW_NAVIGATION_EVENTS,
+                RuntimeFeature.WEBVIEW_WEB_VITALS,
+                RuntimeFeature.WEBVIEW_LONG_TASKS,
+                RuntimeFeature.WEBVIEW_CONSOLE_LOGS,
+                RuntimeFeature.WEBVIEW_USER_INTERACTIONS,
+                RuntimeFeature.WEBVIEW_ERRORS,
+            )
+
+        webViewFlags.forEach { flag ->
+            assertThat(flag.defaultValue)
+                .withFailMessage("${flag.featureName} should be enabled by default")
+                .isTrue()
+        }
+    }
+
+    @Test
+    fun instrument_withFeatureRuntimeFlagDisabled_shouldOnlyDisableThatFeature() {
+        startSdk()
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(eq(RuntimeFeature.WEBVIEW_CONSOLE_LOGS))).thenReturn(false)
+
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            Capture.logger(),
+            runtimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
+        )
+
+        val script = ShadowWebViewCompat.lastInjectedScript
+        assertThat(script).contains("\"captureConsoleLogs\":false")
+        assertThat(script).contains("\"capturePageViews\":true")
+        assertThat(script).contains("\"captureErrors\":true")
+    }
+
+    @Test
+    fun instrument_withSdkStarted_shouldEnableJavascriptAndLogSuccess() {
+        startSdk()
         val spyLogger = spyLogger()
 
-        WebViewCapture.instrument(webView, spyLogger)
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            spyLogger,
+            CaptureRuntimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
+        )
 
         assertThat(webView.settings.javaScriptEnabled).isTrue()
         verify(spyLogger).logInternal(
@@ -107,31 +203,102 @@ class WebViewCaptureTest {
     }
 
     @Test
+    fun instrument_whenJavascriptEnabledOnlyAndJavascriptDisabled_shouldLogAutomaticSkipWarning() {
+        startSdk()
+        val spyLogger = spyLogger()
+
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            spyLogger,
+            CaptureRuntimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_JS_ENABLED_ONLY,
+        )
+
+        assertThat(webView.settings.javaScriptEnabled).isFalse()
+        verify(spyLogger).log(
+            eq(LogLevel.WARNING),
+            fieldsCaptor.capture(),
+            eq(null),
+            messageCaptor.capture(),
+        )
+        assertThat(fieldsCaptor.firstValue.toStringMap())
+            .containsEntry("_instrumentation_mode", "automatic_js_enabled_only")
+            .containsEntry("reason", "JavaScript is not already enabled")
+        assertThat(messageCaptor.firstValue()).isEqualTo("webview.automaticInstrumentationSkipped")
+    }
+
+    @Test
+    fun instrument_whenJavascriptEnabledOnlyAndJavascriptEnabled_shouldInstrumentWithoutChangingJavascript() {
+        startSdk()
+        val spyLogger = spyLogger()
+        webView.settings.javaScriptEnabled = true
+
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            spyLogger,
+            CaptureRuntimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_JS_ENABLED_ONLY,
+        )
+
+        assertThat(webView.settings.javaScriptEnabled).isTrue()
+        verify(spyLogger).logInternal(
+            eq(LogType.INTERNALSDK),
+            eq(LogLevel.DEBUG),
+            eq(ArrayFields.EMPTY),
+            eq(ArrayFields.EMPTY),
+            eq(null),
+            eq(false),
+            messageCaptor.capture(),
+        )
+        assertThat(messageCaptor.firstValue()).isEqualTo("WebView bridge script injected successfully")
+    }
+
+    @Test
+    fun publicInstrument_shouldEnableJavascriptForExplicitlySelectedWebView() {
+        startSdk()
+
+        WebViewCapture.instrument(webView)
+
+        assertThat(webView.settings.javaScriptEnabled).isTrue()
+    }
+
+    @Test
     fun instrument_withRuntimeFeatureDisabled_shouldSkipInstrumentation() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+        startSdk()
         whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(false)
 
-        WebViewCapture.instrument(webView, Capture.logger(), runtimeProvider)
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            Capture.logger(),
+            runtimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
+        )
 
         assertThat(webView.settings.javaScriptEnabled).isFalse()
     }
 
     @Test
     fun instrument_withRuntimeFeatureEnabled_shouldProceedWithInstrumentation() {
-        startSdk(webViewConfiguration = WebViewConfiguration())
+        startSdk()
         whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
 
-        WebViewCapture.instrument(webView, Capture.logger(), runtimeProvider)
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            Capture.logger(),
+            runtimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
+        )
 
         assertThat(webView.settings.javaScriptEnabled).isTrue()
     }
 
-    private fun startSdk(webViewConfiguration: WebViewConfiguration?) {
+    @Suppress("DEPRECATION")
+    private fun startSdk() {
         Capture.Logger.start(
             apiKey = "test",
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
-            configuration = Configuration(webViewConfiguration = webViewConfiguration),
+            configuration = Configuration(),
             dateProvider = SystemDateProvider(),
             context = appContext,
         )

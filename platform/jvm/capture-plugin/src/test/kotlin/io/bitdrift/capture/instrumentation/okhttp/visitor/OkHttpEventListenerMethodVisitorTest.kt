@@ -25,9 +25,31 @@ class OkHttpEventListenerMethodVisitorTest {
 
     @Test
     fun `proxy adds tracing interceptor after event listener factory`() {
+        // getEventListenerFactory$okhttp is read twice: once to guard against re-wrapping an
+        // already-instrumented factory (see the following test), and once to capture the existing
+        // factory when the wrap actually happens.
         assertBuilderCallNames(
             OkHttpInstrumentationType.PROXY,
-            listOf("getEventListenerFactory\$okhttp", "eventListenerFactory", "addInterceptor")
+            listOf(
+                "getEventListenerFactory\$okhttp",
+                "getEventListenerFactory\$okhttp",
+                "eventListenerFactory",
+                "addInterceptor",
+            ),
+        )
+    }
+
+    @Test
+    fun `proxy guards against wrapping an already-instrumented factory`() {
+        val recorder = instrument(OkHttpInstrumentationType.PROXY)
+
+        assertEquals(
+            listOf("io/bitdrift/capture/network/okhttp/CaptureOkHttpEventListenerFactory"),
+            recorder.typeInstructions.filter { it.opcode == Opcodes.INSTANCEOF }.map(TypeInstruction::type),
+        )
+        assertEquals(
+            listOf(Opcodes.IFNE),
+            recorder.jumpInstructions.map(JumpInstruction::opcode),
         )
     }
 
@@ -35,11 +57,14 @@ class OkHttpEventListenerMethodVisitorTest {
         instrumentationType: OkHttpInstrumentationType,
         expectedCallNames: List<String>,
     ) {
-        val outputCallNames = instrument(instrumentationType).map(MethodInvocation::name)
+        val outputCallNames =
+            instrument(instrumentationType).invocations
+                .filter { it.owner == "okhttp3/OkHttpClient\$Builder" }
+                .map(MethodInvocation::name)
         assertEquals(expectedCallNames, outputCallNames)
     }
 
-    private fun instrument(instrumentationType: OkHttpInstrumentationType): List<MethodInvocation> {
+    private fun instrument(instrumentationType: OkHttpInstrumentationType): FakeMethodVisitor {
         val recorder = FakeMethodVisitor()
         val visitor =
             OkHttpEventListenerMethodVisitor(
@@ -62,12 +87,30 @@ class OkHttpEventListenerMethodVisitorTest {
         visitor.visitMaxs(0, 0)
         visitor.visitEnd()
 
-        return recorder.invocations.filter { it.owner == "okhttp3/OkHttpClient\$Builder" }
+        return recorder
     }
 }
 
 private class FakeMethodVisitor : MethodVisitor(Opcodes.ASM7) {
     val invocations = mutableListOf<MethodInvocation>()
+    val typeInstructions = mutableListOf<TypeInstruction>()
+    val jumpInstructions = mutableListOf<JumpInstruction>()
+
+    override fun visitTypeInsn(
+        opcode: Int,
+        type: String,
+    ) {
+        typeInstructions += TypeInstruction(opcode, type)
+        super.visitTypeInsn(opcode, type)
+    }
+
+    override fun visitJumpInsn(
+        opcode: Int,
+        label: org.objectweb.asm.Label,
+    ) {
+        jumpInstructions += JumpInstruction(opcode)
+        super.visitJumpInsn(opcode, label)
+    }
 
     override fun visitMethodInsn(
         opcode: Int,
@@ -84,4 +127,13 @@ private class FakeMethodVisitor : MethodVisitor(Opcodes.ASM7) {
 private data class MethodInvocation(
     val owner: String,
     val name: String,
+)
+
+private data class TypeInstruction(
+    val opcode: Int,
+    val type: String,
+)
+
+private data class JumpInstruction(
+    val opcode: Int,
 )

@@ -12,7 +12,7 @@
 readonly android_cmdline_tools_version="19.0"
 readonly android_cmdline_tools_build="13114758"
 
-readonly android_sdk_api_level="36"
-readonly android_build_tools_version="36.1.0"
+readonly android_sdk_api_level="37.0"
+readonly android_build_tools_version="37.0.0"
 readonly android_ndk_alias="r27c"
 readonly android_ndk_api_level="21"

@@ -372,11 +372,10 @@ impl bd_error_reporter::reporter::Reporter for SwiftErrorReporter {
   }
 }
 
-/// Wrapper around a objc handle that implements the `LogMetadataProvider` protocol.
+/// Wrapper around the optional Objective-C metadata callbacks used by the native logger.
 struct LogMetadataProvider {
-  /// Retains strong ownership over the reference. This allows the provider's lifetime to live past
-  /// the function scope.
-  ptr: objc::rc::StrongPtr,
+  timestamp_provider: Option<objc::rc::StrongPtr>,
+  custom_fields_provider: Option<objc::rc::StrongPtr>,
 }
 
 // The implementation of LogMetadata has only final fields, all interior mutability behind locks.
@@ -441,10 +440,14 @@ impl CrashReportHook for IssueCallbackConfigurationHandle {
 impl MetadataProvider for LogMetadataProvider {
   #[allow(clippy::cast_possible_truncation)]
   fn timestamp(&self) -> anyhow::Result<time::OffsetDateTime> {
+    let Some(timestamp_provider) = &self.timestamp_provider else {
+      return Ok(time::OffsetDateTime::now_utc());
+    };
+
     objc::rc::autoreleasepool(|| {
-      // Safety: Since we receive MetadataProvider as a typed protocol, we know that it
+      // Safety: Since we receive TimestampProvider as a typed protocol, we know that it
       // responds to `timestamp` and will return a TimeInterval, which is backed by a double.
-      let timestamp_double: f64 = unsafe { msg_send![*self.ptr, timestamp] };
+      let timestamp_double: f64 = unsafe { msg_send![**timestamp_provider, timestamp] };
 
       // To get the seconds component, get the integral part of the double. This can safely be
       // cast to i64 as it must be integral (due to trunc()).
@@ -462,14 +465,16 @@ impl MetadataProvider for LogMetadataProvider {
   }
 
   fn fields(&self) -> anyhow::Result<(LogFields, LogFields)> {
-    // Safety: Since we receive MetadataProvider as a typed protocol, we know that it
-    // responds to `ootbFields` and `customFields` selectors.
+    let Some(custom_fields_provider) = &self.custom_fields_provider else {
+      return Ok((LogFields::default(), LogFields::default()));
+    };
+
+    // Safety: Since we receive CustomFieldsProvider as a typed protocol, we know that it
+    // responds to the `customFields` selector.
     objc::rc::autoreleasepool(|| unsafe {
-      let ootb_fields = ffi::convert_fields(msg_send![*self.ptr, ootbFields])?;
+      let custom_fields = ffi::convert_fields(msg_send![**custom_fields_provider, customFields])?;
 
-      let custom_fields = ffi::convert_fields(msg_send![*self.ptr, customFields])?;
-
-      Ok((custom_fields, ootb_fields))
+      Ok((custom_fields, LogFields::default()))
     })
   }
 }
@@ -493,7 +498,9 @@ extern "C" fn capture_create_logger(
   initial_session_id: *const Object,
   inactivity_timeout_seconds: f64,
   session_callback: *mut Object,
-  provider: *mut Object,
+  timestamp_provider: *mut Object,
+  custom_fields_provider: *mut Object,
+  initial_ootb_fields_array: *mut Object,
   resource_utilization_target: *mut Object,
   session_replay_target: *mut Object,
   events_listener_target: *mut Object,
@@ -510,9 +517,11 @@ extern "C" fn capture_create_logger(
 ) -> LoggerId<'static> {
   initialize_logging();
 
-  // Safety: Guaranteed to be a valid Id per the Objective-C signature.
   let metadata_provider = Arc::new(LogMetadataProvider {
-    ptr: (unsafe { objc::rc::StrongPtr::retain(provider) }),
+    timestamp_provider: (!timestamp_provider.is_null())
+      .then(|| unsafe { objc::rc::StrongPtr::retain(timestamp_provider) }),
+    custom_fields_provider: (!custom_fields_provider.is_null())
+      .then(|| unsafe { objc::rc::StrongPtr::retain(custom_fields_provider) }),
   });
 
   with_handle_unexpected_or(
@@ -555,7 +564,8 @@ extern "C" fn capture_create_logger(
       let initial_custom_fields = unsafe { ffi::convert_fields(initial_fields) }
         .inspect_err(|error| log::warn!("failed to convert initial fields: {error:#}"))
         .unwrap_or_default();
-      let initial_ootb_fields = static_metadata.static_log_fields();
+      let mut initial_ootb_fields = static_metadata.static_log_fields();
+      initial_ootb_fields.extend(unsafe { ffi::convert_fields(initial_ootb_fields_array) }?);
 
       let error_reporter = MetadataErrorReporter::new(
         Arc::new(unsafe { SwiftErrorReporter::new(error_reporter_ns_object) }),
@@ -996,6 +1006,25 @@ extern "C" fn capture_add_log_field(
       Ok(())
     },
     "swift add field",
+  );
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn capture_update_ootb_log_field(
+  logger_id: LoggerId<'_>,
+  key: *const c_char,
+  value: *const c_char,
+) {
+  with_handle_unexpected(
+    move || -> anyhow::Result<()> {
+      let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
+      let value = unsafe { CStr::from_ptr(value) }.to_str()?.to_string();
+
+      logger_id.update_ootb_log_field(key, value.into());
+
+      Ok(())
+    },
+    "swift update OOTB field",
   );
 }
 

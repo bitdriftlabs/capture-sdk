@@ -35,6 +35,12 @@ final class CustomLogMessageTests: XCTestCase {
         assertWebLogAction(action, message: "custom message", level: .trace)
     }
 
+    func testMakeLoggingActionWithCriticalLevel() throws {
+        try givenCustomLogMessage(level: "critical")
+        let action = whenMakingLoggingAction()
+        assertWebLogAction(action, message: "custom message", level: .critical)
+    }
+
     func testMakeLoggingActionWithUnknownLevelDefaultsToDebug() throws {
         try givenCustomLogMessage(level: "verbose")
         let action = whenMakingLoggingAction()

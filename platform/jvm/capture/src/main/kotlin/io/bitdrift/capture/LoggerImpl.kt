@@ -14,6 +14,8 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.attributes.IOotbFieldProvider
+import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
@@ -44,11 +46,13 @@ import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
 import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.CustomFieldsProvider
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldGetter
 import io.bitdrift.capture.providers.Fields
-import io.bitdrift.capture.providers.MetadataProvider
+import io.bitdrift.capture.providers.SystemDateProvider
+import io.bitdrift.capture.providers.TimestampProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -69,8 +73,6 @@ import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
-import io.bitdrift.capture.webview.WebViewConfiguration
-import io.bitdrift.capture.webview.toFields
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import java.io.File
@@ -87,7 +89,7 @@ internal class LoggerImpl(
     configuration: Configuration,
     customFieldGetters: List<FieldGetter>,
     initialFields: Fields = emptyMap(),
-    dateProvider: DateProvider,
+    dateProvider: DateProvider?,
     private val errorHandler: ErrorHandler = ErrorHandler(),
     sessionStrategy: SessionStrategy,
     context: Context,
@@ -112,10 +114,11 @@ internal class LoggerImpl(
 ) : IInternalLogger,
     ICompletedReportsProcessor,
     IRuntimeProvider {
-    @OptIn(ExperimentalBitdriftApi::class)
-    internal val webViewConfiguration: WebViewConfiguration? = configuration.webViewConfiguration
-
-    private val metadataProvider: MetadataProvider
+    private val timestampProvider = dateProvider?.let(::TimestampProvider)
+    private val customFieldsProvider =
+        customFieldGetters.takeIf { it.isNotEmpty() }?.let {
+            CustomFieldsProvider(it, errorHandler)
+        }
     private val sdkDirectory: String
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
@@ -123,6 +126,9 @@ internal class LoggerImpl(
     private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
+    private val localeAttributes = LocaleAttributes(context)
+    private val networkAttributes = NetworkAttributes(context)
+    private val ootbFieldProviders: List<IOotbFieldProvider> = listOf(localeAttributes, networkAttributes)
     private var jankStatsMonitor: JankStatsMonitor? = null
 
     // Session URLs are only needed when queried externally, so derive the
@@ -152,10 +158,11 @@ internal class LoggerImpl(
         if (configuration.enableFatalIssueReporting) {
             IssueReporter(
                 internalLogger = this,
-                dateProvider = dateProvider,
+                dateProvider = dateProvider ?: SystemDateProvider(),
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
                 captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
+                tempDirectoryPath = context.cacheDir.path,
             )
         } else {
             null
@@ -165,22 +172,6 @@ internal class LoggerImpl(
     internal val loggerId: LoggerId
 
     init {
-        val networkAttributes = NetworkAttributes(context)
-
-        metadataProvider =
-            MetadataProvider(
-                dateProvider = dateProvider,
-                // order of providers matters in here, the earlier in the list the higher their priority in
-                // case of key conflicts.
-                ootbFieldGetters =
-                    listOf(
-                        networkAttributes::getFields,
-                        clientAttributes::dynamicFields,
-                    ),
-                errorHandler = errorHandler,
-                customFieldGetters = customFieldGetters,
-            )
-
         val network =
             OkHttpCaptureStream(
                 apiBaseUrl = apiUrl,
@@ -232,7 +223,10 @@ internal class LoggerImpl(
                 sessionConfiguration.initialSessionId,
                 sessionConfiguration.inactivityTimeout?.inWholeMilliseconds ?: -1L,
                 sessionConfiguration.makeSessionCallback(),
-                metadataProvider,
+                timestampProvider,
+                customFieldsProvider,
+                clientAttributes.initialOotbFields() +
+                    ootbFieldProviders.flatMap { it.initialOotbFields().toList() }.toTypedArray(),
                 // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
                 //  and `eventsListenerTarget` as part of `startLogger` method call instead.
                 // Pass the event listener target here and finish setting up
@@ -265,6 +259,7 @@ internal class LoggerImpl(
         this.loggerId = loggerId
 
         runtime = JniRuntime(this.loggerId)
+        ootbFieldProviders.forEach { it.start(this) }
         if (sessionReplayTarget is SessionReplayTarget) {
             sessionReplayTarget.runtime = runtime
         }
@@ -454,6 +449,13 @@ internal class LoggerImpl(
         value: String,
     ) {
         CaptureJniLibrary.addLogField(this.loggerId, key, value)
+    }
+
+    override fun updateOotbField(
+        key: String,
+        value: String,
+    ) {
+        CaptureJniLibrary.updateOotbLogField(this.loggerId, key, value)
     }
 
     override fun removeField(key: String) {
@@ -701,6 +703,7 @@ internal class LoggerImpl(
         val wholeStartDuration: Duration,
         val nativeLoadDuration: Duration,
         val loggerImplBuildDuration: Duration,
+        val flushPreInitToNativeDuration: Duration,
     )
 
     /**
@@ -711,24 +714,32 @@ internal class LoggerImpl(
         appContext: Context,
         sdkConfiguredDuration: SdkConfiguredDuration,
         captureStartThread: String,
+        preInitDroppedCallCount: Int = 0,
     ) {
         eventListenerDispatcher.executorService.execute {
             val installationSource =
                 clientAttributes
                     .getInstallationSource(appContext, errorHandler)
             val isSessionReplayEnabled = sessionReplayTarget is SessionReplayTarget
-            val isWebViewMonitoringEnabled = webViewConfiguration != null
             val baseFields =
                 fieldsOf(
                     "_app_installation_source" to installationSource,
                     "_capture_start_thread" to captureStartThread,
                     "_is_sdk_directory_first_created" to isSdkDirectoryFirstCreated.toString(),
                     "_native_load_duration_ms" to
-                        sdkConfiguredDuration.nativeLoadDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
+                        sdkConfiguredDuration.nativeLoadDuration
+                            .toDouble(DurationUnit.MILLISECONDS)
+                            .toString(),
                     "_logger_build_duration_ms" to
-                        sdkConfiguredDuration.loggerImplBuildDuration.toDouble(DurationUnit.MILLISECONDS).toString(),
+                        sdkConfiguredDuration.loggerImplBuildDuration
+                            .toDouble(DurationUnit.MILLISECONDS)
+                            .toString(),
+                    "_pre_init_flush_to_native_duration_ms" to
+                        sdkConfiguredDuration.flushPreInitToNativeDuration
+                            .toDouble(DurationUnit.MILLISECONDS)
+                            .toString(),
                     "_session_replay_enabled" to isSessionReplayEnabled.toString(),
-                    "_webview_monitoring_enabled" to isWebViewMonitoringEnabled.toString(),
+                    "_pre_init_dropped_call_count" to preInitDroppedCallCount.toString(),
                 )
             val fatalIssueFields =
                 (
@@ -736,7 +747,7 @@ internal class LoggerImpl(
                         ?: IssueReporter.getDisabledStatusFieldsMap()
                 ).toFields()
 
-            val sdkStartFields = combineFields(baseFields, fatalIssueFields, webViewConfiguration.toFields())
+            val sdkStartFields = combineFields(baseFields, fatalIssueFields)
             CaptureJniLibrary.writeSDKStartLog(
                 this.loggerId,
                 sdkStartFields.toLegacyJniFields(),

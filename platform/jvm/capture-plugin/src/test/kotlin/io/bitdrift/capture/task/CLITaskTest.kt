@@ -13,6 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CLITaskTest {
@@ -52,6 +53,74 @@ class CLITaskTest {
         val result = runGradle(projectDir, "bdUploadMapping", environment = mapOf("API_KEY" to "legacy-api-key"))
         assertTrue(result.output.contains("BUILD SUCCESSFUL"))
         assertTrue(recordedArgs.readText().contains("--api-key legacy-api-key"))
+    }
+
+    @Test
+    fun `uses BITDRIFT API key for source map uploads`() {
+        val projectDir = tempDir.root
+        val buildDir = File(projectDir, "build")
+        val binDir = File(buildDir, "bin")
+        val recordedArgs = File(buildDir, "bd-cli-args.txt")
+
+        writeSettingsFile(projectDir)
+        writeBuildFile(projectDir)
+        writeSourceMapFiles(buildDir)
+        writeFakeBdExecutable(binDir, recordedArgs)
+
+        val result = runGradle(projectDir, "bdUploadSourceMap")
+        assertTrue(result.output.contains("BUILD SUCCESSFUL"))
+        assertTrue(recordedArgs.readText().contains("--api-key test-api-key"))
+    }
+
+    @Test
+    fun `requires a non-empty API key for every upload task`() {
+        val projectDir = tempDir.root
+        val buildDir = File(projectDir, "build")
+        val binDir = File(buildDir, "bin")
+        val recordedArgs = File(buildDir, "bd-cli-args.txt")
+
+        writeSettingsFile(projectDir)
+        writeBuildFile(projectDir)
+        writeManifestAndMappingFiles(buildDir)
+        writeNativeLibraries(buildDir)
+        writeSourceMapFiles(buildDir)
+        writeFakeBdExecutable(binDir, recordedArgs)
+
+        listOf("bdUploadMapping", "bdUploadSymbols", "bdUploadSourceMap").forEach { task ->
+            val result = runGradle(projectDir, task, environment = emptyMap(), shouldFail = true)
+            assertTrue(
+                result.output.contains(
+                    "Environment variable BITDRIFT_API_KEY or API_KEY must be set with a non-empty bitdrift API key before running this task.",
+                ),
+            )
+        }
+
+        val result =
+            runGradle(
+                projectDir,
+                "bdUploadMapping",
+                environment = mapOf("BITDRIFT_API_KEY" to "   "),
+                shouldFail = true,
+            )
+        assertTrue(result.output.contains("must be set with a non-empty bitdrift API key"))
+    }
+
+    @Test
+    fun `masks API keys when the CLI command fails`() {
+        val projectDir = tempDir.root
+        val buildDir = File(projectDir, "build")
+        val binDir = File(buildDir, "bin")
+        val recordedArgs = File(buildDir, "bd-cli-args.txt")
+        val apiKey = "secret-api-key"
+
+        writeSettingsFile(projectDir)
+        writeBuildFile(projectDir)
+        writeManifestAndMappingFiles(buildDir)
+        writeFakeBdExecutable(binDir, recordedArgs, exitCode = 1)
+
+        val result = runGradle(projectDir, "bdUploadMapping", environment = mapOf("BITDRIFT_API_KEY" to apiKey), shouldFail = true)
+        assertTrue(result.output.contains("--base-domain, api.bitdrift.dev, --api-key, *****, debug-files, upload-proguard"))
+        assertFalse(result.output.contains(apiKey))
     }
 
     private fun writeSettingsFile(projectDir: File) {
@@ -128,9 +197,26 @@ class CLITaskTest {
         File(mappingDir, "mapping.txt").writeText("# mapping\n")
     }
 
+    private fun writeSourceMapFiles(buildDir: File) {
+        val sourceMapFile = File(buildDir, "generated/sourcemaps/react/release/index.android.bundle.map")
+        sourceMapFile.parentFile.mkdirs()
+        sourceMapFile.writeText("{}\n")
+
+        val bundleFile = File(buildDir, "generated/assets/createBundleReleaseJsAndAssets/index.android.bundle")
+        bundleFile.parentFile.mkdirs()
+        bundleFile.writeText("console.log('test')\n")
+    }
+
+    private fun writeNativeLibraries(buildDir: File) {
+        val nativeLibsDir = File(buildDir, "intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib/arm64-v8a")
+        nativeLibsDir.mkdirs()
+        File(nativeLibsDir, "libtest.so").writeText("test\n")
+    }
+
     private fun writeFakeBdExecutable(
         binDir: File,
         recordedArgs: File,
+        exitCode: Int = 0,
     ) {
         binDir.mkdirs()
         val bd = File(binDir, "bd")
@@ -138,22 +224,25 @@ class CLITaskTest {
             """
             #!/bin/sh
             echo "$@" > "${recordedArgs.absolutePath}"
-            exit 0
+            exit $exitCode
             """.trimIndent() + "\n",
         )
         bd.setExecutable(true)
+        File(binDir, "bd.version").writeText("0.2.23")
     }
 
     private fun runGradle(
         projectDir: File,
         vararg args: String,
         environment: Map<String, String> = mapOf("BITDRIFT_API_KEY" to "test-api-key"),
-    ): BuildResult =
-        GradleRunner
+        shouldFail: Boolean = false,
+    ): BuildResult {
+        val runner = GradleRunner
             .create()
             .withProjectDir(projectDir)
             .withArguments(*args, "-Pandroid.injected.build.api=33", "-Pandroid.injected.build.abi=arm64-v8a")
             .withPluginClasspath()
             .withEnvironment(environment)
-            .build()
+        return if (shouldFail) runner.buildAndFail() else runner.build()
+    }
 }

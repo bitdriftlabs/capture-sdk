@@ -16,6 +16,12 @@ import kotlin.time.Duration
  * The Capture SDK logger internal interface.
  */
 internal interface IInternalLogger : ILogger {
+    /** Updates an SDK-owned out-of-the-box field. */
+    fun updateOotbField(
+        key: String,
+        value: String,
+    )
+
     fun logInternal(
         type: LogType,
         level: LogLevel,

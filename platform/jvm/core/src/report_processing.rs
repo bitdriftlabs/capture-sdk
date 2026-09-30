@@ -7,6 +7,7 @@
 
 use crate::jni::{CachedMethod, JValueWrapper, initialize_method_handle};
 use bd_client_common::error::InvariantError;
+use bd_error_reporter::reporter::handle_unexpected_error_with_details;
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   AppBuildNumber,
   AppBuildNumberArgs,
@@ -59,6 +60,7 @@ pub(crate) struct AnrReport<'a, 'local> {
   pub source_stream: Option<&'a JObject<'local>>,
   pub timestamp_millis: jlong,
   pub destination: &'a str,
+  pub temp_directory: &'a JString<'local>,
   pub running_state: Option<&'a str>,
   pub app_exit_description: Option<&'a str>,
   pub memory_pressure_level: jint,
@@ -123,10 +125,16 @@ pub(crate) fn persist_anr(
   report: &AnrReport<'_, '_>,
 ) -> anyhow::Result<()> {
   let mut builder = FlatBufferBuilder::new();
-  let source_file = report
-    .source_stream
-    .map(|stream| read_stream_to_file(context.env, stream))
-    .transpose()?;
+  let source_file = match report.source_stream {
+    Some(stream) => match create_temp_trace_file(context.env, report.temp_directory) {
+      Ok(file) => Some(read_stream_to_file(context.env, stream, file)?),
+      Err(e) => {
+        handle_unexpected_error_with_details(e, "jni persist ANR: create trace file", || None);
+        None
+      },
+    },
+    None => None,
+  };
   let source_memmap = source_file
     .as_ref()
     .map(|file| unsafe { memmap2::Mmap::map(file) })
@@ -353,11 +361,19 @@ fn read_string_list(
   Ok(result)
 }
 
+fn create_temp_trace_file(
+  env: &mut JNIEnv<'_>,
+  temp_directory: &JString<'_>,
+) -> anyhow::Result<std::fs::File> {
+  let temp_directory = unsafe { env.get_string_unchecked(temp_directory)? };
+  tempfile::tempfile_in(&*temp_directory.to_string_lossy()).map_err(Into::into)
+}
+
 fn read_stream_to_file(
   env: &mut JNIEnv<'_>,
   stream: &JObject<'_>,
+  mut file: std::fs::File,
 ) -> anyhow::Result<std::fs::File> {
-  let mut file = tempfile::tempfile()?;
   let buffer = env.new_byte_array(BUFFER_SIZE)?;
   let reader = INPUT_STREAM_READ.get().ok_or(InvariantError::Invariant)?;
 

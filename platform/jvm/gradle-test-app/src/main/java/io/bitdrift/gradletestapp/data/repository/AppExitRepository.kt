@@ -8,6 +8,7 @@
 package io.bitdrift.gradletestapp.data.repository
 
 import android.content.Context
+import android.util.Log
 import io.bitdrift.gradletestapp.data.model.AppExitReason
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.FatalIssueGenerator
 import kotlin.system.exitProcess
@@ -20,6 +21,7 @@ class AppExitRepository {
         applicationContext: Context,
         reason: AppExitReason,
     ) {
+        Log.i(LOG_TAG, "Triggering app exit reason=${reason.name}")
         when (reason) {
             AppExitReason.ANR_BLOCKING_GET -> FatalIssueGenerator.forceBlockingGetAnr()
             AppExitReason.ANR_IN_BACKGROUND -> FatalIssueGenerator.forceAnrInBackground(applicationContext)
@@ -45,5 +47,9 @@ class AppExitRepository {
             AppExitReason.NATIVE_SIGBUS -> FatalIssueGenerator.forceNativeBusError()
             AppExitReason.SYSTEM_EXIT -> exitProcess(0)
         }
+    }
+
+    companion object {
+        const val LOG_TAG = "BitdriftE2E"
     }
 }

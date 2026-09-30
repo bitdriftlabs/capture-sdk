@@ -51,6 +51,7 @@ import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.compose.CaptureModifier.captureIgnore
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.replay.internal.ReplayRect
+import org.junit.Assume
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -83,6 +84,16 @@ class ComposeReplayTest {
         replayClient = TestUtils.createReplayPreviewClient(replay, latch, InstrumentationRegistry.getInstrumentation().targetContext)
     }
 
+    /** Skips rather than fails on hardware the pixel rects below were not calibrated for. */
+    private fun assumeReferenceGeometry() {
+        val profile = ReplayDeviceProfile.current()
+        Assume.assumeTrue(
+            "geometry expectations are calibrated for ${ReplayDeviceProfile.NEXUS_6.label}; " +
+                "running on ${profile.label}",
+            profile.hasReferenceGeometry,
+        )
+    }
+
     private fun verifyReplayScreen(viewCount: Int = 3): FilteredCapture {
         replayClient.captureScreen()
 
@@ -104,9 +115,10 @@ class ComposeReplayTest {
 //        assertThat(screen.size).isEqualTo(viewCount)
         assertThat(screen.size).isGreaterThan(1)
 
-        // The first frame is always going to be the screen size. We always use a Nexus 6 in test so
-        // this should always be the size.
-        assertThat(screen[0]).isEqualTo(ReplayRect(ReplayType.View, 0, 0, 1440, 2560))
+        // The first rect is always the display bounds.
+        val bounds = ReplayDeviceProfile.deviceBounds()
+        assertThat(screen[0])
+            .isEqualTo(ReplayRect(ReplayType.View, bounds.left, bounds.top, bounds.width(), bounds.height()))
 
         return screen
     }
@@ -115,6 +127,7 @@ class ComposeReplayTest {
 
     @Test
     fun capturesSizeOfInnerView() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             val (width, height) =
                 with(LocalDensity.current) {
@@ -149,6 +162,7 @@ class ComposeReplayTest {
 
     @Test
     fun basicText() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Column(Modifier.fillMaxWidth()) {
                 BasicText("Baguette Avec Fromage")
@@ -174,6 +188,7 @@ class ComposeReplayTest {
 
     @Test
     fun text() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Column(Modifier.fillMaxWidth()) {
                 Text("Baguette Avec Fromage")
@@ -189,6 +204,7 @@ class ComposeReplayTest {
 
     @Test
     fun clickableText() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             ClickableText(text = AnnotatedString("Baguette Avec Fromage"), onClick = {})
         }
@@ -206,6 +222,7 @@ class ComposeReplayTest {
 
     @Test
     fun textField() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Column(Modifier.wrapContentWidth()) {
                 TextField("", onValueChange = {}, label = {}, modifier = Modifier.wrapContentWidth())
@@ -221,6 +238,7 @@ class ComposeReplayTest {
 
     @Test
     fun checkbox() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Column(Modifier.wrapContentWidth()) {
                 Checkbox(checked = false, onCheckedChange = {})
@@ -235,6 +253,7 @@ class ComposeReplayTest {
 
     @Test
     fun icon() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Content Description")
         }
@@ -252,6 +271,7 @@ class ComposeReplayTest {
 
     @Test
     fun image() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Image(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Content Description")
         }
@@ -269,6 +289,7 @@ class ComposeReplayTest {
 
     @Test
     fun button() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Button(onClick = {}) {
                 Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Content Description")
@@ -288,6 +309,7 @@ class ComposeReplayTest {
 
     @Test
     fun iconButton() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             IconButton(onClick = {}) {
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Content Description")
@@ -301,6 +323,7 @@ class ComposeReplayTest {
 
     @Test
     fun textButton() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Column(Modifier.wrapContentWidth()) {
                 TextButton(onClick = {}) {
@@ -321,6 +344,7 @@ class ComposeReplayTest {
 
     @Test
     fun textButtonIgnoreOneButtonOnly() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Column(Modifier.wrapContentWidth()) {
                 TextButton(onClick = {}) {
@@ -341,6 +365,7 @@ class ComposeReplayTest {
 
     @Test
     fun textButtonIgnoreOneFullTextButton() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Column(Modifier.wrapContentWidth()) {
                 TextButton(onClick = {}) {
@@ -361,6 +386,7 @@ class ComposeReplayTest {
 
     @Test
     fun nestedAndroidViewsInsideLayouts() {
+        assumeReferenceGeometry()
         composeRule.setContentWithExplicitRoot {
             Box(Modifier.testTag("root")) {
                 Column {
@@ -387,6 +413,7 @@ class ComposeReplayTest {
 
     @Test
     fun scanningHandlesDialog() {
+        assumeReferenceGeometry()
         composeRule.setContent {
             val (width, height) =
                 with(LocalDensity.current) {
@@ -410,12 +437,14 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
-        // Dialog - Child Box: should be centered
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 645, 1138, 150, 200))
+        // Dialog - Child Box: should be centered. Transparent because it has no background and so
+        // paints nothing; inside an overlay window a generic container is not assumed opaque.
+        assertThat(capture).contains(ReplayRect(ReplayType.TransparentView, 645, 1138, 150, 200))
     }
 
     @Test
     fun scanningHandlesWrappedDialog() {
+        assumeReferenceGeometry()
         @Composable
         fun CustomTestDialog(children: @Composable () -> Unit) {
             Dialog(onDismissRequest = {}, content = children)
@@ -444,12 +473,14 @@ class ComposeReplayTest {
         val capture = verifyReplayScreen(viewCount = 9)
         // Parent Box
         assertThat(capture).contains(ReplayRect(ReplayType.View, 0, 84, 300, 400))
-        // Dialog - Child Box: should be centered
-        assertThat(capture).contains(ReplayRect(ReplayType.View, 645, 1138, 150, 200))
+        // Dialog - Child Box: should be centered. Transparent because it has no background and so
+        // paints nothing; inside an overlay window a generic container is not assumed opaque.
+        assertThat(capture).contains(ReplayRect(ReplayType.TransparentView, 645, 1138, 150, 200))
     }
 
     @Test
     fun scanningHandlesSingleSubcomposeLayout_withSingleChild() {
+        assumeReferenceGeometry()
         composeRule.setContent {
             val (width, height) =
                 with(LocalDensity.current) {
@@ -475,6 +506,7 @@ class ComposeReplayTest {
 
     @Test
     fun scanningHandlesSingleSubcomposeLayout_withMultipleChildren() {
+        assumeReferenceGeometry()
         composeRule.setContent {
             val (width, height) =
                 with(LocalDensity.current) {
@@ -507,6 +539,7 @@ class ComposeReplayTest {
 
     @Test
     fun scanningHandlesSingleSubcomposeLayout_withMultipleSubcompositionsAndChildren() {
+        assumeReferenceGeometry()
         composeRule.setContent {
             val (width, height) =
                 with(LocalDensity.current) {
@@ -558,6 +591,7 @@ class ComposeReplayTest {
 
     @Test
     fun scanningHandlesSiblingSubcomposeLayouts() {
+        assumeReferenceGeometry()
         composeRule.setContent {
             val (width, height) =
                 with(LocalDensity.current) {
@@ -609,6 +643,7 @@ class ComposeReplayTest {
 
     @Test
     fun scanningSubcomposition_includesSize() {
+        assumeReferenceGeometry()
         composeRule.setContent {
             val (width, height) =
                 with(LocalDensity.current) {
@@ -655,6 +690,7 @@ class ComposeReplayTest {
     @OptIn(ExperimentalMaterial3Api::class)
     @Test
     fun scanningHandlesModalBottomSheet() {
+        assumeReferenceGeometry()
         composeRule.setContent {
             val (_, _) = with(LocalDensity.current) {
                 Pair(200.dp.toPx().toInt(), 400.dp.toPx().toInt())

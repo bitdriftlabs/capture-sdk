@@ -64,14 +64,16 @@ class NetworkTestingRepository(context: Context) {
             ).alwaysReadResponseBody(true)
             .build()
 
-    private val okHttpClient: OkHttpClient =
+    private val initialOkHttpClient: OkHttpClient =
         OkHttpClient
             .Builder()
             .addInterceptor(chuckerInterceptor)
             .apply {
                 if (BuildConfig.ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION) {
+                    // The Gradle plugin installs Capture's listener and tracing interceptor.
                     eventListenerFactory { TimberOkHttpEventListener() }
                 } else {
+                    // Manual instrumentation is used when automatic instrumentation is disabled.
                     addInterceptor(CaptureOkHttpTracingInterceptor())
                     eventListenerFactory(
                         CaptureOkHttpEventListenerFactory(
@@ -85,6 +87,11 @@ class NetworkTestingRepository(context: Context) {
             }
             .build()
 
+    // Exercises automatic instrumentation when libraries derive clients from an existing client.
+    private val okHttpClient: OkHttpClient =
+        initialOkHttpClient
+            .newBuilder()
+            .build()
     private val apolloClient: ApolloClient =
         ApolloClient
             .Builder()
@@ -142,11 +149,12 @@ class NetworkTestingRepository(context: Context) {
 
     fun performOkHttpRequest() {
         val requestDef = requestDefinitions.random()
-        val label = if(BuildConfig.ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION){
-            "autoOkHttpInstrumentation"
-        }else{
-            "manualOkHttpInstrumentation"
-        }
+        val label =
+            if (BuildConfig.ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION) {
+                "autoOkHttpInstrumentation:${BuildConfig.AUTO_CAPTURE_OKHTTP_INSTRUMENTATION_TYPE}"
+            } else {
+                "manualOkHttpInstrumentation"
+            }
         Timber.i("Performing OkHttp Network Request ($label): $requestDef")
 
         val url =
@@ -189,6 +197,33 @@ class NetworkTestingRepository(context: Context) {
                 }
             },
         )
+    }
+
+    /**
+     * Requests httpbin's /delay endpoint, which holds the response for the given number of
+     * seconds before returning — useful for testing behavior around slow/late-arriving requests,
+     * e.g. ones started while the SDK is still starting.
+     */
+    fun performDelayedOkHttpRequest() {
+        val request =
+            Request
+                .Builder()
+                .url("https://httpbin.org/delay/3")
+                .build()
+
+        Timber.i("Performing delayed (3s) OkHttp request: ${request.url}")
+        performRequestWithPreExistingHeaders(request, "Delayed 3s")
+    }
+
+    fun performOkHttpFailureBeforeResponseHeaders() {
+        val request =
+            Request
+                .Builder()
+                .url("https://nonexistent.invalid/")
+                .build()
+
+        Timber.i("Performing OkHttp request expected to fail before response headers: ${request.url}")
+        performRequestWithPreExistingHeaders(request, "Pre-response failure")
     }
 
     fun performGraphQlRequest() {

@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CapturePassable
 import Foundation
 import Network
 
@@ -29,10 +30,10 @@ private enum ReachabilityPath: String {
 
 /// Attributes related to the network conditions, including active interfaces metadata, cellular
 /// information and the like.
-final class NetworkAttributes {
+final class NetworkAttributes: OotbFieldProvider {
     private let pathMonitor: NWPathMonitor
     private let queue = DispatchQueue.serial(withLabelSuffix: "NetworkAttributes", target: .default)
-    private var reachabilityPath: Atomic<ReachabilityPath> = Atomic(.other)
+    private let reachabilityPath = Atomic<ReachabilityPath>(.other)
     private weak var logger: CoreLogging?
 
     // This property is static as static ('type') properties are guaranteed to be initialized in a lazily
@@ -67,9 +68,8 @@ final class NetworkAttributes {
 
             let reachability = ReachabilityPath(from: path)
             self.reachabilityPath.update { $0 = reachability }
+            self.publishNetworkType()
 
-            // The initial path update is called before a shared logger is configured so we cannot assert on
-            // the existence of the logger in here.
             self.logger?.log(
                 level: .debug,
                 message: "[NetworkAttributes] Reachability updated: \(reachability)",
@@ -84,6 +84,8 @@ final class NetworkAttributes {
         }
 
         self.logger = logger
+        Self.telephonyNetworkInfo.start(with: logger)
+        self.publishNetworkType()
         self.pathMonitor.start(queue: self.queue)
     }
 
@@ -93,14 +95,15 @@ final class NetworkAttributes {
 }
 
 extension NetworkAttributes {
-    func getFields() -> Fields {
-        return [
-            /// The cellular network type. Note a given network can support multiple paths. We'll
-            /// report the currently used. (e.g. wlan)
-            "network_type": self.reachabilityPath.load().rawValue,
+    func initialOotbFields() -> [Field] {
+        [
+            Field(key: "network_type", data: self.reachabilityPath.load().rawValue as NSString, type: .string),
+        ] + Self.telephonyNetworkInfo.initialOotbFields()
+    }
+}
 
-            /// Cellular access technology that is active at the moment (eg. LTE)
-            "radio_type": Self.telephonyNetworkInfo.radioType.load() ?? "unknown",
-        ]
+private extension NetworkAttributes {
+    func publishNetworkType() {
+        self.logger?.updateOotbField(withKey: "network_type", value: self.reachabilityPath.load().rawValue)
     }
 }

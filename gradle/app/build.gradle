@@ -6,12 +6,13 @@ plugins {
 
 android {
     namespace 'io.bitdrift.gradleexample'
-    compileSdk 36
+    compileSdk 37
+    buildToolsVersion "37.0.0"
 
     defaultConfig {
         applicationId "io.bitdrift.gradleexample"
         minSdk 24
-        targetSdk 36
+        targetSdk 37
         versionCode 1
         versionName "1.0"
 
@@ -78,6 +79,7 @@ android {
 bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = false
+        webViewAutomaticInstrumentationScope = ALL
     }
 }
 
@@ -91,6 +93,7 @@ dependencies {
     implementation libs.androidx.navigation.ui.ktx
     implementation libs.material
     implementation libs.timber
+    implementation libs.okhttp
 
     testImplementation libs.junit
 

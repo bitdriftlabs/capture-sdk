@@ -24,9 +24,9 @@ import java.util.concurrent.atomic.AtomicReference
 @Config(sdk = [24])
 class CaptureTokioThreadTest {
     @Test
-    fun `tokio thread is correctly named`() {
-        // In order to test that the tokio event loop thread is correctly named, we initialize the logger
-        // with a field getter that captures the thread name of the calling thread.
+    fun `custom field getter runs on the Capture background worker`() {
+        // Log admission captures dynamic fields on Capture's producer worker so they describe the
+        // state when the log is emitted, rather than later on the Tokio runtime thread.
         val latch = CountDownLatch(1)
         val threadName = AtomicReference<String?>(null)
 
@@ -50,7 +50,7 @@ class CaptureTokioThreadTest {
 
         Logger.logInfo { "Test log message" }
 
-        latch.await(5, TimeUnit.SECONDS)
-        assertThat(threadName.get()).isEqualTo("bd-tokio")
+        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue()
+        assertThat(threadName.get()).isEqualTo("io.bitdrift.capture.background-thread-worker")
     }
 }

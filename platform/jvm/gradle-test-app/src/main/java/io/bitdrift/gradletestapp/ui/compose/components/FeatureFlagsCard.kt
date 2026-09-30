@@ -7,17 +7,19 @@
 
 package io.bitdrift.gradletestapp.ui.compose.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
+import io.bitdrift.gradletestapp.ui.designsystem.BdPrimaryButton
+import io.bitdrift.gradletestapp.ui.designsystem.BdSectionCard
+import io.bitdrift.gradletestapp.ui.theme.BdSpacing
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 /**
- * Network Testing Card component
+ * Feature flag testing card
  */
 @Composable
 fun FeatureFlagsTestingCard(
@@ -26,103 +28,68 @@ fun FeatureFlagsTestingCard(
     modifier: Modifier = Modifier,
 ) {
     var variantFlagValue by remember { mutableStateOf(true) }
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = BitdriftColors.BackgroundPaper,
-            ),
-        shape = MaterialTheme.shapes.medium,
-        border =
-            BorderStroke(
-                width = 1.dp,
-                color = BitdriftColors.Border.copy(alpha = 0.3f),
-            ),
+
+    BdSectionCard(
+        title = "Set Feature Flags",
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(BdSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Set Feature Flags",
-                style = MaterialTheme.typography.titleMedium,
+                text = "Variant flag",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
                 color = BitdriftColors.TextPrimary,
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Checkbox(
+                    checked = variantFlagValue,
+                    onCheckedChange = { variantFlagValue = it },
+                    colors =
+                        CheckboxDefaults.colors(
+                            checkedColor = BitdriftColors.Primary,
+                            checkmarkColor = BitdriftColors.Background,
+                            uncheckedColor = BitdriftColors.BorderStrong,
+                        ),
+                )
                 Text(
-                    text = "variant_flag",
-                    modifier = Modifier
-                        .weight(1f),
+                    text = "Enabled",
                     style = MaterialTheme.typography.bodyMedium,
                     color = BitdriftColors.TextPrimary,
                 )
-
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start,
-                ) {
-                    Checkbox(
-                        checked = variantFlagValue,
-                        onCheckedChange = { variantFlagValue = it },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = BitdriftColors.TextPrimary,
-                            uncheckedColor = BitdriftColors.Border,
-                        ),
-                    )
-                    Text(
-                        text = "Enabled",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = BitdriftColors.TextPrimary,
-                    )
-                }
-
-                Button(
-                    onClick = { onAddVariantFlag(variantFlagValue) },
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = BitdriftColors.TextPrimary,
-                            contentColor = BitdriftColors.BackgroundPaper,
-                        ),
-                ) {
-                    Text("Record")
-                }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Multiple flags",
-                    modifier = Modifier
-                        .weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = BitdriftColors.TextPrimary,
-                )
+            BdPrimaryButton(
+                text = "Record",
+                onClick = { onAddVariantFlag(variantFlagValue) },
+                size = BdButtonSize.Compact,
+            )
+        }
 
-                Spacer(modifier = Modifier.weight(1f))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(BdSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Multiple flags",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = BitdriftColors.TextPrimary,
+            )
 
-                Button(
-                    onClick = onAddManyFeatureFlags,
-                    modifier = Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = BitdriftColors.TextPrimary,
-                            contentColor = BitdriftColors.BackgroundPaper,
-                        ),
-                ) {
-                    Text("Record")
-                }
-            }
+            BdPrimaryButton(
+                text = "Record",
+                onClick = onAddManyFeatureFlags,
+                size = BdButtonSize.Compact,
+            )
         }
     }
 }

@@ -21,14 +21,13 @@ use super::{
 use crate::schema::{self, CrashKind, CrashRecord, RecordState};
 use crate::test_support::test_crash_record_guard;
 use crate::writer::{CRASH_RECORD, prime_shared_record};
-use objc2_foundation::NSException;
 use std::ptr::{NonNull, null_mut};
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
 static TEST_MONITOR_STATE_LOCK: Mutex<()> = Mutex::new(());
 static PREVIOUS_CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
-static PREVIOUS_LAST_EXCEPTION: AtomicPtr<NSException> = AtomicPtr::new(null_mut());
+static PREVIOUS_LAST_EXCEPTION: AtomicPtr<()> = AtomicPtr::new(null_mut());
 
 struct TestMonitorStateGuard {
   _guard: MutexGuard<'static, ()>,
@@ -55,9 +54,9 @@ fn test_monitor_state_guard() -> TestMonitorStateGuard {
   TestMonitorStateGuard { _guard: guard }
 }
 
-unsafe extern "C" fn fake_previous_handler(exception: *mut NSException) {
+unsafe extern "C" fn fake_previous_handler(exception: *mut std::ffi::c_void) {
   PREVIOUS_CALL_COUNT.fetch_add(1, Ordering::AcqRel);
-  PREVIOUS_LAST_EXCEPTION.store(exception, Ordering::Release);
+  PREVIOUS_LAST_EXCEPTION.store(exception.cast(), Ordering::Release);
 }
 
 fn exception_snapshot() -> ExceptionSnapshot {
@@ -109,13 +108,16 @@ fn previous_handler_round_trips_none_and_some() {
 #[test]
 fn chain_previous_calls_registered_handler_with_same_exception_pointer() {
   let _guard = test_monitor_state_guard();
-  let exception = NonNull::<NSException>::dangling().as_ptr();
+  let exception = NonNull::<std::ffi::c_void>::dangling().as_ptr();
   store_previous_handler(Some(fake_previous_handler));
 
   chain_previous(exception);
 
   assert_eq!(PREVIOUS_CALL_COUNT.load(Ordering::Acquire), 1);
-  assert_eq!(PREVIOUS_LAST_EXCEPTION.load(Ordering::Acquire), exception);
+  assert_eq!(
+    PREVIOUS_LAST_EXCEPTION.load(Ordering::Acquire),
+    exception.cast()
+  );
 }
 
 #[test]
@@ -126,7 +128,7 @@ fn handle_exception_snapshot_records_snapshot_and_chains_previous() {
   unsafe {
     prime_shared_record(&raw mut record);
   }
-  let exception = NonNull::<NSException>::dangling().as_ptr();
+  let exception = NonNull::<std::ffi::c_void>::dangling().as_ptr();
   store_previous_handler(Some(fake_previous_handler));
 
   handle_exception_snapshot(exception, Some(exception_snapshot()));
@@ -154,7 +156,10 @@ fn handle_exception_snapshot_records_snapshot_and_chains_previous() {
     b"MyApp\0"
   );
   assert_eq!(PREVIOUS_CALL_COUNT.load(Ordering::Acquire), 1);
-  assert_eq!(PREVIOUS_LAST_EXCEPTION.load(Ordering::Acquire), exception);
+  assert_eq!(
+    PREVIOUS_LAST_EXCEPTION.load(Ordering::Acquire),
+    exception.cast()
+  );
 }
 
 #[test]
@@ -188,7 +193,7 @@ fn handle_exception_snapshot_ignores_reentrant_invocation() {
   assert!(try_enter_handler());
 
   handle_exception_snapshot(
-    NonNull::<NSException>::dangling().as_ptr(),
+    NonNull::<std::ffi::c_void>::dangling().as_ptr(),
     Some(exception_snapshot()),
   );
 

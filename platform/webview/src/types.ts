@@ -39,7 +39,7 @@ export type MessageType =
     | 'userInteraction'
     | 'internalAutoInstrumentation';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'trace';
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'trace' | 'critical';
 
 /**
  * Base interface for all bridge messages
@@ -52,6 +52,8 @@ export interface BridgeMessage {
     type: MessageType;
     /** Timestamp when the event occurred (ms since epoch) */
     timestamp: number;
+    /** Page view span that was active when this event was emitted. */
+    parentSpanId?: string;
 }
 
 export interface InternalAutoInstrumentationMessage extends BridgeMessage {
@@ -82,8 +84,6 @@ export interface BridgeReadyMessage extends BridgeMessage {
 export interface WebVitalMessage extends BridgeMessage {
     type: 'webVital';
     metric: MetricType;
-    /** Parent span ID for nesting under page view */
-    parentSpanId?: string;
     url?: string;
 }
 
@@ -152,14 +152,6 @@ export interface ErrorMessage extends BridgeMessage {
     name: string;
     /** Error message */
     message: string;
-    /** Stack trace if available */
-    stack?: string;
-    /** Source file */
-    filename?: string;
-    /** Line number */
-    lineno?: number;
-    /** Column number */
-    colno?: number;
 }
 
 /**
@@ -244,8 +236,6 @@ export interface PromiseRejectionMessage extends BridgeMessage {
     type: 'promiseRejection';
     /** Rejection reason/message */
     reason: string;
-    /** Stack trace if available */
-    stack?: string;
 }
 
 /**

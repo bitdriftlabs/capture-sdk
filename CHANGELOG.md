@@ -1,7 +1,132 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.23.12...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.25.1...HEAD
+
+### Both
+
+**Added**
+
+- WebView events emitted during a Page View are now associated with that Page View span.
+
+**Changed**
+
+- WebView error and promise-rejection events no longer report source-location details or stack traces.
+
+**Fixed**
+
+- Nothing yet!
+
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Fixed some WebView events appearing with log types that differed from Android in the timeline.
+
+## [0.25.1]
+[0.25.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.25.1
+
+### Both
+
+**Fixed**
+
+- Attached WebView network request spans and Web Vital spans to their originating page view spans, including telemetry reported after navigation and spans created by custom iOS loggers.
+
+### Android
+
+**Fixed**
+
+- Logs emitted while `Capture.Logger.start()` is still running are now buffered in memory and replayed once startup completes.
+- Fixed ANR reports not being persisted on Android 11 and 12.
+
+## [0.25.0]
+[0.25.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.25.0
+
+### Both
+
+**Added**
+
+- Added a `critical` log level, one step above `error`, with `logCritical` convenience methods on iOS and Android. The WebView custom-log bridge accepts `"critical"` as a level.
+- Added an `x-bitdrift-initiated-trace: true` header alongside injected trace propagation headers.
+
+### Android
+
+**Added**
+
+- Added `WebViewCapture.instrument(webView)` for explicitly instrumenting selected WebViews.
+- Added the `webViewAutomaticInstrumentationScope` Gradle plugin property with `ALL` and `JS_ENABLED` scopes.
+
+**Changed**
+
+- The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to `critical` instead of `debug`.
+- Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values now instrument only WebViews where JavaScript is already enabled; use `automaticWebViewInstrumentationMode = FULL` to preserve the previous behavior that enables JavaScript when needed.
+- Removed `WebViewConfiguration` and `Configuration.webViewConfiguration`. Instrumented WebViews now capture every WebView feature.
+- The WebView JavaScript bridge now uses `WebViewCompat.addWebMessageListener` instead of `addJavascriptInterface`, removing the reflection-based JS-to-native bridge surface. 
+
+**Fixed**
+
+- SDK was erronously reporting `_jvm_used_percent` in Resource Utilization logs using the device Locale.
+- Fixed OkHttp logs including an invalid `_protocol` value when a request fails before receiving a response.
+- Fixed a potential thread-safety issue in OkHttp request/response instrumentation.
+- Prevent automatic OkHttp instrumentation from wrapping an `OkHttpClient` with a duplicate Capture event listener when the client is copied via `newBuilder()`.
+- Fixed a potential crash when checking WebView features with older `androidx.webkit` versions.
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- The Objective-C `logWarning` and `logError` entry points now log at warning and error level. They previously logged at info level.
+
+## [0.24.2]
+[0.24.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.2
+
+### iOS
+
+**Fixed**
+
+- Fixed an issue that could cause linking issues in Xcode 26.
+
+## [0.24.1]
+[0.24.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.1
+
+### iOS
+
+**Fixed**
+
+- Release packaging now includes the Xcode 27 `.xcframework` for iOS 27 MetricKit support.
+
+## [0.24.0]
+[0.24.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.0
 
 ### Both
 
@@ -16,8 +141,14 @@
 
 **Changed**
 
+- Reduced logging overhead when using the default system timestamp and no custom field providers.
+
 - Deprecated `FieldProvider`; use `initialFields` to seed global fields at SDK startup and `addField`
   to update them.
+
+- Out-of-the-box foreground, locale, and network fields now keep their values in the native state
+  store instead of being evaluated for every log.
+
 - Legacy fixed-session strategy generator callbacks have been removed. Use
   `SessionConfiguration` to provide an initial session ID.
 
@@ -34,22 +165,25 @@
 
 **Added**
 
-- Added support for `BITDRIFT_API_KEY` when uploading ProGuard mappings using capture-plugin. `API_KEY` remains supported for compatibility.
+- Added support for `BITDRIFT_API_KEY` in capture-plugin debug-file upload tasks. `API_KEY` remains supported for compatibility.
 
 **Changed**
 
-- Updated the `bd` CLI bundled with capture-plugin from version `0.1.37` to `0.2.23`.
+- Updated the `bd` CLI bundled with capture-plugin from version `0.1.37` to `0.2.23`. The plugin refreshes a cached CLI when its pinned version changes.
 - Reduced overhead when logging multiple string fields by batching JNI local-reference cleanup.
 
 **Fixed**
 
 - Prevent duplicate JVM crash reports when fatal issue reporting initializes after app exit logging.
 
+- Session Replay no longer renders an empty frame while a dialog, bottom sheet or popup is on
+  screen, and no longer drops the contents of an `AndroidView` embedded in one.
+
 ### iOS
 
 **Added**
 
-- Nothing yet!
+- Crash, hangs, and (new) OOM diagnostics are now read through the iOS 27 `MetricManager` API when running on iOS 27 and compiling with Xcode 27; earlier OS versions continue to use `MXMetricManager`.
 
 **Changed**
 
@@ -60,6 +194,7 @@
 
 - Invalid inactivity timeouts now disable activity-based session rotation instead of preventing
   SDK initialization.
+- Fixed a link failure in apps that was caused by exceeding Apple's limit of personality routines for compact unwind.
 
 ## [0.23.12]
 [0.23.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.12

@@ -195,6 +195,14 @@ public protocol Logging {
     ) -> Span
 }
 
+/// Internal span creation support for integrations that receive a span ID from another runtime.
+protocol InternalSpanIDLogging: Logging {
+    func startSpan(
+        name: String, level: LogLevel, file: String?, line: Int?, function: String?,
+        fields: Fields?, startTimeInterval: TimeInterval?, parentSpanID: UUID?, spanID: UUID
+    ) -> Span
+}
+
 extension Logging {
     /// Logs a message at a specified level to the default logger instance. Provides default values for
     /// `file`, `line`, and `function` parameters.
@@ -352,6 +360,33 @@ extension Logging {
     ) {
         self.log(
             level: .error,
+            message: message(),
+            file: file,
+            line: line,
+            function: function,
+            fields: fields,
+            error: error
+        )
+    }
+
+    /// Logs a critical level message to the default logger instance.
+    ///
+    /// - parameter message:  The message to log.
+    /// - parameter file:     The unique file identifier that has the form module/file.
+    /// - parameter line:     The line number where the log is emitted.
+    /// - parameter function: The name of the function from which the log is emitted.
+    /// - parameter fields:   The extra fields to send with the log.
+    /// - parameter error:    The error to log.
+    public func logCritical(
+        _ message: @autoclosure () -> String,
+        file: String? = #file,
+        line: Int? = #line,
+        function: String? = #function,
+        fields: Fields? = nil,
+        error: Error? = nil
+    ) {
+        self.log(
+            level: .critical,
             message: message(),
             file: file,
             line: line,

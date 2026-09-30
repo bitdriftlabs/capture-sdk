@@ -6,12 +6,12 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import Foundation
-import UIKit
 
-/// Attributes related to the device information including hardware model, locale, etc.
+/// Attributes related to device information that is read once during logger initialization.
 final class DeviceAttributes {
-    private let locale = Atomic<String>(Locale.current.identifier)
-    let hardwareVersion: String = {
+    let hardwareVersion = DeviceAttributes.hardwareVersion()
+
+    private static func hardwareVersion() -> String {
         let size = UnsafeMutablePointer<Int>.allocate(capacity: 1)
         sysctlbyname("hw.machine", nil, size, nil, 0)
 
@@ -20,30 +20,5 @@ final class DeviceAttributes {
         size.deallocate()
 
         return String(cString: machine)
-    }()
-
-    private var notificationRegistrationToken: NSObjectProtocol?
-
-    func start() {
-        self.notificationRegistrationToken = NotificationCenter.default.bitdrift_addObserver(
-            forName: NSLocale.currentLocaleDidChangeNotification
-        ) { [weak self] _ in
-            self?.locale.update { $0 = Locale.current.identifier }
-        }
-    }
-
-    deinit {
-        if let token = self.notificationRegistrationToken {
-            NotificationCenter.default.removeObserver(token)
-        }
-    }
-}
-
-extension DeviceAttributes {
-    func getFields() -> Fields {
-        return [
-            /// The device locale (e.g. en_US)
-            "_locale": self.locale.load(),
-        ]
     }
 }

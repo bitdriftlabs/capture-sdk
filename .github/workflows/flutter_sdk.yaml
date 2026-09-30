@@ -1,0 +1,44 @@
+name: flutter
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'platform/capture_flutter/**'
+      - 'examples/flutter/**'
+      - '.github/workflows/flutter_sdk.yaml'
+  pull_request:
+    paths:
+      - 'platform/capture_flutter/**'
+      - 'examples/flutter/**'
+      - '.github/workflows/flutter_sdk.yaml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.0
+          cache: true
+
+      - name: Analyze Flutter plugin
+        working-directory: platform/capture_flutter
+        run: |
+          flutter pub get
+          flutter analyze
+
+      - name: Build Android example
+        working-directory: examples/flutter
+        run: |
+          flutter pub get
+          flutter build apk --debug

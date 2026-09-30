@@ -59,7 +59,9 @@ final class NetworkTestEnvironment {
                 apiKey: "test!",
                 bufferDirectoryPath: sdkDirectory.path,
                 sessionStrategy: .configuration(.init()),
-                metadataProvider: MockMetadataProvider(),
+                timestampProvider: MockMetadataProvider(),
+                customFieldsProvider: MockMetadataProvider(),
+                initialOotbFields: [],
                 resourceUtilizationTarget: MockResourceUtilizationTarget(),
                 sessionReplayTarget: MockSessionReplayTarget(),
                 eventsListenerTarget: MockEventsListenerTarget(),
@@ -68,8 +70,8 @@ final class NetworkTestEnvironment {
                 buildNumber: "",
                 osVersion: "",
                 model: "",
-                targetDomain: "\(testServer.baseURL.scheme ?? "http")://\(testServer.baseURL.host ?? "localhost"):\(testServer.baseURL.port ?? 80)",
-                network: network,
+                targetDomain: "\(testServer.baseURL.scheme ?? "http")://\(testServer.baseURL.host ?? "127.0.0.1"):\(testServer.baseURL.port ?? 80)",
+                network: self.network,
                 errorReporting: MockRemoteErrorReporter(),
                 sleepMode: .disabled,
                 initialFields: [],
@@ -117,14 +119,12 @@ final class NetworkTestEnvironment {
 
     // MARK: - Private Mock Types
 
-    private final class MockMetadataProvider: CaptureLoggerBridge.MetadataProvider {
+    private final class MockMetadataProvider: CaptureLoggerBridge.TimestampProvider,
+                                              CaptureLoggerBridge.CustomFieldsProvider
+    {
         func timestamp() -> TimeInterval {
             // Matches "2022-10-26T17:56:41.520058155Z" when formatted.
             Date(timeIntervalSince1970: 1_666_807_001.52005815).timeIntervalSince1970
-        }
-
-        func ootbFields() -> [Field] {
-            []
         }
 
         func customFields() -> [Field] {

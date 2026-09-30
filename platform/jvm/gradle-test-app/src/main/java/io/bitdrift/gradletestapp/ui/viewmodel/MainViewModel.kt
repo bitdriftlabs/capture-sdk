@@ -8,6 +8,7 @@
 package io.bitdrift.gradletestapp.ui.viewmodel
 
 import android.app.Application
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
@@ -31,11 +32,18 @@ import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
+import io.bitdrift.gradletestapp.diagnostics.PreInitOrderingExample
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.BufferOverflow
 import timber.log.Timber
 
 /**
@@ -51,8 +59,55 @@ class MainViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AppState())
     val uiState: StateFlow<AppState> = _uiState.asStateFlow()
+    private var preInitOrderingJob: Job? = null
+    private val diskPressureCommands =
+        MutableSharedFlow<DiskPressureCommand>(
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
 
     init {
+        viewModelScope.launch {
+            CaptureSdkInitializer.sdkInitializationState.collect { initialized ->
+                when (initialized) {
+                    true -> {
+                        updateSdkState()
+                        _uiState.update { it.copy(isLoading = false, error = null) }
+                    }
+
+                    false -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = "Failed to initialize SDK. Please check your API key and URL.",
+                            )
+                        }
+                    }
+
+                    null -> Unit
+                }
+            }
+        }
+        viewModelScope.launch {
+            CaptureSdkInitializer.isStarting.collect { isStarting ->
+                if (isStarting) {
+                    _uiState.update { it.copy(isLoading = true, error = null) }
+                }
+            }
+        }
+        viewModelScope.launch {
+            diskPressureCommands.collectLatest { command ->
+                val diskPressureFlow =
+                    when (command) {
+                        DiskPressureCommand.Fill -> stressTestRepository.fillDiskSpace()
+                        DiskPressureCommand.Clear -> stressTestRepository.clearDiskSpace()
+                    }
+                diskPressureFlow.collect { diskPressure ->
+                    _uiState.update { it.copy(diskPressure = diskPressure) }
+                }
+            }
+        }
+        refreshDiskSpace()
         viewModelScope.launch {
             initializeSdkConfig()
         }
@@ -115,6 +170,9 @@ class MainViewModel(
             is DiagnosticsAction.LogSingleMessage -> logSingleMessage()
             is DiagnosticsAction.LogManyMessages -> logManyMessages()
             is DiagnosticsAction.LogJsonField -> logJsonField()
+            is DiagnosticsAction.TestPreInitOrdering -> testPreInitOrdering()
+            is DiagnosticsAction.StartSpan -> sdkRepository.startSpan()
+            is DiagnosticsAction.EndSpan -> sdkRepository.endSpan()
             is DiagnosticsAction.ForceAppExit -> forceAppExit()
             is DiagnosticsAction.TriggerRandomNativeCrash -> triggerRandomNativeCrash()
             is DiagnosticsAction.TriggerRandomJvmCrash -> triggerRandomJvmCrash()
@@ -123,6 +181,12 @@ class MainViewModel(
 
             is NetworkTestAction.PerformOkHttpRequest -> {
                 networkTestingRepository.performOkHttpRequest()
+            }
+            is NetworkTestAction.PerformOkHttpFailureBeforeResponseHeaders -> {
+                networkTestingRepository.performOkHttpFailureBeforeResponseHeaders()
+            }
+            is NetworkTestAction.PerformDelayedOkHttpRequest -> {
+                networkTestingRepository.performDelayedOkHttpRequest()
             }
             is NetworkTestAction.PerformGraphQlRequest -> {
                 networkTestingRepository.performGraphQlRequest()
@@ -189,6 +253,9 @@ class MainViewModel(
             is StressTestAction.TriggerJankyFrames -> stressTestRepository.triggerJankyFrames(action.type.durationMs)
             is StressTestAction.TriggerStrictModeViolation -> stressTestRepository.triggerStrictModeViolation(action.type)
             is StressTestAction.TriggerScreenReplayCapture -> stressTestRepository.triggerScreenReplayCapture(action.activity)
+            is StressTestAction.FillDiskSpace -> fillDiskSpace()
+            is StressTestAction.ClearDiskSpace -> clearDiskSpace()
+            is StressTestAction.RefreshDiskSpace -> refreshDiskSpace()
             is ClearError -> clearError()
 
             // For now, navigation actions are handled at the Fragment level
@@ -202,6 +269,25 @@ class MainViewModel(
             is NavigationAction.InvokeService -> {}
 
         }
+    }
+
+    private fun fillDiskSpace() {
+        diskPressureCommands.tryEmit(DiskPressureCommand.Fill)
+    }
+
+    private fun clearDiskSpace() {
+        diskPressureCommands.tryEmit(DiskPressureCommand.Clear)
+    }
+
+    private fun refreshDiskSpace() {
+        _uiState.update {
+            it.copy(diskPressure = stressTestRepository.refreshDiskSpace())
+        }
+    }
+
+    private enum class DiskPressureCommand {
+        Fill,
+        Clear,
     }
 
     private fun initializeSdk() {
@@ -319,6 +405,21 @@ class MainViewModel(
         val variant = if (value) "true" else "false"
         Timber.i("Adding variant_flag feature flag with variant: $variant")
         Logger.setFeatureFlagExposure("variant_flag", variant)
+    }
+
+    private fun testPreInitOrdering() {
+        if (preInitOrderingJob?.isActive == true) return
+        preInitOrderingJob = viewModelScope.launch {
+            try {
+                val result = PreInitOrderingExample.run()
+                Toast.makeText(application, result, Toast.LENGTH_LONG).show()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "Pre-init ordering example failed")
+                _uiState.update { it.copy(error = "Pre-init ordering example failed: ${e.message}") }
+            }
+        }
     }
 
     private fun logSingleMessage() {

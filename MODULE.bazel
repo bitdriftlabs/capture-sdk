@@ -45,9 +45,9 @@ KOTLIN_STD_VERSION = "1.9.25"
 
 NDK_API_LEVEL = 21
 
-SDK_API_LEVEL = 36
+SDK_API_LEVEL = "37.0"
 
-SDK_BUILD_TOOLS_VERSION = "36.1.0"
+SDK_BUILD_TOOLS_VERSION = "37.0.0"
 
 ####################
 # Bazel dependencies
@@ -198,7 +198,7 @@ native_binary(
 android = use_extension("@hermetic_android_toolchains//:extensions.bzl", "android", dev_dependency = True)
 android.sdk(
     build_tools_version = SDK_BUILD_TOOLS_VERSION,
-    version = str(SDK_API_LEVEL),
+    version = SDK_API_LEVEL,
 )
 android.ndk(
     api_level = NDK_API_LEVEL,

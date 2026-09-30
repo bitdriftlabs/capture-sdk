@@ -14,7 +14,9 @@ import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.StatFs
 import android.os.StrictMode
+import android.os.Build
 import android.view.Gravity
 import android.view.View
 import android.view.Window
@@ -25,21 +27,89 @@ import android.widget.TextView
 import android.widget.Toast
 import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.FatalIssueGenerator
+import io.bitdrift.gradletestapp.data.model.DiskPressureState
 import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import timber.log.Timber
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 
 class StressTestRepository(
     private val context: Context,
 ) {
     private val oomList = mutableListOf<ByteArray>()
     private var memoryPressureThread: Thread? = null
+
+    private val isDiskPressureAvailable: Boolean by lazy {
+        // "ranchu"   — QEMU2-based AVD, the default since Android Studio 2.x
+        // "goldfish" — legacy QEMU1 AVD, still reported by very old system images
+        Build.HARDWARE == "ranchu" || Build.HARDWARE == "goldfish"
+    }
+
+    fun fillDiskSpace(): Flow<DiskPressureState> =
+        flow {
+            if (!isDiskPressureAvailable) {
+                emit(DiskPressureState.UnsupportedDevice)
+                return@flow
+            }
+
+            val fillerFile = File(context.filesDir, DISK_FILLER_FILE_NAME)
+            val buffer = ByteArray(DISK_FILL_CHUNK_SIZE_BYTES)
+            var availableBytes = clearDiskSpaceFile()
+
+            emit(DiskPressureState.Filling(availableBytes))
+
+            try {
+                FileOutputStream(fillerFile).use { output ->
+                    while (availableBytes > 0) {
+                        currentCoroutineContext().ensureActive()
+                        output.write(buffer)
+                        availableBytes = availableDiskSpace()
+                        emit(DiskPressureState.Filling(availableBytes))
+                    }
+                }
+            } catch (e: IOException) {
+                emit(
+                    DiskPressureState.Failed(
+                        availableBytes = availableDiskSpace(),
+                        message = e.message ?: "Disk write failed",
+                    ),
+                )
+                return@flow
+            }
+
+            emit(DiskPressureState.Ready(availableBytes))
+        }.flowOn(Dispatchers.IO)
+
+    fun clearDiskSpace(): Flow<DiskPressureState> =
+        flow {
+            emit(
+                DiskPressureState.Ready(clearDiskSpaceFile()),
+            )
+        }.flowOn(Dispatchers.IO)
+
+    fun refreshDiskSpace(): DiskPressureState =
+        diskPressureReadyState()
+
+    private fun diskPressureReadyState(): DiskPressureState =
+        if (isDiskPressureAvailable) DiskPressureState.Ready(availableDiskSpace()) else DiskPressureState.UnsupportedDevice
+    
+    private fun clearDiskSpaceFile(): Long {
+        File(context.filesDir, DISK_FILLER_FILE_NAME).delete()
+        return availableDiskSpace()
+    }
 
     fun increaseMemoryPressure(targetPercent: Int) {
         Capture.Logger.logWarning {
@@ -265,6 +335,8 @@ class StressTestRepository(
     }
 
     companion object {
+        private const val DISK_FILLER_FILE_NAME = "disk-pressure-filler"
+        private const val DISK_FILL_CHUNK_SIZE_BYTES = 1024 * 1024
         private const val REPLAY_RACE_DURATION_MS = 10_000L
         private const val REPLAY_CAPTURE_INTERVAL_MS = 20L
         private const val CHURN_INTERVAL_MS = 16L
@@ -280,7 +352,7 @@ class StressTestRepository(
                 1,
                 WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                 PixelFormat.TRANSLUCENT,
             ).apply { this.token = token }
 
@@ -357,4 +429,6 @@ class StressTestRepository(
     private fun usedMemory(): Long {
         return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
     }
+
+    private fun availableDiskSpace(): Long = StatFs(context.filesDir.path).availableBytes
 }

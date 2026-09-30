@@ -6,13 +6,16 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 internal import CaptureLoggerBridge
+internal import CapturePassable
 
 final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
     func makeLogger(
         apiKey: String,
         bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
-        metadataProvider: CaptureLoggerBridge.MetadataProvider,
+        timestampProvider: CaptureLoggerBridge.TimestampProvider?,
+        customFieldsProvider: CaptureLoggerBridge.CustomFieldsProvider?,
+        initialOotbFields: [CapturePassable.Field],
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
         sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
@@ -32,7 +35,9 @@ final class LoggerBridgingFactory: LoggerBridgingFactoryProvider {
             apiKey: apiKey,
             bufferDirectoryPath: bufferDirectoryPath,
             sessionStrategy: sessionStrategy,
-            metadataProvider: metadataProvider,
+            timestampProvider: timestampProvider,
+            customFieldsProvider: customFieldsProvider,
+            initialOotbFields: initialOotbFields,
             resourceUtilizationTarget: resourceUtilizationTarget,
             sessionReplayTarget: sessionReplayTarget,
             eventsListenerTarget: eventsListenerTarget,

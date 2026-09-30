@@ -11,27 +11,33 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 
 private val AppColors: ColorScheme =
     darkColorScheme(
         primary = BitdriftColors.Primary,
         onPrimary = BitdriftColors.TextBright,
+        primaryContainer = BitdriftColors.BackgroundElevated,
+        onPrimaryContainer = BitdriftColors.PrimaryBright,
         background = BitdriftColors.Background,
         onBackground = BitdriftColors.TextPrimary,
         surface = BitdriftColors.BackgroundPaper,
         onSurface = BitdriftColors.TextPrimary,
+        surfaceVariant = BitdriftColors.BackgroundElevated,
+        onSurfaceVariant = BitdriftColors.TextSecondary,
         secondary = BitdriftColors.TextSecondary,
         onSecondary = BitdriftColors.TextBright,
-        error = Color(0xFFCF6679),
+        outline = BitdriftColors.BorderStrong,
+        outlineVariant = BitdriftColors.Border,
+        error = BitdriftColors.Error,
+        onError = BitdriftColors.TextBright,
     )
 
 @Composable
 fun BitdriftTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = AppColors,
-        typography = MaterialTheme.typography,
-        shapes = MaterialTheme.shapes,
+        typography = BdTypography,
+        shapes = BdShapes,
         content = content,
     )
 }

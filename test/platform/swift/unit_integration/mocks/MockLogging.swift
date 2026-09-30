@@ -49,6 +49,7 @@ public final class MockLogging {
     public var logExpectation: XCTestExpectation?
     public var logRequestExpectation: XCTestExpectation?
     public var logResponseExpectation: XCTestExpectation?
+    public var startSpanExpectation: XCTestExpectation?
 
     public var acceptedQuery: String?
 
@@ -58,6 +59,7 @@ public final class MockLogging {
 
     /// The logs emitted by the logger
     public private(set) var logs = [Log]()
+    public private(set) var startedSpans = [Span]()
     /// The number of logs emitted by the logger.
     public var logsCount: Int { self.logs.count }
     /// A closure that's called every time a log is emitted by the logger.
@@ -161,7 +163,7 @@ extension MockLogging: Logging {
                           startTimeInterval: TimeInterval? = nil,
                           parentSpanID: UUID? = nil) -> Span
     {
-        Span(
+        let span = Span(
             logger: MockCoreLogging(),
             name: name,
             level: level,
@@ -173,6 +175,9 @@ extension MockLogging: Logging {
             customStartTimeInterval: startTimeInterval,
             parentSpanID: parentSpanID
         )
+        self.startedSpans.append(span)
+        self.startSpanExpectation?.fulfill()
+        return span
     }
 
     public func setSleepMode(_ mode: Capture.SleepMode) {

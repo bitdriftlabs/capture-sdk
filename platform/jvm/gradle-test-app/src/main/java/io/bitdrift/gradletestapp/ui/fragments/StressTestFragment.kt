@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.material3.MaterialTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
@@ -48,9 +49,11 @@ class StressTestFragment : Fragment() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 MaterialTheme {
+                    val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
                     StressTestScreen(
-                        onAction = { action -> viewModel.handleAction(action) },
+                        onAction = viewModel::handleAction,
                         onNavigateBack = { findNavController().popBackStack() },
+                        diskPressure = uiState.diskPressure,
                     )
                 }
             }
@@ -62,4 +65,3 @@ class StressTestFragment : Fragment() {
         Logger.logScreenView("stress_test_fragment")
     }
 }
-

@@ -48,7 +48,9 @@ internal object CaptureJniLibrary : IBridge {
      * @param inactivityTimeoutMilliseconds inactivity timeout in milliseconds, or a negative value
      * to disable inactivity-driven rotation.
      * @param sessionCallback optional recipient for session ID changes.
-     * @param metadataProvider used to provide metadata for emitted logs.
+     * @param timestampProvider optional provider for custom log timestamps.
+     * @param customFieldsProvider optional provider for custom log fields.
+     * @param initialOotbFields the OOTB fields to use before the logger accepts logs.
      * @param resourceUtilizationTarget used to inform platform layer about a need to emit a resource log.
      * @param sessionReplayTarget used to inform platform layer about a need to emit session replay logs.
      * @param eventsListenerTarget responsible for listening to platform events and emitting logs in response to them.
@@ -73,7 +75,9 @@ internal object CaptureJniLibrary : IBridge {
         initialSessionId: String?,
         inactivityTimeoutMilliseconds: Long,
         sessionCallback: SessionCallback?,
-        metadataProvider: IMetadataProvider,
+        timestampProvider: ITimestampProvider?,
+        customFieldsProvider: ICustomFieldsProvider?,
+        initialOotbFields: Array<Field>,
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,
         eventsListenerTarget: IEventsListenerTarget,
@@ -158,6 +162,16 @@ internal object CaptureJniLibrary : IBridge {
      * @param value the value of the field to add.
      */
     external fun addLogField(
+        loggerId: Long,
+        key: String,
+        value: String,
+    )
+
+    /**
+     * Adds or replaces an SDK-owned OOTB field without allowing user-provided fields to override
+     * it. This is reserved for Capture's platform implementations.
+     */
+    external fun updateOotbLogField(
         loggerId: Long,
         key: String,
         value: String,
@@ -435,6 +449,7 @@ internal object CaptureJniLibrary : IBridge {
      * @param stream          The InputStream containing ANR details
      * @param timestampMillis The time at which the event took place
      * @param destinationPath Target file path to write the report
+     * @param tempDirectoryPath Writable directory used to buffer the ANR trace while parsing
      * @param attributes Client attributes used for dynamic report metadata
      */
     @Throws(IOException::class, IllegalArgumentException::class)
@@ -443,6 +458,7 @@ internal object CaptureJniLibrary : IBridge {
         stream: InputStream?,
         timestampMillis: Long,
         destinationPath: String,
+        tempDirectoryPath: String,
         attributes: IClientAttributes,
         runningState: String?,
         appExitDescription: String?,

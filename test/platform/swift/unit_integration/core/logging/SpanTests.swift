@@ -15,6 +15,25 @@ final class SpanTests: XCTestCase {
     // On shared CI hosts we can observe >500ms scheduling jitter.
     private let allowedTimeVarianceSeconds: TimeInterval = 1.000
 
+    func testUsesProvidedSpanID() {
+        let id = UUID()
+        let span = Span(
+            logger: MockCoreLogging(),
+            name: "test",
+            level: .debug,
+            file: nil,
+            line: nil,
+            function: nil,
+            fields: nil,
+            timeProvider: MockTimeProvider(),
+            customStartTimeInterval: nil,
+            parentSpanID: nil,
+            id: id
+        )
+
+        XCTAssertEqual(span.id, id)
+    }
+
     private func createSpan(logger: MockCoreLogging, timeProvider: TimeProvider = MockTimeProvider(),
                             start: TimeInterval? = nil, parent: UUID? = nil) -> Span
     {

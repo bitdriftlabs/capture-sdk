@@ -18,33 +18,34 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
-import io.bitdrift.capture.InitializationState
+import io.bitdrift.capture.ILogger
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
 import io.bitdrift.capture.reports.Report
-import io.bitdrift.capture.webview.WebViewConfiguration
-import io.bitdrift.gradletestapp.data.repository.SdkRepository
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_CONSOLE_LOGS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_ERRORS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_LONG_TASKS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_PAGE_VIEWS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_ENABLE_WEB_VITALS_KEY
-import io.bitdrift.gradletestapp.ui.compose.components.WebViewSettingsDialog.Companion.WEBVIEW_MONITORING_ENABLED_KEY
+import io.bitdrift.capture.timber.CaptureTree
+import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFAULT_SIMULATED_START_DELAY_MILLIS
+import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.SIMULATED_START_DELAY_MILLIS_PREFS_KEY
 import io.sentry.Sentry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Starts bitdrift's Captures SDK with the persisted config settings
@@ -52,6 +53,13 @@ import java.util.concurrent.Executors
 object CaptureSdkInitializer {
     private val userUuid = UUID.randomUUID().toString()
     private val bitdriftSessionUrlKey = "bitdrift_session_url"
+    private val backgroundStartScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val isCaptureTreePlanted = AtomicBoolean(false)
+    private val _sdkInitializationState = MutableStateFlow<Boolean?>(null)
+    private val _isStarting = MutableStateFlow(false)
+
+    val sdkInitializationState: StateFlow<Boolean?> = _sdkInitializationState.asStateFlow()
+    val isStarting: StateFlow<Boolean> = _isStarting.asStateFlow()
 
     val currentUserUuid: String
         get() = userUuid
@@ -64,6 +72,12 @@ object CaptureSdkInitializer {
         applicationContext: Context,
         sharedPreferences: SharedPreferences,
     ): Boolean {
+        if (Capture.Logger.sessionUrl != null) {
+            _sdkInitializationState.value = true
+            return true
+        }
+
+        _sdkInitializationState.value = null
 
         val persistedSdkConfigResult = getPersistedCaptureSdkSettings(
             applicationContext,
@@ -73,13 +87,27 @@ object CaptureSdkInitializer {
         return when (persistedSdkConfigResult) {
 
             is PersistedSdkConfigResult.Success -> {
-                startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext)
-                logPreviousRunInfoToBitdrift()
-                return Capture.Logger.getSdkStatus().initializationState != InitializationState.NOT_STARTED
+                plantCaptureTree()
+                _isStarting.value = true
+
+                val startAction = {
+                    startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext)
+                    logPreviousRunInfoToBitdrift()
+                }
+
+                if (shouldStartOnBackgroundThread(sharedPreferences)) {
+                    backgroundStartScope.launch { startAction() }
+                } else {
+                    startAction()
+                }
+
+                true
             }
 
             is PersistedSdkConfigResult.Failed -> {
                 Timber.i(persistedSdkConfigResult.message)
+                _isStarting.value = false
+                _sdkInitializationState.value = false
                 false
             }
         }
@@ -91,30 +119,61 @@ object CaptureSdkInitializer {
         settings: CaptureSdkInitSettings,
         context: Context,
     ) {
-
-        Capture.Logger.start(
-            apiKey = settings.apiKey,
-            apiUrl = settings.apiUrl,
-            configuration = settings.configuration,
-            sessionStrategy = settings.sessionStrategy,
-            initialFields = settings.initialFields,
-            context = context,
-        ) { startResult ->
+        val onStartResult: (CaptureResult<ILogger>) -> Unit = { startResult ->
             when (startResult) {
                 is CaptureResult.Success -> {
                     val logger = startResult.value
                     Log.d("bitdrift","SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}, userUuid=${userUuid}")
                     Capture.Logger.setEntityId(userUuid)
                     addSessionUrlToThirdPartySdks(context, logger.sessionUrl)
+                    _isStarting.value = false
+                    _sdkInitializationState.value = true
                 }
 
                 is CaptureResult.Failure -> {
                     Log.d("bitdrift","SDK failed to start: ${startResult.error.message}")
+                    _isStarting.value = false
+                    _sdkInitializationState.value = false
                     // Re-throwing on debug builds so we can get immediate signal of
                     // any issues at Capture.Logger.start internals during the development phase.
                     throw IllegalStateException(startResult.error.message)
                 }
             }
+        }
+
+        if (settings.simulateStartDelay) {
+            startCaptureSdkWithSimulatedDelay(
+                apiKey = settings.apiKey,
+                apiUrl = settings.apiUrl,
+                configuration = settings.configuration,
+                sessionStrategy = settings.sessionStrategy,
+                initialFields = settings.initialFields,
+                context = context,
+                startResult = onStartResult,
+                delayMillis = settings.simulatedStartDelayMillis,
+            )
+        } else {
+            Capture.Logger.start(
+                apiKey = settings.apiKey,
+                apiUrl = settings.apiUrl,
+                configuration = settings.configuration,
+                sessionStrategy = settings.sessionStrategy,
+                initialFields = settings.initialFields,
+                context = context,
+                startResult = onStartResult,
+            )
+        }
+    }
+
+    private fun shouldStartOnBackgroundThread(sharedPreferences: SharedPreferences): Boolean =
+        sharedPreferences.getBoolean(
+            ConfigurationSettingsFragment.Companion.START_ON_BACKGROUND_THREAD_PREFS_KEY,
+            true,
+        )
+
+    private fun plantCaptureTree() {
+        if (isCaptureTreePlanted.compareAndSet(false, true)) {
+            Timber.plant(CaptureTree())
         }
     }
 
@@ -145,7 +204,6 @@ object CaptureSdkInitializer {
             )
 
         val sessionStrategy = getSessionStrategy(applicationContext, sharedPreferences)
-        val webViewConfig = getWebViewConfiguration(sharedPreferences)
 
         @OptIn(ExperimentalBitdriftApi::class)
         val issueCallbackConfiguration = IssueCallbackConfiguration(
@@ -158,9 +216,20 @@ object CaptureSdkInitializer {
                 sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
                 issueCallbackConfiguration = issueCallbackConfiguration,
-                webViewConfiguration = webViewConfig,
             )
         val initialFields = mapOf("user_id" to userUuid)
+
+        val simulateStartDelay =
+            sharedPreferences.getBoolean(
+                ConfigurationSettingsFragment.Companion.SIMULATED_START_DELAY_PREFS_KEY,
+                false
+            )
+
+        val simulatedStartDelayMillis =
+            sharedPreferences.getString(SIMULATED_START_DELAY_MILLIS_PREFS_KEY, null)
+                ?.toLongOrNull()
+                ?.takeIf { it >= 0 }
+                ?: DEFAULT_SIMULATED_START_DELAY_MILLIS
 
         val captureSdkInitSettings =
             CaptureSdkInitSettings(
@@ -169,14 +238,11 @@ object CaptureSdkInitializer {
                 sessionStrategy = sessionStrategy,
                 configuration = configuration,
                 initialFields = initialFields,
+                simulateStartDelay = simulateStartDelay,
+                simulatedStartDelayMillis = simulatedStartDelayMillis,
             )
         return PersistedSdkConfigResult.Success(captureSdkInitSettings)
     }
-
-    private fun SharedPreferences.getPersistedFlag(keyName: String): Boolean = getBoolean(
-        keyName,
-        false
-    )
 
     private fun getSessionStrategy(
         applicationContext: Context,
@@ -203,31 +269,6 @@ object CaptureSdkInitializer {
                 },
             )
         }
-
-    private fun getWebViewConfiguration(sharedPrefs: SharedPreferences): WebViewConfiguration? {
-        if (!sharedPrefs.getBoolean(WEBVIEW_MONITORING_ENABLED_KEY, false)
-        ) {
-            return null
-        }
-
-        @OptIn(ExperimentalBitdriftApi::class)
-        return WebViewConfiguration(
-            captureConsoleLogs = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_CONSOLE_LOGS_KEY),
-            captureErrors = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_ERRORS_KEY),
-            captureNetworkRequests = sharedPrefs.getPersistedFlag(
-                WEBVIEW_ENABLE_NETWORK_REQUESTS_KEY
-            ),
-            captureNavigationEvents = sharedPrefs.getPersistedFlag(
-                WEBVIEW_ENABLE_NAVIGATION_EVENTS_KEY
-            ),
-            capturePageViews = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_PAGE_VIEWS_KEY),
-            captureWebVitals = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_WEB_VITALS_KEY),
-            captureLongTasks = sharedPrefs.getPersistedFlag(WEBVIEW_ENABLE_LONG_TASKS_KEY),
-            captureUserInteractions = sharedPrefs.getPersistedFlag(
-                WEBVIEW_ENABLE_USER_INTERACTIONS_KEY
-            ),
-        )
-    }
 
     private fun buildIssueReportCallbackExecutor(): ExecutorService =
         Executors.newSingleThreadExecutor { runnable ->
@@ -269,6 +310,10 @@ object CaptureSdkInitializer {
 
     private class CustomerIssueReportCallback : IssueReportCallback {
         override fun onBeforeReportSend(report: Report) {
+            Log.i(
+                AppExitRepository.LOG_TAG,
+                "onBeforeReportSend reportType=${report.reportType} reason=${report.reason}",
+            )
             Capture.Logger.logInfo(
                 mapOf(
                     "reportType" to report.reportType,
@@ -299,5 +344,7 @@ object CaptureSdkInitializer {
         val sessionStrategy: SessionStrategy,
         val configuration: Configuration,
         val initialFields: Map<String, String>,
+        val simulateStartDelay: Boolean,
+        val simulatedStartDelayMillis: Long,
     )
 }

@@ -102,7 +102,7 @@ describe('long task monitoring', () => {
         it('should not crash when observer callback throws', async () => {
             const collector = createMessageCollector();
             // Make the mock throw on getEntries
-            collector.mock.log.mockImplementationOnce(() => {
+            collector.mock.postMessage.mockImplementationOnce(() => {
                 throw new Error('Logging error');
             });
 

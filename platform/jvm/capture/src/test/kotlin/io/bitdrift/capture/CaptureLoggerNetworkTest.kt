@@ -38,10 +38,10 @@ class CaptureLoggerNetworkTest {
     private var testServerPort: Int? = null
     private val okHttpClient = OkHttpClient()
 
-    class TestMetadataProvider : IMetadataProvider {
+    class TestMetadataProvider :
+        ITimestampProvider,
+        ICustomFieldsProvider {
         override fun timestamp(): Long = Date().time
-
-        override fun ootbFields(): Array<Field> = emptyArray()
 
         override fun customFields(): Array<Field> = emptyArray()
     }
@@ -91,7 +91,9 @@ class CaptureLoggerNetworkTest {
             initialSessionId = null,
             inactivityTimeoutMilliseconds = -1L,
             sessionCallback = null,
-            metadataProvider = loggerBridge,
+            timestampProvider = loggerBridge,
+            customFieldsProvider = loggerBridge,
+            initialOotbFields = emptyArray(),
             resourceUtilizationTarget = mock(),
             sessionReplayTarget = mock(),
             eventsListenerTarget = mock(),

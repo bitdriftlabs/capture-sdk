@@ -11,12 +11,11 @@ crc32fast.workspace = true
 log.workspace       = true
 memmap2.workspace   = true
 
-[target.'cfg(target_vendor = "apple")'.dependencies]
-objc2.workspace            = true
-objc2-foundation.workspace = true
-
 [dev-dependencies]
 tempfile.workspace = true
+
+[build-dependencies]
+cc = "1"
 
 [lib]
 crate-type = ["rlib"]

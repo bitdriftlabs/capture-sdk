@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { log, createMessage } from './bridge';
+import { getCurrentPageSpanId, getPageSpanIdAtTime } from './page-view';
 import { safeCall, makeSafe } from './safe-call';
 
 let requestCounter = 0;
@@ -192,6 +193,7 @@ const interceptFetch = (): void => {
         window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
             const requestId = generateRequestId();
             const startTime = performance.now();
+            const parentSpanId = getCurrentPageSpanId() ?? undefined;
 
             // Extract URL and method safely
             const { url, method } = safeCall(() => {
@@ -224,6 +226,7 @@ const interceptFetch = (): void => {
 
                     const message = createMessage({
                         type: 'networkRequest',
+                        parentSpanId,
                         requestId,
                         method: method.toUpperCase(),
                         url,
@@ -248,6 +251,7 @@ const interceptFetch = (): void => {
 
                     const message = createMessage({
                         type: 'networkRequest',
+                        parentSpanId,
                         requestId,
                         method: method.toUpperCase(),
                         url,
@@ -316,6 +320,7 @@ const interceptXHR = (): void => {
             }
 
             const startTime = performance.now();
+            const parentSpanId = getCurrentPageSpanId() ?? undefined;
 
             const handleComplete = makeSafe((): void => {
                 const endTime = performance.now();
@@ -325,6 +330,7 @@ const interceptXHR = (): void => {
 
                 const message = createMessage({
                     type: 'networkRequest',
+                    parentSpanId,
                     requestId: info.requestId,
                     method: info.method,
                     url: info.url,
@@ -346,6 +352,7 @@ const interceptXHR = (): void => {
 
                 const message = createMessage({
                     type: 'networkRequest',
+                    parentSpanId,
                     requestId: info.requestId,
                     method: info.method,
                     url: info.url,
@@ -420,6 +427,7 @@ const initResourceObserver = (): void => {
 
                                 const message = createMessage({
                                     type: 'networkRequest',
+                                    parentSpanId: getPageSpanIdAtTime(resourceEntry.startTime) ?? undefined,
                                     requestId: generateRequestId(),
                                     method: 'GET', // Browser resource loads are typically GET
                                     url: resourceEntry.name,

@@ -9,7 +9,7 @@
 import XCTest
 
 extension WebViewLoggingContext {
-    static let empty = WebViewLoggingContext(currentPageViewSpanID: nil, activePageViewSpans: [:])
+    static let empty = WebViewLoggingContext(currentPageViewSpanID: nil)
 }
 
 extension XCTestCase {
@@ -21,17 +21,21 @@ extension XCTestCase {
         _ action: WebViewLoggingAction?,
         message expectedMessage: String,
         level expectedLevel: LogLevel,
+        type expectedType: Capture.Logger.LogType? = nil,
         file: StaticString = #filePath,
         line: UInt = #line,
         fields assertFields: ([String: String]) -> Void = { _ in }
     ) {
-        guard case let .log(level, message, fields)? = action else {
+        guard case let .log(level, message, fields, type)? = action else {
             XCTFail("expected .log action, got \(String(describing: action))", file: file, line: line)
             return
         }
 
         XCTAssertEqual(level, expectedLevel, file: file, line: line)
         XCTAssertEqual(message, expectedMessage, file: file, line: line)
+        if let expectedType {
+            XCTAssertEqual(type, expectedType, file: file, line: line)
+        }
         assertFields((fields as? [String: String]) ?? [:])
     }
 }

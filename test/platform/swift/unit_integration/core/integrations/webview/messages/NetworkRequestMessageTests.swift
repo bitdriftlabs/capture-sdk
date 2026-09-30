@@ -78,6 +78,18 @@ final class NetworkRequestMessageTests: XCTestCase {
         let action = whenMakingLoggingAction()
         XCTAssertNil(action)
     }
+
+    func testMakeLoggingActionIncludesResolvedPageViewParentSpanID() throws {
+        let pageViewLoggerSpanID = UUID()
+        try givenNetworkRequestMessage(parentSpanId: pageViewLoggerSpanID.uuidString)
+        let context = WebViewLoggingContext(currentPageViewSpanID: nil)
+        let action = whenMakingLoggingAction(context: context)
+
+        try thenActionIsNetwork(action) { requestFields, responseFields in
+            XCTAssertEqual(requestFields["_span_parent_id"], pageViewLoggerSpanID.uuidString)
+            XCTAssertEqual(responseFields["_span_parent_id"], pageViewLoggerSpanID.uuidString)
+        }
+    }
 }
 
 private extension NetworkRequestMessageTests {
@@ -90,6 +102,7 @@ private extension NetworkRequestMessageTests {
         success: Bool = true,
         error: String? = nil,
         requestType: String = "fetch",
+        parentSpanId: String? = nil,
         timing: WebViewResourceTiming? = nil
     ) throws {
         let timingJSON = try timing.map { try encodeToJSON($0) } ?? "null"
@@ -99,6 +112,7 @@ private extension NetworkRequestMessageTests {
             "v": 1,
             "type": "networkRequest",
             "timestamp": 1700000000000,
+            "parentSpanId": \(parentSpanId.map { "\"\($0)\"" } ?? "null"),
             "requestId": "\(requestId)",
             "method": "\(method)",
             "url": "\(url)",
@@ -118,8 +132,8 @@ private extension NetworkRequestMessageTests {
         return try XCTUnwrap(String(data: data, encoding: .utf8))
     }
 
-    func whenMakingLoggingAction() -> WebViewLoggingAction? {
-        sut.makeLoggingAction(context: .empty)
+    func whenMakingLoggingAction(context: WebViewLoggingContext = .empty) -> WebViewLoggingAction? {
+        sut.makeLoggingAction(context: context)
     }
 
     func thenActionIsNetwork(

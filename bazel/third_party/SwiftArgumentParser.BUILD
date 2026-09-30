@@ -3,12 +3,15 @@ load("@rules_swift//swift:swift.bzl", "swift_library")
 swift_library(
     name = "swift_argument_parser",
     srcs = glob(["Sources/ArgumentParser/**/*.swift"]),
-    tags = ["manual"],
-    module_name = "ArgumentParser",
+    copts = [
+        "-language-mode",
+        "5",
+    ],
     features = [
         "swift.enable_library_evolution",
     ],
-    copts = ["-language-mode", "5"],
+    module_name = "ArgumentParser",
+    tags = ["manual"],
     visibility = ["//visibility:public"],
     deps = [":swift_argument_parser_tool_info"],
 )
@@ -16,8 +19,11 @@ swift_library(
 swift_library(
     name = "swift_argument_parser_tool_info",
     srcs = glob(["Sources/ArgumentParserToolInfo/**/*.swift"]),
-    tags = ["manual"],
+    copts = [
+        "-language-mode",
+        "5",
+    ],
     library_evolution = True,
     module_name = "ArgumentParserToolInfo",
-    copts = ["-language-mode", "5"],
+    tags = ["manual"],
 )

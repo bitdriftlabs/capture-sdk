@@ -2,20 +2,26 @@
 <resources>
     <!-- Bitdrift Brand Colors -->
     <color name="bitdrift_primary">#22C55E</color>
-    <color name="bitdrift_primary_light">#5BE49B</color>
+    <color name="bitdrift_primary_fill">#3A9A61</color>
+    <color name="bitdrift_primary_light">#4ADE80</color>
     <color name="bitdrift_primary_dark">#0A6547</color>
     <color name="bitdrift_accent">#8DEC1E</color>
     
-    <color name="bitdrift_background">#090911</color>
-    <color name="bitdrift_background_paper">#0D0F17</color>
-    <color name="bitdrift_background_darker">#12161C</color>
+    <color name="bitdrift_background">#0B0E13</color>
+    <color name="bitdrift_background_paper">#1C2128</color>
+    <color name="bitdrift_background_darker">#0B0E13</color>
+    <color name="bitdrift_background_elevated">#232935</color>
     
     <color name="bitdrift_text_primary">#CCDFE9F5</color>
     <color name="bitdrift_text_secondary">#557CA6</color>
-    <color name="bitdrift_text_tertiary">#a2a6b9</color>
+    <color name="bitdrift_text_tertiary">#6B7186</color>
     
-    <color name="bitdrift_border">#19DFE9F5</color>
-    <color name="bitdrift_border_default">#424452</color>
+    <color name="bitdrift_text_bright">#F1F6EE</color>
+    <color name="bitdrift_text_muted">#959FB2</color>
+    <color name="bitdrift_surface_muted">#272E3C</color>
+
+    <color name="bitdrift_border">#262D3A</color>
+    <color name="bitdrift_border_default">#2A2E3C</color>
     
     <!-- Legacy colors for compatibility -->
     <color name="green">#22C55E</color>

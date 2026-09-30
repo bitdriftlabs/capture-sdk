@@ -5,14 +5,21 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-import { log, createMessage } from './bridge';
+import { log, createMessage, registerPageViewSpanIdProvider } from './bridge';
 import { safeCall, makeSafe } from './safe-call';
 
 /** Current page view span ID */
 let currentPageSpanId: string | null = null;
 
+/** Most recently ended page view span ID, retained for delayed telemetry such as final Web Vitals. */
+let lastPageSpanId: string | null = null;
+
 /** Start time of current page view (epoch ms) */
 let pageViewStartTimeMs: number = 0;
+
+/** Page intervals use the same time origin as PerformanceEntry.startTime. */
+const pageSpans: { id: string; startTime: number; endTime?: number }[] = [];
+const MAX_RETAINED_PAGE_SPANS = 256;
 
 /**
  * Generate a unique span ID
@@ -36,6 +43,32 @@ const generateSpanId = (): string => {
  */
 export const getCurrentPageSpanId = (): string | null => {
     return currentPageSpanId;
+};
+
+registerPageViewSpanIdProvider(getCurrentPageSpanId);
+
+/**
+ * Get the active page view span ID, or the most recently ended one when telemetry is reported
+ * after the page view lifecycle listener has run.
+ */
+export const getLatestPageSpanId = (): string | null => {
+    return currentPageSpanId ?? lastPageSpanId;
+};
+
+/** Find the page view in which a browser performance entry began. */
+export const getPageSpanIdAtTime = (startTime: number): string | null => {
+    if (!Number.isFinite(startTime) || startTime < 0) {
+        return null;
+    }
+
+    for (let i = pageSpans.length - 1; i >= 0; i--) {
+        const pageSpan = pageSpans[i];
+        if (startTime >= pageSpan.startTime) {
+            return pageSpan.endTime === undefined || startTime <= pageSpan.endTime ? pageSpan.id : null;
+        }
+    }
+
+    return null;
 };
 
 /**
@@ -63,6 +96,14 @@ export const startPageView = (url: string, reason: 'initial' | 'navigation' = 'n
             pageViewStartTimeMs = Date.now();
         }
 
+        pageSpans.push({
+            id: currentPageSpanId,
+            startTime: reason === 'initial' ? 0 : performance.now(),
+        });
+        if (pageSpans.length > MAX_RETAINED_PAGE_SPANS) {
+            pageSpans.shift();
+        }
+
         const message = createMessage({
             type: 'pageView',
             action: 'start',
@@ -87,6 +128,10 @@ export const endPageView = (reason: 'navigation' | 'unload' | 'hidden'): void =>
 
         const now = Date.now();
         const durationMs = now - pageViewStartTimeMs;
+        const currentPageSpan = pageSpans[pageSpans.length - 1];
+        if (currentPageSpan?.id === currentPageSpanId) {
+            currentPageSpan.endTime = performance.now();
+        }
 
         const message = createMessage({
             type: 'pageView',
@@ -99,6 +144,7 @@ export const endPageView = (reason: 'navigation' | 'unload' | 'hidden'): void =>
         });
         log(message);
 
+        lastPageSpanId = currentPageSpanId;
         currentPageSpanId = null;
         pageViewStartTimeMs = 0;
     });

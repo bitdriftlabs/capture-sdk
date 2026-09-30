@@ -21,6 +21,7 @@ internal class JniStreamingReportProcessor(
             report.stream,
             report.timestampMillis,
             report.destinationPath,
+            report.tempDirectoryPath,
             attributes,
             report.runningState,
             report.appExitDescription,

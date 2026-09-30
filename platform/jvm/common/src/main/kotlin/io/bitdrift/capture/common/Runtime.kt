@@ -75,6 +75,46 @@ sealed class RuntimeFeature(
     data object WEBVIEW_INSTRUMENTATION : RuntimeFeature("client_feature.android.webview_instrumentation", defaultValue = true)
 
     /**
+     * Whether instrumented WebViews capture page view events.
+     */
+    data object WEBVIEW_PAGE_VIEWS : RuntimeFeature("client_feature.android.webview_page_views", defaultValue = true)
+
+    /**
+     * Whether instrumented WebViews capture network requests.
+     */
+    data object WEBVIEW_NETWORK_REQUESTS : RuntimeFeature("client_feature.android.webview_network_requests", defaultValue = true)
+
+    /**
+     * Whether instrumented WebViews capture navigation events.
+     */
+    data object WEBVIEW_NAVIGATION_EVENTS : RuntimeFeature("client_feature.android.webview_navigation_events", defaultValue = true)
+
+    /**
+     * Whether instrumented WebViews capture Core Web Vitals.
+     */
+    data object WEBVIEW_WEB_VITALS : RuntimeFeature("client_feature.android.webview_web_vitals", defaultValue = true)
+
+    /**
+     * Whether instrumented WebViews capture long tasks that block the main thread.
+     */
+    data object WEBVIEW_LONG_TASKS : RuntimeFeature("client_feature.android.webview_long_tasks", defaultValue = true)
+
+    /**
+     * Whether instrumented WebViews capture JavaScript console messages.
+     */
+    data object WEBVIEW_CONSOLE_LOGS : RuntimeFeature("client_feature.android.webview_console_logs", defaultValue = true)
+
+    /**
+     * Whether instrumented WebViews capture user interactions (clicks, rage clicks, etc).
+     */
+    data object WEBVIEW_USER_INTERACTIONS : RuntimeFeature("client_feature.android.webview_user_interactions", defaultValue = true)
+
+    /**
+     * Whether instrumented WebViews capture JavaScript errors, promise rejections and resource errors.
+     */
+    data object WEBVIEW_ERRORS : RuntimeFeature("client_feature.android.webview_errors", defaultValue = true)
+
+    /**
      * Whether Android fatal issue report size optimizations are enabled.
      */
     data object OPTIMIZE_FATAL_ISSUE_REPORT_SIZE : RuntimeFeature(

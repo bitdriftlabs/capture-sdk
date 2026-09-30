@@ -12,24 +12,18 @@ struct ErrorMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let name: String
     let message: String
-    let stack: String?
-    let filename: String?
-    let lineno: Int?
-    let colno: Int?
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
         .log(
             level: .error,
             message: "webview.error",
             fields: makeFields(
+                context: context,
                 ("_name", name),
-                ("_message", message),
-                ("_stack", stack),
-                ("_filename", filename),
-                ("_lineno", lineno.map(String.init)),
-                ("_colno", colno.map(String.init))
+                ("_message", message)
             )
         )
     }

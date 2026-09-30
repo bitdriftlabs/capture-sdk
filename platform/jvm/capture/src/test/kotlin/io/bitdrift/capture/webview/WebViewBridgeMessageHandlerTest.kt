@@ -7,18 +7,27 @@
 
 package io.bitdrift.capture.webview
 
+import androidx.webkit.WebMessageCompat
+import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.events.span.Span
+import io.bitdrift.capture.network.HttpRequestInfo
+import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.utils.toStringMap
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito.verifyNoInteractions
+import java.util.UUID
 
 class WebViewBridgeMessageHandlerTest {
     private lateinit var logger: IInternalLogger
@@ -31,7 +40,111 @@ class WebViewBridgeMessageHandlerTest {
     @Before
     fun setUp() {
         logger = mock()
-        handler = WebViewBridgeMessageHandler(logger)
+        handler = WebViewBridgeMessageHandler(logger, "automatic_full")
+    }
+
+    @Test
+    fun log_whenNetworkRequestReferencesEndedPageView_shouldUseJavaScriptPageViewSpanId() {
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"pageView",
+                "timestamp":1000,
+                "action":"start",
+                "spanId":"11111111-1111-4111-8111-111111111111",
+                "url":"https://example.com",
+                "reason":"initial"
+            }
+            """.trimIndent(),
+        )
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"pageView",
+                "timestamp":2000,
+                "action":"end",
+                "spanId":"11111111-1111-4111-8111-111111111111",
+                "url":"https://example.com",
+                "reason":"navigation"
+            }
+            """.trimIndent(),
+        )
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"networkRequest",
+                "timestamp":2100,
+                "parentSpanId":"11111111-1111-4111-8111-111111111111",
+                "requestId":"req_1",
+                "method":"GET",
+                "url":"https://example.com/data",
+                "statusCode":200,
+                "durationMs":100,
+                "success":true,
+                "requestType":"fetch"
+            }
+            """.trimIndent(),
+        )
+
+        val requestCaptor = argumentCaptor<HttpRequestInfo>()
+        val responseCaptor = argumentCaptor<HttpResponseInfo>()
+        verify(logger).log(requestCaptor.capture())
+        verify(logger).log(responseCaptor.capture())
+        assertThat(requestCaptor.firstValue.arrayFields["_span_parent_id"])
+            .isEqualTo("11111111-1111-4111-8111-111111111111")
+        assertThat(responseCaptor.firstValue.arrayFields["_span_parent_id"])
+            .isEqualTo("11111111-1111-4111-8111-111111111111")
+    }
+
+    @Test
+    fun log_whenWebVitalReferencesPageView_shouldUseJavaScriptPageViewSpanId() {
+        val webVitalSpan = Span(mock(), "webview.webVital.fcp", LogLevel.INFO, clock = mock())
+        whenever(logger.startSpan(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(webVitalSpan)
+
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"pageView",
+                "timestamp":1000,
+                "action":"start",
+                "spanId":"11111111-1111-4111-8111-111111111111",
+                "url":"https://example.com",
+                "reason":"initial"
+            }
+            """.trimIndent(),
+        )
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"webVital",
+                "timestamp":1500,
+                "parentSpanId":"11111111-1111-4111-8111-111111111111",
+                "metric":{
+                    "name":"FCP",
+                    "value":100,
+                    "rating":"good",
+                    "delta":100,
+                    "id":"metric-1",
+                    "navigationType":"navigate",
+                    "entries":[]
+                }
+            }
+            """.trimIndent(),
+        )
+
+        verify(logger).startSpan(
+            eq("webview.webVital.fcp"),
+            eq(LogLevel.INFO),
+            anyOrNull(),
+            eq(1400L),
+            eq(UUID.fromString("11111111-1111-4111-8111-111111111111")),
+        )
     }
 
     @Test
@@ -118,19 +231,21 @@ class WebViewBridgeMessageHandlerTest {
         val fields = arrayFieldsCaptor.firstValue.toStringMap()
         val logMessage = logMessageCaptor.firstValue()
         assertThat(fields["_source"]).isEqualTo("webview")
+        assertThat(fields["_instrumentation_mode"]).isEqualTo("automatic_full")
         assertThat(fields["_config"]).isEqualTo("{\"capturePageViews\":true,\"captureErrors\":false}")
         assertThat(fields["_url"]).isEqualTo("https://example.com")
         assertThat(logMessage).isEqualTo("webview.initialized")
     }
 
     @Test
-    fun log_whenLifecycle_shouldLogUxDebugWithAllFields() {
+    fun log_whenLifecycle_shouldLogUxInfoWithAllFields() {
         val message =
             """
             {
                 "v":1,
                 "type":"lifecycle",
                 "timestamp":1234567890,
+                "parentSpanId":"11111111-1111-4111-8111-111111111111",
                 "event":"load",
                 "performanceTime":123.45,
                 "visibilityState":"visible"
@@ -142,7 +257,7 @@ class WebViewBridgeMessageHandlerTest {
 
         verify(logger).logInternal(
             logTypeCaptor.capture(),
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(ArrayFields.EMPTY),
             eq(null),
@@ -154,13 +269,14 @@ class WebViewBridgeMessageHandlerTest {
         assertThat(fields["_event"]).isEqualTo("load")
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
+        assertThat(fields["_span_parent_id"]).isEqualTo("11111111-1111-4111-8111-111111111111")
         assertThat(fields["_performance_time"]).isEqualTo("123.45")
         assertThat(fields["_visibility_state"]).isEqualTo("visible")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.lifecycle")
     }
 
     @Test
-    fun log_whenLifecycleWithoutOptionalFields_shouldLogUxDebug() {
+    fun log_whenLifecycleWithoutOptionalFields_shouldLogUxInfo() {
         val message =
             """
             {
@@ -176,7 +292,7 @@ class WebViewBridgeMessageHandlerTest {
 
         verify(logger).logInternal(
             logTypeCaptor.capture(),
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(ArrayFields.EMPTY),
             eq(null),
@@ -194,7 +310,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenNavigation_shouldLogDebugWithAllFields() {
+    fun log_whenNavigation_shouldLogInfoWithAllFields() {
         val message =
             """
             {
@@ -210,7 +326,7 @@ class WebViewBridgeMessageHandlerTest {
         handler.log(message)
 
         verify(logger).log(
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(null),
             logMessageCaptor.capture(),
@@ -225,7 +341,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenNavigationWithoutOptionalFields_shouldLogDebugWithEmptyStrings() {
+    fun log_whenNavigationWithoutOptionalFields_shouldLogInfoWithEmptyStrings() {
         val message =
             """
             {
@@ -238,7 +354,7 @@ class WebViewBridgeMessageHandlerTest {
         handler.log(message)
 
         verify(logger).log(
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(null),
             logMessageCaptor.capture(),
@@ -253,7 +369,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenError_shouldLogErrorWithAllFields() {
+    fun log_whenError_shouldLogErrorWithFields() {
         val message =
             """
             {
@@ -261,11 +377,7 @@ class WebViewBridgeMessageHandlerTest {
                 "type":"error",
                 "timestamp":1234567890,
                 "name":"TypeError",
-                "message":"Cannot read property 'foo' of undefined",
-                "stack":"TypeError: Cannot read property 'foo' of undefined\n    at main.js:10:5",
-                "filename":"https://example.com/main.js",
-                "lineno":10,
-                "colno":5
+                "message":"Cannot read property 'foo' of undefined"
             }
             """.trimIndent()
 
@@ -282,10 +394,6 @@ class WebViewBridgeMessageHandlerTest {
         assertThat(fields["_message"]).isEqualTo("Cannot read property 'foo' of undefined")
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
-        assertThat(fields["_stack"]).isEqualTo("TypeError: Cannot read property 'foo' of undefined\n    at main.js:10:5")
-        assertThat(fields["_filename"]).isEqualTo("https://example.com/main.js")
-        assertThat(fields["_lineno"]).isEqualTo("10")
-        assertThat(fields["_colno"]).isEqualTo("5")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.error")
     }
 
@@ -397,7 +505,7 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenLongTaskUnder100Ms_shouldLogUxDebug() {
+    fun log_whenLongTaskUnder100Ms_shouldLogUxInfo() {
         val message =
             """
             {
@@ -413,7 +521,7 @@ class WebViewBridgeMessageHandlerTest {
 
         verify(logger).logInternal(
             logTypeCaptor.capture(),
-            eq(LogLevel.DEBUG),
+            eq(LogLevel.INFO),
             arrayFieldsCaptor.capture(),
             eq(ArrayFields.EMPTY),
             eq(null),
@@ -648,15 +756,14 @@ class WebViewBridgeMessageHandlerTest {
     }
 
     @Test
-    fun log_whenPromiseRejection_shouldLogErrorWithAllFields() {
+    fun log_whenPromiseRejection_shouldLogErrorWithFields() {
         val message =
             """
             {
                 "v":1,
                 "type":"promiseRejection",
                 "timestamp":1234567890,
-                "reason":"Network request failed",
-                "stack":"Error: Network request failed\n    at fetch.js:20:10"
+                "reason":"Network request failed"
             }
             """.trimIndent()
 
@@ -671,7 +778,6 @@ class WebViewBridgeMessageHandlerTest {
         val fields = arrayFieldsCaptor.firstValue.toStringMap()
         assertThat(fields["_reason"]).isEqualTo("Network request failed")
         assertThat(fields["_source"]).isEqualTo("webview")
-        assertThat(fields["_stack"]).isEqualTo("Error: Network request failed\n    at fetch.js:20:10")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.promiseRejection")
     }
@@ -818,5 +924,89 @@ class WebViewBridgeMessageHandlerTest {
         assertThat(fields).doesNotContainKey("_click_count")
         assertThat(fields).doesNotContainKey("_time_window_ms")
         assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.userInteraction")
+    }
+
+    @Test
+    fun log_whenCustomLogCritical_shouldLogCritical() {
+        val message =
+            """
+            {
+                "v":1,
+                "type":"customLog",
+                "timestamp":1234567890,
+                "level":"critical",
+                "message":"Critical message"
+            }
+            """.trimIndent()
+
+        handler.log(message)
+
+        verify(logger).log(
+            eq(LogLevel.CRITICAL),
+            arrayFieldsCaptor.capture(),
+            eq(null),
+            logMessageCaptor.capture(),
+        )
+        assertThat(arrayFieldsCaptor.firstValue.toStringMap()["_source"]).isEqualTo("webview")
+        assertThat(logMessageCaptor.firstValue()).isEqualTo("Critical message")
+    }
+
+    @Test
+    fun log_whenCustomLogUnrecognizedLevel_shouldLogDebug() {
+        val message =
+            """
+            {
+                "v":1,
+                "type":"customLog",
+                "timestamp":1234567890,
+                "level":"fatal",
+                "message":"Unrecognized level message"
+            }
+            """.trimIndent()
+
+        handler.log(message)
+
+        verify(logger).log(
+            eq(LogLevel.DEBUG),
+            arrayFieldsCaptor.capture(),
+            eq(null),
+            logMessageCaptor.capture(),
+        )
+        assertThat(logMessageCaptor.firstValue()).isEqualTo("Unrecognized level message")
+    }
+
+    @Test
+    fun onPostMessage_withStringMessage_shouldDelegateToLog() {
+        val message =
+            """{"v":1,"type":"bridgeReady","timestamp":1234567890,"url":"https://example.com"}"""
+        val webMessage = WebMessageCompat(message)
+
+        handler.onPostMessage(mock(), webMessage, mock(), true, mock())
+
+        verify(logger).log(
+            eq(LogLevel.DEBUG),
+            arrayFieldsCaptor.capture(),
+            eq(null),
+            logMessageCaptor.capture(),
+        )
+        assertThat(logMessageCaptor.firstValue()).isEqualTo("webview.initialized")
+    }
+
+    @Test
+    fun onPostMessage_withNonStringMessage_shouldBeIgnoredSilently() {
+        val webMessage = WebMessageCompat(ByteArray(1))
+
+        handler.onPostMessage(mock(), webMessage, mock(), true, mock())
+
+        verifyNoInteractions(logger)
+    }
+
+    @Test
+    fun log_withNullType_shouldDoNothing() {
+        val message = """{"v":1,"timestamp":1234567890}"""
+
+        handler.log(message)
+
+        verifyNoInteractions(logger)
     }
 }

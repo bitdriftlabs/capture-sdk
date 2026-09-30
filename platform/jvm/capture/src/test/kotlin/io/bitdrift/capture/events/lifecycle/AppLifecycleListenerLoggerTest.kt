@@ -64,6 +64,17 @@ class AppLifecycleListenerLoggerTest {
     }
 
     @Test
+    fun testUpdatesForegroundOotbFieldWhenLifecycleLoggingIsDisabled() {
+        whenever(runtime.isEnabled(RuntimeFeature.APP_LIFECYCLE_EVENTS)).thenReturn(false)
+
+        appLifecycleLogger.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_START)
+        appLifecycleLogger.onStateChanged(processLifecycleOwner, Lifecycle.Event.ON_STOP)
+
+        verify(logger).updateOotbField("foreground", "1")
+        verify(logger).updateOotbField("foreground", "0")
+    }
+
+    @Test
     fun testAppStartInfoFieldsAreSkippedIfNotCreate() {
         // ARRANGE
         whenever(versionChecker.isAtLeast(35)).thenReturn(true)

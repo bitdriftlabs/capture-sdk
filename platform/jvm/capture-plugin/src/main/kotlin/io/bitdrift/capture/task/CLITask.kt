@@ -8,6 +8,7 @@
 package io.bitdrift.capture.task
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Internal
@@ -37,17 +38,11 @@ abstract class CLIUploadMappingTask : CLITask() {
         val appId = manifest.getAttribute("package")
         val versionCode = manifest.getAttribute("android:versionCode")
         val versionName = manifest.getAttribute("android:versionName")
-        val apiKey = System.getenv("BITDRIFT_API_KEY") ?: System.getenv("API_KEY")
-        checkNotNull(apiKey) {
-            "Environment variable BITDRIFT_API_KEY or API_KEY must be set to your bitdrift API key before running this task"
-        }
 
         runBDCLI(
             listOf(
                 "debug-files",
                 "upload-proguard",
-                "--api-key",
-                apiKey,
                 "--app-id",
                 appId,
                 "--app-version",
@@ -110,18 +105,23 @@ abstract class CLITask : DefaultTask() {
     val downloader: BDCLIDownloader
         get() = BDCLIDownloader(bdcliFile)
 
-    fun runBDCLI(args: List<String>) {
-        downloader.downloadIfNeeded()
-        runCommand(listOf(bdcliFile.absolutePath) + withBaseDomain(args))
-    }
+    /**
+     * Runs the bd CLI with the given command arguments. Global flags (`--base-domain` and
+     * `--api-key`) are added here, so callers must not include them.
+     *
+     * The API key is resolved and validated before anything is downloaded, so a misconfigured
+     * build fails immediately instead of after fetching the binary.
+     */
+    fun runBDCLI(subcommand: List<String>) {
+        val apiKey = envOrNull(BITDRIFT_API_KEY_ENV_VAR_NAME)
+            ?: envOrNull(DEPRECATED_API_KEY_ENV_VAR_NAME)
+            ?: throw GradleException(
+                "Environment variable $BITDRIFT_API_KEY_ENV_VAR_NAME or $DEPRECATED_API_KEY_ENV_VAR_NAME must be set with a non-empty bitdrift API key before running this task."
+            )
 
-    private fun withBaseDomain(args: List<String>): List<String> {
-        val baseDomain = baseDomain.orNull?.trim().orEmpty()
-        return if (baseDomain.isNotEmpty()) {
-            listOf("--base-domain", baseDomain) + args
-        } else {
-            args
-        }
+        downloader.downloadIfNeeded()
+
+        runCommand(listOf(bdcliFile.absolutePath) + globalArguments(apiKey) + subcommand)
     }
 
     fun runCommand(command: List<String>) {
@@ -131,14 +131,40 @@ abstract class CLITask : DefaultTask() {
                 .start()
         process.inputStream.transferTo(System.out)
         if (process.waitFor() != 0) {
-            throw RuntimeException("Command $command failed")
+            throw GradleException("Command ${command.maskedCommandArguments()} failed")
         }
     }
 
+    private fun envOrNull(name: String): String? =
+        System.getenv(name)?.takeIf { it.isNotBlank() }
+
+    private fun globalArguments(apiKey: String): List<String> {
+        val apiKeyArguments = listOf(API_KEY_FLAG, apiKey)
+
+        val baseDomain = baseDomain.orNull?.trim().orEmpty()
+        return if (baseDomain.isNotEmpty()) {
+            listOf(BASE_DOMAIN_FLAG, baseDomain) + apiKeyArguments
+        } else {
+            apiKeyArguments
+        }
+    }
+
+    private fun List<String>.maskedCommandArguments(): List<String> =
+        mapIndexed { index, argument ->
+            if (index > 0 && this[index - 1] == API_KEY_FLAG) "*****" else argument
+        }
+
+    private companion object {
+        private const val API_KEY_FLAG = "--api-key"
+        private const val BASE_DOMAIN_FLAG = "--base-domain"
+        private const val BITDRIFT_API_KEY_ENV_VAR_NAME = "BITDRIFT_API_KEY"
+        private const val DEPRECATED_API_KEY_ENV_VAR_NAME = "API_KEY"
+    }
 }
 
 class BDCLIDownloader(
     val executableFilePath: File,
+    private val download: (URI) -> ByteArray = { it.toURL().readBytes() },
 ) {
     val bdcliVersion = "0.2.23"
     val bdcliDownloadLoc: URI = URI.create("https://dl.bitdrift.io/bd-cli/$bdcliVersion/${downloadFilename()}/bd")
@@ -174,7 +200,7 @@ class BDCLIDownloader(
 
     fun downloadIfNeeded() {
         synchronized(lock) {
-            if (executableFilePath.exists()) return
+            if (isCurrentVersionInstalled()) return
 
             val parentDir = executableFilePath.parentFile
             if (!parentDir.exists() && !parentDir.mkdirs()) {
@@ -188,13 +214,14 @@ class BDCLIDownloader(
                 StandardOpenOption.WRITE,
             ).use { fileChannel ->
                 fileChannel.lock().use {
-                    if (executableFilePath.exists()) return
+                    if (isCurrentVersionInstalled()) return
 
                     val tempPath = parentDir.toPath().resolve("bd.${UUID.randomUUID()}.tmp")
                     try {
-                        Files.write(tempPath, bdcliDownloadLoc.toURL().readBytes())
+                        Files.write(tempPath, download(bdcliDownloadLoc))
                         tempPath.markAsExecutable()
                         tempPath.moveSafelyTo(executableFilePath.toPath())
+                        cliVersionFile().writeText(bdcliVersion)
                     } catch (e: Exception) {
                         runCatching { Files.deleteIfExists(tempPath) }
                         throw IOException(
@@ -206,6 +233,11 @@ class BDCLIDownloader(
             }
         }
     }
+
+    private fun isCurrentVersionInstalled(): Boolean =
+        executableFilePath.exists() && cliVersionFile().takeIf(File::exists)?.readText()?.trim() == bdcliVersion
+
+    private fun cliVersionFile(): File = File(executableFilePath.parentFile, "bd.version")
 
     private fun Path.moveSafelyTo(dest: Path) {
         try {

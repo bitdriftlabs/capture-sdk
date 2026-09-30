@@ -21,6 +21,26 @@ export const pristine = {
 
 type Platform = 'ios' | 'android' | 'unknown';
 
+/**
+ * Registered by page-view.ts to avoid a bridge <-> page-view module cycle.
+ * The bridge attaches this ID at send time, so custom logs are correlated too.
+ */
+let currentPageViewSpanId: (() => string | null) | undefined;
+
+export const registerPageViewSpanIdProvider = (provider: () => string | null): void => {
+    currentPageViewSpanId = provider;
+};
+
+const withPageViewParentSpan = (message: AnyBridgeMessage): AnyBridgeMessage => {
+    // A page view is the parent span itself, not its own child.
+    if (message.type === 'pageView' || message.parentSpanId) {
+        return message;
+    }
+
+    const parentSpanId = currentPageViewSpanId?.();
+    return parentSpanId ? { ...message, parentSpanId } : message;
+};
+
 const detectPlatform = (): Platform => {
     return (
         safeCall(() => {
@@ -48,14 +68,14 @@ const sendToNative = (() => {
         try {
             safeCall(() => {
                 const platform = detectPlatform();
-                const serialized = truncate(JSON.stringify(message), 32_768);
+                const serialized = truncate(JSON.stringify(withPageViewParentSpan(message)), 32_768);
 
                 switch (platform) {
                     case 'ios':
                         window.webkit?.messageHandlers?.BitdriftLogger?.postMessage(serialized);
                         break;
                     case 'android':
-                        window.BitdriftLogger?.log(serialized);
+                        window.BitdriftLogger?.postMessage(serialized);
                         break;
                     case 'unknown':
                         // In development/testing, log to console

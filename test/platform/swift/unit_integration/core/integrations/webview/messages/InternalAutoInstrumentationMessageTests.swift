@@ -14,7 +14,12 @@ final class InternalAutoInstrumentationMessageTests: XCTestCase {
     func testMakeLoggingActionLogsInstrumentedEventAtDebugLevel() throws {
         try givenInternalAutoInstrumentationMessage(event: "captureWebVitals")
         let action = whenMakingLoggingAction()
-        assertWebLogAction(action, message: "[WebView] instrumented captureWebVitals", level: .debug) { fields in
+        assertWebLogAction(
+            action,
+            message: "[WebView] instrumented captureWebVitals",
+            level: .debug,
+            type: .internalsdk
+        ) { fields in
             XCTAssertEqual(fields["_event"], "captureWebVitals")
         }
     }

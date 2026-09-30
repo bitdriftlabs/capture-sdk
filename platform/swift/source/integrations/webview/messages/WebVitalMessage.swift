@@ -12,8 +12,8 @@ struct WebVitalMessage: WebViewMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
-    let metric: WebVitalMetric
     let parentSpanId: String?
+    let metric: WebVitalMetric
     let url: String?
 
     var ratingLogLevel: LogLevel {
@@ -23,7 +23,7 @@ struct WebVitalMessage: WebViewMessage, Equatable {
         case "poor":
             return .warning
         default:
-            return .debug
+            return .info
         }
     }
 
@@ -41,9 +41,10 @@ struct WebVitalMessage: WebViewMessage, Equatable {
 
 extension WebVitalMessage: WebViewLoggableMessage {
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
-        let parentSpanID = context.parentLoggerSpanID(for: parentSpanId)
+        let parentSpanID = context.parentSpanID(for: parentSpanId)
         let fields = makeFields(
             includeTimestamp: false,
+            context: context,
             ("_metric", metric.name),
             ("_value", String(metric.value)),
             ("_rating", metric.rating),
@@ -58,7 +59,7 @@ extension WebVitalMessage: WebViewLoggableMessage {
         switch metric.name {
         case "LCP", "FCP", "TTFB", "INP":
             return .completeSpan(
-                name: "webview.webVital",
+                name: eventName,
                 level: ratingLogLevel,
                 fields: fields,
                 startTimeInterval: timestampTimeInterval - (metric.value / 1_000),
@@ -67,7 +68,16 @@ extension WebVitalMessage: WebViewLoggableMessage {
                 result: spanResult
             )
         default:
-            return .log(level: ratingLogLevel, message: "webview.webVital", fields: fields)
+            return .log(level: ratingLogLevel, message: eventName, fields: fields, type: .ux)
+        }
+    }
+
+    private var eventName: String {
+        switch metric.name {
+        case "LCP", "FCP", "TTFB", "INP", "CLS":
+            return "webview.webVital.\(metric.name.lowercased())"
+        default:
+            return "webview.webVital"
         }
     }
 }

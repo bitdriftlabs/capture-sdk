@@ -46,6 +46,7 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(traceparent).startsWith("00-")
         assertThat(traceparent).endsWith("-01")
         assertThat(request.header("b3")).isNull()
+        assertThat(request.header("x-bitdrift-initiated-trace")).isEqualTo("true")
     }
 
     @Test
@@ -64,6 +65,7 @@ class CaptureOkHttpTracingInterceptorTest {
         val b3 = request.header("b3")
         assertThat(b3).contains("-1")
         assertThat(request.header("traceparent")).isNull()
+        assertThat(request.header("x-bitdrift-initiated-trace")).isEqualTo("true")
     }
 
     @Test
@@ -84,6 +86,7 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(request.header("X-B3-Sampled")).isEqualTo("1")
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
+        assertThat(request.header("x-bitdrift-initiated-trace")).isEqualTo("true")
     }
 
     @Test
@@ -105,6 +108,7 @@ class CaptureOkHttpTracingInterceptorTest {
         assertThat(request.header("x-datadog-sampling-priority")).isEqualTo("2")
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
+        assertThat(request.header("x-bitdrift-initiated-trace")).isEqualTo("true")
     }
 
     @Test
@@ -122,6 +126,7 @@ class CaptureOkHttpTracingInterceptorTest {
         val request = chain.capturedRequest
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
+        assertThat(request.header("x-bitdrift-initiated-trace")).isNull()
     }
 
     @Test
@@ -139,6 +144,7 @@ class CaptureOkHttpTracingInterceptorTest {
         val request = chain.capturedRequest
         assertThat(request.header("traceparent")).isNull()
         assertThat(request.header("b3")).isNull()
+        assertThat(request.header("x-bitdrift-initiated-trace")).isNull()
     }
 
     @Test
@@ -156,6 +162,7 @@ class CaptureOkHttpTracingInterceptorTest {
         val request = chain.capturedRequest
         assertThat(request.header("b3")).isNull()
         assertThat(request.header("traceparent")).isNull()
+        assertThat(request.header("x-bitdrift-initiated-trace")).isNull()
     }
 
     @Test
@@ -378,6 +385,7 @@ class CaptureOkHttpTracingInterceptorTest {
         val request = chain.capturedRequest
         assertThat(request.header("x-datadog-trace-id")).isNotNull()
         assertThat(request.header("x-datadog-sampling-priority")).isEqualTo("2")
+        assertThat(request.header("x-bitdrift-initiated-trace")).isEqualTo("true")
     }
 
     @Test

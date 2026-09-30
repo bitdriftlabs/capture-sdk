@@ -6,11 +6,68 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { MetricType } from 'web-vitals';
+import type { INPMetric, MetricType } from 'web-vitals';
+import { createMessageCollector } from './mocks';
+
+vi.mock('web-vitals', () => ({
+    onLCP: vi.fn(),
+    onCLS: vi.fn(),
+    onINP: vi.fn(),
+    onFCP: vi.fn(),
+    onTTFB: vi.fn(),
+}));
 
 describe('web-vitals', () => {
     beforeEach(() => {
         vi.resetModules();
+        vi.clearAllMocks();
+    });
+
+    it('attaches a delayed INP to the page containing its entry', async () => {
+        const collector = createMessageCollector();
+        const now = vi.spyOn(performance, 'now').mockReturnValue(100);
+        const { startPageView, getCurrentPageSpanId } = await import('../page-view');
+        const { initWebVitals } = await import('../web-vitals');
+        const { onINP } = await import('web-vitals');
+
+        startPageView('https://example.com/first', 'initial');
+        const firstPageSpanId = getCurrentPageSpanId();
+        initWebVitals();
+        now.mockReturnValue(300);
+        startPageView('https://example.com/second', 'navigation');
+
+        const reportINP = vi.mocked(onINP).mock.calls[0][0];
+        const metric = {
+            id: 'inp-first',
+            name: 'INP',
+            navigationType: 'navigate',
+            entries: [{ startTime: 150, toJSON: () => ({ startTime: 150 }) }],
+        } as unknown as INPMetric;
+        reportINP(metric);
+
+        expect(collector.getMessagesByType('webVital')[0].parentSpanId).toBe(firstPageSpanId);
+        now.mockRestore();
+    });
+
+    it('keeps entryless final metrics on the page where monitoring began', async () => {
+        const collector = createMessageCollector();
+        const { startPageView, getCurrentPageSpanId } = await import('../page-view');
+        const { initWebVitals } = await import('../web-vitals');
+        const { onINP } = await import('web-vitals');
+
+        startPageView('https://example.com/first', 'initial');
+        const firstPageSpanId = getCurrentPageSpanId();
+        initWebVitals();
+        startPageView('https://example.com/second', 'navigation');
+
+        vi.mocked(onINP).mock.calls[0][0]({
+            id: 'inp-empty',
+            name: 'INP',
+            navigationType: 'navigate',
+            entries: [],
+        } as unknown as INPMetric);
+
+        expect(collector.getMessagesByType('webVital')[0].parentSpanId).toBe(firstPageSpanId);
     });
 
     describe('makeCloneableMetric', () => {

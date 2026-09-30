@@ -29,6 +29,9 @@ import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.compose.CaptureModifier
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
+import io.bitdrift.capture.replay.internal.mappers.BackgroundOpacity
+
+private const val SHAPE_KEY = "Shape"
 
 internal object ComposeTreeParser {
     @OptIn(InternalComposeUiApi::class)
@@ -54,7 +57,14 @@ internal object ComposeTreeParser {
         SessionReplayController.L.d(
             "Found Compose SemanticsNode root. Parsing Compose tree. Window offset: (${windowOffset[0]}, ${windowOffset[1]})",
         )
-        return rootNode.toScannableView(windowOffset[0], windowOffset[1], layoutNodeMap)
+        return rootNode.toScannableView(
+            ComposeWindow(
+                offsetX = windowOffset[0],
+                offsetY = windowOffset[1],
+                layoutNodes = layoutNodeMap,
+                isOverlay = androidComposeView.rootView.isOverlayWindowRoot(),
+            ),
+        )
     }
 
     private fun buildSemanticsIdToLayoutNodeMap(rootNode: LayoutNode): MutableIntObjectMap<LayoutNode> {
@@ -85,18 +95,14 @@ internal object ComposeTreeParser {
     }
 
     @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
-    private fun SemanticsNode.toScannableView(
-        windowOffsetX: Int,
-        windowOffsetY: Int,
-        layoutNodeMap: MutableIntObjectMap<LayoutNode>,
-    ): ScannableView {
-        val layoutNode = layoutNodeMap[this.id] ?: return ScannableView.IgnoredComposeView
+    private fun SemanticsNode.toScannableView(window: ComposeWindow): ScannableView {
+        val layoutNode = window.layoutNodes[this.id] ?: return ScannableView.IgnoredComposeView
         // this is a somewhat expensive call, so avoid calling it multiple times
         val config = this.config
         val captureIgnoreSubTree = config.getOrNull(CaptureModifier.CaptureIgnore)
         val isVisible = !config.contains(SemanticsProperties.InvisibleToUser)
         val notAttachedOrPlaced = !layoutNode.isPlaced || !layoutNode.isAttached
-        val type =
+        val semanticType =
             if (notAttachedOrPlaced) {
                 return ScannableView.IgnoredComposeView
             } else if (captureIgnoreSubTree != null) {
@@ -113,15 +119,18 @@ internal object ComposeTreeParser {
                 config.toReplayType()
             }
 
-        // Handle hybrid interop AndroidViews inside Compose elements
+        // Handle hybrid interop AndroidViews inside Compose elements. Must test the semantic type:
+        // in an overlay window the adjusted type is TransparentView, and gating on that would drop
+        // the embedded view's entire subtree.
         val interopAndroidView = layoutNode.getInteropView()
-        if (type == ReplayType.View && interopAndroidView != null) {
+        if (semanticType == ReplayType.View && interopAndroidView != null) {
             return ScannableView.AndroidView(
                 view = interopAndroidView,
                 skipReplayComposeViews = false,
             )
         }
 
+        val type = semanticType.occlusionAdjustedFor(window, config)
         val nodeBounds = this.unclippedGlobalBounds
 
         return ScannableView.ComposeView(
@@ -129,15 +138,14 @@ internal object ComposeTreeParser {
                 ReplayRect(
                     type = type,
                     // Add window offset to translate from window-relative to screen coordinates
-                    x = nodeBounds.left.toInt() + windowOffsetX,
-                    y = nodeBounds.top.toInt() + windowOffsetY,
+                    x = nodeBounds.left.toInt() + window.offsetX,
+                    y = nodeBounds.top.toInt() + window.offsetY,
                     width = nodeBounds.width.toInt(),
                     height = nodeBounds.height.toInt(),
                 ),
             // The display name is not really used for anything
             displayName = "ComposeView",
-            // Pass window offset to all children
-            children = this.children.asSequence().map { it.toScannableView(windowOffsetX, windowOffsetY, layoutNodeMap) },
+            children = this.children.asSequence().map { it.toScannableView(window) },
         )
     }
 
@@ -161,6 +169,53 @@ internal object ComposeTreeParser {
             ReplayType.View
         }
     }
+
+    /**
+     * Whether this window is a floating overlay, judged from its root's background rather than by
+     * scanning the semantics tree for IsDialog/IsPopup. An activity window paints an opaque
+     * backdrop; a Dialog, Popup or ModalBottomSheet window does not.
+     *
+     * This reads the entire View background instead of walking every node.
+     */
+    private fun View.isOverlayWindowRoot(): Boolean = BackgroundOpacity.paintedType(this) != ReplayType.View
+
+    /**
+     * Downgrades a generic container inside an overlay window. Compose semantics carry no background
+     * information, and guessing opaque lets a full-screen container occlude the windows beneath it.
+     */
+    private fun ReplayType.occlusionAdjustedFor(
+        window: ComposeWindow,
+        config: SemanticsConfiguration,
+    ): ReplayType =
+        if (window.isOverlay && this == ReplayType.View && !config.paintsSurface) {
+            // We only resort to deem this node transparent if we can be certain
+            ReplayType.TransparentView
+        } else {
+            this
+        }
+
+    /**
+     * Whether this node paints a surface of its own. This is a best-effort guess.
+     *
+     * It uses SemanticsProperties.Shape as a proxy for painting, which is normally set via
+     * `Modifier.background`, `border` and `clip`. Note that this is populated only from Compose 1.10.0.
+     * Below that it is always absent and every node reads as non-painting.
+     *
+     */
+    private val SemanticsConfiguration.paintsSurface: Boolean
+        // TODO(@murki): Migrate to using strongly-typed [SemanticsProperties.Shape] check when updating compose-ui to >= 1.10.0
+        // TODO(@murki): Consider using [SemanticsProperties.BackgroundColor] 1.13.0 stable, keeping `Shape` as the fallback below that.
+        // Matched by key name because `SemanticsProperties.Shape` is not available until compose-ui v1.10.0+
+        // `SemanticsProperties.BackgroundColor` answers directly, alpha included, from compose-ui
+        get() = any { it.key.name == SHAPE_KEY }
+
+    /** State fixed for the duration of one [parse] call. */
+    private class ComposeWindow(
+        val offsetX: Int,
+        val offsetY: Int,
+        val layoutNodes: MutableIntObjectMap<LayoutNode>,
+        val isOverlay: Boolean,
+    )
 
     private val SemanticsNode.unclippedGlobalBounds: Rect
         get() {

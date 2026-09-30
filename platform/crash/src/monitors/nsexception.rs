@@ -10,13 +10,20 @@
 mod tests;
 
 use crate::monitors::Monitor;
+use crate::schema;
 use crate::writer::{self, NSExceptionFrameRecord};
-use objc2_foundation::{NSArray, NSException, NSNumber};
 use std::ffi::{CStr, c_char, c_int, c_void};
 use std::ptr::{null, null_mut, read_unaligned};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-type ExceptionHandler = unsafe extern "C" fn(*mut NSException);
+type ExceptionHandler = unsafe extern "C" fn(*mut c_void);
+
+#[repr(C)]
+struct AppleCrashExceptionMetadata {
+  name: *const c_char,
+  reason: *const c_char,
+  frame_count: u16,
+}
 
 static IN_HANDLER: AtomicBool = AtomicBool::new(false);
 static PREVIOUS_HANDLER: AtomicUsize = AtomicUsize::new(0);
@@ -79,6 +86,12 @@ unsafe extern "C" {
   // https://developer.apple.com/documentation/Foundation/NSSetUncaughtExceptionHandler(_:)
   fn NSGetUncaughtExceptionHandler() -> Option<ExceptionHandler>;
   fn NSSetUncaughtExceptionHandler(handler: Option<ExceptionHandler>);
+  fn bd_apple_crash_snapshot_nsexception(
+    exception: *mut c_void,
+    metadata: *mut AppleCrashExceptionMetadata,
+    return_addresses: *mut u64,
+    return_addresses_capacity: u16,
+  ) -> bool;
   fn dladdr(addr: *const c_void, info: *mut DlInfo) -> c_int;
 }
 
@@ -129,12 +142,12 @@ impl Monitor for NSExceptionMonitor {
   }
 }
 
-unsafe extern "C" fn handle_exception(exception: *mut NSException) {
-  let snapshot = unsafe { exception.as_ref() }.map(extract_exception_snapshot);
+unsafe extern "C" fn handle_exception(exception: *mut c_void) {
+  let snapshot = unsafe { extract_exception_snapshot(exception) };
   handle_exception_snapshot(exception, snapshot);
 }
 
-fn handle_exception_snapshot(exception: *mut NSException, snapshot: Option<ExceptionSnapshot>) {
+fn handle_exception_snapshot(exception: *mut c_void, snapshot: Option<ExceptionSnapshot>) {
   // The system invokes the uncaught exception handler at the point of termination, so keep the
   // critical section small and reject re-entrant handler entry.
   if !try_enter_handler() {
@@ -148,18 +161,52 @@ fn handle_exception_snapshot(exception: *mut NSException, snapshot: Option<Excep
   chain_previous(exception);
 }
 
-fn extract_exception_snapshot(exception: &NSException) -> ExceptionSnapshot {
-  let return_addresses = exception.callStackReturnAddresses();
-  let return_addresses: &NSArray<NSNumber> = return_addresses.as_ref();
-  let frames = (0 .. return_addresses.count())
-    .map(|index| resolve_frame_snapshot(return_addresses.objectAtIndex(index).as_u64()))
+unsafe fn extract_exception_snapshot(exception: *mut c_void) -> Option<ExceptionSnapshot> {
+  if exception.is_null() {
+    return None;
+  }
+
+  let mut metadata = AppleCrashExceptionMetadata {
+    name: null(),
+    reason: null(),
+    frame_count: 0,
+  };
+  let mut return_addresses = [0; schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize];
+  if !unsafe {
+    bd_apple_crash_snapshot_nsexception(
+      exception,
+      &raw mut metadata,
+      return_addresses.as_mut_ptr(),
+      schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES,
+    )
+  } {
+    return None;
+  }
+
+  let name = unsafe { string_from_c(metadata.name) }?;
+  let reason = unsafe { string_from_c(metadata.reason) };
+  let frame_count =
+    usize::from(metadata.frame_count).min(schema::MAX_NS_EXCEPTION_CALL_STACK_FRAMES as usize);
+  let frames = return_addresses[.. frame_count]
+    .iter()
+    .map(|return_address| resolve_frame_snapshot(*return_address))
     .collect::<Vec<_>>();
 
-  ExceptionSnapshot {
-    name: exception.name().to_string(),
-    reason: exception.reason().map(|reason| reason.to_string()),
+  Some(ExceptionSnapshot {
+    name,
+    reason,
     frames,
+  })
+}
+
+unsafe fn string_from_c(value: *const c_char) -> Option<String> {
+  if value.is_null() {
+    return None;
   }
+  unsafe { CStr::from_ptr(value) }
+    .to_str()
+    .ok()
+    .map(str::to_owned)
 }
 
 fn record_exception_snapshot(snapshot: &ExceptionSnapshot) {
@@ -302,7 +349,7 @@ fn try_enter_handler() -> bool {
   !IN_HANDLER.swap(true, Ordering::SeqCst)
 }
 
-fn chain_previous(exception: *mut NSException) {
+fn chain_previous(exception: *mut c_void) {
   if let Some(previous) = previous_handler() {
     unsafe {
       previous(exception);

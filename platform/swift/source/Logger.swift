@@ -37,6 +37,9 @@ public final class Logger {
     private(set) var dispatchSourceMemoryMonitor: DispatchSourceMemoryMonitor?
     private(set) var resourceUtilizationTarget: ResourceUtilizationController
     private(set) var eventsListenerTarget: EventSubscriber
+    private let appStateAttributes: AppStateAttributes
+    private let deviceAttributes: DeviceAttributes
+    private let ootbFieldProviders: [any OotbFieldProvider]
 
     private let sessionURLBase: URL
     private var crashReporterService: CrashReporterService?
@@ -60,8 +63,8 @@ public final class Logger {
     ///                                            account. Provided by bitdrift.
     /// - parameter configuration:                 A configuration that specifies Capture features to enable.
     /// - parameter sessionStrategy:               The session strategy to use.
-    /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to
-    ///                                            system date provider if none is provided.
+    /// - parameter dateProvider:                  The date provider to use, if any. The logger uses its
+    ///                                            native system clock if none is provided.
     /// - parameter customFieldGetters:            The functions to use when querying the list of attributes
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
@@ -73,7 +76,7 @@ public final class Logger {
         configuration: Configuration,
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
-        customFieldGetters: [MetadataProviderController.FieldGetter] = [],
+        customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     )
@@ -103,8 +106,8 @@ public final class Logger {
     ///                                            creates its own error reporter.
     /// - parameter configuration:                 A configuration that specifies Capture features to enable.
     /// - parameter sessionStrategy:               The session strategy to use.
-    /// - parameter dateProvider:                  The date provider to use, if any. The logger defaults to
-    ///                                            system date provider if none is provided.
+    /// - parameter dateProvider:                  The date provider to use, if any. The logger uses its
+    ///                                            native system clock if none is provided.
     /// - parameter customFieldGetters:            The functions to use when querying the list of attributes
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
@@ -124,7 +127,7 @@ public final class Logger {
         configuration: Configuration,
         sessionStrategy: SessionStrategy,
         dateProvider: DateProvider?,
-        customFieldGetters: [MetadataProviderController.FieldGetter] = [],
+        customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
         enableNetwork: Bool = true,
         storageProvider: StorageProvider,
@@ -137,19 +140,18 @@ public final class Logger {
         let start = timeProvider.uptime()
 
         let appStateAttributes = AppStateAttributes()
-        let clientAttributes = ClientAttributes()
-        let deviceAttributes = DeviceAttributes()
+        let localeAttributes = LocaleAttributes()
         let networkAttributes = NetworkAttributes()
 
-        let metadataProvider = MetadataProviderController(
-            dateProvider: dateProvider ?? SystemDateProvider(),
-            ootbFieldGetters: [
-                appStateAttributes.getFields,
-                deviceAttributes.getFields,
-                networkAttributes.getFields,
-            ],
-            customFieldGetters: customFieldGetters
-        )
+        self.appStateAttributes = appStateAttributes
+        self.deviceAttributes = DeviceAttributes()
+        self.ootbFieldProviders = [appStateAttributes, localeAttributes, networkAttributes]
+        let clientAttributes = ClientAttributes()
+
+        let timestampProvider = dateProvider.map(TimestampProviderController.init)
+        let customFieldsProvider = customFieldGetters.isEmpty
+            ? nil
+            : CustomFieldsProviderController(customFieldGetters: customFieldGetters)
 
         self.sessionURLBase = Self.normalizedAPIURL(apiURL: configuration.apiURL)
 
@@ -182,7 +184,9 @@ public final class Logger {
             apiKey: apiKey,
             bufferDirectoryPath: directoryURL.path,
             sessionStrategy: sessionStrategy,
-            metadataProvider: metadataProvider,
+            timestampProvider: timestampProvider,
+            customFieldsProvider: customFieldsProvider,
+            initialOotbFields: self.ootbFieldProviders.flatMap { $0.initialOotbFields() },
             // TODO(Augustyniak): Pass `resourceUtilizationTarget`, `sessionReplayTarget`,
             // and `eventsListenerTarget` as part of the `self.underlyingLogger.start()` method call instead.
             // Pass the event listener target here and finish setting up
@@ -196,7 +200,7 @@ public final class Logger {
             releaseVersion: clientAttributes.appVersion,
             buildNumber: clientAttributes.buildNumber,
             osVersion: clientAttributes.osVersion,
-            model: deviceAttributes.hardwareVersion,
+            model: self.deviceAttributes.hardwareVersion,
             targetDomain: Self.targetDomain(apiURL: configuration.apiURL),
             network: network,
             errorReporting: self.remoteErrorReporter,
@@ -224,14 +228,14 @@ public final class Logger {
 
         self.eventsListenerTarget.setUp(
             logger: self.underlyingLogger,
-            appStateAttributes: appStateAttributes,
+            appStateAttributes: self.appStateAttributes,
             clientAttributes: clientAttributes,
             timeProvider: timeProvider
         )
         self.resourceUtilizationTarget.logger = self.underlyingLogger
 
         network?.logger = self.underlyingLogger
-        metadataProvider.errorHandler = { [weak underlyingLogger] context, error in
+        customFieldsProvider?.errorHandler = { [weak underlyingLogger] context, error in
             underlyingLogger?.handleError(context: context, error: error)
         }
         self.sessionReplayController?.logger = self.underlyingLogger
@@ -239,8 +243,9 @@ public final class Logger {
         // Start attributes before the underlying logger is running to increase the chances
         // of out-of-the-box attributes being ready by the time logs emitted as a result of the logger start
         // are emitted.
-        deviceAttributes.start()
-        networkAttributes.start(with: self.underlyingLogger)
+        for provider in self.ootbFieldProviders {
+            provider.start(with: self.underlyingLogger)
+        }
 
         self.underlyingLogger.start()
 
@@ -588,6 +593,30 @@ extension Logger: Logging {
         parentSpanID: UUID?
     ) -> Span
     {
+        startSpan(
+            name: name,
+            level: level,
+            file: file,
+            line: line,
+            function: function,
+            fields: fields,
+            startTimeInterval: startTimeInterval,
+            parentSpanID: parentSpanID,
+            spanID: UUID()
+        )
+    }
+
+    func startSpan(
+        name: String,
+        level: LogLevel,
+        file: String?,
+        line: Int?,
+        function: String?,
+        fields: Fields?,
+        startTimeInterval: TimeInterval?,
+        parentSpanID: UUID?,
+        spanID: UUID
+    ) -> Span {
         Span(
             logger: self.underlyingLogger,
             name: name,
@@ -598,7 +627,8 @@ extension Logger: Logging {
             fields: fields,
             timeProvider: self.timeProvider,
             customStartTimeInterval: startTimeInterval,
-            parentSpanID: parentSpanID
+            parentSpanID: parentSpanID,
+            id: spanID
         )
     }
 
@@ -610,6 +640,8 @@ extension Logger: Logging {
         self.deviceCodeController.createCodeOnDebugConsole(for: self.deviceID)
     }
 }
+
+extension Logger: InternalSpanIDLogging {}
 
 // MARK: - Features
 

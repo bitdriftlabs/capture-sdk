@@ -59,6 +59,8 @@ class ConfigurationTest {
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
             ),
         ).thenReturn(-1L)
 
@@ -81,6 +83,8 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
             eq(targetDomain),
+            anyOrNull(),
+            anyOrNull(),
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
@@ -141,6 +145,8 @@ class ConfigurationTest {
             anyOrNull(),
             anyOrNull(),
             anyOrNull(),
+            anyOrNull(),
+            anyOrNull(),
         )
     }
 
@@ -152,6 +158,8 @@ class ConfigurationTest {
         val bridge: IBridge = mock {}
         whenever(
             bridge.createLogger(
+                anyOrNull(),
+                anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),
                 anyOrNull(),

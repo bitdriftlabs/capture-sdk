@@ -29,6 +29,28 @@ make xcframework                    # Build iOS release artifact
 - Android is often easier to run through Gradle but sometimes issues only reproduce through Bazel. platform/jvm/gradlew can be invoked directly (use -p to target the correct directory).
 - `test --build_tests_only` is configured in `.bazelrc`, so wildcard test commands build only test targets rather than unrelated build targets.
 
+## Clippy
+
+CI runs Clippy through `ci/run_clippy.sh`, which uses `bazel build` and the runner's Clippy tags.
+Do not substitute `./bazelw test //... --config=clippy`: the repository-wide
+`--build_tests_only` setting can omit production `rust_library` targets that CI lints.
+
+On macOS, run the same full Clippy slice locally with:
+
+```bash
+./ci/run_clippy.sh all full /dev/null
+```
+
+For a changed Rust library, run its direct Clippy build target before broader validation. For
+example, JNI core changes require:
+
+```bash
+./bazelw build --config=clippy //platform/jvm/core:capture_core
+```
+
+After any Clippy-driven Rust edit, run `make format`, then rerun the focused Clippy command. Use
+the same `ci/run_clippy.sh` entry point for a full local CI-parity check when practical.
+
 ### Running One iOS XCTest With Rust Logs
 
 Use `--test_filter` with the XCTest `ClassName/testMethod` identifier. Pass `RUST_LOG` with

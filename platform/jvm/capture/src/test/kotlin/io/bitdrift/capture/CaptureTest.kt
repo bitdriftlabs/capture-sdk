@@ -38,6 +38,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@Suppress("DEPRECATION")
 class CaptureTest {
     private val latestAppExitInfoProvider = FakeLatestAppExitInfoProvider()
     private val preferences = MockPreferences()

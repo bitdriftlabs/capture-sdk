@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 internal import CaptureLoggerBridge
+internal import CapturePassable
 import Foundation
 
 typealias LoggerID = Int64
@@ -73,7 +74,9 @@ final class LoggerBridge: LoggerBridging {
         apiKey: String,
         bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
-        metadataProvider: CaptureLoggerBridge.MetadataProvider,
+        timestampProvider: CaptureLoggerBridge.TimestampProvider?,
+        customFieldsProvider: CaptureLoggerBridge.CustomFieldsProvider?,
+        initialOotbFields: [CapturePassable.Field],
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
         sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
@@ -105,7 +108,9 @@ final class LoggerBridge: LoggerBridging {
             sessionConfiguration.initialSessionID,
             sessionConfiguration.inactivityTimeout ?? -1,
             sessionConfiguration.makeSessionCallbackBridge(),
-            metadataProvider,
+            timestampProvider,
+            customFieldsProvider,
+            initialOotbFields,
             resourceUtilizationTarget,
             sessionReplayTarget,
             eventsListenerTarget,
@@ -140,7 +145,9 @@ final class LoggerBridge: LoggerBridging {
         apiKey: String,
         bufferDirectoryPath: String,
         sessionStrategy: SessionStrategy,
-        metadataProvider: CaptureLoggerBridge.MetadataProvider,
+        timestampProvider: CaptureLoggerBridge.TimestampProvider?,
+        customFieldsProvider: CaptureLoggerBridge.CustomFieldsProvider?,
+        initialOotbFields: [CapturePassable.Field],
         resourceUtilizationTarget: CaptureLoggerBridge.ResourceUtilizationTarget,
         sessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget,
         eventsListenerTarget: CaptureLoggerBridge.EventsListenerTarget,
@@ -160,7 +167,9 @@ final class LoggerBridge: LoggerBridging {
             apiKey: apiKey,
             bufferDirectoryPath: bufferDirectoryPath,
             sessionStrategy: sessionStrategy,
-            metadataProvider: metadataProvider,
+            timestampProvider: timestampProvider,
+            customFieldsProvider: customFieldsProvider,
+            initialOotbFields: initialOotbFields,
             resourceUtilizationTarget: resourceUtilizationTarget,
             sessionReplayTarget: sessionReplayTarget,
             eventsListenerTarget: eventsListenerTarget,
@@ -264,6 +273,10 @@ final class LoggerBridge: LoggerBridging {
 
     func addField(withKey key: String, value: String) {
         capture_add_log_field(self.loggerID, key, value)
+    }
+
+    func updateOotbField(withKey key: String, value: String) {
+        capture_update_ootb_log_field(self.loggerID, key, value)
     }
 
     func removeField(withKey key: String) {

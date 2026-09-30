@@ -48,8 +48,8 @@ describe('bridge', () => {
                 }),
             );
 
-            expect(androidMock.log).toHaveBeenCalled();
-            const call = androidMock.log.mock.calls[0][0];
+            expect(androidMock.postMessage).toHaveBeenCalled();
+            const call = androidMock.postMessage.mock.calls[0][0];
             const parsed = JSON.parse(call);
             expect(parsed.type).toBe('bridgeReady');
         });
@@ -68,7 +68,7 @@ describe('bridge', () => {
             );
 
             expect(iosMock.postMessage).toHaveBeenCalled();
-            const message = iosMock.postMessage.mock.calls[0][0];
+            const message = JSON.parse(iosMock.postMessage.mock.calls[0][0]);
             expect(message.type).toBe('bridgeReady');
         });
 
@@ -158,10 +158,44 @@ describe('bridge', () => {
         });
     });
 
+    describe('page view correlation', () => {
+        it('adds the active page view as the parent span for regular bridge messages', async () => {
+            const androidMock = createAndroidBridgeMock();
+            const { initBridge, log, createMessage, registerPageViewSpanIdProvider } = await import('../bridge');
+            initBridge();
+            registerPageViewSpanIdProvider(() => '11111111-1111-4111-8111-111111111111');
+
+            log(createMessage({ type: 'customLog', level: 'info', message: 'hello' }));
+
+            expect(JSON.parse(androidMock.postMessage.mock.calls[0][0])).toMatchObject({
+                parentSpanId: '11111111-1111-4111-8111-111111111111',
+            });
+        });
+
+        it('does not make a page view span its own child', async () => {
+            const androidMock = createAndroidBridgeMock();
+            const { initBridge, log, createMessage, registerPageViewSpanIdProvider } = await import('../bridge');
+            initBridge();
+            registerPageViewSpanIdProvider(() => '11111111-1111-4111-8111-111111111111');
+
+            log(
+                createMessage({
+                    type: 'pageView',
+                    action: 'start',
+                    spanId: '11111111-1111-4111-8111-111111111111',
+                    url: 'https://example.com',
+                    reason: 'initial',
+                }),
+            );
+
+            expect(JSON.parse(androidMock.postMessage.mock.calls[0][0]).parentSpanId).toBeUndefined();
+        });
+    });
+
     describe('error handling', () => {
         it('should not crash when bridge throws', async () => {
             const androidMock = createAndroidBridgeMock();
-            androidMock.log.mockImplementation(() => {
+            androidMock.postMessage.mockImplementation(() => {
                 throw new Error('Bridge error');
             });
 
@@ -284,8 +318,8 @@ describe('bridge', () => {
                 }),
             );
 
-            expect(androidMock.log).toHaveBeenCalled();
-            const serialized = androidMock.log.mock.calls[0][0] as string;
+            expect(androidMock.postMessage).toHaveBeenCalled();
+            const serialized = androidMock.postMessage.mock.calls[0][0] as string;
             // Should be truncated to 32KB + truncation marker
             expect(serialized.length).toBeLessThanOrEqual(32_768 + '...<truncated>'.length);
         });

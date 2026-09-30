@@ -81,6 +81,36 @@ final class WebViewIntegrationTests: XCTestCase {
         XCTAssertEqual(self.logger.logs.count, 2)
     }
 
+    func testDelayedNetworkRequestUsesNativePageViewSpanIDWithCustomLogger() throws {
+        let javascriptID = UUID().uuidString
+        self.logger.startSpanExpectation = self.expectation(description: "page view span started")
+
+        self.whenReceivingMessage(body: """
+        {"tag":"t","v":1,"type":"pageView","timestamp":1,"action":"start",\
+        "spanId":"\(javascriptID)","url":"https://example.com/","reason":"initial"}
+        """)
+
+        self.wait(for: [self.logger.startSpanExpectation!], timeout: 1)
+        let nativeID = try XCTUnwrap(self.logger.startedSpans.first?.id)
+        XCTAssertNotEqual(nativeID.uuidString, javascriptID)
+
+        self.logger.logRequestExpectation = self.expectation(description: "delayed request logged")
+        self.whenReceivingMessage(body: """
+        {"tag":"t","v":1,"type":"pageView","timestamp":2,"action":"end",\
+        "spanId":"\(javascriptID)","url":"https://example.com/","reason":"navigation",\
+        "durationMs":1}
+        """)
+        self.whenReceivingMessage(body: """
+        {"tag":"t","v":1,"type":"networkRequest","timestamp":3,"parentSpanId":"\(javascriptID)",\
+        "requestId":"r1","method":"GET","url":"https://example.com/ping","statusCode":200,\
+        "durationMs":10,"success":true,"error":null,"requestType":"fetch","timing":null}
+        """)
+
+        self.wait(for: [self.logger.logRequestExpectation!], timeout: 1)
+        let requestLog = try XCTUnwrap(self.logger.logs.first { $0.request() != nil })
+        XCTAssertEqual(requestLog.fields?["_span_parent_id"] as? String, nativeID.uuidString)
+    }
+
     func testDidReceiveMessageWithNonStringBodyDoesNotLogAnything() {
         let noLogExpectation = self.expectation(description: "no log emitted")
         noLogExpectation.isInverted = true

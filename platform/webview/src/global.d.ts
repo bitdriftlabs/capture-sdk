@@ -6,7 +6,7 @@ export {};
  */
 
 interface AndroidBridge {
-    log(message: string): void;
+    postMessage(message: string): void;
 }
 
 interface IOSBridge {

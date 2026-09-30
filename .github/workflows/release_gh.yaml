@@ -28,9 +28,9 @@ on:
         default: true
       include-swift-6-4-xcframework:
         type: boolean
-        description: Also build the Xcode 27 `.xcframework`
+        description: Build the Xcode 27 `.xcframework` in addition to the default Xcode 26 artifact.
         required: false
-        default: false
+        default: true
       dry-run:
         type: boolean
         description: Build and validate release artifacts without uploading or creating a GitHub release.
@@ -83,9 +83,9 @@ on:
         default: true
       include-swift-6-4-xcframework:
         type: boolean
-        description: Also build the Xcode 27 `.xcframework`
+        description: Build the Xcode 27 `.xcframework` in addition to the default Xcode 26 artifact.
         required: false
-        default: false
+        default: true
       dry-run:
         type: boolean
         description: Build and validate release artifacts without uploading or creating a GitHub release.

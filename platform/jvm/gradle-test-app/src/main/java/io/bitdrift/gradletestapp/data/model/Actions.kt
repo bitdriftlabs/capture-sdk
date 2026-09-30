@@ -48,6 +48,10 @@ sealed class DiagnosticsAction : AppAction {
     object LogSingleMessage : DiagnosticsAction()
     object LogManyMessages : DiagnosticsAction()
     object LogJsonField : DiagnosticsAction()
+    object TestPreInitOrdering : DiagnosticsAction()
+
+    object StartSpan : DiagnosticsAction()
+    object EndSpan : DiagnosticsAction()
 
     object ForceAppExit : DiagnosticsAction()
 
@@ -64,6 +68,10 @@ sealed class DiagnosticsAction : AppAction {
 
 sealed class NetworkTestAction : AppAction {
     object PerformOkHttpRequest : NetworkTestAction()
+
+    object PerformOkHttpFailureBeforeResponseHeaders : NetworkTestAction()
+
+    object PerformDelayedOkHttpRequest : NetworkTestAction()
 
     object PerformGraphQlRequest : NetworkTestAction()
 
@@ -93,7 +101,7 @@ sealed class FeatureFlagsTestAction : AppAction {
 sealed class NavigationAction : AppAction {
     object NavigateToConfig : NavigationAction()
 
-    data class NavigateToWebView(val url: String) : NavigationAction()
+    data class NavigateToWebView(val demoKey: String) : NavigationAction()
 
     object NavigateToCompose : NavigationAction()
 
@@ -120,6 +128,12 @@ sealed class StressTestAction : AppAction {
     data class TriggerStrictModeViolation(val type: StrictModeViolationType) : StressTestAction()
 
     data class TriggerScreenReplayCapture(val activity: android.app.Activity) : StressTestAction()
+
+    object FillDiskSpace : StressTestAction()
+
+    object ClearDiskSpace : StressTestAction()
+
+    object RefreshDiskSpace : StressTestAction()
 }
 
 enum class StrictModeViolationType(val displayName: String) {

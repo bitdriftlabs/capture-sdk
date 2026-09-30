@@ -12,6 +12,7 @@ struct InternalAutoInstrumentationMessage: WebViewLoggableMessage, Equatable {
     let v: Int
     let type: WebViewMessageType
     let timestamp: Int64
+    let parentSpanId: String?
     let event: String
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
@@ -19,8 +20,10 @@ struct InternalAutoInstrumentationMessage: WebViewLoggableMessage, Equatable {
             level: .debug,
             message: "[WebView] instrumented \(event)",
             fields: makeFields(
+                context: context,
                 ("_event", event)
-            )
+            ),
+            type: .internalsdk
         )
     }
 }

@@ -11,6 +11,11 @@ import Foundation
 import XCTest
 
 public final class MockCoreLogging {
+    public struct OotbFieldUpdate {
+        public let key: String
+        public let value: String
+    }
+
     public struct Log {
         public let level: LogLevel
         public let message: String
@@ -62,6 +67,21 @@ public final class MockCoreLogging {
     public private(set) var setEntityIDs = [String]()
 
     public private(set) var clearEntityIDCallCount = 0
+    private let ootbFieldsLock = NSLock()
+    private var storedOotbFields = [String: String]()
+    private var storedOotbFieldUpdates = [OotbFieldUpdate]()
+
+    public var ootbFields: [String: String] {
+        self.withOotbFieldsLock { self.storedOotbFields }
+    }
+
+    public var ootbFieldUpdateCount: Int {
+        self.withOotbFieldsLock { self.storedOotbFieldUpdates.count }
+    }
+
+    public var ootbFieldUpdates: [OotbFieldUpdate] {
+        self.withOotbFieldsLock { self.storedOotbFieldUpdates }
+    }
 
     public init() {}
 
@@ -69,24 +89,15 @@ public final class MockCoreLogging {
         let values = [variable.name: value]
         self.mockedRuntimeVariables.mergeOverwritingConflictingKeys(values)
     }
+
+    private func withOotbFieldsLock<T>(_ body: () -> T) -> T {
+        self.ootbFieldsLock.lock()
+        defer { self.ootbFieldsLock.unlock() }
+        return body()
+    }
 }
 
 extension MockCoreLogging: CoreLogging {
-    public static func makeLogger(
-        apiKey _: String,
-        bufferDirectory _: URL?,
-        sessionStrategy _: SessionStrategy,
-        metadataProvider _: MetadataProviderController,
-        resourceUtilizationTarget _: ResourceUtilizationController,
-        appID _: String,
-        releaseVersion _: String,
-        network _: Network?,
-        errorReporting _: RemoteErrorReporting,
-        loggerBridgingFactoryProvider _: LoggerBridgingFactoryProvider
-    ) -> CoreLogging {
-        return MockCoreLogging()
-    }
-
     public func start() {}
 
     public func startNewSession(sessionID _: String?) {}
@@ -165,6 +176,13 @@ extension MockCoreLogging: CoreLogging {
     public func logScreenView(screenName _: String) {}
 
     public func addField(withKey _: String, value _: String) {}
+
+    public func updateOotbField(withKey key: String, value: String) {
+        self.withOotbFieldsLock {
+            self.storedOotbFieldUpdates.append(OotbFieldUpdate(key: key, value: value))
+            self.storedOotbFields[key] = value
+        }
+    }
 
     public func removeField(withKey _: String) {}
 

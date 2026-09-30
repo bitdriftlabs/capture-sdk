@@ -10,6 +10,7 @@ package io.bitdrift.gradletestapp.ui.compose
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -37,12 +38,14 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import io.bitdrift.capture.Capture.Logger
+import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppState
 import io.bitdrift.gradletestapp.data.model.ClearError
 import io.bitdrift.gradletestapp.data.model.ConfigAction
 import io.bitdrift.gradletestapp.data.model.DiagnosticsAction
+import io.bitdrift.gradletestapp.data.model.DiskPressureState
 import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
 import io.bitdrift.gradletestapp.data.model.GlobalFieldAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
@@ -50,16 +53,23 @@ import io.bitdrift.gradletestapp.data.model.SessionAction
 import io.bitdrift.gradletestapp.ui.compose.components.AppTerminationsCard
 import io.bitdrift.gradletestapp.ui.compose.components.EntityIdCard
 import io.bitdrift.gradletestapp.ui.compose.components.FatalIssuesCard
-import io.bitdrift.gradletestapp.ui.compose.components.GlobalFieldsCard
 import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
+import io.bitdrift.gradletestapp.ui.compose.components.GlobalFieldsCard
 import io.bitdrift.gradletestapp.ui.compose.components.NavigationCard
 import io.bitdrift.gradletestapp.ui.compose.components.NetworkTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.SdkStatusCard
 import io.bitdrift.gradletestapp.ui.compose.components.SessionManagementCard
 import io.bitdrift.gradletestapp.ui.compose.components.SleepModeCard
+import io.bitdrift.gradletestapp.ui.compose.components.SpanTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.TestingToolsCard
 import io.bitdrift.gradletestapp.ui.compose.components.TracingStatusCard
+import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
+import io.bitdrift.gradletestapp.ui.designsystem.BdFloatingNavBar
+import io.bitdrift.gradletestapp.ui.designsystem.BdNavItem
+import io.bitdrift.gradletestapp.ui.designsystem.BdSecondaryButton
+import io.bitdrift.gradletestapp.ui.designsystem.BdSurface
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
+import io.bitdrift.gradletestapp.ui.theme.BdSpacing
 import io.bitdrift.gradletestapp.ui.theme.BitdriftColors
 
 private enum class BottomNavTab(
@@ -92,109 +102,118 @@ fun MainScreen(
     }
 
     Scaffold(
+        containerColor = BitdriftColors.Background,
         topBar = {
             TopAppBar(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(BdSpacing.sm),
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_bitdrift_logo_final),
                             contentDescription = stringResource(id = R.string.app_name),
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(22.dp),
                             tint = BitdriftColors.Primary,
                         )
                         Text(
                             text = stringResource(id = R.string.first_fragment_label),
-                            color = BitdriftColors.TextPrimary,
-                            fontSize = 22.sp,
+                            color = BitdriftColors.TextBright,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.4).sp,
                         )
                     }
                 },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor = BitdriftColors.BackgroundPaper,
-                        titleContentColor = BitdriftColors.TextPrimary,
+                        containerColor = BitdriftColors.Background,
+                        titleContentColor = BitdriftColors.TextBright,
                     ),
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = BitdriftColors.BackgroundPaper,
-            ) {
-                BottomNavTab.entries.forEach { tab ->
-                    NavigationBarItem(
-                        selected = currentTab == tab,
-                        onClick = { selectedTab = tab.ordinal },
-                        icon = {
-                            Icon(
-                                imageVector = tab.icon,
-                                contentDescription = tab.label,
-                            )
-                        },
-                        label = { Text(tab.label) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = BitdriftColors.Primary,
-                            selectedTextColor = BitdriftColors.Primary,
-                            unselectedIconColor = BitdriftColors.TextSecondary,
-                            unselectedTextColor = BitdriftColors.TextSecondary,
-                            indicatorColor = BitdriftColors.Primary.copy(alpha = 0.1f),
-                        ),
-                    )
-                }
-            }
+            BdFloatingNavBar(
+                items = BottomNavTab.entries.map { BdNavItem(label = it.label, icon = it.icon) },
+                selectedIndex = selectedTab,
+                onSelect = { selectedTab = it },
+            )
         },
-        containerColor = BitdriftColors.Background,
     ) { paddingValues ->
-        Column(
+        Box(
             modifier =
                 Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
         ) {
-            ErrorBanner(
-                error = uiState.error,
-                onDismiss = { onAction(ClearError) },
-            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                ErrorBanner(
+                    error = uiState.error,
+                    onDismiss = { onAction(ClearError) },
+                )
 
-            when (currentTab) {
-                BottomNavTab.HOME -> HomeTabContent(
-                    uiState = uiState,
-                    onAction = onAction,
-                    clipboardManager = clipboardManager,
-                    onOpenSettings = { selectedTab = BottomNavTab.SETTINGS.ordinal },
-                )
-                    BottomNavTab.SDK_APIS -> SdkApisTabContent(
-                        uiState = uiState,
-                        onAction = onAction,
-                        context = context,
-                        currentEntityId = currentEntityId,
-                    )
-                BottomNavTab.STRESS_TESTS -> StressTestsTabContent(
-                    onAction = onAction,
-                )
-                BottomNavTab.APP_TERMINATIONS -> AppTerminationsTabContent(
-                    uiState = uiState,
-                    onAction = onAction,
-                )
-                BottomNavTab.NAVIGATE -> NavigateTabContent(
-                    onAction = onAction,
-                )
-                BottomNavTab.SETTINGS -> SettingsTabContent()
+                when (currentTab) {
+                    BottomNavTab.HOME ->
+                        HomeTabContent(
+                            uiState = uiState,
+                            onAction = onAction,
+                            clipboardManager = clipboardManager,
+                            onOpenSettings = { selectedTab = BottomNavTab.SETTINGS.ordinal },
+                        )
+
+                    BottomNavTab.SDK_APIS ->
+                        SdkApisTabContent(
+                            uiState = uiState,
+                            onAction = onAction,
+                            context = context,
+                            currentEntityId = currentEntityId,
+                        )
+
+                    BottomNavTab.STRESS_TESTS ->
+                        StressTestsTabContent(
+                            diskPressure = uiState.diskPressure,
+                            onAction = onAction,
+                        )
+
+                    BottomNavTab.APP_TERMINATIONS ->
+                        AppTerminationsTabContent(
+                            uiState = uiState,
+                            onAction = onAction,
+                        )
+
+                    BottomNavTab.NAVIGATE -> NavigateTabContent(onAction = onAction)
+                    BottomNavTab.SETTINGS -> SettingsTabContent()
+                }
             }
 
             if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
+                CircularProgressIndicator(
+                    color = BitdriftColors.Primary,
+                    modifier = Modifier.align(Alignment.Center),
+                )
             }
         }
     }
+}
+
+/** Shared scroll container for every tab. */
+@Composable
+private fun BdCardList(
+    modifier: Modifier = Modifier,
+    content: LazyListScope.() -> Unit,
+) {
+    val listState = rememberLazyListState()
+
+    LazyColumn(
+        state = listState,
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(horizontal = BdSpacing.screenGutter),
+        verticalArrangement = Arrangement.spacedBy(BdSpacing.cardGap),
+        contentPadding = PaddingValues(vertical = BdSpacing.md),
+        content = content,
+    )
 }
 
 @Composable
@@ -203,32 +222,30 @@ private fun ErrorBanner(
     onDismiss: () -> Unit,
 ) {
     error?.let {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        BdSurface(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = BdSpacing.screenGutter, vertical = BdSpacing.sm),
+            borderColor = BitdriftColors.Error.copy(alpha = 0.5f),
+            verticalArrangement = Arrangement.spacedBy(BdSpacing.md),
         ) {
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(BdSpacing.md),
             ) {
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    color = BitdriftColors.TextPrimary,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(id = android.R.string.cancel))
-                }
+                BdSecondaryButton(
+                    text = stringResource(id = android.R.string.cancel),
+                    onClick = onDismiss,
+                    size = BdButtonSize.Compact,
+                )
             }
         }
     }
@@ -241,17 +258,7 @@ private fun HomeTabContent(
     clipboardManager: androidx.compose.ui.platform.ClipboardManager,
     onOpenSettings: () -> Unit,
 ) {
-    val listState = rememberLazyListState()
-
-    LazyColumn(
-        state = listState,
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 8.dp),
-    ) {
+    BdCardList {
         item {
             SdkStatusCard(
                 uiState = uiState,
@@ -288,21 +295,13 @@ private fun SdkApisTabContent(
     context: android.content.Context,
     currentEntityId: () -> String,
 ) {
-    val listState = rememberLazyListState()
-    val toasterText = stringResource(
-        R.string.log_message_toast,
-        uiState.config.selectedLogLevel,
-    )
+    val toasterText =
+        stringResource(
+            R.string.log_message_toast,
+            uiState.config.selectedLogLevel,
+        )
 
-    LazyColumn(
-        state = listState,
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 8.dp),
-    ) {
+    BdCardList {
         item {
             TestingToolsCard(
                 uiState = uiState,
@@ -318,6 +317,19 @@ private fun SdkApisTabContent(
                 onLogJsonField = {
                     onAction(DiagnosticsAction.LogJsonField)
                     Toast.makeText(context, "Logged JSON field", Toast.LENGTH_SHORT).show()
+                },
+                onTestPreInitOrdering = { onAction(DiagnosticsAction.TestPreInitOrdering) },
+            )
+        }
+        item {
+            SpanTestingCard(
+                onStartSpan = {
+                    onAction(DiagnosticsAction.StartSpan)
+                    Toast.makeText(context, "Started span", Toast.LENGTH_SHORT).show()
+                },
+                onEndSpan = {
+                    onAction(DiagnosticsAction.EndSpan)
+                    Toast.makeText(context, "Ended span", Toast.LENGTH_SHORT).show()
                 },
             )
         }
@@ -353,7 +365,17 @@ private fun SdkApisTabContent(
         }
         item {
             NetworkTestingCard(
+                instrumentationMode =
+                    if (BuildConfig.ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION) {
+                        "Automatic (${BuildConfig.AUTO_CAPTURE_OKHTTP_INSTRUMENTATION_TYPE})"
+                    } else {
+                        "Manual"
+                    },
                 onOkHttpRequest = { onAction(NetworkTestAction.PerformOkHttpRequest) },
+                onOkHttpFailureBeforeResponseHeaders = {
+                    onAction(NetworkTestAction.PerformOkHttpFailureBeforeResponseHeaders)
+                },
+                onDelayedOkHttpRequest = { onAction(NetworkTestAction.PerformDelayedOkHttpRequest) },
                 onGraphQlRequest = { onAction(NetworkTestAction.PerformGraphQlRequest) },
                 onRetrofitRequest = { onAction(NetworkTestAction.PerformRetrofitRequest) },
                 onPreExistingW3cRequest = { onAction(NetworkTestAction.PerformPreExistingW3cRequest) },
@@ -362,7 +384,9 @@ private fun SdkApisTabContent(
                 onPreExistingDatadogRequest = { onAction(NetworkTestAction.PerformPreExistingDatadogRequest) },
                 onLocalBackendAddToCartRequest = { onAction(NetworkTestAction.PerformLocalBackendAddToCartRequest) },
                 onLocalBackendGetCartRequest = { onAction(NetworkTestAction.PerformLocalBackendGetCartRequest) },
-                onLocalBackendDeleteCartItemRequest = { onAction(NetworkTestAction.PerformLocalBackendDeleteCartItemRequest) },
+                onLocalBackendDeleteCartItemRequest = {
+                    onAction(NetworkTestAction.PerformLocalBackendDeleteCartItemRequest)
+                },
             )
         }
     }
@@ -373,17 +397,7 @@ private fun AppTerminationsTabContent(
     uiState: AppState,
     onAction: (AppAction) -> Unit,
 ) {
-    val listState = rememberLazyListState()
-
-    LazyColumn(
-        state = listState,
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 8.dp),
-    ) {
+    BdCardList {
         item {
             AppTerminationsCard(
                 uiState = uiState,
@@ -392,38 +406,26 @@ private fun AppTerminationsTabContent(
             )
         }
         item {
-            FatalIssuesCard(
-                onAction = onAction,
-            )
+            FatalIssuesCard(onAction = onAction)
         }
     }
 }
 
 @Composable
 private fun StressTestsTabContent(
+    diskPressure: DiskPressureState,
     onAction: (AppAction) -> Unit,
 ) {
     StressTestScreen(
         onAction = onAction,
         onNavigateBack = {},
+        diskPressure = diskPressure,
     )
 }
 
 @Composable
-private fun NavigateTabContent(
-    onAction: (AppAction) -> Unit,
-) {
-    val listState = rememberLazyListState()
-
-    LazyColumn(
-        state = listState,
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 8.dp),
-    ) {
+private fun NavigateTabContent(onAction: (AppAction) -> Unit) {
+    BdCardList {
         item {
             NavigationCard(onAction = onAction)
         }
@@ -451,8 +453,8 @@ private fun SettingsTabContent() {
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
-        factory = { context ->
-            FragmentContainerView(context).apply {
+        factory = { ctx ->
+            FragmentContainerView(ctx).apply {
                 id = SETTINGS_CONTAINER_ID
             }
         },

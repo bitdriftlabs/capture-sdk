@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     id("com.google.firebase.crashlytics") version "3.0.6" apply false
-    id("io.bitdrift.capture-plugin") version "0.23.10" // To verify new changes at capture-plugin use your maven local published version
+    id("io.bitdrift.capture-plugin") version "0.25.0" // To verify new changes at capture-plugin use your maven local published version
 }
 
 val enableAutoCaptureOkHttpInstrumentation =
@@ -14,6 +14,16 @@ val enableAutoCaptureOkHttpInstrumentation =
         .map(String::toBoolean)
         .orElse(true)
         .get()
+
+val autoCaptureOkHttpInstrumentationType =
+    providers.gradleProperty("autoCaptureOkHttpInstrumentationType")
+        .map(String::uppercase)
+        .orElse("PROXY")
+        .get()
+
+require(autoCaptureOkHttpInstrumentationType in setOf("PROXY", "OVERWRITE")) {
+    "autoCaptureOkHttpInstrumentationType must be PROXY or OVERWRITE"
+}
 
 val requestedDebugVariant =
     gradle.startParameter.taskNames.any { taskName ->
@@ -77,6 +87,9 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+    // Raises the floor AGP's consistent resolution pins androidTest to; Espresso <3.7 calls
+    // InputManager.getInstance(), removed in Android 17.
+    debugImplementation("androidx.test:core:1.7.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
     debugImplementation("com.github.chuckerteam.chucker:library:4.2.0")
@@ -87,19 +100,20 @@ dependencies {
     androidTestImplementation(project(":common"))
     androidTestImplementation("com.google.truth:truth:1.1.4")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    androidTestImplementation("androidx.test:core:1.5.0")
-    androidTestImplementation("androidx.test:core-ktx:1.5.0")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.ext:junit-ktx:1.1.5")
-    androidTestImplementation("androidx.test:runner:1.5.0")
+    androidTestImplementation("androidx.test:core:1.7.0")
+    androidTestImplementation("androidx.test:core-ktx:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.ext:junit-ktx:1.3.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.tracing:tracing-ktx:1.0.0")
     androidTestImplementation("androidx.tracing:tracing:1.0.0")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 }
 
 android {
     namespace = "io.bitdrift.gradletestapp"
-    compileSdk = 36
+    compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     buildFeatures {
         compose = true
@@ -110,7 +124,7 @@ android {
     defaultConfig {
         applicationId = "io.bitdrift.gradletestapp"
         minSdk = 23
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 68
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -118,6 +132,11 @@ android {
             "boolean",
             "ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION",
             enableAutoCaptureOkHttpInstrumentation.toString(),
+        )
+        buildConfigField(
+            "String",
+            "AUTO_CAPTURE_OKHTTP_INSTRUMENTATION_TYPE",
+            "\"$autoCaptureOkHttpInstrumentationType\"",
         )
     }
 
@@ -136,6 +155,7 @@ android {
     }
     lint {
         checkDependencies = true
+        checkTestSources = true
         disable.add("GradleDependency")
         disable.add("AndroidGradlePluginVersion")
     }
@@ -203,7 +223,13 @@ apollo {
 bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = enableAutoCaptureOkHttpInstrumentation
-        automaticWebViewInstrumentation = true
-        // Comment out to change the default type. e.g. okHttpInstrumentationType = OVERWRITE
+        okHttpInstrumentationType =
+            when (autoCaptureOkHttpInstrumentationType) {
+                "PROXY" -> PROXY
+                "OVERWRITE" -> OVERWRITE
+                else -> error("Unsupported OkHttp instrumentation type")
+            }
+
+        webViewAutomaticInstrumentationScope = ALL // Use JS_ENABLED to monitor webviews that only have JavaScript enabled
     }
 }
