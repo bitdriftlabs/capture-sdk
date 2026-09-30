@@ -8,6 +8,8 @@
 package io.bitdrift.capture.reports.exitinfo
 
 import android.app.ApplicationExitInfo
+import android.os.Build
+import androidx.annotation.RequiresApi
 
 /**
  * Application termination reason values.
@@ -58,6 +60,9 @@ enum class ExitReason(
     /** App was frozen by the OS. */
     Freezer("FREEZER"),
 
+    /** App was killed by the OS for exceeding its anonymous RSS + swap memory limit. */
+    MemoryLimiter("MEMORY_LIMITER"),
+
     /** Unknown or unsupported reason. */
     Unknown("UNKNOWN"),
 
@@ -73,6 +78,18 @@ enum class ExitReason(
         fun fromValue(value: String): ExitReason? = entries.firstOrNull { it.value == value }
     }
 }
+
+internal const val MEMORY_LIMITER_DESCRIPTION = "MemoryLimiter:AnonSwap"
+
+internal const val REASON_MEMORY_LIMITER = 17
+
+@RequiresApi(Build.VERSION_CODES.R)
+internal fun ApplicationExitInfo.isMemoryLimiterKill(): Boolean =
+    reason == REASON_MEMORY_LIMITER ||
+        (reason == ApplicationExitInfo.REASON_OTHER && description?.contains(MEMORY_LIMITER_DESCRIPTION) == true)
+
+@RequiresApi(Build.VERSION_CODES.R)
+internal fun ApplicationExitInfo.toExitReason(): ExitReason = if (isMemoryLimiterKill()) ExitReason.MemoryLimiter else reason.toExitReason()
 
 internal fun Int.toExitReason(): ExitReason =
     when (this) {

@@ -86,6 +86,39 @@ class PreviousRunInfoResolverTest {
     }
 
     @Test
+    fun get_returnsNonFatalMemoryLimiterForMemoryLimiterKill() {
+        latestAppExitInfoProvider.setAsValidReason(
+            exitReasonType = ApplicationExitInfo.REASON_OTHER,
+            description = "MemoryLimiter:AnonSwap",
+        )
+
+        val result =
+            PreviousRunInfoResolver(
+                latestAppExitInfoProvider,
+                preferences,
+                captureUncaughtExceptionHandler,
+                buildVersionChecker,
+            ).get()
+
+        assertPreviousRunInfo(result, hasFatallyTerminated = false, terminationReason = ExitReason.MemoryLimiter)
+    }
+
+    @Test
+    fun get_returnsNonFatalMemoryLimiterForMemoryLimiterReason() {
+        latestAppExitInfoProvider.setAsValidReason(exitReasonType = 17, description = "kill")
+
+        val result =
+            PreviousRunInfoResolver(
+                latestAppExitInfoProvider,
+                preferences,
+                captureUncaughtExceptionHandler,
+                buildVersionChecker,
+            ).get()
+
+        assertPreviousRunInfo(result, hasFatallyTerminated = false, terminationReason = ExitReason.MemoryLimiter)
+    }
+
+    @Test
     fun get_returnsNonFatalForUserRequested() {
         latestAppExitInfoProvider.setAsValidReason(exitReasonType = ApplicationExitInfo.REASON_USER_REQUESTED)
 

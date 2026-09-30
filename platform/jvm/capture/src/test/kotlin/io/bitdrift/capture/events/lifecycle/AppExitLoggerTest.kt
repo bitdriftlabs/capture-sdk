@@ -132,6 +132,69 @@ class AppExitLoggerTest {
     }
 
     @Test
+    fun logPreviousExitReasonIfAny_withMemoryLimiterKill_shouldEmitMemoryLimiterErrorLog() {
+        lastExitInfo.setAsValidReason(
+            exitReasonType = ApplicationExitInfo.REASON_OTHER,
+            description = "MemoryLimiter:AnonSwap",
+        )
+
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        verify(logger).logInternal(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            argThat<ArrayFields> { fields ->
+                fields["_app_exit_reason"] == "MEMORY_LIMITER" &&
+                    fields["_app_exit_description"] == "MemoryLimiter:AnonSwap"
+            },
+            eq(ArrayFields.EMPTY),
+            eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun logPreviousExitReasonIfAny_withMemoryLimiterReason_shouldEmitMemoryLimiterErrorLog() {
+        lastExitInfo.setAsValidReason(
+            exitReasonType = 17,
+            description = "kill",
+        )
+
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        verify(logger).logInternal(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.ERROR),
+            argThat<ArrayFields> { fields -> fields["_app_exit_reason"] == "MEMORY_LIMITER" },
+            eq(ArrayFields.EMPTY),
+            eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
+    fun logPreviousExitReasonIfAny_withOtherReason_shouldEmitOtherInfoLog() {
+        lastExitInfo.setAsValidReason(
+            exitReasonType = ApplicationExitInfo.REASON_OTHER,
+            description = "some other reason",
+        )
+
+        appExitLogger.logPreviousExitReasonIfAny()
+
+        verify(logger).logInternal(
+            eq(LogType.LIFECYCLE),
+            eq(LogLevel.INFO),
+            argThat<ArrayFields> { fields -> fields["_app_exit_reason"] == "OTHER" },
+            eq(ArrayFields.EMPTY),
+            eq(LogAttributesOverrides.PreviousRunSessionId(TIME_STAMP)),
+            eq(false),
+            argThat { i: () -> String -> i.invoke() == "AppExit" },
+        )
+    }
+
+    @Test
     fun logPreviousExitReason_whenEmptyResult_shouldNotReportError() {
         // ARRANGE
         lastExitInfo.setAsEmptyReason()

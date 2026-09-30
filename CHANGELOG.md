@@ -21,7 +21,8 @@
 
 **Added**
 
-- Nothing yet!
+- Android 17 memory-limiter kills (reason `17`, or `REASON_OTHER` with `MemoryLimiter:AnonSwap` on earlier builds) are now reported as `AppExit` logs with `_app_exit_reason` set to `MEMORY_LIMITER` at error level, and as `ExitReason.MemoryLimiter` in the previous run info.
+- Memory attributes now include `_anon_rss_kb`, `_swap_kb` and `_anon_rss_swap_kb`, matching the anonymous RSS + swap metric used by Android vitals.
 
 **Changed**
 

@@ -78,7 +78,7 @@ internal class PreviousRunInfoResolver(
     private fun getFromAppExitInfo(): PreviousRunInfo? =
         when (val result = latestAppExitInfoProvider.get()) {
             is LatestAppExitReasonResult.Valid -> {
-                val reason = result.applicationExitInfo.reason.toExitReason()
+                val reason = result.applicationExitInfo.toExitReason()
                 PreviousRunInfo(
                     hasFatallyTerminated = isFatalReason(reason),
                     terminationReason = reason,

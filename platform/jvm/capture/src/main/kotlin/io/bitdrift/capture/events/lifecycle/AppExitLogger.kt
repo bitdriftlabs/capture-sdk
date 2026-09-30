@@ -24,8 +24,10 @@ import io.bitdrift.capture.events.performance.IMemoryMetricsProvider
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.reports.exitinfo.ExitReason
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitReasonResult
+import io.bitdrift.capture.reports.exitinfo.isMemoryLimiterKill
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.jvmcrash.IJvmCrashListener
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -89,7 +91,7 @@ internal class AppExitLogger(
                 val timestampMs = lastExitInfo.timestamp
                 logger.logInternal(
                     LogType.LIFECYCLE,
-                    lastExitInfo.reason.toLogLevel(),
+                    lastExitInfo.toLogLevel(),
                     buildAppExitFields(lastExitInfo),
                     attributesOverrides = LogAttributesOverrides.PreviousRunSessionId(timestampMs),
                 ) { APP_EXIT_EVENT_NAME }
@@ -165,7 +167,7 @@ internal class AppExitLogger(
         return fieldsOf(
             APP_EXIT_SOURCE_KEY to "ApplicationExitInfo",
             APP_EXIT_PROCESS_NAME_KEY to this.processName,
-            APP_EXIT_REASON_KEY to this.reason.toReasonText(),
+            APP_EXIT_REASON_KEY to if (isMemoryLimiterKill()) ExitReason.MemoryLimiter.value else this.reason.toReasonText(),
             APP_EXIT_IMPORTANCE_KEY to this.importance.toImportanceText(),
             APP_EXIT_STATUS_KEY to this.status.toString(),
             APP_EXIT_PSS_KEY to this.pss.toString(),
@@ -209,16 +211,16 @@ internal class AppExitLogger(
         }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun Int.toLogLevel(): LogLevel =
-        when (this) {
-            in
-            listOf(
-                ApplicationExitInfo.REASON_CRASH,
-                ApplicationExitInfo.REASON_CRASH_NATIVE,
-                ApplicationExitInfo.REASON_ANR,
-                ApplicationExitInfo.REASON_LOW_MEMORY,
-            ),
-            -> LogLevel.ERROR
+    private fun ApplicationExitInfo.toLogLevel(): LogLevel =
+        when {
+            isMemoryLimiterKill() -> LogLevel.ERROR
+            reason in
+                listOf(
+                    ApplicationExitInfo.REASON_CRASH,
+                    ApplicationExitInfo.REASON_CRASH_NATIVE,
+                    ApplicationExitInfo.REASON_ANR,
+                    ApplicationExitInfo.REASON_LOW_MEMORY,
+                ) -> LogLevel.ERROR
 
             else -> LogLevel.INFO
         }

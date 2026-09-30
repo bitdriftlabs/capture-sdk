@@ -15,6 +15,7 @@ import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldOf
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.fieldsOfOptional
+import java.io.File
 import java.util.Locale
 
 private const val KB = 1024L
@@ -22,6 +23,7 @@ private const val KB = 1024L
 internal class MemoryMetricsProvider(
     private val activityManager: ActivityManager,
     private val jvmMemoryProvider: JvmMemoryProvider = DefaultJvmMemoryProvider(),
+    private val processMemoryProvider: ProcessMemoryProvider = DefaultProcessMemoryProvider(),
 ) : IMemoryMetricsProvider {
     var runtime: io.bitdrift.capture.common.Runtime? = null
 
@@ -32,8 +34,9 @@ internal class MemoryMetricsProvider(
         getConfiguredPercentThreshold(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)
     }
 
-    override fun getMemoryAttributes(): ArrayFields =
-        combineFields(
+    override fun getMemoryAttributes(): ArrayFields {
+        val processMemory = processMemoryProvider.processMemory()
+        return combineFields(
             fieldsOf(
                 "_jvm_used_kb" to jvmMemoryProvider.usedMemoryBytes().bToKb(),
                 "_jvm_total_kb" to jvmMemoryProvider.totalMemoryBytes().bToKb(),
@@ -45,8 +48,12 @@ internal class MemoryMetricsProvider(
             ),
             fieldsOfOptional(
                 "_is_memory_low" to appCriticalMemoryConfigThreshold?.let { if (isMemoryLow()) "1" else "0" },
+                "_anon_rss_kb" to processMemory?.anonRssKb?.toString(),
+                "_swap_kb" to processMemory?.swapKb?.toString(),
+                "_anon_rss_swap_kb" to processMemory?.let { (it.anonRssKb + it.swapKb).toString() },
             ),
         )
+    }
 
     override fun getMemoryClass(): ArrayFields = fieldOf("_memory_class", memoryClassMB().toString())
 
@@ -138,4 +145,32 @@ internal class DefaultJvmMemoryProvider : JvmMemoryProvider {
     override fun usedMemoryBytes(): Long = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
 
     override fun maxMemoryBytes(): Long = Runtime.getRuntime().maxMemory()
+}
+
+internal data class ProcessMemory(
+    val anonRssKb: Long,
+    val swapKb: Long,
+)
+
+internal interface ProcessMemoryProvider {
+    fun processMemory(): ProcessMemory?
+}
+
+internal class DefaultProcessMemoryProvider(
+    private val statusFile: File = File("/proc/self/status"),
+) : ProcessMemoryProvider {
+    override fun processMemory(): ProcessMemory? =
+        runCatching {
+            var anonRssKb: Long? = null
+            var swapKb: Long? = null
+            statusFile.forEachLine { line ->
+                when {
+                    line.startsWith("RssAnon:") -> anonRssKb = line.kbValue()
+                    line.startsWith("VmSwap:") -> swapKb = line.kbValue()
+                }
+            }
+            ProcessMemory(anonRssKb ?: return null, swapKb ?: return null)
+        }.getOrNull()
+
+    private fun String.kbValue(): Long? = substringAfter(':').trim().substringBefore(' ').toLongOrNull()
 }

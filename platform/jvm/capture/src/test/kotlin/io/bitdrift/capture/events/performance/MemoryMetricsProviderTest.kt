@@ -16,10 +16,13 @@ import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
@@ -27,15 +30,23 @@ import java.util.Locale
 class MemoryMetricsProviderTest {
     private val runtime: Runtime = mock()
     private val jvmMemoryProvider: JvmMemoryProvider = mock()
+    private val processMemoryProvider: ProcessMemoryProvider = mock()
 
     private lateinit var memoryMetricsProvider: MemoryMetricsProvider
+
+    @get:Rule
+    val tempFolder = TemporaryFolder()
 
     @Before
     fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         memoryMetricsProvider =
-            MemoryMetricsProvider(activityManager, jvmMemoryProvider = jvmMemoryProvider)
+            MemoryMetricsProvider(
+                activityManager,
+                jvmMemoryProvider = jvmMemoryProvider,
+                processMemoryProvider = processMemoryProvider,
+            )
         memoryMetricsProvider.runtime = runtime
         whenever(runtime.getConfigValue(RuntimeConfig.APP_WARNING_MEMORY_PERCENT_THRESHOLD)).thenReturn(75)
         whenever(runtime.getConfigValue(RuntimeConfig.APP_CRITICAL_MEMORY_PERCENT_THRESHOLD)).thenReturn(
@@ -63,6 +74,59 @@ class MemoryMetricsProviderTest {
                 "_is_memory_low",
             ),
         )
+    }
+
+    @Test
+    fun getMemoryAttributes_withProcessMemory_includesAnonRssAndSwap() {
+        whenever(processMemoryProvider.processMemory()).thenReturn(ProcessMemory(anonRssKb = 1000, swapKb = 234))
+
+        val result = memoryMetricsProvider.getMemoryAttributes()
+
+        assertThat(result["_anon_rss_kb"]).isEqualTo("1000")
+        assertThat(result["_swap_kb"]).isEqualTo("234")
+        assertThat(result["_anon_rss_swap_kb"]).isEqualTo("1234")
+    }
+
+    @Test
+    fun getMemoryAttributes_withoutProcessMemory_omitsAnonRssAndSwap() {
+        whenever(processMemoryProvider.processMemory()).thenReturn(null)
+
+        val result = memoryMetricsProvider.getMemoryAttributes()
+
+        assertThat(result.keys.toList()).doesNotContain("_anon_rss_kb", "_swap_kb", "_anon_rss_swap_kb")
+    }
+
+    @Test
+    fun defaultProcessMemoryProvider_parsesRssAnonAndVmSwap() {
+        val statusFile = tempFolder.newFile("status")
+        statusFile.writeText(
+            """
+            Name:	io.bitdrift.app
+            VmRSS:	  250000 kB
+            RssAnon:	  120000 kB
+            RssFile:	  125000 kB
+            VmSwap:	    3456 kB
+            """.trimIndent(),
+        )
+
+        val result = DefaultProcessMemoryProvider(statusFile).processMemory()
+
+        assertThat(result).isEqualTo(ProcessMemory(anonRssKb = 120000, swapKb = 3456))
+    }
+
+    @Test
+    fun defaultProcessMemoryProvider_withoutRssAnon_returnsNull() {
+        val statusFile = tempFolder.newFile("status")
+        statusFile.writeText("VmRSS:\t  250000 kB\nVmSwap:\t       0 kB\n")
+
+        assertThat(DefaultProcessMemoryProvider(statusFile).processMemory()).isNull()
+    }
+
+    @Test
+    fun defaultProcessMemoryProvider_withMissingFile_returnsNull() {
+        val missingFile = File(tempFolder.root, "missing")
+
+        assertThat(DefaultProcessMemoryProvider(missingFile).processMemory()).isNull()
     }
 
     @Test
