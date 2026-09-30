@@ -32,6 +32,9 @@
             memoryLeakStatus: '',
             leakedData: [],
             hardeningStatus: '',
+            customLogMessage: 'Hello from the WebView test page',
+            customLogLevel: 'info',
+            customLogStatus: '',
         };
 
         const rerender = () => render(App(), document.getElementById('app'));
@@ -108,6 +111,23 @@
                 else if (method === 'error') console.error(msg, new Error('Sample error'));
                 else if (method === 'info') console.info(msg);
                 else console.debug(msg);
+            },
+            customLog: () => {
+                const log = window.bitdrift?.log;
+                const message = state.customLogMessage.trim();
+                if (typeof log !== 'function') {
+                    state.customLogStatus = 'window.bitdrift.log is unavailable';
+                } else if (!message) {
+                    state.customLogStatus = 'Enter a message before sending';
+                } else {
+                    try {
+                        log(state.customLogLevel, message, { test_source: 'webview-test-page' });
+                        state.customLogStatus = 'Sent custom log through window.bitdrift.log';
+                    } catch (error) {
+                        state.customLogStatus = `Failed to send custom log: ${error.message}`;
+                    }
+                }
+                rerender();
             },
             throwError: () => setTimeout(() => { throw new Error('Test uncaught error'); }, 0),
             refError: () => setTimeout(() => { undefinedVar.foo(); }, 0),
@@ -307,6 +327,26 @@
                     ${btn('red', 'error', () => actions.console('error'), 'text-xs py-2 px-2')}
                     ${btn('blue', 'info', () => actions.console('info'), 'text-xs py-2 px-2')}
                     ${btn('purple', 'debug', () => actions.console('debug'), 'text-xs py-2 px-2')}
+                </div>
+            `)}
+
+            ${card('✉️', 'Custom Log', 'Send a custom log directly through window.bitdrift.log.', html`
+                <div class="space-y-2">
+                    <input type="text" .value=${state.customLogMessage}
+                        @input=${(event) => { state.customLogMessage = event.target.value; }}
+                        aria-label="Custom log message"
+                        class="w-full bg-gray-700 text-gray-100 rounded px-3 py-2 text-sm" />
+                    <select .value=${state.customLogLevel}
+                        @change=${(event) => { state.customLogLevel = event.target.value; }}
+                        aria-label="Custom log level"
+                        class="w-full bg-gray-700 text-gray-100 rounded px-3 py-2 text-sm">
+                        <option value="debug">Debug</option>
+                        <option value="info">Info</option>
+                        <option value="warn">Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                    ${btn('indigo', 'Send Custom Log', actions.customLog, 'w-full')}
+                    <p class="text-sm text-gray-300" aria-live="polite">${state.customLogStatus}</p>
                 </div>
             `)}
 

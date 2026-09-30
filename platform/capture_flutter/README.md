@@ -95,6 +95,37 @@ await Capture.start(
 Capture.stopSessionReplay();
 ```
 
+## Support Matrix
+
+| Area | Android | iOS | Notes |
+| :-- | :-- | :-- | :-- |
+| SDK start | ✅ | ✅ | `apiKey`, `apiUrl`, `sessionStrategy`, `enableSessionReplay` |
+| Logging | ✅ | ✅ | All levels; fields are `Map<String, String>` |
+| Screen views | ✅ | ✅ | Manual `logScreenView` |
+| Sessions, session URL, device ID | ✅ | ✅ | |
+| Temporary device code | ✅ | ✅ | |
+| SDK status | ✅ | ✅ | |
+| Persistent fields | ✅ | ✅ | |
+| Entity ID | ✅ | ✅ | iOS: CocoaPods only; not yet available when the plugin is resolved through Swift Package Manager |
+| Spans | ✅ | ✅ | Start/end with success or failure |
+| Session replay | ✅ | ❌ | Flutter wireframe capture; `enableSessionReplay` is ignored on iOS |
+| Native fatal issues | ✅ | ✅ | Reported by the underlying native Capture SDKs |
+| Dart exceptions | ❌ | ❌ | Dart/Flutter errors are not reported as crashes |
+| Network logging | ❌ | ❌ | |
+| WebView | ❌ | ❌ | |
+
+Not supported yet:
+
+- Session replay on iOS
+- Dart exception reporting, including `error` / `StackTrace` parameters on `logError`
+- Network request/response logging
+- WebView instrumentation
+- Feature flags
+- App launch TTI
+- Sleep mode
+- Previous run info
+- Full native start configuration (field providers, date provider, other native `Configuration` options)
+
 ## Platform Requirements
 
 - iOS 15.0+

@@ -6,12 +6,13 @@ plugins {
 
 android {
     namespace 'io.bitdrift.gradleexample'
-    compileSdk 36
+    compileSdk 37
+    buildToolsVersion "37.0.0"
 
     defaultConfig {
         applicationId "io.bitdrift.gradleexample"
         minSdk 24
-        targetSdk 36
+        targetSdk 37
         versionCode 1
         versionName "1.0"
 

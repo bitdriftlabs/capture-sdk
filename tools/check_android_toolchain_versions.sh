@@ -15,7 +15,7 @@ fail() {
   exit 1
 }
 
-module_sdk_api="$(sed -nE 's/^SDK_API_LEVEL = ([0-9]+)$/\1/p' "$repo_root/MODULE.bazel")"
+module_sdk_api="$(sed -nE 's/^SDK_API_LEVEL = "([^"]+)"$/\1/p' "$repo_root/MODULE.bazel")"
 module_build_tools="$(sed -nE 's/^SDK_BUILD_TOOLS_VERSION = "([^"]+)"$/\1/p' "$repo_root/MODULE.bazel")"
 module_ndk_api="$(sed -nE 's/^NDK_API_LEVEL = ([0-9]+)$/\1/p' "$repo_root/MODULE.bazel")"
 module_ndk_alias="$(sed -nE '/^android\.ndk\(/,/^\)/ s/^    version = "([^"]+)",$/\1/p' "$repo_root/MODULE.bazel")"
@@ -32,7 +32,7 @@ if ! grep -Fq "build-tools;\$android_build_tools_version" "$script_root/setup_an
   fail "the Gradle SDK setup does not install the configured build-tools"
 fi
 while IFS= read -r gradle_sdk_api; do
-  [[ "$gradle_sdk_api" == "$android_sdk_api_level" ]] || fail "a Gradle project compiles against API $gradle_sdk_api, expected $android_sdk_api_level"
+  [[ "$gradle_sdk_api" == "${android_sdk_api_level%%.*}" ]] || fail "a Gradle project compiles against API $gradle_sdk_api, expected ${android_sdk_api_level%%.*}"
 done < <(find "$repo_root/platform/jvm" "$repo_root/gradle" -type f \( -name '*.gradle' -o -name '*.gradle.kts' \) -exec grep -hE 'compileSdk[[:space:]]*(=[[:space:]]*)?[0-9]+' {} + | sed -nE 's/.*compileSdk[[:space:]]*(=[[:space:]]*)?([0-9]+).*/\2/p' | sort -u)
 
 echo "Android Bazel toolchain and Gradle SDK versions are aligned."
