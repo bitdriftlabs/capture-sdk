@@ -2,6 +2,8 @@ appId: com.bitdrift.io.expoExample
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: "SDK Ready"
-    timeout: 20000
+    visible:
+      id: "sdk-status"
+      text: "SDK Ready"
+    timeout: 300000
     label: Wait for SDK to initialize
