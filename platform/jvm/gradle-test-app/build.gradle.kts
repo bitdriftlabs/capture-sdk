@@ -113,6 +113,7 @@ dependencies {
 android {
     namespace = "io.bitdrift.gradletestapp"
     compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     buildFeatures {
         compose = true

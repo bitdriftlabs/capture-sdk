@@ -52,6 +52,7 @@ android {
     namespace = "io.bitdrift.capture"
 
     compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     defaultConfig {
         minSdk = 23

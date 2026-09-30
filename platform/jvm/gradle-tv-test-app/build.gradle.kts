@@ -14,6 +14,7 @@ dependencies {
 android {
     namespace = "io.bitdrift.gradletvtestapp"
     compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     defaultConfig {
         applicationId = "io.bitdrift.gradletvtestapp"
