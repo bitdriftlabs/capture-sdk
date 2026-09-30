@@ -21,6 +21,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +52,9 @@ import io.bitdrift.gradletestapp.data.model.FeatureFlagsTestAction
 import io.bitdrift.gradletestapp.data.model.GlobalFieldAction
 import io.bitdrift.gradletestapp.data.model.NetworkTestAction
 import io.bitdrift.gradletestapp.data.model.SessionAction
+import io.bitdrift.gradletestapp.init.SampleCommands
 import io.bitdrift.gradletestapp.ui.compose.components.AppTerminationsCard
+import io.bitdrift.gradletestapp.ui.compose.components.CommandsCard
 import io.bitdrift.gradletestapp.ui.compose.components.EntityIdCard
 import io.bitdrift.gradletestapp.ui.compose.components.FatalIssuesCard
 import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
@@ -338,6 +342,13 @@ private fun SdkApisTabContent(
                 currentFields = uiState.globalFields,
                 addFieldAction = { key: String, value: String -> onAction(GlobalFieldAction.AddFieldAction(key, value)) },
                 removeFieldKeyAction = { key: String -> onAction(GlobalFieldAction.RemoveFieldKey(key)) },
+            )
+        }
+        item {
+            val registeredCommands by SampleCommands.registeredKeys.collectAsState()
+            CommandsCard(
+                registeredKeys = registeredCommands,
+                onToggle = { registered -> onAction(ConfigAction.SetSampleCommandsRegistered(registered)) },
             )
         }
         item {

@@ -17,6 +17,7 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -111,6 +112,7 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
+    commandRegistry: CommandRegistry = Capture.commandRegistry,
 ) : IInternalLogger,
     ICompletedReportsProcessor,
     IRuntimeProvider {
@@ -315,6 +317,8 @@ internal class LoggerImpl(
         // that logs emitted during the installation are the first logs emitted by the
         // Capture logger.
         appExitLogger.installAppExitLogger()
+
+        commandRegistry.attach(this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
