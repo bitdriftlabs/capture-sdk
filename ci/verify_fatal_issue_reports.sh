@@ -12,10 +12,12 @@ readonly results_file="$logs_dir/results.txt"
 readonly log_tag="BitdriftE2E"
 readonly sdk_log_tag="bitdrift"
 readonly maestro_flow="tools/maestro/force-app-exit.yaml"
+readonly maestro_version="${MAESTRO_VERSION:-2.10.0}"
 readonly sdk_start_timeout_seconds=90
 readonly trigger_timeout_seconds=30
 readonly exit_timeout_seconds=90
 readonly report_timeout_seconds=120
+readonly foreground_timeout_seconds=30
 readonly emulator_ready_attempts=120
 
 # name|app exit reason|expected IssueReportCallback reportType
@@ -75,6 +77,34 @@ save_logcat() {
   adb -s "$emulator_serial" logcat -d -v threadtime > "$logs_dir/$name.log" || true
 }
 
+save_maestro_debug_output() {
+  local name="$1"
+  local latest_output
+  latest_output="$(find "$HOME/.maestro/tests" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)"
+  if [[ -n "$latest_output" ]]; then
+    mkdir -p "$logs_dir/maestro"
+    cp -R "$latest_output" "$logs_dir/maestro/$name" || true
+  fi
+}
+
+focused_window() {
+  adb_shell dumpsys window | grep -E 'mCurrentFocus|mFocusedWindow' | tr -d '\r' || true
+}
+
+bring_app_to_foreground() {
+  for _ in $(seq 1 "$foreground_timeout_seconds"); do
+    adb_shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+    adb_shell wm dismiss-keyguard >/dev/null 2>&1 || true
+    adb_shell cmd statusbar collapse >/dev/null 2>&1 || true
+    if focused_window | grep -qF "$package_name"; then
+      return 0
+    fi
+    adb_shell am start -n "$main_activity" >/dev/null 2>&1 || true
+    sleep 1
+  done
+  return 1
+}
+
 run_case() {
   local name="$1"
   local reason="$2"
@@ -93,11 +123,19 @@ run_case() {
     return 1
   fi
 
+  if ! bring_app_to_foreground; then
+    echo "::error::$name: app did not reach the foreground (focus: $(focused_window))"
+    save_logcat "$name-foreground"
+    echo "::endgroup::"
+    return 1
+  fi
+
   maestro test -e APP_EXIT_REASON="$reason" "$maestro_flow" ||
     echo "Maestro exited with an error, which is expected when the app exits mid-flow"
   if ! wait_for_logcat "Triggering app exit reason=$reason" "$trigger_timeout_seconds"; then
-    echo "::error::$name: app never triggered $reason"
+    echo "::error::$name: app never triggered $reason (focus: $(focused_window))"
     save_logcat "$name-trigger"
+    save_maestro_debug_output "$name"
     echo "::endgroup::"
     return 1
   fi
@@ -132,8 +170,19 @@ fi
 mkdir -p "$logs_dir"
 
 if ! command -v maestro >/dev/null; then
-  curl -Ls "https://get.maestro.mobile.dev" | bash
+  for attempt in 1 2 3; do
+    if curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION="$maestro_version" bash &&
+      [[ -x "$HOME/.maestro/bin/maestro" ]]; then
+      break
+    fi
+    echo "Maestro install attempt $attempt failed"
+    sleep $((attempt * 10))
+  done
   export PATH="$PATH:$HOME/.maestro/bin"
+fi
+if ! command -v maestro >/dev/null; then
+  echo "::error::Maestro is not installed"
+  exit 1
 fi
 export MAESTRO_CLI_NO_ANALYTICS=1
 export ANDROID_SERIAL="$emulator_serial"
@@ -141,9 +190,20 @@ export ANDROID_SERIAL="$emulator_serial"
 adb start-server
 wait_for_android_emulator_ready "$emulator_serial" "$emulator_ready_attempts"
 adb_shell settings put global hide_error_dialogs 1
+adb_shell svc power stayon true || true
+adb_shell locksettings set-disabled true || true
 api_level="$(adb_shell getprop ro.build.version.sdk | tr -d '\r')"
 
-adb -s "$emulator_serial" install -r "$apk_path"
+install_attempt=1
+until adb -s "$emulator_serial" install -r "$apk_path"; do
+  save_logcat "install-attempt-$install_attempt"
+  if [[ "$install_attempt" -ge 3 ]]; then
+    echo "::error::Failed to install $apk_path"
+    exit 1
+  fi
+  install_attempt=$((install_attempt + 1))
+  wait_for_android_emulator_ready "$emulator_serial" "$emulator_ready_attempts"
+done
 adb_shell input keyevent 82 >/dev/null 2>&1 || true
 seed_gradle_test_app_settings
 
@@ -153,11 +213,11 @@ summary="| Case | API $api_level |"$'\n'"|---|---|"
 for test_case in "${cases[@]}"; do
   IFS='|' read -r name reason expected_type <<< "$test_case"
   if run_case "$name" "$reason" "$expected_type"; then
-    summary+=$'\n'"| $name | ✅ |"
+    summary+=$'\n'"| $name | pass |"
     echo "$name|pass" >> "$results_file"
   else
     failed_cases+=("$name")
-    summary+=$'\n'"| $name | ❌ |"
+    summary+=$'\n'"| $name | fail |"
     echo "$name|fail" >> "$results_file"
   fi
 done

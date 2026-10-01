@@ -59,7 +59,7 @@ extension WebVitalMessage: WebViewLoggableMessage {
         switch metric.name {
         case "LCP", "FCP", "TTFB", "INP":
             return .completeSpan(
-                name: "webview.webVital",
+                name: eventName,
                 level: ratingLogLevel,
                 fields: fields,
                 startTimeInterval: timestampTimeInterval - (metric.value / 1_000),
@@ -68,7 +68,16 @@ extension WebVitalMessage: WebViewLoggableMessage {
                 result: spanResult
             )
         default:
-            return .log(level: ratingLogLevel, message: "webview.webVital", fields: fields, type: .ux)
+            return .log(level: ratingLogLevel, message: eventName, fields: fields, type: .ux)
+        }
+    }
+
+    private var eventName: String {
+        switch metric.name {
+        case "LCP", "FCP", "TTFB", "INP", "CLS":
+            return "webview.webVital.\(metric.name.lowercased())"
+        default:
+            return "webview.webVital"
         }
     }
 }
