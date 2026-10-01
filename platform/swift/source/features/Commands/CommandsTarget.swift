@@ -8,7 +8,7 @@
 internal import CaptureLoggerBridge
 import Foundation
 
-final class LiveCommandsTarget: NSObject {
+final class CommandsTarget: NSObject {
     private enum ArgumentType: UInt {
         case string
         case binary
@@ -84,7 +84,7 @@ final class LiveCommandsTarget: NSObject {
     private func complete(requestID: UInt64, result: Result<CommandResult, CommandError>) {
         switch result {
         case let .success(result):
-            capture_complete_live_command(
+            capture_complete_command(
                 requestID,
                 true,
                 result.context,
@@ -95,7 +95,7 @@ final class LiveCommandsTarget: NSObject {
             )
         case let .failure(error):
             let message = [error.title, error.description].compactMap { $0 }.joined(separator: ": ")
-            capture_complete_live_command(
+            capture_complete_command(
                 requestID,
                 false,
                 error.context,

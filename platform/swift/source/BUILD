@@ -79,7 +79,7 @@ bitdrift_rust_library(
 )
 
 bitdrift_rust_test(
-    name = "live_commands_rust_test",
+    name = "commands_rust_test",
     crate = ":swift_bridge",
     tags = ["macos_only"],
 )

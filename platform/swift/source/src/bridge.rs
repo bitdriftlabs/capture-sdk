@@ -18,7 +18,7 @@ use crate::ffi::{
 };
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::session::{SessionCallback, timeout_from_seconds};
-use crate::{events, ffi, live_commands, resource_utilization, session_replay};
+use crate::{events, ffi, commands, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_crash_handler::{CrashReportHook, CrashReportInfo};
@@ -832,7 +832,7 @@ extern "C" fn capture_complete_device_command_screenshot(
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn capture_register_live_command(
+extern "C" fn capture_register_command(
   logger_id: LoggerId<'_>,
   key: *const c_char,
   target: *mut Object,
@@ -840,27 +840,27 @@ extern "C" fn capture_register_live_command(
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
-      live_commands::register(&logger_id, key, target);
+      commands::register(&logger_id, key, target);
       Ok(())
     },
-    "swift register live command",
+    "swift register command",
   );
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn capture_unregister_live_command(logger_id: LoggerId<'_>, key: *const c_char) {
+extern "C" fn capture_unregister_command(logger_id: LoggerId<'_>, key: *const c_char) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let key = unsafe { CStr::from_ptr(key) }.to_str()?;
-      live_commands::unregister(&logger_id, key);
+      commands::unregister(&logger_id, key);
       Ok(())
     },
-    "swift unregister live command",
+    "swift unregister command",
   );
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn capture_complete_live_command(
+extern "C" fn capture_complete_command(
   request_id: u64,
   succeeded: bool,
   context: *const Object,
@@ -871,7 +871,7 @@ extern "C" fn capture_complete_live_command(
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let context = unsafe { live_commands::string_dictionary_from_objc(context) }?;
+      let context = unsafe { commands::string_dictionary_from_objc(context) }?;
       let attachment = if attachment.is_null() {
         None
       } else {
@@ -892,7 +892,7 @@ extern "C" fn capture_complete_live_command(
       } else {
         Some(unsafe { nsstring_into_string(error) }?)
       };
-      live_commands::complete(
+      commands::complete(
         request_id,
         succeeded,
         &context,
@@ -903,7 +903,7 @@ extern "C" fn capture_complete_live_command(
       );
       Ok(())
     },
-    "swift complete live command",
+    "swift complete command",
   );
 }
 

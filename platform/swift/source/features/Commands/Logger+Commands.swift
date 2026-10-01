@@ -22,7 +22,7 @@ extension Logger {
             throw CommandRegistrationError.loggerNotStarted
         }
         _ = try await logger.commandRegistry.register(key: key, handler: handler)
-        logger.underlyingLogger.registerLiveCommand(key: key, target: logger.liveCommandsTarget)
+        logger.underlyingLogger.registerCommand(key: key, target: logger.commandsTarget)
         return CommandHandle { [weak logger] in
             await logger?.unregisterCommand(key: key)
         }
@@ -43,7 +43,7 @@ extension Logger {
     }
 
     private func unregisterCommand(key: String) async {
-        underlyingLogger.unregisterLiveCommand(key: key)
+        underlyingLogger.unregisterCommand(key: key)
         await commandRegistry.unregister(key: key)
     }
 }

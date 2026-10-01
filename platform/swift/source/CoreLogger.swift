@@ -33,12 +33,12 @@ final class CoreLogger {
 }
 
 extension CoreLogger: CoreLogging {
-    func registerLiveCommand(key: String, target: AnyObject) {
-        self.underlyingLogger.registerLiveCommand(key: key, target: target)
+    func registerCommand(key: String, target: AnyObject) {
+        self.underlyingLogger.registerCommand(key: key, target: target)
     }
 
-    func unregisterLiveCommand(key: String) {
-        self.underlyingLogger.unregisterLiveCommand(key: key)
+    func unregisterCommand(key: String) {
+        self.underlyingLogger.unregisterCommand(key: key)
     }
 
     func log(

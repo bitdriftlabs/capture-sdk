@@ -21,8 +21,8 @@ use std::sync::{Arc, LazyLock};
 use tokio::sync::oneshot;
 
 #[cfg(test)]
-#[path = "./live_commands_test.rs"]
-mod live_commands_test;
+#[path = "./commands_test.rs"]
+mod commands_test;
 
 const ARGUMENT_NAME_KEY: &str = "name";
 const ARGUMENT_TYPE_KEY: &str = "type";
@@ -115,7 +115,7 @@ pub fn complete<S: BuildHasher>(
 ) {
   let sender = COMPLETIONS.lock().remove(&request_id);
   let Some(sender) = sender else {
-    log::debug!("ignoring completion for unknown live command {request_id}");
+    log::debug!("ignoring completion for unknown command {request_id}");
     return;
   };
 
@@ -179,7 +179,7 @@ fn make_arguments(arguments: &HashMap<String, Data>) -> Result<StrongPtr> {
   })
 }
 
-/// Creates the Foundation representation consumed by `LiveCommandsTarget`.
+/// Creates the Foundation representation consumed by `CommandsTarget`.
 fn make_command_argument(name: &str, argument_type: usize, value: &StrongPtr) -> Result<StrongPtr> {
   let argument = unsafe { StrongPtr::new(msg_send![class!(NSMutableDictionary), new]) };
   let argument_name = make_nsstring(name)?;

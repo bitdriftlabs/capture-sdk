@@ -67,9 +67,9 @@ public final class MockLoggerBridging {
 extension MockLoggerBridging: LoggerBridging {
     public var isTracingActive: Bool { self.tracingActive }
 
-    public func registerLiveCommand(key _: String, target _: AnyObject) {}
+    public func registerCommand(key _: String, target _: AnyObject) {}
 
-    public func unregisterLiveCommand(key _: String) {}
+    public func unregisterCommand(key _: String) {}
 
     public func start() {}
 

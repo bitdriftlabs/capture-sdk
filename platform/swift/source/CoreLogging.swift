@@ -26,9 +26,9 @@ protocol CoreLogging: AnyObject {
     /// Starts the logger. Needs to be called before logger is used to emit logs.
     func start()
 
-    func registerLiveCommand(key: String, target: AnyObject)
+    func registerCommand(key: String, target: AnyObject)
 
-    func unregisterLiveCommand(key: String)
+    func unregisterCommand(key: String)
 
     /// Logs messages using `normal` log type and non-blocking mode. Intended to be called from within the
     /// implementation of methods that expose logging interfaces to customers of the SDK.

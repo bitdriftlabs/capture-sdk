@@ -133,18 +133,18 @@ void capture_complete_device_command_screenshot(
     const NSData *_Nullable screenshot
 );
 
-void capture_register_live_command(
+void capture_register_command(
     logger_id logger_id,
     const char *key,
     id target
 );
 
-void capture_unregister_live_command(
+void capture_unregister_command(
     logger_id logger_id,
     const char *key
 );
 
-void capture_complete_live_command(
+void capture_complete_command(
     uint64_t request_id,
     bool succeeded,
     const NSDictionary<NSString *, NSString *> *context,
