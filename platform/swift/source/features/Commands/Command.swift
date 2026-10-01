@@ -16,7 +16,9 @@ public struct Command: Sendable {
 }
 
 extension Array where Element == Command {
-    /// Removes the duplicates, keeping the first one it finds in the array
+    /// Removes duplicate commands, retaining the first command for each key.
+    ///
+    /// - returns: The unique commands and the commands removed as duplicates.
     func removingDuplicates() -> (
         commands: [Command],
         duplicates: [Command]

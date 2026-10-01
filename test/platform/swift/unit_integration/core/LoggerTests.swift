@@ -33,7 +33,7 @@ final class LoggerTests: XCTestCase {
         let logger = try Logger.testLogger(
             commands: [
                 Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "first"])) },
-                Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "second"])) }
+                Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "second"])) },
             ],
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )

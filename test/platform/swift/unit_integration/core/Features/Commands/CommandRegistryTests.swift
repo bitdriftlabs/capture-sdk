@@ -38,7 +38,7 @@ final class CommandRegistryTests: XCTestCase {
     func testInitialCommandsKeepTheFirstHandlerForDuplicateKeys() async throws {
         sut = CommandRegistry(commands: [
             Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "first"])) },
-            Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "second"])) }
+            Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "second"])) },
         ])
 
         let result = await whenExecutingCommand(key: "memory_dump")

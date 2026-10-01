@@ -8,7 +8,7 @@
 extension Logger {
     /// Registers an asynchronous command that can be invoked from a live session or workflow.
     ///
-    /// - parameter key: The command identifier.
+    /// - parameter key:     The command identifier.
     ///
     /// - parameter handler: The asynchronous application handler for this command.
     ///

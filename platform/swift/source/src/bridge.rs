@@ -18,7 +18,7 @@ use crate::ffi::{
 };
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::session::{SessionCallback, timeout_from_seconds};
-use crate::{events, ffi, commands, resource_utilization, session_replay};
+use crate::{commands, events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_crash_handler::{CrashReportHook, CrashReportInfo};

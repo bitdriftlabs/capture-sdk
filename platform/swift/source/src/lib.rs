@@ -18,12 +18,12 @@
 extern crate objc;
 
 pub mod bridge;
+pub mod commands;
 pub mod conversion;
 pub mod crash_report;
 pub mod events;
 pub mod ffi;
 pub mod key_value_storage;
-pub mod commands;
 pub mod resource_utilization;
 mod session;
 pub mod session_replay;

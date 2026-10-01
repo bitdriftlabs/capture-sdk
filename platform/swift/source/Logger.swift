@@ -73,6 +73,7 @@ public final class Logger {
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
     ///                                            can update their values later.
+    /// - parameter commands:                      Commands to register before the SDK starts receiving remote work.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
     convenience init?(
@@ -118,6 +119,7 @@ public final class Logger {
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
     ///                                            can update their values later.
+    /// - parameter commands:                      Commands to register before the SDK starts receiving remote work.
     /// - parameter enableNetwork:                 Whether logger should perform network request. If not all
     ///                                            network requests performed by the logger are no-ops.
     /// - parameter storageProvider:               The storage to use by the logger.
