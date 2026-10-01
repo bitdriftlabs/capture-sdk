@@ -8,88 +8,89 @@
 import { createMessage, logWithMaxLength, onNativeMessage } from './bridge';
 import { makeSafe, safeCall } from './safe-call';
 
+/** Mirrors the replay view types of the Electron SDK (`capture-es`) and native `ReplayType`. */
 export const ReplayElementType = {
     Label: 0,
     Button: 1,
     TextInput: 2,
     Image: 3,
     View: 4,
-    BackgroundImage: 5,
-    SwitchOn: 6,
-    SwitchOff: 7,
+    TransparentView: 10,
+    WebView: 12,
 } as const;
 
 type ReplayElementTypeValue = (typeof ReplayElementType)[keyof typeof ReplayElementType];
 
 const TIME_BUDGET_MS = 8;
+const IDLE_TIMEOUT_MS = 500;
 const MAX_VISITED_NODES = 5000;
 const MAX_ELEMENTS = 1500;
 const MAX_MESSAGE_LENGTH = 65_536;
-
-const IMAGE_TAGS = new Set(['img', 'svg', 'picture', 'video', 'canvas', 'iframe', 'object', 'embed']);
-const BUTTON_TAGS = new Set(['button', 'a', 'summary']);
-const TEXT_INPUT_TAGS = new Set(['textarea', 'select']);
-const BUTTON_INPUT_TYPES = new Set(['button', 'submit', 'reset', 'image', 'file', 'color']);
-const SKIPPED_TAGS = new Set(['script', 'style', 'noscript', 'template', 'head', 'meta', 'link', 'title', 'br']);
-const BUTTON_ROLES = new Set(['button', 'link', 'menuitem', 'tab']);
 
 interface Viewport {
     width: number;
     height: number;
 }
 
-const isTransparent = (color: string): boolean =>
-    color === '' || color === 'transparent' || color === 'rgba(0, 0, 0, 0)' || /rgba\(.*,\s*0\)$/.test(color);
-
-const hasVisibleBorder = (style: CSSStyleDeclaration): boolean =>
-    (parseFloat(style.borderTopWidth) > 0 && !isTransparent(style.borderTopColor)) ||
-    (parseFloat(style.borderLeftWidth) > 0 && !isTransparent(style.borderLeftColor));
-
-const classify = (element: Element, style: CSSStyleDeclaration): ReplayElementTypeValue | null => {
-    const tagName = element.tagName.toLowerCase();
-
-    if (tagName === 'input') {
-        const input = element as HTMLInputElement;
-        const type = input.type.toLowerCase();
-        if (type === 'hidden') return null;
-        if (type === 'checkbox' || type === 'radio') {
-            return input.checked ? ReplayElementType.SwitchOn : ReplayElementType.SwitchOff;
-        }
-        if (BUTTON_INPUT_TYPES.has(type)) return ReplayElementType.Button;
-        return ReplayElementType.TextInput;
-    }
-    if (TEXT_INPUT_TAGS.has(tagName) || (element as HTMLElement).isContentEditable) {
-        return ReplayElementType.TextInput;
-    }
-    if (IMAGE_TAGS.has(tagName)) return ReplayElementType.Image;
-
+const matchByRole = (element: Element, roles: string[]): boolean => {
     const role = element.getAttribute('role');
-    if (role === 'checkbox' || role === 'switch' || role === 'radio') {
-        return element.getAttribute('aria-checked') === 'true'
-            ? ReplayElementType.SwitchOn
-            : ReplayElementType.SwitchOff;
-    }
-    if (BUTTON_TAGS.has(tagName) || (role !== null && BUTTON_ROLES.has(role))) {
-        return ReplayElementType.Button;
-    }
-    if (style.backgroundImage.includes('url(')) {
-        return ReplayElementType.BackgroundImage;
-    }
-    if (
-        !isTransparent(style.backgroundColor) ||
-        hasVisibleBorder(style) ||
-        (style.boxShadow !== '' && style.boxShadow !== 'none')
-    ) {
-        return ReplayElementType.View;
-    }
-    return null;
+    return role !== null && roles.includes(role);
 };
 
-const isLeafType = (type: ReplayElementTypeValue | null): boolean =>
-    type === ReplayElementType.TextInput ||
-    type === ReplayElementType.Image ||
-    type === ReplayElementType.SwitchOn ||
-    type === ReplayElementType.SwitchOff;
+const matchByTagName = (element: Element, tagNames: string[]): boolean =>
+    tagNames.includes(element.tagName.toLowerCase());
+
+const backgroundAlpha = (color: string): number => {
+    if (color === 'transparent') return 0;
+    const match = color.match(/^rgba?\(([^)]+)\)$/);
+    if (!match) return 1;
+    const alpha = match[1].split(/[\s,/]+/).filter(Boolean)[3];
+    return alpha === undefined ? 1 : Number.parseFloat(alpha);
+};
+
+/** Same classification rules as the Electron SDK's `captureScreen`. */
+const getTypeFromElement = (element: Element, style: CSSStyleDeclaration): ReplayElementTypeValue | null => {
+    if (
+        style.display === 'none' ||
+        style.visibility === 'hidden' ||
+        style.opacity === '0' ||
+        element.getAttribute('aria-hidden') === 'true'
+    ) {
+        return null;
+    }
+
+    if (
+        matchByRole(element, ['heading', 'label', 'paragraph']) ||
+        matchByTagName(element, ['span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+    ) {
+        return ReplayElementType.Label;
+    }
+
+    if (matchByRole(element, ['image']) || matchByTagName(element, ['img', 'svg', 'picture'])) {
+        return ReplayElementType.Image;
+    }
+
+    if (matchByRole(element, ['button', 'link']) || matchByTagName(element, ['button', 'a'])) {
+        return ReplayElementType.Button;
+    }
+
+    if (matchByTagName(element, ['textarea', 'input'])) {
+        return ReplayElementType.TextInput;
+    }
+
+    if (matchByTagName(element, ['iframe'])) {
+        return ReplayElementType.WebView;
+    }
+
+    const alpha = backgroundAlpha(style.backgroundColor);
+    if (alpha > 0 && alpha < 1) {
+        return ReplayElementType.TransparentView;
+    }
+
+    return ReplayElementType.View;
+};
+
+const zIndexFromElement = (element: Element): number => Number.parseInt(getComputedStyle(element).zIndex, 10) || 0;
 
 const intersectsViewport = (rect: DOMRect, viewport: Viewport): boolean =>
     rect.width > 0 &&
@@ -100,84 +101,76 @@ const intersectsViewport = (rect: DOMRect, viewport: Viewport): boolean =>
     rect.top < viewport.height;
 
 /**
- * Walks the visible DOM and returns a flat `[type, x, y, width, height, ...]` array in CSS pixels
- * relative to the layout viewport, ordered back to front. The walk stops at `deadline`
- * (`performance.now()` time) and returns what it collected so far.
+ * Walks the DOM the same way the Electron SDK's `captureScreen` does and returns a flat
+ * `[type, x, y, width, height, ...]` array in CSS pixels relative to the layout viewport, ordered
+ * back to front. Unlike Electron it skips elements outside the viewport, renders `data-redacted`
+ * elements as an opaque block, and stops at `deadline` (`performance.now()` time) or once the
+ * node or element caps are reached, returning what it collected so far.
  */
 export const collectReplayElements = (
     root: Element,
     viewport: Viewport,
     deadline: number = Number.POSITIVE_INFINITY,
 ): number[] => {
-    const elements: number[] = [];
+    const elementsByKey = new Map<string, number[]>();
     let visited = 0;
 
-    const push = (type: ReplayElementTypeValue, rect: DOMRect): void => {
-        elements.push(
-            type,
-            Math.round(rect.left),
-            Math.round(rect.top),
-            Math.round(rect.width),
-            Math.round(rect.height),
-        );
-    };
+    const upsertElement = (type: ReplayElementTypeValue, rect: DOMRect): void => {
+        const element = [type, Math.round(rect.x), Math.round(rect.y), Math.round(rect.width), Math.round(rect.height)];
+        const coordinates = element.slice(1).join('~');
+        const viewKey = `${ReplayElementType.View}~${coordinates}`;
 
-    const pushTextRects = (element: Element): void => {
-        for (const child of Array.from(element.childNodes)) {
-            if (child.nodeType !== Node.TEXT_NODE || !child.textContent?.trim()) continue;
-            const range = document.createRange();
-            range.selectNodeContents(child);
-            for (const lineRect of Array.from(range.getClientRects())) {
-                if (elements.length / 5 >= MAX_ELEMENTS) return;
-                if (intersectsViewport(lineRect, viewport)) push(ReplayElementType.Label, lineRect);
-            }
+        // A non-view element replaces a container view with the same bounds to reduce clutter.
+        if (type !== ReplayElementType.View && elementsByKey.has(viewKey)) {
+            elementsByKey.delete(viewKey);
         }
+        elementsByKey.set(`${type}~${coordinates}`, element);
     };
 
-    const visit = (element: Element): void => {
-        if (visited++ >= MAX_VISITED_NODES || elements.length / 5 >= MAX_ELEMENTS) return;
+    const traverse = (element: Element): void => {
+        if (visited++ >= MAX_VISITED_NODES || elementsByKey.size >= MAX_ELEMENTS) return;
         if (performance.now() > deadline) return;
-
-        const tagName = element.tagName.toLowerCase();
-        if (SKIPPED_TAGS.has(tagName)) return;
 
         const style = window.getComputedStyle(element);
         if (style.display === 'none') return;
 
         const rect = element.getBoundingClientRect();
-        const isRendered = style.visibility !== 'hidden' && parseFloat(style.opacity || '1') > 0;
         const isOnScreen = intersectsViewport(rect, viewport);
 
         if (element.hasAttribute('data-redacted')) {
-            if (isRendered && isOnScreen) push(ReplayElementType.View, rect);
+            if (isOnScreen && style.visibility !== 'hidden') upsertElement(ReplayElementType.View, rect);
             return;
         }
 
-        let type: ReplayElementTypeValue | null = null;
-        if (isRendered && isOnScreen && element !== document.documentElement && element !== document.body) {
-            type = classify(element, style);
-            if (type !== null) push(type, rect);
-        }
-        if (isLeafType(type)) return;
+        const type = getTypeFromElement(element, style);
+        if (type !== null && isOnScreen) upsertElement(type, rect);
 
-        if (isRendered && style.display !== 'contents') pushTextRects(element);
+        if (matchByTagName(element, ['svg'])) return;
 
-        if (style.overflow !== 'visible' && !isOnScreen) return;
-
-        for (const child of Array.from(element.children)) {
-            visit(child);
+        // Sorting per parent keeps DOM position as a stacking factor among siblings.
+        const children = Array.from(element.children).sort((a, b) => zIndexFromElement(a) - zIndexFromElement(b));
+        for (const child of children) {
+            traverse(child);
         }
     };
 
-    visit(root);
-    return elements;
+    traverse(root);
+    return Array.from(elementsByKey.values()).flat();
+};
+
+const runWhenIdle = (callback: () => void): void => {
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(callback, { timeout: IDLE_TIMEOUT_MS });
+    } else {
+        setTimeout(callback, 0);
+    }
 };
 
 const captureSnapshot = (): void => {
     safeCall(() => {
         const viewport = { width: window.innerWidth, height: window.innerHeight };
-        if (viewport.width <= 0 || viewport.height <= 0) return;
-        const elements = collectReplayElements(document.documentElement, viewport, performance.now() + TIME_BUDGET_MS);
+        if (viewport.width <= 0 || viewport.height <= 0 || !document.body) return;
+        const elements = collectReplayElements(document.body, viewport, performance.now() + TIME_BUDGET_MS);
         logWithMaxLength(
             createMessage({
                 type: 'replaySnapshot',
@@ -207,7 +200,7 @@ export const initReplayCapture = (): void => {
             const request = JSON.parse(data) as { type?: string; force?: boolean };
             if (request.type !== 'replaySnapshotRequest' || (!isDirty && !request.force)) return;
             isDirty = false;
-            captureSnapshot();
+            runWhenIdle(captureSnapshot);
         }),
     );
     if (!isListening) return;

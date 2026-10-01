@@ -21,9 +21,8 @@ private val webElementTypes: Map<Int, ReplayType> =
         ReplayType.TextInput,
         ReplayType.Image,
         ReplayType.View,
-        ReplayType.BackgroundImage,
-        ReplayType.SwitchOn,
-        ReplayType.SwitchOff,
+        ReplayType.TransparentView,
+        ReplayType.WebView,
     ).associateBy { it.typeValue }
 
 /**

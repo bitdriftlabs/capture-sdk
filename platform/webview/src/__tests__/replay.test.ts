@@ -15,10 +15,6 @@ const layout = (element: Element, x: number, y: number, width: number, height: n
     vi.spyOn(element, 'getBoundingClientRect').mockReturnValue(new DOMRect(x, y, width, height));
 };
 
-if (!Range.prototype.getClientRects) {
-    Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
-}
-
 const chunk = (elements: number[]): number[][] => {
     const out: number[][] = [];
     for (let i = 0; i < elements.length; i += 5) out.push(elements.slice(i, i + 5));
@@ -28,7 +24,6 @@ const chunk = (elements: number[]): number[][] => {
 describe('replay', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
-        vi.spyOn(Range.prototype, 'getClientRects').mockReturnValue([] as unknown as DOMRectList);
         layout(document.documentElement, 0, 0, viewport.width, viewport.height);
         layout(document.body, 0, 0, viewport.width, viewport.height);
     });
@@ -37,70 +32,87 @@ describe('replay', () => {
         vi.restoreAllMocks();
     });
 
-    it('classifies interactive and media elements', () => {
+    it('classifies elements with the Electron SDK rules', () => {
         document.body.innerHTML = `
+            <h1 id="heading">Title</h1>
             <button id="button">Go</button>
             <input id="text" type="text" />
-            <input id="checked" type="checkbox" checked />
-            <input id="unchecked" type="checkbox" />
             <img id="image" />
+            <iframe id="frame"></iframe>
+            <section id="section"></section>
         `;
-        layout(document.getElementById('button') as Element, 10, 20, 100, 40);
-        layout(document.getElementById('text') as Element, 10, 70, 200, 30);
-        layout(document.getElementById('checked') as Element, 10, 110, 20, 20);
-        layout(document.getElementById('unchecked') as Element, 40, 110, 20, 20);
-        layout(document.getElementById('image') as Element, 10, 140, 300, 200);
+        layout(document.getElementById('heading') as Element, 0, 0, 400, 30);
+        layout(document.getElementById('button') as Element, 10, 40, 100, 40);
+        layout(document.getElementById('text') as Element, 10, 90, 200, 30);
+        layout(document.getElementById('image') as Element, 10, 130, 300, 200);
+        layout(document.getElementById('frame') as Element, 0, 340, 400, 200);
+        layout(document.getElementById('section') as Element, 0, 550, 400, 100);
 
-        const elements = chunk(collectReplayElements(document.documentElement, viewport));
+        const elements = chunk(collectReplayElements(document.body, viewport));
 
         expect(elements).toEqual([
-            [ReplayElementType.Button, 10, 20, 100, 40],
-            [ReplayElementType.TextInput, 10, 70, 200, 30],
-            [ReplayElementType.SwitchOn, 10, 110, 20, 20],
-            [ReplayElementType.SwitchOff, 40, 110, 20, 20],
-            [ReplayElementType.Image, 10, 140, 300, 200],
+            [ReplayElementType.View, 0, 0, 400, 800],
+            [ReplayElementType.Label, 0, 0, 400, 30],
+            [ReplayElementType.Button, 10, 40, 100, 40],
+            [ReplayElementType.TextInput, 10, 90, 200, 30],
+            [ReplayElementType.Image, 10, 130, 300, 200],
+            [ReplayElementType.WebView, 0, 340, 400, 200],
+            [ReplayElementType.View, 0, 550, 400, 100],
         ]);
     });
 
-    it('emits painted containers and skips transparent ones', () => {
+    it('maps translucent backgrounds to transparent views', () => {
+        document.body.innerHTML = '<div id="overlay" style="background-color: rgba(0, 0, 0, 0.5)"></div>';
+        layout(document.getElementById('overlay') as Element, 0, 0, 400, 100);
+
+        const elements = chunk(collectReplayElements(document.body, viewport));
+
+        expect(elements).toContainEqual([ReplayElementType.TransparentView, 0, 0, 400, 100]);
+    });
+
+    it('replaces a container view with a typed child of the same bounds', () => {
+        document.body.innerHTML = '<div id="wrapper"><button id="button">Go</button></div>';
+        layout(document.getElementById('wrapper') as Element, 10, 10, 100, 40);
+        layout(document.getElementById('button') as Element, 10, 10, 100, 40);
+
+        const elements = chunk(collectReplayElements(document.body, viewport));
+
+        expect(elements).toEqual([
+            [ReplayElementType.View, 0, 0, 400, 800],
+            [ReplayElementType.Button, 10, 10, 100, 40],
+        ]);
+    });
+
+    it('orders siblings by z-index', () => {
         document.body.innerHTML = `
-            <div id="painted" style="background-color: rgb(255, 0, 0)"></div>
-            <div id="transparent"></div>
+            <button id="front" style="z-index: 2">Front</button>
+            <button id="back" style="z-index: 1">Back</button>
         `;
-        layout(document.getElementById('painted') as Element, 0, 0, 400, 100);
-        layout(document.getElementById('transparent') as Element, 0, 100, 400, 100);
+        layout(document.getElementById('front') as Element, 0, 0, 100, 40);
+        layout(document.getElementById('back') as Element, 0, 50, 100, 40);
 
-        const elements = chunk(collectReplayElements(document.documentElement, viewport));
+        const elements = chunk(collectReplayElements(document.body, viewport));
 
-        expect(elements).toEqual([[ReplayElementType.View, 0, 0, 400, 100]]);
+        expect(elements.slice(1)).toEqual([
+            [ReplayElementType.Button, 0, 50, 100, 40],
+            [ReplayElementType.Button, 0, 0, 100, 40],
+        ]);
     });
 
     it('skips hidden and off-screen elements', () => {
         document.body.innerHTML = `
             <button id="hidden" style="display: none">Hidden</button>
             <button id="invisible" style="visibility: hidden">Invisible</button>
+            <button id="aria-hidden" aria-hidden="true">Aria hidden</button>
             <button id="offscreen">Offscreen</button>
         `;
         layout(document.getElementById('hidden') as Element, 0, 0, 100, 40);
         layout(document.getElementById('invisible') as Element, 0, 0, 100, 40);
+        layout(document.getElementById('aria-hidden') as Element, 0, 0, 100, 40);
         layout(document.getElementById('offscreen') as Element, 0, 900, 100, 40);
 
-        expect(collectReplayElements(document.documentElement, viewport)).toEqual([]);
-    });
-
-    it('emits a label per rendered text line', () => {
-        document.body.innerHTML = '<p id="paragraph">Hello world</p>';
-        vi.mocked(Range.prototype.getClientRects).mockReturnValue([
-            new DOMRect(8, 10, 120, 18),
-            new DOMRect(8, 28, 60, 18),
-        ] as unknown as DOMRectList);
-        layout(document.getElementById('paragraph') as Element, 8, 10, 384, 36);
-
-        const elements = chunk(collectReplayElements(document.documentElement, viewport));
-
-        expect(elements).toEqual([
-            [ReplayElementType.Label, 8, 10, 120, 18],
-            [ReplayElementType.Label, 8, 28, 60, 18],
+        expect(chunk(collectReplayElements(document.body, viewport))).toEqual([
+            [ReplayElementType.View, 0, 0, 400, 800],
         ]);
     });
 
@@ -109,16 +121,16 @@ describe('replay', () => {
         layout(document.getElementById('secret') as Element, 0, 0, 200, 50);
         layout(document.getElementById('inner') as Element, 0, 0, 100, 40);
 
-        const elements = chunk(collectReplayElements(document.documentElement, viewport));
+        const elements = chunk(collectReplayElements(document.body, viewport));
 
-        expect(elements).toEqual([[ReplayElementType.View, 0, 0, 200, 50]]);
+        expect(elements).toEqual([
+            [ReplayElementType.View, 0, 0, 400, 800],
+            [ReplayElementType.View, 0, 0, 200, 50],
+        ]);
     });
 
     it('stops walking once the deadline has passed', () => {
-        document.body.innerHTML = '<button id="button">Go</button>';
-        layout(document.getElementById('button') as Element, 0, 0, 100, 40);
-
-        expect(collectReplayElements(document.documentElement, viewport, performance.now() - 1)).toEqual([]);
+        expect(collectReplayElements(document.body, viewport, performance.now() - 1)).toEqual([]);
     });
 
     describe('initReplayCapture', () => {
@@ -138,6 +150,7 @@ describe('replay', () => {
 
         it('snapshots only when native requests it and the page changed', async () => {
             const { collector, request } = setUpBridge();
+            vi.stubGlobal('requestIdleCallback', (callback: () => void) => callback());
             initReplayCapture();
 
             expect(collector.getMessagesByType('replaySnapshot')).toHaveLength(0);
