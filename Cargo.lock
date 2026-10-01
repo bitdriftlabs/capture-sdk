@@ -1383,6 +1383,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bd-api",
+ "bd-artifact-upload",
  "bd-client-common",
  "bd-client-stats-store",
  "bd-crash-handler",
@@ -1401,10 +1402,12 @@ dependencies = [
  "jni",
  "log",
  "memmap2",
+ "parking_lot",
  "platform-shared",
  "protobuf 4.0.0-alpha.0",
  "tempfile",
  "time",
+ "tokio",
  "uuid",
 ]
 

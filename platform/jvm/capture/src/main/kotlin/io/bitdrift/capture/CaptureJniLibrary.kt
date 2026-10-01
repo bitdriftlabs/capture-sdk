@@ -8,6 +8,8 @@
 package io.bitdrift.capture
 
 import io.bitdrift.capture.attributes.IClientAttributes
+import io.bitdrift.capture.commands.ICommandBridge
+import io.bitdrift.capture.commands.ICommandDispatcher
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
 import io.bitdrift.capture.providers.Field
@@ -30,7 +32,7 @@ interface StackTraceProvider {
 }
 
 @Suppress("UndocumentedPublicClass")
-internal object CaptureJniLibrary : IBridge {
+internal object CaptureJniLibrary : IBridge, ICommandBridge {
     /**
      * Loads the shared library. This is safe to call multiple times.
      */
@@ -283,6 +285,49 @@ internal object CaptureJniLibrary : IBridge {
     external fun completeDeviceCommandScreenshot(
         requestId: Long,
         screenshot: ByteArray?,
+    )
+
+    /**
+     * Registers a platform handler for an application-defined command, replacing any handler
+     * previously registered with the same key.
+     *
+     * @param loggerId the ID of the logger to register the command with.
+     * @param key the registered command key.
+     * @param dispatcher the dispatcher invoked for every invocation of the command.
+     */
+    external override fun registerCommand(
+        loggerId: Long,
+        key: String,
+        dispatcher: ICommandDispatcher,
+    )
+
+    /**
+     * Unregisters the handler for an application-defined command.
+     *
+     * @param loggerId the ID of the logger to unregister the command from.
+     * @param key the registered command key.
+     * @return whether a handler was removed.
+     */
+    external override fun unregisterCommand(
+        loggerId: Long,
+        key: String,
+    ): Boolean
+
+    /**
+     * Completes an in-flight command invocation.
+     *
+     * @param invocationId the invocation ID received through [ICommandDispatcher.dispatch].
+     * @param error the failure title, or null when the command succeeded.
+     * @param fields the fields describing the command result.
+     * @param attachment optional binary attachment for a successful result.
+     * @param attachmentType the type of [attachment].
+     */
+    external override fun completeCommand(
+        invocationId: Long,
+        error: String?,
+        fields: Array<Field>,
+        attachment: ByteArray?,
+        attachmentType: String?,
     )
 
     /**

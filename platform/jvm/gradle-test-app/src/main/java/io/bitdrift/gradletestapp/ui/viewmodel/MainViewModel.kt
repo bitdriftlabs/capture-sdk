@@ -32,6 +32,7 @@ import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
+import io.bitdrift.gradletestapp.init.SampleCommands
 import io.bitdrift.gradletestapp.diagnostics.PreInitOrderingExample
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -67,6 +68,18 @@ class MainViewModel(
         )
 
     init {
+        Logger
+            .registerCommand("ui_state") {
+                val state = _uiState.value
+                success(
+                    context =
+                        mapOf(
+                            "is_loading" to state.isLoading.toString(),
+                            "error" to state.error.orEmpty(),
+                            "global_fields" to state.globalFields.size.toString(),
+                        ),
+                )
+            }.unregisterOn(viewModelScope)
         viewModelScope.launch {
             CaptureSdkInitializer.sdkInitializationState.collect { initialized ->
                 when (initialized) {
@@ -161,6 +174,8 @@ class MainViewModel(
             is ConfigAction.UpdateLogLevel -> updateLogLevel(action.logLevel)
             is ConfigAction.SetSleepModeEnabled -> setSleepModeEnabled(action.enabled)
             is ConfigAction.ClearEntityId -> clearEntityId()
+            is ConfigAction.SetSampleCommandsRegistered ->
+                if (action.registered) SampleCommands.register(application) else SampleCommands.unregister()
 
             is SessionAction.StartNewSession -> startNewSession()
             is SessionAction.GenerateDeviceCode -> generateDeviceCode()
