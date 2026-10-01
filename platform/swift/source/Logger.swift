@@ -82,6 +82,7 @@ public final class Logger {
         dateProvider: DateProvider?,
         customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
+        commands: [Command] = [],
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     )
     {
@@ -93,6 +94,7 @@ public final class Logger {
             dateProvider: dateProvider,
             customFieldGetters: customFieldGetters,
             initialFields: initialFields,
+            commands: commands,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider(),
             loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
@@ -133,6 +135,7 @@ public final class Logger {
         dateProvider: DateProvider?,
         customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
+        commands: [Command] = [],
         enableNetwork: Bool = true,
         storageProvider: StorageProvider,
         timeProvider: TimeProvider,
@@ -141,8 +144,6 @@ public final class Logger {
         )
     {
         self.timeProvider = timeProvider
-        self.commandRegistry = CommandRegistry()
-        self.commandsTarget = CommandsTarget(registry: self.commandRegistry)
         let start = timeProvider.uptime()
 
         let appStateAttributes = AppStateAttributes()
@@ -221,14 +222,25 @@ public final class Logger {
 
         self.underlyingLogger = CoreLogger(logger: logger)
 
+        let (uniqueCommands, duplicated) = commands.removingDuplicates()
+        self.commandRegistry = CommandRegistry(commands: uniqueCommands)
+        self.commandsTarget = CommandsTarget(registry: self.commandRegistry)
+        for command in uniqueCommands {
+            self.underlyingLogger.registerCommand(key: command.key, target: self.commandsTarget)
+        }
+
         defer {
             let duration = timeProvider.timeIntervalSince(start)
-            let fields: Fields = [
+            var fields: Fields = [
                 "_fatal_issue_reporting_state": "\(Logger.issueReporterInitResult.0)",
                 "_fatal_issue_reporting_duration_ms": Logger.issueReporterInitResult.1 * Double(MSEC_PER_SEC),
                 "_is_sdk_directory_first_created": isSdkDirectoryFirstCreated,
                 "_session_replay_enabled": (configuration.sessionReplayConfiguration != nil),
             ]
+            if !duplicated.isEmpty {
+                fields["_duplicated_commands"] = duplicated.map(\.key).sorted().joined(separator: ",")
+            }
+
             self.underlyingLogger.logSDKStart(fields: fields, duration: duration)
         }
 

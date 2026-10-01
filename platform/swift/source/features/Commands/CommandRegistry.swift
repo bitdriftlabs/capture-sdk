@@ -20,6 +20,13 @@ actor CommandRegistry {
 
     private var entries = [String: Entry]()
 
+    init(commands: [Command] = []) {
+        for command in commands {
+            guard entries[command.key] == nil else { continue }
+            entries[command.key] = Entry(handler: command.handler)
+        }
+    }
+
     func register(key: String, handler: @escaping CommandHandler) throws -> CommandHandle {
         guard entries[key] == nil else { throw CommandRegistrationError.duplicateKey(key) }
         entries[key] = Entry(handler: handler)

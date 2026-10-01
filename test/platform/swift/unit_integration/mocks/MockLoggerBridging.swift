@@ -50,6 +50,8 @@ public final class MockLoggerBridging {
 
     public private(set) var ootbFieldUpdates = [OotbFieldUpdate]()
 
+    public private(set) var commandRegistrationEvents = [String]()
+
     public var shouldLogAppUpdateEvent = false
 
     public var tracingActive = true
@@ -67,11 +69,15 @@ public final class MockLoggerBridging {
 extension MockLoggerBridging: LoggerBridging {
     public var isTracingActive: Bool { self.tracingActive }
 
-    public func registerCommand(key _: String, target _: AnyObject) {}
+    public func registerCommand(key: String, target _: AnyObject) {
+        self.commandRegistrationEvents.append("register:\(key)")
+    }
 
     public func unregisterCommand(key _: String) {}
 
-    public func start() {}
+    public func start() {
+        self.commandRegistrationEvents.append("start")
+    }
 
     public func getSessionID() -> String { "foo" }
 

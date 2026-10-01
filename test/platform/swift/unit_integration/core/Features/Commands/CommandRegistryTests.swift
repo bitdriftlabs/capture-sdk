@@ -25,6 +25,27 @@ final class CommandRegistryTests: XCTestCase {
         try thenResultIsSuccess(result, context: ["flag": "dark_mode"])
     }
 
+    func testInitialCommandsAreAvailableBeforeAnyDynamicRegistration() async throws {
+        sut = CommandRegistry(commands: [
+            Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "startup"])) }
+        ])
+
+        let result = await whenExecutingCommand(key: "memory_dump")
+
+        try thenResultIsSuccess(result, context: ["source": "startup"])
+    }
+
+    func testInitialCommandsKeepTheFirstHandlerForDuplicateKeys() async throws {
+        sut = CommandRegistry(commands: [
+            Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "first"])) },
+            Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "second"])) }
+        ])
+
+        let result = await whenExecutingCommand(key: "memory_dump")
+
+        try thenResultIsSuccess(result, context: ["source": "first"])
+    }
+
     func testRegisteringDuplicateCommandFailsWithoutReplacingOriginalHandler() async throws {
         await givenRegisteredCommand(key: "memory") { _ in
             .success(CommandResult(context: ["source": "first"]))

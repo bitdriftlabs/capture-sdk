@@ -41,6 +41,7 @@ extension Logger {
     /// - parameter configuration:   A configuration that used to set up Capture features.
     /// - parameter initialFields:   Fields to seed at SDK startup. `addField(withKey:value:)` can update
     ///                              their values later.
+    /// - parameter commands:        Commands to register before the SDK starts receiving remote work.
     /// - parameter dateProvider:    An optional date provider to set on the default logger.
     /// - parameter startResult:     An optional callback invoked with the result of the SDK initialization.
     ///                              The callback is always called on the calling thread before `start` returns.
@@ -53,6 +54,7 @@ extension Logger {
         sessionStrategy: SessionStrategy,
         configuration: Configuration = .init(),
         initialFields: Fields = [:],
+        commands: [Command] = [],
         dateProvider: DateProvider? = nil,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator?
@@ -63,6 +65,7 @@ extension Logger {
             configuration: configuration,
             customFieldGetters: [],
             initialFields: initialFields,
+            commands: commands,
             dateProvider: dateProvider,
             loggerBridgingFactoryProvider: LoggerBridgingFactory(),
             startResult: startResult
@@ -76,6 +79,7 @@ extension Logger {
     /// - parameter configuration:        The configuration used to set up Capture features.
     /// - parameter initialFields:        Fields to seed at SDK startup. `addField(withKey:value:)` can update
     ///                                   their values later.
+    /// - parameter commands:             Commands to register before the SDK starts receiving remote work.
     /// - parameter dateProvider:         An optional date provider for the default logger.
     /// - parameter startResult:          An optional callback invoked with the SDK initialization result.
     ///
@@ -86,6 +90,7 @@ extension Logger {
         sessionConfiguration: SessionConfiguration = .init(),
         configuration: Configuration = .init(),
         initialFields: Fields = [:],
+        commands: [Command] = [],
         dateProvider: DateProvider? = nil,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator? {
@@ -95,6 +100,7 @@ extension Logger {
             configuration: configuration,
             customFieldGetters: [],
             initialFields: initialFields,
+            commands: commands,
             dateProvider: dateProvider,
             loggerBridgingFactoryProvider: LoggerBridgingFactory(),
             startResult: startResult
@@ -220,6 +226,7 @@ extension Logger {
         configuration: Configuration,
         customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
+        commands: [Command] = [],
         dateProvider: DateProvider?,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
@@ -233,6 +240,7 @@ extension Logger {
                 dateProvider: dateProvider,
                 customFieldGetters: customFieldGetters,
                 initialFields: initialFields,
+                commands: commands,
                 loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
             )
 
