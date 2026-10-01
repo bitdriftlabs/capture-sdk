@@ -28,6 +28,7 @@ import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.toFields
+import io.bitdrift.capture.replay.WebViewReplaySnapshot
 import java.net.URI
 import java.util.UUID
 
@@ -38,6 +39,7 @@ import java.util.UUID
 internal class WebViewBridgeMessageHandler(
     private val logger: IInternalLogger,
     private val instrumentationMode: String,
+    private val replaySnapshotRequester: WebViewReplaySnapshotRequester? = null,
 ) : WebViewCompat.WebMessageListener {
     /**
      * TODO(Fran): BIT-5074. Consider switching to kotlinx.serialization
@@ -60,12 +62,23 @@ internal class WebViewBridgeMessageHandler(
         if (webMessageCompat.type != WebMessageCompat.TYPE_STRING) {
             return
         }
+        if (isMainFrame) {
+            replaySnapshotRequester?.replyProxy = replyProxy
+        }
         webMessageCompat.data?.let { message ->
-            log(message)
+            log(message, view)
         }
     }
 
-    internal fun log(message: String) {
+    internal fun log(
+        message: String,
+        webView: WebView? = null,
+    ) {
+        if (message.length > MAX_MESSAGE_LENGTH) {
+            logger.handleInternalError("WebView bridge message exceeds $MAX_MESSAGE_LENGTH characters: ${message.length}")
+            return
+        }
+
         val bridgeMessage =
             runCatching {
                 gson.fromJson(message, WebViewBridgeMessage::class.java)
@@ -92,7 +105,11 @@ internal class WebViewBridgeMessageHandler(
 
             when (type) {
                 "customLog" -> handleCustomLog(bridgeMessage, timestamp)
-                "bridgeReady" -> handleBridgeReady(bridgeMessage)
+                "bridgeReady" -> {
+                    webView?.let { WebViewReplaySnapshot.clear(it) }
+                    handleBridgeReady(bridgeMessage)
+                }
+                "replaySnapshot" -> handleReplaySnapshot(bridgeMessage, webView)
                 "webVital" -> handleWebVital(bridgeMessage, timestamp)
                 "networkRequest" -> handleNetworkRequest(bridgeMessage, timestamp)
                 "navigation" -> handleNavigation(bridgeMessage, timestamp)
@@ -112,6 +129,22 @@ internal class WebViewBridgeMessageHandler(
         }.getOrElse { throwable ->
             logger.handleInternalError("Failed to handle WebView bridge message. $message", throwable)
         }
+    }
+
+    private fun handleReplaySnapshot(
+        msg: WebViewBridgeMessage,
+        webView: WebView?,
+    ) {
+        webView ?: return
+        if (replaySnapshotRequester?.isEnabled != true) return
+        val viewportWidth = msg.viewportWidth?.takeIf { it in 1..MAX_REPLAY_VIEWPORT_DIMENSION } ?: return
+        val viewportHeight = msg.viewportHeight?.takeIf { it in 1..MAX_REPLAY_VIEWPORT_DIMENSION } ?: return
+        val elements =
+            msg.elements
+                ?.takeIf { it.size <= MAX_REPLAY_ELEMENTS * REPLAY_ELEMENT_STRIDE && it.size % REPLAY_ELEMENT_STRIDE == 0 }
+                ?.toIntArray()
+                ?: return
+        WebViewReplaySnapshot.attach(webView, WebViewReplaySnapshot(viewportWidth, viewportHeight, elements))
     }
 
     private fun handleInternalAutoInstrumentation(
@@ -719,5 +752,12 @@ internal class WebViewBridgeMessageHandler(
         logger.logInternal(LogType.UX, level, fieldsWithPageViewParent(fields, msg.parentSpanId)) {
             "webview.userInteraction"
         }
+    }
+
+    private companion object {
+        const val MAX_MESSAGE_LENGTH = 65_536
+        const val MAX_REPLAY_ELEMENTS = 1_500
+        const val REPLAY_ELEMENT_STRIDE = 5
+        const val MAX_REPLAY_VIEWPORT_DIMENSION = 100_000
     }
 }

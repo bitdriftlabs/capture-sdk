@@ -18,6 +18,7 @@ internal data class WebViewScriptConfiguration(
     val captureConsoleLogs: Boolean = true,
     val captureUserInteractions: Boolean = true,
     val captureErrors: Boolean = true,
+    val captureSessionReplay: Boolean = true,
 )
 
 internal fun WebViewScriptConfiguration.toJson(): String =
@@ -31,4 +32,5 @@ internal fun WebViewScriptConfiguration.toJson(): String =
             put("captureWebVitals", captureWebVitals)
             put("captureLongTasks", captureLongTasks)
             put("captureUserInteractions", captureUserInteractions)
+            put("captureSessionReplay", captureSessionReplay)
         }.toString()

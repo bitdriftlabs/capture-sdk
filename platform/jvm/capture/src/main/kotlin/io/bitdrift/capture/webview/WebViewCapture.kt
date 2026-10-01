@@ -26,6 +26,7 @@ import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.replay.WebViewReplaySnapshot
 import io.bitdrift.capture.webview.WebViewCaptureInternals.BRIDGE_NAME
 
 /**
@@ -120,10 +121,6 @@ internal object WebViewCaptureInternals {
             webview.settings.javaScriptEnabled = true
         }
 
-        val bridgeHandler = WebViewBridgeMessageHandler(loggerImpl, instrumentationMode.displayName)
-        WebViewCompat.addWebMessageListener(webview, BRIDGE_NAME, setOf("*"), bridgeHandler)
-        webview.addWebMessageListenerRemoval()
-
         val scriptConfiguration =
             WebViewScriptConfiguration(
                 capturePageViews = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_PAGE_VIEWS),
@@ -134,7 +131,24 @@ internal object WebViewCaptureInternals {
                 captureConsoleLogs = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_CONSOLE_LOGS),
                 captureUserInteractions = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_USER_INTERACTIONS),
                 captureErrors = runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_ERRORS),
+                captureSessionReplay =
+                    loggerImpl.isSessionReplayEnabled &&
+                        runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_SESSION_REPLAY),
             )
+
+        val replaySnapshotRequester =
+            if (scriptConfiguration.captureSessionReplay) {
+                WebViewReplaySnapshotRequester(webview, runtimeProvider).also {
+                    WebViewReplaySnapshot.setRequester(webview, it)
+                }
+            } else {
+                null
+            }
+
+        val bridgeHandler =
+            WebViewBridgeMessageHandler(loggerImpl, instrumentationMode.displayName, replaySnapshotRequester)
+        WebViewCompat.addWebMessageListener(webview, BRIDGE_NAME, setOf("*"), bridgeHandler)
+        webview.addWebMessageListenerRemoval()
 
         injectScript(webview, effectiveLogger, scriptConfiguration)
 
@@ -262,6 +276,8 @@ private class WebMessageListenerDetachCleanup(
             }
         }
 
+        WebViewReplaySnapshot.setRequester(webView, null)
+        WebViewReplaySnapshot.clear(webView)
         webView.removeOnAttachStateChangeListener(this)
     }
 }

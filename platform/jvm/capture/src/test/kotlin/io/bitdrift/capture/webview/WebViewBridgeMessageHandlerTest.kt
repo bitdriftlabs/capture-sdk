@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.webview
 
+import android.webkit.WebView
 import androidx.webkit.WebMessageCompat
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
@@ -16,12 +17,15 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.IRuntimeProvider
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.replay.WebViewReplaySnapshot
 import io.bitdrift.capture.utils.toStringMap
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -1008,5 +1012,115 @@ class WebViewBridgeMessageHandlerTest {
         handler.log(message)
 
         verifyNoInteractions(logger)
+    }
+
+    @Test
+    fun log_whenReplaySnapshot_shouldAttachSnapshotToWebViewWithoutLogging() {
+        val webView: WebView = mock()
+        val snapshotCaptor = argumentCaptor<Any>()
+        val runtimeProvider: IRuntimeProvider = mock()
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_SESSION_REPLAY)).thenReturn(true)
+        val replayHandler =
+            WebViewBridgeMessageHandler(logger, "automatic_full", WebViewReplaySnapshotRequester(webView, runtimeProvider))
+
+        replayHandler.log(REPLAY_SNAPSHOT_MESSAGE, webView)
+
+        verify(webView).setTag(any(), snapshotCaptor.capture())
+        val snapshot = snapshotCaptor.firstValue as WebViewReplaySnapshot
+        assertThat(snapshot.viewportWidth).isEqualTo(360)
+        assertThat(snapshot.viewportHeight).isEqualTo(640)
+        assertThat(snapshot.elements).containsExactly(1, 10, 20, 100, 40, 0, 10, 70, 80, 16)
+        verifyNoInteractions(logger)
+    }
+
+    @Test
+    fun log_whenReplaySnapshotAndSessionReplayRemotelyDisabled_shouldIgnoreSnapshot() {
+        val webView: WebView = mock()
+        val runtimeProvider: IRuntimeProvider = mock()
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_SESSION_REPLAY)).thenReturn(false)
+        val replayHandler =
+            WebViewBridgeMessageHandler(logger, "automatic_full", WebViewReplaySnapshotRequester(webView, runtimeProvider))
+
+        replayHandler.log(REPLAY_SNAPSHOT_MESSAGE, webView)
+
+        verifyNoInteractions(webView)
+    }
+
+    @Test
+    fun log_whenReplaySnapshotWithoutRequester_shouldIgnoreSnapshot() {
+        val webView: WebView = mock()
+
+        handler.log(REPLAY_SNAPSHOT_MESSAGE, webView)
+
+        verifyNoInteractions(webView)
+    }
+
+    @Test
+    fun log_whenReplaySnapshotHasTooManyElements_shouldIgnoreSnapshot() {
+        val webView: WebView = mock()
+        val elements = List(1_501 * 5) { 1 }.joinToString(",")
+
+        replayEnabledHandler(webView).log(replaySnapshotMessage(elements = "[$elements]"), webView)
+
+        verifyNoInteractions(webView)
+    }
+
+    @Test
+    fun log_whenReplaySnapshotHasIncompleteElement_shouldIgnoreSnapshot() {
+        val webView: WebView = mock()
+
+        replayEnabledHandler(webView).log(replaySnapshotMessage(elements = "[1,10,20,100]"), webView)
+
+        verifyNoInteractions(webView)
+    }
+
+    @Test
+    fun log_whenReplaySnapshotHasInvalidViewport_shouldIgnoreSnapshot() {
+        val webView: WebView = mock()
+
+        replayEnabledHandler(webView).log(replaySnapshotMessage(viewportWidth = 0), webView)
+        replayEnabledHandler(webView).log(replaySnapshotMessage(viewportWidth = -1), webView)
+        replayEnabledHandler(webView).log(replaySnapshotMessage(viewportWidth = 100_001), webView)
+
+        verifyNoInteractions(webView)
+    }
+
+    @Test
+    fun log_whenMessageExceedsMaxLength_shouldReportErrorWithoutParsing() {
+        val webView: WebView = mock()
+
+        replayEnabledHandler(webView).log(replaySnapshotMessage() + " ".repeat(65_536), webView)
+
+        verify(logger).handleInternalError(errorHandlerMessageCaptor.capture(), anyOrNull())
+        assertThat(errorHandlerMessageCaptor.firstValue).startsWith("WebView bridge message exceeds 65536 characters")
+        verifyNoInteractions(webView)
+    }
+
+    private fun replayEnabledHandler(webView: WebView): WebViewBridgeMessageHandler {
+        val runtimeProvider: IRuntimeProvider = mock()
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(RuntimeFeature.WEBVIEW_SESSION_REPLAY)).thenReturn(true)
+        return WebViewBridgeMessageHandler(logger, "automatic_full", WebViewReplaySnapshotRequester(webView, runtimeProvider))
+    }
+
+    private fun replaySnapshotMessage(
+        viewportWidth: Int = 360,
+        elements: String = "[1,10,20,100,40]",
+    ): String =
+        """{"v":1,"tag":"bitdrift-webview-sdk","type":"replaySnapshot","timestamp":1000,""" +
+            """"viewportWidth":$viewportWidth,"viewportHeight":640,"elements":$elements}"""
+
+    private companion object {
+        val REPLAY_SNAPSHOT_MESSAGE =
+            """
+            {
+                "v":1,
+                "tag":"bitdrift-webview-sdk",
+                "type":"replaySnapshot",
+                "timestamp":1000,
+                "viewportWidth":360,
+                "viewportHeight":640,
+                "elements":[1,10,20,100,40,0,10,70,80,16]
+            }
+            """.trimIndent()
     }
 }

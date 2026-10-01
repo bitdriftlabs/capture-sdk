@@ -7,6 +7,7 @@ export {};
 
 interface AndroidBridge {
     postMessage(message: string): void;
+    addEventListener?(type: 'message', listener: (event: { data: unknown }) => void): void;
 }
 
 interface IOSBridge {
@@ -22,6 +23,7 @@ type WebViewInstrumentationConfig = {
     captureWebVitals?: boolean;
     captureLongTasks?: boolean;
     captureUserInteractions?: boolean;
+    captureSessionReplay?: boolean;
 };
 
 declare global {

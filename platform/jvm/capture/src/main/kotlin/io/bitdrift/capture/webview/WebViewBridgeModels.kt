@@ -63,6 +63,10 @@ internal data class WebViewBridgeMessage(
     @SerializedName("isClickable") val isClickable: Boolean? = null,
     @SerializedName("clickCount") val clickCount: Int? = null,
     @SerializedName("timeWindowMs") val timeWindowMs: Int? = null,
+    // replaySnapshot
+    @SerializedName("viewportWidth") val viewportWidth: Int? = null,
+    @SerializedName("viewportHeight") val viewportHeight: Int? = null,
+    @SerializedName("elements") val elements: List<Int>? = null,
     // customLog
     @SerializedName("fields") val fields: Map<String, Any>? = null,
 )

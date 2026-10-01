@@ -159,6 +159,57 @@ class WebViewCaptureTest {
     }
 
     @Test
+    fun webViewSessionReplayRuntimeFlag_shouldBeEnabledByDefault() {
+        assertThat(RuntimeFeature.WEBVIEW_SESSION_REPLAY.defaultValue).isTrue()
+    }
+
+    @Test
+    fun instrument_withSessionReplayRuntimeFlagEnabled_shouldCaptureSessionReplay() {
+        startSdk()
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
+
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            Capture.logger(),
+            runtimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
+        )
+
+        assertThat(ShadowWebViewCompat.lastInjectedScript).contains("\"captureSessionReplay\":true")
+    }
+
+    @Test
+    fun instrument_withSessionReplayRuntimeFlagDisabled_shouldNotCaptureSessionReplay() {
+        startSdk()
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(eq(RuntimeFeature.WEBVIEW_SESSION_REPLAY))).thenReturn(false)
+
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            Capture.logger(),
+            runtimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
+        )
+
+        assertThat(ShadowWebViewCompat.lastInjectedScript).contains("\"captureSessionReplay\":false")
+    }
+
+    @Test
+    fun instrument_withSessionReplayDisabled_shouldNotCaptureSessionReplay() {
+        startSdk(Configuration(sessionReplayConfiguration = null))
+        whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
+
+        WebViewCaptureInternals.instrumentInternally(
+            webView,
+            Capture.logger(),
+            runtimeProvider,
+            WebViewInstrumentationMode.AUTOMATIC_FULL,
+        )
+
+        assertThat(ShadowWebViewCompat.lastInjectedScript).contains("\"captureSessionReplay\":false")
+    }
+
+    @Test
     fun instrument_withFeatureRuntimeFlagDisabled_shouldOnlyDisableThatFeature() {
         startSdk()
         whenever(runtimeProvider.isRuntimeFeatureEnabled(any())).thenReturn(true)
@@ -293,12 +344,12 @@ class WebViewCaptureTest {
     }
 
     @Suppress("DEPRECATION")
-    private fun startSdk() {
+    private fun startSdk(configuration: Configuration = Configuration()) {
         Capture.Logger.start(
             apiKey = "test",
             initialFields = emptyMap(),
             sessionStrategy = SessionStrategy.Configuration(SessionConfiguration()),
-            configuration = Configuration(),
+            configuration = configuration,
             dateProvider = SystemDateProvider(),
             context = appContext,
         )

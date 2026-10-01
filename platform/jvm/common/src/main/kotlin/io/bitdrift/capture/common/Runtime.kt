@@ -115,6 +115,12 @@ sealed class RuntimeFeature(
     data object WEBVIEW_ERRORS : RuntimeFeature("client_feature.android.webview_errors", defaultValue = true)
 
     /**
+     * Whether session replay renders the visible DOM of instrumented WebViews. Disabling it stops
+     * snapshot requests to WebViews that are already instrumented.
+     */
+    data object WEBVIEW_SESSION_REPLAY : RuntimeFeature("client_feature.android.webview_session_replay", defaultValue = true)
+
+    /**
      * Whether Android fatal issue report size optimizations are enabled.
      */
     data object OPTIMIZE_FATAL_ISSUE_REPORT_SIZE : RuntimeFeature(

@@ -16,6 +16,7 @@ import { initResourceErrorMonitoring } from './resource-errors';
 import { initConsoleCapture } from './console-capture';
 import { initUserInteractionMonitoring } from './user-interactions';
 import { initErrorMonitoring, initPromiseRejectionMonitoring } from './error';
+import { initReplayCapture } from './replay';
 
 /**
  * Main entry point for the Bitdrift WebView SDK.
@@ -108,6 +109,15 @@ const init = (config?: Exclude<(typeof window)['bitdrift'], undefined>['config']
                 createMessage({
                     type: 'internalAutoInstrumentation',
                     event: 'captureUserInteractions',
+                }),
+            );
+        }
+        if (window.bitdrift.config?.captureSessionReplay) {
+            safeCall(() => initReplayCapture());
+            log(
+                createMessage({
+                    type: 'internalAutoInstrumentation',
+                    event: 'captureSessionReplay',
                 }),
             );
         }

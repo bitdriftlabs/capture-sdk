@@ -9,14 +9,17 @@ package io.bitdrift.capture.replay.internal.mappers
 
 import android.content.res.Resources
 import android.view.View
+import android.webkit.WebView
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
+import io.bitdrift.capture.replay.WebViewReplaySnapshot
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
 import io.bitdrift.capture.replay.internal.ViewTypeResolver
+import io.bitdrift.capture.replay.internal.webViewReplayRects
 
 internal class ViewMapper(
     sessionReplayConfiguration: SessionReplayConfiguration,
@@ -99,6 +102,10 @@ internal class ViewMapper(
                     " ${out[0]}, ${out[1]}, ${this.width}, ${this.height}",
             )
             list.add(ReplayRect(type, out[0], out[1], this.width, this.height))
+        }
+        if (this is WebView) {
+            WebViewReplaySnapshot.of(this)?.let { list.addAll(webViewReplayRects(this, it)) }
+            WebViewReplaySnapshot.request(this)
         }
         return list
     }

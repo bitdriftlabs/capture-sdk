@@ -147,6 +147,9 @@ internal class LoggerImpl(
     private val eventsListenerTarget = EventsListenerTarget()
 
     private val sessionReplayTarget: ISessionReplayTarget
+
+    internal val isSessionReplayEnabled: Boolean
+        get() = sessionReplayTarget is SessionReplayTarget
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler()
 
     private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
@@ -720,7 +723,6 @@ internal class LoggerImpl(
             val installationSource =
                 clientAttributes
                     .getInstallationSource(appContext, errorHandler)
-            val isSessionReplayEnabled = sessionReplayTarget is SessionReplayTarget
             val baseFields =
                 fieldsOf(
                     "_app_installation_source" to installationSource,

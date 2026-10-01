@@ -37,6 +37,7 @@ export type MessageType =
     | 'console'
     | 'promiseRejection'
     | 'userInteraction'
+    | 'replaySnapshot'
     | 'internalAutoInstrumentation';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'trace' | 'critical';
@@ -264,6 +265,19 @@ export interface UserInteractionMessage extends BridgeMessage {
 }
 
 /**
+ * Wireframe of the visible DOM used to render the WebView contents in session replay
+ */
+export interface ReplaySnapshotMessage extends BridgeMessage {
+    type: 'replaySnapshot';
+    /** Layout viewport width in CSS pixels */
+    viewportWidth: number;
+    /** Layout viewport height in CSS pixels */
+    viewportHeight: number;
+    /** Flat `[type, x, y, width, height, ...]` list in CSS pixels, back to front */
+    elements: number[];
+}
+
+/**
  * Union type of all possible messages
  */
 export type AnyBridgeMessage =
@@ -280,6 +294,7 @@ export type AnyBridgeMessage =
     | ConsoleMessage
     | PromiseRejectionMessage
     | UserInteractionMessage
+    | ReplaySnapshotMessage
     | InternalAutoInstrumentationMessage;
 
 export type AnyBridgeMessageMap = {

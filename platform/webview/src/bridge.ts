@@ -57,18 +57,20 @@ const detectPlatform = (): Platform => {
 
 export const assertBridgeReady = (): boolean => detectPlatform() !== 'unknown';
 
+const MAX_MESSAGE_LENGTH = 32_768;
+
 const sendToNative = (() => {
     // Re-entrancy guard to prevent infinite recursion when the 'unknown' platform
     // branch logs to console.debug, which would re-enter via the console interceptor.
     let isSending = false;
 
-    return (message: AnyBridgeMessage): void => {
+    return (message: AnyBridgeMessage, maxLength: number = MAX_MESSAGE_LENGTH): void => {
         if (isSending) return;
         isSending = true;
         try {
             safeCall(() => {
                 const platform = detectPlatform();
-                const serialized = truncate(JSON.stringify(withPageViewParentSpan(message)), 32_768);
+                const serialized = truncate(JSON.stringify(withPageViewParentSpan(message)), maxLength);
 
                 switch (platform) {
                     case 'ios':
@@ -143,6 +145,25 @@ export const log = (message: AnyBridgeMessage): void => {
     } else {
         sendToNative(message);
     }
+};
+
+/**
+ * Send a message whose payload is bounded by the caller to a larger limit than regular logs.
+ */
+export const logWithMaxLength = (message: AnyBridgeMessage, maxLength: number): void => {
+    sendToNative(message, maxLength);
+};
+
+/**
+ * Subscribe to messages posted by native through the bridge.
+ */
+export const onNativeMessage = (listener: (data: string) => void): boolean => {
+    const bridge = window.BitdriftLogger;
+    if (!bridge?.addEventListener) return false;
+    bridge.addEventListener('message', (event) => {
+        if (typeof event.data === 'string') listener(event.data);
+    });
+    return true;
 };
 
 /**

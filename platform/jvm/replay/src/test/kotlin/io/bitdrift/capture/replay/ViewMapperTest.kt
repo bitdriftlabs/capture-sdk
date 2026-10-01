@@ -11,6 +11,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.View
+import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.replay.internal.ReplayRect
 import io.bitdrift.capture.replay.internal.ScannableView
@@ -85,5 +86,27 @@ class ViewMapperTest {
         val rects = map(builtInGenericView(ColorDrawable(Color.TRANSPARENT)), categorizers = null)
 
         Assert.assertEquals(listOf(ReplayRect(ReplayType.TransparentView, 0, 0, 100, 100)), rects)
+    }
+
+    private class CustomWebView(
+        context: Context,
+    ) : WebView(context)
+
+    @Test
+    fun webViewSubclassIsMappedAsWebView() {
+        val rects = map(CustomWebView(context))
+
+        Assert.assertEquals(listOf(ReplayType.WebView), rects.map { it.type })
+    }
+
+    @Test
+    fun mappingWebViewRequestsAFreshSnapshot() {
+        val webView = WebView(context)
+        var requests = 0
+        WebViewReplaySnapshot.setRequester(webView) { requests++ }
+
+        map(webView)
+
+        Assert.assertEquals(1, requests)
     }
 }

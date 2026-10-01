@@ -8,6 +8,7 @@
 package io.bitdrift.capture.replay.internal
 
 import android.view.View
+import android.webkit.WebView
 import io.bitdrift.capture.replay.ReplayType
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.internal.mappers.BackgroundOpacity
@@ -30,7 +31,7 @@ internal class ViewTypeResolver(
         view: View,
     ): ReplayType? {
         declared[className]?.let { return it }
-        val builtInType = builtIn[className] ?: return null
+        val builtInType = builtIn[className] ?: ReplayType.WebView.takeIf { view is WebView } ?: return null
         return if (builtInType == ReplayType.View) {
             BackgroundOpacity.paintedType(view) ?: ReplayType.TransparentView
         } else {
