@@ -38,6 +38,7 @@ import io.bitdrift.capture.events.performance.JankStatsMonitor
 import io.bitdrift.capture.events.performance.MemoryMetricsProvider
 import io.bitdrift.capture.events.performance.MemoryPressureLevel
 import io.bitdrift.capture.events.performance.ResourceUtilizationTarget
+import io.bitdrift.capture.events.performance.ThreadCountMonitor
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -123,6 +124,7 @@ internal class LoggerImpl(
     private val batteryMonitor = BatteryMonitor(context)
     private val powerMonitor = PowerMonitor(context)
     private val diskUsageMonitor: DiskUsageMonitor
+    private val threadCountMonitor = ThreadCountMonitor()
     private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
     private val runtime: JniRuntime
@@ -199,6 +201,7 @@ internal class LoggerImpl(
                 batteryMonitor,
                 powerMonitor,
                 diskUsageMonitor,
+                threadCountMonitor,
                 this,
                 eventListenerDispatcher.executorService,
             )
@@ -264,6 +267,7 @@ internal class LoggerImpl(
             sessionReplayTarget.runtime = runtime
         }
         diskUsageMonitor.runtime = runtime
+        threadCountMonitor.runtime = runtime
         memoryMetricsProvider.runtime = runtime
 
         eventsListenerTarget.add(

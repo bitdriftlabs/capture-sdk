@@ -27,6 +27,7 @@ internal class ResourceUtilizationTarget(
     private val batteryMonitor: BatteryMonitor,
     private val powerMonitor: PowerMonitor,
     private val diskUsageMonitor: DiskUsageMonitor,
+    private val threadCountMonitor: ThreadCountMonitor,
     private val logger: IInternalLogger,
     private val executor: ExecutorService,
     private val clock: IClock = DefaultClock.getInstance(),
@@ -43,6 +44,7 @@ internal class ResourceUtilizationTarget(
                     combineFields(
                         memorySnapshot,
                         diskUsageMonitor.getDiskUsage(),
+                        threadCountMonitor.getThreadCount(),
                         fieldsOf(powerMonitor.isPowerSaveModeEnabledAttribute()),
                         fieldsOfOptional(batteryMonitor.batteryValAttribute()),
                         fieldsOfOptional(batteryMonitor.batteryLevelAttribute()),
