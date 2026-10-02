@@ -21,6 +21,7 @@ bd-proto.workspace              = true
 bd-report-parsers.workspace     = true
 bd-runtime.workspace            = true
 bd-session.workspace            = true
+bd-session-replay.workspace     = true
 bd-time.workspace               = true
 flatbuffers.workspace           = true
 futures-util.workspace          = true

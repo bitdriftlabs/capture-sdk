@@ -24,7 +24,9 @@ public final class Logger {
     /// A no-op implementation of SessionReplayTarget used when session replay is disabled.
     private final class NoopSessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget {
         func captureScreen() {}
-        func captureScreenshot() {}
+        func captureDeviceCommandScreenshot(_ requestID: UInt64) {
+            capture_complete_device_command_screenshot(requestID, nil)
+        }
     }
 
     private let underlyingLogger: CoreLogging

@@ -28,8 +28,6 @@ protocol LoggerBridging {
 
     func logSessionReplayScreen(fields: InternalFields, duration: TimeInterval)
 
-    func logSessionReplayScreenshot(fields: InternalFields, duration: TimeInterval)
-
     func logResourceUtilization(fields: InternalFields, duration: TimeInterval)
 
     func logSDKStart(fields: [CapturePassable.Field], duration: TimeInterval)
