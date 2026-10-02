@@ -13,7 +13,7 @@ final class SessionReplayController {
     private let queue = DispatchQueue.serial(withLabelSuffix: "ReplayController", target: .default)
     private let replay: Replay = Replay()
 
-    var logger: CoreLogging?
+    weak var logger: CoreLogging?
 
     init(configuration: SessionReplayConfiguration) {
         for (className, annotatedView) in configuration.categorizers {
