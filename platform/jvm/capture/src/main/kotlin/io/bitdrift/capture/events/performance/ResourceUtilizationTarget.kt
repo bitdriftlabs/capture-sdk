@@ -44,11 +44,11 @@ internal class ResourceUtilizationTarget(
                     combineFields(
                         memorySnapshot,
                         diskUsageMonitor.getDiskUsage(),
-                        threadCountMonitor.getThreadCount(),
                         fieldsOf(powerMonitor.isPowerSaveModeEnabledAttribute()),
                         fieldsOfOptional(batteryMonitor.batteryValAttribute()),
                         fieldsOfOptional(batteryMonitor.batteryLevelAttribute()),
                         fieldsOf(batteryMonitor.isBatteryChargingAttribute()),
+                        threadCountMonitor.getThreadCount(),
                     )
 
                 val duration = clock.elapsedRealtime() - start
