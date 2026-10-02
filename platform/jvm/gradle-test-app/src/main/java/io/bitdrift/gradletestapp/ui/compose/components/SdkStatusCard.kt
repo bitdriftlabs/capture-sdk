@@ -104,6 +104,7 @@ private fun SdkStateSection(
                     InitializationState.LOADED -> "Loaded"
                     InitializationState.RUNNING -> "Running"
                     InitializationState.DISABLED -> "Disabled"
+                    InitializationState.STARTING -> "Starting"
                 }
 
             Text(

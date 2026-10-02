@@ -39,6 +39,7 @@ if (requestedDebugVariant) {
 
 dependencies {
     implementation(project(":capture"))
+    compileOnly(project(":common"))
     implementation(project(":capture-apollo"))
     implementation(project(":capture-timber"))
 
