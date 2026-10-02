@@ -33,6 +33,7 @@ class WebViewBridgeMessageHandlerTest {
     private lateinit var logger: IInternalLogger
     private lateinit var handler: WebViewBridgeMessageHandler
     private val arrayFieldsCaptor = argumentCaptor<ArrayFields>()
+    private val webVitalFieldsCaptor = argumentCaptor<Map<String, String>>()
     private val logMessageCaptor = argumentCaptor<() -> String>()
     private val throwableCaptor = argumentCaptor<Throwable>()
     private val errorHandlerMessageCaptor = argumentCaptor<String>()
@@ -125,6 +126,7 @@ class WebViewBridgeMessageHandlerTest {
                 "type":"webVital",
                 "timestamp":1500,
                 "parentSpanId":"11111111-1111-4111-8111-111111111111",
+                "url":"https://example.com/page?source=feed",
                 "metric":{
                     "name":"FCP",
                     "value":100,
@@ -141,10 +143,15 @@ class WebViewBridgeMessageHandlerTest {
         verify(logger).startSpan(
             eq("webview.webVital.fcp"),
             eq(LogLevel.INFO),
-            anyOrNull(),
+            webVitalFieldsCaptor.capture(),
             eq(1400L),
             eq(UUID.fromString("11111111-1111-4111-8111-111111111111")),
         )
+        val fields = webVitalFieldsCaptor.firstValue
+        assertThat(fields["_page_url"]).isEqualTo("https://example.com/page?source=feed")
+        assertThat(fields["_host"]).isEqualTo("example.com")
+        assertThat(fields["_path"]).isEqualTo("/page")
+        assertThat(fields["_query"]).isEqualTo("source=feed")
     }
 
     @Test
@@ -215,7 +222,7 @@ class WebViewBridgeMessageHandlerTest {
             {
                 "v":1,
                 "type":"bridgeReady",
-                "url":"https://example.com",
+                "url":"https://example.com/page?source=feed",
                 "instrumentationConfig":{"capturePageViews":true,"captureErrors":false}
             }
             """.trimIndent()
@@ -233,7 +240,10 @@ class WebViewBridgeMessageHandlerTest {
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_instrumentation_mode"]).isEqualTo("automatic_full")
         assertThat(fields["_config"]).isEqualTo("{\"capturePageViews\":true,\"captureErrors\":false}")
-        assertThat(fields["_url"]).isEqualTo("https://example.com")
+        assertThat(fields["_url"]).isEqualTo("https://example.com/page?source=feed")
+        assertThat(fields["_host"]).isEqualTo("example.com")
+        assertThat(fields["_path"]).isEqualTo("/page")
+        assertThat(fields["_query"]).isEqualTo("source=feed")
         assertThat(logMessage).isEqualTo("webview.initialized")
     }
 
@@ -317,8 +327,8 @@ class WebViewBridgeMessageHandlerTest {
                 "v":1,
                 "type":"navigation",
                 "timestamp":1234567890,
-                "fromUrl":"https://example.com/page1",
-                "toUrl":"https://example.com/page2",
+                "fromUrl":"https://example.com/page1?source=feed",
+                "toUrl":"https://shop.example.com/page2?item=123",
                 "method":"pushState"
             }
             """.trimIndent()
@@ -332,8 +342,14 @@ class WebViewBridgeMessageHandlerTest {
             logMessageCaptor.capture(),
         )
         val fields = arrayFieldsCaptor.firstValue.toStringMap()
-        assertThat(fields["_fromUrl"]).isEqualTo("https://example.com/page1")
-        assertThat(fields["_toUrl"]).isEqualTo("https://example.com/page2")
+        assertThat(fields["_fromUrl"]).isEqualTo("https://example.com/page1?source=feed")
+        assertThat(fields["_from_host"]).isEqualTo("example.com")
+        assertThat(fields["_from_path"]).isEqualTo("/page1")
+        assertThat(fields["_from_query"]).isEqualTo("source=feed")
+        assertThat(fields["_toUrl"]).isEqualTo("https://shop.example.com/page2?item=123")
+        assertThat(fields["_to_host"]).isEqualTo("shop.example.com")
+        assertThat(fields["_to_path"]).isEqualTo("/page2")
+        assertThat(fields["_to_query"]).isEqualTo("item=123")
         assertThat(fields["_method"]).isEqualTo("pushState")
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")
@@ -559,6 +575,8 @@ class WebViewBridgeMessageHandlerTest {
         val fields = arrayFieldsCaptor.firstValue.toStringMap()
         assertThat(fields["_resource_type"]).isEqualTo("script")
         assertThat(fields["_url"]).isEqualTo("https://example.com/script.js")
+        assertThat(fields["_host"]).isEqualTo("example.com")
+        assertThat(fields["_path"]).isEqualTo("/script.js")
         assertThat(fields["_tag_name"]).isEqualTo("SCRIPT")
         assertThat(fields["_source"]).isEqualTo("webview")
         assertThat(fields["_timestamp"]).isEqualTo("1234567890")

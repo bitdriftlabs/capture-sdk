@@ -15,7 +15,7 @@ final class PageViewMessageTests: XCTestCase {
         try givenPageViewMessage(
             action: "start",
             spanId: "span-1",
-            url: "https://example.com/page",
+            url: "https://example.com/page?source=test",
             reason: "initial",
             timestamp: 1_700_000_000_000
         )
@@ -29,7 +29,10 @@ final class PageViewMessageTests: XCTestCase {
         XCTAssertEqual(id, "span-1")
         XCTAssertEqual(name, "webview.pageView")
         XCTAssertEqual(level, .info)
-        XCTAssertEqual((fields as? [String: String])?["_url"], "https://example.com/page")
+        XCTAssertEqual((fields as? [String: String])?["_url"], "https://example.com/page?source=test")
+        XCTAssertEqual((fields as? [String: String])?["_host"], "example.com")
+        XCTAssertEqual((fields as? [String: String])?["_path"], "/page")
+        XCTAssertEqual((fields as? [String: String])?["_query"], "source=test")
         XCTAssertEqual((fields as? [String: String])?["_reason"], "initial")
         XCTAssertEqual(startTimeInterval, 1_700_000_000)
         XCTAssertNil(parentSpanID)
