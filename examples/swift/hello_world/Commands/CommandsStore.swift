@@ -17,11 +17,15 @@ actor CommandsStore {
 
         switch key {
         case "memory_dump":
-            result = .success(
-                CommandResult(context: [
-                    "physical_memory": String(ProcessInfo.processInfo.physicalMemory),
-                ])
-            )
+            let isAttachment: Bool
+            if case let .bool(value) = arguments["is_attachment"] {
+                isAttachment = value
+            } else {
+                isAttachment = false
+            }
+            result = MemoryDump.capture().flatMap { memoryDump in
+                memoryDump.commandResult(isAttachment: isAttachment)
+            }
         case "flip_flag":
             guard let flag = arguments.string(for: "flag"), !flag.isEmpty else {
                 result = .failure(CommandError(title: "Missing flag argument"))

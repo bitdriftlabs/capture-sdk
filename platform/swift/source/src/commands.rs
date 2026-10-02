@@ -122,14 +122,14 @@ pub fn complete<S: BuildHasher>(
   let result = if succeeded {
     let attachment = attachment
       .zip(attachment_mime_type)
-      .map(|(bytes, type_id)| {
+      .map(|(bytes, content_type)| {
         let mut state = context_to_fields(context);
         if let Some(filename) = attachment_filename {
           state.insert(ATTACHMENT_FILENAME_FIELD.into(), filename.into());
         }
         CommandAttachment {
           source: UploadSource::Bytes(bytes),
-          type_id,
+          content_type: Some(content_type),
           state,
         }
       });

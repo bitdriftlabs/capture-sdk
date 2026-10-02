@@ -62,7 +62,10 @@ async fn completion_with_attachment_returns_completed_result() {
     assert!(false, "expected attachment");
     return;
   };
-  assert_eq!(attachment.type_id, "application/octet-stream");
+  assert_eq!(
+    attachment.content_type.as_deref(),
+    Some("application/octet-stream")
+  );
   assert_eq!(attachment.state.len(), 2);
   let UploadSource::Bytes(bytes) = attachment.source else {
     assert!(false, "expected bytes attachment source");

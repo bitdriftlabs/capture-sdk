@@ -11,7 +11,11 @@ import SwiftUI
 @MainActor
 final class CommandsViewModel: ObservableObject {
     let commands = [
-        CommandDefinition(key: "memory_dump", description: "Returns the process memory size.", isBuiltIn: false),
+        CommandDefinition(
+            key: "memory_dump",
+            description: "Returns TASK_VM_INFO metrics; use is_attachment for a JSON attachment.",
+            isBuiltIn: false
+        ),
         CommandDefinition(key: "flip_flag", description: "Toggles a named flag.", isBuiltIn: false),
         CommandDefinition(
             key: "screenshot",
