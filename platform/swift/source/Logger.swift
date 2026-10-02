@@ -423,6 +423,7 @@ public final class Logger {
     }
 
     private func stop() {
+        self.eventsListenerTarget.tearDown()
         self.dispatchSourceMemoryMonitor?.stop()
         self.dispatchSourceMemoryMonitor = nil
         self.crashReporterService?.stop()

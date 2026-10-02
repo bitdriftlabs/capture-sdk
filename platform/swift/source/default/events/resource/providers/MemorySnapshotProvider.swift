@@ -15,7 +15,7 @@ final class MemorySnapshotProvider {
     private let deviceTotalMemoryKB = ProcessInfo.processInfo.physicalMemory / kBytesPerKB
     private var sequenceNumber = 0
 
-    var logger: CoreLogging?
+    weak var logger: CoreLogging?
 
     private func getTaskInfo() -> task_vm_info_data_t? {
         var taskInfo = task_vm_info_data_t()
