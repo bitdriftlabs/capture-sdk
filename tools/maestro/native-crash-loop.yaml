@@ -1,9 +1,0 @@
-appId: io.bitdrift.gradletestapp
----
-- repeat:
-    times: ${ITERATIONS}
-    commands:
-      - back
-      - launchApp
-      - tapOn: "App Exits"
-      - tapOn: "Native Crash"
