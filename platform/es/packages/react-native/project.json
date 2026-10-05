@@ -46,6 +46,7 @@
           "cp packages/react-native/*.podspec dist/react-native",
           "cp -r packages/react-native/ios dist/react-native",
           "cp -r packages/react-native/android dist/react-native",
+          "rm -rf dist/react-native/android/build",
           "cp -r packages/react-native/README.md dist/react-native",
           "cp -r LICENSE.package dist/react-native/LICENSE",
           "cp -r packages/react-native/app.plugin.js dist/react-native",

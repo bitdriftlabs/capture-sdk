@@ -1,0 +1,51 @@
+{
+  "name": "@bitdrift/react-native-webview",
+  "version": "0.13.2",
+  "description": "Manual bitdrift instrumentation for react-native-webview",
+  "homepage": "https://github.com/bitdriftlabs/capture-sdk/tree/main/platform/es/packages/react-native-webview#readme",
+  "main": "dist/commonjs/index",
+  "module": "dist/module/index",
+  "types": "dist/typescript/packages/react-native-webview/src/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src",
+    "dist",
+    "android",
+    "ios",
+    "*.podspec",
+    "react-native.config.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitdriftlabs/capture-sdk.git",
+    "directory": "platform/es/packages/react-native-webview"
+  },
+  "author": "bitdrift <info@bitdrift.io> (https://bitdrift.io)",
+  "license": "SEE LICENSE IN LICENSE file",
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "yarn@3.6.1",
+  "peerDependencies": {
+    "@bitdrift/react-native": ">=0.13.2",
+    "react": "*",
+    "react-native": "*",
+    "react-native-webview": ">=13.0.0"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "dist",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.lib.json",
+          "configFile": true
+        }
+      ]
+    ]
+  }
+}

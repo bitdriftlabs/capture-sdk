@@ -1,0 +1,111 @@
+buildscript {
+  def kotlin_version = rootProject.ext.has("kotlinVersion") ? rootProject.ext.get("kotlinVersion") : project.properties["BdReactNativeWebView_kotlinVersion"]
+
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:7.2.1"
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+  }
+}
+
+def isNewArchitectureEnabled() {
+  return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
+}
+
+apply plugin: "com.android.library"
+// AGP 9 registers the `kotlin` extension itself. Applying the Kotlin plugin
+// again causes configuration to fail, so match the base RN package's guard.
+if (project.extensions.findByName('kotlin') == null) {
+  apply plugin: "kotlin-android"
+}
+
+if (isNewArchitectureEnabled()) {
+  apply plugin: "com.facebook.react"
+}
+
+def getExtOrDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["BdReactNativeWebView_" + name]
+}
+
+def getExtOrIntegerDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["BdReactNativeWebView_" + name]).toInteger()
+}
+
+def supportsNamespace() {
+  def parsed = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.tokenize('.')
+  def major = parsed[0].toInteger()
+  def minor = parsed[1].toInteger()
+  return (major == 7 && minor >= 3) || major >= 8
+}
+
+def reactNativeWebViewProject = rootProject.findProject(':react-native-webview')
+if (reactNativeWebViewProject == null) {
+  throw new GradleException("@bitdrift/react-native-webview requires react-native-webview")
+}
+
+def bitdriftProject = rootProject.findProject(':bitdrift_react-native')
+if (bitdriftProject == null) {
+  throw new GradleException("@bitdrift/react-native-webview requires @bitdrift/react-native")
+}
+
+def bitdriftPackage = new File(bitdriftProject.projectDir.parentFile, "package.json")
+def captureSdkVersion = new groovy.json.JsonSlurper().parse(bitdriftPackage).captureSdkVersion
+if (captureSdkVersion == null) {
+  throw new GradleException("Could not read captureSdkVersion from @bitdrift/react-native")
+}
+
+def reactNativeWebViewPackage = new File(reactNativeWebViewProject.projectDir.parentFile, "package.json")
+def reactNativeWebViewVersion = new groovy.json.JsonSlurper().parse(reactNativeWebViewPackage).version
+def reactNativeWebViewVersionParts = reactNativeWebViewVersion.tokenize('.-').collect { it.isInteger() ? it.toInteger() : 0 }
+def reactNativeWebViewMajor = reactNativeWebViewVersionParts[0]
+def reactNativeWebViewMinor = reactNativeWebViewVersionParts.size() > 1 ? reactNativeWebViewVersionParts[1] : 0
+def reactNativeWebViewPatch = reactNativeWebViewVersionParts.size() > 2 ? reactNativeWebViewVersionParts[2] : 0
+if (reactNativeWebViewMajor < 13 ||
+    (reactNativeWebViewMajor == 13 && reactNativeWebViewMinor < 6) ||
+    (reactNativeWebViewMajor == 13 && reactNativeWebViewMinor == 6 && reactNativeWebViewPatch < 2)) {
+  throw new GradleException("@bitdrift/react-native-webview requires react-native-webview >=13.6.2 on Android; found ${reactNativeWebViewVersion}")
+}
+
+android {
+  if (supportsNamespace()) {
+    namespace "com.bdreactnativewebview"
+  }
+  compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+    targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+
+  sourceSets {
+    main {
+      if (isNewArchitectureEnabled()) {
+        java.srcDirs += ["src/newarch"]
+      } else {
+        java.srcDirs += ["src/oldarch"]
+      }
+    }
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+  maven { url "https://dl.bitdrift.io/sdk/android-maven" }
+}
+
+dependencies {
+  implementation "com.facebook.react:react-native:+"
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:${getExtOrDefault('kotlinVersion')}"
+  implementation "io.bitdrift:capture:${captureSdkVersion}"
+  compileOnly reactNativeWebViewProject
+}

@@ -13,3 +13,7 @@
 #endif
 
 @end
+
+@class WKWebView;
+
+FOUNDATION_EXPORT void BdReactNativeInstrumentWebView(WKWebView *webView);
