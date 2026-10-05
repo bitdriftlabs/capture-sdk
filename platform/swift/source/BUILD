@@ -1,7 +1,9 @@
+load("@crates//:defs.bzl", "all_crate_deps")
 load("@rules_apple//apple:apple.bzl", "apple_static_xcframework")
 load("@rules_apple//apple:docc.bzl", "docc_archive")
 load("@rules_apple//apple:ios.bzl", "ios_static_framework")
 load("@rules_cc//cc:defs.bzl", "objc_library")
+load("@rules_rs//rs:rust_static_library.bzl", "rust_static_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("@sdk_version//:sdk_version.bzl", "SDK_VERSION")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library", "bitdrift_rust_test")
@@ -84,6 +86,21 @@ bitdrift_rust_test(
     tags = ["macos_only"],
 )
 
+rust_static_library(
+    name = "capture_rust",
+    srcs = ["capture_rust.rs"],
+    crate_root = "capture_rust.rs",
+    edition = "2024",
+    tags = ["macos_only"],
+    deps = [
+        ":swift_bridge",
+        "//platform/crash:bd_crash_reporter",
+    ] + all_crate_deps(
+        normal = True,
+        cargo_only = True,
+    ),
+)
+
 objc_library(
     name = "objc_bridge",
     srcs = [
@@ -114,8 +131,7 @@ objc_library(
     deps = [
         ":CapturePassable",
         ":bitdrift_enhanced_crash_data",
-        ":swift_bridge",
-        "//platform/crash:bd_crash_reporter",
+        ":capture_rust",
     ],
 )
 
@@ -136,7 +152,7 @@ objc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":CapturePassable",
-        ":swift_bridge",
+        ":capture_rust",
         "@kscrash//:kscrash_mini",
     ],
 )
