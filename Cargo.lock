@@ -1383,6 +1383,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bd-api",
+ "bd-artifact-upload",
  "bd-client-common",
  "bd-client-stats-store",
  "bd-crash-handler",
@@ -1405,6 +1406,7 @@ dependencies = [
  "protobuf 4.0.0-alpha.0",
  "tempfile",
  "time",
+ "tokio",
  "uuid",
 ]
 
@@ -3746,7 +3748,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bd-api",
- "bd-artifact-upload",
  "bd-bonjson",
  "bd-bonjson-ffi",
  "bd-client-common",

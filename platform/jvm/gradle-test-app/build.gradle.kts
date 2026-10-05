@@ -63,7 +63,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.5.3")
 
     // Other dependencies
-    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
@@ -114,6 +114,7 @@ android {
     namespace = "io.bitdrift.gradletestapp"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
+    ndkVersion = "27.2.12479018"
 
     buildFeatures {
         compose = true
@@ -138,6 +139,12 @@ android {
             "AUTO_CAPTURE_OKHTTP_INSTRUMENTATION_TYPE",
             "\"$autoCaptureOkHttpInstrumentationType\"",
         )
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
     }
 
     packaging {

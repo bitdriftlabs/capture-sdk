@@ -23,6 +23,7 @@ dependencies {
     api(libs.androidx.lifecycle.common)
     api(libs.androidx.lifecycle.process)
     api(libs.kotlin.result.jvm)
+    api(libs.kotlinx.coroutines.core)
     api(libs.okhttp)
     api(libs.flatbuffers)
 
@@ -38,6 +39,7 @@ dependencies {
     compileOnly(libs.androidx.webkit)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.assertj.core)
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)

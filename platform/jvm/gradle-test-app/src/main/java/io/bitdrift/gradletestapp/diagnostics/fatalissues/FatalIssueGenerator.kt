@@ -50,8 +50,9 @@ internal object FatalIssueGenerator {
 
     fun forceDeadlockAnr() {
         callOnMainThread {
-            initializeInBackground()
-            startProcessing()
+            val locksHeld = CountDownLatch(2)
+            initializeInBackground(locksHeld)
+            startProcessing(locksHeld)
         }
     }
 
@@ -191,16 +192,14 @@ internal object FatalIssueGenerator {
         }
     }
 
-    private fun initializeInBackground() {
+    private fun initializeInBackground(locksHeld: CountDownLatch) {
         val backgroundThread: Thread =
             object : Thread() {
                 override fun run() {
                     synchronized(SECOND_LOCK_RESOURCE) {
                         logThreadStatus("waiting on second lock")
-                        try {
-                            sleep(THREAD_DELAY_IN_MILLI)
-                        } catch (_: InterruptedException) {
-                        }
+                        locksHeld.countDown()
+                        locksHeld.await()
                         synchronized(FIRST_LOCK_RESOURCE) { logThreadStatus("waiting on first lock") }
                     }
                 }
@@ -209,13 +208,11 @@ internal object FatalIssueGenerator {
         backgroundThread.start()
     }
 
-    private fun startProcessing() {
+    private fun startProcessing(locksHeld: CountDownLatch) {
         synchronized(FIRST_LOCK_RESOURCE) {
             logThreadStatus("waiting on first lock")
-            try {
-                Thread.sleep(THREAD_DELAY_IN_MILLI)
-            } catch (_: InterruptedException) {
-            }
+            locksHeld.countDown()
+            locksHeld.await()
             synchronized(SECOND_LOCK_RESOURCE) { logThreadStatus("waiting on second lock") }
         }
     }
@@ -256,7 +253,6 @@ internal object FatalIssueGenerator {
     private val FIRST_LOCK_RESOURCE: Any = "first_lock"
     private val SECOND_LOCK_RESOURCE: Any = "second_lock"
     private val TAG_NAME = "FatalIssueGenerator"
-    private const val THREAD_DELAY_IN_MILLI: Long = 10
     private const val SLEEP_DURATION_MILLI = 15000L
     private const val TRIGGER_BROADCAST_RECEIVER_ANR =
         "io.bitdrift.gradletestapp.broadcastreceiver.ANR_TRIGGER"

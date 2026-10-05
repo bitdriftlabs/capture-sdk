@@ -32,6 +32,10 @@ sealed class ConfigAction : AppAction {
     ) : ConfigAction()
 
     object ClearEntityId : ConfigAction()
+
+    data class SetSampleCommandsRegistered(
+        val registered: Boolean,
+    ) : ConfigAction()
 }
 
 sealed class SessionAction : AppAction {
@@ -122,6 +126,8 @@ sealed class StressTestAction : AppAction {
     object TriggerMemoryPressureAnr : StressTestAction()
 
     data class CreateThreads(val count: Int) : StressTestAction()
+
+    data class CreateNativeThreads(val count: Int) : StressTestAction()
 
     data class TriggerJankyFrames(val type: JankType) : StressTestAction()
 

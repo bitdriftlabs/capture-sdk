@@ -32,6 +32,7 @@ import io.bitdrift.gradletestapp.data.repository.NetworkTestingRepository
 import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
+import io.bitdrift.gradletestapp.init.SampleCommands
 import io.bitdrift.gradletestapp.diagnostics.PreInitOrderingExample
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -67,6 +68,7 @@ class MainViewModel(
         )
 
     init {
+        registerUiStateCommand()
         viewModelScope.launch {
             CaptureSdkInitializer.sdkInitializationState.collect { initialized ->
                 when (initialized) {
@@ -153,6 +155,22 @@ class MainViewModel(
         }
     }
 
+    @OptIn(ExperimentalBitdriftApi::class)
+    private fun registerUiStateCommand() {
+        Logger
+            .registerCommand("ui_state") {
+                val state = _uiState.value
+                success(
+                    context =
+                        mapOf(
+                            "is_loading" to state.isLoading.toString(),
+                            "error" to state.error.orEmpty(),
+                            "global_fields" to state.globalFields.size.toString(),
+                        ),
+                )
+            }.unregisterOn(viewModelScope)
+    }
+
     fun handleAction(action: AppAction) {
         when (action) {
             is ConfigAction.InitializeSdk -> initializeSdk()
@@ -161,6 +179,8 @@ class MainViewModel(
             is ConfigAction.UpdateLogLevel -> updateLogLevel(action.logLevel)
             is ConfigAction.SetSleepModeEnabled -> setSleepModeEnabled(action.enabled)
             is ConfigAction.ClearEntityId -> clearEntityId()
+            is ConfigAction.SetSampleCommandsRegistered ->
+                if (action.registered) SampleCommands.register(application) else SampleCommands.unregister()
 
             is SessionAction.StartNewSession -> startNewSession()
             is SessionAction.GenerateDeviceCode -> generateDeviceCode()
@@ -250,6 +270,7 @@ class MainViewModel(
             is StressTestAction.IncreaseMemoryPressure -> stressTestRepository.increaseMemoryPressure(action.targetPercent)
             is StressTestAction.TriggerMemoryPressureAnr -> stressTestRepository.triggerMemoryPressureAnr()
             is StressTestAction.CreateThreads -> stressTestRepository.createThreads(action.count)
+            is StressTestAction.CreateNativeThreads -> stressTestRepository.createNativeThreads(action.count)
             is StressTestAction.TriggerJankyFrames -> stressTestRepository.triggerJankyFrames(action.type.durationMs)
             is StressTestAction.TriggerStrictModeViolation -> stressTestRepository.triggerStrictModeViolation(action.type)
             is StressTestAction.TriggerScreenReplayCapture -> stressTestRepository.triggerScreenReplayCapture(action.activity)
