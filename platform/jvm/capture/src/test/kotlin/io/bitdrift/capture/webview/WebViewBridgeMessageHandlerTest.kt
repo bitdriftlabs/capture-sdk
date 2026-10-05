@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.webview
 
-import android.os.SystemClock
 import androidx.webkit.WebMessageCompat
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
@@ -20,41 +19,33 @@ import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.utils.toStringMap
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.mockito.MockedStatic
-import org.mockito.Mockito
 import org.mockito.Mockito.verifyNoInteractions
 import java.util.UUID
 
 class WebViewBridgeMessageHandlerTest {
     private lateinit var logger: IInternalLogger
     private lateinit var handler: WebViewBridgeMessageHandler
+    private lateinit var clock: IClock
     private val arrayFieldsCaptor = argumentCaptor<ArrayFields>()
     private val webVitalFieldsCaptor = argumentCaptor<Map<String, String>>()
     private val logMessageCaptor = argumentCaptor<() -> String>()
     private val throwableCaptor = argumentCaptor<Throwable>()
     private val errorHandlerMessageCaptor = argumentCaptor<String>()
-    private lateinit var systemClockMock: MockedStatic<SystemClock>
-
     @Before
     fun setUp() {
         logger = mock()
-        handler = WebViewBridgeMessageHandler(logger, "automatic_full")
-        systemClockMock = Mockito.mockStatic(SystemClock::class.java)
-        systemClockMock.`when`<Long> { SystemClock.elapsedRealtime() }.thenReturn(0L)
-    }
-
-    @After
-    fun tearDown() {
-        systemClockMock.close()
+        clock = mock()
+        whenever(clock.elapsedRealtime()).thenReturn(0L)
+        handler = WebViewBridgeMessageHandler(logger, "automatic_full", clock)
     }
 
     @Test

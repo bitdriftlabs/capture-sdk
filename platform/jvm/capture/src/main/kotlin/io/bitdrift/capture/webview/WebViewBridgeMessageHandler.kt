@@ -16,6 +16,8 @@ import com.google.gson.Gson
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.common.DefaultClock
+import io.bitdrift.capture.common.IClock
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.network.HttpRequestInfo
@@ -38,6 +40,7 @@ import java.util.UUID
 internal class WebViewBridgeMessageHandler(
     private val logger: IInternalLogger,
     private val instrumentationMode: String,
+    private val clock: IClock = DefaultClock.getInstance(),
 ) : WebViewCompat.WebMessageListener {
     /**
      * TODO(Fran): BIT-5074. Consider switching to kotlinx.serialization
@@ -519,6 +522,7 @@ internal class WebViewBridgeMessageHandler(
                         level = LogLevel.INFO,
                         arrayFields = fields.toFields(),
                         customStartTimeMs = timestamp,
+                        clock = clock,
                         id = pageViewSpanId,
                     )
                 activePageViewSpans[spanId] = span
