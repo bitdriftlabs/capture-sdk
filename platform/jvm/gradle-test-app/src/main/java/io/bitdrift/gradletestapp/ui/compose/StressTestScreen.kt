@@ -155,13 +155,13 @@ private fun DiskPressureCard(
 
 @Composable
 private fun ThreadCountCard(onAction: (AppAction) -> Unit) {
-    var threadCountInput by remember { mutableStateOf("5000") }
+    var threadCountInput by remember { mutableStateOf("500") }
     val threadCount = threadCountInput.toIntOrNull()
     val isValid = threadCount != null && threadCount > 0
 
     BdSectionCard(
         title = "Threads",
-        subtitle = "Create an exact number of sleeping background threads.",
+        subtitle = "Create an exact number of sleeping JVM or native (not JVM-attached) threads.",
     ) {
         OutlinedTextField(
             value = threadCountInput,
@@ -180,8 +180,15 @@ private fun ThreadCountCard(onAction: (AppAction) -> Unit) {
         )
 
         BdPrimaryButton(
-            text = "Create Threads",
+            text = "Create JVM Threads",
             onClick = { threadCount?.let { onAction(StressTestAction.CreateThreads(it)) } },
+            enabled = isValid,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        BdPrimaryButton(
+            text = "Create Native Threads",
+            onClick = { threadCount?.let { onAction(StressTestAction.CreateNativeThreads(it)) } },
             enabled = isValid,
             modifier = Modifier.fillMaxWidth(),
         )
