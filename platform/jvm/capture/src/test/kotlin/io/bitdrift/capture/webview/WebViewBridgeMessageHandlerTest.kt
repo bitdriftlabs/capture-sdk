@@ -40,6 +40,7 @@ class WebViewBridgeMessageHandlerTest {
     private val logMessageCaptor = argumentCaptor<() -> String>()
     private val throwableCaptor = argumentCaptor<Throwable>()
     private val errorHandlerMessageCaptor = argumentCaptor<String>()
+
     @Before
     fun setUp() {
         logger = mock()
