@@ -16,6 +16,10 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
+import io.bitdrift.capture.commands.CommandHandle
+import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.CommandResult
+import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -28,9 +32,12 @@ import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
+import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.asCoroutineDispatcher
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -71,6 +78,9 @@ internal sealed class LoggerState {
 object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
+
+    internal val commandRegistry =
+        CommandRegistry(CaptureJniLibrary) { CaptureDispatchers.Commands.executorService.asCoroutineDispatcher() }
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -486,6 +496,50 @@ object Capture {
         fun getSdkStatus(): SdkStatus =
             (logger() as? LoggerImpl)?.getSdkStatus()
                 ?: SdkStatus(InitializationState.NOT_STARTED, null, null)
+
+        /**
+         * Registers a command that can be invoked remotely from the live debugger or from a workflow.
+         *
+         * ```kotlin
+         * Logger.registerCommand("flip_flag") {
+         *     val flag = argument("flag")
+         *     val previous = flags.isEnabled(flag)
+         *     flags.flip(flag)
+         *     success(context = mapOf("from" to previous.toString()))
+         * }
+         * ```
+         *
+         * Commands can be registered before or after [start]. Registering a key that is already
+         * registered replaces the previous handler and cancels its in-flight invocations.
+         *
+         * Invocations of the same command run sequentially, while different commands run
+         * concurrently. An invocation that does not complete within [timeout] is cancelled and
+         * reported as a timeout; blocking code that never suspends cannot be interrupted.
+         *
+         * @param key the unique key identifying the command.
+         * @param dispatcher the dispatcher the handler runs on. Defaults to a dedicated single thread.
+         * @param timeout the maximum duration of an invocation, including time spent waiting for a
+         * previous invocation of the same command to finish.
+         * @param handler the suspending handler executing the command. Named arguments are read
+         * through [CommandScope.argument] and [CommandScope.arguments].
+         * @return a [CommandHandle] used to unregister the command.
+         */
+        @ExperimentalBitdriftApi
+        fun registerCommand(
+            key: String,
+            dispatcher: CoroutineDispatcher? = null,
+            timeout: Duration = CommandRegistry.DEFAULT_TIMEOUT,
+            handler: suspend CommandScope.() -> CommandResult,
+        ): CommandHandle = commandRegistry.register(key, dispatcher, timeout, handler)
+
+        /**
+         * Unregisters the command registered with [key] and cancels its in-flight invocations.
+         *
+         * @return whether a command was registered with [key].
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun unregisterCommand(key: String): Boolean = commandRegistry.unregister(key)
 
         /**
          * Adds a field that should be attached to all logs emitted by the logger going forward.

@@ -10,6 +10,7 @@ android_logger.workspace        = true
 anyhow.workspace                = true
 async-trait.workspace           = true
 bd-api.workspace                = true
+bd-artifact-upload.workspace    = true
 bd-client-common.workspace      = true
 bd-client-stats-store.workspace = true
 bd-crash-handler.workspace      = true
@@ -32,6 +33,7 @@ platform-shared.workspace       = true
 protobuf.workspace              = true
 tempfile.workspace              = true
 time.workspace                  = true
+tokio.workspace                 = true
 uuid.workspace                  = true
 
 [dev-dependencies]
