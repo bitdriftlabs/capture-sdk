@@ -16,6 +16,10 @@ typealias InternalFields = [CapturePassable.Field]
 protocol LoggerBridging {
     var isTracingActive: Bool { get }
 
+    func registerCommand(key: String, target: AnyObject)
+
+    func unregisterCommand(key: String)
+
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,

@@ -100,6 +100,10 @@ public final class MockCoreLogging {
 extension MockCoreLogging: CoreLogging {
     public func start() {}
 
+    public func registerCommand(key _: String, target _: AnyObject) {}
+
+    public func unregisterCommand(key _: String) {}
+
     public func startNewSession(sessionID _: String?) {}
 
     public func getSessionID() -> String { "foo" }
