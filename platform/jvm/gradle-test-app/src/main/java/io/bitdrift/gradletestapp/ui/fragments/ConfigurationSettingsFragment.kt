@@ -246,7 +246,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         buildSwitchPreference(context, DEFERRED_START_PREFS_KEY, DEFERRED_START_TITLE, false)
 
     private fun buildStartOnBackgroundThreadSwitch(context: Context): SwitchPreference =
-        buildSwitchPreference(context, START_ON_BACKGROUND_THREAD_PREFS_KEY, START_ON_BACKGROUND_THREAD_TITLE, true)
+        buildSwitchPreference(context, START_ON_BACKGROUND_THREAD_PREFS_KEY, START_ON_BACKGROUND_THREAD_TITLE, false)
 
     private fun buildSimulatedStartDelaySwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, SIMULATED_START_DELAY_PREFS_KEY, SIMULATED_START_DELAY_TITLE, false).apply {
@@ -288,7 +288,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         buildSwitchPreference(context, SESSION_REPLAY_ENABLED_PREFS_KEY, SESSION_REPLAY_TITLE, true)
 
     private fun buildDiagnosticsSwitch(context: Context): SwitchPreference =
-        buildSwitchPreference(context, DIAGNOSTICS_ENABLED_KEY, DIAGNOSTICS_TITLE, true)
+        buildSwitchPreference(context, DIAGNOSTICS_ENABLED_KEY, DIAGNOSTICS_TITLE, false)
 
     private fun showApiKeysDialog(context: Context) {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)

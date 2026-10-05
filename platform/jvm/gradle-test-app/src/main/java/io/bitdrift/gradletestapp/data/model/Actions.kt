@@ -123,6 +123,8 @@ sealed class StressTestAction : AppAction {
 
     data class CreateThreads(val count: Int) : StressTestAction()
 
+    data class CreateNativeThreads(val count: Int) : StressTestAction()
+
     data class TriggerJankyFrames(val type: JankType) : StressTestAction()
 
     data class TriggerStrictModeViolation(val type: StrictModeViolationType) : StressTestAction()

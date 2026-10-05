@@ -114,6 +114,7 @@ android {
     namespace = "io.bitdrift.gradletestapp"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
+    ndkVersion = "27.2.12479018"
 
     buildFeatures {
         compose = true
@@ -138,6 +139,12 @@ android {
             "AUTO_CAPTURE_OKHTTP_INSTRUMENTATION_TYPE",
             "\"$autoCaptureOkHttpInstrumentationType\"",
         )
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
     }
 
     packaging {
