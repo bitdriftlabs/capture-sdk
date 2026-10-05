@@ -27,6 +27,7 @@ import io.bitdrift.capture.events.common.PowerMonitor
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider
 import io.bitdrift.capture.fakes.FakeMemoryMetricsProvider.Companion.DEFAULT_MEMORY_ATTRIBUTES_MAP_LOW
 import io.bitdrift.capture.providers.ArrayFields
+import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.utils.toStringMap
 import org.junit.After
 import org.junit.Test
@@ -39,6 +40,7 @@ class ResourceUtilizationTargetTest {
     private val batteryMonitor: BatteryMonitor = mock()
     private val powerMonitor: PowerMonitor = mock()
     private val diskUsageMonitor: DiskUsageMonitor = mock()
+    private val threadCountMonitor: ThreadCountMonitor = mock()
     private val logger: IInternalLogger = mock()
     private val executor: ExecutorService = MoreExecutors.newDirectExecutorService()
     private val clock: IClock = mock()
@@ -49,6 +51,7 @@ class ResourceUtilizationTargetTest {
             batteryMonitor = batteryMonitor,
             powerMonitor = powerMonitor,
             diskUsageMonitor = diskUsageMonitor,
+            threadCountMonitor = threadCountMonitor,
             logger = logger,
             executor = executor,
             clock = clock,
@@ -68,6 +71,7 @@ class ResourceUtilizationTargetTest {
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
         whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
+        whenever(threadCountMonitor.getThreadCount()).thenReturn(ArrayFields.EMPTY)
 
         reporter.tick()
 
@@ -109,6 +113,7 @@ class ResourceUtilizationTargetTest {
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
         whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
+        whenever(threadCountMonitor.getThreadCount()).thenReturn(ArrayFields.EMPTY)
 
         reporter.tick()
 
@@ -133,6 +138,7 @@ class ResourceUtilizationTargetTest {
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
         whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
+        whenever(threadCountMonitor.getThreadCount()).thenReturn(ArrayFields.EMPTY)
 
         reporter.tick()
 
@@ -154,6 +160,22 @@ class ResourceUtilizationTargetTest {
 
         verify(logger).logResourceUtilization(
             argThat<ArrayFields> { toStringMap() == expectedMap },
+            any<Long>().nanoseconds,
+        )
+    }
+
+    @Test
+    @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+    fun resourceUtilizationTickIncludesThreadCount() {
+        setFakeResourceState()
+        whenever(threadCountMonitor.getThreadCount()).thenReturn(fieldsOf("_thread_count" to "42"))
+
+        reporter.tick()
+
+        executor.awaitTermination(1, TimeUnit.SECONDS)
+
+        verify(logger).logResourceUtilization(
+            argThat<ArrayFields> { toStringMap()["_thread_count"] == "42" },
             any<Long>().nanoseconds,
         )
     }
@@ -208,5 +230,6 @@ class ResourceUtilizationTargetTest {
         whenever(batteryMonitor.isBatteryChargingAttribute()).thenReturn(Pair("_state", "charging"))
         whenever(powerMonitor.isPowerSaveModeEnabledAttribute()).thenReturn(Pair("_low_power_enabled", "1"))
         whenever(diskUsageMonitor.getDiskUsage()).thenReturn(ArrayFields.EMPTY)
+        whenever(threadCountMonitor.getThreadCount()).thenReturn(ArrayFields.EMPTY)
     }
 }

@@ -49,7 +49,7 @@ class GradleTestApp : Application() {
         // Matches the switch's own default in ConfigurationSettingsFragment. Until the preference
         // screen is opened nothing has written the key, so a `false` here would leave diagnostics
         // off on a fresh install while the switch showed them on.
-        sharedPreferences.getBoolean(DIAGNOSTICS_ENABLED_KEY, true)
+        sharedPreferences.getBoolean(DIAGNOSTICS_ENABLED_KEY, false)
 
     private fun hasDeferredSdkStartConfigured(sharedPreferences: SharedPreferences): Boolean =
         sharedPreferences.getBoolean(DEFERRED_START_PREFS_KEY, false)

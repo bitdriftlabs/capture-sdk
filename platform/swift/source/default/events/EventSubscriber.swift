@@ -34,6 +34,13 @@ final class EventSubscriber {
         }
     }
 
+    func tearDown() {
+        self.listeners.update { listeners in
+            listeners.forEach { $0.stop() }
+            listeners = []
+        }
+    }
+
     deinit {
         self.stop()
     }

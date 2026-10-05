@@ -12,6 +12,8 @@ import Foundation
 import XCTest
 
 final class LoggerTests: XCTestCase {
+    private var mockCoreLogging: MockCoreLogging!
+
     func testPropertiesReturnsCorrectValues() throws {
         let logger = try Logger.testLogger(withAPIKey: "test_api_key")
 
@@ -464,12 +466,12 @@ final class LoggerTests: XCTestCase {
     func testLogScreenViewCapturesScreen() throws {
         let logger = try Logger.testLogger(withAPIKey: "test_api_key")
 
-        let mockCoreLogging = MockCoreLogging()
+        self.mockCoreLogging = MockCoreLogging()
         let replayController = try XCTUnwrap(logger.sessionReplayController)
-        replayController.logger = mockCoreLogging
+        replayController.logger = self.mockCoreLogging
 
         let expectation = self.expectation(description: "session replay screen log is emitted")
-        mockCoreLogging.logSessionReplayScreenExpectation = expectation
+        self.mockCoreLogging.logSessionReplayScreenExpectation = expectation
 
         logger.logScreenView(screenName: "test_screen")
 

@@ -90,6 +90,22 @@ final class CaptureE2ENetworkTests: XCTestCase {
         return logger
     }
 
+    func testReleasingLoggerReleasesItsCoreLogger() throws {
+        weak var coreLogger: CoreLogging?
+        try autoreleasepool {
+            let logger = try self.setUpLogger()
+            coreLogger = logger.resourceUtilizationTarget.logger
+            XCTAssertNotNil(coreLogger)
+            self.logger = nil
+        }
+
+        let released = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in coreLogger == nil },
+            object: nil
+        )
+        XCTAssertEqual(.completed, XCTWaiter().wait(for: [released], timeout: 5))
+    }
+
     func testSessionReplay() async throws {
         _ = try self.setUpLogger()
 

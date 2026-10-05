@@ -19,7 +19,7 @@ final class DiskUsageProvider {
     private let storageProvider: StorageProvider
     private let timeProvider: TimeProvider
 
-    var logger: CoreLogging?
+    weak var logger: CoreLogging?
 
     init(storageProvider: StorageProvider, timeProvider: TimeProvider) {
         self.storageProvider = storageProvider

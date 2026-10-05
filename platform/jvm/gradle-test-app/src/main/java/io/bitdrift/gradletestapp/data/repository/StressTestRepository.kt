@@ -27,6 +27,7 @@ import android.widget.TextView
 import android.widget.Toast
 import io.bitdrift.capture.Capture
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.FatalIssueGenerator
+import io.bitdrift.gradletestapp.diagnostics.fatalissues.NativeThreads
 import io.bitdrift.gradletestapp.data.model.DiskPressureState
 import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import timber.log.Timber
@@ -177,6 +178,19 @@ class StressTestRepository(
             "Started creating $count sleeping threads"
         }
         FatalIssueGenerator.forceThreadCount(count)
+    }
+
+    fun createNativeThreads(count: Int) {
+        require(count > 0) { "Thread count must be positive" }
+        Capture.Logger.logWarning(mapOf("thread_count" to count.toString())) {
+            "Started creating $count sleeping native threads"
+        }
+        Thread {
+            val created = NativeThreads.spawn(count)
+            Capture.Logger.logWarning(mapOf("thread_count" to created.toString())) {
+                "Created $created sleeping native threads"
+            }
+        }.start()
     }
 
     private fun stopAllThreads() {

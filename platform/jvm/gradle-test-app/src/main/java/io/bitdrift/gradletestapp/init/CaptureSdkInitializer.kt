@@ -168,7 +168,7 @@ object CaptureSdkInitializer {
     private fun shouldStartOnBackgroundThread(sharedPreferences: SharedPreferences): Boolean =
         sharedPreferences.getBoolean(
             ConfigurationSettingsFragment.Companion.START_ON_BACKGROUND_THREAD_PREFS_KEY,
-            true,
+            false,
         )
 
     private fun plantCaptureTree() {

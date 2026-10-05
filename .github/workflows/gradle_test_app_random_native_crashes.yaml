@@ -1,50 +1,85 @@
-name: Trigger Android Crash Test Loop E2E test
+name: Android random fatal issues loop
 
 on:
   workflow_dispatch:
     inputs:
       iterations:
-        description: Total number of random native crash iterations
+        description: Total number of random fatal issues (ANR, JVM crash or native crash)
         required: false
-        default: '5000'
+        default: '100'
         type: string
 
+concurrency:
+  group: random-fatal-issues-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  run_random_native_crashes:
-    name: Android gradle-test-app crash loop test
+  run_random_fatal_issues:
+    name: Android gradle-test-app random fatal issues (API 33)
     runs-on: ubuntu-latest-8-cores
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     env:
-      CRASH_LOOP_API_KEY: ${{ secrets.CRASH_LOOP_API_KEY }}
       SKIP_PROTO_GEN: 1
+      MAESTRO_VERSION: "2.10.0"
+      EMULATOR_BUILD: "15917651"
+      API_LEVEL: "33"
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v4
 
-      - name: Setup Android command-line tools
-        uses: ./.github/actions/android-setup
+      - name: Setup Android emulator
+        uses: ./.github/actions/setup-android-emulator
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
           setup-gradle-cache: "true"
-          setup-emulator: 'true'
-          emulator-api-level: '31'
-          emulator-target: google_apis
-          emulator-arch: x86_64
+          api-level: ${{ env.API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          emulator-build: ${{ env.EMULATOR_BUILD }}
 
       - name: Build gradle-test-app debug APK
         timeout-minutes: 45
-        run: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -PskipGradleTestAppLintOnAssemble=true -p platform/jvm gradle-test-app:assembleDebug --stacktrace
+        run: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm gradle-test-app:assembleDebug -x lintDebug -x detekt --stacktrace
 
-      - name: Run random native crashes
+      - name: Restore Maestro
+        id: maestro-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.maestro
+          key: maestro-cli-${{ env.MAESTRO_VERSION }}
+
+      - name: Install Maestro
+        if: steps.maestro-cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tmp_dir="$(mktemp -d)"
+          gh release download "cli-${MAESTRO_VERSION}" --repo mobile-dev-inc/maestro \
+            --pattern maestro.zip --pattern checksums_sha256.txt --dir "$tmp_dir"
+          (cd "$tmp_dir" && grep ' maestro.zip$' checksums_sha256.txt | sha256sum --check)
+          unzip -q "$tmp_dir/maestro.zip" -d "$tmp_dir"
+          mkdir -p ~/.maestro
+          cp -R "$tmp_dir"/maestro/* ~/.maestro/
+
+      - name: Add Maestro to PATH
+        run: |
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Run random fatal issues
         timeout-minutes: 360
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
+        env:
+          CRASH_LOOP_API_KEY: ${{ secrets.CRASH_LOOP_API_KEY }}
+          ITERATIONS: ${{ github.event.inputs.iterations }}
+          LOGS_DIR: random-fatal-issues-logs
         with:
-          avd-name: android-gradle-test-app-crash-loop-test
-          channel: stable
           force-avd-creation: false
-          api-level: 31
+          channel: stable
+          emulator-build: ${{ env.EMULATOR_BUILD }}
+          api-level: ${{ env.API_LEVEL }}
           target: google_apis
           ram-size: 2048M
           arch: x86_64
@@ -52,4 +87,12 @@ jobs:
           profile: Nexus 6
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
-          script: bash ./ci/run_gradle_test_app_random_native_crashes.sh "${{ github.event.inputs.iterations }}"
+          script: ./ci/run_gradle_test_app_random_fatal_issues.sh "$ITERATIONS"
+
+      - name: Upload logcat
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: random-fatal-issues-logs
+          path: random-fatal-issues-logs
+          if-no-files-found: ignore

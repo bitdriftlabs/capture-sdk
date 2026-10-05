@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Resource utilization logs now include a `_thread_count` field with the number of threads in the app process.
 
 **Changed**
 
