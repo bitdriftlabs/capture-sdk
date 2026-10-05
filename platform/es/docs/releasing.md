@@ -12,9 +12,9 @@ from `main` with the desired version. The workflow publishes the package and ope
 to record the version in the workspace. Check that the new version appears on npm,
 then update the [React Native release notes](https://docs.bitdrift.io/sdk/releases-react-native).
 
-Publishing uses npm trusted publishing and provenance. Before the first release from
-`capture-sdk`, configure the package's trusted publisher for the `bitdriftlabs/capture-sdk`
-repository and the `react-native-release.yml` workflow.
+The workflow releases `@bitdrift/react-native` and `@bitdrift/react-native-webview` at the
+same version. Configure npm trusted publishing for both packages with the
+`bitdriftlabs/capture-sdk` repository and the `react-native-release.yml` workflow.
 
 ## Version tracking
 

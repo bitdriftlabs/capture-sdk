@@ -6,6 +6,11 @@
 #import "BdReactNative-Swift.h"
 #endif
 
+void BdReactNativeInstrumentWebView(WKWebView *webView)
+{
+  [CAPRNLogger instrumentWebView:webView];
+}
+
 @implementation BdReactNative
 RCT_EXPORT_MODULE()
 

@@ -1,4 +1,8 @@
 const newArchEnabled = process.env.NEW_ARCH !== 'false';
+const webViewDemoMode =
+  process.env.EXPO_PUBLIC_WEBVIEW_DEMO_MODE === 'manual'
+    ? 'manual'
+    : 'automatic';
 
 export default {
   expo: {
@@ -38,7 +42,7 @@ export default {
         '../../dist/react-native/app.plugin.js', // In a real project, this would be '@bitdrift/react-native'
         {
           networkInstrumentation: true,
-          UNSTABLE_webViewInstrumentation: true,
+          UNSTABLE_webViewInstrumentation: webViewDemoMode === 'automatic',
         },
       ],
       [

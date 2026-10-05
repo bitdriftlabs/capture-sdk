@@ -24,5 +24,14 @@ nx ios expo-example # Run on iOS
 nx android expo-example # Run on Android
 ```
 
+The WebView demo defaults to automatic instrumentation. To test the manual package instead, select the mode before running the app:
+
+```bash
+EXPO_PUBLIC_WEBVIEW_DEMO_MODE=manual nx ios expo-example
+EXPO_PUBLIC_WEBVIEW_DEMO_MODE=manual nx android expo-example
+```
+
+The mode affects iOS initialization and Android bytecode instrumentation, so re-run Expo prebuild (or remove the generated native directory) when switching between modes.
+
 Depending on the changes you're making locally, you may need to clean up the `ios/` and `android/` directory within `expo-example`,
 as this is generated as part of the build and won't always be properly re-generated on changes.

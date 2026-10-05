@@ -63,18 +63,25 @@ function ensureOkHttpInstrumentation(
 }
 
 function ensureWebViewInstrumentation(contents: string): string {
-  if (contents.includes('automaticWebViewInstrumentation')) {
+  if (contents.includes('webViewAutomaticInstrumentationScope')) {
     return contents;
+  }
+
+  if (contents.includes('automaticWebViewInstrumentation = true')) {
+    return contents.replace(
+      'automaticWebViewInstrumentation = true',
+      'webViewAutomaticInstrumentationScope = JS_ENABLED',
+    );
   }
 
   if (contents.includes('bitdrift {')) {
     return insertIntoInstrumentationBlock(contents, [
-      'automaticWebViewInstrumentation = true',
+      'webViewAutomaticInstrumentationScope = JS_ENABLED',
     ]);
   }
 
   return appendBitdriftInstrumentationBlock(contents, [
-    'automaticWebViewInstrumentation = true',
+    'webViewAutomaticInstrumentationScope = JS_ENABLED',
   ]);
 }
 
