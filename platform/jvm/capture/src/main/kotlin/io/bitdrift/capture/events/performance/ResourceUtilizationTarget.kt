@@ -27,6 +27,7 @@ internal class ResourceUtilizationTarget(
     private val batteryMonitor: BatteryMonitor,
     private val powerMonitor: PowerMonitor,
     private val diskUsageMonitor: DiskUsageMonitor,
+    private val threadCountMonitor: ThreadCountMonitor,
     private val logger: IInternalLogger,
     private val executor: ExecutorService,
     private val clock: IClock = DefaultClock.getInstance(),
@@ -47,6 +48,7 @@ internal class ResourceUtilizationTarget(
                         fieldsOfOptional(batteryMonitor.batteryValAttribute()),
                         fieldsOfOptional(batteryMonitor.batteryLevelAttribute()),
                         fieldsOf(batteryMonitor.isBatteryChargingAttribute()),
+                        threadCountMonitor.getThreadCount(),
                     )
 
                 val duration = clock.elapsedRealtime() - start
