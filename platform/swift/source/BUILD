@@ -96,8 +96,8 @@ rust_static_library(
         ":swift_bridge",
         "//platform/crash:bd_crash_reporter",
     ] + all_crate_deps(
-        normal = True,
         cargo_only = True,
+        normal = True,
     ),
 )
 
