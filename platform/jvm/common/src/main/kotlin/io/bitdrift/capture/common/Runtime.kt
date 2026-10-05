@@ -49,6 +49,11 @@ sealed class RuntimeFeature(
     data object DISK_USAGE_FIELDS : RuntimeFeature("client_feature.android.disk_usage_reporting", defaultValue = true)
 
     /**
+     * Whether the process thread count should be reported as part of resource utilization logs.
+     */
+    data object THREAD_COUNT_FIELDS : RuntimeFeature("client_feature.android.thread_count_reporting", defaultValue = true)
+
+    /**
      * Whether internal logs are forwarded to our on SDK. Disabled by default.
      */
     data object INTERNAL_LOGS : RuntimeFeature("client_feature.android.internal_logs", defaultValue = false)
