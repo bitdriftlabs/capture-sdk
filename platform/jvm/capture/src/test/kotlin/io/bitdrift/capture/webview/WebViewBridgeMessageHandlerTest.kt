@@ -7,12 +7,14 @@
 
 package io.bitdrift.capture.webview
 
+import android.os.SystemClock
 import androidx.webkit.WebMessageCompat
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.IInternalLogger
@@ -24,8 +26,11 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.utils.toStringMap
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.mockito.MockedStatic
+import org.mockito.Mockito
 import org.mockito.Mockito.verifyNoInteractions
 import java.util.UUID
 
@@ -37,11 +42,19 @@ class WebViewBridgeMessageHandlerTest {
     private val logMessageCaptor = argumentCaptor<() -> String>()
     private val throwableCaptor = argumentCaptor<Throwable>()
     private val errorHandlerMessageCaptor = argumentCaptor<String>()
+    private lateinit var systemClockMock: MockedStatic<SystemClock>
 
     @Before
     fun setUp() {
         logger = mock()
         handler = WebViewBridgeMessageHandler(logger, "automatic_full")
+        systemClockMock = Mockito.mockStatic(SystemClock::class.java)
+        systemClockMock.`when`<Long> { SystemClock.elapsedRealtime() }.thenReturn(0L)
+    }
+
+    @After
+    fun tearDown() {
+        systemClockMock.close()
     }
 
     @Test
@@ -98,6 +111,58 @@ class WebViewBridgeMessageHandlerTest {
             .isEqualTo("11111111-1111-4111-8111-111111111111")
         assertThat(responseCaptor.firstValue.arrayFields["_span_parent_id"])
             .isEqualTo("11111111-1111-4111-8111-111111111111")
+    }
+
+    @Test
+    fun log_whenPageViewStartsAndEnds_shouldIncludeNormalizedUrlFieldsOnBothSpanEvents() {
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"pageView",
+                "timestamp":1000,
+                "action":"start",
+                "spanId":"11111111-1111-4111-8111-111111111111",
+                "url":"https://start.example.com/start?source=feed",
+                "reason":"initial"
+            }
+            """.trimIndent(),
+        )
+        handler.log(
+            """
+            {
+                "v":1,
+                "type":"pageView",
+                "timestamp":2000,
+                "action":"end",
+                "spanId":"11111111-1111-4111-8111-111111111111",
+                "url":"https://end.example.com/end?source=search",
+                "reason":"navigation",
+                "durationMs":1000
+            }
+            """.trimIndent(),
+        )
+
+        val pageViewFieldsCaptor = argumentCaptor<ArrayFields>()
+        verify(logger, times(2)).logInternal(
+            eq(LogType.SPAN),
+            eq(LogLevel.INFO),
+            pageViewFieldsCaptor.capture(),
+            eq(ArrayFields.EMPTY),
+            anyOrNull(),
+            eq(false),
+            any(),
+        )
+
+        val startFields = pageViewFieldsCaptor.firstValue.toStringMap()
+        assertThat(startFields["_host"]).isEqualTo("start.example.com")
+        assertThat(startFields["_path"]).isEqualTo("/start")
+        assertThat(startFields["_query"]).isEqualTo("source=feed")
+
+        val endFields = pageViewFieldsCaptor.secondValue.toStringMap()
+        assertThat(endFields["_host"]).isEqualTo("end.example.com")
+        assertThat(endFields["_path"]).isEqualTo("/end")
+        assertThat(endFields["_query"]).isEqualTo("source=search")
     }
 
     @Test
