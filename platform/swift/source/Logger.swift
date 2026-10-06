@@ -225,10 +225,11 @@ public final class Logger {
         self.underlyingLogger = CoreLogger(logger: logger)
 
         let (uniqueCommands, duplicated) = commands.removingDuplicates()
-        self.commandRegistry = CommandRegistry(commands: uniqueCommands)
+        let commandBridge = CommandRegistrationBridge(logger: self.underlyingLogger)
+        self.commandRegistry = CommandRegistry(commands: uniqueCommands, bridge: commandBridge)
         self.commandsTarget = CommandsTarget(registry: self.commandRegistry)
         for command in uniqueCommands {
-            self.underlyingLogger.registerCommand(key: command.key, target: self.commandsTarget)
+            commandBridge.registerCommand(key: command.key, target: self.commandsTarget)
         }
 
         defer {

@@ -10,9 +10,13 @@ import XCTest
 
 final class CommandRegistryTests: XCTestCase {
     private var sut: CommandRegistry!
+    private var bridge: CommandRegistrationRecorder!
+    private var target: CommandsTarget!
 
     override func setUp() {
-        sut = CommandRegistry()
+        bridge = CommandRegistrationRecorder()
+        sut = CommandRegistry(bridge: bridge)
+        target = CommandsTarget(registry: sut)
     }
 
     func testRegisteringCommandExecutesHandlerWithNamedArguments() async throws {
@@ -35,7 +39,7 @@ final class CommandRegistryTests: XCTestCase {
         try thenResultIsSuccess(result, context: ["source": "startup"])
     }
 
-    func testInitialCommandsKeepTheFirstHandlerForDuplicateKeys() async throws {
+    func testInitialCommandsKeepTheLastHandlerForDuplicateKeys() async throws {
         sut = CommandRegistry(commands: [
             Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "first"])) },
             Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "second"])) },
@@ -43,19 +47,95 @@ final class CommandRegistryTests: XCTestCase {
 
         let result = await whenExecutingCommand(key: "memory_dump")
 
-        try thenResultIsSuccess(result, context: ["source": "first"])
+        try thenResultIsSuccess(result, context: ["source": "second"])
     }
 
-    func testRegisteringDuplicateCommandFailsWithoutReplacingOriginalHandler() async throws {
+    func testRegisteringDuplicateCommandReplacesOriginalHandler() async throws {
         await givenRegisteredCommand(key: "memory") { _ in
             .success(CommandResult(context: ["source": "first"]))
         }
 
-        let error = await whenRegisteringDuplicateCommand(key: "memory")
+        _ = await givenRegisteredCommand(key: "memory") { _ in
+            .success(CommandResult(context: ["source": "second"]))
+        }
         let result = await whenExecutingCommand(key: "memory")
 
-        thenErrorIsDuplicateRegistration(error, key: "memory")
-        try thenResultIsSuccess(result, context: ["source": "first"])
+        try thenResultIsSuccess(result, context: ["source": "second"])
+        XCTAssertEqual(bridge.registeredKeys, ["memory"])
+        XCTAssertEqual(bridge.events, ["register:memory"])
+    }
+
+    func testUnregisteringStaleHandleDoesNotUnregisterReplacementCommand() async throws {
+        let originalHandle = await givenRegisteredCommand(key: "memory") { _ in
+            .success(CommandResult(context: ["source": "original"]))
+        }
+        _ = await givenRegisteredCommand(key: "memory") { _ in
+            .success(CommandResult(context: ["source": "replacement"]))
+        }
+
+        await whenUnregistering(originalHandle)
+        let result = await whenExecutingCommand(key: "memory")
+
+        try thenResultIsSuccess(result, context: ["source": "replacement"])
+        XCTAssertEqual(bridge.registeredKeys, ["memory"])
+    }
+
+    func testConcurrentRegistrationAndUnregistrationKeepBridgeInSync() async throws {
+        let handle = await givenRegisteredCommand(key: "memory") { _ in .success(CommandResult()) }
+
+        async let unregistration: Void = whenUnregistering(handle)
+        async let registration: CommandHandle = whenRegisteringCommand(key: "memory")
+        let (_, replacementHandle) = await (unregistration, registration)
+        let result = await whenExecutingCommand(key: "memory")
+
+        try thenResultIsSuccess(result)
+        XCTAssertEqual(bridge.registeredKeys, ["memory"])
+        await whenUnregistering(replacementHandle)
+        thenResultIsCommandNotFound(await whenExecutingCommand(key: "memory"))
+    }
+
+    func testReplacingCommandKeepsExecutionsSerializedAcrossHandlers() async throws {
+        let firstExecutionStarted = expectation(description: "first execution started")
+        let allowFirstExecutionToFinish = AsyncGate()
+        let currentConcurrentExecutions = LockedValue(0)
+        let maximumConcurrentExecutions = LockedValue(0)
+        let originalHandle = await givenRegisteredCommand(key: "memory") { _ in
+            let current = currentConcurrentExecutions.modify { value in
+                value += 1
+                return value
+            }
+            maximumConcurrentExecutions.modify { value in
+                value = max(value, current)
+            }
+            firstExecutionStarted.fulfill()
+            await allowFirstExecutionToFinish.wait()
+            currentConcurrentExecutions.modify { $0 -= 1 }
+            return .success(CommandResult(context: ["source": "first"]))
+        }
+
+        async let activeResult = whenExecutingCommand(key: "memory")
+        await fulfillment(of: [firstExecutionStarted])
+        async let queuedResult = whenExecutingCommand(key: "memory")
+        await whenExecutionIsQueued(for: "memory")
+        _ = await givenRegisteredCommand(key: "memory") { _ in
+            let current = currentConcurrentExecutions.modify { value in
+                value += 1
+                return value
+            }
+            maximumConcurrentExecutions.modify { value in
+                value = max(value, current)
+            }
+            currentConcurrentExecutions.modify { $0 -= 1 }
+            return .success(CommandResult(context: ["source": "second"]))
+        }
+
+        whenOpeningGate(allowFirstExecutionToFinish)
+
+        try thenResultIsSuccess(await activeResult, context: ["source": "first"])
+        try thenResultIsSuccess(await queuedResult, context: ["source": "second"])
+        thenMaximumConcurrentExecutionsIs(maximumConcurrentExecutions, expected: 1)
+        await whenUnregistering(originalHandle)
+        try thenResultIsSuccess(await whenExecutingCommand(key: "memory"), context: ["source": "second"])
     }
 
     func testExecutionsOfTheSameCommandDoNotOverlap() async throws {
@@ -164,17 +244,11 @@ final class CommandRegistryTests: XCTestCase {
 private extension CommandRegistryTests {
     @discardableResult
     func givenRegisteredCommand(key: String, handler: @escaping CommandHandler) async -> CommandHandle {
-        try! await sut.register(key: key, handler: handler)
+        await sut.register(key: key, handler: handler, target: target)
     }
 
-    func whenRegisteringDuplicateCommand(key: String) async -> Error {
-        do {
-            _ = try await sut.register(key: key) { _ in .success(CommandResult()) }
-            XCTFail("Expected duplicate command registration to fail")
-            return CommandRegistrationError.duplicateKey(key)
-        } catch {
-            return error
-        }
+    func whenRegisteringCommand(key: String) async -> CommandHandle {
+        await sut.register(key: key, handler: { _ in .success(CommandResult()) }, target: target)
     }
 
     func whenExecutingCommand(
@@ -216,10 +290,6 @@ private extension CommandRegistryTests {
         XCTAssertEqual(commandResult.context, context, file: file, line: line)
     }
 
-    func thenErrorIsDuplicateRegistration(_ error: Error, key: String) {
-        XCTAssertEqual(error as? CommandRegistrationError, .duplicateKey(key))
-    }
-
     func thenResultIsUnregistered(_ result: Result<CommandResult, CommandError>) {
         XCTAssertEqual(result, .failure(.unregistered))
     }
@@ -234,6 +304,38 @@ private extension CommandRegistryTests {
 
     func thenInvocationCountIs(_ value: LockedValue<Int>, expected: Int) {
         XCTAssertEqual(value.value, expected)
+    }
+}
+
+private final class CommandRegistrationRecorder: CommandRegistrationBridging, @unchecked Sendable {
+    private let lock = NSLock()
+    private var underlyingRegisteredKeys = Set<String>()
+    private var underlyingEvents = [String]()
+
+    var registeredKeys: Set<String> {
+        lock.lock()
+        defer { lock.unlock() }
+        return underlyingRegisteredKeys
+    }
+
+    var events: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return underlyingEvents
+    }
+
+    func registerCommand(key: String, target _: CommandsTarget) {
+        lock.lock()
+        defer { lock.unlock() }
+        underlyingRegisteredKeys.insert(key)
+        underlyingEvents.append("register:\(key)")
+    }
+
+    func unregisterCommand(key: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        underlyingRegisteredKeys.remove(key)
+        underlyingEvents.append("unregister:\(key)")
     }
 }
 

@@ -28,7 +28,7 @@ final class LoggerTests: XCTestCase {
         logger.log(level: .debug, message: "test no fields", type: .normal)
     }
 
-    func testInitialCommandsKeepTheFirstDuplicateAndRegisterBeforeStartingTheBridge() async throws {
+    func testInitialCommandsKeepTheLastDuplicateAndRegisterBeforeStartingTheBridge() async throws {
         let bridge = MockLoggerBridging()
         let logger = try Logger.testLogger(
             commands: [
@@ -41,7 +41,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(bridge.commandRegistrationEvents, ["register:memory_dump", "start"])
         let result = await logger.executeCommand(key: "memory_dump", arguments: [:])
         let commandResult = try result.get()
-        XCTAssertEqual(commandResult.context["source"], "first")
+        XCTAssertEqual(commandResult.context["source"], "second")
         XCTAssertEqual(commandDuplicateKeys(from: bridge), "memory_dump")
 
         withExtendedLifetime(logger) {}
@@ -49,6 +49,15 @@ final class LoggerTests: XCTestCase {
 
     private func commandDuplicateKeys(from bridge: MockLoggerBridging) -> String? {
         bridge.startLog.load()?.0.first(where: { $0.key == "_duplicated_commands" })?.data as? String
+    }
+
+    func testRegisteringCommandBeforeLoggerStartsReturnsNil() async {
+        Logger.resetShared()
+        defer { Logger.resetShared() }
+
+        let handle = await Logger.registerCommand(key: "memory_dump") { _ in .success(CommandResult()) }
+
+        XCTAssertNil(handle)
     }
 
     func testOotbFieldsArePassedToBridgeAndLocaleUpdatesReachIt() throws {

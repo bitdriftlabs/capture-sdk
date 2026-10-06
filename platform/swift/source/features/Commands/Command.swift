@@ -16,7 +16,7 @@ public struct Command: Sendable {
 }
 
 extension Array where Element == Command {
-    /// Removes duplicate commands, retaining the first command for each key.
+    /// Removes duplicate commands, retaining the last command for each key.
     ///
     /// - returns: The unique commands and the commands removed as duplicates.
     func removingDuplicates() -> (
@@ -26,13 +26,13 @@ extension Array where Element == Command {
         var seenKeys = Set<String>()
         var commands: [Command] = []
         var duplicates: [Command] = []
-        for command in self {
+        for command in reversed() {
             if seenKeys.insert(command.key).inserted {
                 commands.append(command)
             } else {
                 duplicates.append(command)
             }
         }
-        return (commands, duplicates)
+        return (commands.reversed(), duplicates.reversed())
     }
 }

@@ -5,7 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-public enum CommandRegistrationError: Error, Equatable, Sendable {
-    case duplicateKey(String)
-    case loggerNotStarted
+protocol CommandRegistrationBridging: AnyObject, Sendable {
+    func registerCommand(key: String, target: CommandsTarget)
+
+    func unregisterCommand(key: String)
 }

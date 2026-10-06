@@ -12,25 +12,54 @@ actor CommandRegistry {
         case unregistered
     }
 
-    private struct Entry {
+    private final class Registration: @unchecked Sendable {
         let handler: CommandHandler
-        var isExecuting = false
-        var waiters = [CheckedContinuation<HandlerAcquisition, Never>]()
-    }
 
-    private var entries = [String: Entry]()
-
-    init(commands: [Command] = []) {
-        for command in commands {
-            guard entries[command.key] == nil else { continue }
-            entries[command.key] = Entry(handler: command.handler)
+        init(handler: @escaping CommandHandler) {
+            self.handler = handler
         }
     }
 
-    func register(key: String, handler: @escaping CommandHandler) throws -> CommandHandle {
-        guard entries[key] == nil else { throw CommandRegistrationError.duplicateKey(key) }
-        entries[key] = Entry(handler: handler)
-        return CommandHandle { [weak self] in await self?.unregister(key: key) }
+    private struct Entry {
+        var registration: Registration
+        var isExecuting = false
+        var waiters = [CheckedContinuation<HandlerAcquisition, Never>]()
+
+        init(registration: Registration) {
+            self.registration = registration
+        }
+    }
+
+    private let bridge: (any CommandRegistrationBridging)?
+    private var entries = [String: Entry]()
+
+    init(
+        commands: [Command] = [],
+        bridge: (any CommandRegistrationBridging)? = nil
+    ) {
+        self.bridge = bridge
+        for command in commands {
+            entries[command.key] = Entry(registration: Registration(handler: command.handler))
+        }
+    }
+
+    func register(
+        key: String,
+        handler: @escaping CommandHandler,
+        target: CommandsTarget
+    ) -> CommandHandle {
+        let registration = Registration(handler: handler)
+        if var entry = entries[key] {
+            entry.registration = registration
+            entries[key] = entry
+        } else {
+            entries[key] = Entry(registration: registration)
+            bridge?.registerCommand(key: key, target: target)
+        }
+        return CommandHandle { [weak self, weak registration] in
+            guard let registration else { return }
+            await self?.unregister(key: key, matching: registration)
+        }
     }
 
     func execute(key: String, arguments: CommandArguments) async -> Result<CommandResult, CommandError> {
@@ -50,7 +79,14 @@ actor CommandRegistry {
     }
 
     func unregister(key: String) {
-        guard let entry = entries.removeValue(forKey: key) else { return }
+        unregister(key: key, matching: nil)
+    }
+
+    private func unregister(key: String, matching expectedRegistration: Registration?) {
+        guard let entry = entries[key] else { return }
+        guard expectedRegistration == nil || entry.registration === expectedRegistration else { return }
+        entries.removeValue(forKey: key)
+        bridge?.unregisterCommand(key: key)
         entry.waiters.forEach { $0.resume(returning: .unregistered) }
     }
 
@@ -68,7 +104,7 @@ actor CommandRegistry {
         }
         entry.isExecuting = true
         entries[key] = entry
-        return .handler(entry.handler)
+        return .handler(entry.registration.handler)
     }
 
     private func releaseHandler(for key: String) {
@@ -76,7 +112,7 @@ actor CommandRegistry {
         if let waiter = entry.waiters.first {
             entry.waiters.removeFirst()
             entries[key] = entry
-            waiter.resume(returning: .handler(entry.handler))
+            waiter.resume(returning: .handler(entry.registration.handler))
         } else {
             entry.isExecuting = false
             entries[key] = entry

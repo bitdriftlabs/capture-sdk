@@ -8,7 +8,7 @@
 internal import CaptureLoggerBridge
 import Foundation
 
-final class CommandsTarget: NSObject {
+final class CommandsTarget: NSObject, @unchecked Sendable {
     private enum ArgumentType: UInt {
         case string
         case binary
@@ -16,6 +16,46 @@ final class CommandsTarget: NSObject {
         case double
         case int64
         case bool
+
+        var description: String {
+            switch self {
+            case .string:
+                "string"
+            case .binary:
+                "binary"
+            case .uint64:
+                "uint64"
+            case .double:
+                "double"
+            case .int64:
+                "int64"
+            case .bool:
+                "bool"
+            }
+        }
+    }
+
+    private enum ArgumentParsingError: LocalizedError {
+        case notAnObject(index: Int)
+        case missingName(index: Int)
+        case unsupportedType(name: String)
+        case missingValue(name: String)
+        case valueTypeMismatch(name: String, type: ArgumentType)
+
+        var errorDescription: String? {
+            switch self {
+            case let .notAnObject(index):
+                "Argument at index \(index) is not an object."
+            case let .missingName(index):
+                "Argument at index \(index) is missing a name."
+            case let .unsupportedType(name):
+                "Argument '\(name)' has an unsupported type."
+            case let .missingValue(name):
+                "Argument '\(name)' is missing a value."
+            case let .valueTypeMismatch(name, type):
+                "Argument '\(name)' has a value that does not match its declared \(type.description) type."
+            }
+        }
     }
 
     private let registry: CommandRegistry
@@ -29,6 +69,12 @@ final class CommandsTarget: NSObject {
         let parsedArguments: CommandArguments
         do {
             parsedArguments = try parseArguments(arguments)
+        } catch let error as ArgumentParsingError {
+            complete(
+                requestID: requestID,
+                result: .failure(CommandError(title: "Invalid command arguments", description: error.errorDescription))
+            )
+            return
         } catch {
             complete(requestID: requestID, result: .failure(CommandError(title: "Invalid command arguments")))
             return
@@ -40,43 +86,59 @@ final class CommandsTarget: NSObject {
         }
     }
 
-    private func parseArguments(_ arguments: NSArray) throws -> CommandArguments {
+    func parseArguments(_ arguments: NSArray) throws -> CommandArguments {
         var result = CommandArguments()
-        for case let argument as NSDictionary in arguments {
-            guard let name = argument["name"] as? String,
-                  let rawType = argument["type"] as? NSNumber,
-                  let type = ArgumentType(rawValue: rawType.uintValue),
-                  let value = argument["value"]
-            else {
-                throw ArgumentParsingError.invalidArgument
+        for (index, rawArgument) in arguments.enumerated() {
+            guard let argument = rawArgument as? NSDictionary else {
+                throw ArgumentParsingError.notAnObject(index: index)
             }
-            result[name] = try parseArgument(type: type, value: value)
-        }
-        guard result.count == arguments.count else {
-            throw ArgumentParsingError.invalidArgument
+            guard let name = argument["name"] as? String else {
+                throw ArgumentParsingError.missingName(index: index)
+            }
+            guard let rawType = argument["type"] as? NSNumber,
+                  let type = ArgumentType(rawValue: rawType.uintValue)
+            else {
+                throw ArgumentParsingError.unsupportedType(name: name)
+            }
+            guard let value = argument["value"] else {
+                throw ArgumentParsingError.missingValue(name: name)
+            }
+            result[name] = try parseArgument(name: name, type: type, value: value)
         }
         return result
     }
 
-    private func parseArgument(type: ArgumentType, value: Any) throws -> CommandArgument {
+    private func parseArgument(name: String, type: ArgumentType, value: Any) throws -> CommandArgument {
         switch type {
         case .string:
-            guard let value = value as? String else { throw ArgumentParsingError.invalidArgument }
+            guard let value = value as? String else {
+                throw ArgumentParsingError.valueTypeMismatch(name: name, type: type)
+            }
             return .string(value)
         case .binary:
-            guard let value = value as? Data else { throw ArgumentParsingError.invalidArgument }
+            guard let value = value as? Data else {
+                throw ArgumentParsingError.valueTypeMismatch(name: name, type: type)
+            }
             return .binary(value)
         case .uint64:
-            guard let value = value as? NSNumber else { throw ArgumentParsingError.invalidArgument }
+            guard let value = value as? NSNumber else {
+                throw ArgumentParsingError.valueTypeMismatch(name: name, type: type)
+            }
             return .uint64(value.uint64Value)
         case .double:
-            guard let value = value as? NSNumber else { throw ArgumentParsingError.invalidArgument }
+            guard let value = value as? NSNumber else {
+                throw ArgumentParsingError.valueTypeMismatch(name: name, type: type)
+            }
             return .double(value.doubleValue)
         case .int64:
-            guard let value = value as? NSNumber else { throw ArgumentParsingError.invalidArgument }
+            guard let value = value as? NSNumber else {
+                throw ArgumentParsingError.valueTypeMismatch(name: name, type: type)
+            }
             return .int64(value.int64Value)
         case .bool:
-            guard let value = value as? NSNumber else { throw ArgumentParsingError.invalidArgument }
+            guard let value = value as? NSNumber else {
+                throw ArgumentParsingError.valueTypeMismatch(name: name, type: type)
+            }
             return .bool(value.boolValue)
         }
     }
@@ -106,8 +168,4 @@ final class CommandsTarget: NSObject {
             )
         }
     }
-}
-
-private enum ArgumentParsingError: Error {
-    case invalidArgument
 }

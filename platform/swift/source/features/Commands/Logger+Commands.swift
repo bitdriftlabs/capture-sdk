@@ -12,20 +12,20 @@ extension Logger {
     ///
     /// - parameter handler: The asynchronous application handler for this command.
     ///
-    /// - returns: A handle that can be used to unregister this command.
+    /// - returns: A handle that can be used to unregister this command, or `nil` if the logger has not started.
     @discardableResult
     public static func registerCommand(
         key: String,
         handler: @escaping CommandHandler
-    ) async throws -> CommandHandle {
+    ) async -> CommandHandle? {
         guard let logger = Self.getShared() as? Logger else {
-            throw CommandRegistrationError.loggerNotStarted
+            return nil
         }
-        _ = try await logger.commandRegistry.register(key: key, handler: handler)
-        logger.underlyingLogger.registerCommand(key: key, target: logger.commandsTarget)
-        return CommandHandle { [weak logger] in
-            await logger?.unregisterCommand(key: key)
-        }
+        return await logger.commandRegistry.register(
+            key: key,
+            handler: handler,
+            target: logger.commandsTarget
+        )
     }
 
     /// Unregisters a previously registered command. Calling this for an unknown key is a no-op.
@@ -43,7 +43,6 @@ extension Logger {
     }
 
     private func unregisterCommand(key: String) async {
-        underlyingLogger.unregisterCommand(key: key)
         await commandRegistry.unregister(key: key)
     }
 }
