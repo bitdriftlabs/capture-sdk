@@ -34,6 +34,7 @@ def _impl(ctx):
             progress_message = "Generating symbol map " + platform_name,
         )
 
+        # See docs/android-native-unwind.md#supported-abis for why ARMv7 is excluded.
         compress_cfi = ctx.attr.compress_cfi and platform_name in ("arm64-v8a", "x86", "x86_64")
         strip_output = ctx.actions.declare_file(platform_name + "/" + lib.basename)
         if compress_cfi:
@@ -55,7 +56,7 @@ trap 'rm -rf "$work_dir"' EXIT
 "$1" --strip-all --keep-section=.eh_frame "$work_dir/full.elf" "$work_dir/cfi.elf"
 "$1" --dump-section=.eh_frame="$work_dir/eh_frame" "$work_dir/cfi.elf" "$work_dir/checked.elf"
 test -s "$work_dir/eh_frame"
-"$4" --threads=1 --check=crc64 -9 --stdout "$work_dir/cfi.elf" > "$work_dir/cfi.xz"
+"$4" --threads=1 --check=crc64 --lzma2=preset=9,dict=1MiB --stdout "$work_dir/cfi.elf" > "$work_dir/cfi.xz"
 "$5" --strip-all "$2" -o "$work_dir/stripped.so"
 "$1" --remove-section=.eh_frame --remove-section=.eh_frame_hdr \
     --add-section=.gnu_debugdata="$work_dir/cfi.xz" "$work_dir/stripped.so" "$3"
