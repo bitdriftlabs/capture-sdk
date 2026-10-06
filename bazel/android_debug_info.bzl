@@ -16,7 +16,6 @@ load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 def _impl(ctx):
     library_outputs = []
     objcopy_outputs = []
-    cfi_outputs = []
     for platform, dep in ctx.split_attr.dep.items():
         # When --android_platforms isn't set, the platform is None
         if len(dep.files.to_list()) != 1:
@@ -38,36 +37,33 @@ def _impl(ctx):
         compress_cfi = ctx.attr.compress_cfi and platform_name in ("arm64-v8a", "x86", "x86_64")
         strip_output = ctx.actions.declare_file(platform_name + "/" + lib.basename)
         if compress_cfi:
-            mini_output = ctx.actions.declare_file(platform_name + "/cfi/" + lib.basename + ".elf")
-            xz_output = ctx.actions.declare_file(platform_name + "/cfi/" + lib.basename + ".xz")
             ctx.actions.run_shell(
                 inputs = [lib],
-                outputs = [strip_output, mini_output, xz_output],
+                outputs = [strip_output],
                 arguments = [
                     cc_toolchain.objcopy_executable,
                     lib.path,
-                    mini_output.path,
-                    ctx.executable._xz.path,
-                    xz_output.path,
-                    cc_toolchain.strip_executable,
                     strip_output.path,
+                    ctx.executable._xz.path,
+                    cc_toolchain.strip_executable,
                 ],
                 command = """
 set -euo pipefail
-"$1" --only-keep-debug "$2" "$3.full"
-"$1" --strip-all --keep-section=.eh_frame "$3.full" "$3"
-"$1" --dump-section=.eh_frame="$3.cfi" "$3" "$3.checked"
-test -s "$3.cfi"
-"$4" --threads=1 --check=crc64 -9 --stdout "$3" > "$5"
-"$6" --strip-all "$2" -o "$7.stripped"
+work_dir="$(mktemp -d "$3.cfi.XXXXXX")"
+trap 'rm -rf "$work_dir"' EXIT
+"$1" --only-keep-debug "$2" "$work_dir/full.elf"
+"$1" --strip-all --keep-section=.eh_frame "$work_dir/full.elf" "$work_dir/cfi.elf"
+"$1" --dump-section=.eh_frame="$work_dir/eh_frame" "$work_dir/cfi.elf" "$work_dir/checked.elf"
+test -s "$work_dir/eh_frame"
+"$4" --threads=1 --check=crc64 -9 --stdout "$work_dir/cfi.elf" > "$work_dir/cfi.xz"
+"$5" --strip-all "$2" -o "$work_dir/stripped.so"
 "$1" --remove-section=.eh_frame --remove-section=.eh_frame_hdr \
-    --add-section=.gnu_debugdata="$5" "$7.stripped" "$7"
+    --add-section=.gnu_debugdata="$work_dir/cfi.xz" "$work_dir/stripped.so" "$3"
 """,
                 tools = [cc_toolchain.all_files, ctx.attr._xz[DefaultInfo].files_to_run],
                 mnemonic = "CompressAndroidCfi",
                 progress_message = "Compressing Android CFI " + lib.path,
             )
-            cfi_outputs.extend([mini_output, xz_output])
         else:
             ctx.actions.run_shell(
                 inputs = [lib],
@@ -81,7 +77,7 @@ test -s "$3.cfi"
 
     return [
         DefaultInfo(files = depset(library_outputs)),
-        OutputGroupInfo(cfi = cfi_outputs, objcopy = objcopy_outputs),
+        OutputGroupInfo(objcopy = objcopy_outputs),
     ]
 
 android_debug_info = rule(

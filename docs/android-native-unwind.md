@@ -14,13 +14,14 @@ needed. The linker does not generate `.eh_frame_hdr`.
 `android_debug_info` uses the NDK's `llvm-objcopy` and `llvm-strip`, plus Bazel's
 pinned xz executable, to extract the CFI into a small ELF, compress it, and add it
 as `.gnu_debugdata` to the stripped library. Packaging fails if extraction produces
-no CFI bytes. Full debug symbols remain a separate output. Rust, native libraries,
-and Android stdlib artifacts must continue generating unwind metadata.
+no CFI bytes. Intermediate ELF and XZ files are removed after embedding. Full debug
+symbols remain a separate output. Rust, native libraries, and Android stdlib
+artifacts must continue generating unwind metadata.
 
-Build the release AAR, symbols, and inspectable CFI payloads:
+Build the release AAR and symbols:
 
 ```sh
-./bazelw build --config=release-android --config=nocache --output_groups=+cfi \
+./bazelw build --config=release-android --config=nocache \
   //:capture_aar //:capture_symbols //:capture.debug_info
 ```
 
