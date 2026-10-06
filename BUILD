@@ -150,6 +150,10 @@ echo $$((($$size_bytes + 1023) / 1024)) > "$@"
 
 android_debug_info(
     name = "capture.debug_info",
+    compress_cfi = select({
+        "//bazel/android:compress_cfi": True,
+        "//conditions:default": False,
+    }),
     dep = "//platform/jvm:capture_shared",
     tags = ["manual"],
 )

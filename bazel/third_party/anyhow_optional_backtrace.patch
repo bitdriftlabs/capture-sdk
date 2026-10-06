@@ -1,0 +1,52 @@
+diff --git a/src/backtrace.rs b/src/backtrace.rs
+--- a/src/backtrace.rs
++++ b/src/backtrace.rs
+@@ -4,7 +4,7 @@ pub(crate) use std::backtrace::Backtrace;
+ #[cfg(not(feature = "std"))]
+ pub(crate) enum Backtrace {}
+
+-#[cfg(feature = "std")]
++#[cfg(all(feature = "std", not(anyhow_no_backtrace)))]
+ macro_rules! backtrace {
+     () => {
+         Some(std::backtrace::Backtrace::capture())
+@@ -12,7 +12,7 @@ macro_rules! backtrace {
+     };
+ }
+
+-#[cfg(not(feature = "std"))]
++#[cfg(any(not(feature = "std"), anyhow_no_backtrace))]
+ macro_rules! backtrace {
+     () => {
+         None
+diff --git a/src/error.rs b/src/error.rs
+--- a/src/error.rs
++++ b/src/error.rs
+@@ -958,7 +958,14 @@ impl ErrorImpl {
+-    #[cfg(feature = "std")]
++    #[cfg(all(feature = "std", anyhow_no_backtrace))]
++    pub(crate) unsafe fn backtrace(this: Ref<Self>) -> &Backtrace {
++        let _ = this;
++        static DISABLED: Backtrace = Backtrace::disabled();
++        &DISABLED
++    }
++
++    #[cfg(all(feature = "std", not(anyhow_no_backtrace)))]
+     pub(crate) unsafe fn backtrace(this: Ref<Self>) -> &Backtrace {
+         // This unwrap can only panic if the underlying error's backtrace method
+         // is nondeterministic, which would only happen in maliciously
+         // constructed code.
+         unsafe { this.deref() }
+             .backtrace
+diff --git a/src/fmt.rs b/src/fmt.rs
+--- a/src/fmt.rs
++++ b/src/fmt.rs
+@@ -40,7 +40,7 @@ impl ErrorImpl {
+             }
+         }
+
+-        #[cfg(feature = "std")]
++        #[cfg(all(feature = "std", not(anyhow_no_backtrace)))]
+         {
+             use alloc::string::ToString;
+             use std::backtrace::BacktraceStatus;

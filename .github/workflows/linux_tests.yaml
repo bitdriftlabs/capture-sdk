@@ -105,6 +105,20 @@ jobs:
           mode: ${{ steps.test_mode.outputs.mode }}
           affected-targets-path: /tmp/impacted_test_targets.txt
 
+      - name: Verify release error backtraces are disabled
+        run: |
+          ./bazelw test \
+            --config ci \
+            --config release-common \
+            --config libunwind \
+            --config linux-hermetic-llvm \
+            --remote_download_minimal \
+            --test_output=errors \
+            --test_env=ANYHOW_EXPECT_DISABLED_BACKTRACE=1 \
+            --test_env=RUST_BACKTRACE=1 \
+            --test_arg=anyhow_preserves_error_api \
+            //platform/shared:platform-shared_test
+
       - name: Run Clippy
         if: ${{ github.event_name == 'push' || steps.bazel_check.outputs.has_affected_clippy_targets == 'true' || steps.workflow_check.outputs.changed == 'true' || steps.clippy_config_check.outputs.changed == 'true' }}
         uses: ./.github/actions/run-clippy

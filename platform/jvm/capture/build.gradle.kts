@@ -159,14 +159,22 @@ fun registerBazelRustBuild(
     tasks.register<Exec>("buildBazel${buildType.replaceFirstChar(Char::uppercase)}Rust") {
         description = "Build the $buildType Android Rust library with Bazel"
         workingDir = bazelWorkspace
+        val packaged = release && stripLevel == BazelRustStripLevel.DEFAULT
         commandLine(
             "./bazelw",
             "build",
-            bazelCaptureLibrary,
-            "--platforms=${bazelAndroidTarget.platform}",
+            if (packaged) "//:capture.debug_info" else bazelCaptureLibrary,
         )
         if (release) {
-            args("--config=release-android")
+            args("--config=release-android", "--config=nocache")
+        }
+        if (packaged) {
+            args("--android_platforms=${bazelAndroidTarget.platform}")
+        } else {
+            args("--platforms=${bazelAndroidTarget.platform}")
+            if (release) {
+                args("--define=android_compress_cfi=false")
+            }
         }
         if (stripLevel.bazelDefineValue != null) {
             // Preserve the Gradle variant's debugSymbolLevel through Bazel, which owns the
@@ -175,10 +183,22 @@ fun registerBazelRustBuild(
         }
     }
 
-fun registerBazelRustCopy(buildType: String, buildTask: TaskProvider<out Task>) =
+fun registerBazelRustCopy(
+    buildType: String,
+    buildTask: TaskProvider<out Task>,
+    packaged: Boolean = false,
+) =
     tasks.register<Copy>("copyBazel${buildType.replaceFirstChar(Char::uppercase)}Rust") {
         dependsOn(buildTask)
-        from(bazelWorkspace.resolve("bazel-bin/platform/jvm/libcapture.so"))
+        from(
+            bazelWorkspace.resolve(
+                if (packaged) {
+                    "bazel-bin/${bazelAndroidTarget.abi}/libcapture.so"
+                } else {
+                    "bazel-bin/platform/jvm/libcapture.so"
+                },
+            ),
+        )
         into(layout.buildDirectory.dir("generated/jniLibs/$buildType/${bazelAndroidTarget.abi}"))
 
         // Bazel outputs are read-only. Keep Gradle's generated copy writable so that a later
@@ -209,7 +229,7 @@ val buildBazelReleaseRust = registerBazelRustBuild("release", release = true)
 val buildBazelProfileableRust =
     registerBazelRustBuild("profileable", release = true, stripLevel = BazelRustStripLevel.NONE)
 val copyBazelDebugRust = registerBazelRustCopy("debug", buildBazelDebugRust)
-val copyBazelReleaseRust = registerBazelRustCopy("release", buildBazelReleaseRust)
+val copyBazelReleaseRust = registerBazelRustCopy("release", buildBazelReleaseRust, packaged = true)
 val copyBazelProfileableRust = registerBazelRustCopy("profileable", buildBazelProfileableRust)
 
 android.sourceSets {

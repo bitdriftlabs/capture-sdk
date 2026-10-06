@@ -42,3 +42,5 @@ rust-project.json
 /perf.data
 /perf.data.old
 vendor
+
+.tmp/

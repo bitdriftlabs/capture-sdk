@@ -5,6 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#[cfg(test)]
+#[path = "./error_test.rs"]
+mod tests;
+
 use bd_session::Strategy;
 use std::sync::Arc;
 
