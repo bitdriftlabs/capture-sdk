@@ -39,7 +39,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced the iOS SDK binary size by linking the Rust core as a single LTO static library.
 
 **Fixed**
 
