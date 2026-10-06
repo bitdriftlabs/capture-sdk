@@ -40,7 +40,6 @@
 
 **Changed**
 
-- Reduced Android release size by using compressed debug information.
 - Reduced the iOS SDK binary size by linking the Rust core as a single LTO static library.
 
 **Fixed**
