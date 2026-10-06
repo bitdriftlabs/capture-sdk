@@ -12,6 +12,7 @@
 **Changed**
 
 - WebView error and promise-rejection events no longer report source-location details or stack traces.
+- Reduced native release size by disabling unwind-table generation and automatic internal error backtraces while retaining frame pointers. Native stack traces may be less complete.
 
 **Fixed**
 
@@ -83,7 +84,7 @@
 - The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to `critical` instead of `debug`.
 - Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values now instrument only WebViews where JavaScript is already enabled; use `automaticWebViewInstrumentationMode = FULL` to preserve the previous behavior that enables JavaScript when needed.
 - Removed `WebViewConfiguration` and `Configuration.webViewConfiguration`. Instrumented WebViews now capture every WebView feature.
-- The WebView JavaScript bridge now uses `WebViewCompat.addWebMessageListener` instead of `addJavascriptInterface`, removing the reflection-based JS-to-native bridge surface. 
+- The WebView JavaScript bridge now uses `WebViewCompat.addWebMessageListener` instead of `addJavascriptInterface`, removing the reflection-based JS-to-native bridge surface.
 
 **Fixed**
 

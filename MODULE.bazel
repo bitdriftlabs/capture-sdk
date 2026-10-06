@@ -505,6 +505,12 @@ crate.from_cargo(
     # Preserve the existing custom rules_rust toolchain while migrating dependency resolution.
     use_legacy_rules_rust_platforms = True,
 )
+crate.annotation(
+    crate = "anyhow",
+    patch_args = ["-p1"],
+    patches = ["//bazel/third_party:anyhow_optional_backtrace.patch"],
+    rustc_flags = ["--check-cfg=cfg(anyhow_no_backtrace)"],
+)
 
 # File generation must be skipped because of https://github.com/bazelbuild/rules_rust/issues/3552
 crate.annotation(

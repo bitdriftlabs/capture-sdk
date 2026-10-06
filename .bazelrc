@@ -71,6 +71,15 @@ build:release-common --compilation_mode=opt
 # about 10% reduction; -z has a non-zero smaller impact (a few pp).
 build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Ccodegen-units=1'
 build:release-common --@rules_rust//rust/settings:extra_rustc_flag='-Copt-level=z'
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag=-Cforce-unwind-tables=no
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag=-Cforce-frame-pointers=yes
+build:release-common --@rules_rust//rust/settings:extra_rustc_flag=--cfg=anyhow_no_backtrace
+build:release-common --copt=-fno-unwind-tables
+build:release-common --copt=-fno-asynchronous-unwind-tables
+build:release-common --copt=-fno-omit-frame-pointer
+build:release-common --linkopt=-fno-unwind-tables
+build:release-common --linkopt=-fno-asynchronous-unwind-tables
+build:release-common --linkopt=-fno-omit-frame-pointer
 
 build:release-android --define android_strip_symbols=true
 build:release-android --android_platforms=@rules_android//:armeabi-v7a,@rules_android//:arm64-v8a,@rules_android//:x86,@rules_android//:x86_64
