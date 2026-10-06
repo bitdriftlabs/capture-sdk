@@ -2932,7 +2932,6 @@ dependencies = [
  "bd-session",
  "log",
  "parking_lot",
- "regex",
  "time",
 ]
 
