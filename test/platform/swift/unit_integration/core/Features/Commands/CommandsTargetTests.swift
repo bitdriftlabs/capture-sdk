@@ -19,7 +19,7 @@ final class CommandsTargetTests: XCTestCase {
         let arguments: NSArray = [[
             "type": NSNumber(value: 5),
             "value": NSNumber(value: true),
-        ],]
+        ], ]
 
         let error = whenParsingArguments(arguments)
 
@@ -31,7 +31,7 @@ final class CommandsTargetTests: XCTestCase {
             "name": "is_attachment",
             "type": NSNumber(value: 99),
             "value": NSNumber(value: true),
-        ],]
+        ], ]
 
         let error = whenParsingArguments(arguments)
 
@@ -43,7 +43,7 @@ final class CommandsTargetTests: XCTestCase {
             "name": "is_attachment",
             "type": NSNumber(value: 5),
             "value": "true",
-        ],]
+        ], ]
 
         let error = whenParsingArguments(arguments)
 
