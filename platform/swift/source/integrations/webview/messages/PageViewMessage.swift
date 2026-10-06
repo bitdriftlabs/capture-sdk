@@ -20,10 +20,11 @@ struct PageViewMessage: WebViewLoggableMessage, Equatable {
     let durationMs: Double?
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
-        let fields = makeFields(
+        var fields = makeFields(
             ("_url", url),
             ("_reason", reason)
         )
+        fields.merge(makeURLFields(url: url)) { _, urlField in urlField }
 
         switch action {
         case "start":

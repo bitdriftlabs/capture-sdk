@@ -16,6 +16,8 @@ final class BridgeReadyMessageTests: XCTestCase {
         let action = whenMakingLoggingAction()
         thenActionLogsInitialized(action) { fields in
             XCTAssertEqual(fields["_url"], "https://example.com")
+            XCTAssertEqual(fields["_host"], "example.com")
+            XCTAssertNil(fields["_path"])
 
             guard let configJSON = fields["_config"],
                   let configData = configJSON.data(using: .utf8),

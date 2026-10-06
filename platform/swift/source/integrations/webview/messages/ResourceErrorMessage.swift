@@ -18,15 +18,18 @@ struct ResourceErrorMessage: WebViewLoggableMessage, Equatable {
     let tagName: String
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
-        .log(
+        var fields = makeFields(
+            context: context,
+            ("_resource_type", resourceType),
+            ("_url", url),
+            ("_tag_name", tagName)
+        )
+        fields.merge(makeURLFields(url: url)) { _, urlField in urlField }
+
+        return .log(
             level: .warning,
             message: "webview.resourceError",
-            fields: makeFields(
-                context: context,
-                ("_resource_type", resourceType),
-                ("_url", url),
-                ("_tag_name", tagName)
-            )
+            fields: fields
         )
     }
 }
