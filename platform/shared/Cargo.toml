@@ -21,5 +21,4 @@ bd-runtime.workspace            = true
 bd-session.workspace            = true
 log.workspace                   = true
 parking_lot.workspace           = true
-regex.workspace                 = true
 time.workspace                  = true
