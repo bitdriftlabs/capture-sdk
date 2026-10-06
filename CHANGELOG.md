@@ -12,7 +12,7 @@
 **Changed**
 
 - WebView error and promise-rejection events no longer report source-location details or stack traces.
-- Reduced native release size by disabling unwind-table generation and automatic internal error backtraces. Native stack traces may be less complete.
+- Reduced native release size by disabling automatic internal error backtraces.
 
 **Fixed**
 
@@ -26,7 +26,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced native release size by compressing unwind metadata on ARM64, x86, and x86_64. Native stack collectors must support GNU MiniDebugInfo; in-process unwinders may produce shorter traces.
 
 **Fixed**
 
@@ -40,7 +40,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced native release size by disabling unwind-table generation. Native stack traces may be less complete.
 
 **Fixed**
 
