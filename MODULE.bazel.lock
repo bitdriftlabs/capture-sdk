@@ -669,7 +669,7 @@
     },
     "@@aspect_rules_js+//npm:extensions.bzl%pnpm": {
       "general": {
-        "bzlTransitiveDigest": "vM3BR5+yXa4yQi2vft9tju0zNrudW0lbYbz3h3mopkM=",
+        "bzlTransitiveDigest": "M0cX9m1OwK62bC4Svxbu/W1px2DOCmhbiH0o7vRB2yE=",
         "usagesDigest": "kbjSw2REjlSC0HtTZDf2p+l/dmiMt3NHLoiWEXYAoQI=",
         "recordedInputs": [
           "REPO_MAPPING:aspect_bazel_lib+,bazel_lib bazel_lib+",
