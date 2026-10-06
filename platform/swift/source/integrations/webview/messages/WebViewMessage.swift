@@ -81,7 +81,7 @@ extension WebViewMessage {
         var fields: Fields = [:]
         fields[hostKey] = components.host
         fields[pathKey] = components.path.isEmpty ? nil : components.path
-        fields[queryKey] = components.query
+        fields[queryKey] = components.query?.isEmpty == false ? components.query : nil
         return fields
     }
 

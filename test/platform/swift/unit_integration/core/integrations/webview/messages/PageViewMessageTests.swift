@@ -52,6 +52,18 @@ final class PageViewMessageTests: XCTestCase {
         XCTAssertEqual(endTimeInterval, 1_700_000_000)
     }
 
+    func testMakeLoggingActionOmitsEmptyQuery() throws {
+        try givenPageViewMessage(action: "start", url: "https://example.com/page?")
+        let action = whenMakingLoggingAction()
+
+        guard case let .startSpan(_, _, _, fields, _, _)? = action else {
+            XCTFail("expected .startSpan action, got \(String(describing: action))")
+            return
+        }
+
+        XCTAssertNil((fields as? [String: String])?["_query"])
+    }
+
     func testMakeLoggingActionWithUnknownActionReturnsNil() throws {
         try givenPageViewMessage(action: "resume")
         let action = whenMakingLoggingAction()

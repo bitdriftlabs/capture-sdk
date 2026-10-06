@@ -412,7 +412,7 @@ internal class WebViewBridgeMessageHandler(
         return buildMap {
             uri.host?.let { put(hostKey, it) }
             uri.path?.takeIf { it.isNotEmpty() }?.let { put(pathKey, it) }
-            uri.query?.let { put(queryKey, it) }
+            uri.query?.takeIf { it.isNotEmpty() }?.let { put(queryKey, it) }
         }
     }
 

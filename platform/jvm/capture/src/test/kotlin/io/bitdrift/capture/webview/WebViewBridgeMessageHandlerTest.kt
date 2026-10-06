@@ -115,7 +115,7 @@ class WebViewBridgeMessageHandlerTest {
                 "timestamp":1000,
                 "action":"start",
                 "spanId":"11111111-1111-4111-8111-111111111111",
-                "url":"https://start.example.com/start?source=feed",
+                "url":"https://start.example.com/start?",
                 "reason":"initial"
             }
             """.trimIndent(),
@@ -149,7 +149,7 @@ class WebViewBridgeMessageHandlerTest {
         val startFields = pageViewFieldsCaptor.firstValue.toStringMap()
         assertThat(startFields["_host"]).isEqualTo("start.example.com")
         assertThat(startFields["_path"]).isEqualTo("/start")
-        assertThat(startFields["_query"]).isEqualTo("source=feed")
+        assertThat(startFields).doesNotContainKey("_query")
 
         val endFields = pageViewFieldsCaptor.secondValue.toStringMap()
         assertThat(endFields["_host"]).isEqualTo("end.example.com")
