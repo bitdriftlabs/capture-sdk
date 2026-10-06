@@ -39,6 +39,7 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1;
 use bd_proto::protos::logging::payload::LogType;
 use bd_session::Strategy;
 use bd_session::configuration::{Callbacks, NoopCallbacks};
+use env_logger::{Builder, Env, Target, WriteStyle};
 use objc::rc::StrongPtr;
 use objc::runtime::Object;
 use platform_shared::javascript_error::{
@@ -58,30 +59,15 @@ use std::ops::DerefMut;
 use std::os::raw::c_char;
 use std::sync::{Arc, Once};
 use time::{Duration, OffsetDateTime};
-use tracing_subscriber::EnvFilter;
-use tracing_subscriber::filter::LevelFilter;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-
 static LOGGING_INIT: Once = Once::new();
 
 fn initialize_logging() {
   LOGGING_INIT.call_once(|| {
-    // ANSI is disabled since they don't render properly in Xcode.
-    let stderr = tracing_subscriber::fmt::layer()
-      .with_writer(std::io::stderr)
-      .with_ansi(false)
-      .compact();
-
-    let filter = EnvFilter::builder()
-      .with_default_directive(LevelFilter::INFO.into())
-      .from_env_lossy();
-
-    // Use try_init() to avoid situations where the logger has already been initialized by test
-    // harnesses. This is not ideal but it's the easiest fix for now.
-    let _ = tracing_subscriber::Registry::default()
-      .with(filter)
-      .with(stderr)
+    // Keep SDK diagnostics available in Xcode without installing a tracing subscriber.
+    // Respect a logger already installed by the host application or test harness.
+    let _ = Builder::from_env(Env::default().default_filter_or("info"))
+      .target(Target::Stderr)
+      .write_style(WriteStyle::Never)
       .try_init();
   });
 }

@@ -40,7 +40,8 @@
 
 **Changed**
 
-- Reduced native release size by disabling unwind-table generation. Native stack traces may be less complete.
+- Reduced Android release size by using compressed debug information.
+- Reduced the iOS SDK binary size by linking the Rust core as a single LTO static library.
 
 **Fixed**
 

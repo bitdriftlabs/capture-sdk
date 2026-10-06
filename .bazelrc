@@ -100,6 +100,7 @@ build:release-ios --copt=-fno-unwind-tables
 build:release-ios --copt=-fno-asynchronous-unwind-tables
 build:release-ios --linkopt=-fno-unwind-tables
 build:release-ios --linkopt=-fno-asynchronous-unwind-tables
+build:release-ios --@rules_rust//rust/settings:lto='fat'
 build:release-ios --features=swift.enable_library_evolution
 build:release-ios --features=swift.emit_swiftinterface
 # Make sure __.SYMDEF does not have a timestamp for iOS (for reproducibility)
