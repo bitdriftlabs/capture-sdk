@@ -12,7 +12,7 @@
 **Changed**
 
 - WebView error and promise-rejection events no longer report source-location details or stack traces.
-- Reduced native release size by disabling unwind-table generation and automatic internal error backtraces while retaining frame pointers. Native stack traces may be less complete.
+- Reduced native release size by disabling unwind-table generation and automatic internal error backtraces. Native stack traces may be less complete.
 
 **Fixed**
 
