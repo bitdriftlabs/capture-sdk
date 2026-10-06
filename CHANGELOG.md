@@ -12,6 +12,7 @@
 **Changed**
 
 - WebView error and promise-rejection events no longer report source-location details or stack traces.
+- Reduced native release size by disabling automatic internal error backtraces.
 
 **Fixed**
 
@@ -25,7 +26,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced native release size by compressing unwind metadata on ARM64, x86, and x86_64. Native stack collectors must support GNU MiniDebugInfo; in-process unwinders may produce shorter traces.
 
 **Fixed**
 
@@ -39,7 +40,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced the iOS SDK binary size by linking the Rust core as a single LTO static library.
 
 **Fixed**
 
@@ -83,7 +84,7 @@
 - The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to `critical` instead of `debug`.
 - Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values now instrument only WebViews where JavaScript is already enabled; use `automaticWebViewInstrumentationMode = FULL` to preserve the previous behavior that enables JavaScript when needed.
 - Removed `WebViewConfiguration` and `Configuration.webViewConfiguration`. Instrumented WebViews now capture every WebView feature.
-- The WebView JavaScript bridge now uses `WebViewCompat.addWebMessageListener` instead of `addJavascriptInterface`, removing the reflection-based JS-to-native bridge surface. 
+- The WebView JavaScript bridge now uses `WebViewCompat.addWebMessageListener` instead of `addJavascriptInterface`, removing the reflection-based JS-to-native bridge surface.
 
 **Fixed**
 

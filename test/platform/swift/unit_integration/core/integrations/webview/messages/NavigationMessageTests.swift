@@ -13,14 +13,20 @@ final class NavigationMessageTests: XCTestCase {
 
     func testMakeLoggingActionLogsNavigationAtDebugLevel() throws {
         try givenNavigationMessage(
-            fromUrl: "https://example.com/a",
-            toUrl: "https://example.com/b",
+            fromUrl: "https://example.com/a?source=feed",
+            toUrl: "https://shop.example.com/b?item=123",
             method: "pushState"
         )
         let action = whenMakingLoggingAction()
         assertWebLogAction(action, message: "webview.navigation", level: .info) { fields in
-            XCTAssertEqual(fields["_fromUrl"], "https://example.com/a")
-            XCTAssertEqual(fields["_toUrl"], "https://example.com/b")
+            XCTAssertEqual(fields["_fromUrl"], "https://example.com/a?source=feed")
+            XCTAssertEqual(fields["_from_host"], "example.com")
+            XCTAssertEqual(fields["_from_path"], "/a")
+            XCTAssertEqual(fields["_from_query"], "source=feed")
+            XCTAssertEqual(fields["_toUrl"], "https://shop.example.com/b?item=123")
+            XCTAssertEqual(fields["_to_host"], "shop.example.com")
+            XCTAssertEqual(fields["_to_path"], "/b")
+            XCTAssertEqual(fields["_to_query"], "item=123")
             XCTAssertEqual(fields["_method"], "pushState")
         }
     }
