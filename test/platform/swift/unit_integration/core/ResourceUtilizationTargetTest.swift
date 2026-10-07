@@ -10,6 +10,8 @@ import CaptureMocks
 import XCTest
 
 final class ResourceUtilizationTargetTest: XCTestCase {
+    private var logger: MockCoreLogging!
+
     func testTargetDoesNotCrash() {
         let target = ResourceUtilizationController(
             storageProvider: MockStorageProvider(),
@@ -17,11 +19,11 @@ final class ResourceUtilizationTargetTest: XCTestCase {
             queue: .main
         )
 
-        let logger = MockCoreLogging()
-        target.logger = logger
+        self.logger = MockCoreLogging()
+        target.logger = self.logger
 
         let expectation = self.expectation(description: "resource utilization log is emitted")
-        logger.logResourceUtilizationExpectation = expectation
+        self.logger.logResourceUtilizationExpectation = expectation
 
         target.tick()
 

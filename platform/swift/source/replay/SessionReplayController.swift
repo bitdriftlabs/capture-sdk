@@ -17,7 +17,7 @@ final class SessionReplayController {
     private var screenshotCaptureInProgress = false
     private var deviceCommandScreenshotRequestID: UInt64?
 
-    var logger: CoreLogging?
+    weak var logger: CoreLogging?
 
     init(configuration: SessionReplayConfiguration) {
         for (className, annotatedView) in configuration.categorizers {

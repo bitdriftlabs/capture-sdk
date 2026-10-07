@@ -18,7 +18,7 @@ final class ResourceUtilizationController {
     private let memorySnapshotProvider: MemorySnapshotProvider
 
     let providers: [ResourceSnapshotProvider]
-    var logger: CoreLogging? {
+    weak var logger: CoreLogging? {
         didSet {
             self.diskUsageProvider.logger = self.logger
             self.memorySnapshotProvider.logger = self.logger

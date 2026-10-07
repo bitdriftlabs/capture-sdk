@@ -12,7 +12,10 @@ bitdrift_rust_shared_library(
     name = "capture_shared",
     compile_data = [
         "jni_symbols.lds",
-    ],
+    ] + select({
+        "//bazel/android:compress_cfi": ["//bazel/android:cfi.ld"],
+        "//conditions:default": [],
+    }),
     crate_name = "capture",
     crate_root = "src/lib.rs",
     rustc_flags = [
@@ -43,6 +46,12 @@ bitdrift_rust_shared_library(
         # Gradle selects this define for variants that previously used
         # debugSymbolLevel = "FULL".
         ":strip_none": ["-Cstrip=none"],
+        "//conditions:default": [],
+    }) + select({
+        "//bazel/android:compress_cfi": [
+            "-Clink-arg=-Wl,--no-eh-frame-hdr",
+            "-Clink-arg=-Wl,-T,$(location //bazel/android:cfi.ld)",
+        ],
         "//conditions:default": [],
     }),
     visibility = ["//visibility:public"],

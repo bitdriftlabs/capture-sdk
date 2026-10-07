@@ -18,15 +18,33 @@ struct NavigationMessage: WebViewLoggableMessage, Equatable {
     let method: String
 
     func makeLoggingAction(context: WebViewLoggingContext) -> WebViewLoggingAction? {
-        .log(
+        var fields = makeFields(
+            context: context,
+            ("_fromUrl", fromUrl),
+            ("_toUrl", toUrl),
+            ("_method", method)
+        )
+        fields.merge(
+            makeURLFields(
+                url: fromUrl,
+                hostKey: "_from_host",
+                pathKey: "_from_path",
+                queryKey: "_from_query"
+            )
+        ) { _, urlField in urlField }
+        fields.merge(
+            makeURLFields(
+                url: toUrl,
+                hostKey: "_to_host",
+                pathKey: "_to_path",
+                queryKey: "_to_query"
+            )
+        ) { _, urlField in urlField }
+
+        return .log(
             level: .info,
             message: "webview.navigation",
-            fields: makeFields(
-                context: context,
-                ("_fromUrl", fromUrl),
-                ("_toUrl", toUrl),
-                ("_method", method)
-            )
+            fields: fields
         )
     }
 }

@@ -31,10 +31,13 @@ enum Environment {
         Bundle.main.bundlePath.hasSuffix(".appex")
 
     /// Indicates whether the code is being executed as part of a test run.
-    private(set) static var isRunningTests: Bool =
-        /// This environment variable is present only when code is executed from within a test host.
-        Self.mockedIsRunningTests
-        ?? (ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)
+    static var isRunningTests: Bool {
+        Self.mockedIsRunningTests ?? Self.isRunningInTestHost
+    }
+
+    /// This environment variable is present only when code is executed from within a test host.
+    private static let isRunningInTestHost =
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 }
 
 protocol RuntimeEnvironment {

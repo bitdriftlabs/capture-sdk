@@ -21,6 +21,8 @@ final class ResourceErrorMessageTests: XCTestCase {
         assertWebLogAction(action, message: "webview.resourceError", level: .warning) { fields in
             XCTAssertEqual(fields["_resource_type"], "image")
             XCTAssertEqual(fields["_url"], "https://example.com/missing.png")
+            XCTAssertEqual(fields["_host"], "example.com")
+            XCTAssertEqual(fields["_path"], "/missing.png")
             XCTAssertEqual(fields["_tag_name"], "img")
         }
     }

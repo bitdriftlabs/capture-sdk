@@ -11,7 +11,7 @@ import Foundation
 import XCTest
 
 final class ANRReporterTests: XCTestCase {
-    override class func setUp() {
+    override func setUp() {
         super.setUp()
         Debugger.mockIsAttached(false)
         Environment.mockIsRunningTests(false)

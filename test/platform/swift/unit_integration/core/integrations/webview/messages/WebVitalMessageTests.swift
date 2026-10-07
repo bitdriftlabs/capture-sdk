@@ -72,7 +72,7 @@ final class WebVitalMessageTests: XCTestCase {
             delta: 100,
             metricId: "metric-1",
             navigationType: "navigate",
-            url: "https://example.com/page"
+            url: "https://example.com/page?source=feed"
         )
         let action = whenMakingLoggingAction()
 
@@ -88,7 +88,10 @@ final class WebVitalMessageTests: XCTestCase {
         XCTAssertEqual(stringFields["_delta"], "100.0")
         XCTAssertEqual(stringFields["_metric_id"], "metric-1")
         XCTAssertEqual(stringFields["_navigation_type"], "navigate")
-        XCTAssertEqual(stringFields["_page_url"], "https://example.com/page")
+        XCTAssertEqual(stringFields["_page_url"], "https://example.com/page?source=feed")
+        XCTAssertEqual(stringFields["_host"], "example.com")
+        XCTAssertEqual(stringFields["_path"], "/page")
+        XCTAssertEqual(stringFields["_query"], "source=feed")
         XCTAssertNil(stringFields["_timestamp"])
     }
 
