@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     private let loggerCustomer: LoggerCustomer
     @StateObject private var crashPanelViewModel: CrashPanelViewModel
+    @StateObject private var commandsViewModel: CommandsViewModel
 
     init(
         loggerCustomer: LoggerCustomer,
@@ -17,6 +18,7 @@ struct ContentView: View {
     ) {
         self.loggerCustomer = loggerCustomer
         _crashPanelViewModel = StateObject(wrappedValue: crashPanelViewModel)
+        _commandsViewModel = StateObject(wrappedValue: CommandsViewModel())
     }
 
     var body: some View {
@@ -27,6 +29,7 @@ struct ContentView: View {
                 SessionPanelView(loggerCustomer: self.loggerCustomer)
                 ManualCapturePanelView(loggerCustomer: self.loggerCustomer)
                 AutomaticCapturePanelView(loggerCustomer: self.loggerCustomer)
+                CommandsPanelView(viewModel: self.commandsViewModel)
                 CrashPanelView(viewModel: self.crashPanelViewModel)
                 MemoryPanelView(loggerCustomer: self.loggerCustomer)
                 DiagnosticsPanelView(loggerCustomer: self.loggerCustomer)

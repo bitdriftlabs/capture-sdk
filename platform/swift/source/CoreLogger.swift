@@ -33,6 +33,14 @@ final class CoreLogger {
 }
 
 extension CoreLogger: CoreLogging {
+    func registerCommand(key: String, target: AnyObject) {
+        self.underlyingLogger.registerCommand(key: key, target: target)
+    }
+
+    func unregisterCommand(key: String) {
+        self.underlyingLogger.unregisterCommand(key: key)
+    }
+
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,

@@ -191,6 +191,14 @@ final class LoggerBridge: LoggerBridging {
         capture_start_logger(self.loggerID)
     }
 
+    func registerCommand(key: String, target: AnyObject) {
+        capture_register_command(self.loggerID, key, target)
+    }
+
+    func unregisterCommand(key: String) {
+        capture_unregister_command(self.loggerID, key)
+    }
+
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,

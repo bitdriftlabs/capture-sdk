@@ -3772,6 +3772,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bd-api",
+ "bd-artifact-upload",
  "bd-bonjson",
  "bd-bonjson-ffi",
  "bd-client-common",

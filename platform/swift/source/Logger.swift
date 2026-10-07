@@ -29,8 +29,10 @@ public final class Logger {
         }
     }
 
-    private let underlyingLogger: CoreLogging
+    let underlyingLogger: CoreLogging
     private let timeProvider: TimeProvider
+    let commandRegistry: CommandRegistry
+    let commandsTarget: CommandsTarget
 
     private let remoteErrorReporter: RemoteErrorReporting
     private let deviceCodeController: DeviceCodeController
@@ -71,6 +73,7 @@ public final class Logger {
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
     ///                                            can update their values later.
+    /// - parameter commands:                      Commands to register before the SDK starts receiving remote work.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
     convenience init?(
@@ -80,6 +83,7 @@ public final class Logger {
         dateProvider: DateProvider?,
         customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
+        commands: [Command] = [],
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     )
     {
@@ -91,6 +95,7 @@ public final class Logger {
             dateProvider: dateProvider,
             customFieldGetters: customFieldGetters,
             initialFields: initialFields,
+            commands: commands,
             storageProvider: Storage.shared,
             timeProvider: SystemTimeProvider(),
             loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
@@ -114,6 +119,7 @@ public final class Logger {
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
     ///                                            can update their values later.
+    /// - parameter commands:                      Commands to register before the SDK starts receiving remote work.
     /// - parameter enableNetwork:                 Whether logger should perform network request. If not all
     ///                                            network requests performed by the logger are no-ops.
     /// - parameter storageProvider:               The storage to use by the logger.
@@ -131,6 +137,7 @@ public final class Logger {
         dateProvider: DateProvider?,
         customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
+        commands: [Command] = [],
         enableNetwork: Bool = true,
         storageProvider: StorageProvider,
         timeProvider: TimeProvider,
@@ -217,14 +224,26 @@ public final class Logger {
 
         self.underlyingLogger = CoreLogger(logger: logger)
 
+        let (uniqueCommands, duplicated) = commands.removingDuplicates()
+        let commandBridge = CommandRegistrationBridge(logger: self.underlyingLogger)
+        self.commandRegistry = CommandRegistry(commands: uniqueCommands, bridge: commandBridge)
+        self.commandsTarget = CommandsTarget(registry: self.commandRegistry)
+        for command in uniqueCommands {
+            commandBridge.registerCommand(key: command.key, target: self.commandsTarget)
+        }
+
         defer {
             let duration = timeProvider.timeIntervalSince(start)
-            let fields: Fields = [
+            var fields: Fields = [
                 "_fatal_issue_reporting_state": "\(Logger.issueReporterInitResult.0)",
                 "_fatal_issue_reporting_duration_ms": Logger.issueReporterInitResult.1 * Double(MSEC_PER_SEC),
                 "_is_sdk_directory_first_created": isSdkDirectoryFirstCreated,
                 "_session_replay_enabled": (configuration.sessionReplayConfiguration != nil),
             ]
+            if !duplicated.isEmpty {
+                fields["_duplicated_commands"] = duplicated.map(\.key).sorted().joined(separator: ",")
+            }
+
             self.underlyingLogger.logSDKStart(fields: fields, duration: duration)
         }
 
