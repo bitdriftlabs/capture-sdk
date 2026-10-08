@@ -8,6 +8,7 @@ import 'configuration.dart';
 import 'error_reporter.dart';
 import 'log_level.dart';
 import 'network.dart';
+import 'replay_scheduler.dart';
 import 'session_replay.dart';
 import 'span.dart';
 
@@ -30,11 +31,9 @@ class Capture {
   static bool _started = false;
   static bool _replayActive = false;
   static bool _replayCallbackRegistered = false;
-  static DateTime _lastReplayCapture = DateTime(0);
-  static const _replayInterval = Duration(milliseconds: 500);
   static const _pendingReportsSubmitDelay = Duration(seconds: 2);
   static Int32List? _lastPushedReplayRects;
-  static Timer? _trailingReplayCapture;
+  static final _replayScheduler = ReplayCaptureScheduler(_captureReplay);
 
   Capture._();
 
@@ -322,23 +321,13 @@ class Capture {
     if (_replayCallbackRegistered) return;
     _replayCallbackRegistered = true;
     WidgetsBinding.instance.addPersistentFrameCallback((_) {
-      if (!_replayActive) return;
-      final elapsed = DateTime.now().difference(_lastReplayCapture);
-      if (elapsed >= _replayInterval) {
-        _captureReplay();
-        return;
-      }
-      _trailingReplayCapture ??= Timer(_replayInterval - elapsed, () {
-        _trailingReplayCapture = null;
-        if (_replayActive) _captureReplay();
-      });
+      if (_replayActive) _replayScheduler.onFrame();
     });
+    WidgetsBinding.instance.scheduleFrame();
   }
 
   static void _captureReplay() {
-    _trailingReplayCapture?.cancel();
-    _trailingReplayCapture = null;
-    _lastReplayCapture = DateTime.now();
+    if (!_replayActive) return;
 
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       _pushReplayRects();
@@ -357,8 +346,7 @@ class Capture {
   /// Stop automatic session replay capture.
   static void stopSessionReplay() {
     _replayActive = false;
-    _trailingReplayCapture?.cancel();
-    _trailingReplayCapture = null;
+    _replayScheduler.cancel();
     if (_lastPushedReplayRects != null) {
       _lastPushedReplayRects = null;
       _channel.invokeMethod('updateReplayRects', {'rects': Int32List(0)});

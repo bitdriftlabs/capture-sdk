@@ -3,9 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:capture_flutter/capture_flutter.dart';
 
-final _launchStopwatch = Stopwatch()..start();
+final _launchStopwatch = Stopwatch();
 
 void main() {
+  _launchStopwatch.start();
   runApp(const CaptureExampleApp());
 }
 
@@ -40,9 +41,9 @@ class _HomePageState extends State<HomePage> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
