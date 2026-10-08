@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -36,8 +37,12 @@ internal class CommandRegistry(
 ) : ICommandDispatcher {
     private val handlers = ConcurrentHashMap<String, suspend CommandScope.() -> CommandResult>()
 
-    /** Keys with an invocation in flight. A second invocation of the same key is rejected, not queued. */
-    private val running = ConcurrentHashMap.newKeySet<String>()
+    /**
+     * Keys with an invocation in flight. A second invocation of the same key is rejected, not
+     * queued. `add` is an atomic check-and-claim because it is backed by `ConcurrentHashMap.put`.
+     * (`ConcurrentHashMap.newKeySet()` would be the obvious choice but needs API 24; minSdk is 23.)
+     */
+    private val running: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
 
     @Volatile
     private var loggerId: Long? = null
@@ -138,6 +143,6 @@ internal class CommandRegistry(
          * application's CPU-bound [Dispatchers.Default] pool or the IO pool's shared limit.
          */
         @OptIn(ExperimentalCoroutinesApi::class)
-        private fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_PARALLELISM)
+        internal fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_PARALLELISM)
     }
 }
