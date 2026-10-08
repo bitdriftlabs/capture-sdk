@@ -19,9 +19,11 @@ class CommandHandle internal constructor(
     private val onUnregister: () -> Unit,
 ) {
     /**
-     * Unregisters whatever handler is currently registered for [key], the same as calling
-     * `Logger.unregisterCommand(key)`. Invocations already running are not cancelled and complete
-     * normally.
+     * Unregisters the handler this handle was returned for. Does nothing if that handler was
+     * already unregistered or replaced by a newer registration of the same [key], so a handle
+     * tied to a lifecycle (see [unregisterOn]) can never remove a registration it does not own.
+     * To remove whatever is currently registered for [key], use `Logger.unregisterCommand(key)`.
+     * Invocations already running are not cancelled and complete normally.
      */
     fun unregister() {
         onUnregister()

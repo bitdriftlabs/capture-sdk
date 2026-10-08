@@ -87,24 +87,67 @@ class CommandRegistryTest {
     }
 
     @Test
-    fun handleUnregistersWhateverCurrentlyHoldsTheKey() {
-        // A handle is just the key: a stale handle removes the replacement too.
+    fun staleHandleDoesNotUnregisterReplacement() {
+        registry.attach(LOGGER_ID)
         val stale = registry.register("a") { success(context = mapOf("v" to "1")) }
         registry.register("a") { success(context = mapOf("v" to "2")) }
 
         stale.unregister()
+
+        // The bridge was told about "a" on both registrations (Rust replaces) and never to drop it.
+        assertThat(bridge.unregisterCalls).isEqualTo(0)
+        assertThat(bridge.registered).contains(LOGGER_ID to "a")
+        registry.dispatch(1, "a", null, "session", emptyArray(), emptyArray())
+        assertThat(bridge.awaitCompletion().field("v")).isEqualTo("2")
+    }
+
+    @Test
+    fun currentHandleUnregistersItsOwnRegistration() {
+        registry.attach(LOGGER_ID)
+        registry.register("a") { success(context = mapOf("v" to "1")) }
+        val current = registry.register("a") { success(context = mapOf("v" to "2")) }
+
+        current.unregister()
+
+        assertThat(bridge.unregisterCalls).isEqualTo(1)
+        registry.dispatch(1, "a", null, "session", emptyArray(), emptyArray())
+        assertThat(bridge.awaitCompletion().error).isEqualTo("unregistered_command")
+    }
+
+    @Test
+    fun unregisterByKeyRemovesWhateverIsCurrent() {
+        // Unlike a handle, the explicit by-key call does not care who registered the handler.
+        registry.register("a") { success(context = mapOf("v" to "1")) }
+        registry.register("a") { success(context = mapOf("v" to "2")) }
+
+        assertThat(registry.unregister("a")).isTrue()
         registry.dispatch(1, "a", null, "session", emptyArray(), emptyArray())
 
         assertThat(bridge.awaitCompletion().error).isEqualTo("unregistered_command")
     }
 
     @Test
+    fun lifecycleScopedHandleOutlivedByReplacementIsHarmless() {
+        // VM1 registers and ties the handle to its scope; VM2 replaces the handler; VM1 is cleared.
+        val vm1 = Job()
+        registry.register("ui_state") { success(context = mapOf("vm" to "1")) }.unregisterOn(CoroutineScope(vm1))
+        registry.register("ui_state") { success(context = mapOf("vm" to "2")) }
+
+        vm1.cancel()
+        registry.dispatch(1, "ui_state", null, "session", emptyArray(), emptyArray())
+
+        assertThat(bridge.awaitCompletion().field("vm")).isEqualTo("2")
+    }
+
+    @Test
     fun handleUnregisterIsIdempotent() {
+        registry.attach(LOGGER_ID)
         val handle = registry.register("a") { success() }
 
         handle.unregister()
         handle.unregister()
 
+        assertThat(bridge.unregisterCalls).isEqualTo(1)
         assertThat(registry.unregister("a")).isFalse()
     }
 

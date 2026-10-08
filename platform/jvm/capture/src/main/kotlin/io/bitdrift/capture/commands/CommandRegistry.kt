@@ -54,7 +54,11 @@ internal class CommandRegistry(
     ): CommandHandle {
         handlers[key] = handler
         loggerId?.let { bridge.registerCommand(it, key, this) }
-        return CommandHandle(key) { unregister(key) }
+        // The handle only removes its own registration: `remove(key, value)` is atomic and compares
+        // lambdas by identity, so a stale handle is a no-op once the key has been re-registered.
+        return CommandHandle(key) {
+            if (handlers.remove(key, handler)) loggerId?.let { bridge.unregisterCommand(it, key) }
+        }
     }
 
     fun unregister(key: String): Boolean {
