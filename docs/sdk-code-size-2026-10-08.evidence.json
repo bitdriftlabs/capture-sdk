@@ -1,0 +1,1523 @@
+{
+  "schema_version": 1,
+  "label": "Pristine Android ARM64",
+  "revision": "12a2977ece84b0c90e4861aa6d5407abd3f2c12a",
+  "abi": "arm64-v8a",
+  "native_sha256": "ff7d0276834b484bbe94cdcf96e8955ef90e3496718e8c0edee323061664469a",
+  "build_ids": [
+    "f608ba67d4541c49"
+  ],
+  "raw_bytes": 1658296,
+  "zip_bytes": 1040719,
+  "executable_bytes": 1437328,
+  "text_bytes": 1435776,
+  "defined_symbols": 12394,
+  "code_symbols": 12207,
+  "categories": {
+    "Logger, configuration application, and upload orchestration": 335464,
+    "Rust standard library and generic support": 136648,
+    "Protobuf messages and type-specialized support": 133728,
+    "Async runtime, futures, and synchronization": 96240,
+    "Workflow engine and compiled workflow support": 87144,
+    "Android/JNI bridge": 83060,
+    "LLVM shared outlined functions": 82284,
+    "SDK common utilities and state": 63232,
+    "Metrics, statistics, and histograms": 55048,
+    "API transport and stream management": 49984,
+    "Crash and ANR processing": 37256,
+    "Time and filesystem support": 36672,
+    "Protobuf wire/serialization runtime and helpers": 36012,
+    "Artifact upload and persistence": 34056,
+    "Log buffers and ring-buffer storage": 33976,
+    "FlatBuffers schemas, verification, and runtime": 31432,
+    "Regex and text search": 24188,
+    "Log filters and matchers": 18752,
+    "Tracing and error handling": 18420,
+    "Hashing, randomness, UUIDs, and crypto": 15820,
+    "Serde, JSON, and other data formats": 11244,
+    "Compression and compression checksums": 8144,
+    "Runtime configuration": 5640,
+    "Linker stubs/other executable sections": 1552,
+    "Other native runtime and support": 852,
+    "Session replay": 480
+  },
+  "headers_padding_bytes": 17210,
+  "zero_fill_bytes": 360,
+  "dwarf_sections": [],
+  "text_gaps_bytes": 0,
+  "text_multiple_symbols_bytes": 0,
+  "audit": {
+    "symbols_mode": "debug",
+    "allocated_content_verified": false,
+    "debug_map_verified": true,
+    "aar_verified": true,
+    "zip_verified": true
+  },
+  "protobuf_message_shapes": {
+    "Protobuf-type-specialized container and support functions": 100224,
+    "Generated merge/size/write methods": 23572,
+    "Other generated message functions": 9932
+  },
+  "artifacts": {
+    "binary": {
+      "sha256": "ff7d0276834b484bbe94cdcf96e8955ef90e3496718e8c0edee323061664469a"
+    },
+    "symbols_elf": {
+      "sha256": "4dd31a6b7c02f17ae042f4a0510999335020432c7755aaed7eb0c1e7cdf5112b"
+    },
+    "debug_map": {
+      "sha256": "ebd6cd222a0625cae528e683cf436a1b2c886a355e07a72feac182e09bcb9fec"
+    },
+    "aar": {
+      "sha256": "0227296ec48be754c68191482eec13c51b12947e19219474a56d93475ee446e5"
+    },
+    "zip": {
+      "sha256": "8989821c97d7660e1ea3366b1496d2a237d84611775401082697a187bd24f50c"
+    }
+  },
+  "raw_sections": [
+    {
+      "name": ".text",
+      "bytes": 1435776
+    },
+    {
+      "name": ".rodata",
+      "bytes": 101376
+    },
+    {
+      "name": ".gnu_debugdata",
+      "bytes": 51640
+    },
+    {
+      "name": ".data.rel.ro",
+      "bytes": 27304
+    },
+    {
+      "name": ".rela.dyn",
+      "bytes": 7240
+    },
+    {
+      "name": ".dynstr",
+      "bytes": 3567
+    },
+    {
+      "name": ".data",
+      "bytes": 3496
+    },
+    {
+      "name": ".dynsym",
+      "bytes": 3360
+    },
+    {
+      "name": ".rela.plt",
+      "bytes": 2280
+    },
+    {
+      "name": ".plt",
+      "bytes": 1552
+    },
+    {
+      "name": ".hash",
+      "bytes": 1128
+    },
+    {
+      "name": ".got.plt",
+      "bytes": 784
+    },
+    {
+      "name": ".dynamic",
+      "bytes": 416
+    },
+    {
+      "name": ".gnu.hash",
+      "bytes": 364
+    },
+    {
+      "name": ".gnu.version",
+      "bytes": 280
+    },
+    {
+      "name": ".shstrtab",
+      "bytes": 227
+    },
+    {
+      "name": ".note.android.ident",
+      "bytes": 152
+    },
+    {
+      "name": ".gnu.version_r",
+      "bytes": 96
+    },
+    {
+      "name": ".note.gnu.build-id",
+      "bytes": 24
+    },
+    {
+      "name": ".fini_array",
+      "bytes": 16
+    },
+    {
+      "name": ".got",
+      "bytes": 8
+    }
+  ],
+  "descriptor_reflection_symbol_count": 1,
+  "provenance": {
+    "schema_version": 1,
+    "sdk_revision": "12a2977ece84b0c90e4861aa6d5407abd3f2c12a",
+    "checkout_status": "",
+    "dependency_sources": [
+      "git+https://github.com/bitdriftlabs/rust-protobuf.git?branch=patch-stack#4ea4e3845e1c743630c72b081763a2ccfeeace44",
+      "git+https://github.com/bitdriftlabs/shared-core.git?rev=caf73cfd5d8a417cffd1cef7256955b9f45348ef#caf73cfd5d8a417cffd1cef7256955b9f45348ef"
+    ],
+    "snapshot_sha256": {
+      "Cargo.toml": "c20bb41ecac69a5504c5f2c4fbd8f095b2a0554effba4e5298746bbc989d1c73",
+      "Cargo.lock": "4a46f5ee938abf5e829aa6404a381b0432e80064c9ff24babed5b33645a1f555",
+      "MODULE.bazel": "8a36fcf26be3b958bb694bd0c762cb7c21586b25a7e09cc53528528a3d9cf724",
+      "MODULE.bazel.lock": "c9735930cd8ec5f023cb53a055e0aa4614b8404ae960dc8a6ad6a1247d437881",
+      ".bazelrc": "1f959f7721fa110b83a6010692e5a655736c00b30dac11f5cc51a00072af64a7",
+      ".bazelversion": "361f126ad4f2266cf31086904567e00b8975eafb19ca56b5df0bc5c904e9b311"
+    },
+    "abi": "arm64-v8a",
+    "build_command": "./bazelw build --noannounce_rc --config=ci --config=nocache --color=no --curses=no --config=release-android --xcode_version=27.0 --android_platforms=@rules_android//:arm64-v8a //:capture_aar //:capture.debug_info @bazel_tools//tools/zip:zipper --output_groups=+objcopy",
+    "host": "Darwin arm64",
+    "xcode": "Xcode 27.0\nBuild version 27A266a",
+    "llvm": "llvm-nm, compatible with GNU nm\nLLVM (http://llvm.org/):\n  LLVM version 18.0.3\n  Optimized build.",
+    "rust_version": "1.98.0",
+    "bazel_pin": "7a3283ce565d7618a9d947465d67ff7ad87f95c0",
+    "ndk_source_properties": "Pkg.Desc = Android NDK\nPkg.Revision = 27.2.12479018\nPkg.BaseRevision = 27.2.12479018\nPkg.ReleaseName = r27c\n",
+    "ndk_source_properties_sha256": "70f1c5165e6d997b18782a49cff71da7a3caacd0c4cd811da24c43359fb83cf6",
+    "tool_sha256": {
+      "llvm-nm": "ecfd83fc44e66251a406d8710dacec47ee3eb9ee4cf188990691213f0d9c1499",
+      "llvm-objdump": "e27f45d0d75d71ffec3e89a308476a75435730662f408ea1480ce626a4511838",
+      "clang": "1aac7c103794087632c35c35b83c6d6c8fff4cd01737e5dfbd1b4297942189e2"
+    },
+    "zipper_sha256": "fa0085387178802b971a122531a99b6ab8e47b98ba9d190f0ba9a17f7af4f5a6"
+  },
+  "logger": {
+    "bucket_bytes": 335464,
+    "logger_bytes": 317452,
+    "modules": {
+      "builder": 72384,
+      "async_log_buffer": 63560,
+      "consumer": 52740,
+      "device_command": 29000,
+      "client_config": 24572,
+      "workflow_attachment": 20088,
+      "flush_registry": 12236,
+      "service": 5576,
+      "log_replay": 5188,
+      "workflow_attachment_upload": 5024,
+      "metadata": 4812,
+      "state_upload": 4704,
+      "trigger_upload_artifact": 4260,
+      "logger": 3216,
+      "logging_state": 2044,
+      "network": 2008,
+      "battery": 1180,
+      "write_log_to_buffer": 1164,
+      "directory_lock": 1104,
+      "internal_report": 888,
+      "upload_coordination": 668,
+      "internal": 648,
+      "device_id": 220,
+      "buffer_selector": 96,
+      "app_version": 72
+    },
+    "bucket_origins": {
+      "bd_logger": 317452,
+      "bd_log_primitives": 17484,
+      "bd_log_util": 416,
+      "bd_events": 112
+    },
+    "shapes": {
+      "Logger functions and async bodies": 239528,
+      "Generic typed helpers and runtime wrappers": 77568,
+      "Formatting helpers": 356
+    },
+    "direct_dependency_named_bytes": {
+      "bd_workflows": 87144,
+      "tokio": 82356,
+      "bd_api": 48088,
+      "bd_client_stats": 41592,
+      "bd_artifact_upload": 34056,
+      "bd_buffer": 29312,
+      "bd_versioned_kv": 20800,
+      "notify": 17036,
+      "bd_client_common": 16132,
+      "bd_log_matcher": 15880,
+      "bd_crash_handler": 13952,
+      "bd_session": 12504,
+      "time": 10572,
+      "bd_state": 9060,
+      "anyhow": 8408,
+      "sha2": 8124,
+      "bd_runtime": 5640,
+      "bd_event_buffer": 4608,
+      "flate2": 4412,
+      "bd_error_reporter": 4232,
+      "bd_client_stats_store": 3864,
+      "parking_lot": 3824,
+      "base64": 3556,
+      "uuid": 3224,
+      "bd_stats_common": 3104,
+      "bd_log_filter": 2872,
+      "bd_shutdown": 2148,
+      "bd_workflow_stats": 1648,
+      "bd_time": 1592,
+      "futures_util": 1492,
+      "tracing": 1388,
+      "bd_device": 1328,
+      "bd_backoff": 852,
+      "bd_session_replay": 480,
+      "log": 384,
+      "bd_resource_utilization": 204,
+      "bd_key_value": 144,
+      "bd_completion": 60,
+      "bd_internal_logging": 44
+    },
+    "largest": [
+      {
+        "bytes": 37816,
+        "names": [
+          "<bd_logger::async_log_buffer::AsyncLogBuffer<bd_logger::log_replay::LoggerReplay>>::run_with_shutdown::<bd_crash_handler::Monitor>::{closure#0}"
+        ]
+      },
+      {
+        "bytes": 27600,
+        "names": [
+          "<bd_logger::builder::LoggerBuilder>::build::{closure#4}"
+        ]
+      },
+      {
+        "bytes": 14312,
+        "names": [
+          "<bd_logger::client_config::LoggerUpdate as bd_logger::client_config::ApplyConfig>::apply_configuration::{closure#0}"
+        ]
+      },
+      {
+        "bytes": 11728,
+        "names": [
+          "<bd_logger::builder::LoggerBuilder>::build"
+        ]
+      },
+      {
+        "bytes": 10952,
+        "names": [
+          "std::sys::backtrace::__rust_begin_short_backtrace::<<bd_logger::builder::LoggerBuilder>::run_logger_runtime<core::pin::Pin<alloc::boxed::Box<dyn core::future::future::Future<Output = core::result::Result<(), anyhow::Error>> + core::marker::Send>>>::{closure#0}, core::result::Result<(), anyhow::Error>>"
+        ]
+      },
+      {
+        "bytes": 10672,
+        "names": [
+          "<core::future::poll_fn::PollFn<<bd_logger::async_log_buffer::AsyncLogBuffer<bd_logger::log_replay::LoggerReplay>>::run_with_shutdown<bd_crash_handler::Monitor>::{closure#0}::{closure#1}> as core::future::future::Future>::poll"
+        ]
+      },
+      {
+        "bytes": 8736,
+        "names": [
+          "<bd_logger::consumer::BufferUploadManager>::handle_trigger_uploads::{closure#0}"
+        ]
+      },
+      {
+        "bytes": 8708,
+        "names": [
+          "<bd_logger::consumer::BufferUploadManager>::run::{closure#0}::{closure#0}"
+        ]
+      }
+    ]
+  },
+  "logger_manifest_sha256": "6529938b708d29e442866e7ffff5ab8a141b7607fed74b2ada05a31e02cc602f",
+  "ios": {
+    "schema_version": 1,
+    "revision": "12a2977ece84b0c90e4861aa6d5407abd3f2c12a",
+    "measurement": "fresh unsigned ARM64 stripped proxy",
+    "framework": {
+      "bytes": 8959600,
+      "sha256": "694f69d9b0a229b646fe2258990732c5cae76fae5276c977c454e456459ad79c",
+      "archive": {
+        "member_bytes": 8938520,
+        "headers_padding_bytes": 21080,
+        "text_bytes": 1984280,
+        "largest_components": [
+          {
+            "name": "capture_rust.capture_rust.10f225106d30cc2c-cgu.0.rcgu.o",
+            "archive_bytes": 3729576,
+            "data_bytes": 135787,
+            "text_bytes": 1358872
+          },
+          {
+            "name": "archive_symbol_index",
+            "archive_bytes": 903208,
+            "data_bytes": 0,
+            "text_bytes": 0
+          },
+          {
+            "name": "Capture.swift.o",
+            "archive_bytes": 161384,
+            "data_bytes": 23526,
+            "text_bytes": 26760
+          },
+          {
+            "name": "WebVitalMessage.swift.o",
+            "archive_bytes": 155792,
+            "data_bytes": 16077,
+            "text_bytes": 38824
+          },
+          {
+            "name": "compiler_builtins-5291df8b9c35768d.compiler_builtins.b5eabfcfe49d326e-cgu.0.rcgu.o",
+            "archive_bytes": 103872,
+            "data_bytes": 508,
+            "text_bytes": 47264
+          },
+          {
+            "name": "LoggerObjc.swift.o",
+            "archive_bytes": 100608,
+            "data_bytes": 17729,
+            "text_bytes": 15548
+          },
+          {
+            "name": "NetworkRequestMessage.swift.o",
+            "archive_bytes": 85472,
+            "data_bytes": 7899,
+            "text_bytes": 19692
+          },
+          {
+            "name": "Logger.swift.o",
+            "archive_bytes": 83008,
+            "data_bytes": 9648,
+            "text_bytes": 15364
+          },
+          {
+            "name": "URLSessionNetworkClient.swift.o",
+            "archive_bytes": 71040,
+            "data_bytes": 12399,
+            "text_bytes": 10236
+          },
+          {
+            "name": "LongTaskMessage.swift.o",
+            "archive_bytes": 58112,
+            "data_bytes": 5511,
+            "text_bytes": 9736
+          },
+          {
+            "name": "WebViewIntegration.swift.o",
+            "archive_bytes": 57312,
+            "data_bytes": 8228,
+            "text_bytes": 8952
+          },
+          {
+            "name": "CrashReporterService.swift.o",
+            "archive_bytes": 53200,
+            "data_bytes": 6914,
+            "text_bytes": 9460
+          }
+        ]
+      }
+    },
+    "original": {
+      "schema_version": 1,
+      "file_bytes": 6651096,
+      "sha256": "e386b56b0c3bc3046f4886849d10339988e5f9b7d8f462d90ded9e30b3d6169d",
+      "sections": {
+        "__TEXT,__text": {
+          "bytes": 2253884,
+          "address": 4295032832,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__stubs": {
+          "bytes": 11568,
+          "address": 4297286716,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_stubs": {
+          "bytes": 14240,
+          "address": 4297298304,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__init_offsets": {
+          "bytes": 4,
+          "address": 4297312544,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_methlist": {
+          "bytes": 8056,
+          "address": 4297312552,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__const": {
+          "bytes": 131824,
+          "address": 4297320608,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__constg_swiftt": {
+          "bytes": 17992,
+          "address": 4297452432,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_typeref": {
+          "bytes": 61624,
+          "address": 4297470424,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_entry": {
+          "bytes": 8,
+          "address": 4297532048,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_classname": {
+          "bytes": 7379,
+          "address": 4297532064,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_methname": {
+          "bytes": 25189,
+          "address": 4297539456,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_methtype": {
+          "bytes": 8752,
+          "address": 4297564656,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_fieldmd": {
+          "bytes": 19976,
+          "address": 4297573408,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__cstring": {
+          "bytes": 81583,
+          "address": 4297593392,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_builtin": {
+          "bytes": 500,
+          "address": 4297674976,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_reflstr": {
+          "bytes": 12925,
+          "address": 4297675488,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_assocty": {
+          "bytes": 2240,
+          "address": 4297688416,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_proto": {
+          "bytes": 2040,
+          "address": 4297690656,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_types": {
+          "bytes": 1252,
+          "address": 4297692696,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_capture": {
+          "bytes": 3532,
+          "address": 4297693948,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_mpenum": {
+          "bytes": 64,
+          "address": 4297697480,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift_as_entry": {
+          "bytes": 92,
+          "address": 4297697544,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift_as_ret": {
+          "bytes": 60,
+          "address": 4297697636,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift_as_cont": {
+          "bytes": 152,
+          "address": 4297697696,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_protos": {
+          "bytes": 124,
+          "address": 4297697848,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__gcc_except_tab": {
+          "bytes": 516,
+          "address": 4297697972,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__unwind_info": {
+          "bytes": 76624,
+          "address": 4297698488,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__eh_frame": {
+          "bytes": 8840,
+          "address": 4297775112,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__oslogstring": {
+          "bytes": 3,
+          "address": 4297785344,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__const": {
+          "bytes": 77104,
+          "address": 4297801728,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__cfstring": {
+          "bytes": 3936,
+          "address": 4297878832,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_classlist": {
+          "bytes": 1040,
+          "address": 4297882768,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_catlist": {
+          "bytes": 16,
+          "address": 4297883808,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_protolist": {
+          "bytes": 256,
+          "address": 4297883824,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_imageinfo": {
+          "bytes": 8,
+          "address": 4297884080,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_intobj": {
+          "bytes": 72,
+          "address": 4297884088,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__got": {
+          "bytes": 12208,
+          "address": 4297884160,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_const": {
+          "bytes": 37416,
+          "address": 4297900032,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_selrefs": {
+          "bytes": 5168,
+          "address": 4297937448,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_protorefs": {
+          "bytes": 224,
+          "address": 4297942616,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_classrefs": {
+          "bytes": 712,
+          "address": 4297942840,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_superrefs": {
+          "bytes": 64,
+          "address": 4297943552,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_ivar": {
+          "bytes": 168,
+          "address": 4297943616,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_data": {
+          "bytes": 7888,
+          "address": 4297943784,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__data": {
+          "bytes": 38233,
+          "address": 4297951680,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__s_async_hook": {
+          "bytes": 416,
+          "address": 4297989920,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__swift56_hooks": {
+          "bytes": 176,
+          "address": 4297990336,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__thread_vars": {
+          "bytes": 504,
+          "address": 4297990512,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__thread_data": {
+          "bytes": 272,
+          "address": 4297991016,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__thread_bss": {
+          "bytes": 1384,
+          "address": 4297991288,
+          "file_backed": false,
+          "relocations": 0
+        },
+        "__DATA,__bss": {
+          "bytes": 77544,
+          "address": 4297992672,
+          "file_backed": false,
+          "relocations": 0
+        },
+        "__DATA,__common": {
+          "bytes": 392,
+          "address": 4298070216,
+          "file_backed": false,
+          "relocations": 0
+        }
+      },
+      "segments": {
+        "__PAGEZERO": {
+          "file_bytes": 0,
+          "virtual_bytes": 4294967296
+        },
+        "__TEXT": {
+          "file_bytes": 2834432,
+          "virtual_bytes": 2834432
+        },
+        "__DATA_CONST": {
+          "file_bytes": 98304,
+          "virtual_bytes": 98304
+        },
+        "__DATA": {
+          "file_bytes": 98304,
+          "virtual_bytes": 180224
+        },
+        "__LINKEDIT": {
+          "file_bytes": 3620056,
+          "virtual_bytes": 3620864
+        }
+      },
+      "metadata": {
+        "LC_DYLD_CHAINED_FIXUPS": 69584,
+        "LC_DYLD_EXPORTS_TRIE": 20640,
+        "symbol_records": 507456,
+        "symbol_strings": 2987448,
+        "symbol_count": 31716,
+        "indirect_symbols": 9960,
+        "LC_FUNCTION_STARTS": 24968,
+        "LC_DATA_IN_CODE": 0
+      },
+      "text_categories": {
+        "Swift functions and type-specialized support": 816760,
+        "Logger, configuration application, and upload orchestration": 325912,
+        "Other native runtime and support": 189676,
+        "Protobuf messages and type-specialized support": 128600,
+        "Rust standard library and generic support": 127916,
+        "Async runtime, futures, and synchronization": 94252,
+        "Workflow engine and compiled workflow support": 84168,
+        "SDK common utilities and state": 63588,
+        "Metrics, statistics, and histograms": 53820,
+        "API transport and stream management": 51044,
+        "Protobuf wire/serialization runtime and helpers": 34680,
+        "Artifact upload and persistence": 33376,
+        "Time and filesystem support": 33036,
+        "Log buffers and ring-buffer storage": 32212,
+        "FlatBuffers schemas, verification, and runtime": 28672,
+        "Objective-C methods": 27196,
+        "Regex and text search": 23156,
+        "Log filters and matchers": 18100,
+        "Tracing and error handling": 18076,
+        "Crash and ANR processing": 17128,
+        "Other dependencies": 14600,
+        "Other SDK support": 12420,
+        "Compression and compression checksums": 8144,
+        "Hashing, randomness, UUIDs, and crypto": 5944,
+        "Runtime configuration": 5296,
+        "Serde, JSON, and other data formats": 3592,
+        "Platform bridge": 1668,
+        "Session replay": 852
+      },
+      "defined_symbol_name_bytes": {
+        "Swift functions and type-specialized support": 1303689,
+        "Other native runtime and support": 515109,
+        "Logger, configuration application, and upload orchestration": 182701,
+        "Async runtime, futures, and synchronization": 161055,
+        "Rust standard library and generic support": 138573,
+        "Protobuf messages and type-specialized support": 130514,
+        "Workflow engine and compiled workflow support": 77375,
+        "SDK common utilities and state": 69324,
+        "API transport and stream management": 50983,
+        "Tracing and error handling": 41356,
+        "Log buffers and ring-buffer storage": 40239,
+        "Metrics, statistics, and histograms": 40031,
+        "Protobuf wire/serialization runtime and helpers": 32118,
+        "Artifact upload and persistence": 23257,
+        "Time and filesystem support": 17405,
+        "Crash and ANR processing": 13437,
+        "Other SDK support": 12068,
+        "FlatBuffers schemas, verification, and runtime": 11173,
+        "Regex and text search": 10978,
+        "Runtime configuration": 9352,
+        "Log filters and matchers": 8996,
+        "Other dependencies": 8868,
+        "Objective-C methods": 8508,
+        "Compression and compression checksums": 7991,
+        "Hashing, randomness, UUIDs, and crypto": 4025,
+        "Platform bridge": 2022,
+        "Session replay": 1666,
+        "Serde, JSON, and other data formats": 768
+      },
+      "unattributed_leading_text": 0,
+      "limitations": "Next-address estimates include alignment and anonymous trailing code; metadata fields overlap segment sizes. Not exact LTO crate costs."
+    },
+    "stripped": {
+      "schema_version": 1,
+      "file_bytes": 3245584,
+      "sha256": "3b61931550e9a0bf0c3df96775d23f42b8b35926d263c2e55f1ace2981e420a8",
+      "sections": {
+        "__TEXT,__text": {
+          "bytes": 2253884,
+          "address": 4295032832,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__stubs": {
+          "bytes": 11568,
+          "address": 4297286716,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_stubs": {
+          "bytes": 14240,
+          "address": 4297298304,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__init_offsets": {
+          "bytes": 4,
+          "address": 4297312544,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_methlist": {
+          "bytes": 8056,
+          "address": 4297312552,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__const": {
+          "bytes": 131824,
+          "address": 4297320608,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__constg_swiftt": {
+          "bytes": 17992,
+          "address": 4297452432,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_typeref": {
+          "bytes": 61624,
+          "address": 4297470424,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_entry": {
+          "bytes": 8,
+          "address": 4297532048,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_classname": {
+          "bytes": 7379,
+          "address": 4297532064,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_methname": {
+          "bytes": 25189,
+          "address": 4297539456,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__objc_methtype": {
+          "bytes": 8752,
+          "address": 4297564656,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_fieldmd": {
+          "bytes": 19976,
+          "address": 4297573408,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__cstring": {
+          "bytes": 81583,
+          "address": 4297593392,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_builtin": {
+          "bytes": 500,
+          "address": 4297674976,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_reflstr": {
+          "bytes": 12925,
+          "address": 4297675488,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_assocty": {
+          "bytes": 2240,
+          "address": 4297688416,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_proto": {
+          "bytes": 2040,
+          "address": 4297690656,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_types": {
+          "bytes": 1252,
+          "address": 4297692696,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_capture": {
+          "bytes": 3532,
+          "address": 4297693948,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_mpenum": {
+          "bytes": 64,
+          "address": 4297697480,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift_as_entry": {
+          "bytes": 92,
+          "address": 4297697544,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift_as_ret": {
+          "bytes": 60,
+          "address": 4297697636,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift_as_cont": {
+          "bytes": 152,
+          "address": 4297697696,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__swift5_protos": {
+          "bytes": 124,
+          "address": 4297697848,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__gcc_except_tab": {
+          "bytes": 516,
+          "address": 4297697972,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__unwind_info": {
+          "bytes": 76624,
+          "address": 4297698488,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__eh_frame": {
+          "bytes": 8840,
+          "address": 4297775112,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__TEXT,__oslogstring": {
+          "bytes": 3,
+          "address": 4297785344,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__const": {
+          "bytes": 77104,
+          "address": 4297801728,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__cfstring": {
+          "bytes": 3936,
+          "address": 4297878832,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_classlist": {
+          "bytes": 1040,
+          "address": 4297882768,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_catlist": {
+          "bytes": 16,
+          "address": 4297883808,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_protolist": {
+          "bytes": 256,
+          "address": 4297883824,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_imageinfo": {
+          "bytes": 8,
+          "address": 4297884080,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__objc_intobj": {
+          "bytes": 72,
+          "address": 4297884088,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA_CONST,__got": {
+          "bytes": 12208,
+          "address": 4297884160,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_const": {
+          "bytes": 37416,
+          "address": 4297900032,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_selrefs": {
+          "bytes": 5168,
+          "address": 4297937448,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_protorefs": {
+          "bytes": 224,
+          "address": 4297942616,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_classrefs": {
+          "bytes": 712,
+          "address": 4297942840,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_superrefs": {
+          "bytes": 64,
+          "address": 4297943552,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_ivar": {
+          "bytes": 168,
+          "address": 4297943616,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__objc_data": {
+          "bytes": 7888,
+          "address": 4297943784,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__data": {
+          "bytes": 38233,
+          "address": 4297951680,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__s_async_hook": {
+          "bytes": 416,
+          "address": 4297989920,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__swift56_hooks": {
+          "bytes": 176,
+          "address": 4297990336,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__thread_vars": {
+          "bytes": 504,
+          "address": 4297990512,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__thread_data": {
+          "bytes": 272,
+          "address": 4297991016,
+          "file_backed": true,
+          "relocations": 0
+        },
+        "__DATA,__thread_bss": {
+          "bytes": 1384,
+          "address": 4297991288,
+          "file_backed": false,
+          "relocations": 0
+        },
+        "__DATA,__bss": {
+          "bytes": 77544,
+          "address": 4297992672,
+          "file_backed": false,
+          "relocations": 0
+        },
+        "__DATA,__common": {
+          "bytes": 392,
+          "address": 4298070216,
+          "file_backed": false,
+          "relocations": 0
+        }
+      },
+      "segments": {
+        "__PAGEZERO": {
+          "file_bytes": 0,
+          "virtual_bytes": 4294967296
+        },
+        "__TEXT": {
+          "file_bytes": 2834432,
+          "virtual_bytes": 2834432
+        },
+        "__DATA_CONST": {
+          "file_bytes": 98304,
+          "virtual_bytes": 98304
+        },
+        "__DATA": {
+          "file_bytes": 98304,
+          "virtual_bytes": 180224
+        },
+        "__LINKEDIT": {
+          "file_bytes": 214544,
+          "virtual_bytes": 229376
+        }
+      },
+      "metadata": {
+        "LC_DYLD_CHAINED_FIXUPS": 69584,
+        "LC_DYLD_EXPORTS_TRIE": 20640,
+        "symbol_records": 25472,
+        "symbol_strings": 63920,
+        "symbol_count": 1592,
+        "indirect_symbols": 9960,
+        "LC_FUNCTION_STARTS": 24968,
+        "LC_DATA_IN_CODE": 0
+      },
+      "text_categories": {
+        "Other native runtime and support": 1369300
+      },
+      "defined_symbol_name_bytes": {
+        "Other native runtime and support": 33
+      },
+      "unattributed_leading_text": 884584,
+      "limitations": "Next-address estimates include alignment and anonymous trailing code; metadata fields overlap segment sizes. Not exact LTO crate costs."
+    },
+    "largest_functions": [
+      {
+        "address": 4296313936,
+        "estimated_bytes": 35564,
+        "category": "Logger, configuration application, and upload orchestration",
+        "names": [
+          "<bd_logger::async_log_buffer::AsyncLogBuffer<bd_logger::log_replay::LoggerReplay>>::run_with_shutdown::<bd_crash_handler::Monitor>::{closure#0}"
+        ]
+      },
+      {
+        "address": 4297019688,
+        "estimated_bytes": 31168,
+        "category": "Logger, configuration application, and upload orchestration",
+        "names": [
+          "<bd_logger::builder::LoggerBuilder>::build::{closure#4}"
+        ]
+      },
+      {
+        "address": 4296244976,
+        "estimated_bytes": 18136,
+        "category": "Artifact upload and persistence",
+        "names": [
+          "<bd_artifact_upload::uploader::Uploader>::run_inner::{closure#0}"
+        ]
+      },
+      {
+        "address": 4296384440,
+        "estimated_bytes": 15596,
+        "category": "Workflow engine and compiled workflow support",
+        "names": [
+          "<bd_workflows::engine::WorkflowsEngine<bd_client_stats_store::Counter, bd_client_stats_store::Histogram>>::process_event_inner"
+        ]
+      },
+      {
+        "address": 4296569828,
+        "estimated_bytes": 13488,
+        "category": "Logger, configuration application, and upload orchestration",
+        "names": [
+          "<bd_logger::client_config::LoggerUpdate as bd_logger::client_config::ApplyConfig>::apply_configuration::{closure#0}"
+        ]
+      },
+      {
+        "address": 4296069768,
+        "estimated_bytes": 13204,
+        "category": "FlatBuffers schemas, verification, and runtime",
+        "names": [
+          "<bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::Report as flatbuffers::verifier::Verifiable>::run_verifier"
+        ]
+      },
+      {
+        "address": 4296527900,
+        "estimated_bytes": 12620,
+        "category": "API transport and stream management",
+        "names": [
+          "<bd_api::api::Api>::maintain_active_stream::{closure#0}::{closure#0}"
+        ]
+      },
+      {
+        "address": 4296620620,
+        "estimated_bytes": 11308,
+        "category": "Logger, configuration application, and upload orchestration",
+        "names": [
+          "<bd_logger::builder::LoggerBuilder>::build"
+        ]
+      },
+      {
+        "address": 4296349500,
+        "estimated_bytes": 10368,
+        "category": "Logger, configuration application, and upload orchestration",
+        "names": [
+          "<core::future::poll_fn::PollFn<<bd_logger::async_log_buffer::AsyncLogBuffer<bd_logger::log_replay::LoggerReplay>>::run_with_shutdown<bd_crash_handler::Monitor>::{closure#0}::{closure#1}> as core::future::future::Future>::poll"
+        ]
+      },
+      {
+        "address": 4297090348,
+        "estimated_bytes": 9836,
+        "category": "Other native runtime and support",
+        "names": [
+          "_capture_enhance_metrickit_diagnostic_report"
+        ]
+      },
+      {
+        "address": 4296288752,
+        "estimated_bytes": 8456,
+        "category": "Metrics, statistics, and histograms",
+        "names": [
+          "<bd_client_stats::stats::Flusher>::flush_to_disk_with_debounce::{closure#0}"
+        ]
+      },
+      {
+        "address": 4296465932,
+        "estimated_bytes": 8424,
+        "category": "Logger, configuration application, and upload orchestration",
+        "names": [
+          "<bd_logger::consumer::BufferUploadManager>::handle_trigger_uploads::{closure#0}"
+        ]
+      }
+    ],
+    "strip_validation": {
+      "original_bytes": 6651096,
+      "stripped_bytes": 3245584,
+      "original_sha256": "e386b56b0c3bc3046f4886849d10339988e5f9b7d8f462d90ded9e30b3d6169d",
+      "stripped_sha256": "3b61931550e9a0bf0c3df96775d23f42b8b35926d263c2e55f1ace2981e420a8",
+      "sections_preserved": 52,
+      "undefined_preserved": 1589,
+      "indirect_targets_preserved": 2490,
+      "symbols_before": 31716,
+      "symbols_after": 1592,
+      "exports_before": 643,
+      "exports_after": 2
+    },
+    "bundle_bytes": 3247237,
+    "normalized_ipa": {
+      "bytes": 1581007,
+      "sha256": "c33f20f026e60c51f9f956874ffa383f78977caa923aa2d987e8bcfdb4d9d005",
+      "entries": [
+        "Payload/Bitdrift Sample App.app/Info.plist",
+        "Payload/Bitdrift Sample App.app/PkgInfo",
+        "Payload/Bitdrift Sample App.app/hello_world_app"
+      ]
+    },
+    "resources_sha256": {
+      "Info.plist": "94ed731b319732521e2ed8a3e82b093f50e0f8e53cfc37b11734b3a3e440bfd5",
+      "PkgInfo": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+    },
+    "unsigned_ipa_sha256": "0568930e3a57d2e58cfa2fcb1ea164f9a439427e26bbb4b5538a7f026e573a78",
+    "stripped_file_accounting": {
+      "file_backed_sections": 2936924,
+      "linkedit": 214544,
+      "headers_padding": 94116
+    }
+  },
+  "run": {
+    "schema_version": 1,
+    "sdk_revision": "12a2977ece84b0c90e4861aa6d5407abd3f2c12a",
+    "measured_at": "2026-10-09T22:36:04.829035+00:00",
+    "snapshot_sha256": {
+      "Cargo.toml": "c20bb41ecac69a5504c5f2c4fbd8f095b2a0554effba4e5298746bbc989d1c73",
+      "Cargo.lock": "4a46f5ee938abf5e829aa6404a381b0432e80064c9ff24babed5b33645a1f555",
+      "MODULE.bazel": "8a36fcf26be3b958bb694bd0c762cb7c21586b25a7e09cc53528528a3d9cf724",
+      "MODULE.bazel.lock": "c9735930cd8ec5f023cb53a055e0aa4614b8404ae960dc8a6ad6a1247d437881",
+      ".bazelrc": "1f959f7721fa110b83a6010692e5a655736c00b30dac11f5cc51a00072af64a7",
+      ".bazelversion": "361f126ad4f2266cf31086904567e00b8975eafb19ca56b5df0bc5c904e9b311",
+      "examples/swift/hello_world/BUILD": "e8628f6dd3ffd0d21ee398332bc41e7df51b661e3b3f51b4eb025e8f33eb340a"
+    },
+    "analysis_script_sha256": {
+      "categories.py": "d07d74ce3cf93a88f3ad9e0314600846ad3ece4c0965bbb7b283885be864aeb4",
+      "collect_android.py": "22ad7443f529dfad838207985b2aa3f02befb8f5166f4dc0ec05fa7061fe6fd5",
+      "elf_analysis.py": "220af3a27af586dbd7f2d165839825980f58078b4c657049d7f002c6eef90b7c",
+      "macho_analysis.py": "37c8dd355041a321ff91a032831d3f9c2a516ec01f25c9120718f5384733d7dd",
+      "measure.py": "04e5aafa6192459b6db109b8a01b71304da03f99880c5cccaee3567b7a3597a6",
+      "run_analysis.py": "801027d8148b6ccb22d3a885dbd82e4e3e300f87a6bc63c3c4fd6046ef7f59f9",
+      "test_analysis.py": "d99d6a98224181e4093d893e47043ad460a50567a61353c26b809411641ba402",
+      "validate_stripped_macho.py": "579638014adfa977d3523e7b04b98953430c51e115136d8dfa6747b02680ec0c"
+    },
+    "python": {
+      "version": "3.14.8 (main, Sep 30 2026, 17:55:09) [Clang 21.0.0 (clang-2100.3.34.2)]",
+      "requirements_sha256": "abf52d75097fa066c96df2757f9f0d9e512882f4c1b333db20f1a4ef5123679a",
+      "packages": {
+        "pyelftools": "0.32",
+        "macholib": "1.16.4",
+        "altgraph": "0.17.5"
+      }
+    },
+    "artifact_sha256": {
+      "android/.bazelrc": "1f959f7721fa110b83a6010692e5a655736c00b30dac11f5cc51a00072af64a7",
+      "android/.bazelversion": "361f126ad4f2266cf31086904567e00b8975eafb19ca56b5df0bc5c904e9b311",
+      "android/Cargo.lock": "4a46f5ee938abf5e829aa6404a381b0432e80064c9ff24babed5b33645a1f555",
+      "android/Cargo.toml": "c20bb41ecac69a5504c5f2c4fbd8f095b2a0554effba4e5298746bbc989d1c73",
+      "android/MODULE.bazel": "8a36fcf26be3b958bb694bd0c762cb7c21586b25a7e09cc53528528a3d9cf724",
+      "android/MODULE.bazel.lock": "c9735930cd8ec5f023cb53a055e0aa4614b8404ae960dc8a6ad6a1247d437881",
+      "android/analysis/ANALYSIS.md": "8754823cf47067322a4fb649a0ed6c6daca2f4a0a3685519d8f9e1febe07d0b3",
+      "android/analysis/analysis.json": "c0cec8d60cc98cc31492892544b0607166aaa405a5018c2482991072c8cbb35d",
+      "android/analysis/logger-disassembly-00.txt": "ee4cb77a01371f1069bd923ee2f6d58a4beeeae46424fb0dfbcc3e8d0355c46f",
+      "android/analysis/logger-disassembly-01.txt": "d6a123012b19c55ed03f842f19bbc9a3c610f8bf7f883e3f096a32242a3611f7",
+      "android/analysis/logger-disassembly-02.txt": "9d2a212446323f0bef2afd2489d9697b04553966e88bc7c7d1af398d0961b944",
+      "android/analysis/logger-disassembly-03.txt": "b853f33f13e2a8016aa350bd9674226006113c117c0174786da8423ee7160369",
+      "android/analysis/logger-disassembly-04.txt": "78a8ef11bb96fea4825154d4e68afd8911b8b2c80558a5e699e86eab3acd9eb0",
+      "android/analysis/logger-disassembly-05.txt": "a65343ee46897ea1d79ca1744482d88346fba879e6c349ff64232d7fa11e0129",
+      "android/analysis/logger-disassembly-06.txt": "8edf8f62cfc936c303badae7de130b345e95505e71a81a5a0a81138cddbcb1c9",
+      "android/analysis/logger-disassembly-07.txt": "8a57900a0e861a268daf8dc34147fff052b6607cd898127d6acd70e1063cc789",
+      "android/analysis/partition.json": "150deda2577f0609bc5341955e0d734c39f1b3b3c867bd7ae62d5f29c8316328",
+      "android/analysis/symbols.json": "2449bd9211fff7ca1ff57f83290947a11b15713a812a03acedd07238c62c7604",
+      "android/capture.aar": "0227296ec48be754c68191482eec13c51b12947e19219474a56d93475ee446e5",
+      "android/capture.debug.elf": "4dd31a6b7c02f17ae042f4a0510999335020432c7755aaed7eb0c1e7cdf5112b",
+      "android/capture.debug.gz": "ebd6cd222a0625cae528e683cf436a1b2c886a355e07a72feac182e09bcb9fec",
+      "android/capture.so": "ff7d0276834b484bbe94cdcf96e8955ef90e3496718e8c0edee323061664469a",
+      "android/capture.so.zip": "8989821c97d7660e1ea3366b1496d2a237d84611775401082697a187bd24f50c",
+      "android/evidence.json": "ef4f2dc7a6ad60794203cf87692a24ab14d6656fa522923b6e444afcb4d22993",
+      "android/logger-Cargo.toml": "6529938b708d29e442866e7ffff5ab8a141b7607fed74b2ada05a31e02cc602f",
+      "android/logger-source/app_version.rs": "f9ae884b114c6a6cc749f5c0add0173fafbbabebbc61b9ea10f2f620cbdad42a",
+      "android/logger-source/app_version_test.rs": "b049c0933fede725c7152f1098b58f6e9461cb9e57a23c194c3922eff00d24a8",
+      "android/logger-source/async_log_buffer.rs": "26d9d99dba00572e9346c30b96b02da690cfa1d43a6f8b056573fe461d0ea2b1",
+      "android/logger-source/async_log_buffer_test.rs": "da2a2b4b30e3b22ebbf2591d39c5e9cc319e5a9c407b7b2196d02363ecd4df98",
+      "android/logger-source/battery.rs": "db8db773601e9f6ed90fc9a4cb483a6597cace0e86b4dc620ceb99dbfc30601f",
+      "android/logger-source/battery_test.rs": "1eb2b1fe69c1a3c3807190309c26cb6c6c8f7a24addb0cf888fe67b5f7f9a85b",
+      "android/logger-source/buffer_selector.rs": "036f0e74ae701b129101adac98cbedb79715fb0560a74659b02e374a8f2f16a9",
+      "android/logger-source/builder.rs": "ec12a5827c956ed0476026eabe401e7fdc32dedaa48cffe4a63e368a4ebbfb72",
+      "android/logger-source/builder_test.rs": "ce3ef1c0172ec5d68e6d216b80e80ba0cb4c1d4092c2955d6051be7e47b6543b",
+      "android/logger-source/client_config.rs": "7e7239d20b401bdfb246cf5134165e99f5c818cc1879d4b219dee67bc61137fc",
+      "android/logger-source/client_config_test.rs": "01a228ff94d583bd7a182ce63ec150d3a6016604aa6322a8576b7ac166b334d2",
+      "android/logger-source/consumer.rs": "b550a629b0b7e80bbb77c7fc29d3a15a53ca35068cd1a22acd5a31bc0b51194d",
+      "android/logger-source/consumer_test.rs": "f513681500bc520ced7dd30c1adcef85526876694b5c46fb09dae5904c207e78",
+      "android/logger-source/device_command.rs": "2c165bd1b81270fa8632fb65b471c7814b8406266651581c0b841073028f3a0c",
+      "android/logger-source/device_command_test.rs": "b89fd69ea7bb17248371a84465e21539f35da12f4ba2e3141f72fd40c76466a2",
+      "android/logger-source/device_id.rs": "e6ceb40d238fd10793f3f98ea611cc574d4e24c948b391508f7abcd11520da09",
+      "android/logger-source/directory_lock.rs": "5843c448d7928d0743193caf9b359844c3c3ce40370490bd5d29df13897ad69b",
+      "android/logger-source/directory_lock_test.rs": "df317ceea70b4530b6a3cec1a21083c6d2c54327a0d20fd28a4aa41e79f804fa",
+      "android/logger-source/flush_registry.rs": "a8345221e5c3803b051097f09f22772a28086de9d2186325e37d8b2e3aed7d11",
+      "android/logger-source/flush_registry_test.rs": "bc4d24ead65e29e6db80c44d17dc0b1bdc5b6717a88818ed86a66fadc1ba2556",
+      "android/logger-source/internal.rs": "1e5f9aa8caaac16646bfc14d69f6bfa0847e7a7c76d575927374146a1b98575c",
+      "android/logger-source/internal_report.rs": "7bcd7198dc0ff814aac0f37d577aec2b67d20bcd97014f03592d6eb1a4884de0",
+      "android/logger-source/lib.rs": "8799dc51b41a464c354deceda91e230836136734aeb9e01dd64db0693d9cb4b5",
+      "android/logger-source/log_replay.rs": "7c33e3939c4f92d636233c0527ad81e771ad99c52e1c32bde567e365b1319c8b",
+      "android/logger-source/logger.rs": "d821f525a256b0cd385f5a0cff61701fd44b0adfdb389f140b465ce8d6c7d682",
+      "android/logger-source/logger_test.rs": "c30ab60622c672ec59fe555e90962335449bec7fdb4d35e120657e9dbd42ad50",
+      "android/logger-source/logging_state.rs": "f4deba87435f1966ecd87de283bdc92f469689f98d673f9f9987c71e6b2e5526",
+      "android/logger-source/metadata.rs": "aac4e1a0edc1dfe4e7355c31177e4ed530e26b1ca5f57a7d9222bcaf5bcb0c34",
+      "android/logger-source/metadata_test.rs": "d23f70030047f50d39ed18269e95ec8bdee8f0ad5c056011b427703ec378118b",
+      "android/logger-source/network.rs": "c86d4c208553c0d006671917fddcb9fe976a3bfe7d211547c4a870938b27021e",
+      "android/logger-source/network_test.rs": "2e1f4d312925a6b34dcebb4d9b394f952aea61debc220b4360f667298fc0e38f",
+      "android/logger-source/ratelimit.rs": "cbe7ef00dad34e6d54724c5c4fde5a5329d0cb1cb28fe90efccf05474c85d270",
+      "android/logger-source/ratelimit_test.rs": "3eea9c755b703a14ed50d59ba0c43638c059ba2cc7fd96679e7d490390972a71",
+      "android/logger-source/service.rs": "97781145e956911f18ca4100dc3b82f4a6a1c07bbba1b35925b4ca4c4e3a95e9",
+      "android/logger-source/service_test.rs": "d4cb5e93ae2a1e1f38b686d38687cf688c0b1f6c84d1a5a4523d0e5cee05d3aa",
+      "android/logger-source/state_upload.rs": "becd9b61f53b9889ab2bd7d714a0df349e32fcc140c70ff0585b4eec06ccdee4",
+      "android/logger-source/state_upload_test.rs": "336618fafd78f9ed2e18d23e80e93e04c2a0611bdfb696810da95d9775852e09",
+      "android/logger-source/test/crash_handler_integration.rs": "4104d2779430fbb0d87c8de2d91178eb53416eb82272bcbf4b6be0d5ac5053de",
+      "android/logger-source/test/directory_lock_integration.rs": "5a33346369a4369f2b719628d56f7e68f221bb811c96c27a32a3298d46912a78",
+      "android/logger-source/test/embedded_logger_integration.rs": "c52af5e67751c25a7aab6a506b9df18d9aac455998db27d424c09f7588d9d8d2",
+      "android/logger-source/test/logger_integration.rs": "8e9c575278788e056d347bf3b379c4cf8efabb343c66026a3faa4f1f933e5076",
+      "android/logger-source/test/mod.rs": "504e061753ce952244542f035afcc32bd10658d6d9851ba8677a8b56c57cad9e",
+      "android/logger-source/test/setup.rs": "e3b74ec68c5885d6f491f521d532c6328b8c31c22f4046905609a50cabae4c44",
+      "android/logger-source/test/state_upload_integration.rs": "fcfcfc021896c445aae6e5e117b0228a2824fca00a316574034a01abf7d7dbdd",
+      "android/logger-source/test/stats_integration.rs": "9c2918ced93c9975b469a142a285fb9ce700aa6a8ba0d30a38be80b9856d88d4",
+      "android/logger-source/trigger_upload_artifact.rs": "d598cc5551255dc6405b8ae9dd3e3739e0cca00ec70e45b8c8e5e2bf1779c93e",
+      "android/logger-source/trigger_upload_artifact_test.rs": "77c060a7cecb94bc295529cd37ea41e67762432af55babda5e1e6f16f1aa0ea8",
+      "android/logger-source/upload_coordination.rs": "96783778ef93bbf233187c2883d81ee88df0f269891f880ae20d4d119a8c8e42",
+      "android/logger-source/upload_coordination_test.rs": "bacb96deccec3c95478f21f3e77265e3f9d26c7e9d4033d1b2436b377e112e1f",
+      "android/logger-source/workflow_attachment.rs": "b167107132d38e4356a95c7a5a56dbce54fcfb35931a4f4e6eaf720450d9e3d7",
+      "android/logger-source/workflow_attachment_test.rs": "ec2286847b2d467374cdc9750f64cb8899776e919a192bded2d0f68d4db388c9",
+      "android/logger-source/workflow_attachment_upload.rs": "5229bc29e7d1531c4a4eb3319bf5bcc13a7f491effa7740823569ebd652a96e0",
+      "android/logger-source/workflow_attachment_upload_test.rs": "85e47af6044151494d8f91834fb93fff28b306df513a465d742db3895f49331f",
+      "android/ndk-source.properties": "70f1c5165e6d997b18782a49cff71da7a3caacd0c4cd811da24c43359fb83cf6",
+      "android/provenance.json": "23a2f6320a38c0b69d9d39b73bd3fe19eb1b1b9a78d8a9bd2556bb01e878c77a",
+      "android-tools.json": "d5aa868440249b073d6e1af6d01ab098d4e2665923fc275b70ef48b25f85a4d2",
+      "ios/Capture.ios.zip": "5fa41081955eb496a3ad5470b565a2b73782df054c2853b18dc791547e2add41",
+      "ios/app.BUILD.original": "e8628f6dd3ffd0d21ee398332bc41e7df51b661e3b3f51b4eb025e8f33eb340a",
+      "ios/archive-analysis.json": "af0e98fefe0d76044ffc06817e4b2b610364ace2f223bdbd7b7159b141eb4fed",
+      "ios/evidence.json": "12efd3343077edbf7106edbdbce09f9076ac0d01ee166e5b0df62ed448ff15b9",
+      "ios/framework/Capture.xcframework/Info.plist": "17bdb9a257496079b13d13d71a3c352c81c820e4f5722a49253d5072f8a1d972",
+      "ios/framework/Capture.xcframework/ios-arm64/Capture.framework/Capture": "694f69d9b0a229b646fe2258990732c5cae76fae5276c977c454e456459ad79c",
+      "ios/framework/Capture.xcframework/ios-arm64/Capture.framework/Headers/Capture.h": "4af43f0557bb8d540dc1263499792373a887ac79993771ca9c905e9e9449adcc",
+      "ios/framework/Capture.xcframework/ios-arm64/Capture.framework/Info.plist": "d8404635ccb22bb1c19e44fe5d08a6c9cef822a534d1b2c1627a9de31ec06cb4",
+      "ios/framework/Capture.xcframework/ios-arm64/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftdoc": "17405eb4af0819a8629177c22d5f275451cfdca5a59442a7e471da7ce16baca2",
+      "ios/framework/Capture.xcframework/ios-arm64/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftinterface": "111373ab3a2b5af310e93a43257795aef705321e899042a9b8579b37a380e51b",
+      "ios/framework/Capture.xcframework/ios-arm64/Capture.framework/Modules/module.modulemap": "fbdfc3605ffd221f518b5637636c4e542cdd3914b8f7e72c99ec09d36ec0c23a",
+      "ios/framework/Capture.xcframework/ios-arm64/Capture.framework/PrivacyInfo.xcprivacy": "c9cee1ce570c118f456e9071b297f9baa69c1304ae4d1f9e7545cab5ad98d6d9",
+      "ios/framework/Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Capture": "045a77474bf413c3d073e6cef1299509717ad6832004873790fb6767556ecfa6",
+      "ios/framework/Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Headers/Capture.h": "4af43f0557bb8d540dc1263499792373a887ac79993771ca9c905e9e9449adcc",
+      "ios/framework/Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Info.plist": "d8404635ccb22bb1c19e44fe5d08a6c9cef822a534d1b2c1627a9de31ec06cb4",
+      "ios/framework/Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftdoc": "7c5f8a9269feb7aafe4cd69625c20538f19a489ca5f5a53468bce176eb6c5bfb",
+      "ios/framework/Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftinterface": "cd6ac44f48a707ae9ebf52bdfd77f2f42f449d174ae1b276645e2252e78391fb",
+      "ios/framework/Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/x86_64.swiftdoc": "b1af09a2374f3b504ed3d769ea94250f513dc72add2123829868ce4425fa1eeb",
+      "ios/framework/Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/x86_64.swiftinterface": "1df14acfb5849557e512332b8d229a43a30e4e8553b9c571ac6ac39018ddf2e1",
+      "ios/framework/Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/module.modulemap": "fbdfc3605ffd221f518b5637636c4e542cdd3914b8f7e72c99ec09d36ec0c23a",
+      "ios/framework/Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/PrivacyInfo.xcprivacy": "c9cee1ce570c118f456e9071b297f9baa69c1304ae4d1f9e7545cab5ad98d6d9",
+      "ios/framework/LICENSE": "67530f8e9adfcc5d2e9d72b804500cebb7472ff84c34a6729a80a2a9be901ee6",
+      "ios/original-analysis.json": "3e0752ed8b4447a121a940aa7af48046bab6e57a7b5cb66d42991c5d8cc803b5",
+      "ios/strip-validation.json": "7710037bea8d478c8d9f4f59ad2d146b9c2ff8f1a3f633a600a66ed4ee5c9515",
+      "ios/stripped/Payload/Bitdrift Sample App.app/Info.plist": "94ed731b319732521e2ed8a3e82b093f50e0f8e53cfc37b11734b3a3e440bfd5",
+      "ios/stripped/Payload/Bitdrift Sample App.app/PkgInfo": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0",
+      "ios/stripped/Payload/Bitdrift Sample App.app/hello_world_app": "3b61931550e9a0bf0c3df96775d23f42b8b35926d263c2e55f1ace2981e420a8",
+      "ios/stripped-analysis.json": "2bd40be752d336c10dc66e398dabdb6d001ed283d42e16076655c8b901189305",
+      "ios/stripped.ipa": "c33f20f026e60c51f9f956874ffa383f78977caa923aa2d987e8bcfdb4d9d005",
+      "ios/unsigned/Payload/Bitdrift Sample App.app/Info.plist": "94ed731b319732521e2ed8a3e82b093f50e0f8e53cfc37b11734b3a3e440bfd5",
+      "ios/unsigned/Payload/Bitdrift Sample App.app/PkgInfo": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0",
+      "ios/unsigned/Payload/Bitdrift Sample App.app/embedded.mobileprovision": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ios/unsigned/Payload/Bitdrift Sample App.app/hello_world_app": "e386b56b0c3bc3046f4886849d10339988e5f9b7d8f462d90ded9e30b3d6169d",
+      "ios/unsigned.bazel.ipa": "0568930e3a57d2e58cfa2fcb1ea164f9a439427e26bbb4b5538a7f026e573a78"
+    },
+    "xcode": "Xcode 27.0\nBuild version 27A266a",
+    "host": "Darwin arm64",
+    "commands": [
+      "git rev-parse HEAD",
+      "git status --porcelain",
+      "<sdk-root>/bazelw build --noannounce_rc --config=ci --config=nocache --color=no --curses=no --config=release-android --xcode_version=27.0 --android_platforms=@rules_android//:arm64-v8a //:capture_aar //:capture.debug_info @bazel_tools//tools/zip:zipper --output_groups=+objcopy",
+      "<sdk-root>/bazelw cquery --noannounce_rc --config=ci --config=nocache --color=no --curses=no --config=release-android --xcode_version=27.0 --android_platforms=@rules_android//:arm64-v8a //:capture_aar --output=files",
+      "<sdk-root>/bazelw aquery --noannounce_rc --config=ci --config=nocache --color=no --curses=no --config=release-android --xcode_version=27.0 --android_platforms=@rules_android//:arm64-v8a //:capture.debug_info --output=jsonproto",
+      "<sdk-root>/bazelw info execution_root",
+      "<venv-python> <analysis-checkout>/.claude/skills/sdk-size-analysis/scripts/collect_android.py --sdk-root <sdk-root> --aar <sdk-root>/bazel-out/darwin_arm64-opt/bin/capture_aar_local.aar --debug-map /Users/mklein/Library/Caches/bazel/_bazel_mklein/0c675454f0877dc0a769099df274d38f/execroot/_main/bazel-out/darwin_arm64-opt/bin/arm64-v8a/arm64-v8a.debug.gz --zipper /Users/mklein/Library/Caches/bazel/_bazel_mklein/0c675454f0877dc0a769099df274d38f/execroot/_main/external/bazel_tools/tools/zip/zipper/zipper --tools /Users/mklein/Library/Caches/bazel/_bazel_mklein/0c675454f0877dc0a769099df274d38f/execroot/_main/external/hermetic_android_toolchains++android+androidndk_darwin/toolchains/llvm/prebuilt/darwin-x86_64/bin --output <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/android --build-command '<sdk-root>/bazelw build --noannounce_rc --config=ci --config=nocache --color=no --curses=no --config=release-android --xcode_version=27.0 --android_platforms=@rules_android//:arm64-v8a //:capture_aar //:capture.debug_info @bazel_tools//tools/zip:zipper --output_groups=+objcopy'",
+      "<venv-python> <analysis-checkout>/.claude/skills/sdk-size-analysis/scripts/elf_analysis.py --binary <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/android/capture.so --symbols-elf <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/android/capture.debug.elf --symbols-mode debug --debug-map <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/android/capture.debug.gz --aar <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/android/capture.aar --zip <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/android/capture.so.zip --tools /Users/mklein/Library/Caches/bazel/_bazel_mklein/0c675454f0877dc0a769099df274d38f/execroot/_main/external/hermetic_android_toolchains++android+androidndk_darwin/toolchains/llvm/prebuilt/darwin-x86_64/bin --output <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/android/analysis --label 'Pristine Android ARM64' --revision 12a2977ece84b0c90e4861aa6d5407abd3f2c12a --logger-manifest /Users/mklein/Library/Caches/bazel/_bazel_mklein/0c675454f0877dc0a769099df274d38f/execroot/_main/external/rules_rs++crate+crates__github.com_bitdriftlabs_shared-core.git_caf73cfd/bd-logger/Cargo.toml --provenance <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/android/provenance.json --evidence-output <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/android/evidence.json",
+      "git status --porcelain",
+      "xcodebuild -version",
+      "uname -sm",
+      "git rev-parse HEAD",
+      "git status --porcelain",
+      "<sdk-root>/bazelw build --noannounce_rc --config=ci --config=nocache --color=no --curses=no --config=release-ios --xcode_version=27.0 --cpu=ios_arm64 --define=ios_produce_framework_plist=true //:ios_dist",
+      "<sdk-root>/bazelw cquery --noannounce_rc --config=ci --config=nocache --color=no --curses=no --config=release-ios --xcode_version=27.0 --cpu=ios_arm64 --define=ios_produce_framework_plist=true //:ios_dist --output=files",
+      "<sdk-root>/ci/check_ios_xcframework_archive_members.sh",
+      "<sdk-root>/ci/capture_ios_binary_size.sh",
+      "<venv-python> <sdk-root>/ci/capture_ios_archive_breakdown.py <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/framework/Capture.xcframework/ios-arm64/Capture.framework/Capture",
+      "<sdk-root>/bazelw build --noannounce_rc --config=ci --config=nocache --color=no --curses=no --config=release-ios --xcode_version=27.0 --cpu=ios_arm64 --define=ios_produce_framework_plist=true --features=disable_legacy_signing //examples/swift/hello_world:ios_app_size @bazel_tools//tools/zip:zipper",
+      "<sdk-root>/bazelw cquery --noannounce_rc --config=ci --config=nocache --color=no --curses=no --config=release-ios --xcode_version=27.0 --cpu=ios_arm64 --define=ios_produce_framework_plist=true --features=disable_legacy_signing //examples/swift/hello_world:ios_app_size --output=files",
+      "xcrun strip -u -r '<analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/stripped/Payload/Bitdrift Sample App.app/hello_world_app'",
+      "<sdk-root>/bazelw info execution_root",
+      "<venv-python> <analysis-checkout>/.claude/skills/sdk-size-analysis/scripts/macho_analysis.py '<analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/unsigned/Payload/Bitdrift Sample App.app/hello_world_app' --nm /Users/mklein/Library/Caches/bazel/_bazel_mklein/0c675454f0877dc0a769099df274d38f/external/hermetic_android_toolchains++android+androidndk_darwin/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-nm --output <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/original-analysis.json",
+      "<venv-python> <analysis-checkout>/.claude/skills/sdk-size-analysis/scripts/macho_analysis.py '<analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/stripped/Payload/Bitdrift Sample App.app/hello_world_app' --nm /Users/mklein/Library/Caches/bazel/_bazel_mklein/0c675454f0877dc0a769099df274d38f/external/hermetic_android_toolchains++android+androidndk_darwin/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-nm --output <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/stripped-analysis.json",
+      "/Users/mklein/Library/Caches/bazel/_bazel_mklein/0c675454f0877dc0a769099df274d38f/execroot/_main/external/bazel_tools/tools/zip/zipper/zipper cC <analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/stripped.ipa 'Payload/Bitdrift Sample App.app/Info.plist=<analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/stripped/Payload/Bitdrift Sample App.app/Info.plist' 'Payload/Bitdrift Sample App.app/PkgInfo=<analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/stripped/Payload/Bitdrift Sample App.app/PkgInfo' 'Payload/Bitdrift Sample App.app/hello_world_app=<analysis-checkout>/.tmp/sdk-size-analysis/run-tsou9f33/results/ios/stripped/Payload/Bitdrift Sample App.app/hello_world_app'",
+      "git status --porcelain",
+      "xcodebuild -version",
+      "uname -sm"
+    ],
+    "stage_measured_at": {
+      "android": "2026-10-09T22:35:53.545119+00:00",
+      "ios": "2026-10-09T22:36:04.829035+00:00"
+    }
+  },
+  "report_evidence_filename": "sdk-code-size-2026-10-08.evidence.json",
+  "report_skill_path": "../.claude/skills/sdk-size-analysis/SKILL.md",
+  "publication": {
+    "published_at": "2026-10-09T22:37:38.849341+00:00",
+    "script_sha256": {
+      "categories.py": "d07d74ce3cf93a88f3ad9e0314600846ad3ece4c0965bbb7b283885be864aeb4",
+      "collect_android.py": "22ad7443f529dfad838207985b2aa3f02befb8f5166f4dc0ec05fa7061fe6fd5",
+      "elf_analysis.py": "220af3a27af586dbd7f2d165839825980f58078b4c657049d7f002c6eef90b7c",
+      "macho_analysis.py": "37c8dd355041a321ff91a032831d3f9c2a516ec01f25c9120718f5384733d7dd",
+      "measure.py": "04e5aafa6192459b6db109b8a01b71304da03f99880c5cccaee3567b7a3597a6",
+      "run_analysis.py": "801027d8148b6ccb22d3a885dbd82e4e3e300f87a6bc63c3c4fd6046ef7f59f9",
+      "test_analysis.py": "d99d6a98224181e4093d893e47043ad460a50567a61353c26b809411641ba402",
+      "validate_stripped_macho.py": "579638014adfa977d3523e7b04b98953430c51e115136d8dfa6747b02680ec0c"
+    }
+  }
+}
