@@ -509,10 +509,11 @@ object Capture {
          *
          * Each command runs at most one invocation at a time: while one is in flight, further
          * invocations of the same [key] fail immediately with a `busy` error rather than waiting.
-         * Different commands run in parallel on a dedicated pool of at most
-         * [CommandRegistry.MAX_PARALLELISM] I/O threads; when all threads are busy an invocation
-         * waits for a free one. A handler may block; it occupies one of those threads until it
-         * returns, without affecting the application's own dispatchers.
+         * Different commands run in parallel, up to [CommandRegistry.MAX_CONCURRENT_INVOCATIONS]
+         * at once across all commands; an invocation arriving beyond that fails immediately with
+         * a `max_concurrency` error. Nothing is ever queued. Handlers run on a dedicated I/O
+         * thread pool of the same size, so a handler may block without affecting the
+         * application's own dispatchers.
          *
          * The SDK never cancels a running handler. An invocation that takes too long is reported
          * as a timeout while the handler keeps running to completion, and its eventual result is

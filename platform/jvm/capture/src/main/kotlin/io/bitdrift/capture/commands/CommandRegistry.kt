@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,9 +24,11 @@ import java.util.concurrent.ConcurrentHashMap
  * an invocation.
  *
  * Every invocation is launched on [dispatcher] and left alone: nothing is ever cancelled and
- * timeouts are enforced by the Rust layer. The only rule between invocations is that a key runs
- * one at a time: while one is in flight, further invocations of the same key fail with `busy`
- * instead of waiting.
+ * timeouts are enforced by the Rust layer. Two rules bound the work in flight, and both reject
+ * instead of queueing so that memory never grows with the rate of incoming commands:
+ * - a key runs one invocation at a time; a repeat while one is in flight fails with `busy`;
+ * - at most [maxConcurrentInvocations] invocations exist across all keys; any more fail with
+ *   `max_concurrency`.
  *
  * Registration is not atomic with respect to [attach]: a key registered while the logger starts
  * may be announced to the bridge twice, which Rust treats as a replacement, or left announced
@@ -34,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap
 internal class CommandRegistry(
     private val bridge: ICommandBridge,
     dispatcher: CoroutineDispatcher = defaultDispatcher(),
+    private val maxConcurrentInvocations: Int = MAX_CONCURRENT_INVOCATIONS,
 ) : ICommandDispatcher {
     private val handlers = ConcurrentHashMap<String, suspend CommandScope.() -> CommandResult>()
 
@@ -43,6 +47,9 @@ internal class CommandRegistry(
      * (`ConcurrentHashMap.newKeySet()` would be the obvious choice but needs API 24; minSdk is 23.)
      */
     private val running: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
+
+    /** One permit per invocation in flight; `tryAcquire` never suspends, so there is no queue. */
+    private val slots = Semaphore(maxConcurrentInvocations)
 
     @Volatile
     private var loggerId: Long? = null
@@ -89,11 +96,20 @@ internal class CommandRegistry(
             complete(invocationId, CommandResult.Error("busy", "an invocation of $key is already running"))
             return
         }
+        if (!slots.tryAcquire()) {
+            running.remove(key)
+            complete(
+                invocationId,
+                CommandResult.Error("max_concurrency", "$maxConcurrentInvocations commands are already running"),
+            )
+            return
+        }
         val invocation = CommandInvocation(key, commandId, sessionId, argumentNames.zip(argumentValues).toMap())
         scope.launch {
             try {
                 complete(invocationId, run(handler, invocation))
             } finally {
+                slots.release()
                 running.remove(key)
             }
         }
@@ -138,8 +154,12 @@ internal class CommandRegistry(
     private fun Map<String, String>.toJniFields(): Array<Field> = map { (key, value) -> Field(key, value.toFieldValue()) }.toTypedArray()
 
     companion object {
-        /** The maximum number of command handlers running in parallel, across all keys. */
-        const val MAX_PARALLELISM = 10
+        /**
+         * The maximum number of invocations in flight across all keys, and the size of the thread
+         * pool they run on. The two match so that an admitted invocation always has a thread even
+         * when every handler blocks; the dispatcher's own queue then only ever holds resumptions.
+         */
+        const val MAX_CONCURRENT_INVOCATIONS = 10
 
         /**
          * Handlers may block (file reads, memory dumps, profiling), so they get their own slice of
@@ -147,6 +167,6 @@ internal class CommandRegistry(
          * application's CPU-bound [Dispatchers.Default] pool or the IO pool's shared limit.
          */
         @OptIn(ExperimentalCoroutinesApi::class)
-        internal fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_PARALLELISM)
+        internal fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_INVOCATIONS)
     }
 }

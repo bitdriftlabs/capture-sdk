@@ -430,35 +430,131 @@ class CommandRegistryTest {
         assertThat(bridge.awaitCompletion().error).isEqualTo("nope")
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Concurrency: the in-flight cap across keys, never a queue
+    // ---------------------------------------------------------------------------------------------
+
     @Test
-    fun defaultDispatcherRunsAtMostMaxParallelismBlockingHandlersAtOnce() {
-        val registry = CommandRegistry(bridge)
-        val total = CommandRegistry.MAX_PARALLELISM + 1
-        val gate = Gate(expectedArrivals = CommandRegistry.MAX_PARALLELISM)
-        repeat(total) { i ->
-            registry.register("k$i") {
-                gate.arriveAndBlockUntilReleased()
+    fun rejectsDistinctKeysBeyondMaxConcurrency() {
+        val registry = CommandRegistry(bridge, Dispatchers.Default, maxConcurrentInvocations = 2)
+        val gate = Gate(expectedArrivals = 2)
+        listOf("a", "b", "c").forEach { key ->
+            registry.register(key) {
+                gate.arriveAndAwaitRelease()
                 success()
             }
         }
-
-        repeat(total) { i -> registry.dispatch(i.toLong(), "k$i", null, "session", emptyArray(), emptyArray()) }
-
+        registry.dispatch(1, "a", null, "session", emptyArray(), emptyArray())
+        registry.dispatch(2, "b", null, "session", emptyArray(), emptyArray())
         gate.awaitArrivals()
-        Thread.sleep(200)
-        // Blocking handlers hold their thread, so the extra invocation waits inside the
-        // dispatcher for a free one. It is delayed, not rejected.
-        assertThat(gate.arrived()).isEqualTo(CommandRegistry.MAX_PARALLELISM)
-        assertThat(bridge.pendingCompletions()).isZero()
+
+        registry.dispatch(3, "c", null, "session", emptyArray(), emptyArray())
+
+        val rejected = bridge.awaitCompletion()
+        assertThat(rejected.invocationId).isEqualTo(3)
+        assertThat(rejected.error).isEqualTo("max_concurrency")
+        assertThat(rejected.field("description")).isEqualTo("2 commands are already running")
+        assertThat(gate.arrived()).isEqualTo(2)
         gate.release()
-        assertThat(List(total) { bridge.awaitCompletion() }.map { it.error }).containsOnlyNulls()
+        assertThat(List(2) { bridge.awaitCompletion() }.map { it.invocationId }).containsExactlyInAnyOrder(1, 2)
     }
 
     @Test
-    fun suspendedHandlersDoNotHoldPoolThreads() {
+    fun maxConcurrencyRejectionIsImmediateAndNeverRunsLater() {
+        val registry = CommandRegistry(bridge, Dispatchers.Default, maxConcurrentInvocations = 1)
+        val gate = Gate(expectedArrivals = 1)
+        val ran = AtomicInteger()
+        registry.register("a") {
+            gate.arriveAndAwaitRelease()
+            success()
+        }
+        registry.register("b") {
+            ran.incrementAndGet()
+            success()
+        }
+        registry.dispatch(1, "a", null, "session", emptyArray(), emptyArray())
+        gate.awaitArrivals()
+
+        registry.dispatch(2, "b", null, "session", emptyArray(), emptyArray())
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_concurrency")
+        gate.release()
+        bridge.awaitCompletion()
+
+        // Freeing the slot does not revive the rejected invocation; only a new dispatch runs "b".
+        Thread.sleep(100)
+        assertThat(ran.get()).isZero()
+        assertThat(bridge.pendingCompletions()).isZero()
+    }
+
+    @Test
+    fun maxConcurrencyRejectionDoesNotLeaveKeyMarkedRunning() {
+        val registry = CommandRegistry(bridge, Dispatchers.Default, maxConcurrentInvocations = 1)
+        val gate = Gate(expectedArrivals = 1)
+        registry.register("a") {
+            gate.arriveAndAwaitRelease()
+            success()
+        }
+        registry.register("b") { success() }
+        registry.dispatch(1, "a", null, "session", emptyArray(), emptyArray())
+        gate.awaitArrivals()
+
+        registry.dispatch(2, "b", null, "session", emptyArray(), emptyArray())
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_concurrency")
+        // Still over the cap: the second attempt is again max_concurrency, not busy.
+        registry.dispatch(3, "b", null, "session", emptyArray(), emptyArray())
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_concurrency")
+
+        gate.release()
+        bridge.awaitCompletion()
+        registry.dispatch(4, "b", null, "session", emptyArray(), emptyArray())
+        assertThat(bridge.awaitCompletion().error).isNull()
+    }
+
+    @Test
+    fun busyRejectionDoesNotConsumeASlot() {
+        val registry = CommandRegistry(bridge, Dispatchers.Default, maxConcurrentInvocations = 2)
+        val gate = Gate(expectedArrivals = 1)
+        registry.register("a") {
+            gate.arriveAndAwaitRelease()
+            success()
+        }
+        registry.register("b") { success() }
+        registry.dispatch(1, "a", null, "session", emptyArray(), emptyArray())
+        gate.awaitArrivals()
+
+        registry.dispatch(2, "a", null, "session", emptyArray(), emptyArray())
+        assertThat(bridge.awaitCompletion().error).isEqualTo("busy")
+        registry.dispatch(3, "b", null, "session", emptyArray(), emptyArray())
+
+        // One slot is held by "a"; the busy rejection left the other one free for "b".
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.invocationId).isEqualTo(3)
+        assertThat(completion.error).isNull()
+        gate.release()
+        bridge.awaitCompletion()
+    }
+
+    @Test
+    fun slotIsReleasedOnSuccessErrorAndThrow() {
+        val registry = CommandRegistry(bridge, Dispatchers.Default, maxConcurrentInvocations = 1)
+        registry.register("ok") { success() }
+        registry.register("ko") { error("nope") }
+        registry.register("throws") { throw IllegalStateException() }
+
+        // With a single slot, each of these only runs if the previous one gave its slot back.
+        listOf("ok", "ko", "throws", "ok").forEachIndexed { i, key ->
+            registry.dispatch(i.toLong(), key, null, "session", emptyArray(), emptyArray())
+            assertThat(bridge.awaitCompletion().error).isNotEqualTo("max_concurrency")
+        }
+    }
+
+    @Test
+    fun capAppliesToSuspendedHandlersToo() {
+        // A suspended handler gives its thread back but keeps its slot: the cap is on invocations,
+        // not threads, so memory is bounded even when handlers are cheap to park.
         val registry = CommandRegistry(bridge)
-        val total = CommandRegistry.MAX_PARALLELISM + 1
-        val gate = Gate(expectedArrivals = total)
+        val total = CommandRegistry.MAX_CONCURRENT_INVOCATIONS + 1
+        val gate = Gate(expectedArrivals = CommandRegistry.MAX_CONCURRENT_INVOCATIONS)
         repeat(total) { i ->
             registry.register("k$i") {
                 gate.arriveAndAwaitRelease()
@@ -468,7 +564,30 @@ class CommandRegistryTest {
 
         repeat(total) { i -> registry.dispatch(i.toLong(), "k$i", null, "session", emptyArray(), emptyArray()) }
 
-        // A handler that suspends gives its thread back, so more than MAX_PARALLELISM can be in flight.
+        gate.awaitArrivals()
+        val rejected = bridge.awaitCompletion()
+        assertThat(rejected.invocationId).isEqualTo((total - 1).toLong())
+        assertThat(rejected.error).isEqualTo("max_concurrency")
+        assertThat(gate.arrived()).isEqualTo(CommandRegistry.MAX_CONCURRENT_INVOCATIONS)
+        gate.release()
+        assertThat(List(total - 1) { bridge.awaitCompletion() }.map { it.error }).containsOnlyNulls()
+    }
+
+    @Test
+    fun defaultPoolHasAThreadForEveryAdmittedBlockingHandler() {
+        // Pool size == cap, so admitted handlers never wait for a thread even when all of them block.
+        val registry = CommandRegistry(bridge)
+        val total = CommandRegistry.MAX_CONCURRENT_INVOCATIONS
+        val gate = Gate(expectedArrivals = total)
+        repeat(total) { i ->
+            registry.register("k$i") {
+                gate.arriveAndBlockUntilReleased()
+                success()
+            }
+        }
+
+        repeat(total) { i -> registry.dispatch(i.toLong(), "k$i", null, "session", emptyArray(), emptyArray()) }
+
         gate.awaitArrivals()
         assertThat(gate.arrived()).isEqualTo(total)
         gate.release()
