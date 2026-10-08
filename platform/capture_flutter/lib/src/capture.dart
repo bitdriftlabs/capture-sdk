@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'error_reporter.dart';
 import 'log_level.dart';
 import 'session_replay.dart';
 import 'span.dart';
@@ -27,6 +30,9 @@ class Capture {
   static bool _replayCallbackRegistered = false;
   static DateTime _lastReplayCapture = DateTime(0);
   static const _replayInterval = Duration(milliseconds: 500);
+  static const _pendingReportsSubmitDelay = Duration(seconds: 2);
+  static Int32List? _lastPushedReplayRects;
+  static Timer? _trailingReplayCapture;
 
   Capture._();
 
@@ -34,12 +40,20 @@ class Capture {
   ///
   /// Must be called before any other methods. Returns true if started
   /// successfully.
+  ///
+  /// When [enableDartErrorReporting] is true, uncaught Dart errors are
+  /// persisted as issue reports and uploaded on the next launch.
   static Future<bool> start({
     required String apiKey,
     SessionStrategy sessionStrategy = SessionStrategy.fixed,
     String apiUrl = 'https://api.bitdrift.io',
     bool enableSessionReplay = false,
+    bool enableDartErrorReporting = true,
   }) async {
+    if (enableDartErrorReporting) {
+      await prepareDartErrorReporter(_channel);
+      DartErrorReporter.installHandlers();
+    }
     final result = await _channel.invokeMethod<bool>('start', {
       'apiKey': apiKey,
       'sessionStrategy': sessionStrategy.name,
@@ -47,12 +61,16 @@ class Capture {
       'enableSessionReplay': enableSessionReplay,
     });
     _started = result ?? false;
-    if (_started &&
-        enableSessionReplay &&
-        defaultTargetPlatform != TargetPlatform.iOS) {
+    if (_started && enableSessionReplay) {
       startSessionReplay();
     } else {
       stopSessionReplay();
+    }
+    if (_started && enableDartErrorReporting) {
+      Future.delayed(
+        _pendingReportsSubmitDelay,
+        DartErrorReporter.submitPendingReports,
+      );
     }
     return _started;
   }
@@ -168,41 +186,82 @@ class Capture {
   static Future<void> logReplayScreen(
     Uint8List encodedScreen, {
     double durationSeconds = 0.0,
-  }) =>
-      _channel.invokeMethod('logReplayScreen', {
-        'screen': encodedScreen,
-        'duration': durationSeconds,
-      });
+  }) => _channel.invokeMethod('logReplayScreen', {
+    'screen': encodedScreen,
+    'duration': durationSeconds,
+  });
 
   /// Start automatic session replay capture.
   ///
   /// This registers a persistent frame callback that captures the widget
-  /// tree as wireframe rects at ~2Hz and sends them to the Capture backend.
+  /// tree as wireframe rects at ~2Hz. On Android the encoded screen is sent
+  /// to the Capture backend directly; on iOS the rects are exposed to the
+  /// native session replay capture.
   static void startSessionReplay() {
-    // TODO: Wire iOS once the native session replay screen API is public/bridged.
-    if (defaultTargetPlatform == TargetPlatform.iOS) return;
     if (_replayActive) return;
     _replayActive = true;
     if (_replayCallbackRegistered) return;
     _replayCallbackRegistered = true;
     WidgetsBinding.instance.addPersistentFrameCallback((_) {
       if (!_replayActive) return;
-      final now = DateTime.now();
-      if (now.difference(_lastReplayCapture) < _replayInterval) return;
-      _lastReplayCapture = now;
-
-      final stopwatch = Stopwatch()..start();
-      final encoded = FlutterReplayCapture.captureScreen();
-      stopwatch.stop();
-      logReplayScreen(
-        encoded,
-        durationSeconds: stopwatch.elapsedMicroseconds / 1000000.0,
-      );
+      final elapsed = DateTime.now().difference(_lastReplayCapture);
+      if (elapsed >= _replayInterval) {
+        _captureReplay();
+        return;
+      }
+      _trailingReplayCapture ??= Timer(_replayInterval - elapsed, () {
+        _trailingReplayCapture = null;
+        if (_replayActive) _captureReplay();
+      });
     });
+  }
+
+  static void _captureReplay() {
+    _trailingReplayCapture?.cancel();
+    _trailingReplayCapture = null;
+    _lastReplayCapture = DateTime.now();
+
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      _pushReplayRects();
+      return;
+    }
+
+    final stopwatch = Stopwatch()..start();
+    final encoded = FlutterReplayCapture.captureScreen();
+    stopwatch.stop();
+    logReplayScreen(
+      encoded,
+      durationSeconds: stopwatch.elapsedMicroseconds / 1000000.0,
+    );
   }
 
   /// Stop automatic session replay capture.
   static void stopSessionReplay() {
     _replayActive = false;
+    _trailingReplayCapture?.cancel();
+    _trailingReplayCapture = null;
+    if (_lastPushedReplayRects != null) {
+      _lastPushedReplayRects = null;
+      _channel.invokeMethod('updateReplayRects', {'rects': Int32List(0)});
+    }
+  }
+
+  static void _pushReplayRects() {
+    final rects = flattenReplayRects(
+      FlutterReplayCapture.captureRects(includeRoot: false),
+    );
+    if (listEquals(rects, _lastPushedReplayRects)) return;
+    _lastPushedReplayRects = rects;
+    _channel.invokeMethod('updateReplayRects', {'rects': rects});
+  }
+
+  // -- Error Reporting --
+
+  /// Persist [error] as an issue report that is uploaded on the next launch.
+  ///
+  /// Uncaught errors are reported automatically when the SDK is started with
+  /// `enableDartErrorReporting`; use this for errors caught by the app.
+  static void reportError(Object error, StackTrace? stack) {
+    DartErrorReporter.persist(error, stack);
   }
 }

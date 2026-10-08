@@ -66,73 +66,53 @@ Uint8List encodeReplayRects(List<ReplayRect> rects) {
   return buffer.toBytes();
 }
 
+/// Flattens [rects] into `[type, x, y, width, height]` tuples.
+Int32List flattenReplayRects(List<ReplayRect> rects) {
+  final values = Int32List(rects.length * 5);
+  var i = 0;
+  for (final rect in rects) {
+    values[i++] = rect.type.value;
+    values[i++] = rect.x;
+    values[i++] = rect.y;
+    values[i++] = rect.width;
+    values[i++] = rect.height;
+  }
+  return values;
+}
+
 /// Walks the Flutter render tree and produces [ReplayRect] entries
 /// for each visible widget, classifying them by type.
 class FlutterReplayCapture {
   /// Capture the current widget tree and return encoded binary data.
-  static Uint8List captureScreen() {
+  static Uint8List captureScreen() => encodeReplayRects(captureRects());
+
+  /// Capture the current widget tree as a list of rects in logical pixels,
+  /// relative to the Flutter view.
+  ///
+  /// When [includeRoot] is true the first rect spans the whole view so the
+  /// renderer knows the overall wireframe dimensions.
+  static List<ReplayRect> captureRects({bool includeRoot = true}) {
     final rects = <ReplayRect>[];
 
-    // Add root screen bounds as the first rect so the native renderer
-    // knows the overall wireframe dimensions.
-    final window = WidgetsBinding.instance.platformDispatcher.views.first;
-    final screenSize = window.physicalSize / window.devicePixelRatio;
-    rects.add(ReplayRect(
-      type: ReplayType.view,
-      x: 0,
-      y: 0,
-      width: screenSize.width.round(),
-      height: screenSize.height.round(),
-    ));
+    if (includeRoot) {
+      final window = WidgetsBinding.instance.platformDispatcher.views.first;
+      final screenSize = window.physicalSize / window.devicePixelRatio;
+      rects.add(
+        ReplayRect(
+          type: ReplayType.view,
+          x: 0,
+          y: 0,
+          width: screenSize.width.round(),
+          height: screenSize.height.round(),
+        ),
+      );
+    }
 
     final rootElement = WidgetsBinding.instance.rootElement;
     if (rootElement != null) {
-      _walkElement(rootElement, rects);
+      _ReplayWalker(rects).walk(rootElement);
     }
-    return encodeReplayRects(rects);
-  }
-
-  /// Widget types whose subtrees should NOT be walked after classification,
-  /// because their children are internal implementation details.
-  static const _opaqueTypes = {ReplayType.textInput};
-
-  static void _walkElement(Element element, List<ReplayRect> rects) {
-    final renderObject = element.renderObject;
-    bool skipChildren = false;
-
-    if (renderObject is RenderBox && renderObject.hasSize) {
-      final type = _classifyElement(element);
-      if (type != null) {
-        final offset = _getGlobalOffset(renderObject);
-        if (offset != null) {
-          final size = renderObject.size;
-          rects.add(ReplayRect(
-            type: type,
-            x: offset.dx.round(),
-            y: offset.dy.round(),
-            width: size.width.round(),
-            height: size.height.round(),
-          ));
-          if (_opaqueTypes.contains(type)) {
-            skipChildren = true;
-          }
-        }
-      }
-    }
-
-    if (!skipChildren) {
-      element.visitChildren((child) {
-        _walkElement(child, rects);
-      });
-    }
-  }
-
-  static Offset? _getGlobalOffset(RenderBox box) {
-    try {
-      return box.localToGlobal(Offset.zero);
-    } catch (_) {
-      return null;
-    }
+    return rects;
   }
 
   /// Classify a Flutter Element into a ReplayType based on its widget.
@@ -169,17 +149,107 @@ class FlutterReplayCapture {
 
     // Switches
     if (widget is Switch) {
-      return ReplayType.switchOn;
+      return widget.value ? ReplayType.switchOn : ReplayType.switchOff;
     }
 
     // Card / elevated Material (dialogs, bottom sheets, etc.) / Scaffold
     if (widget is Card || widget is Scaffold) {
       return ReplayType.view;
     }
-    if (widget is Material && widget.elevation > 0) {
+    if (widget is Material &&
+        widget.elevation > 0 &&
+        widget.type != MaterialType.transparency) {
       return ReplayType.view;
     }
 
     return null;
+  }
+}
+
+/// Walks the element tree, emitting rects only for what is actually painted:
+/// subtrees that are hidden (zero opacity, offstage, covered overlay entries)
+/// are skipped, rects are mapped through paint transforms and clipped to
+/// their ancestors' paint clips.
+class _ReplayWalker {
+  _ReplayWalker(this.rects);
+
+  final List<ReplayRect> rects;
+  final Set<RenderObject> _hidden = Set.identity();
+  final Set<RenderObject> _emitted = Set.identity();
+
+  static const _controlTypes = {
+    ReplayType.button,
+    ReplayType.textInput,
+    ReplayType.switchOn,
+    ReplayType.switchOff,
+  };
+
+  void walk(Element root) => _walk(root, Rect.largest, insideControl: false);
+
+  void _walk(Element element, Rect clip, {required bool insideControl}) {
+    if (element is RenderObjectElement) {
+      final renderObject = element.renderObject;
+      if (_hidden.contains(renderObject) || !renderObject.attached) return;
+      final parent = renderObject.parent;
+      if (parent != null) {
+        if (!parent.paintsChild(renderObject)) return;
+        final parentClip = parent.describeApproximatePaintClip(renderObject);
+        if (parentClip != null) {
+          clip = clip.intersect(
+            MatrixUtils.transformRect(parent.getTransformTo(null), parentClip),
+          );
+          if (clip.isEmpty) return;
+        }
+      }
+    }
+
+    if (element.widget is Overlay) {
+      _hideOffstageOverlayEntries(element);
+    }
+
+    var skipChildren = false;
+    final type = FlutterReplayCapture._classifyElement(element);
+    if (type != null && !(insideControl && type == ReplayType.view)) {
+      final renderObject = element.renderObject;
+      if (renderObject is RenderBox &&
+          renderObject.hasSize &&
+          _emitted.add(renderObject)) {
+        final bounds = MatrixUtils.transformRect(
+          renderObject.getTransformTo(null),
+          Offset.zero & renderObject.size,
+        ).intersect(clip);
+        if (bounds.width >= 1 && bounds.height >= 1) {
+          rects.add(
+            ReplayRect(
+              type: type,
+              x: bounds.left.round(),
+              y: bounds.top.round(),
+              width: bounds.width.round(),
+              height: bounds.height.round(),
+            ),
+          );
+        }
+      }
+      skipChildren = type == ReplayType.textInput;
+      insideControl = insideControl || _controlTypes.contains(type);
+    }
+
+    if (skipChildren) return;
+    final childInsideControl = insideControl;
+    element.visitChildren(
+      (child) => _walk(child, clip, insideControl: childInsideControl),
+    );
+  }
+
+  /// The overlay only paints its onstage entries, which are the children it
+  /// visits for semantics.
+  void _hideOffstageOverlayEntries(Element overlay) {
+    final theater = overlay.renderObject;
+    if (theater == null) return;
+    final onstage = Set<RenderObject>.identity();
+    theater.visitChildrenForSemantics(onstage.add);
+    theater.visitChildren((child) {
+      if (!onstage.contains(child)) _hidden.add(child);
+    });
   }
 }

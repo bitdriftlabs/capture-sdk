@@ -10,6 +10,7 @@
 package io.bitdrift.capture_flutter
 
 import android.content.Context
+import android.os.Build
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.CaptureResult
@@ -21,6 +22,7 @@ import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
+import io.bitdrift.capture.utils.SdkDirectory
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -86,6 +88,7 @@ class CaptureFlutterPlugin : FlutterPlugin, MethodCallHandler {
             "startSpan" -> handleStartSpan(call, result)
             "endSpan" -> handleEndSpan(call, result)
             "logReplayScreen" -> handleLogReplayScreen(call, result)
+            "getReportContext" -> result.success(reportContext())
             else -> result.notImplemented()
         }
     }
@@ -197,6 +200,29 @@ class CaptureFlutterPlugin : FlutterPlugin, MethodCallHandler {
         } catch (e: Exception) {
             result.error("REPLAY_ERROR", e.message, null)
         }
+    }
+
+    private fun reportContext(): Map<String, Any?> {
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        val versionCode =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.versionCode.toLong()
+            }
+        return mapOf(
+            "sdkDirectory" to SdkDirectory.getPath(context),
+            "appId" to context.packageName,
+            "appVersion" to packageInfo.versionName,
+            "versionCode" to versionCode,
+            "osVersion" to Build.VERSION.RELEASE,
+            "osBrand" to Build.BRAND,
+            "osFingerprint" to Build.FINGERPRINT,
+            "manufacturer" to Build.MANUFACTURER,
+            "model" to Build.MODEL,
+            "cpuAbis" to Build.SUPPORTED_ABIS.toList(),
+        )
     }
 
     companion object {

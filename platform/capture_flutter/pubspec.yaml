@@ -12,6 +12,7 @@ environment:
   flutter: ">=3.44.0"
 
 dependencies:
+  flat_buffers: ^23.5.26
   flutter:
     sdk: flutter
 

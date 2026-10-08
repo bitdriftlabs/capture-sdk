@@ -1,0 +1,17 @@
+# Crashes the app natively, then relaunches it so the crash report is uploaded.
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Status: Started successfully"
+    timeout: 40000
+- scrollUntilVisible:
+    element: "Crash App"
+    direction: DOWN
+- tapOn:
+    text: "Crash App"
+    retryTapIfNoChange: false
+- launchApp
+- extendedWaitUntil:
+    visible: "Status: Started successfully"
+    timeout: 40000

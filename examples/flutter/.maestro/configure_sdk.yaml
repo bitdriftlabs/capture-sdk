@@ -1,0 +1,24 @@
+# Points the example app at an API server and starts the SDK.
+#
+# See README.md for usage.
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Status: Not configured.*"
+    timeout: 40000
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "API Key"
+    timeout: 5000
+- tapOn: "API Key"
+- inputText: ${API_KEY}
+- tapOn: "API URL"
+- eraseText: 100
+- inputText: ${API_URL}
+- hideKeyboard
+- tapOn: "Save & Restart SDK"
+- extendedWaitUntil:
+    visible: "Status: Started successfully"
+    timeout: 40000

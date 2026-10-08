@@ -33,6 +33,7 @@ class _HomePageState extends State<HomePage> {
   String? _entityId;
   String? _apiKey;
   String _apiUrl = 'https://api.bitdrift.io';
+  bool _switchValue = true;
 
   @override
   void initState() {
@@ -96,6 +97,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
             onPressed: _openSettings,
           ),
         ],
@@ -194,16 +196,38 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: () {
-                // Force a crash to test crash reporting
-                throw StateError('Test crash from Flutter');
-              },
+              onPressed: () => const MethodChannel(
+                'io.bitdrift.flutter_example/crash',
+              ).invokeMethod<void>('nativeCrash'),
               icon: const Icon(Icons.warning),
               label: const Text('Crash App'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () {
+                throw StateError('Test crash from Flutter');
+              },
+              icon: const Icon(Icons.error_outline),
+              label: const Text('Throw Dart Error'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () {
+                Future<void>.delayed(Duration.zero, () {
+                  throw UnsupportedError('Async test error from Flutter');
+                });
+              },
+              icon: const Icon(Icons.bolt),
+              label: const Text('Throw Async Error'),
+            ),
+            SwitchListTile(
+              title: const Text('Sample Switch'),
+              value: _switchValue,
+              onChanged: (value) => setState(() => _switchValue = value),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(

@@ -73,12 +73,25 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             }
             Logger.removeField(withKey: key)
             result(nil)
+        case "setEntityId":
+            guard let args = call.arguments as? [String: Any],
+                  let entityId = args["entityId"] as? String else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing entityId", details: nil))
+                return
+            }
+            Logger.setEntityID(entityId)
+            result(nil)
+        case "clearEntityId":
+            Logger.clearEntityID()
+            result(nil)
         case "startSpan":
             handleStartSpan(call, result: result)
         case "endSpan":
             handleEndSpan(call, result: result)
-        case "logReplayScreen":
-            handleLogReplayScreen(call, result: result)
+        case "updateReplayRects":
+            handleUpdateReplayRects(call, result: result)
+        case "getReportContext":
+            result(Self.reportContext())
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -96,9 +109,12 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             ? .activityBased()
             : .fixed()
 
+        let enableSessionReplay = args["enableSessionReplay"] as? Bool ?? false
+        let sessionReplayConfiguration = enableSessionReplay
+            ? SessionReplayConfiguration(categorizers: ["FlutterView": AnnotatedView(.ignore)])
+            : nil
         let configuration = Configuration(
-            // Flutter provides its own wireframe data via logSessionReplayScreen.
-            sessionReplayConfiguration: nil,
+            sessionReplayConfiguration: sessionReplayConfiguration,
             apiURL: URL(string: apiUrl)!
         )
 
@@ -192,16 +208,71 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
         result(nil)
     }
 
-    private func handleLogReplayScreen(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    private func handleUpdateReplayRects(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
-              let screenData = args["screen"] as? FlutterStandardTypedData else {
-            result(FlutterError(code: "INVALID_ARGS", message: "Missing screen data", details: nil))
+              let rectsData = args["rects"] as? FlutterStandardTypedData else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing rects", details: nil))
             return
         }
-        // logSessionReplayScreen is internal on the iOS SDK (requires @testable import).
-        // No public API exists for this yet — placeholder logs replay size as info.
-        // Track: expose logSessionReplayScreen on Logger public API.
-        Logger.logInfo("_session_replay", fields: ["_replay_size": "\(screenData.data.count)"])
+
+        let values: [Int32] = rectsData.data.withUnsafeBytes { Array($0.bindMemory(to: Int32.self)) }
+        var rects: [(frame: CGRect, type: ViewType)] = []
+        rects.reserveCapacity(values.count / 5)
+        var index = 0
+        while index + 4 < values.count {
+            if let type = ViewType(rawValue: UInt8(truncatingIfNeeded: values[index])) {
+                let frame = CGRect(
+                    x: CGFloat(values[index + 1]),
+                    y: CGFloat(values[index + 2]),
+                    width: CGFloat(values[index + 3]),
+                    height: CGFloat(values[index + 4])
+                )
+                rects.append((frame, type))
+            }
+            index += 5
+        }
+
+        let windows = UIApplication.shared.connectedScenes.flatMap { ($0 as? UIWindowScene)?.windows ?? [] }
+        FlutterReplayOverlayView.attached(in: windows)?.update(rects: rects)
         result(nil)
+    }
+
+    private static func reportContext() -> [String: Any?] {
+        let sdkDirectory = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first!
+            .appendingPathComponent("bitdrift_capture")
+        let info = Bundle.main.infoDictionary ?? [:]
+
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let model = withUnsafeBytes(of: &systemInfo.machine) { buffer in
+            String(decoding: buffer.prefix { $0 != 0 }, as: UTF8.self)
+        }
+
+        return [
+            "sdkDirectory": sdkDirectory.path,
+            "appId": Bundle.main.bundleIdentifier,
+            "appVersion": info["CFBundleShortVersionString"] as? String,
+            "buildNumber": info["CFBundleVersion"] as? String,
+            "osVersion": UIDevice.current.systemVersion,
+            "osBuildVersion": Self.sysctlString("kern.osversion"),
+            "manufacturer": "Apple",
+            "model": ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] ?? model,
+        ]
+    }
+
+    private static func sysctlString(_ name: String) -> String? {
+        var size = 0
+        guard sysctlbyname(name, nil, &size, nil, 0) == 0, size > 0 else {
+            return nil
+        }
+
+        var buffer = [CChar](repeating: 0, count: size)
+        guard sysctlbyname(name, &buffer, &size, nil, 0) == 0 else {
+            return nil
+        }
+
+        return String(cString: buffer)
     }
 }

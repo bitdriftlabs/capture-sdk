@@ -1,0 +1,17 @@
+# Throws Dart errors, then relaunches the app so the persisted reports are uploaded.
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Status: Started successfully"
+    timeout: 40000
+- scrollUntilVisible:
+    element: "Throw Async Error"
+    direction: DOWN
+- tapOn: "Throw Dart Error"
+- tapOn: "Throw Async Error"
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Status: Started successfully"
+    timeout: 40000

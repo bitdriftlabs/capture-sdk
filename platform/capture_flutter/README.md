@@ -4,7 +4,7 @@
 
 Official Flutter plugin for the [Bitdrift Capture SDK](https://bitdrift.io).
 
-Provides logging, session management, entity correlation, and distributed tracing for Flutter apps on iOS and Android. Wireframe session replay is currently available on Android only.
+Provides logging, session management, entity correlation, distributed tracing, wireframe session replay, and Dart error reporting for Flutter apps on iOS and Android.
 
 ## Installation
 
@@ -95,29 +95,44 @@ await Capture.start(
 Capture.stopSessionReplay();
 ```
 
+On iOS, the Flutter wireframe is merged into the native session replay capture, so screens are captured at the cadence configured for the native SDK.
+
+## Dart Error Reporting
+
+Uncaught Dart errors (`FlutterError.onError` and `PlatformDispatcher.instance.onError`) are persisted as issue reports and uploaded on the next launch, attributed to the session in which they occurred. Previously installed handlers keep running. Reporting is enabled by default and can be disabled with `enableDartErrorReporting: false`.
+
+```dart
+try {
+  await riskyOperation();
+} catch (error, stack) {
+  Capture.reportError(error, stack);
+}
+```
+
+Dart reports are currently filed under the `StrictModeViolation` report type, and at most 10 are persisted per app run.
+
 ## Support Matrix
 
 | Area | Android | iOS | Notes |
 | :-- | :-- | :-- | :-- |
-| SDK start | ✅ | ✅ | `apiKey`, `apiUrl`, `sessionStrategy`, `enableSessionReplay` |
+| SDK start | ✅ | ✅ | `apiKey`, `apiUrl`, `sessionStrategy`, `enableSessionReplay`, `enableDartErrorReporting` |
 | Logging | ✅ | ✅ | All levels; fields are `Map<String, String>` |
 | Screen views | ✅ | ✅ | Manual `logScreenView` |
 | Sessions, session URL, device ID | ✅ | ✅ | |
 | Temporary device code | ✅ | ✅ | |
 | SDK status | ✅ | ✅ | |
 | Persistent fields | ✅ | ✅ | |
-| Entity ID | ✅ | ✅ | iOS: CocoaPods only; not yet available when the plugin is resolved through Swift Package Manager |
+| Entity ID | ✅ | ✅ | |
 | Spans | ✅ | ✅ | Start/end with success or failure |
-| Session replay | ✅ | ❌ | Flutter wireframe capture; `enableSessionReplay` is ignored on iOS |
+| Session replay | ✅ | ✅ | Flutter wireframe capture |
 | Native fatal issues | ✅ | ✅ | Reported by the underlying native Capture SDKs |
-| Dart exceptions | ❌ | ❌ | Dart/Flutter errors are not reported as crashes |
+| Dart exceptions | ✅ | ✅ | Uploaded on next launch; reported as `StrictModeViolation` for now |
 | Network logging | ❌ | ❌ | |
 | WebView | ❌ | ❌ | |
 
 Not supported yet:
 
-- Session replay on iOS
-- Dart exception reporting, including `error` / `StackTrace` parameters on `logError`
+- `error` / `StackTrace` parameters on `logError`
 - Network request/response logging
 - WebView instrumentation
 - Feature flags

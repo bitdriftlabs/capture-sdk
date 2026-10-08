@@ -1,0 +1,30 @@
+# Interacts with the example app so session replay captures a few distinct screens.
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Status: Started successfully"
+    timeout: 40000
+- tapOn: "Log Info"
+- waitForAnimationToEnd
+- tapOn: "Sample Switch"
+- tapOn: "Log Error"
+- extendedWaitUntil:
+    visible: "Error Logged"
+    timeout: 5000
+# Leave the dialog up long enough for at least one periodic replay capture.
+- swipe:
+    direction: DOWN
+    duration: 4000
+- tapOn: "OK"
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Save & Restart SDK"
+    timeout: 5000
+- swipe:
+    direction: DOWN
+    duration: 4000
+- tapOn: "Back"
+- scrollUntilVisible:
+    element: "SDK Status"
+    direction: DOWN
