@@ -32,12 +32,9 @@ import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
-import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.asCoroutineDispatcher
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -79,8 +76,7 @@ object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
 
-    internal val commandRegistry =
-        CommandRegistry(CaptureJniLibrary) { CaptureDispatchers.Commands.executorService.asCoroutineDispatcher() }
+    internal val commandRegistry = CommandRegistry(CaptureJniLibrary)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -509,17 +505,24 @@ object Capture {
          * }
          * ```
          *
-         * Commands can be registered before or after [start]. Registering a key that is already
-         * registered replaces the previous handler and cancels its in-flight invocations.
+         * Commands can be registered before or after [start].
          *
-         * Invocations of the same command run sequentially, while different commands run
-         * concurrently. An invocation that does not complete within [timeout] is cancelled and
-         * reported as a timeout; blocking code that never suspends cannot be interrupted.
+         * Each command runs at most one invocation at a time: while one is in flight, further
+         * invocations of the same [key] fail immediately with a `busy` error rather than waiting.
+         * Different commands run in parallel on a dedicated pool of at most
+         * [CommandRegistry.MAX_PARALLELISM] I/O threads; when all threads are busy an invocation
+         * waits for a free one. A handler may block; it occupies one of those threads until it
+         * returns, without affecting the application's own dispatchers.
          *
-         * @param key the unique key identifying the command.
-         * @param dispatcher the dispatcher the handler runs on. Defaults to a dedicated single thread.
-         * @param timeout the maximum duration of an invocation, including time spent waiting for a
-         * previous invocation of the same command to finish.
+         * The SDK never cancels a running handler. An invocation that takes too long is reported
+         * as a timeout while the handler keeps running to completion, and its eventual result is
+         * discarded. Likewise, unregistering or re-registering [key] does not stop an invocation
+         * that has already started: it finishes with the handler it started with, and a new
+         * handler for the same key is only invoked once it has returned. Handlers must therefore
+         * tolerate running after [unregisterCommand] returns.
+         *
+         * @param key the unique key identifying the command. Registering a key that is already
+         * registered replaces the handler used by future invocations.
          * @param handler the suspending handler executing the command. Named arguments are read
          * through [CommandScope.argument] and [CommandScope.arguments].
          * @return a [CommandHandle] used to unregister the command.
@@ -527,13 +530,12 @@ object Capture {
         @ExperimentalBitdriftApi
         fun registerCommand(
             key: String,
-            dispatcher: CoroutineDispatcher? = null,
-            timeout: Duration = CommandRegistry.DEFAULT_TIMEOUT,
             handler: suspend CommandScope.() -> CommandResult,
-        ): CommandHandle = commandRegistry.register(key, dispatcher, timeout, handler)
+        ): CommandHandle = commandRegistry.register(key, handler)
 
         /**
-         * Unregisters the command registered with [key] and cancels its in-flight invocations.
+         * Unregisters the command registered with [key]. Invocations already running are not
+         * cancelled and complete normally; see [registerCommand].
          *
          * @return whether a command was registered with [key].
          */

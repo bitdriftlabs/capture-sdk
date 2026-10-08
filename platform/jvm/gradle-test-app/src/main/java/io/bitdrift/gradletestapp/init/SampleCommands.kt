@@ -96,11 +96,7 @@ object SampleCommands {
                 }
                 success(context = arguments)
             },
-            Capture.Logger.registerCommand(
-                key = "slow",
-                dispatcher = Dispatchers.IO,
-                timeout = 3.seconds,
-            ) {
+            Capture.Logger.registerCommand("slow") {
                 announce()
                 val seconds = argument("seconds")
                 val duration = seconds.toLongOrNull()?.seconds ?: return@registerCommand error("invalid_seconds", seconds)
@@ -111,11 +107,7 @@ object SampleCommands {
                 announce()
                 error("Unsupported", description = "this command always fails")
             },
-            Capture.Logger.registerCommand(
-                key = "system_trace",
-                dispatcher = Dispatchers.IO,
-                timeout = 30.seconds,
-            ) {
+            Capture.Logger.registerCommand("system_trace") {
                 announce()
                 val durationMs =
                     arguments["duration_ms"]?.let {

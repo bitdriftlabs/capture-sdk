@@ -9,57 +9,58 @@ package io.bitdrift.capture.commands
 
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.toFieldValue
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeout
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
+import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Keeps the handlers registered by the application and runs them when the Rust logger dispatches
+ * an invocation.
+ *
+ * Every invocation is launched on [dispatcher] and left alone: nothing is ever cancelled and
+ * timeouts are enforced by the Rust layer. The only rule between invocations is that a key runs
+ * one at a time: while one is in flight, further invocations of the same key fail with `busy`
+ * instead of waiting.
+ *
+ * Registration is not atomic with respect to [attach]: a key registered while the logger starts
+ * may be announced to the bridge twice, which Rust treats as a replacement, or left announced
+ * after being removed, which [dispatch] answers with `unregistered_command`.
+ */
 internal class CommandRegistry(
     private val bridge: ICommandBridge,
-    defaultDispatcher: () -> CoroutineDispatcher,
+    dispatcher: CoroutineDispatcher = defaultDispatcher(),
 ) : ICommandDispatcher {
-    private val defaultDispatcher by lazy(defaultDispatcher)
-    private val lock = Any()
-    private val registrations = HashMap<String, Registration>()
+    private val handlers = ConcurrentHashMap<String, suspend CommandScope.() -> CommandResult>()
+
+    /** Keys with an invocation in flight. A second invocation of the same key is rejected, not queued. */
+    private val running = ConcurrentHashMap.newKeySet<String>()
+
+    @Volatile
     private var loggerId: Long? = null
+    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
     fun register(
         key: String,
-        dispatcher: CoroutineDispatcher?,
-        timeout: Duration,
         handler: suspend CommandScope.() -> CommandResult,
     ): CommandHandle {
-        val registration = Registration(key, timeout, handler, dispatcher ?: defaultDispatcher)
-        synchronized(lock) {
-            registrations.put(key, registration)?.cancel()
-            loggerId?.let { bridge.registerCommand(it, key, this) }
-        }
-        return CommandHandle(key) { unregister(registration) }
+        handlers[key] = handler
+        loggerId?.let { bridge.registerCommand(it, key, this) }
+        return CommandHandle(key) { unregister(key) }
     }
 
-    fun unregister(key: String): Boolean =
-        synchronized(lock) {
-            val registration = registrations.remove(key) ?: return false
-            registration.cancel()
-            loggerId?.let { bridge.unregisterCommand(it, key) }
-            true
-        }
+    fun unregister(key: String): Boolean {
+        if (handlers.remove(key) == null) return false
+        loggerId?.let { bridge.unregisterCommand(it, key) }
+        return true
+    }
 
     fun attach(loggerId: Long) {
-        synchronized(lock) {
-            this.loggerId = loggerId
-            registrations.keys.forEach { bridge.registerCommand(loggerId, it, this) }
-        }
+        this.loggerId = loggerId
+        handlers.keys.forEach { bridge.registerCommand(loggerId, it, this) }
     }
 
     override fun dispatch(
@@ -70,23 +71,36 @@ internal class CommandRegistry(
         argumentNames: Array<String>,
         argumentValues: Array<String>,
     ) {
-        val registration = synchronized(lock) { registrations[key] }
-        val invocation = CommandInvocation(key, commandId, sessionId, argumentNames.zip(argumentValues).toMap())
-        if (registration == null) {
+        val handler = handlers[key]
+        if (handler == null) {
             complete(invocationId, CommandResult.Error("unregistered_command", "no handler registered for $key"))
             return
         }
-        registration.execute(invocation) { complete(invocationId, it) }
-    }
-
-    private fun unregister(registration: Registration) {
-        synchronized(lock) {
-            if (registrations[registration.key] !== registration) return
-            registrations.remove(registration.key)
-            registration.cancel()
-            loggerId?.let { bridge.unregisterCommand(it, registration.key) }
+        if (!running.add(key)) {
+            complete(invocationId, CommandResult.Error("busy", "an invocation of $key is already running"))
+            return
+        }
+        val invocation = CommandInvocation(key, commandId, sessionId, argumentNames.zip(argumentValues).toMap())
+        scope.launch {
+            try {
+                complete(invocationId, run(handler, invocation))
+            } finally {
+                running.remove(key)
+            }
         }
     }
+
+    private suspend fun run(
+        handler: suspend CommandScope.() -> CommandResult,
+        invocation: CommandInvocation,
+    ): CommandResult =
+        try {
+            invocation.handler()
+        } catch (e: MissingCommandArgumentException) {
+            CommandResult.Error("invalid_arguments", "missing argument ${e.name}")
+        } catch (e: Throwable) {
+            CommandResult.Error("handler_failed", e.toString())
+        }
 
     private fun complete(
         invocationId: Long,
@@ -114,47 +128,16 @@ internal class CommandRegistry(
 
     private fun Map<String, String>.toJniFields(): Array<Field> = map { (key, value) -> Field(key, value.toFieldValue()) }.toTypedArray()
 
-    private class Registration(
-        val key: String,
-        private val timeout: Duration,
-        private val handler: suspend CommandScope.() -> CommandResult,
-        dispatcher: CoroutineDispatcher,
-    ) {
-        private val scope = CoroutineScope(SupervisorJob() + dispatcher + CoroutineName("bitdrift.command.$key"))
-        private val mutex = Mutex()
-
-        fun execute(
-            invocation: CommandInvocation,
-            complete: (CommandResult) -> Unit,
-        ) {
-            val completed = AtomicBoolean(false)
-            val completeOnce = { result: CommandResult ->
-                if (completed.compareAndSet(false, true)) complete(result)
-            }
-            scope
-                .launch { completeOnce(run(invocation)) }
-                .invokeOnCompletion { cause -> completeOnce(CommandResult.Error("cancelled", cause?.message)) }
-        }
-
-        fun cancel() {
-            scope.cancel("command $key was unregistered")
-        }
-
-        private suspend fun run(invocation: CommandInvocation): CommandResult =
-            try {
-                withTimeout(timeout) { mutex.withLock { invocation.handler() } }
-            } catch (e: MissingCommandArgumentException) {
-                CommandResult.Error("invalid_arguments", "missing argument ${e.name}")
-            } catch (e: TimeoutCancellationException) {
-                CommandResult.Error("timeout", "command did not complete within $timeout")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                CommandResult.Error("handler_failed", e.toString())
-            }
-    }
-
     companion object {
-        val DEFAULT_TIMEOUT = 10.seconds
+        /** The maximum number of command handlers running in parallel, across all keys. */
+        const val MAX_PARALLELISM = 10
+
+        /**
+         * Handlers may block (file reads, memory dumps, profiling), so they get their own slice of
+         * [Dispatchers.IO]: its threads are created on demand and do not count against the
+         * application's CPU-bound [Dispatchers.Default] pool or the IO pool's shared limit.
+         */
+        @OptIn(ExperimentalCoroutinesApi::class)
+        private fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_PARALLELISM)
     }
 }
