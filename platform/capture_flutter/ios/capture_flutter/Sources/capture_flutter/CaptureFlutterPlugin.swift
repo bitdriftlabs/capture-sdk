@@ -92,6 +92,52 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             handleUpdateReplayRects(call, result: result)
         case "getReportContext":
             result(Self.reportContext())
+        case "logAppLaunchTTI":
+            guard let args = call.arguments as? [String: Any],
+                  let durationMs = args["durationMs"] as? NSNumber else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing durationMs", details: nil))
+                return
+            }
+            Logger.logAppLaunchTTI(durationMs.doubleValue / 1000)
+            result(nil)
+        case "logNetworkRequest":
+            guard let args = call.arguments as? [String: Any] else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing request", details: nil))
+                return
+            }
+            Logger.log(Self.httpRequestInfo(args))
+            result(nil)
+        case "logNetworkResponse":
+            guard let args = call.arguments as? [String: Any],
+                  let request = args["request"] as? [String: Any] else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing response", details: nil))
+                return
+            }
+            Logger.log(Self.httpResponseInfo(args, request: Self.httpRequestInfo(request)))
+            result(nil)
+        case "getPreviousRunInfo":
+            result(Logger.previousRunInfo.map { info in
+                [
+                    "hasFatallyTerminated": info.hasFatallyTerminated,
+                    "terminationReason": String(describing: info.terminationReason),
+                ] as [String: Any]
+            })
+        case "setSleepMode":
+            let args = call.arguments as? [String: Any]
+            Logger.setSleepMode(Self.sleepMode(args?["mode"] as? String))
+            result(nil)
+        case "setFeatureFlagExposure":
+            guard let args = call.arguments as? [String: Any],
+                  let name = args["name"] as? String else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing name", details: nil))
+                return
+            }
+            if let variant = args["variant"] as? Bool {
+                Logger.setFeatureFlagExposure(withName: name, variant: variant)
+            } else {
+                Logger.setFeatureFlagExposure(withName: name, variant: "\(args["variant"] ?? "")")
+            }
+            result(nil)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -115,13 +161,17 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             : nil
         let configuration = Configuration(
             sessionReplayConfiguration: sessionReplayConfiguration,
+            sleepMode: Self.sleepMode(args["sleepMode"] as? String),
+            enableFatalIssueReporting: args["enableFatalIssueReporting"] as? Bool ?? true,
             apiURL: URL(string: apiUrl)!
         )
+        let initialFields = (args["initialFields"] as? [String: String]) ?? [:]
 
         Logger.start(
             withAPIKey: apiKey,
             sessionStrategy: sessionStrategy,
-            configuration: configuration
+            configuration: configuration,
+            initialFields: initialFields
         )
         result(true)
     }
@@ -274,5 +324,60 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
         }
 
         return String(cString: buffer)
+    }
+
+    private static func sleepMode(_ name: String?) -> SleepMode {
+        name == "enabled" ? .enabled : .disabled
+    }
+
+    private static func httpRequestInfo(_ args: [String: Any]) -> HTTPRequestInfo {
+        let path = (args["path"] as? String).map {
+            HTTPURLPath(value: $0, template: args["pathTemplate"] as? String)
+        }
+        return HTTPRequestInfo(
+            method: args["method"] as? String ?? "GET",
+            host: args["host"] as? String,
+            path: path,
+            query: args["query"] as? String,
+            headers: args["headers"] as? [String: String],
+            bytesExpectedToSendCount: (args["bytesExpectedToSendCount"] as? NSNumber)?.int64Value,
+            spanID: args["spanId"] as? String ?? UUID().uuidString,
+            extraFields: args["extraFields"] as? [String: String]
+        )
+    }
+
+    private static func httpResponseInfo(_ args: [String: Any], request: HTTPRequestInfo) -> HTTPResponseInfo {
+        let result: HTTPResponse.HTTPResult
+        switch args["result"] as? String {
+        case "success": result = .success
+        case "canceled": result = .canceled
+        default: result = .failure
+        }
+
+        var extraFields: Fields = [:]
+        let optionalFields: [(String, Any?)] = [
+            ("_error_type", args["errorType"]),
+            ("_error_message", args["errorMessage"]),
+            ("_request_body_bytes_sent_count", args["requestBodyBytesSentCount"]),
+            ("_response_body_bytes_received_count", args["responseBodyBytesReceivedCount"]),
+        ]
+        for case let (key, value?) in optionalFields where !(value is NSNull) {
+            extraFields[key] = "\(value)"
+        }
+        for (key, value) in (args["extraFields"] as? [String: String]) ?? [:] {
+            extraFields[key] = value
+        }
+
+        return HTTPResponseInfo(
+            requestInfo: request,
+            response: HTTPResponse(
+                result: result,
+                headers: args["headers"] as? [String: String],
+                statusCode: (args["statusCode"] as? NSNumber)?.intValue,
+                error: nil
+            ),
+            duration: ((args["durationMs"] as? NSNumber)?.doubleValue ?? 0) / 1000,
+            extraFields: extraFields
+        )
     }
 }

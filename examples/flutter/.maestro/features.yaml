@@ -1,0 +1,34 @@
+# Exercises network logging, error logging, feature flags, previous run info, and sleep mode.
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Status: Started successfully"
+    timeout: 40000
+- scrollUntilVisible:
+    element: "Network Request"
+    direction: DOWN
+- tapOn: "Network Request"
+- extendedWaitUntil:
+    visible: "Network request.*"
+    timeout: 20000
+- scrollUntilVisible:
+    element: "Log Error With Stack"
+    direction: DOWN
+- tapOn: "Log Error With Stack"
+- scrollUntilVisible:
+    element: "Expose Feature Flags"
+    direction: DOWN
+- tapOn: "Expose Feature Flags"
+- scrollUntilVisible:
+    element: "Previous Run Info"
+    direction: DOWN
+- tapOn: "Previous Run Info"
+- extendedWaitUntil:
+    visible: "Previous run: .*"
+    timeout: 5000
+- scrollUntilVisible:
+    element: "Sleep Mode"
+    direction: DOWN
+- tapOn: "Sleep Mode"
+- tapOn: "Sleep Mode"

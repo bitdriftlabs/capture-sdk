@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'configuration.dart';
 import 'error_reporter.dart';
 import 'log_level.dart';
+import 'network.dart';
 import 'session_replay.dart';
 import 'span.dart';
 
@@ -43,12 +45,18 @@ class Capture {
   ///
   /// When [enableDartErrorReporting] is true, uncaught Dart errors are
   /// persisted as issue reports and uploaded on the next launch.
+  /// [enableFatalIssueReporting] controls native crash and ANR reporting.
+  /// [initialFields] are attached to every log from the start of the
+  /// session.
   static Future<bool> start({
     required String apiKey,
     SessionStrategy sessionStrategy = SessionStrategy.fixed,
     String apiUrl = 'https://api.bitdrift.io',
     bool enableSessionReplay = false,
     bool enableDartErrorReporting = true,
+    bool enableFatalIssueReporting = true,
+    SleepMode sleepMode = SleepMode.disabled,
+    Map<String, String> initialFields = const {},
   }) async {
     if (enableDartErrorReporting) {
       await prepareDartErrorReporter(_channel);
@@ -59,6 +67,9 @@ class Capture {
       'sessionStrategy': sessionStrategy.name,
       'apiUrl': apiUrl,
       'enableSessionReplay': enableSessionReplay,
+      'enableFatalIssueReporting': enableFatalIssueReporting,
+      'sleepMode': sleepMode.name,
+      'initialFields': initialFields,
     });
     _started = result ?? false;
     if (_started && enableSessionReplay) {
@@ -81,32 +92,110 @@ class Capture {
   // -- Logging --
 
   /// Log a message at the given [level] with optional [fields].
+  ///
+  /// When an [error] is provided its type and description are attached as
+  /// `_error` and `_error_details`, and [stackTrace] as `_error_stack_trace`.
   static Future<void> log(
     LogLevel level,
     String message, {
     Map<String, String>? fields,
+    Object? error,
+    StackTrace? stackTrace,
   }) async {
+    final allFields = {
+      ...?fields,
+      if (error != null) ...{
+        '_error': error.runtimeType.toString(),
+        '_error_details': error.toString(),
+      },
+      if (stackTrace != null && stackTrace != StackTrace.empty)
+        '_error_stack_trace': stackTrace.toString(),
+    };
     await _channel.invokeMethod('log', {
       'level': level.name,
       'message': message,
-      if (fields != null) 'fields': fields,
+      if (allFields.isNotEmpty) 'fields': allFields,
     });
   }
 
-  static Future<void> logTrace(String msg, {Map<String, String>? fields}) =>
-      log(LogLevel.trace, msg, fields: fields);
+  static Future<void> logTrace(
+    String msg, {
+    Map<String, String>? fields,
+    Object? error,
+    StackTrace? stackTrace,
+  }) => log(
+    LogLevel.trace,
+    msg,
+    fields: fields,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
-  static Future<void> logDebug(String msg, {Map<String, String>? fields}) =>
-      log(LogLevel.debug, msg, fields: fields);
+  static Future<void> logDebug(
+    String msg, {
+    Map<String, String>? fields,
+    Object? error,
+    StackTrace? stackTrace,
+  }) => log(
+    LogLevel.debug,
+    msg,
+    fields: fields,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
-  static Future<void> logInfo(String msg, {Map<String, String>? fields}) =>
-      log(LogLevel.info, msg, fields: fields);
+  static Future<void> logInfo(
+    String msg, {
+    Map<String, String>? fields,
+    Object? error,
+    StackTrace? stackTrace,
+  }) => log(
+    LogLevel.info,
+    msg,
+    fields: fields,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
-  static Future<void> logWarning(String msg, {Map<String, String>? fields}) =>
-      log(LogLevel.warning, msg, fields: fields);
+  static Future<void> logWarning(
+    String msg, {
+    Map<String, String>? fields,
+    Object? error,
+    StackTrace? stackTrace,
+  }) => log(
+    LogLevel.warning,
+    msg,
+    fields: fields,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
-  static Future<void> logError(String msg, {Map<String, String>? fields}) =>
-      log(LogLevel.error, msg, fields: fields);
+  static Future<void> logError(
+    String msg, {
+    Map<String, String>? fields,
+    Object? error,
+    StackTrace? stackTrace,
+  }) => log(
+    LogLevel.error,
+    msg,
+    fields: fields,
+    error: error,
+    stackTrace: stackTrace,
+  );
+
+  /// Log the time it took for the app to become interactive after launch.
+  static Future<void> logAppLaunchTTI(Duration duration) => _channel
+      .invokeMethod('logAppLaunchTTI', {'durationMs': duration.inMilliseconds});
+
+  // -- Network --
+
+  /// Log the start of a network request.
+  static Future<void> logNetworkRequest(HttpRequestInfo request) =>
+      _channel.invokeMethod('logNetworkRequest', request.toMap());
+
+  /// Log the completion of a network request.
+  static Future<void> logNetworkResponse(HttpResponseInfo response) =>
+      _channel.invokeMethod('logNetworkResponse', response.toMap());
 
   /// Log a screen view event.
   static Future<void> logScreenView(String screenName) =>
@@ -139,6 +228,36 @@ class Capture {
     final result = await _channel.invokeMethod<Map>('getSdkStatus');
     return result?.cast<String, dynamic>();
   }
+
+  /// Information about how the previous app run ended, or null if the SDK
+  /// has not started or the information is unavailable.
+  static Future<PreviousRunInfo?> get previousRunInfo async {
+    final result = await _channel.invokeMethod<Map>('getPreviousRunInfo');
+    return result == null
+        ? null
+        : PreviousRunInfo.fromMap(result.cast<String, dynamic>());
+  }
+
+  /// Set the operation mode of the logger. Sleep mode reduces SDK activity
+  /// to a minimum.
+  static Future<void> setSleepMode(SleepMode mode) =>
+      _channel.invokeMethod('setSleepMode', {'mode': mode.name});
+
+  // -- Feature Flags --
+
+  /// Record the exposure of a feature flag with a string [variant].
+  static Future<void> setFeatureFlagExposure(String name, String variant) =>
+      _channel.invokeMethod('setFeatureFlagExposure', {
+        'name': name,
+        'variant': variant,
+      });
+
+  /// Record the exposure of a feature flag with a boolean [variant].
+  static Future<void> setFeatureFlagExposureBool(String name, bool variant) =>
+      _channel.invokeMethod('setFeatureFlagExposure', {
+        'name': name,
+        'variant': variant,
+      });
 
   // -- Fields --
 

@@ -7,6 +7,7 @@ maestro test -e APP_ID=<app id> -e API_KEY=<key> -e API_URL=<api url> configure_
 maestro test -e APP_ID=<app id> session_replay.yaml
 maestro test -e APP_ID=<app id> dart_error_report.yaml
 maestro test -e APP_ID=<app id> native_crash.yaml
+maestro test -e APP_ID=<app id> features.yaml
 ```
 
 `configure_sdk.yaml` clears the app state, so run it first. On Android, a local API server needs

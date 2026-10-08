@@ -6,7 +6,6 @@ library bitdrift_public.fbs.issue_reporting.v1;
 import 'dart:typed_data' show Uint8List;
 import 'package:flat_buffers/flat_buffers.dart' as fb;
 
-
 import 'common_generated.dart' as bitdrift_public_fbs_common_v1;
 
 enum ReportType {
@@ -25,16 +24,26 @@ enum ReportType {
 
   factory ReportType.fromValue(int value) {
     switch (value) {
-      case 0: return ReportType.Unknown;
-      case 1: return ReportType.AppNotResponding;
-      case 2: return ReportType.HandledError;
-      case 3: return ReportType.JVMCrash;
-      case 4: return ReportType.MemoryTermination;
-      case 5: return ReportType.NativeCrash;
-      case 6: return ReportType.StrictModeViolation;
-      case 7: return ReportType.JavaScriptNonFatalError;
-      case 8: return ReportType.JavaScriptFatalError;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return ReportType.Unknown;
+      case 1:
+        return ReportType.AppNotResponding;
+      case 2:
+        return ReportType.HandledError;
+      case 3:
+        return ReportType.JVMCrash;
+      case 4:
+        return ReportType.MemoryTermination;
+      case 5:
+        return ReportType.NativeCrash;
+      case 6:
+        return ReportType.StrictModeViolation;
+      case 7:
+        return ReportType.JavaScriptNonFatalError;
+      case 8:
+        return ReportType.JavaScriptFatalError;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -71,14 +80,22 @@ enum Platform {
 
   factory Platform.fromValue(int value) {
     switch (value) {
-      case 0: return Platform.Unknown;
-      case 1: return Platform.Android;
-      case 2: return Platform.iOS;
-      case 3: return Platform.macOS;
-      case 4: return Platform.tvOS;
-      case 5: return Platform.visionOS;
-      case 6: return Platform.watchOS;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return Platform.Unknown;
+      case 1:
+        return Platform.Android;
+      case 2:
+        return Platform.iOS;
+      case 3:
+        return Platform.macOS;
+      case 4:
+        return Platform.tvOS;
+      case 5:
+        return Platform.visionOS;
+      case 6:
+        return Platform.watchOS;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -113,12 +130,18 @@ enum Architecture {
 
   factory Architecture.fromValue(int value) {
     switch (value) {
-      case 0: return Architecture.Unknown;
-      case 1: return Architecture.arm32;
-      case 2: return Architecture.arm64;
-      case 3: return Architecture.x86;
-      case 4: return Architecture.x86_64;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return Architecture.Unknown;
+      case 1:
+        return Architecture.arm32;
+      case 2:
+        return Architecture.arm64;
+      case 3:
+        return Architecture.x86;
+      case 4:
+        return Architecture.x86_64;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -153,12 +176,18 @@ enum FrameType {
 
   factory FrameType.fromValue(int value) {
     switch (value) {
-      case 0: return FrameType.Unknown;
-      case 1: return FrameType.JVM;
-      case 2: return FrameType.DWARF;
-      case 3: return FrameType.AndroidNative;
-      case 4: return FrameType.JavaScript;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return FrameType.Unknown;
+      case 1:
+        return FrameType.JVM;
+      case 2:
+        return FrameType.DWARF;
+      case 3:
+        return FrameType.AndroidNative;
+      case 4:
+        return FrameType.JavaScript;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -189,8 +218,10 @@ enum ErrorRelation {
 
   factory ErrorRelation.fromValue(int value) {
     switch (value) {
-      case 1: return ErrorRelation.CausedBy;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 1:
+        return ErrorRelation.CausedBy;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -223,10 +254,14 @@ enum CrashReporterScope {
 
   factory CrashReporterScope.fromValue(int value) {
     switch (value) {
-      case 0: return CrashReporterScope.Unknown;
-      case 1: return CrashReporterScope.InProcess;
-      case 2: return CrashReporterScope.OutOfProcess;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return CrashReporterScope.Unknown;
+      case 1:
+        return CrashReporterScope.InProcess;
+      case 2:
+        return CrashReporterScope.OutOfProcess;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -235,7 +270,8 @@ enum CrashReporterScope {
 
   static const int minValue = 0;
   static const int maxValue = 2;
-  static const fb.Reader<CrashReporterScope> reader = _CrashReporterScopeReader();
+  static const fb.Reader<CrashReporterScope> reader =
+      _CrashReporterScopeReader();
 }
 
 class _CrashReporterScopeReader extends fb.Reader<CrashReporterScope> {
@@ -262,13 +298,20 @@ enum CrashReporter {
 
   factory CrashReporter.fromValue(int value) {
     switch (value) {
-      case 0: return CrashReporter.Unknown;
-      case 1: return CrashReporter.AppleMetricKit;
-      case 2: return CrashReporter.AppleKSCrash;
-      case 3: return CrashReporter.AppleBitdriftCrashReporter;
-      case 4: return CrashReporter.AndroidUncaughtExceptionHandler;
-      case 5: return CrashReporter.AndroidApplicationExitInfo;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return CrashReporter.Unknown;
+      case 1:
+        return CrashReporter.AppleMetricKit;
+      case 2:
+        return CrashReporter.AppleKSCrash;
+      case 3:
+        return CrashReporter.AppleBitdriftCrashReporter;
+      case 4:
+        return CrashReporter.AndroidUncaughtExceptionHandler;
+      case 5:
+        return CrashReporter.AndroidApplicationExitInfo;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -303,12 +346,18 @@ enum PowerState {
 
   factory PowerState.fromValue(int value) {
     switch (value) {
-      case 0: return PowerState.Unknown;
-      case 1: return PowerState.RunningOnBattery;
-      case 2: return PowerState.PluggedInNoBattery;
-      case 3: return PowerState.PluggedInCharging;
-      case 4: return PowerState.PluggedInCharged;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return PowerState.Unknown;
+      case 1:
+        return PowerState.RunningOnBattery;
+      case 2:
+        return PowerState.PluggedInNoBattery;
+      case 3:
+        return PowerState.PluggedInCharging;
+      case 4:
+        return PowerState.PluggedInCharged;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -342,11 +391,16 @@ enum NetworkState {
 
   factory NetworkState.fromValue(int value) {
     switch (value) {
-      case 0: return NetworkState.Unknown;
-      case 1: return NetworkState.Disconnected;
-      case 2: return NetworkState.Cellular;
-      case 3: return NetworkState.WiFi;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return NetworkState.Unknown;
+      case 1:
+        return NetworkState.Disconnected;
+      case 2:
+        return NetworkState.Cellular;
+      case 3:
+        return NetworkState.WiFi;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -379,10 +433,14 @@ enum JavaScriptEngine {
 
   factory JavaScriptEngine.fromValue(int value) {
     switch (value) {
-      case 0: return JavaScriptEngine.UnknownJsEngine;
-      case 1: return JavaScriptEngine.JavaScriptCore;
-      case 2: return JavaScriptEngine.Hermes;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return JavaScriptEngine.UnknownJsEngine;
+      case 1:
+        return JavaScriptEngine.JavaScriptCore;
+      case 2:
+        return JavaScriptEngine.Hermes;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -416,11 +474,16 @@ enum MemoryPressureLevel {
 
   factory MemoryPressureLevel.fromValue(int value) {
     switch (value) {
-      case 0: return MemoryPressureLevel.Unknown;
-      case 1: return MemoryPressureLevel.Normal;
-      case 2: return MemoryPressureLevel.Warning;
-      case 3: return MemoryPressureLevel.Critical;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return MemoryPressureLevel.Unknown;
+      case 1:
+        return MemoryPressureLevel.Normal;
+      case 2:
+        return MemoryPressureLevel.Warning;
+      case 3:
+        return MemoryPressureLevel.Critical;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -429,7 +492,8 @@ enum MemoryPressureLevel {
 
   static const int minValue = 0;
   static const int maxValue = 3;
-  static const fb.Reader<MemoryPressureLevel> reader = _MemoryPressureLevelReader();
+  static const fb.Reader<MemoryPressureLevel> reader =
+      _MemoryPressureLevelReader();
 }
 
 class _MemoryPressureLevelReader extends fb.Reader<MemoryPressureLevel> {
@@ -456,13 +520,20 @@ enum AppEnvironment {
 
   factory AppEnvironment.fromValue(int value) {
     switch (value) {
-      case 0: return AppEnvironment.Unknown;
-      case 1: return AppEnvironment.Debug;
-      case 2: return AppEnvironment.AdHoc;
-      case 3: return AppEnvironment.Enterprise;
-      case 4: return AppEnvironment.TestFlight;
-      case 5: return AppEnvironment.Production;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return AppEnvironment.Unknown;
+      case 1:
+        return AppEnvironment.Debug;
+      case 2:
+        return AppEnvironment.AdHoc;
+      case 3:
+        return AppEnvironment.Enterprise;
+      case 4:
+        return AppEnvironment.TestFlight;
+      case 5:
+        return AppEnvironment.Production;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -497,12 +568,18 @@ enum Rotation {
 
   factory Rotation.fromValue(int value) {
     switch (value) {
-      case 0: return Rotation.Unknown;
-      case 1: return Rotation.Portrait;
-      case 2: return Rotation.LandscapeRight;
-      case 3: return Rotation.LandscapeLeft;
-      case 4: return Rotation.PortraitUpsideDown;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return Rotation.Unknown;
+      case 1:
+        return Rotation.Portrait;
+      case 2:
+        return Rotation.LandscapeRight;
+      case 3:
+        return Rotation.LandscapeLeft;
+      case 4:
+        return Rotation.PortraitUpsideDown;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -537,12 +614,18 @@ enum FrameStatus {
 
   factory FrameStatus.fromValue(int value) {
     switch (value) {
-      case 0: return FrameStatus.Missing;
-      case 1: return FrameStatus.Symbolicated;
-      case 2: return FrameStatus.MissingSymbol;
-      case 3: return FrameStatus.UnknownImage;
-      case 4: return FrameStatus.Malformed;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return FrameStatus.Missing;
+      case 1:
+        return FrameStatus.Symbolicated;
+      case 2:
+        return FrameStatus.MissingSymbol;
+      case 3:
+        return FrameStatus.UnknownImage;
+      case 4:
+        return FrameStatus.Malformed;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -574,9 +657,12 @@ enum CrashInfoDetailsTypeId {
 
   factory CrashInfoDetailsTypeId.fromValue(int value) {
     switch (value) {
-      case 0: return CrashInfoDetailsTypeId.NONE;
-      case 1: return CrashInfoDetailsTypeId.AppleCrashDetails;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return CrashInfoDetailsTypeId.NONE;
+      case 1:
+        return CrashInfoDetailsTypeId.AppleCrashDetails;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -585,7 +671,8 @@ enum CrashInfoDetailsTypeId {
 
   static const int minValue = 0;
   static const int maxValue = 1;
-  static const fb.Reader<CrashInfoDetailsTypeId> reader = _CrashInfoDetailsTypeIdReader();
+  static const fb.Reader<CrashInfoDetailsTypeId> reader =
+      _CrashInfoDetailsTypeIdReader();
 }
 
 class _CrashInfoDetailsTypeIdReader extends fb.Reader<CrashInfoDetailsTypeId> {
@@ -623,8 +710,8 @@ class _TimestampReader extends fb.StructReader<Timestamp> {
   int get size => 16;
 
   @override
-  Timestamp createObject(fb.BufferContext bc, int offset) => 
-    Timestamp._(bc, offset);
+  Timestamp createObject(fb.BufferContext bc, int offset) =>
+      Timestamp._(bc, offset);
 }
 
 class TimestampBuilder {
@@ -639,19 +726,15 @@ class TimestampBuilder {
     fbBuilder.putUint64(seconds);
     return fbBuilder.offset;
   }
-
 }
 
 class TimestampObjectBuilder extends fb.ObjectBuilder {
   final int _seconds;
   final int _nanos;
 
-  TimestampObjectBuilder({
-    required int seconds,
-    required int nanos,
-  })
-      : _seconds = seconds,
-        _nanos = nanos;
+  TimestampObjectBuilder({required int seconds, required int nanos})
+    : _seconds = seconds,
+      _nanos = nanos;
 
   /// Finish building, and store into the [fbBuilder].
   @override
@@ -671,6 +754,7 @@ class TimestampObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Memory {
   Memory._(this._bc, this._bcOffset);
 
@@ -696,8 +780,7 @@ class _MemoryReader extends fb.StructReader<Memory> {
   int get size => 24;
 
   @override
-  Memory createObject(fb.BufferContext bc, int offset) => 
-    Memory._(bc, offset);
+  Memory createObject(fb.BufferContext bc, int offset) => Memory._(bc, offset);
 }
 
 class MemoryBuilder {
@@ -711,7 +794,6 @@ class MemoryBuilder {
     fbBuilder.putUint64(total);
     return fbBuilder.offset;
   }
-
 }
 
 class MemoryObjectBuilder extends fb.ObjectBuilder {
@@ -723,10 +805,9 @@ class MemoryObjectBuilder extends fb.ObjectBuilder {
     required int total,
     required int free,
     required int used,
-  })
-      : _total = total,
-        _free = free,
-        _used = used;
+  }) : _total = total,
+       _free = free,
+       _used = used;
 
   /// Finish building, and store into the [fbBuilder].
   @override
@@ -745,6 +826,7 @@ class MemoryObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class AppBuildNumber {
   AppBuildNumber._(this._bc, this._bcOffset);
   factory AppBuildNumber(List<int> bytes) {
@@ -758,7 +840,8 @@ class AppBuildNumber {
   final int _bcOffset;
 
   int get versionCode => const fb.Int64Reader().vTableGet(_bc, _bcOffset, 4, 0);
-  String? get cfBundleVersion => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  String? get cfBundleVersion =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
 
   @override
   String toString() {
@@ -770,8 +853,8 @@ class _AppBuildNumberReader extends fb.TableReader<AppBuildNumber> {
   const _AppBuildNumberReader();
 
   @override
-  AppBuildNumber createObject(fb.BufferContext bc, int offset) => 
-    AppBuildNumber._(bc, offset);
+  AppBuildNumber createObject(fb.BufferContext bc, int offset) =>
+      AppBuildNumber._(bc, offset);
 }
 
 class AppBuildNumberBuilder {
@@ -787,6 +870,7 @@ class AppBuildNumberBuilder {
     fbBuilder.addInt64(0, versionCode);
     return fbBuilder.offset;
   }
+
   int addCfBundleVersionOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
@@ -801,17 +885,15 @@ class AppBuildNumberObjectBuilder extends fb.ObjectBuilder {
   final int? _versionCode;
   final String? _cfBundleVersion;
 
-  AppBuildNumberObjectBuilder({
-    int? versionCode,
-    String? cfBundleVersion,
-  })
-      : _versionCode = versionCode,
-        _cfBundleVersion = cfBundleVersion;
+  AppBuildNumberObjectBuilder({int? versionCode, String? cfBundleVersion})
+    : _versionCode = versionCode,
+      _cfBundleVersion = cfBundleVersion;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? cfBundleVersionOffset = _cfBundleVersion == null ? null
+    final int? cfBundleVersionOffset = _cfBundleVersion == null
+        ? null
         : fbBuilder.writeString(_cfBundleVersion!);
     fbBuilder.startTable(2);
     fbBuilder.addInt64(0, _versionCode);
@@ -827,6 +909,7 @@ class AppBuildNumberObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class ProcessorUsage {
   ProcessorUsage._(this._bc, this._bcOffset);
   factory ProcessorUsage(List<int> bytes) {
@@ -839,7 +922,8 @@ class ProcessorUsage {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  int get durationSeconds => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 4, 0);
+  int get durationSeconds =>
+      const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 4, 0);
   int get usedPercent => const fb.Uint8Reader().vTableGet(_bc, _bcOffset, 6, 0);
 
   @override
@@ -852,8 +936,8 @@ class _ProcessorUsageReader extends fb.TableReader<ProcessorUsage> {
   const _ProcessorUsageReader();
 
   @override
-  ProcessorUsage createObject(fb.BufferContext bc, int offset) => 
-    ProcessorUsage._(bc, offset);
+  ProcessorUsage createObject(fb.BufferContext bc, int offset) =>
+      ProcessorUsage._(bc, offset);
 }
 
 class ProcessorUsageBuilder {
@@ -869,6 +953,7 @@ class ProcessorUsageBuilder {
     fbBuilder.addUint64(0, durationSeconds);
     return fbBuilder.offset;
   }
+
   int addUsedPercent(int? usedPercent) {
     fbBuilder.addUint8(1, usedPercent);
     return fbBuilder.offset;
@@ -883,12 +968,9 @@ class ProcessorUsageObjectBuilder extends fb.ObjectBuilder {
   final int? _durationSeconds;
   final int? _usedPercent;
 
-  ProcessorUsageObjectBuilder({
-    int? durationSeconds,
-    int? usedPercent,
-  })
-      : _durationSeconds = durationSeconds,
-        _usedPercent = usedPercent;
+  ProcessorUsageObjectBuilder({int? durationSeconds, int? usedPercent})
+    : _durationSeconds = durationSeconds,
+      _usedPercent = usedPercent;
 
   /// Finish building, and store into the [fbBuilder].
   @override
@@ -907,6 +989,7 @@ class ProcessorUsageObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class AppMetrics {
   AppMetrics._(this._bc, this._bcOffset);
   factory AppMetrics(List<int> bytes) {
@@ -919,21 +1002,37 @@ class AppMetrics {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get appId => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get appId =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
   Memory? get memory => Memory.reader.vTableGetNullable(_bc, _bcOffset, 6);
-  String? get version => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
-  AppBuildNumber? get buildNumber => AppBuildNumber.reader.vTableGetNullable(_bc, _bcOffset, 10);
-  String? get runningState => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 12);
+  String? get version =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
+  AppBuildNumber? get buildNumber =>
+      AppBuildNumber.reader.vTableGetNullable(_bc, _bcOffset, 10);
+  String? get runningState =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 12);
   int get processId => const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 14, 0);
-  String? get regionFormat => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 16);
-  ProcessorUsage? get cpuUsage => ProcessorUsage.reader.vTableGetNullable(_bc, _bcOffset, 18);
-  String? get lifecycleEvent => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 20);
-  JavaScriptEngine get javascriptEngine => JavaScriptEngine.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 22, 0));
-  MemoryPressureLevel get memoryPressureLevel => MemoryPressureLevel.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 24, 0));
-  Timestamp? get launchTime => Timestamp.reader.vTableGetNullable(_bc, _bcOffset, 26);
-  AppEnvironment get environment => AppEnvironment.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 28, 0));
-  String? get teamIdentifier => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 30);
-  String? get bundlePath => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 32);
+  String? get regionFormat =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 16);
+  ProcessorUsage? get cpuUsage =>
+      ProcessorUsage.reader.vTableGetNullable(_bc, _bcOffset, 18);
+  String? get lifecycleEvent =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 20);
+  JavaScriptEngine get javascriptEngine => JavaScriptEngine.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 22, 0),
+  );
+  MemoryPressureLevel get memoryPressureLevel => MemoryPressureLevel.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 24, 0),
+  );
+  Timestamp? get launchTime =>
+      Timestamp.reader.vTableGetNullable(_bc, _bcOffset, 26);
+  AppEnvironment get environment => AppEnvironment.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 28, 0),
+  );
+  String? get teamIdentifier =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 30);
+  String? get bundlePath =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 32);
 
   @override
   String toString() {
@@ -945,8 +1044,8 @@ class _AppMetricsReader extends fb.TableReader<AppMetrics> {
   const _AppMetricsReader();
 
   @override
-  AppMetrics createObject(fb.BufferContext bc, int offset) => 
-    AppMetrics._(bc, offset);
+  AppMetrics createObject(fb.BufferContext bc, int offset) =>
+      AppMetrics._(bc, offset);
 }
 
 class AppMetricsBuilder {
@@ -962,58 +1061,72 @@ class AppMetricsBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addMemory(int offset) {
     fbBuilder.addStruct(1, offset);
     return fbBuilder.offset;
   }
+
   int addVersionOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
   }
+
   int addBuildNumberOffset(int? offset) {
     fbBuilder.addOffset(3, offset);
     return fbBuilder.offset;
   }
+
   int addRunningStateOffset(int? offset) {
     fbBuilder.addOffset(4, offset);
     return fbBuilder.offset;
   }
+
   int addProcessId(int? processId) {
     fbBuilder.addUint32(5, processId);
     return fbBuilder.offset;
   }
+
   int addRegionFormatOffset(int? offset) {
     fbBuilder.addOffset(6, offset);
     return fbBuilder.offset;
   }
+
   int addCpuUsageOffset(int? offset) {
     fbBuilder.addOffset(7, offset);
     return fbBuilder.offset;
   }
+
   int addLifecycleEventOffset(int? offset) {
     fbBuilder.addOffset(8, offset);
     return fbBuilder.offset;
   }
+
   int addJavascriptEngine(JavaScriptEngine? javascriptEngine) {
     fbBuilder.addInt8(9, javascriptEngine?.value);
     return fbBuilder.offset;
   }
+
   int addMemoryPressureLevel(MemoryPressureLevel? memoryPressureLevel) {
     fbBuilder.addInt8(10, memoryPressureLevel?.value);
     return fbBuilder.offset;
   }
+
   int addLaunchTime(int offset) {
     fbBuilder.addStruct(11, offset);
     return fbBuilder.offset;
   }
+
   int addEnvironment(AppEnvironment? environment) {
     fbBuilder.addInt8(12, environment?.value);
     return fbBuilder.offset;
   }
+
   int addTeamIdentifierOffset(int? offset) {
     fbBuilder.addOffset(13, offset);
     return fbBuilder.offset;
   }
+
   int addBundlePathOffset(int? offset) {
     fbBuilder.addOffset(14, offset);
     return fbBuilder.offset;
@@ -1057,41 +1170,47 @@ class AppMetricsObjectBuilder extends fb.ObjectBuilder {
     AppEnvironment? environment,
     String? teamIdentifier,
     String? bundlePath,
-  })
-      : _appId = appId,
-        _memory = memory,
-        _version = version,
-        _buildNumber = buildNumber,
-        _runningState = runningState,
-        _processId = processId,
-        _regionFormat = regionFormat,
-        _cpuUsage = cpuUsage,
-        _lifecycleEvent = lifecycleEvent,
-        _javascriptEngine = javascriptEngine,
-        _memoryPressureLevel = memoryPressureLevel,
-        _launchTime = launchTime,
-        _environment = environment,
-        _teamIdentifier = teamIdentifier,
-        _bundlePath = bundlePath;
+  }) : _appId = appId,
+       _memory = memory,
+       _version = version,
+       _buildNumber = buildNumber,
+       _runningState = runningState,
+       _processId = processId,
+       _regionFormat = regionFormat,
+       _cpuUsage = cpuUsage,
+       _lifecycleEvent = lifecycleEvent,
+       _javascriptEngine = javascriptEngine,
+       _memoryPressureLevel = memoryPressureLevel,
+       _launchTime = launchTime,
+       _environment = environment,
+       _teamIdentifier = teamIdentifier,
+       _bundlePath = bundlePath;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? appIdOffset = _appId == null ? null
+    final int? appIdOffset = _appId == null
+        ? null
         : fbBuilder.writeString(_appId!);
-    final int? versionOffset = _version == null ? null
+    final int? versionOffset = _version == null
+        ? null
         : fbBuilder.writeString(_version!);
     final int? buildNumberOffset = _buildNumber?.getOrCreateOffset(fbBuilder);
-    final int? runningStateOffset = _runningState == null ? null
+    final int? runningStateOffset = _runningState == null
+        ? null
         : fbBuilder.writeString(_runningState!);
-    final int? regionFormatOffset = _regionFormat == null ? null
+    final int? regionFormatOffset = _regionFormat == null
+        ? null
         : fbBuilder.writeString(_regionFormat!);
     final int? cpuUsageOffset = _cpuUsage?.getOrCreateOffset(fbBuilder);
-    final int? lifecycleEventOffset = _lifecycleEvent == null ? null
+    final int? lifecycleEventOffset = _lifecycleEvent == null
+        ? null
         : fbBuilder.writeString(_lifecycleEvent!);
-    final int? teamIdentifierOffset = _teamIdentifier == null ? null
+    final int? teamIdentifierOffset = _teamIdentifier == null
+        ? null
         : fbBuilder.writeString(_teamIdentifier!);
-    final int? bundlePathOffset = _bundlePath == null ? null
+    final int? bundlePathOffset = _bundlePath == null
+        ? null
         : fbBuilder.writeString(_bundlePath!);
     fbBuilder.startTable(15);
     fbBuilder.addOffset(0, appIdOffset);
@@ -1124,6 +1243,7 @@ class AppMetricsObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Osbuild {
   Osbuild._(this._bc, this._bcOffset);
   factory Osbuild(List<int> bytes) {
@@ -1136,10 +1256,14 @@ class Osbuild {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get version => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
-  String? get brand => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
-  String? get fingerprint => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
-  String? get kernOsversion => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 10);
+  String? get version =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get brand =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  String? get fingerprint =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
+  String? get kernOsversion =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 10);
 
   @override
   String toString() {
@@ -1151,8 +1275,8 @@ class _OsbuildReader extends fb.TableReader<Osbuild> {
   const _OsbuildReader();
 
   @override
-  Osbuild createObject(fb.BufferContext bc, int offset) => 
-    Osbuild._(bc, offset);
+  Osbuild createObject(fb.BufferContext bc, int offset) =>
+      Osbuild._(bc, offset);
 }
 
 class OsbuildBuilder {
@@ -1168,14 +1292,17 @@ class OsbuildBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addBrandOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addFingerprintOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
   }
+
   int addKernOsversionOffset(int? offset) {
     fbBuilder.addOffset(3, offset);
     return fbBuilder.offset;
@@ -1197,22 +1324,25 @@ class OsbuildObjectBuilder extends fb.ObjectBuilder {
     String? brand,
     String? fingerprint,
     String? kernOsversion,
-  })
-      : _version = version,
-        _brand = brand,
-        _fingerprint = fingerprint,
-        _kernOsversion = kernOsversion;
+  }) : _version = version,
+       _brand = brand,
+       _fingerprint = fingerprint,
+       _kernOsversion = kernOsversion;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? versionOffset = _version == null ? null
+    final int? versionOffset = _version == null
+        ? null
         : fbBuilder.writeString(_version!);
-    final int? brandOffset = _brand == null ? null
+    final int? brandOffset = _brand == null
+        ? null
         : fbBuilder.writeString(_brand!);
-    final int? fingerprintOffset = _fingerprint == null ? null
+    final int? fingerprintOffset = _fingerprint == null
+        ? null
         : fbBuilder.writeString(_fingerprint!);
-    final int? kernOsversionOffset = _kernOsversion == null ? null
+    final int? kernOsversionOffset = _kernOsversion == null
+        ? null
         : fbBuilder.writeString(_kernOsversion!);
     fbBuilder.startTable(4);
     fbBuilder.addOffset(0, versionOffset);
@@ -1230,6 +1360,7 @@ class OsbuildObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class PowerMetrics {
   PowerMetrics._(this._bc, this._bcOffset);
   factory PowerMetrics(List<int> bytes) {
@@ -1242,8 +1373,11 @@ class PowerMetrics {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  PowerState get powerState => PowerState.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 4, 0));
-  int get chargePercent => const fb.Uint8Reader().vTableGet(_bc, _bcOffset, 6, 0);
+  PowerState get powerState => PowerState.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 4, 0),
+  );
+  int get chargePercent =>
+      const fb.Uint8Reader().vTableGet(_bc, _bcOffset, 6, 0);
 
   @override
   String toString() {
@@ -1255,8 +1389,8 @@ class _PowerMetricsReader extends fb.TableReader<PowerMetrics> {
   const _PowerMetricsReader();
 
   @override
-  PowerMetrics createObject(fb.BufferContext bc, int offset) => 
-    PowerMetrics._(bc, offset);
+  PowerMetrics createObject(fb.BufferContext bc, int offset) =>
+      PowerMetrics._(bc, offset);
 }
 
 class PowerMetricsBuilder {
@@ -1272,6 +1406,7 @@ class PowerMetricsBuilder {
     fbBuilder.addInt8(0, powerState?.value);
     return fbBuilder.offset;
   }
+
   int addChargePercent(int? chargePercent) {
     fbBuilder.addUint8(1, chargePercent);
     return fbBuilder.offset;
@@ -1286,12 +1421,9 @@ class PowerMetricsObjectBuilder extends fb.ObjectBuilder {
   final PowerState? _powerState;
   final int? _chargePercent;
 
-  PowerMetricsObjectBuilder({
-    PowerState? powerState,
-    int? chargePercent,
-  })
-      : _powerState = powerState,
-        _chargePercent = chargePercent;
+  PowerMetricsObjectBuilder({PowerState? powerState, int? chargePercent})
+    : _powerState = powerState,
+      _chargePercent = chargePercent;
 
   /// Finish building, and store into the [fbBuilder].
   @override
@@ -1310,6 +1442,7 @@ class PowerMetricsObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Display {
   Display._(this._bc, this._bcOffset);
   factory Display(List<int> bytes) {
@@ -1336,8 +1469,8 @@ class _DisplayReader extends fb.TableReader<Display> {
   const _DisplayReader();
 
   @override
-  Display createObject(fb.BufferContext bc, int offset) => 
-    Display._(bc, offset);
+  Display createObject(fb.BufferContext bc, int offset) =>
+      Display._(bc, offset);
 }
 
 class DisplayBuilder {
@@ -1353,10 +1486,12 @@ class DisplayBuilder {
     fbBuilder.addUint32(0, height);
     return fbBuilder.offset;
   }
+
   int addWidth(int? width) {
     fbBuilder.addUint32(1, width);
     return fbBuilder.offset;
   }
+
   int addDensityDpi(int? densityDpi) {
     fbBuilder.addUint32(2, densityDpi);
     return fbBuilder.offset;
@@ -1372,14 +1507,10 @@ class DisplayObjectBuilder extends fb.ObjectBuilder {
   final int? _width;
   final int? _densityDpi;
 
-  DisplayObjectBuilder({
-    int? height,
-    int? width,
-    int? densityDpi,
-  })
-      : _height = height,
-        _width = width,
-        _densityDpi = densityDpi;
+  DisplayObjectBuilder({int? height, int? width, int? densityDpi})
+    : _height = height,
+      _width = width,
+      _densityDpi = densityDpi;
 
   /// Finish building, and store into the [fbBuilder].
   @override
@@ -1399,6 +1530,7 @@ class DisplayObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class DeviceMetrics {
   DeviceMetrics._(this._bc, this._bcOffset);
   factory DeviceMetrics(List<int> bytes) {
@@ -1412,20 +1544,37 @@ class DeviceMetrics {
   final int _bcOffset;
 
   Timestamp? get time => Timestamp.reader.vTableGetNullable(_bc, _bcOffset, 4);
-  String? get timezone => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
-  PowerMetrics? get powerMetrics => PowerMetrics.reader.vTableGetNullable(_bc, _bcOffset, 8);
-  NetworkState get networkState => NetworkState.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 10, 0));
-  Rotation get rotation => Rotation.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 12, 0));
-  Architecture get arch => Architecture.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 14, 0));
+  String? get timezone =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  PowerMetrics? get powerMetrics =>
+      PowerMetrics.reader.vTableGetNullable(_bc, _bcOffset, 8);
+  NetworkState get networkState => NetworkState.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 10, 0),
+  );
+  Rotation get rotation => Rotation.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 12, 0),
+  );
+  Architecture get arch => Architecture.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 14, 0),
+  );
   Display? get display => Display.reader.vTableGetNullable(_bc, _bcOffset, 16);
-  String? get manufacturer => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 18);
-  String? get model => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 20);
+  String? get manufacturer =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 18);
+  String? get model =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 20);
   Osbuild? get osBuild => Osbuild.reader.vTableGetNullable(_bc, _bcOffset, 22);
-  Platform get platform => Platform.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 24, 0));
-  List<String>? get cpuAbis => const fb.ListReader<String>(fb.StringReader()).vTableGetNullable(_bc, _bcOffset, 26);
-  bool get lowPowerModeEnabled => const fb.BoolReader().vTableGet(_bc, _bcOffset, 28, false);
-  ProcessorUsage? get cpuUsage => ProcessorUsage.reader.vTableGetNullable(_bc, _bcOffset, 30);
-  int get thermalState => const fb.Uint8Reader().vTableGet(_bc, _bcOffset, 32, 0);
+  Platform get platform => Platform.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 24, 0),
+  );
+  List<String>? get cpuAbis => const fb.ListReader<String>(
+    fb.StringReader(),
+  ).vTableGetNullable(_bc, _bcOffset, 26);
+  bool get lowPowerModeEnabled =>
+      const fb.BoolReader().vTableGet(_bc, _bcOffset, 28, false);
+  ProcessorUsage? get cpuUsage =>
+      ProcessorUsage.reader.vTableGetNullable(_bc, _bcOffset, 30);
+  int get thermalState =>
+      const fb.Uint8Reader().vTableGet(_bc, _bcOffset, 32, 0);
 
   @override
   String toString() {
@@ -1437,8 +1586,8 @@ class _DeviceMetricsReader extends fb.TableReader<DeviceMetrics> {
   const _DeviceMetricsReader();
 
   @override
-  DeviceMetrics createObject(fb.BufferContext bc, int offset) => 
-    DeviceMetrics._(bc, offset);
+  DeviceMetrics createObject(fb.BufferContext bc, int offset) =>
+      DeviceMetrics._(bc, offset);
 }
 
 class DeviceMetricsBuilder {
@@ -1454,58 +1603,72 @@ class DeviceMetricsBuilder {
     fbBuilder.addStruct(0, offset);
     return fbBuilder.offset;
   }
+
   int addTimezoneOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addPowerMetricsOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
   }
+
   int addNetworkState(NetworkState? networkState) {
     fbBuilder.addInt8(3, networkState?.value);
     return fbBuilder.offset;
   }
+
   int addRotation(Rotation? rotation) {
     fbBuilder.addInt8(4, rotation?.value);
     return fbBuilder.offset;
   }
+
   int addArch(Architecture? arch) {
     fbBuilder.addInt8(5, arch?.value);
     return fbBuilder.offset;
   }
+
   int addDisplayOffset(int? offset) {
     fbBuilder.addOffset(6, offset);
     return fbBuilder.offset;
   }
+
   int addManufacturerOffset(int? offset) {
     fbBuilder.addOffset(7, offset);
     return fbBuilder.offset;
   }
+
   int addModelOffset(int? offset) {
     fbBuilder.addOffset(8, offset);
     return fbBuilder.offset;
   }
+
   int addOsBuildOffset(int? offset) {
     fbBuilder.addOffset(9, offset);
     return fbBuilder.offset;
   }
+
   int addPlatform(Platform? platform) {
     fbBuilder.addInt8(10, platform?.value);
     return fbBuilder.offset;
   }
+
   int addCpuAbisOffset(int? offset) {
     fbBuilder.addOffset(11, offset);
     return fbBuilder.offset;
   }
+
   int addLowPowerModeEnabled(bool? lowPowerModeEnabled) {
     fbBuilder.addBool(12, lowPowerModeEnabled);
     return fbBuilder.offset;
   }
+
   int addCpuUsageOffset(int? offset) {
     fbBuilder.addOffset(13, offset);
     return fbBuilder.offset;
   }
+
   int addThermalState(int? thermalState) {
     fbBuilder.addUint8(14, thermalState);
     return fbBuilder.offset;
@@ -1549,36 +1712,39 @@ class DeviceMetricsObjectBuilder extends fb.ObjectBuilder {
     bool? lowPowerModeEnabled,
     ProcessorUsageObjectBuilder? cpuUsage,
     int? thermalState,
-  })
-      : _time = time,
-        _timezone = timezone,
-        _powerMetrics = powerMetrics,
-        _networkState = networkState,
-        _rotation = rotation,
-        _arch = arch,
-        _display = display,
-        _manufacturer = manufacturer,
-        _model = model,
-        _osBuild = osBuild,
-        _platform = platform,
-        _cpuAbis = cpuAbis,
-        _lowPowerModeEnabled = lowPowerModeEnabled,
-        _cpuUsage = cpuUsage,
-        _thermalState = thermalState;
+  }) : _time = time,
+       _timezone = timezone,
+       _powerMetrics = powerMetrics,
+       _networkState = networkState,
+       _rotation = rotation,
+       _arch = arch,
+       _display = display,
+       _manufacturer = manufacturer,
+       _model = model,
+       _osBuild = osBuild,
+       _platform = platform,
+       _cpuAbis = cpuAbis,
+       _lowPowerModeEnabled = lowPowerModeEnabled,
+       _cpuUsage = cpuUsage,
+       _thermalState = thermalState;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? timezoneOffset = _timezone == null ? null
+    final int? timezoneOffset = _timezone == null
+        ? null
         : fbBuilder.writeString(_timezone!);
     final int? powerMetricsOffset = _powerMetrics?.getOrCreateOffset(fbBuilder);
     final int? displayOffset = _display?.getOrCreateOffset(fbBuilder);
-    final int? manufacturerOffset = _manufacturer == null ? null
+    final int? manufacturerOffset = _manufacturer == null
+        ? null
         : fbBuilder.writeString(_manufacturer!);
-    final int? modelOffset = _model == null ? null
+    final int? modelOffset = _model == null
+        ? null
         : fbBuilder.writeString(_model!);
     final int? osBuildOffset = _osBuild?.getOrCreateOffset(fbBuilder);
-    final int? cpuAbisOffset = _cpuAbis == null ? null
+    final int? cpuAbisOffset = _cpuAbis == null
+        ? null
         : fbBuilder.writeList(_cpuAbis!.map(fbBuilder.writeString).toList());
     final int? cpuUsageOffset = _cpuUsage?.getOrCreateOffset(fbBuilder);
     fbBuilder.startTable(15);
@@ -1610,6 +1776,7 @@ class DeviceMetricsObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class SourceFile {
   SourceFile._(this._bc, this._bcOffset);
   factory SourceFile(List<int> bytes) {
@@ -1622,10 +1789,12 @@ class SourceFile {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get path => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get path =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
   int get line => const fb.Int64Reader().vTableGet(_bc, _bcOffset, 6, 0);
   int get column => const fb.Int64Reader().vTableGet(_bc, _bcOffset, 8, 0);
-  String? get absPath => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 10);
+  String? get absPath =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 10);
 
   @override
   String toString() {
@@ -1637,8 +1806,8 @@ class _SourceFileReader extends fb.TableReader<SourceFile> {
   const _SourceFileReader();
 
   @override
-  SourceFile createObject(fb.BufferContext bc, int offset) => 
-    SourceFile._(bc, offset);
+  SourceFile createObject(fb.BufferContext bc, int offset) =>
+      SourceFile._(bc, offset);
 }
 
 class SourceFileBuilder {
@@ -1654,14 +1823,17 @@ class SourceFileBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addLine(int? line) {
     fbBuilder.addInt64(1, line);
     return fbBuilder.offset;
   }
+
   int addColumn(int? column) {
     fbBuilder.addInt64(2, column);
     return fbBuilder.offset;
   }
+
   int addAbsPathOffset(int? offset) {
     fbBuilder.addOffset(3, offset);
     return fbBuilder.offset;
@@ -1683,18 +1855,19 @@ class SourceFileObjectBuilder extends fb.ObjectBuilder {
     int? line,
     int? column,
     String? absPath,
-  })
-      : _path = path,
-        _line = line,
-        _column = column,
-        _absPath = absPath;
+  }) : _path = path,
+       _line = line,
+       _column = column,
+       _absPath = absPath;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? pathOffset = _path == null ? null
+    final int? pathOffset = _path == null
+        ? null
         : fbBuilder.writeString(_path!);
-    final int? absPathOffset = _absPath == null ? null
+    final int? absPathOffset = _absPath == null
+        ? null
         : fbBuilder.writeString(_absPath!);
     fbBuilder.startTable(4);
     fbBuilder.addOffset(0, pathOffset);
@@ -1712,6 +1885,7 @@ class SourceFileObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Cpuregister {
   Cpuregister._(this._bc, this._bcOffset);
   factory Cpuregister(List<int> bytes) {
@@ -1724,7 +1898,8 @@ class Cpuregister {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get name => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get name =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
   int get value => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 6, 0);
 
   @override
@@ -1737,8 +1912,8 @@ class _CpuregisterReader extends fb.TableReader<Cpuregister> {
   const _CpuregisterReader();
 
   @override
-  Cpuregister createObject(fb.BufferContext bc, int offset) => 
-    Cpuregister._(bc, offset);
+  Cpuregister createObject(fb.BufferContext bc, int offset) =>
+      Cpuregister._(bc, offset);
 }
 
 class CpuregisterBuilder {
@@ -1754,6 +1929,7 @@ class CpuregisterBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addValue(int? value) {
     fbBuilder.addUint64(1, value);
     return fbBuilder.offset;
@@ -1768,17 +1944,15 @@ class CpuregisterObjectBuilder extends fb.ObjectBuilder {
   final String? _name;
   final int? _value;
 
-  CpuregisterObjectBuilder({
-    String? name,
-    int? value,
-  })
-      : _name = name,
-        _value = value;
+  CpuregisterObjectBuilder({String? name, int? value})
+    : _name = name,
+      _value = value;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? nameOffset = _name == null ? null
+    final int? nameOffset = _name == null
+        ? null
         : fbBuilder.writeString(_name!);
     fbBuilder.startTable(2);
     fbBuilder.addOffset(0, nameOffset);
@@ -1794,6 +1968,7 @@ class CpuregisterObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Frame {
   Frame._(this._bc, this._bcOffset);
   factory Frame(List<int> bytes) {
@@ -1806,20 +1981,37 @@ class Frame {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  FrameType get type => FrameType.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 4, 0));
-  String? get className => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
-  String? get symbolName => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
-  SourceFile? get sourceFile => SourceFile.reader.vTableGetNullable(_bc, _bcOffset, 10);
-  String? get imageId => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 12);
-  int get frameAddress => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 14, 0);
-  int get symbolAddress => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 16, 0);
-  List<Cpuregister>? get registers => const fb.ListReader<Cpuregister>(Cpuregister.reader).vTableGetNullable(_bc, _bcOffset, 18);
-  List<String>? get state => const fb.ListReader<String>(fb.StringReader()).vTableGetNullable(_bc, _bcOffset, 20);
-  FrameStatus get frameStatus => FrameStatus.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 22, 0));
-  int get originalIndex => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 24, 0);
+  FrameType get type => FrameType.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 4, 0),
+  );
+  String? get className =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  String? get symbolName =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
+  SourceFile? get sourceFile =>
+      SourceFile.reader.vTableGetNullable(_bc, _bcOffset, 10);
+  String? get imageId =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 12);
+  int get frameAddress =>
+      const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 14, 0);
+  int get symbolAddress =>
+      const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 16, 0);
+  List<Cpuregister>? get registers => const fb.ListReader<Cpuregister>(
+    Cpuregister.reader,
+  ).vTableGetNullable(_bc, _bcOffset, 18);
+  List<String>? get state => const fb.ListReader<String>(
+    fb.StringReader(),
+  ).vTableGetNullable(_bc, _bcOffset, 20);
+  FrameStatus get frameStatus => FrameStatus.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 22, 0),
+  );
+  int get originalIndex =>
+      const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 24, 0);
   bool get inApp => const fb.BoolReader().vTableGet(_bc, _bcOffset, 26, false);
-  String? get symbolicatedName => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 28);
-  String? get jsBundlePath => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 30);
+  String? get symbolicatedName =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 28);
+  String? get jsBundlePath =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 30);
 
   @override
   String toString() {
@@ -1831,8 +2023,7 @@ class _FrameReader extends fb.TableReader<Frame> {
   const _FrameReader();
 
   @override
-  Frame createObject(fb.BufferContext bc, int offset) => 
-    Frame._(bc, offset);
+  Frame createObject(fb.BufferContext bc, int offset) => Frame._(bc, offset);
 }
 
 class FrameBuilder {
@@ -1848,54 +2039,67 @@ class FrameBuilder {
     fbBuilder.addInt8(0, type?.value);
     return fbBuilder.offset;
   }
+
   int addClassNameOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addSymbolNameOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
   }
+
   int addSourceFileOffset(int? offset) {
     fbBuilder.addOffset(3, offset);
     return fbBuilder.offset;
   }
+
   int addImageIdOffset(int? offset) {
     fbBuilder.addOffset(4, offset);
     return fbBuilder.offset;
   }
+
   int addFrameAddress(int? frameAddress) {
     fbBuilder.addUint64(5, frameAddress);
     return fbBuilder.offset;
   }
+
   int addSymbolAddress(int? symbolAddress) {
     fbBuilder.addUint64(6, symbolAddress);
     return fbBuilder.offset;
   }
+
   int addRegistersOffset(int? offset) {
     fbBuilder.addOffset(7, offset);
     return fbBuilder.offset;
   }
+
   int addStateOffset(int? offset) {
     fbBuilder.addOffset(8, offset);
     return fbBuilder.offset;
   }
+
   int addFrameStatus(FrameStatus? frameStatus) {
     fbBuilder.addInt8(9, frameStatus?.value);
     return fbBuilder.offset;
   }
+
   int addOriginalIndex(int? originalIndex) {
     fbBuilder.addUint64(10, originalIndex);
     return fbBuilder.offset;
   }
+
   int addInApp(bool? inApp) {
     fbBuilder.addBool(11, inApp);
     return fbBuilder.offset;
   }
+
   int addSymbolicatedNameOffset(int? offset) {
     fbBuilder.addOffset(12, offset);
     return fbBuilder.offset;
   }
+
   int addJsBundlePathOffset(int? offset) {
     fbBuilder.addOffset(13, offset);
     return fbBuilder.offset;
@@ -1937,39 +2141,47 @@ class FrameObjectBuilder extends fb.ObjectBuilder {
     bool? inApp,
     String? symbolicatedName,
     String? jsBundlePath,
-  })
-      : _type = type,
-        _className = className,
-        _symbolName = symbolName,
-        _sourceFile = sourceFile,
-        _imageId = imageId,
-        _frameAddress = frameAddress,
-        _symbolAddress = symbolAddress,
-        _registers = registers,
-        _state = state,
-        _frameStatus = frameStatus,
-        _originalIndex = originalIndex,
-        _inApp = inApp,
-        _symbolicatedName = symbolicatedName,
-        _jsBundlePath = jsBundlePath;
+  }) : _type = type,
+       _className = className,
+       _symbolName = symbolName,
+       _sourceFile = sourceFile,
+       _imageId = imageId,
+       _frameAddress = frameAddress,
+       _symbolAddress = symbolAddress,
+       _registers = registers,
+       _state = state,
+       _frameStatus = frameStatus,
+       _originalIndex = originalIndex,
+       _inApp = inApp,
+       _symbolicatedName = symbolicatedName,
+       _jsBundlePath = jsBundlePath;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? classNameOffset = _className == null ? null
+    final int? classNameOffset = _className == null
+        ? null
         : fbBuilder.writeString(_className!);
-    final int? symbolNameOffset = _symbolName == null ? null
+    final int? symbolNameOffset = _symbolName == null
+        ? null
         : fbBuilder.writeString(_symbolName!);
     final int? sourceFileOffset = _sourceFile?.getOrCreateOffset(fbBuilder);
-    final int? imageIdOffset = _imageId == null ? null
+    final int? imageIdOffset = _imageId == null
+        ? null
         : fbBuilder.writeString(_imageId!);
-    final int? registersOffset = _registers == null ? null
-        : fbBuilder.writeList(_registers!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
-    final int? stateOffset = _state == null ? null
+    final int? registersOffset = _registers == null
+        ? null
+        : fbBuilder.writeList(
+            _registers!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
+    final int? stateOffset = _state == null
+        ? null
         : fbBuilder.writeList(_state!.map(fbBuilder.writeString).toList());
-    final int? symbolicatedNameOffset = _symbolicatedName == null ? null
+    final int? symbolicatedNameOffset = _symbolicatedName == null
+        ? null
         : fbBuilder.writeString(_symbolicatedName!);
-    final int? jsBundlePathOffset = _jsBundlePath == null ? null
+    final int? jsBundlePathOffset = _jsBundlePath == null
+        ? null
         : fbBuilder.writeString(_jsBundlePath!);
     fbBuilder.startTable(14);
     fbBuilder.addInt8(0, _type?.value);
@@ -1997,6 +2209,7 @@ class FrameObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Thread {
   Thread._(this._bc, this._bcOffset);
   factory Thread(List<int> bytes) {
@@ -2009,14 +2222,21 @@ class Thread {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get name => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get name =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
   bool get active => const fb.BoolReader().vTableGet(_bc, _bcOffset, 6, false);
   int get index => const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 8, 0);
-  String? get state => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 10);
-  double get priority => const fb.Float32Reader().vTableGet(_bc, _bcOffset, 12, 0.0);
-  int get qualityOfService => const fb.Int8Reader().vTableGet(_bc, _bcOffset, 14, -1);
-  List<Frame>? get stackTrace => const fb.ListReader<Frame>(Frame.reader).vTableGetNullable(_bc, _bcOffset, 16);
-  String? get summary => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 18);
+  String? get state =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 10);
+  double get priority =>
+      const fb.Float32Reader().vTableGet(_bc, _bcOffset, 12, 0.0);
+  int get qualityOfService =>
+      const fb.Int8Reader().vTableGet(_bc, _bcOffset, 14, -1);
+  List<Frame>? get stackTrace => const fb.ListReader<Frame>(
+    Frame.reader,
+  ).vTableGetNullable(_bc, _bcOffset, 16);
+  String? get summary =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 18);
 
   @override
   String toString() {
@@ -2028,8 +2248,7 @@ class _ThreadReader extends fb.TableReader<Thread> {
   const _ThreadReader();
 
   @override
-  Thread createObject(fb.BufferContext bc, int offset) => 
-    Thread._(bc, offset);
+  Thread createObject(fb.BufferContext bc, int offset) => Thread._(bc, offset);
 }
 
 class ThreadBuilder {
@@ -2045,30 +2264,37 @@ class ThreadBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addActive(bool? active) {
     fbBuilder.addBool(1, active);
     return fbBuilder.offset;
   }
+
   int addIndex(int? index) {
     fbBuilder.addUint32(2, index);
     return fbBuilder.offset;
   }
+
   int addStateOffset(int? offset) {
     fbBuilder.addOffset(3, offset);
     return fbBuilder.offset;
   }
+
   int addPriority(double? priority) {
     fbBuilder.addFloat32(4, priority);
     return fbBuilder.offset;
   }
+
   int addQualityOfService(int? qualityOfService) {
     fbBuilder.addInt8(5, qualityOfService);
     return fbBuilder.offset;
   }
+
   int addStackTraceOffset(int? offset) {
     fbBuilder.addOffset(6, offset);
     return fbBuilder.offset;
   }
+
   int addSummaryOffset(int? offset) {
     fbBuilder.addOffset(7, offset);
     return fbBuilder.offset;
@@ -2098,26 +2324,31 @@ class ThreadObjectBuilder extends fb.ObjectBuilder {
     int? qualityOfService,
     List<FrameObjectBuilder>? stackTrace,
     String? summary,
-  })
-      : _name = name,
-        _active = active,
-        _index = index,
-        _state = state,
-        _priority = priority,
-        _qualityOfService = qualityOfService,
-        _stackTrace = stackTrace,
-        _summary = summary;
+  }) : _name = name,
+       _active = active,
+       _index = index,
+       _state = state,
+       _priority = priority,
+       _qualityOfService = qualityOfService,
+       _stackTrace = stackTrace,
+       _summary = summary;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? nameOffset = _name == null ? null
+    final int? nameOffset = _name == null
+        ? null
         : fbBuilder.writeString(_name!);
-    final int? stateOffset = _state == null ? null
+    final int? stateOffset = _state == null
+        ? null
         : fbBuilder.writeString(_state!);
-    final int? stackTraceOffset = _stackTrace == null ? null
-        : fbBuilder.writeList(_stackTrace!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
-    final int? summaryOffset = _summary == null ? null
+    final int? stackTraceOffset = _stackTrace == null
+        ? null
+        : fbBuilder.writeList(
+            _stackTrace!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
+    final int? summaryOffset = _summary == null
+        ? null
         : fbBuilder.writeString(_summary!);
     fbBuilder.startTable(8);
     fbBuilder.addOffset(0, nameOffset);
@@ -2139,6 +2370,7 @@ class ThreadObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class ThreadDetails {
   ThreadDetails._(this._bc, this._bcOffset);
   factory ThreadDetails(List<int> bytes) {
@@ -2152,7 +2384,9 @@ class ThreadDetails {
   final int _bcOffset;
 
   int get count => const fb.Uint16Reader().vTableGet(_bc, _bcOffset, 4, 0);
-  List<Thread>? get threads => const fb.ListReader<Thread>(Thread.reader).vTableGetNullable(_bc, _bcOffset, 6);
+  List<Thread>? get threads => const fb.ListReader<Thread>(
+    Thread.reader,
+  ).vTableGetNullable(_bc, _bcOffset, 6);
 
   @override
   String toString() {
@@ -2164,8 +2398,8 @@ class _ThreadDetailsReader extends fb.TableReader<ThreadDetails> {
   const _ThreadDetailsReader();
 
   @override
-  ThreadDetails createObject(fb.BufferContext bc, int offset) => 
-    ThreadDetails._(bc, offset);
+  ThreadDetails createObject(fb.BufferContext bc, int offset) =>
+      ThreadDetails._(bc, offset);
 }
 
 class ThreadDetailsBuilder {
@@ -2181,6 +2415,7 @@ class ThreadDetailsBuilder {
     fbBuilder.addUint16(0, count);
     return fbBuilder.offset;
   }
+
   int addThreadsOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
@@ -2195,18 +2430,18 @@ class ThreadDetailsObjectBuilder extends fb.ObjectBuilder {
   final int? _count;
   final List<ThreadObjectBuilder>? _threads;
 
-  ThreadDetailsObjectBuilder({
-    int? count,
-    List<ThreadObjectBuilder>? threads,
-  })
-      : _count = count,
-        _threads = threads;
+  ThreadDetailsObjectBuilder({int? count, List<ThreadObjectBuilder>? threads})
+    : _count = count,
+      _threads = threads;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? threadsOffset = _threads == null ? null
-        : fbBuilder.writeList(_threads!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
+    final int? threadsOffset = _threads == null
+        ? null
+        : fbBuilder.writeList(
+            _threads!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
     fbBuilder.startTable(2);
     fbBuilder.addUint16(0, _count);
     fbBuilder.addOffset(1, threadsOffset);
@@ -2221,6 +2456,7 @@ class ThreadDetailsObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Error {
   Error._(this._bc, this._bcOffset);
   factory Error(List<int> bytes) {
@@ -2233,10 +2469,16 @@ class Error {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get name => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
-  String? get reason => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
-  List<Frame>? get stackTrace => const fb.ListReader<Frame>(Frame.reader).vTableGetNullable(_bc, _bcOffset, 8);
-  ErrorRelation get relationToNext => ErrorRelation.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 10, 1));
+  String? get name =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get reason =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  List<Frame>? get stackTrace => const fb.ListReader<Frame>(
+    Frame.reader,
+  ).vTableGetNullable(_bc, _bcOffset, 8);
+  ErrorRelation get relationToNext => ErrorRelation.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 10, 1),
+  );
 
   @override
   String toString() {
@@ -2248,8 +2490,7 @@ class _ErrorReader extends fb.TableReader<Error> {
   const _ErrorReader();
 
   @override
-  Error createObject(fb.BufferContext bc, int offset) => 
-    Error._(bc, offset);
+  Error createObject(fb.BufferContext bc, int offset) => Error._(bc, offset);
 }
 
 class ErrorBuilder {
@@ -2265,14 +2506,17 @@ class ErrorBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addReasonOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addStackTraceOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
   }
+
   int addRelationToNext(ErrorRelation? relationToNext) {
     fbBuilder.addInt8(3, relationToNext?.value);
     return fbBuilder.offset;
@@ -2294,21 +2538,25 @@ class ErrorObjectBuilder extends fb.ObjectBuilder {
     String? reason,
     List<FrameObjectBuilder>? stackTrace,
     ErrorRelation? relationToNext,
-  })
-      : _name = name,
-        _reason = reason,
-        _stackTrace = stackTrace,
-        _relationToNext = relationToNext;
+  }) : _name = name,
+       _reason = reason,
+       _stackTrace = stackTrace,
+       _relationToNext = relationToNext;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? nameOffset = _name == null ? null
+    final int? nameOffset = _name == null
+        ? null
         : fbBuilder.writeString(_name!);
-    final int? reasonOffset = _reason == null ? null
+    final int? reasonOffset = _reason == null
+        ? null
         : fbBuilder.writeString(_reason!);
-    final int? stackTraceOffset = _stackTrace == null ? null
-        : fbBuilder.writeList(_stackTrace!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
+    final int? stackTraceOffset = _stackTrace == null
+        ? null
+        : fbBuilder.writeList(
+            _stackTrace!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
     fbBuilder.startTable(4);
     fbBuilder.addOffset(0, nameOffset);
     fbBuilder.addOffset(1, reasonOffset);
@@ -2325,6 +2573,7 @@ class ErrorObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Nsexception {
   Nsexception._(this._bc, this._bcOffset);
   factory Nsexception(List<int> bytes) {
@@ -2337,9 +2586,14 @@ class Nsexception {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get name => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
-  String? get reason => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
-  List<bitdrift_public_fbs_common_v1.Field>? get userInfo => const fb.ListReader<bitdrift_public_fbs_common_v1.Field>(bitdrift_public_fbs_common_v1.Field.reader).vTableGetNullable(_bc, _bcOffset, 8);
+  String? get name =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get reason =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  List<bitdrift_public_fbs_common_v1.Field>? get userInfo =>
+      const fb.ListReader<bitdrift_public_fbs_common_v1.Field>(
+        bitdrift_public_fbs_common_v1.Field.reader,
+      ).vTableGetNullable(_bc, _bcOffset, 8);
 
   @override
   String toString() {
@@ -2351,8 +2605,8 @@ class _NsexceptionReader extends fb.TableReader<Nsexception> {
   const _NsexceptionReader();
 
   @override
-  Nsexception createObject(fb.BufferContext bc, int offset) => 
-    Nsexception._(bc, offset);
+  Nsexception createObject(fb.BufferContext bc, int offset) =>
+      Nsexception._(bc, offset);
 }
 
 class NsexceptionBuilder {
@@ -2368,10 +2622,12 @@ class NsexceptionBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addReasonOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addUserInfoOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
@@ -2391,20 +2647,24 @@ class NsexceptionObjectBuilder extends fb.ObjectBuilder {
     String? name,
     String? reason,
     List<bitdrift_public_fbs_common_v1.FieldObjectBuilder>? userInfo,
-  })
-      : _name = name,
-        _reason = reason,
-        _userInfo = userInfo;
+  }) : _name = name,
+       _reason = reason,
+       _userInfo = userInfo;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? nameOffset = _name == null ? null
+    final int? nameOffset = _name == null
+        ? null
         : fbBuilder.writeString(_name!);
-    final int? reasonOffset = _reason == null ? null
+    final int? reasonOffset = _reason == null
+        ? null
         : fbBuilder.writeString(_reason!);
-    final int? userInfoOffset = _userInfo == null ? null
-        : fbBuilder.writeList(_userInfo!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
+    final int? userInfoOffset = _userInfo == null
+        ? null
+        : fbBuilder.writeList(
+            _userInfo!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
     fbBuilder.startTable(3);
     fbBuilder.addOffset(0, nameOffset);
     fbBuilder.addOffset(1, reasonOffset);
@@ -2420,6 +2680,7 @@ class NsexceptionObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class MachException {
   MachException._(this._bc, this._bcOffset);
   factory MachException(List<int> bytes) {
@@ -2446,8 +2707,8 @@ class _MachExceptionReader extends fb.TableReader<MachException> {
   const _MachExceptionReader();
 
   @override
-  MachException createObject(fb.BufferContext bc, int offset) => 
-    MachException._(bc, offset);
+  MachException createObject(fb.BufferContext bc, int offset) =>
+      MachException._(bc, offset);
 }
 
 class MachExceptionBuilder {
@@ -2463,10 +2724,12 @@ class MachExceptionBuilder {
     fbBuilder.addUint32(0, type);
     return fbBuilder.offset;
   }
+
   int addCode(int? code) {
     fbBuilder.addUint64(1, code);
     return fbBuilder.offset;
   }
+
   int addSubcode(int? subcode) {
     fbBuilder.addUint64(2, subcode);
     return fbBuilder.offset;
@@ -2482,14 +2745,10 @@ class MachExceptionObjectBuilder extends fb.ObjectBuilder {
   final int? _code;
   final int? _subcode;
 
-  MachExceptionObjectBuilder({
-    int? type,
-    int? code,
-    int? subcode,
-  })
-      : _type = type,
-        _code = code,
-        _subcode = subcode;
+  MachExceptionObjectBuilder({int? type, int? code, int? subcode})
+    : _type = type,
+      _code = code,
+      _subcode = subcode;
 
   /// Finish building, and store into the [fbBuilder].
   @override
@@ -2509,6 +2768,7 @@ class MachExceptionObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class PosixSignal {
   PosixSignal._(this._bc, this._bcOffset);
   factory PosixSignal(List<int> bytes) {
@@ -2524,8 +2784,10 @@ class PosixSignal {
   int get number => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 4, 0);
   int get code => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 6, 0);
   int get errnoValue => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 8, 0);
-  bool get hasFaultAddress => const fb.BoolReader().vTableGet(_bc, _bcOffset, 10, false);
-  int get faultAddress => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 12, 0);
+  bool get hasFaultAddress =>
+      const fb.BoolReader().vTableGet(_bc, _bcOffset, 10, false);
+  int get faultAddress =>
+      const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 12, 0);
 
   @override
   String toString() {
@@ -2537,8 +2799,8 @@ class _PosixSignalReader extends fb.TableReader<PosixSignal> {
   const _PosixSignalReader();
 
   @override
-  PosixSignal createObject(fb.BufferContext bc, int offset) => 
-    PosixSignal._(bc, offset);
+  PosixSignal createObject(fb.BufferContext bc, int offset) =>
+      PosixSignal._(bc, offset);
 }
 
 class PosixSignalBuilder {
@@ -2554,18 +2816,22 @@ class PosixSignalBuilder {
     fbBuilder.addInt32(0, number);
     return fbBuilder.offset;
   }
+
   int addCode(int? code) {
     fbBuilder.addInt32(1, code);
     return fbBuilder.offset;
   }
+
   int addErrnoValue(int? errnoValue) {
     fbBuilder.addInt32(2, errnoValue);
     return fbBuilder.offset;
   }
+
   int addHasFaultAddress(bool? hasFaultAddress) {
     fbBuilder.addBool(3, hasFaultAddress);
     return fbBuilder.offset;
   }
+
   int addFaultAddress(int? faultAddress) {
     fbBuilder.addUint64(4, faultAddress);
     return fbBuilder.offset;
@@ -2589,12 +2855,11 @@ class PosixSignalObjectBuilder extends fb.ObjectBuilder {
     int? errnoValue,
     bool? hasFaultAddress,
     int? faultAddress,
-  })
-      : _number = number,
-        _code = code,
-        _errnoValue = errnoValue,
-        _hasFaultAddress = hasFaultAddress,
-        _faultAddress = faultAddress;
+  }) : _number = number,
+       _code = code,
+       _errnoValue = errnoValue,
+       _hasFaultAddress = hasFaultAddress,
+       _faultAddress = faultAddress;
 
   /// Finish building, and store into the [fbBuilder].
   @override
@@ -2616,6 +2881,7 @@ class PosixSignalObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class AppleTermination {
   AppleTermination._(this._bc, this._bcOffset);
   factory AppleTermination(List<int> bytes) {
@@ -2628,13 +2894,20 @@ class AppleTermination {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get domain => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
-  String? get code => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
-  String? get explanation => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
-  String? get processVisibility => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 10);
-  String? get processState => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 12);
-  String? get watchdogEvent => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 14);
-  String? get watchdogVisibility => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 16);
+  String? get domain =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get code =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  String? get explanation =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
+  String? get processVisibility =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 10);
+  String? get processState =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 12);
+  String? get watchdogEvent =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 14);
+  String? get watchdogVisibility =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 16);
 
   @override
   String toString() {
@@ -2646,8 +2919,8 @@ class _AppleTerminationReader extends fb.TableReader<AppleTermination> {
   const _AppleTerminationReader();
 
   @override
-  AppleTermination createObject(fb.BufferContext bc, int offset) => 
-    AppleTermination._(bc, offset);
+  AppleTermination createObject(fb.BufferContext bc, int offset) =>
+      AppleTermination._(bc, offset);
 }
 
 class AppleTerminationBuilder {
@@ -2663,26 +2936,32 @@ class AppleTerminationBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addCodeOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addExplanationOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
   }
+
   int addProcessVisibilityOffset(int? offset) {
     fbBuilder.addOffset(3, offset);
     return fbBuilder.offset;
   }
+
   int addProcessStateOffset(int? offset) {
     fbBuilder.addOffset(4, offset);
     return fbBuilder.offset;
   }
+
   int addWatchdogEventOffset(int? offset) {
     fbBuilder.addOffset(5, offset);
     return fbBuilder.offset;
   }
+
   int addWatchdogVisibilityOffset(int? offset) {
     fbBuilder.addOffset(6, offset);
     return fbBuilder.offset;
@@ -2710,31 +2989,37 @@ class AppleTerminationObjectBuilder extends fb.ObjectBuilder {
     String? processState,
     String? watchdogEvent,
     String? watchdogVisibility,
-  })
-      : _domain = domain,
-        _code = code,
-        _explanation = explanation,
-        _processVisibility = processVisibility,
-        _processState = processState,
-        _watchdogEvent = watchdogEvent,
-        _watchdogVisibility = watchdogVisibility;
+  }) : _domain = domain,
+       _code = code,
+       _explanation = explanation,
+       _processVisibility = processVisibility,
+       _processState = processState,
+       _watchdogEvent = watchdogEvent,
+       _watchdogVisibility = watchdogVisibility;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? domainOffset = _domain == null ? null
+    final int? domainOffset = _domain == null
+        ? null
         : fbBuilder.writeString(_domain!);
-    final int? codeOffset = _code == null ? null
+    final int? codeOffset = _code == null
+        ? null
         : fbBuilder.writeString(_code!);
-    final int? explanationOffset = _explanation == null ? null
+    final int? explanationOffset = _explanation == null
+        ? null
         : fbBuilder.writeString(_explanation!);
-    final int? processVisibilityOffset = _processVisibility == null ? null
+    final int? processVisibilityOffset = _processVisibility == null
+        ? null
         : fbBuilder.writeString(_processVisibility!);
-    final int? processStateOffset = _processState == null ? null
+    final int? processStateOffset = _processState == null
+        ? null
         : fbBuilder.writeString(_processState!);
-    final int? watchdogEventOffset = _watchdogEvent == null ? null
+    final int? watchdogEventOffset = _watchdogEvent == null
+        ? null
         : fbBuilder.writeString(_watchdogEvent!);
-    final int? watchdogVisibilityOffset = _watchdogVisibility == null ? null
+    final int? watchdogVisibilityOffset = _watchdogVisibility == null
+        ? null
         : fbBuilder.writeString(_watchdogVisibility!);
     fbBuilder.startTable(7);
     fbBuilder.addOffset(0, domainOffset);
@@ -2755,6 +3040,7 @@ class AppleTerminationObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class AppleCrashDetails {
   AppleCrashDetails._(this._bc, this._bcOffset);
   factory AppleCrashDetails(List<int> bytes) {
@@ -2767,10 +3053,14 @@ class AppleCrashDetails {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  Nsexception? get nsexception => Nsexception.reader.vTableGetNullable(_bc, _bcOffset, 4);
-  MachException? get machException => MachException.reader.vTableGetNullable(_bc, _bcOffset, 6);
-  PosixSignal? get posixSignal => PosixSignal.reader.vTableGetNullable(_bc, _bcOffset, 8);
-  AppleTermination? get termination => AppleTermination.reader.vTableGetNullable(_bc, _bcOffset, 10);
+  Nsexception? get nsexception =>
+      Nsexception.reader.vTableGetNullable(_bc, _bcOffset, 4);
+  MachException? get machException =>
+      MachException.reader.vTableGetNullable(_bc, _bcOffset, 6);
+  PosixSignal? get posixSignal =>
+      PosixSignal.reader.vTableGetNullable(_bc, _bcOffset, 8);
+  AppleTermination? get termination =>
+      AppleTermination.reader.vTableGetNullable(_bc, _bcOffset, 10);
 
   @override
   String toString() {
@@ -2782,8 +3072,8 @@ class _AppleCrashDetailsReader extends fb.TableReader<AppleCrashDetails> {
   const _AppleCrashDetailsReader();
 
   @override
-  AppleCrashDetails createObject(fb.BufferContext bc, int offset) => 
-    AppleCrashDetails._(bc, offset);
+  AppleCrashDetails createObject(fb.BufferContext bc, int offset) =>
+      AppleCrashDetails._(bc, offset);
 }
 
 class AppleCrashDetailsBuilder {
@@ -2799,14 +3089,17 @@ class AppleCrashDetailsBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addMachExceptionOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addPosixSignalOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
   }
+
   int addTerminationOffset(int? offset) {
     fbBuilder.addOffset(3, offset);
     return fbBuilder.offset;
@@ -2828,17 +3121,18 @@ class AppleCrashDetailsObjectBuilder extends fb.ObjectBuilder {
     MachExceptionObjectBuilder? machException,
     PosixSignalObjectBuilder? posixSignal,
     AppleTerminationObjectBuilder? termination,
-  })
-      : _nsexception = nsexception,
-        _machException = machException,
-        _posixSignal = posixSignal,
-        _termination = termination;
+  }) : _nsexception = nsexception,
+       _machException = machException,
+       _posixSignal = posixSignal,
+       _termination = termination;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
     final int? nsexceptionOffset = _nsexception?.getOrCreateOffset(fbBuilder);
-    final int? machExceptionOffset = _machException?.getOrCreateOffset(fbBuilder);
+    final int? machExceptionOffset = _machException?.getOrCreateOffset(
+      fbBuilder,
+    );
     final int? posixSignalOffset = _posixSignal?.getOrCreateOffset(fbBuilder);
     final int? terminationOffset = _termination?.getOrCreateOffset(fbBuilder);
     fbBuilder.startTable(4);
@@ -2857,6 +3151,7 @@ class AppleCrashDetailsObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class CrashInfo {
   CrashInfo._(this._bc, this._bcOffset);
   factory CrashInfo(List<int> bytes) {
@@ -2869,17 +3164,29 @@ class CrashInfo {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  CrashReporterScope get reporterScope => CrashReporterScope.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 4, 0));
-  CrashReporter get reporter => CrashReporter.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 6, 0));
-  Timestamp? get occurredAt => Timestamp.reader.vTableGetNullable(_bc, _bcOffset, 8);
-  CrashInfoDetailsTypeId? get detailsType => CrashInfoDetailsTypeId._createOrNull(const fb.Uint8Reader().vTableGetNullable(_bc, _bcOffset, 10));
+  CrashReporterScope get reporterScope => CrashReporterScope.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 4, 0),
+  );
+  CrashReporter get reporter => CrashReporter.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 6, 0),
+  );
+  Timestamp? get occurredAt =>
+      Timestamp.reader.vTableGetNullable(_bc, _bcOffset, 8);
+  CrashInfoDetailsTypeId? get detailsType =>
+      CrashInfoDetailsTypeId._createOrNull(
+        const fb.Uint8Reader().vTableGetNullable(_bc, _bcOffset, 10),
+      );
   dynamic get details {
     switch (detailsType?.value) {
-      case 1: return AppleCrashDetails.reader.vTableGetNullable(_bc, _bcOffset, 12);
-      default: return null;
+      case 1:
+        return AppleCrashDetails.reader.vTableGetNullable(_bc, _bcOffset, 12);
+      default:
+        return null;
     }
   }
-  ThreadDetails? get threadDetails => ThreadDetails.reader.vTableGetNullable(_bc, _bcOffset, 14);
+
+  ThreadDetails? get threadDetails =>
+      ThreadDetails.reader.vTableGetNullable(_bc, _bcOffset, 14);
 
   @override
   String toString() {
@@ -2891,8 +3198,8 @@ class _CrashInfoReader extends fb.TableReader<CrashInfo> {
   const _CrashInfoReader();
 
   @override
-  CrashInfo createObject(fb.BufferContext bc, int offset) => 
-    CrashInfo._(bc, offset);
+  CrashInfo createObject(fb.BufferContext bc, int offset) =>
+      CrashInfo._(bc, offset);
 }
 
 class CrashInfoBuilder {
@@ -2908,22 +3215,27 @@ class CrashInfoBuilder {
     fbBuilder.addInt8(0, reporterScope?.value);
     return fbBuilder.offset;
   }
+
   int addReporter(CrashReporter? reporter) {
     fbBuilder.addInt8(1, reporter?.value);
     return fbBuilder.offset;
   }
+
   int addOccurredAt(int offset) {
     fbBuilder.addStruct(2, offset);
     return fbBuilder.offset;
   }
+
   int addDetailsType(CrashInfoDetailsTypeId? detailsType) {
     fbBuilder.addUint8(3, detailsType?.value);
     return fbBuilder.offset;
   }
+
   int addDetailsOffset(int? offset) {
     fbBuilder.addOffset(4, offset);
     return fbBuilder.offset;
   }
+
   int addThreadDetailsOffset(int? offset) {
     fbBuilder.addOffset(5, offset);
     return fbBuilder.offset;
@@ -2949,19 +3261,20 @@ class CrashInfoObjectBuilder extends fb.ObjectBuilder {
     CrashInfoDetailsTypeId? detailsType,
     dynamic details,
     ThreadDetailsObjectBuilder? threadDetails,
-  })
-      : _reporterScope = reporterScope,
-        _reporter = reporter,
-        _occurredAt = occurredAt,
-        _detailsType = detailsType,
-        _details = details,
-        _threadDetails = threadDetails;
+  }) : _reporterScope = reporterScope,
+       _reporter = reporter,
+       _occurredAt = occurredAt,
+       _detailsType = detailsType,
+       _details = details,
+       _threadDetails = threadDetails;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
     final int? detailsOffset = _details?.getOrCreateOffset(fbBuilder);
-    final int? threadDetailsOffset = _threadDetails?.getOrCreateOffset(fbBuilder);
+    final int? threadDetailsOffset = _threadDetails?.getOrCreateOffset(
+      fbBuilder,
+    );
     fbBuilder.startTable(6);
     fbBuilder.addInt8(0, _reporterScope?.value);
     fbBuilder.addInt8(1, _reporter?.value);
@@ -2982,6 +3295,7 @@ class CrashInfoObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class BinaryImage {
   BinaryImage._(this._bc, this._bcOffset);
   factory BinaryImage(List<int> bytes) {
@@ -2994,9 +3308,12 @@ class BinaryImage {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get id => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
-  String? get path => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
-  int get loadAddress => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 8, 0);
+  String? get id =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get path =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  int get loadAddress =>
+      const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 8, 0);
   int get length => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 10, 0);
 
   @override
@@ -3009,8 +3326,8 @@ class _BinaryImageReader extends fb.TableReader<BinaryImage> {
   const _BinaryImageReader();
 
   @override
-  BinaryImage createObject(fb.BufferContext bc, int offset) => 
-    BinaryImage._(bc, offset);
+  BinaryImage createObject(fb.BufferContext bc, int offset) =>
+      BinaryImage._(bc, offset);
 }
 
 class BinaryImageBuilder {
@@ -3026,14 +3343,17 @@ class BinaryImageBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addPathOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addLoadAddress(int? loadAddress) {
     fbBuilder.addUint64(2, loadAddress);
     return fbBuilder.offset;
   }
+
   int addLength(int? length) {
     fbBuilder.addUint64(3, length);
     return fbBuilder.offset;
@@ -3055,18 +3375,17 @@ class BinaryImageObjectBuilder extends fb.ObjectBuilder {
     String? path,
     int? loadAddress,
     int? length,
-  })
-      : _id = id,
-        _path = path,
-        _loadAddress = loadAddress,
-        _length = length;
+  }) : _id = id,
+       _path = path,
+       _loadAddress = loadAddress,
+       _length = length;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? idOffset = _id == null ? null
-        : fbBuilder.writeString(_id!);
-    final int? pathOffset = _path == null ? null
+    final int? idOffset = _id == null ? null : fbBuilder.writeString(_id!);
+    final int? pathOffset = _path == null
+        ? null
         : fbBuilder.writeString(_path!);
     fbBuilder.startTable(4);
     fbBuilder.addOffset(0, idOffset);
@@ -3084,6 +3403,7 @@ class BinaryImageObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Sdkinfo {
   Sdkinfo._(this._bc, this._bcOffset);
   factory Sdkinfo(List<int> bytes) {
@@ -3096,8 +3416,10 @@ class Sdkinfo {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get id => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
-  String? get version => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  String? get id =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get version =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
 
   @override
   String toString() {
@@ -3109,8 +3431,8 @@ class _SdkinfoReader extends fb.TableReader<Sdkinfo> {
   const _SdkinfoReader();
 
   @override
-  Sdkinfo createObject(fb.BufferContext bc, int offset) => 
-    Sdkinfo._(bc, offset);
+  Sdkinfo createObject(fb.BufferContext bc, int offset) =>
+      Sdkinfo._(bc, offset);
 }
 
 class SdkinfoBuilder {
@@ -3126,6 +3448,7 @@ class SdkinfoBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addVersionOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
@@ -3140,19 +3463,16 @@ class SdkinfoObjectBuilder extends fb.ObjectBuilder {
   final String? _id;
   final String? _version;
 
-  SdkinfoObjectBuilder({
-    String? id,
-    String? version,
-  })
-      : _id = id,
-        _version = version;
+  SdkinfoObjectBuilder({String? id, String? version})
+    : _id = id,
+      _version = version;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? idOffset = _id == null ? null
-        : fbBuilder.writeString(_id!);
-    final int? versionOffset = _version == null ? null
+    final int? idOffset = _id == null ? null : fbBuilder.writeString(_id!);
+    final int? versionOffset = _version == null
+        ? null
         : fbBuilder.writeString(_version!);
     fbBuilder.startTable(2);
     fbBuilder.addOffset(0, idOffset);
@@ -3168,6 +3488,7 @@ class SdkinfoObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class FeatureFlag {
   FeatureFlag._(this._bc, this._bcOffset);
   factory FeatureFlag(List<int> bytes) {
@@ -3180,9 +3501,16 @@ class FeatureFlag {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get name => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
-  String? get value => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
-  bitdrift_public_fbs_common_v1.Timestamp? get timestamp => bitdrift_public_fbs_common_v1.Timestamp.reader.vTableGetNullable(_bc, _bcOffset, 8);
+  String? get name =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get value =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  bitdrift_public_fbs_common_v1.Timestamp? get timestamp =>
+      bitdrift_public_fbs_common_v1.Timestamp.reader.vTableGetNullable(
+        _bc,
+        _bcOffset,
+        8,
+      );
 
   @override
   String toString() {
@@ -3194,8 +3522,8 @@ class _FeatureFlagReader extends fb.TableReader<FeatureFlag> {
   const _FeatureFlagReader();
 
   @override
-  FeatureFlag createObject(fb.BufferContext bc, int offset) => 
-    FeatureFlag._(bc, offset);
+  FeatureFlag createObject(fb.BufferContext bc, int offset) =>
+      FeatureFlag._(bc, offset);
 }
 
 class FeatureFlagBuilder {
@@ -3211,10 +3539,12 @@ class FeatureFlagBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addValueOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addTimestampOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
@@ -3234,17 +3564,18 @@ class FeatureFlagObjectBuilder extends fb.ObjectBuilder {
     String? name,
     String? value,
     bitdrift_public_fbs_common_v1.TimestampObjectBuilder? timestamp,
-  })
-      : _name = name,
-        _value = value,
-        _timestamp = timestamp;
+  }) : _name = name,
+       _value = value,
+       _timestamp = timestamp;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? nameOffset = _name == null ? null
+    final int? nameOffset = _name == null
+        ? null
         : fbBuilder.writeString(_name!);
-    final int? valueOffset = _value == null ? null
+    final int? valueOffset = _value == null
+        ? null
         : fbBuilder.writeString(_value!);
     final int? timestampOffset = _timestamp?.getOrCreateOffset(fbBuilder);
     fbBuilder.startTable(3);
@@ -3262,6 +3593,7 @@ class FeatureFlagObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class ProcessingResult {
   ProcessingResult._(this._bc, this._bcOffset);
   factory ProcessingResult(List<int> bytes) {
@@ -3274,7 +3606,8 @@ class ProcessingResult {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  int get groupingKey => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 4, 0);
+  int get groupingKey =>
+      const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 4, 0);
 
   @override
   String toString() {
@@ -3286,8 +3619,8 @@ class _ProcessingResultReader extends fb.TableReader<ProcessingResult> {
   const _ProcessingResultReader();
 
   @override
-  ProcessingResult createObject(fb.BufferContext bc, int offset) => 
-    ProcessingResult._(bc, offset);
+  ProcessingResult createObject(fb.BufferContext bc, int offset) =>
+      ProcessingResult._(bc, offset);
 }
 
 class ProcessingResultBuilder {
@@ -3312,10 +3645,8 @@ class ProcessingResultBuilder {
 class ProcessingResultObjectBuilder extends fb.ObjectBuilder {
   final int? _groupingKey;
 
-  ProcessingResultObjectBuilder({
-    int? groupingKey,
-  })
-      : _groupingKey = groupingKey;
+  ProcessingResultObjectBuilder({int? groupingKey})
+    : _groupingKey = groupingKey;
 
   /// Finish building, and store into the [fbBuilder].
   @override
@@ -3333,6 +3664,7 @@ class ProcessingResultObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Report {
   Report._(this._bc, this._bcOffset);
   factory Report(List<int> bytes) {
@@ -3346,16 +3678,33 @@ class Report {
   final int _bcOffset;
 
   Sdkinfo? get sdk => Sdkinfo.reader.vTableGetNullable(_bc, _bcOffset, 4);
-  ReportType get type => ReportType.fromValue(const fb.Int8Reader().vTableGet(_bc, _bcOffset, 6, 0));
-  AppMetrics? get appMetrics => AppMetrics.reader.vTableGetNullable(_bc, _bcOffset, 8);
-  DeviceMetrics? get deviceMetrics => DeviceMetrics.reader.vTableGetNullable(_bc, _bcOffset, 10);
-  List<Error>? get errors => const fb.ListReader<Error>(Error.reader).vTableGetNullable(_bc, _bcOffset, 12);
-  ThreadDetails? get threadDetails => ThreadDetails.reader.vTableGetNullable(_bc, _bcOffset, 14);
-  List<BinaryImage>? get binaryImages => const fb.ListReader<BinaryImage>(BinaryImage.reader).vTableGetNullable(_bc, _bcOffset, 16);
-  List<bitdrift_public_fbs_common_v1.Field>? get fields => const fb.ListReader<bitdrift_public_fbs_common_v1.Field>(bitdrift_public_fbs_common_v1.Field.reader).vTableGetNullable(_bc, _bcOffset, 18);
-  List<FeatureFlag>? get featureFlags => const fb.ListReader<FeatureFlag>(FeatureFlag.reader).vTableGetNullable(_bc, _bcOffset, 20);
-  ProcessingResult? get processingResult => ProcessingResult.reader.vTableGetNullable(_bc, _bcOffset, 22);
-  List<CrashInfo>? get crashInfo => const fb.ListReader<CrashInfo>(CrashInfo.reader).vTableGetNullable(_bc, _bcOffset, 24);
+  ReportType get type => ReportType.fromValue(
+    const fb.Int8Reader().vTableGet(_bc, _bcOffset, 6, 0),
+  );
+  AppMetrics? get appMetrics =>
+      AppMetrics.reader.vTableGetNullable(_bc, _bcOffset, 8);
+  DeviceMetrics? get deviceMetrics =>
+      DeviceMetrics.reader.vTableGetNullable(_bc, _bcOffset, 10);
+  List<Error>? get errors => const fb.ListReader<Error>(
+    Error.reader,
+  ).vTableGetNullable(_bc, _bcOffset, 12);
+  ThreadDetails? get threadDetails =>
+      ThreadDetails.reader.vTableGetNullable(_bc, _bcOffset, 14);
+  List<BinaryImage>? get binaryImages => const fb.ListReader<BinaryImage>(
+    BinaryImage.reader,
+  ).vTableGetNullable(_bc, _bcOffset, 16);
+  List<bitdrift_public_fbs_common_v1.Field>? get fields =>
+      const fb.ListReader<bitdrift_public_fbs_common_v1.Field>(
+        bitdrift_public_fbs_common_v1.Field.reader,
+      ).vTableGetNullable(_bc, _bcOffset, 18);
+  List<FeatureFlag>? get featureFlags => const fb.ListReader<FeatureFlag>(
+    FeatureFlag.reader,
+  ).vTableGetNullable(_bc, _bcOffset, 20);
+  ProcessingResult? get processingResult =>
+      ProcessingResult.reader.vTableGetNullable(_bc, _bcOffset, 22);
+  List<CrashInfo>? get crashInfo => const fb.ListReader<CrashInfo>(
+    CrashInfo.reader,
+  ).vTableGetNullable(_bc, _bcOffset, 24);
 
   @override
   String toString() {
@@ -3367,8 +3716,7 @@ class _ReportReader extends fb.TableReader<Report> {
   const _ReportReader();
 
   @override
-  Report createObject(fb.BufferContext bc, int offset) => 
-    Report._(bc, offset);
+  Report createObject(fb.BufferContext bc, int offset) => Report._(bc, offset);
 }
 
 class ReportBuilder {
@@ -3384,42 +3732,52 @@ class ReportBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addType(ReportType? type) {
     fbBuilder.addInt8(1, type?.value);
     return fbBuilder.offset;
   }
+
   int addAppMetricsOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
   }
+
   int addDeviceMetricsOffset(int? offset) {
     fbBuilder.addOffset(3, offset);
     return fbBuilder.offset;
   }
+
   int addErrorsOffset(int? offset) {
     fbBuilder.addOffset(4, offset);
     return fbBuilder.offset;
   }
+
   int addThreadDetailsOffset(int? offset) {
     fbBuilder.addOffset(5, offset);
     return fbBuilder.offset;
   }
+
   int addBinaryImagesOffset(int? offset) {
     fbBuilder.addOffset(6, offset);
     return fbBuilder.offset;
   }
+
   int addFieldsOffset(int? offset) {
     fbBuilder.addOffset(7, offset);
     return fbBuilder.offset;
   }
+
   int addFeatureFlagsOffset(int? offset) {
     fbBuilder.addOffset(8, offset);
     return fbBuilder.offset;
   }
+
   int addProcessingResultOffset(int? offset) {
     fbBuilder.addOffset(9, offset);
     return fbBuilder.offset;
   }
+
   int addCrashInfoOffset(int? offset) {
     fbBuilder.addOffset(10, offset);
     return fbBuilder.offset;
@@ -3455,37 +3813,57 @@ class ReportObjectBuilder extends fb.ObjectBuilder {
     List<FeatureFlagObjectBuilder>? featureFlags,
     ProcessingResultObjectBuilder? processingResult,
     List<CrashInfoObjectBuilder>? crashInfo,
-  })
-      : _sdk = sdk,
-        _type = type,
-        _appMetrics = appMetrics,
-        _deviceMetrics = deviceMetrics,
-        _errors = errors,
-        _threadDetails = threadDetails,
-        _binaryImages = binaryImages,
-        _fields = fields,
-        _featureFlags = featureFlags,
-        _processingResult = processingResult,
-        _crashInfo = crashInfo;
+  }) : _sdk = sdk,
+       _type = type,
+       _appMetrics = appMetrics,
+       _deviceMetrics = deviceMetrics,
+       _errors = errors,
+       _threadDetails = threadDetails,
+       _binaryImages = binaryImages,
+       _fields = fields,
+       _featureFlags = featureFlags,
+       _processingResult = processingResult,
+       _crashInfo = crashInfo;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
     final int? sdkOffset = _sdk?.getOrCreateOffset(fbBuilder);
     final int? appMetricsOffset = _appMetrics?.getOrCreateOffset(fbBuilder);
-    final int? deviceMetricsOffset = _deviceMetrics?.getOrCreateOffset(fbBuilder);
-    final int? errorsOffset = _errors == null ? null
-        : fbBuilder.writeList(_errors!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
-    final int? threadDetailsOffset = _threadDetails?.getOrCreateOffset(fbBuilder);
-    final int? binaryImagesOffset = _binaryImages == null ? null
-        : fbBuilder.writeList(_binaryImages!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
-    final int? fieldsOffset = _fields == null ? null
-        : fbBuilder.writeList(_fields!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
-    final int? featureFlagsOffset = _featureFlags == null ? null
-        : fbBuilder.writeList(_featureFlags!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
-    final int? processingResultOffset = _processingResult?.getOrCreateOffset(fbBuilder);
-    final int? crashInfoOffset = _crashInfo == null ? null
-        : fbBuilder.writeList(_crashInfo!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
+    final int? deviceMetricsOffset = _deviceMetrics?.getOrCreateOffset(
+      fbBuilder,
+    );
+    final int? errorsOffset = _errors == null
+        ? null
+        : fbBuilder.writeList(
+            _errors!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
+    final int? threadDetailsOffset = _threadDetails?.getOrCreateOffset(
+      fbBuilder,
+    );
+    final int? binaryImagesOffset = _binaryImages == null
+        ? null
+        : fbBuilder.writeList(
+            _binaryImages!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
+    final int? fieldsOffset = _fields == null
+        ? null
+        : fbBuilder.writeList(
+            _fields!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
+    final int? featureFlagsOffset = _featureFlags == null
+        ? null
+        : fbBuilder.writeList(
+            _featureFlags!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
+    final int? processingResultOffset = _processingResult?.getOrCreateOffset(
+      fbBuilder,
+    );
+    final int? crashInfoOffset = _crashInfo == null
+        ? null
+        : fbBuilder.writeList(
+            _crashInfo!.map((b) => b.getOrCreateOffset(fbBuilder)).toList(),
+          );
     fbBuilder.startTable(11);
     fbBuilder.addOffset(0, sdkOffset);
     fbBuilder.addInt8(1, _type?.value);

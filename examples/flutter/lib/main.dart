@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:capture_flutter/capture_flutter.dart';
 
+final _launchStopwatch = Stopwatch()..start();
+
 void main() {
   runApp(const CaptureExampleApp());
 }
@@ -34,6 +36,14 @@ class _HomePageState extends State<HomePage> {
   String? _apiKey;
   String _apiUrl = 'https://api.bitdrift.io';
   bool _switchValue = true;
+  bool _sleepMode = false;
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 
   @override
   void initState() {
@@ -62,7 +72,11 @@ class _HomePageState extends State<HomePage> {
         apiKey: _apiKey!,
         apiUrl: _apiUrl,
         enableSessionReplay: true,
+        initialFields: const {'example_app': 'flutter'},
       );
+      if (success) {
+        Capture.logAppLaunchTTI(_launchStopwatch.elapsed);
+      }
       final sessionId = await Capture.sessionId;
       const entityId = 'flutter-example-user';
       if (success) {
@@ -228,6 +242,63 @@ class _HomePageState extends State<HomePage> {
               title: const Text('Sample Switch'),
               value: _switchValue,
               onChanged: (value) => setState(() => _switchValue = value),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await CaptureHttpClient().get(
+                    Uri.parse('https://httpbin.org/get?source=flutter'),
+                  );
+                  _showMessage('Network request sent');
+                } catch (e) {
+                  _showMessage('Network request failed: $e');
+                }
+              },
+              child: const Text('Network Request'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                try {
+                  throw const FormatException('Invalid payload');
+                } catch (error, stack) {
+                  Capture.logError(
+                    'Caught Dart error',
+                    error: error,
+                    stackTrace: stack,
+                  );
+                }
+                _showMessage('Error with stack trace logged');
+              },
+              child: const Text('Log Error With Stack'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                Capture.setFeatureFlagExposure('new_checkout', 'variant_b');
+                Capture.setFeatureFlagExposureBool('dark_mode', true);
+                _showMessage('Feature flags exposed');
+              },
+              child: const Text('Expose Feature Flags'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async {
+                final info = await Capture.previousRunInfo;
+                _showMessage('Previous run: ${info ?? 'unavailable'}');
+              },
+              child: const Text('Previous Run Info'),
+            ),
+            SwitchListTile(
+              title: const Text('Sleep Mode'),
+              value: _sleepMode,
+              onChanged: (value) {
+                Capture.setSleepMode(
+                  value ? SleepMode.enabled : SleepMode.disabled,
+                );
+                setState(() => _sleepMode = value);
+              },
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(

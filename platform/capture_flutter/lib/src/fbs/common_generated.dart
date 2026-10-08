@@ -6,7 +6,6 @@ library bitdrift_public.fbs.common.v1;
 import 'dart:typed_data' show Uint8List;
 import 'package:flat_buffers/flat_buffers.dart' as fb;
 
-
 enum DataTypeId {
   NONE(0),
   string_data(1),
@@ -17,10 +16,14 @@ enum DataTypeId {
 
   factory DataTypeId.fromValue(int value) {
     switch (value) {
-      case 0: return DataTypeId.NONE;
-      case 1: return DataTypeId.string_data;
-      case 2: return DataTypeId.binary_data;
-      default: throw StateError('Invalid value $value for bit flag enum');
+      case 0:
+        return DataTypeId.NONE;
+      case 1:
+        return DataTypeId.string_data;
+      case 2:
+        return DataTypeId.binary_data;
+      default:
+        throw StateError('Invalid value $value for bit flag enum');
     }
   }
 
@@ -55,7 +58,8 @@ class StringData {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get data => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get data =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
 
   @override
   String toString() {
@@ -67,8 +71,8 @@ class _StringDataReader extends fb.TableReader<StringData> {
   const _StringDataReader();
 
   @override
-  StringData createObject(fb.BufferContext bc, int offset) => 
-    StringData._(bc, offset);
+  StringData createObject(fb.BufferContext bc, int offset) =>
+      StringData._(bc, offset);
 }
 
 class StringDataBuilder {
@@ -93,15 +97,13 @@ class StringDataBuilder {
 class StringDataObjectBuilder extends fb.ObjectBuilder {
   final String? _data;
 
-  StringDataObjectBuilder({
-    String? data,
-  })
-      : _data = data;
+  StringDataObjectBuilder({String? data}) : _data = data;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? dataOffset = _data == null ? null
+    final int? dataOffset = _data == null
+        ? null
         : fbBuilder.writeString(_data!);
     fbBuilder.startTable(1);
     fbBuilder.addOffset(0, dataOffset);
@@ -116,6 +118,7 @@ class StringDataObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class BinaryData {
   BinaryData._(this._bc, this._bcOffset);
   factory BinaryData(List<int> bytes) {
@@ -128,8 +131,10 @@ class BinaryData {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get dataType => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
-  List<int>? get data => const fb.Uint8ListReader().vTableGetNullable(_bc, _bcOffset, 6);
+  String? get dataType =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  List<int>? get data =>
+      const fb.Uint8ListReader().vTableGetNullable(_bc, _bcOffset, 6);
 
   @override
   String toString() {
@@ -141,8 +146,8 @@ class _BinaryDataReader extends fb.TableReader<BinaryData> {
   const _BinaryDataReader();
 
   @override
-  BinaryData createObject(fb.BufferContext bc, int offset) => 
-    BinaryData._(bc, offset);
+  BinaryData createObject(fb.BufferContext bc, int offset) =>
+      BinaryData._(bc, offset);
 }
 
 class BinaryDataBuilder {
@@ -158,6 +163,7 @@ class BinaryDataBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addDataOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
@@ -172,19 +178,18 @@ class BinaryDataObjectBuilder extends fb.ObjectBuilder {
   final String? _dataType;
   final List<int>? _data;
 
-  BinaryDataObjectBuilder({
-    String? dataType,
-    List<int>? data,
-  })
-      : _dataType = dataType,
-        _data = data;
+  BinaryDataObjectBuilder({String? dataType, List<int>? data})
+    : _dataType = dataType,
+      _data = data;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? dataTypeOffset = _dataType == null ? null
+    final int? dataTypeOffset = _dataType == null
+        ? null
         : fbBuilder.writeString(_dataType!);
-    final int? dataOffset = _data == null ? null
+    final int? dataOffset = _data == null
+        ? null
         : fbBuilder.writeListUint8(_data!);
     fbBuilder.startTable(2);
     fbBuilder.addOffset(0, dataTypeOffset);
@@ -200,6 +205,7 @@ class BinaryDataObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Field {
   Field._(this._bc, this._bcOffset);
   factory Field(List<int> bytes) {
@@ -212,13 +218,19 @@ class Field {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get key => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
-  DataTypeId? get valueType => DataTypeId._createOrNull(const fb.Uint8Reader().vTableGetNullable(_bc, _bcOffset, 6));
+  String? get key =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  DataTypeId? get valueType => DataTypeId._createOrNull(
+    const fb.Uint8Reader().vTableGetNullable(_bc, _bcOffset, 6),
+  );
   dynamic get value {
     switch (valueType?.value) {
-      case 1: return StringData.reader.vTableGetNullable(_bc, _bcOffset, 8);
-      case 2: return BinaryData.reader.vTableGetNullable(_bc, _bcOffset, 8);
-      default: return null;
+      case 1:
+        return StringData.reader.vTableGetNullable(_bc, _bcOffset, 8);
+      case 2:
+        return BinaryData.reader.vTableGetNullable(_bc, _bcOffset, 8);
+      default:
+        return null;
     }
   }
 
@@ -232,8 +244,7 @@ class _FieldReader extends fb.TableReader<Field> {
   const _FieldReader();
 
   @override
-  Field createObject(fb.BufferContext bc, int offset) => 
-    Field._(bc, offset);
+  Field createObject(fb.BufferContext bc, int offset) => Field._(bc, offset);
 }
 
 class FieldBuilder {
@@ -249,10 +260,12 @@ class FieldBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addValueType(DataTypeId? valueType) {
     fbBuilder.addUint8(1, valueType?.value);
     return fbBuilder.offset;
   }
+
   int addValueOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
@@ -268,20 +281,15 @@ class FieldObjectBuilder extends fb.ObjectBuilder {
   final DataTypeId? _valueType;
   final dynamic _value;
 
-  FieldObjectBuilder({
-    String? key,
-    DataTypeId? valueType,
-    dynamic value,
-  })
-      : _key = key,
-        _valueType = valueType,
-        _value = value;
+  FieldObjectBuilder({String? key, DataTypeId? valueType, dynamic value})
+    : _key = key,
+      _valueType = valueType,
+      _value = value;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? keyOffset = _key == null ? null
-        : fbBuilder.writeString(_key!);
+    final int? keyOffset = _key == null ? null : fbBuilder.writeString(_key!);
     final int? valueOffset = _value?.getOrCreateOffset(fbBuilder);
     fbBuilder.startTable(3);
     fbBuilder.addOffset(0, keyOffset);
@@ -298,6 +306,7 @@ class FieldObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class Timestamp {
   Timestamp._(this._bc, this._bcOffset);
   factory Timestamp(List<int> bytes) {
@@ -323,8 +332,8 @@ class _TimestampReader extends fb.TableReader<Timestamp> {
   const _TimestampReader();
 
   @override
-  Timestamp createObject(fb.BufferContext bc, int offset) => 
-    Timestamp._(bc, offset);
+  Timestamp createObject(fb.BufferContext bc, int offset) =>
+      Timestamp._(bc, offset);
 }
 
 class TimestampBuilder {
@@ -340,6 +349,7 @@ class TimestampBuilder {
     fbBuilder.addInt64(0, seconds);
     return fbBuilder.offset;
   }
+
   int addNanos(int? nanos) {
     fbBuilder.addInt32(1, nanos);
     return fbBuilder.offset;
@@ -354,12 +364,9 @@ class TimestampObjectBuilder extends fb.ObjectBuilder {
   final int? _seconds;
   final int? _nanos;
 
-  TimestampObjectBuilder({
-    int? seconds,
-    int? nanos,
-  })
-      : _seconds = seconds,
-        _nanos = nanos;
+  TimestampObjectBuilder({int? seconds, int? nanos})
+    : _seconds = seconds,
+      _nanos = nanos;
 
   /// Finish building, and store into the [fbBuilder].
   @override

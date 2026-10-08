@@ -183,7 +183,7 @@ void main() {
           child: Transform.scale(
             scale: 0.5,
             alignment: Alignment.topLeft,
-            child: SizedBox(width: 200, height: 100, child: Text('scaled')),
+            child: const SizedBox(width: 200, height: 100, child: Text('scaled')),
           ),
         ),
       ),
