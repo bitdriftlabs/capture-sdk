@@ -8,7 +8,13 @@
 use crate::ffi::{append_array_value, make_nsstring, nsstring_into_string, set_dictionary_value};
 use anyhow::{Result, anyhow};
 use bd_artifact_upload::UploadSource;
-use bd_logger::{CommandAttachment, CommandInvocation, CommandResult, RegisteredCommandHandler};
+use bd_logger::{
+  CommandAttachment,
+  CommandError,
+  CommandInvocation,
+  CommandResult,
+  RegisteredCommandHandler,
+};
 use bd_proto::protos::logging::payload::Data;
 use bd_proto::protos::logging::payload::data::Data_type;
 use objc::rc::{StrongPtr, autoreleasepool};
@@ -63,7 +69,12 @@ impl RegisteredCommandHandler for Target {
     let receiver = {
       let arguments = match make_arguments(&invocation.arguments) {
         Ok(arguments) => arguments,
-        Err(error) => return failed_result(error.to_string(), &HashMap::new()),
+        Err(error) => {
+          return failed_result(
+            CommandError::InvalidArguments(error.to_string()),
+            &HashMap::new(),
+          );
+        },
       };
 
       let request_id = NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed);
@@ -89,7 +100,7 @@ impl RegisteredCommandHandler for Target {
 
     receiver.await.unwrap_or_else(|_| {
       failed_result(
-        "The command handler was released before completing".to_string(),
+        CommandError::Other("The command handler was released before completing".into()),
         &HashMap::new(),
       )
     })
@@ -111,7 +122,8 @@ pub fn complete<S: BuildHasher>(
   attachment: Option<Vec<u8>>,
   attachment_mime_type: Option<String>,
   attachment_filename: Option<String>,
-  error: Option<String>,
+  error_code: Option<&str>,
+  error_message: Option<String>,
 ) {
   let sender = COMPLETIONS.lock().remove(&request_id);
   let Some(sender) = sender else {
@@ -138,22 +150,38 @@ pub fn complete<S: BuildHasher>(
       attachment,
     }
   } else {
-    failed_result(
-      error.unwrap_or_else(|| "Command failed".to_string()),
-      context,
-    )
+    failed_result(command_error(error_code, error_message), context)
   };
 
   let _ = sender.send(result);
 }
 
 fn failed_result<S: BuildHasher>(
-  error: String,
+  error: CommandError,
   context: &HashMap<String, String, S>,
 ) -> CommandResult {
   CommandResult::Failed {
     error,
     fields: context_to_fields(context),
+  }
+}
+
+fn command_error(error_code: Option<&str>, error_message: Option<String>) -> CommandError {
+  match error_code {
+    Some("command_unknown") => CommandError::CommandUnknown,
+    Some("max_command_concurrency") => CommandError::MaxCommandConcurrency,
+    Some("command_already_executing") => CommandError::AlreadyExecuting,
+    Some("invalid_arguments") => CommandError::InvalidArguments(
+      error_message.unwrap_or_else(|| "invalid command arguments".into()),
+    ),
+    Some("handler_failed") => {
+      CommandError::HandlerFailed(error_message.unwrap_or_else(|| "command handler failed".into()))
+    },
+    Some("timeout") => CommandError::Timeout,
+    Some(code) => CommandError::Other(
+      error_message.unwrap_or_else(|| format!("unknown command error code: {code}")),
+    ),
+    None => CommandError::Other(error_message.unwrap_or_else(|| "command failed".into())),
   }
 }
 

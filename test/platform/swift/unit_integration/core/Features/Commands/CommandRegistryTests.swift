@@ -94,86 +94,28 @@ final class CommandRegistryTests: XCTestCase {
         thenResultIsCommandNotFound(await whenExecutingCommand(key: "memory"))
     }
 
-    func testReplacingCommandKeepsExecutionsSerializedAcrossHandlers() async throws {
+    func testReplacingCommandDoesNotInterruptAnExecutionThatWasAlreadyAdmitted() async throws {
         let firstExecutionStarted = expectation(description: "first execution started")
         let allowFirstExecutionToFinish = AsyncGate()
-        let currentConcurrentExecutions = LockedValue(0)
-        let maximumConcurrentExecutions = LockedValue(0)
         let originalHandle = await givenRegisteredCommand(key: "memory") { _ in
-            let current = currentConcurrentExecutions.modify { value in
-                value += 1
-                return value
-            }
-            maximumConcurrentExecutions.modify { value in
-                value = max(value, current)
-            }
             firstExecutionStarted.fulfill()
             await allowFirstExecutionToFinish.wait()
-            currentConcurrentExecutions.modify { $0 -= 1 }
             return .success(CommandResult(context: ["source": "first"]))
         }
 
         async let activeResult = whenExecutingCommand(key: "memory")
         await fulfillment(of: [firstExecutionStarted])
-        async let queuedResult = whenExecutingCommand(key: "memory")
-        await whenExecutionIsQueued(for: "memory")
         _ = await givenRegisteredCommand(key: "memory") { _ in
-            let current = currentConcurrentExecutions.modify { value in
-                value += 1
-                return value
-            }
-            maximumConcurrentExecutions.modify { value in
-                value = max(value, current)
-            }
-            currentConcurrentExecutions.modify { $0 -= 1 }
             return .success(CommandResult(context: ["source": "second"]))
         }
 
+        thenResultIsBusy(await whenExecutingCommand(key: "memory"))
         whenOpeningGate(allowFirstExecutionToFinish)
 
         try thenResultIsSuccess(await activeResult, context: ["source": "first"])
-        try thenResultIsSuccess(await queuedResult, context: ["source": "second"])
-        thenMaximumConcurrentExecutionsIs(maximumConcurrentExecutions, expected: 1)
+        try thenResultIsSuccess(await whenExecutingCommand(key: "memory"), context: ["source": "second"])
         await whenUnregistering(originalHandle)
         try thenResultIsSuccess(await whenExecutingCommand(key: "memory"), context: ["source": "second"])
-    }
-
-    func testExecutionsOfTheSameCommandDoNotOverlap() async throws {
-        let firstExecutionStarted = expectation(description: "first execution started")
-        let allowFirstExecutionToFinish = AsyncGate()
-        let maximumConcurrentExecutions = LockedValue(0)
-        let currentConcurrentExecutions = LockedValue(0)
-        let invocationCount = LockedValue(0)
-
-        await givenRegisteredCommand(key: "serial") { _ in
-            let invocation = invocationCount.modify { value in
-                value += 1
-                return value
-            }
-            let current = currentConcurrentExecutions.modify { value in
-                value += 1
-                return value
-            }
-            maximumConcurrentExecutions.modify { value in
-                value = max(value, current)
-            }
-            if invocation == 1 {
-                firstExecutionStarted.fulfill()
-                await allowFirstExecutionToFinish.wait()
-            }
-            currentConcurrentExecutions.modify { $0 -= 1 }
-            return .success(CommandResult())
-        }
-
-        async let first = whenExecutingCommand(key: "serial")
-        await fulfillment(of: [firstExecutionStarted])
-        async let second = whenExecutingCommand(key: "serial")
-
-        whenOpeningGate(allowFirstExecutionToFinish)
-
-        try thenResultIsSuccess(await first)
-        try thenResultIsSuccess(await second)
-        thenMaximumConcurrentExecutionsIs(maximumConcurrentExecutions, expected: 1)
     }
 
     func testExecutionsOfDifferentCommandsCanOverlap() async throws {
@@ -210,7 +152,28 @@ final class CommandRegistryTests: XCTestCase {
         thenMaximumConcurrentExecutionsIs(maximumConcurrentExecutions, expected: 2)
     }
 
-    func testUnregisteringCommandCancelsQueuedExecutionsWithoutInterruptingActiveExecution() async throws {
+    func testBusyRejectionDoesNotConsumeAGlobalConcurrencySlot() async throws {
+        let firstExecutionStarted = expectation(description: "first execution started")
+        let allowFirstExecutionToFinish = AsyncGate()
+        let registry = CommandRegistry(maxConcurrentExecutions: 2)
+        let target = CommandsTarget(registry: registry)
+        _ = await registry.register(key: "first", handler: { _ in
+            firstExecutionStarted.fulfill()
+            await allowFirstExecutionToFinish.wait()
+            return .success(CommandResult())
+        }, target: target)
+        _ = await registry.register(key: "second", handler: { _ in .success(CommandResult()) }, target: target)
+
+        async let firstExecution = registry.execute(key: "first", arguments: [:])
+        await fulfillment(of: [firstExecutionStarted])
+
+        thenResultIsBusy(await registry.execute(key: "first", arguments: [:]))
+        try thenResultIsSuccess(await registry.execute(key: "second", arguments: [:]))
+        whenOpeningGate(allowFirstExecutionToFinish)
+        try thenResultIsSuccess(await firstExecution)
+    }
+
+    func testUnregisteringCommandDoesNotInterruptAnExecutionThatWasAlreadyAdmitted() async throws {
         let firstExecutionStarted = expectation(description: "first execution started")
         let allowFirstExecutionToFinish = AsyncGate()
         let handle = await givenRegisteredCommand(key: "serial") { _ in
@@ -221,14 +184,12 @@ final class CommandRegistryTests: XCTestCase {
 
         async let activeResult = whenExecutingCommand(key: "serial")
         await fulfillment(of: [firstExecutionStarted])
-        async let queuedResult = whenExecutingCommand(key: "serial")
-        await whenExecutionIsQueued(for: "serial")
 
         await whenUnregistering(handle)
         whenOpeningGate(allowFirstExecutionToFinish)
 
         try thenResultIsSuccess(await activeResult)
-        thenResultIsUnregistered(await queuedResult)
+        thenResultIsCommandNotFound(await whenExecutingCommand(key: "serial"))
     }
 
     func testUnregisteringCommandByKeyPreventsFutureExecutions() async {
@@ -238,6 +199,61 @@ final class CommandRegistryTests: XCTestCase {
         let result = await whenExecutingCommand(key: "memory")
 
         thenResultIsCommandNotFound(result)
+    }
+
+    func testExecutionIsRejectedWhenTheGlobalConcurrencyLimitIsReached() async throws {
+        let executionsStarted = expectation(description: "maximum executions started")
+        executionsStarted.expectedFulfillmentCount = 10
+        let allowExecutionsToFinish = AsyncGate()
+        let registry = CommandRegistry(maxConcurrentExecutions: 10)
+        let target = CommandsTarget(registry: registry)
+        for index in 0 ..< 10 {
+            _ = await registry.register(key: "command-\(index)", handler: { _ in
+                executionsStarted.fulfill()
+                await allowExecutionsToFinish.wait()
+                return .success(CommandResult())
+            }, target: target)
+        }
+        _ = await registry.register(key: "overflow", handler: { _ in
+            .success(CommandResult())
+        }, target: target)
+
+        let activeExecutions = (0 ..< 10).map { index in
+            Task { await registry.execute(key: "command-\(index)", arguments: [:]) }
+        }
+        await fulfillment(of: [executionsStarted])
+
+        let result = await registry.execute(key: "overflow", arguments: [:])
+
+        thenResultFails(result, title: "Maximum command concurrency reached")
+        whenOpeningGate(allowExecutionsToFinish)
+        for execution in activeExecutions {
+            try thenResultIsSuccess(await execution.value)
+        }
+    }
+
+    func testReleasesTheGlobalConcurrencySlotWhenAnExecutionFinishes() async throws {
+        let executionStarted = expectation(description: "execution started")
+        let allowExecutionToFinish = AsyncGate()
+        let registry = CommandRegistry(maxConcurrentExecutions: 1)
+        let target = CommandsTarget(registry: registry)
+        _ = await registry.register(key: "first", handler: { _ in
+            executionStarted.fulfill()
+            await allowExecutionToFinish.wait()
+            return .success(CommandResult())
+        }, target: target)
+        _ = await registry.register(key: "second", handler: { _ in .success(CommandResult()) }, target: target)
+
+        async let activeExecution = registry.execute(key: "first", arguments: [:])
+        await fulfillment(of: [executionStarted])
+
+        thenResultFails(
+            await registry.execute(key: "second", arguments: [:]),
+            title: "Maximum command concurrency reached"
+        )
+        whenOpeningGate(allowExecutionToFinish)
+        try thenResultIsSuccess(await activeExecution)
+        try thenResultIsSuccess(await registry.execute(key: "second", arguments: [:]))
     }
 }
 
@@ -266,16 +282,6 @@ private extension CommandRegistryTests {
         await sut.unregister(key: key)
     }
 
-    func whenExecutionIsQueued(for key: String) async {
-        for _ in 0 ..< 100 {
-            if await sut.queuedExecutionCount(for: key) == 1 {
-                return
-            }
-            await Task.yield()
-        }
-        XCTFail("Expected execution to be queued")
-    }
-
     func whenOpeningGate(_ gate: AsyncGate) {
         gate.open()
     }
@@ -290,12 +296,19 @@ private extension CommandRegistryTests {
         XCTAssertEqual(commandResult.context, context, file: file, line: line)
     }
 
-    func thenResultIsUnregistered(_ result: Result<CommandResult, CommandError>) {
-        XCTAssertEqual(result, .failure(.unregistered))
-    }
-
     func thenResultIsCommandNotFound(_ result: Result<CommandResult, CommandError>) {
         XCTAssertEqual(result, .failure(.notFound))
+    }
+
+    func thenResultIsBusy(_ result: Result<CommandResult, CommandError>) {
+        XCTAssertEqual(result, .failure(.alreadyExecuting))
+    }
+
+    func thenResultFails(_ result: Result<CommandResult, CommandError>, title: String) {
+        guard case let .failure(error) = result else {
+            return XCTFail("Expected command failure")
+        }
+        XCTAssertEqual(error.title, title)
     }
 
     func thenMaximumConcurrentExecutionsIs(_ value: LockedValue<Int>, expected: Int) {

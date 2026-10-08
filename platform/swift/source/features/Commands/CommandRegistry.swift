@@ -6,12 +6,6 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 actor CommandRegistry {
-    private enum HandlerAcquisition {
-        case handler(CommandHandler)
-        case notFound
-        case unregistered
-    }
-
     private final class Registration: @unchecked Sendable {
         let handler: CommandHandler
 
@@ -20,26 +14,21 @@ actor CommandRegistry {
         }
     }
 
-    private struct Entry {
-        var registration: Registration
-        var isExecuting = false
-        var waiters = [CheckedContinuation<HandlerAcquisition, Never>]()
-
-        init(registration: Registration) {
-            self.registration = registration
-        }
-    }
-
     private let bridge: (any CommandRegistrationBridging)?
-    private var entries = [String: Entry]()
+    private let maxConcurrentExecutions: Int
+    private var registrations = [String: Registration]()
+    private var executingKeys = Set<String>()
+    private var activeExecutionCount = 0
 
     init(
         commands: [Command] = [],
-        bridge: (any CommandRegistrationBridging)? = nil
+        bridge: (any CommandRegistrationBridging)? = nil,
+        maxConcurrentExecutions: Int = 10
     ) {
         self.bridge = bridge
+        self.maxConcurrentExecutions = maxConcurrentExecutions
         for command in commands {
-            entries[command.key] = Entry(registration: Registration(handler: command.handler))
+            registrations[command.key] = Registration(handler: command.handler)
         }
     }
 
@@ -49,11 +38,10 @@ actor CommandRegistry {
         target: CommandsTarget
     ) -> CommandHandle {
         let registration = Registration(handler: handler)
-        if var entry = entries[key] {
-            entry.registration = registration
-            entries[key] = entry
+        if registrations[key] != nil {
+            registrations[key] = registration
         } else {
-            entries[key] = Entry(registration: registration)
+            registrations[key] = registration
             bridge?.registerCommand(key: key, target: target)
         }
         return CommandHandle { [weak self, weak registration] in
@@ -63,19 +51,22 @@ actor CommandRegistry {
     }
 
     func execute(key: String, arguments: CommandArguments) async -> Result<CommandResult, CommandError> {
-        let acquisition = await acquireHandler(for: key)
-        let handler: CommandHandler
-        switch acquisition {
-        case let .handler(acquiredHandler):
-            handler = acquiredHandler
-        case .notFound:
+        guard let registration = registrations[key] else {
             return .failure(.notFound)
-        case .unregistered:
-            return .failure(.unregistered)
         }
-        let result = await handler(arguments)
-        releaseHandler(for: key)
-        return result
+        guard executingKeys.insert(key).inserted else {
+            return .failure(.alreadyExecuting)
+        }
+        guard activeExecutionCount < maxConcurrentExecutions else {
+            executingKeys.remove(key)
+            return .failure(.maximumConcurrency)
+        }
+        activeExecutionCount += 1
+        defer {
+            activeExecutionCount -= 1
+            executingKeys.remove(key)
+        }
+        return await registration.handler(arguments)
     }
 
     func unregister(key: String) {
@@ -83,39 +74,9 @@ actor CommandRegistry {
     }
 
     private func unregister(key: String, matching expectedRegistration: Registration?) {
-        guard let entry = entries[key] else { return }
-        guard expectedRegistration == nil || entry.registration === expectedRegistration else { return }
-        entries.removeValue(forKey: key)
+        guard let registration = registrations[key] else { return }
+        guard expectedRegistration == nil || registration === expectedRegistration else { return }
+        registrations.removeValue(forKey: key)
         bridge?.unregisterCommand(key: key)
-        entry.waiters.forEach { $0.resume(returning: .unregistered) }
-    }
-
-    func queuedExecutionCount(for key: String) -> Int {
-        entries[key]?.waiters.count ?? 0
-    }
-
-    private func acquireHandler(for key: String) async -> HandlerAcquisition {
-        guard var entry = entries[key] else { return .notFound }
-        guard !entry.isExecuting else {
-            return await withCheckedContinuation { continuation in
-                entry.waiters.append(continuation)
-                entries[key] = entry
-            }
-        }
-        entry.isExecuting = true
-        entries[key] = entry
-        return .handler(entry.registration.handler)
-    }
-
-    private func releaseHandler(for key: String) {
-        guard var entry = entries[key] else { return }
-        if let waiter = entry.waiters.first {
-            entry.waiters.removeFirst()
-            entries[key] = entry
-            waiter.resume(returning: .handler(entry.registration.handler))
-        } else {
-            entry.isExecuting = false
-            entries[key] = entry
-        }
     }
 }

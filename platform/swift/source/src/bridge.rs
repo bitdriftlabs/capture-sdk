@@ -853,7 +853,8 @@ extern "C" fn capture_complete_command(
   attachment: *const Object,
   attachment_mime_type: *const Object,
   attachment_filename: *const Object,
-  error: *const Object,
+  error_code: *const Object,
+  error_message: *const Object,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
@@ -873,10 +874,15 @@ extern "C" fn capture_complete_command(
       } else {
         Some(unsafe { nsstring_into_string(attachment_filename) }?)
       };
-      let error = if error.is_null() {
+      let error_code = if error_code.is_null() {
         None
       } else {
-        Some(unsafe { nsstring_into_string(error) }?)
+        Some(unsafe { nsstring_into_string(error_code) }?)
+      };
+      let error_message = if error_message.is_null() {
+        None
+      } else {
+        Some(unsafe { nsstring_into_string(error_message) }?)
       };
       commands::complete(
         request_id,
@@ -885,7 +891,8 @@ extern "C" fn capture_complete_command(
         attachment,
         attachment_mime_type,
         attachment_filename,
-        error,
+        error_code.as_deref(),
+        error_message,
       );
       Ok(())
     },
