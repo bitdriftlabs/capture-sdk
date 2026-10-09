@@ -31,6 +31,7 @@ extension Logger {
                 dateProvider: dateProvider,
                 customFieldGetters: customFieldGetters,
                 initialFields: initialFields,
+                enableNetwork: false,
                 storageProvider: MockStorageProvider(),
                 timeProvider: SystemTimeProvider(),
                 loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
