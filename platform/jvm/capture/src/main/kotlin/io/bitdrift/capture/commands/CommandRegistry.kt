@@ -106,12 +106,16 @@ internal class CommandRegistry(
         }
         val invocation = CommandInvocation(key, commandId, sessionId, argumentNames.zip(argumentValues).toMap())
         scope.launch {
-            try {
-                complete(invocationId, run(handler, invocation))
-            } finally {
-                slots.release()
-                running.remove(key)
-            }
+            // Free the slot and the key before reporting the result, so that by the time anyone
+            // observes this invocation as finished, the key can be invoked again.
+            val result =
+                try {
+                    run(handler, invocation)
+                } finally {
+                    slots.release()
+                    running.remove(key)
+                }
+            complete(invocationId, result)
         }
     }
 
