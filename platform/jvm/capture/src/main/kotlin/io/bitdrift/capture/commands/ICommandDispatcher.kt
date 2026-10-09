@@ -12,12 +12,19 @@ package io.bitdrift.capture.commands
  * once through `CaptureJniLibrary.completeCommand`.
  */
 internal interface ICommandDispatcher {
+    /**
+     * @param argumentNames one entry per argument.
+     * @param argumentTypes a `CommandArgument.TYPE_*` code per argument, parallel to [argumentNames].
+     * @param argumentValues the boxed value per argument, parallel to [argumentNames]: a `String`,
+     * `ByteArray`, `Long` (for both integer types), `Double` or `Boolean`.
+     */
     fun dispatch(
         invocationId: Long,
         key: String,
         commandId: String?,
         sessionId: String,
         argumentNames: Array<String>,
-        argumentValues: Array<String>,
+        argumentTypes: IntArray,
+        argumentValues: Array<Any?>,
     )
 }

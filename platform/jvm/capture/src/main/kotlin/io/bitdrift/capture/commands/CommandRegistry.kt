@@ -86,12 +86,26 @@ internal class CommandRegistry(
         commandId: String?,
         sessionId: String,
         argumentNames: Array<String>,
-        argumentValues: Array<String>,
+        argumentTypes: IntArray,
+        argumentValues: Array<Any?>,
     ) {
         val handler = handlers[key]
         if (handler == null) {
             fail(invocationId, CommandErrorCode.COMMAND_UNKNOWN, "no handler registered for $key")
             return
+        }
+        val arguments = HashMap<String, CommandArgument>(argumentNames.size)
+        for (i in argumentNames.indices) {
+            val argument = CommandArgument.decode(argumentTypes[i], argumentValues[i])
+            if (argument == null) {
+                fail(
+                    invocationId,
+                    CommandErrorCode.INVALID_ARGUMENTS,
+                    "argument ${argumentNames[i]} has unsupported type ${argumentTypes[i]}",
+                )
+                return
+            }
+            arguments[argumentNames[i]] = argument
         }
         if (!running.add(key)) {
             fail(invocationId, CommandErrorCode.COMMAND_ALREADY_EXECUTING, "an invocation of $key is already running")
@@ -102,15 +116,15 @@ internal class CommandRegistry(
             fail(invocationId, CommandErrorCode.MAX_COMMAND_CONCURRENCY, "$maxConcurrentInvocations commands are already running")
             return
         }
-        val invocation = CommandInvocation(key, commandId, sessionId, argumentNames.zip(argumentValues).toMap())
+        val invocation = CommandInvocation(key, commandId, sessionId, arguments)
         scope.launch {
             // Free the slot and the key before reporting the result, so that by the time anyone
             // observes this invocation as finished, the key can be invoked again.
             val outcome =
                 try {
                     Outcome.Returned(invocation.handler())
-                } catch (e: MissingCommandArgumentException) {
-                    Outcome.Failed(CommandErrorCode.INVALID_ARGUMENTS, "missing argument ${e.name}")
+                } catch (e: InvalidCommandArgumentException) {
+                    Outcome.Failed(CommandErrorCode.INVALID_ARGUMENTS, e.message.orEmpty())
                 } catch (e: Throwable) {
                     Outcome.Failed(CommandErrorCode.HANDLER_FAILED, e.toString())
                 } finally {

@@ -13,6 +13,7 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import io.bitdrift.capture.Capture
+import io.bitdrift.capture.commands.CommandArgument
 import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandHandle
 import io.bitdrift.capture.commands.CommandScope
@@ -76,7 +77,7 @@ object SampleCommands {
                 val runtime = Runtime.getRuntime()
                 val dump =
                     """{"max":${runtime.maxMemory()},"total":${runtime.totalMemory()},"free":${runtime.freeMemory()}}"""
-                if (arguments["is_attachment"].toBoolean()) {
+                if (arguments["is_attachment"].isTruthy()) {
                     success(attachment = CommandAttachment(dump.toByteArray(), contentType = "application/json"))
                 } else {
                     success(context = mapOf("memory" to dump))
@@ -94,7 +95,7 @@ object SampleCommands {
                 Capture.Logger.logInfo(mapOf("command_key" to key, "arguments" to arguments.toString())) {
                     "echo command executed"
                 }
-                success(context = arguments)
+                success(context = arguments.mapValues { it.value.toString() })
             },
             Capture.Logger.registerCommand("slow") {
                 announce()
@@ -110,9 +111,15 @@ object SampleCommands {
             Capture.Logger.registerCommand("system_trace") {
                 announce()
                 val durationMs =
-                    arguments["duration_ms"]?.let {
-                        it.toLongOrNull() ?: return@registerCommand error("invalid_duration_ms", it)
-                    } ?: DEFAULT_TRACE_DURATION_MS
+                    when (val argument = arguments["duration_ms"]) {
+                        null -> DEFAULT_TRACE_DURATION_MS
+                        is CommandArgument.UnsignedInteger -> argument.value.toLong()
+                        is CommandArgument.SignedInteger -> argument.value
+                        is CommandArgument.Text ->
+                            argument.value.toLongOrNull()
+                                ?: return@registerCommand error("invalid_duration_ms", argument.value)
+                        else -> return@registerCommand error("invalid_duration_ms", argument.toString())
+                    }
                 val context = appContext ?: return@registerCommand error("no_context")
                 when (val result = StackSamplingProfiler.capture(context, durationMs.milliseconds)) {
                     is StackSamplingProfiler.Result.Trace ->
@@ -148,6 +155,14 @@ object SampleCommands {
             flags[flag] = !(flags[flag] ?: false)
         }
     }
+
+    /** Accepts both a boolean argument and the text "true", since the live debugger may send either. */
+    private fun CommandArgument?.isTruthy(): Boolean =
+        when (this) {
+            is CommandArgument.Bool -> value
+            is CommandArgument.Text -> value.toBoolean()
+            else -> false
+        }
 
     private const val LOG_TAG = "SampleCommands"
     private const val DEFAULT_TRACE_DURATION_MS = 5_000L
