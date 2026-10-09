@@ -217,8 +217,7 @@ class CommandRegistryTest {
 
     @Test
     fun completesSuccessWithAttachment() {
-        // Same shape as iOS's CommandAttachment(data:filename:mimeType:): both strings are required,
-        // so an artifact uploaded from Android carries a filename and a MIME type like one from iOS.
+        // Filename and content type are required so every uploaded artifact carries both.
         val payload = """{"max":1}""".toByteArray()
         registry.register("dump") {
             success(
@@ -296,14 +295,32 @@ class CommandRegistryTest {
 
     @Test
     fun errorCodesAreTheBridgeContract() {
-        // Shared with the iOS bridge and matched by name in commands.rs; renaming one breaks both.
-        assertThat(CommandErrorCode.entries.map { it.wire }).containsExactly(
-            "command_unknown",
-            "command_already_executing",
-            "max_command_concurrency",
-            "invalid_arguments",
-            "handler_failed",
-        )
+        // Matched by name in commands.rs and shared with the iOS bridge.
+        assertThat(CommandErrorCode.CommandUnknown.wire).isEqualTo("command_unknown")
+        assertThat(CommandErrorCode.CommandAlreadyExecuting.wire).isEqualTo("command_already_executing")
+        assertThat(CommandErrorCode.MaxCommandConcurrency.wire).isEqualTo("max_command_concurrency")
+        assertThat(CommandErrorCode.InvalidArguments.wire).isEqualTo("invalid_arguments")
+        assertThat(CommandErrorCode.HandlerFailed.wire).isEqualTo("handler_failed")
+    }
+
+    @Test
+    fun appErrorsCarryTheirOwnCode() {
+        registry.register("validate") { error("seconds must be positive", code = CommandErrorCode.InvalidArguments) }
+
+        registry.dispatch(1, "validate", null, "session")
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.error).isEqualTo("invalid_arguments")
+        assertThat(completion.message).isEqualTo("seconds must be positive")
+    }
+
+    @Test
+    fun appErrorsDefaultToHandlerFailed() {
+        registry.register("plain") { error("nope") }
+
+        registry.dispatch(1, "plain", null, "session")
+
+        assertThat(bridge.awaitCompletion().error).isEqualTo("handler_failed")
     }
 
     @Test
@@ -534,7 +551,7 @@ class CommandRegistryTest {
 
         registry.dispatch(2, "b", null, "session")
         assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
-        // Still over the cap: the second attempt is again max_concurrency, not busy.
+        // Still over the cap: the second attempt is again max_command_concurrency, not already-executing.
         registry.dispatch(3, "b", null, "session")
         assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
 
@@ -560,7 +577,7 @@ class CommandRegistryTest {
         assertThat(bridge.awaitCompletion().error).isEqualTo("command_already_executing")
         registry.dispatch(3, "b", null, "session")
 
-        // One slot is held by "a"; the busy rejection left the other one free for "b".
+        // One slot is held by "a"; the same-key rejection left the other one free for "b".
         val completion = bridge.awaitCompletion()
         assertThat(completion.invocationId).isEqualTo(3)
         assertThat(completion.error).isNull()

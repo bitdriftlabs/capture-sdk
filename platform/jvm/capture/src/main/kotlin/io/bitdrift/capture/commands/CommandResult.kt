@@ -28,17 +28,18 @@ sealed class CommandResult {
      * @param title a short identifier of the failure.
      * @param description an optional human readable description of the failure.
      * @param context key-value pairs describing the failure, captured as fields of the command log.
+     * @param code why it failed; [CommandErrorCode.HandlerFailed] unless the arguments were unusable.
      */
     data class Error(
         val title: String,
         val description: String? = null,
         val context: Map<String, String> = emptyMap(),
+        val code: CommandErrorCode = CommandErrorCode.HandlerFailed,
     ) : CommandResult()
 }
 
 /**
- * A binary payload returned by a successful command, uploaded as an artifact. Carries the same
- * metadata as the iOS `CommandAttachment` so artifacts from both platforms look alike.
+ * A binary payload returned by a successful command, uploaded as an artifact.
  *
  * @param bytes the payload.
  * @param filename the name the artifact is shown with, e.g. `memory.json`.

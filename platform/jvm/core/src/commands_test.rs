@@ -24,8 +24,7 @@ fn binary(payload: Vec<u8>) -> Data {
   }))
 }
 
-// A command argument is delivered to the Android handler exactly as the backend sent it. iOS
-// already receives typed `CommandArgument`s; these tests pin the same contract for Android.
+// Arguments reach the handler with the type and value the backend sent.
 
 #[test]
 fn binary_argument_bytes_reach_the_platform_unchanged() {
@@ -79,8 +78,7 @@ fn signed_and_double_arguments_keep_their_exact_values() {
 
 #[test]
 fn nested_arguments_are_rejected_rather_than_silently_emptied() {
-  // iOS fails the whole invocation with `invalid_arguments` for map and array values. Android
-  // must not hand the handler an empty string and let it proceed as if the argument were absent.
+  // A nested value must fail the invocation rather than reach the handler as an empty value.
   let map = platform_argument("m", data(Data_type::MapData(MapData::default())));
   let array = platform_argument("a", data(Data_type::ArrayData(ArrayData::default())));
   let empty = platform_argument("e", Data::default());
@@ -122,11 +120,11 @@ fn type_codes_match_the_kotlin_and_ios_contract() {
   assert_eq!(PlatformArgument::Bool(false).type_code(), 5);
 }
 
-// Attachments carry the same metadata as on iOS: a required filename, stored in the attachment
-// state under the `filename` key exactly like the Swift bridge does, and a required content type.
+// Attachments carry a required filename, as the `filename` attachment state field, and content
+// type.
 
 #[test]
-fn completed_attachment_records_filename_and_content_type_like_ios() {
+fn completed_attachment_records_filename_and_content_type() {
   let result = completed_result(
     LogFields::default(),
     Some(PlatformAttachment {
@@ -150,7 +148,7 @@ fn completed_attachment_records_filename_and_content_type_like_ios() {
       .get("filename")
       .and_then(|value| value.as_str()),
     Some("screen.jpg"),
-    "filename must travel as the `filename` attachment state field, as on iOS"
+    "filename must travel as the `filename` attachment state field"
   );
 }
 

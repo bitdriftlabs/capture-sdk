@@ -16,6 +16,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
+import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandHandle
 import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.commands.CommandResult
@@ -507,26 +508,22 @@ object Capture {
          *
          * Commands can be registered before or after [start].
          *
-         * Each command runs at most one invocation at a time: while one is in flight, further
-         * invocations of the same [key] fail immediately with a `command_already_executing` error
-         * rather than waiting. Different commands run in parallel, up to
-         * [CommandRegistry.MAX_CONCURRENT_INVOCATIONS] at once across all commands; an invocation
-         * arriving beyond that fails immediately with a `max_command_concurrency` error. Nothing
-         * is ever queued. Handlers run on a dedicated I/O
-         * thread pool of the same size, so a handler may block without affecting the
-         * application's own dispatchers.
+         * A command runs one invocation at a time and at most
+         * [CommandRegistry.MAX_CONCURRENT_INVOCATIONS] invocations run at once across all commands;
+         * an invocation beyond either limit fails immediately rather than waiting. Handlers run on
+         * a dedicated I/O thread pool and may block without affecting the application's own
+         * dispatchers.
          *
-         * The SDK never cancels a running handler. An invocation that takes too long is reported
-         * as a timeout while the handler keeps running to completion, and its eventual result is
-         * discarded. Likewise, unregistering or re-registering [key] does not stop an invocation
-         * that has already started: it finishes with the handler it started with, and a new
-         * handler for the same key is only invoked once it has returned. Handlers must therefore
-         * tolerate running after [unregisterCommand] returns.
+         * The SDK never cancels a running handler. An invocation that outlives the execution
+         * timeout is reported as timed out while the handler runs to completion, whose result is
+         * then discarded. Unregistering or re-registering [key] likewise leaves a started
+         * invocation alone, so handlers must tolerate running after [unregisterCommand] returns.
          *
          * @param key the unique key identifying the command. Registering a key that is already
          * registered replaces the handler used by future invocations.
-         * @param handler the suspending handler executing the command. Named arguments are read
-         * through [CommandScope.argument] and [CommandScope.arguments].
+         * @param handler the suspending handler executing the command. Arguments are read through
+         * [CommandScope.argument] and [CommandScope.arguments]; a failure is reported with
+         * [CommandScope.error] and a [CommandErrorCode].
          * @return a [CommandHandle] used to unregister the command.
          */
         @ExperimentalBitdriftApi
@@ -536,8 +533,7 @@ object Capture {
         ): CommandHandle = commandRegistry.register(key, handler)
 
         /**
-         * Unregisters the command registered with [key]. Invocations already running are not
-         * cancelled and complete normally; see [registerCommand].
+         * Unregisters the command registered with [key]. Running invocations are not cancelled.
          *
          * @return whether a command was registered with [key].
          */

@@ -63,11 +63,10 @@ pub(crate) fn complete_invocation(invocation_id: u64, result: CommandResult) {
   }
 }
 
-/// The attachment state key carrying the filename; the same key the iOS bridge uses, so artifacts
-/// from both platforms carry identical metadata.
+/// Attachment state key for the filename; shared with the iOS bridge.
 const ATTACHMENT_FILENAME_FIELD: &str = "filename";
 
-/// A successful result's attachment as reported by Kotlin: bytes plus required metadata.
+/// A successful result's attachment as reported by Kotlin.
 pub(crate) struct PlatformAttachment {
   pub bytes: Vec<u8>,
   pub filename: String,
@@ -95,8 +94,8 @@ fn failed_result(error: CommandError) -> CommandResult {
   }
 }
 
-/// Maps the error code reported by `CommandRegistry` (Kotlin `CommandErrorCode.wire`) to the typed
-/// `CommandError`. The codes are shared with the iOS bridge so both platforms report identically.
+/// Maps a Kotlin `CommandErrorCode.wire` string to the typed `CommandError`. The strings are shared
+/// with the iOS bridge.
 pub(crate) fn command_error(code: &str, message: Option<String>) -> CommandError {
   match code {
     "command_unknown" => CommandError::CommandUnknown,
@@ -115,9 +114,9 @@ pub(crate) fn command_error(code: &str, message: Option<String>) -> CommandError
   }
 }
 
-/// A command argument as handed to the Kotlin dispatcher: the type the backend sent, preserved.
-/// The type codes mirror `CommandArgument.TYPE_*` on the Kotlin side and, by value, the iOS
-/// bridge's `ArgumentType`; they are part of the JNI contract.
+/// A command argument as handed to the Kotlin dispatcher, with the type the backend sent. The type
+/// codes are a JNI contract with Kotlin `CommandArgument.TYPE_*`; the values also match the iOS
+/// bridge.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PlatformArgument {
   Text(String),
@@ -164,8 +163,8 @@ impl PlatformArgument {
   }
 }
 
-/// Converts one backend argument. Nested values (maps and arrays) and empty values are rejected,
-/// which fails the whole invocation with `InvalidArguments` before any handler runs, as iOS does.
+/// Converts one backend argument. Nested and empty values are rejected so that the whole invocation
+/// fails with `InvalidArguments` before any handler runs.
 pub(crate) fn platform_argument(name: &str, argument: Data) -> Result<PlatformArgument, String> {
   match argument.data_type {
     Some(Data_type::StringData(value)) => Ok(PlatformArgument::Text(value)),

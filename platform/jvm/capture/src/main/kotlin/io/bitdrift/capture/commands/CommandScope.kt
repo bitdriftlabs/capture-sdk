@@ -45,7 +45,8 @@ interface CommandScope {
         title: String,
         description: String? = null,
         context: Map<String, String> = emptyMap(),
-    ): CommandResult = CommandResult.Error(title, description, context)
+        code: CommandErrorCode = CommandErrorCode.HandlerFailed,
+    ): CommandResult = CommandResult.Error(title, description, context, code)
 }
 
 internal data class CommandInvocation(

@@ -20,10 +20,9 @@ class CommandHandle internal constructor(
 ) {
     /**
      * Unregisters the handler this handle was returned for. Does nothing if that handler was
-     * already unregistered or replaced by a newer registration of the same [key], so a handle
-     * tied to a lifecycle (see [unregisterOn]) can never remove a registration it does not own.
-     * To remove whatever is currently registered for [key], use `Logger.unregisterCommand(key)`.
-     * Invocations already running are not cancelled and complete normally.
+     * already unregistered or replaced, so a handle never removes a registration it does not own;
+     * `Logger.unregisterCommand(key)` removes whatever is current. Running invocations are not
+     * cancelled.
      */
     fun unregister() {
         onUnregister()

@@ -7,10 +7,7 @@
 
 package io.bitdrift.capture.commands
 
-/**
- * A command argument, delivered to the handler with the type the backend sent it as. Mirrors the
- * iOS `CommandArgument` so the same remote command behaves identically on both platforms.
- */
+/** A command argument, delivered to the handler with the type the backend sent it as. */
 sealed class CommandArgument {
     /** A UTF-8 string. */
     data class Text(
@@ -55,8 +52,7 @@ sealed class CommandArgument {
     ) : CommandArgument()
 
     internal companion object {
-        // Type codes shared with `platform/jvm/core/src/commands.rs` and, by value, with the iOS
-        // bridge's `ArgumentType`. They are part of the JNI contract.
+        // JNI contract with `platform/jvm/core/src/commands.rs`; the values also match the iOS bridge.
         const val TYPE_TEXT = 0
         const val TYPE_BINARY = 1
         const val TYPE_UNSIGNED_INTEGER = 2

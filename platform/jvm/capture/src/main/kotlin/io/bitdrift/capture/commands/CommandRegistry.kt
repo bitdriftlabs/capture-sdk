@@ -20,20 +20,17 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Keeps the handlers registered by the application and runs them when the Rust logger dispatches
+ * Keeps the handlers registered by the application and runs them when the Rust core dispatches
  * an invocation.
  *
- * Every invocation is launched on [dispatcher] and left alone: nothing is ever cancelled and
- * timeouts are enforced by the Rust layer. Two rules bound the work in flight, and both reject
- * instead of queueing so that memory never grows with the rate of incoming commands:
- * - a key runs one invocation at a time; a repeat while one is in flight fails with
- *   `command_already_executing`;
- * - at most [maxConcurrentInvocations] invocations exist across all keys; any more fail with
- *   `max_command_concurrency`.
+ * Invocations are launched on [dispatcher] and never cancelled; the execution timeout lives in
+ * the Rust core. Two rules bound the work in flight, and both reject rather than queue so that
+ * memory does not grow with the rate of incoming commands: a key runs one invocation at a time,
+ * and at most [maxConcurrentInvocations] invocations exist across all keys.
  *
- * Registration is not atomic with respect to [attach]: a key registered while the logger starts
- * may be announced to the bridge twice, which Rust treats as a replacement, or left announced
- * after being removed, which [dispatch] answers with `command_unknown`.
+ * Registration is not atomic with respect to [attach]. The two possible races are harmless: a
+ * key announced to the bridge twice is a replacement on the Rust side, and a key left announced
+ * after removal is answered by [dispatch] with [CommandErrorCode.CommandUnknown].
  */
 internal class CommandRegistry(
     private val bridge: ICommandBridge,
@@ -42,14 +39,10 @@ internal class CommandRegistry(
 ) : ICommandDispatcher {
     private val handlers = ConcurrentHashMap<String, suspend CommandScope.() -> CommandResult>()
 
-    /**
-     * Keys with an invocation in flight. A second invocation of the same key is rejected, not
-     * queued. `add` is an atomic check-and-claim because it is backed by `ConcurrentHashMap.put`.
-     * (`ConcurrentHashMap.newKeySet()` would be the obvious choice but needs API 24; minSdk is 23.)
-     */
+    /** Keys with an invocation in flight; `add` is an atomic claim. (`newKeySet()` needs API 24.) */
     private val running: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
 
-    /** One permit per invocation in flight; `tryAcquire` never suspends, so there is no queue. */
+    /** One permit per invocation in flight; only ever `tryAcquire`d, so nothing waits on it. */
     private val slots = Semaphore(maxConcurrentInvocations)
 
     @Volatile
@@ -62,8 +55,8 @@ internal class CommandRegistry(
     ): CommandHandle {
         handlers[key] = handler
         loggerId?.let { bridge.registerCommand(it, key, this) }
-        // The handle only removes its own registration: `remove(key, value)` is atomic and compares
-        // lambdas by identity, so a stale handle is a no-op once the key has been re-registered.
+        // `remove(key, value)` compares the lambda by identity, so a handle only removes its own
+        // registration and is a no-op once the key has been re-registered.
         return CommandHandle(key) {
             if (handlers.remove(key, handler)) loggerId?.let { bridge.unregisterCommand(it, key) }
         }
@@ -91,7 +84,7 @@ internal class CommandRegistry(
     ) {
         val handler = handlers[key]
         if (handler == null) {
-            fail(invocationId, CommandErrorCode.COMMAND_UNKNOWN, "no handler registered for $key")
+            fail(invocationId, CommandErrorCode.CommandUnknown, "no handler registered for $key")
             return
         }
         val arguments = HashMap<String, CommandArgument>(argumentNames.size)
@@ -100,7 +93,7 @@ internal class CommandRegistry(
             if (argument == null) {
                 fail(
                     invocationId,
-                    CommandErrorCode.INVALID_ARGUMENTS,
+                    CommandErrorCode.InvalidArguments,
                     "argument ${argumentNames[i]} has unsupported type ${argumentTypes[i]}",
                 )
                 return
@@ -108,25 +101,24 @@ internal class CommandRegistry(
             arguments[argumentNames[i]] = argument
         }
         if (!running.add(key)) {
-            fail(invocationId, CommandErrorCode.COMMAND_ALREADY_EXECUTING, "an invocation of $key is already running")
+            fail(invocationId, CommandErrorCode.CommandAlreadyExecuting, "an invocation of $key is already running")
             return
         }
         if (!slots.tryAcquire()) {
             running.remove(key)
-            fail(invocationId, CommandErrorCode.MAX_COMMAND_CONCURRENCY, "$maxConcurrentInvocations commands are already running")
+            fail(invocationId, CommandErrorCode.MaxCommandConcurrency, "$maxConcurrentInvocations commands are already running")
             return
         }
         val invocation = CommandInvocation(key, commandId, sessionId, arguments)
         scope.launch {
-            // Free the slot and the key before reporting the result, so that by the time anyone
-            // observes this invocation as finished, the key can be invoked again.
+            // Release before reporting, so an observed completion implies the key is free again.
             val outcome =
                 try {
                     Outcome.Returned(invocation.handler())
                 } catch (e: InvalidCommandArgumentException) {
-                    Outcome.Failed(CommandErrorCode.INVALID_ARGUMENTS, e.message.orEmpty())
+                    Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
                 } catch (e: Throwable) {
-                    Outcome.Failed(CommandErrorCode.HANDLER_FAILED, e.toString())
+                    Outcome.Failed(CommandErrorCode.HandlerFailed, e.toString())
                 } finally {
                     slots.release()
                     running.remove(key)
@@ -149,7 +141,6 @@ internal class CommandRegistry(
         ) : Outcome
     }
 
-    /** Reports a failure raised by the SDK itself. */
     private fun fail(
         invocationId: Long,
         code: CommandErrorCode,
@@ -159,11 +150,7 @@ internal class CommandRegistry(
         bridge.completeCommand(invocationId, code.wire, message, fields, null, null, null)
     }
 
-    /**
-     * Reports the handler's own result. An application [CommandResult.Error] is reported as
-     * `handler_failed` with "title: description" as the message and its context as fields, the
-     * same shape the iOS SDK produces.
-     */
+    /** An error's title and description travel joined as the message; its context as fields. */
     private fun complete(
         invocationId: Long,
         result: CommandResult,
@@ -182,7 +169,7 @@ internal class CommandRegistry(
             is CommandResult.Error ->
                 fail(
                     invocationId,
-                    CommandErrorCode.HANDLER_FAILED,
+                    result.code,
                     listOfNotNull(result.title, result.description).joinToString(": "),
                     result.context.toJniFields(),
                 )
@@ -193,16 +180,15 @@ internal class CommandRegistry(
 
     companion object {
         /**
-         * The maximum number of invocations in flight across all keys, and the size of the thread
-         * pool they run on. The two match so that an admitted invocation always has a thread even
-         * when every handler blocks; the dispatcher's own queue then only ever holds resumptions.
+         * Both the cap on invocations in flight and the size of their thread pool, so an admitted
+         * invocation always has a thread even when every handler blocks.
          */
         const val MAX_CONCURRENT_INVOCATIONS = 10
 
         /**
-         * Handlers may block (file reads, memory dumps, profiling), so they get their own slice of
-         * [Dispatchers.IO]: its threads are created on demand and do not count against the
-         * application's CPU-bound [Dispatchers.Default] pool or the IO pool's shared limit.
+         * Handlers may block, so they run on their own slice of [Dispatchers.IO], whose threads
+         * are created on demand and count against neither the application's [Dispatchers.Default]
+         * pool nor the IO pool's shared limit.
          */
         @OptIn(ExperimentalCoroutinesApi::class)
         internal fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_INVOCATIONS)

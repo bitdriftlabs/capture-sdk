@@ -9,30 +9,6 @@ package io.bitdrift.capture.commands
 
 import io.bitdrift.capture.providers.Field
 
-/**
- * Why a command failed, as understood by the Rust core. Each [wire] string selects a
- * `bd_logger::CommandError` variant in `commands.rs`; the same strings are used by the iOS bridge,
- * so the backend sees identical errors from both platforms. Rust raises `timeout` itself.
- */
-internal enum class CommandErrorCode(
-    val wire: String,
-) {
-    /** No handler is registered for the key. */
-    COMMAND_UNKNOWN("command_unknown"),
-
-    /** Another invocation of the same key is still running. */
-    COMMAND_ALREADY_EXECUTING("command_already_executing"),
-
-    /** The SDK-wide limit of invocations in flight was reached. */
-    MAX_COMMAND_CONCURRENCY("max_command_concurrency"),
-
-    /** The handler asked for an argument the invocation did not carry; the message says which. */
-    INVALID_ARGUMENTS("invalid_arguments"),
-
-    /** The handler threw, or returned a [CommandResult.Error]; the message carries the detail. */
-    HANDLER_FAILED("handler_failed"),
-}
-
 internal interface ICommandBridge {
     fun registerCommand(
         loggerId: Long,
@@ -47,11 +23,10 @@ internal interface ICommandBridge {
 
     /**
      * @param errorCode a [CommandErrorCode.wire] value, or null when the command succeeded.
-     * @param errorMessage the human-readable failure detail; null on success.
-     * @param fields the result context (success) or the error context (failure).
-     * @param attachment the attachment bytes, or null when there is none.
-     * @param attachmentFilename the attachment's filename; non-null whenever [attachment] is.
-     * @param attachmentContentType the attachment's MIME type; non-null whenever [attachment] is.
+     * @param errorMessage the failure detail; null when the command succeeded.
+     * @param fields the result context on success, the error context on failure.
+     * @param attachmentFilename non-null exactly when [attachment] is.
+     * @param attachmentContentType non-null exactly when [attachment] is.
      */
     fun completeCommand(
         invocationId: Long,

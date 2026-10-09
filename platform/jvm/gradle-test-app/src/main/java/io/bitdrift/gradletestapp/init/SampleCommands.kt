@@ -15,6 +15,7 @@ import android.widget.Toast
 import io.bitdrift.capture.Capture
 import io.bitdrift.capture.commands.CommandArgument
 import io.bitdrift.capture.commands.CommandAttachment
+import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandHandle
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
@@ -100,7 +101,9 @@ object SampleCommands {
             Capture.Logger.registerCommand("slow") {
                 announce()
                 val seconds = argument("seconds")
-                val duration = seconds.toLongOrNull()?.seconds ?: return@registerCommand error("invalid_seconds", seconds)
+                val duration =
+                    seconds.toLongOrNull()?.seconds
+                        ?: return@registerCommand error("invalid_seconds", seconds, code = CommandErrorCode.InvalidArguments)
                 delay(duration)
                 success(context = mapOf("slept" to duration.toString()))
             },
@@ -117,8 +120,9 @@ object SampleCommands {
                         is CommandArgument.SignedInteger -> argument.value
                         is CommandArgument.Text ->
                             argument.value.toLongOrNull()
-                                ?: return@registerCommand error("invalid_duration_ms", argument.value)
-                        else -> return@registerCommand error("invalid_duration_ms", argument.toString())
+                                ?: return@registerCommand error("invalid_duration_ms", argument.value, code = CommandErrorCode.InvalidArguments)
+                        else ->
+                            return@registerCommand error("invalid_duration_ms", argument.toString(), code = CommandErrorCode.InvalidArguments)
                     }
                 val context = appContext ?: return@registerCommand error("no_context")
                 when (val result = StackSamplingProfiler.capture(context, durationMs.milliseconds)) {
