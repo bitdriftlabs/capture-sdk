@@ -199,20 +199,6 @@ jobs:
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
 
-      # A freshly booted simulator downloads a newer PKITrustSupplementals asset and rebuilds trustd's
-      # pinning database. While it does, TLS trust evaluations stall for one to two minutes, and the
-      # E2E network tests time out. Blocking the asset hosts keeps the trust data the runtime ships with.
-      - name: Block simulator trust asset updates
-        run: |
-          for host in mesu.apple.com gdmf.apple.com updates.cdn-apple.com valid.apple.com; do
-            echo "0.0.0.0 $host" | sudo tee -a /etc/hosts
-          done
-          sudo dscacheutil -flushcache
-          sudo killall -HUP mDNSResponder
-          for host in mesu.apple.com gdmf.apple.com updates.cdn-apple.com valid.apple.com; do
-            dscacheutil -q host -a name "$host"
-          done
-
       - name: Download affected Clippy targets
         if: ${{ github.event_name == 'pull_request' && needs.pre_check.outputs.has_affected_clippy_targets == 'true' }}
         uses: actions/download-artifact@v4
