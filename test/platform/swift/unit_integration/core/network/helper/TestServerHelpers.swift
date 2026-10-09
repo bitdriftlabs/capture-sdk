@@ -38,7 +38,7 @@ public final class TestApiServer: @unchecked Sendable {
     ///
     /// - parameter tls:            Whether the test server uses TLS.
     /// - parameter pingIntervalMs: The interval, in milliseconds, between server pings.
-    public init(tls: Bool = true, pingIntervalMs: Int32 = -1) throws {
+    public init(tls: Bool = false, pingIntervalMs: Int32 = -1) throws {
         guard let handle = create_test_api_server_instance(tls, pingIntervalMs) else {
             throw TestServerError("Test API server did not return a server handle")
         }
@@ -62,7 +62,7 @@ public final class TestApiServer: @unchecked Sendable {
     /// name resolution inside the simulator. On CI the resolver can stall for over a minute and every
     /// stream then times out before the client even attempts a TCP connection.
     public var baseURL: URL {
-        URL(string: "https://127.0.0.1:\(port)")!
+        URL(string: "\(self.tls ? "https" : "http")://127.0.0.1:\(port)")!
     }
 
     public var readinessDescription: String {
