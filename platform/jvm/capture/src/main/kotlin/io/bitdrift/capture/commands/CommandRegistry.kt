@@ -9,57 +9,68 @@ package io.bitdrift.capture.commands
 
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.toFieldValue
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeout
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.sync.Semaphore
+import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Keeps the handlers registered by the application and runs them when the Rust core dispatches
+ * an invocation.
+ *
+ * Invocations are launched on [dispatcher] and never cancelled; the execution timeout lives in
+ * the Rust core. Two rules bound the work in flight, and both reject rather than queue so that
+ * memory does not grow with the rate of incoming commands: a key runs one invocation at a time,
+ * and at most [maxConcurrentInvocations] invocations exist across all keys.
+ *
+ * Registration is not atomic with respect to [attach]. The two possible races are harmless: a
+ * key announced to the bridge twice is a replacement on the Rust side, and a key left announced
+ * after removal is answered by [dispatch] with [CommandErrorCode.CommandUnknown].
+ */
 internal class CommandRegistry(
     private val bridge: ICommandBridge,
-    defaultDispatcher: () -> CoroutineDispatcher,
+    dispatcher: CoroutineDispatcher = defaultDispatcher(),
+    private val maxConcurrentInvocations: Int = MAX_CONCURRENT_INVOCATIONS,
 ) : ICommandDispatcher {
-    private val defaultDispatcher by lazy(defaultDispatcher)
-    private val lock = Any()
-    private val registrations = HashMap<String, Registration>()
+    private val handlers = ConcurrentHashMap<String, suspend CommandScope.() -> CommandResult>()
+
+    /** Keys with an invocation in flight; `add` is an atomic claim. (`newKeySet()` needs API 24.) */
+    private val running: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
+
+    /** One permit per invocation in flight; only ever `tryAcquire`d, so nothing waits on it. */
+    private val slots = Semaphore(maxConcurrentInvocations)
+
+    @Volatile
     private var loggerId: Long? = null
+    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
     fun register(
         key: String,
-        dispatcher: CoroutineDispatcher?,
-        timeout: Duration,
         handler: suspend CommandScope.() -> CommandResult,
     ): CommandHandle {
-        val registration = Registration(key, timeout, handler, dispatcher ?: defaultDispatcher)
-        synchronized(lock) {
-            registrations.put(key, registration)?.cancel()
-            loggerId?.let { bridge.registerCommand(it, key, this) }
+        handlers[key] = handler
+        loggerId?.let { bridge.registerCommand(it, key, this) }
+        // `remove(key, value)` compares the lambda by identity, so a handle only removes its own
+        // registration and is a no-op once the key has been re-registered.
+        return CommandHandle(key) {
+            if (handlers.remove(key, handler)) loggerId?.let { bridge.unregisterCommand(it, key) }
         }
-        return CommandHandle(key) { unregister(registration) }
     }
 
-    fun unregister(key: String): Boolean =
-        synchronized(lock) {
-            val registration = registrations.remove(key) ?: return false
-            registration.cancel()
-            loggerId?.let { bridge.unregisterCommand(it, key) }
-            true
-        }
+    fun unregister(key: String): Boolean {
+        if (handlers.remove(key) == null) return false
+        loggerId?.let { bridge.unregisterCommand(it, key) }
+        return true
+    }
 
     fun attach(loggerId: Long) {
-        synchronized(lock) {
-            this.loggerId = loggerId
-            registrations.keys.forEach { bridge.registerCommand(loggerId, it, this) }
-        }
+        this.loggerId = loggerId
+        handlers.keys.forEach { bridge.registerCommand(loggerId, it, this) }
     }
 
     override fun dispatch(
@@ -68,26 +79,78 @@ internal class CommandRegistry(
         commandId: String?,
         sessionId: String,
         argumentNames: Array<String>,
-        argumentValues: Array<String>,
+        argumentTypes: IntArray,
+        argumentValues: Array<Any?>,
     ) {
-        val registration = synchronized(lock) { registrations[key] }
-        val invocation = CommandInvocation(key, commandId, sessionId, argumentNames.zip(argumentValues).toMap())
-        if (registration == null) {
-            complete(invocationId, CommandResult.Error("unregistered_command", "no handler registered for $key"))
+        val handler = handlers[key]
+        if (handler == null) {
+            fail(invocationId, CommandErrorCode.CommandUnknown, "no handler registered for $key")
             return
         }
-        registration.execute(invocation) { complete(invocationId, it) }
-    }
-
-    private fun unregister(registration: Registration) {
-        synchronized(lock) {
-            if (registrations[registration.key] !== registration) return
-            registrations.remove(registration.key)
-            registration.cancel()
-            loggerId?.let { bridge.unregisterCommand(it, registration.key) }
+        val arguments = HashMap<String, CommandArgument>(argumentNames.size)
+        for (i in argumentNames.indices) {
+            val argument = CommandArgument.decode(argumentTypes[i], argumentValues[i])
+            if (argument == null) {
+                fail(
+                    invocationId,
+                    CommandErrorCode.InvalidArguments,
+                    "argument ${argumentNames[i]} has unsupported type ${argumentTypes[i]}",
+                )
+                return
+            }
+            arguments[argumentNames[i]] = argument
+        }
+        if (!running.add(key)) {
+            fail(invocationId, CommandErrorCode.CommandAlreadyExecuting, "an invocation of $key is already running")
+            return
+        }
+        if (!slots.tryAcquire()) {
+            running.remove(key)
+            fail(invocationId, CommandErrorCode.MaxCommandConcurrency, "$maxConcurrentInvocations commands are already running")
+            return
+        }
+        val invocation = CommandInvocation(key, commandId, sessionId, arguments)
+        scope.launch {
+            // Release before reporting, so an observed completion implies the key is free again.
+            val outcome =
+                try {
+                    Outcome.Returned(invocation.handler())
+                } catch (e: InvalidCommandArgumentException) {
+                    Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
+                } catch (e: Throwable) {
+                    Outcome.Failed(CommandErrorCode.HandlerFailed, e.toString())
+                } finally {
+                    slots.release()
+                    running.remove(key)
+                }
+            when (outcome) {
+                is Outcome.Returned -> complete(invocationId, outcome.result)
+                is Outcome.Failed -> fail(invocationId, outcome.code, outcome.message)
+            }
         }
     }
 
+    private sealed interface Outcome {
+        class Returned(
+            val result: CommandResult,
+        ) : Outcome
+
+        class Failed(
+            val code: CommandErrorCode,
+            val message: String,
+        ) : Outcome
+    }
+
+    private fun fail(
+        invocationId: Long,
+        code: CommandErrorCode,
+        message: String,
+        fields: Array<Field> = emptyArray(),
+    ) {
+        bridge.completeCommand(invocationId, code.wire, message, fields, null, null, null)
+    }
+
+    /** An error's title and description travel joined as the message; its context as fields. */
     private fun complete(
         invocationId: Long,
         result: CommandResult,
@@ -97,64 +160,37 @@ internal class CommandRegistry(
                 bridge.completeCommand(
                     invocationId,
                     null,
+                    null,
                     result.context.toJniFields(),
                     result.attachment?.bytes,
+                    result.attachment?.filename,
                     result.attachment?.contentType,
                 )
             is CommandResult.Error ->
-                bridge.completeCommand(
+                fail(
                     invocationId,
-                    result.title,
-                    (result.description?.let { result.context + ("description" to it) } ?: result.context).toJniFields(),
-                    null,
-                    null,
+                    result.code,
+                    listOfNotNull(result.title, result.description).joinToString(": "),
+                    result.context.toJniFields(),
                 )
         }
     }
 
     private fun Map<String, String>.toJniFields(): Array<Field> = map { (key, value) -> Field(key, value.toFieldValue()) }.toTypedArray()
 
-    private class Registration(
-        val key: String,
-        private val timeout: Duration,
-        private val handler: suspend CommandScope.() -> CommandResult,
-        dispatcher: CoroutineDispatcher,
-    ) {
-        private val scope = CoroutineScope(SupervisorJob() + dispatcher + CoroutineName("bitdrift.command.$key"))
-        private val mutex = Mutex()
-
-        fun execute(
-            invocation: CommandInvocation,
-            complete: (CommandResult) -> Unit,
-        ) {
-            val completed = AtomicBoolean(false)
-            val completeOnce = { result: CommandResult ->
-                if (completed.compareAndSet(false, true)) complete(result)
-            }
-            scope
-                .launch { completeOnce(run(invocation)) }
-                .invokeOnCompletion { cause -> completeOnce(CommandResult.Error("cancelled", cause?.message)) }
-        }
-
-        fun cancel() {
-            scope.cancel("command $key was unregistered")
-        }
-
-        private suspend fun run(invocation: CommandInvocation): CommandResult =
-            try {
-                withTimeout(timeout) { mutex.withLock { invocation.handler() } }
-            } catch (e: MissingCommandArgumentException) {
-                CommandResult.Error("invalid_arguments", "missing argument ${e.name}")
-            } catch (e: TimeoutCancellationException) {
-                CommandResult.Error("timeout", "command did not complete within $timeout")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                CommandResult.Error("handler_failed", e.toString())
-            }
-    }
-
     companion object {
-        val DEFAULT_TIMEOUT = 10.seconds
+        /**
+         * Both the cap on invocations in flight and the size of their thread pool, so an admitted
+         * invocation always has a thread even when every handler blocks.
+         */
+        const val MAX_CONCURRENT_INVOCATIONS = 10
+
+        /**
+         * Handlers may block, so they run on their own slice of [Dispatchers.IO], whose threads
+         * are created on demand and count against neither the application's [Dispatchers.Default]
+         * pool nor the IO pool's shared limit.
+         */
+        @OptIn(ExperimentalCoroutinesApi::class)
+        internal fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_INVOCATIONS)
     }
 }

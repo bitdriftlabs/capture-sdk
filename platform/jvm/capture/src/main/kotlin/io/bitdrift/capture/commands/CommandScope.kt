@@ -20,14 +20,19 @@ interface CommandScope {
     /** The session the command is executed in. */
     val sessionId: String
 
-    /** The named arguments of the invocation. */
-    val arguments: Map<String, String>
+    /** The named arguments of the invocation, each with the type the backend sent. */
+    val arguments: Map<String, CommandArgument>
 
     /**
-     * Returns the argument named [name]. When it is missing, the invocation completes with an
-     * `invalid_arguments` [CommandResult.Error] without running the rest of the handler.
+     * Returns the string argument named [name]. When it is missing, or was sent with a type other
+     * than string, the invocation completes with an `invalid_arguments` error without running the
+     * rest of the handler. Use [arguments] to read other types.
      */
-    fun argument(name: String): String = arguments[name] ?: throw MissingCommandArgumentException(name)
+    fun argument(name: String): String =
+        when (val argument = arguments[name] ?: throw MissingCommandArgumentException(name)) {
+            is CommandArgument.Text -> argument.value
+            else -> throw CommandArgumentTypeException(name, expected = "string", actual = argument)
+        }
 
     /** Builds a [CommandResult.Success]. */
     fun success(
@@ -40,16 +45,28 @@ interface CommandScope {
         title: String,
         description: String? = null,
         context: Map<String, String> = emptyMap(),
-    ): CommandResult = CommandResult.Error(title, description, context)
+        code: CommandErrorCode = CommandErrorCode.HandlerFailed,
+    ): CommandResult = CommandResult.Error(title, description, context, code)
 }
 
 internal data class CommandInvocation(
     override val key: String,
     override val commandId: String?,
     override val sessionId: String,
-    override val arguments: Map<String, String>,
+    override val arguments: Map<String, CommandArgument>,
 ) : CommandScope
+
+/** Thrown out of a handler to fail the invocation with `invalid_arguments`. */
+internal sealed class InvalidCommandArgumentException(
+    message: String,
+) : IllegalArgumentException(message)
 
 internal class MissingCommandArgumentException(
     val name: String,
-) : IllegalArgumentException("missing argument $name")
+) : InvalidCommandArgumentException("missing argument $name")
+
+internal class CommandArgumentTypeException(
+    name: String,
+    expected: String,
+    actual: CommandArgument,
+) : InvalidCommandArgumentException("argument $name is not a $expected: $actual")

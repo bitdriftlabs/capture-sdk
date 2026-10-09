@@ -16,6 +16,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
+import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandHandle
 import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.commands.CommandResult
@@ -32,12 +33,9 @@ import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
-import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.asCoroutineDispatcher
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -79,8 +77,7 @@ object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
 
-    internal val commandRegistry =
-        CommandRegistry(CaptureJniLibrary) { CaptureDispatchers.Commands.executorService.asCoroutineDispatcher() }
+    internal val commandRegistry = CommandRegistry(CaptureJniLibrary)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -509,31 +506,34 @@ object Capture {
          * }
          * ```
          *
-         * Commands can be registered before or after [start]. Registering a key that is already
-         * registered replaces the previous handler and cancels its in-flight invocations.
+         * Commands can be registered before or after [start].
          *
-         * Invocations of the same command run sequentially, while different commands run
-         * concurrently. An invocation that does not complete within [timeout] is cancelled and
-         * reported as a timeout; blocking code that never suspends cannot be interrupted.
+         * A command runs one invocation at a time and at most
+         * [CommandRegistry.MAX_CONCURRENT_INVOCATIONS] invocations run at once across all commands;
+         * an invocation beyond either limit fails immediately rather than waiting. Handlers run on
+         * a dedicated I/O thread pool and may block without affecting the application's own
+         * dispatchers.
          *
-         * @param key the unique key identifying the command.
-         * @param dispatcher the dispatcher the handler runs on. Defaults to a dedicated single thread.
-         * @param timeout the maximum duration of an invocation, including time spent waiting for a
-         * previous invocation of the same command to finish.
-         * @param handler the suspending handler executing the command. Named arguments are read
-         * through [CommandScope.argument] and [CommandScope.arguments].
+         * The SDK never cancels a running handler. An invocation that outlives the execution
+         * timeout is reported as timed out while the handler runs to completion, whose result is
+         * then discarded. Unregistering or re-registering [key] likewise leaves a started
+         * invocation alone, so handlers must tolerate running after [unregisterCommand] returns.
+         *
+         * @param key the unique key identifying the command. Registering a key that is already
+         * registered replaces the handler used by future invocations.
+         * @param handler the suspending handler executing the command. Arguments are read through
+         * [CommandScope.argument] and [CommandScope.arguments]; a failure is reported with
+         * [CommandScope.error] and a [CommandErrorCode].
          * @return a [CommandHandle] used to unregister the command.
          */
         @ExperimentalBitdriftApi
         fun registerCommand(
             key: String,
-            dispatcher: CoroutineDispatcher? = null,
-            timeout: Duration = CommandRegistry.DEFAULT_TIMEOUT,
             handler: suspend CommandScope.() -> CommandResult,
-        ): CommandHandle = commandRegistry.register(key, dispatcher, timeout, handler)
+        ): CommandHandle = commandRegistry.register(key, handler)
 
         /**
-         * Unregisters the command registered with [key] and cancels its in-flight invocations.
+         * Unregisters the command registered with [key]. Running invocations are not cancelled.
          *
          * @return whether a command was registered with [key].
          */

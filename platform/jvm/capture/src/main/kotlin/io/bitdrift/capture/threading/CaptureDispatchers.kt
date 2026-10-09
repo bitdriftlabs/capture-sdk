@@ -52,11 +52,6 @@ internal sealed class CaptureDispatchers private constructor(
      */
     data object SessionReplay : CaptureDispatchers("session-replay")
 
-    /**
-     * [ExecutorService] used by default to run registered command handlers
-     */
-    data object Commands : CaptureDispatchers("commands")
-
     private fun buildExecutorService(threadName: String): ExecutorService =
         Executors.newSingleThreadExecutor {
             Thread(it, "$CAPTURE_EXECUTOR_SERVICE_NAME.$threadName")
@@ -85,7 +80,7 @@ internal sealed class CaptureDispatchers private constructor(
         @JvmStatic
         @VisibleForTesting
         internal fun setTestExecutorService(testExecutorService: ExecutorService) {
-            listOf(CommonBackground, Network, SessionReplay, Commands).forEach {
+            listOf(CommonBackground, Network, SessionReplay).forEach {
                 it._executorService = testExecutorService
             }
         }
