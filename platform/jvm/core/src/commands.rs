@@ -10,6 +10,7 @@ use crate::jni::{CachedMethod, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_logger::{
   CommandAttachment,
+  CommandError,
   CommandInvocation,
   CommandResult,
   LogFields,
@@ -75,7 +76,7 @@ pub(crate) fn completed_result(
 
 fn failed_result(error: impl Into<String>) -> CommandResult {
   CommandResult::Failed {
-    error: error.into(),
+    error: CommandError::HandlerFailed(error.into()),
     fields: LogFields::default(),
   }
 }

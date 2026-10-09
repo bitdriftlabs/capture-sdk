@@ -1409,7 +1409,9 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
         commands::completed_result(fields, attachment, content_type)
       } else {
         bd_logger::CommandResult::Failed {
-          error: unsafe { env.get_string_unchecked(&error) }?.into(),
+          error: bd_logger::CommandError::HandlerFailed(
+            unsafe { env.get_string_unchecked(&error) }?.into(),
+          ),
           fields,
         }
       };
