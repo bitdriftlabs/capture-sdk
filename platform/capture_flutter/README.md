@@ -4,7 +4,7 @@
 
 Official Flutter plugin for the [Bitdrift Capture SDK](https://bitdrift.io).
 
-Provides logging, session management, entity correlation, and distributed tracing for Flutter apps on iOS and Android. Wireframe session replay is currently available on Android only.
+Provides logging, session management, entity correlation, distributed tracing, wireframe session replay, and Dart error reporting for Flutter apps on iOS and Android.
 
 ## Installation
 
@@ -95,36 +95,80 @@ await Capture.start(
 Capture.stopSessionReplay();
 ```
 
+On iOS, the Flutter wireframe is merged into the native session replay capture, so screens are captured at the cadence configured for the native SDK.
+
+## Network Logging
+
+```dart
+final client = CaptureHttpClient();
+await client.get(Uri.parse('https://example.com/items'));
+```
+
+Requests made through other clients can be logged manually with
+`Capture.logNetworkRequest(HttpRequestInfo(...))` and
+`Capture.logNetworkResponse(HttpResponseInfo(...))`.
+
+## App Launch TTI
+
+Measure the time until your app is interactive and report it after the SDK has started; calls made before `Capture.start` completes are dropped:
+
+```dart
+Future<void> main() async {
+  final ttiStopwatch = Stopwatch()..start();
+  WidgetsFlutterBinding.ensureInitialized();
+  await Capture.start(apiKey: 'YOUR_API_KEY');
+  runApp(const MyApp());
+  await WidgetsBinding.instance.waitUntilFirstFrameRasterized;
+  Capture.logAppLaunchTTI(ttiStopwatch.elapsed);
+}
+```
+
+## Dart Error Reporting
+
+Uncaught Dart errors (`FlutterError.onError` and `PlatformDispatcher.instance.onError`) are logged in the current session as `DartError` error logs, with `_error`, `_error_details`, `_stacktrace` and, for framework errors, `_error_context` and `_error_library` fields. Previously installed handlers keep running. Reporting is enabled by default and can be disabled with `enableDartErrorReporting: false`.
+
+```dart
+try {
+  await riskyOperation();
+} catch (error, stack) {
+  Capture.reportError(error, stack);
+}
+```
+
+At most 10 errors are logged per app run. Dart errors don't terminate the app; crashes caused by Dart code (for example through FFI) terminate the process and are reported by the native SDKs as native crashes.
+
+This is a first step: Dart errors are regular logs, so they appear in session timelines and can drive workflows, but not in Issues. The next step is to report them as a dedicated log type.
+
 ## Support Matrix
 
 | Area | Android | iOS | Notes |
 | :-- | :-- | :-- | :-- |
-| SDK start | ✅ | ✅ | `apiKey`, `apiUrl`, `sessionStrategy`, `enableSessionReplay` |
+| SDK start | ✅ | ✅ | `apiKey`, `apiUrl`, `sessionStrategy`, `enableSessionReplay`, `enableDartErrorReporting` |
 | Logging | ✅ | ✅ | All levels; fields are `Map<String, String>` |
 | Screen views | ✅ | ✅ | Manual `logScreenView` |
 | Sessions, session URL, device ID | ✅ | ✅ | |
 | Temporary device code | ✅ | ✅ | |
 | SDK status | ✅ | ✅ | |
 | Persistent fields | ✅ | ✅ | |
-| Entity ID | ✅ | ✅ | iOS: CocoaPods only; not yet available when the plugin is resolved through Swift Package Manager |
+| Entity ID | ✅ | ✅ | |
 | Spans | ✅ | ✅ | Start/end with success or failure |
-| Session replay | ✅ | ❌ | Flutter wireframe capture; `enableSessionReplay` is ignored on iOS |
+| Session replay | ✅ | ✅ | Flutter wireframe capture |
 | Native fatal issues | ✅ | ✅ | Reported by the underlying native Capture SDKs |
-| Dart exceptions | ❌ | ❌ | Dart/Flutter errors are not reported as crashes |
-| Network logging | ❌ | ❌ | |
+| Dart exceptions | 🟡 | 🟡 | First step: logged as `DartError` error logs. Next: a dedicated log type |
+| Errors on logs | ✅ | ✅ | `error` / `stackTrace` on `log` and the level methods (`logTrace` … `logError`) |
+| Feature flags | ✅ | ✅ | String and boolean variants |
+| App launch TTI | ✅ | ✅ | Measured by the app; first call per launch is recorded |
+| Sleep mode | ✅ | ✅ | At start and at runtime |
+| Previous run info | ✅ | ✅ | |
+| Start configuration | ✅ | ✅ | `initialFields`, `sleepMode`, `enableFatalIssueReporting` |
+| Network logging | ✅ | ✅ | `CaptureHttpClient` for `package:http`, or `logNetworkRequest`/`logNetworkResponse` |
 | WebView | ❌ | ❌ | |
 
 Not supported yet:
 
-- Session replay on iOS
-- Dart exception reporting, including `error` / `StackTrace` parameters on `logError`
-- Network request/response logging
 - WebView instrumentation
-- Feature flags
-- App launch TTI
-- Sleep mode
-- Previous run info
-- Full native start configuration (field providers, date provider, other native `Configuration` options)
+- Dart errors as a dedicated log type, so they can be surfaced in Issues
+- Field providers and custom date providers at start
 
 ## Platform Requirements
 
