@@ -211,14 +211,20 @@ class CommandRegistryTest {
         assertThat(completion.error).isNull()
         assertThat(completion.fields.map { it.key to it.stringValue }).containsExactly("flag" to "dark_mode")
         assertThat(completion.attachment).isNull()
+        assertThat(completion.attachmentFilename).isNull()
         assertThat(completion.attachmentContentType).isNull()
     }
 
     @Test
     fun completesSuccessWithAttachment() {
+        // Same shape as iOS's CommandAttachment(data:filename:mimeType:): both strings are required,
+        // so an artifact uploaded from Android carries a filename and a MIME type like one from iOS.
         val payload = """{"max":1}""".toByteArray()
         registry.register("dump") {
-            success(attachment = CommandAttachment(payload, contentType = "application/json"), context = mapOf("size" to "1"))
+            success(
+                attachment = CommandAttachment(payload, filename = "memory.json", contentType = "application/json"),
+                context = mapOf("size" to "1"),
+            )
         }
 
         registry.dispatch(1, "dump", null, "session")
@@ -226,6 +232,7 @@ class CommandRegistryTest {
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isNull()
         assertThat(completion.attachment).isEqualTo(payload)
+        assertThat(completion.attachmentFilename).isEqualTo("memory.json")
         assertThat(completion.attachmentContentType).isEqualTo("application/json")
         assertThat(completion.field("size")).isEqualTo("1")
     }
@@ -899,9 +906,12 @@ class CommandRegistryTest {
             errorMessage: String?,
             fields: Array<Field>,
             attachment: ByteArray?,
+            attachmentFilename: String?,
             attachmentContentType: String?,
         ) {
-            completions.add(Completion(invocationId, errorCode, errorMessage, fields.toList(), attachment, attachmentContentType))
+            completions.add(
+                Completion(invocationId, errorCode, errorMessage, fields.toList(), attachment, attachmentFilename, attachmentContentType),
+            )
         }
 
         fun awaitCompletion(): Completion = checkNotNull(completions.poll(5, TimeUnit.SECONDS)) { "no completion" }
@@ -916,6 +926,7 @@ class CommandRegistryTest {
         val message: String?,
         val fields: List<Field>,
         val attachment: ByteArray?,
+        val attachmentFilename: String?,
         val attachmentContentType: String?,
     ) {
         fun field(key: String): String? = fields.firstOrNull { it.key == key }?.stringValue

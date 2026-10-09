@@ -49,6 +49,9 @@ internal interface ICommandBridge {
      * @param errorCode a [CommandErrorCode.wire] value, or null when the command succeeded.
      * @param errorMessage the human-readable failure detail; null on success.
      * @param fields the result context (success) or the error context (failure).
+     * @param attachment the attachment bytes, or null when there is none.
+     * @param attachmentFilename the attachment's filename; non-null whenever [attachment] is.
+     * @param attachmentContentType the attachment's MIME type; non-null whenever [attachment] is.
      */
     fun completeCommand(
         invocationId: Long,
@@ -56,6 +59,7 @@ internal interface ICommandBridge {
         errorMessage: String?,
         fields: Array<Field>,
         attachment: ByteArray?,
+        attachmentFilename: String?,
         attachmentContentType: String?,
     )
 }

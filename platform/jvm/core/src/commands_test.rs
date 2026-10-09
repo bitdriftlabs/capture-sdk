@@ -121,3 +121,45 @@ fn type_codes_match_the_kotlin_and_ios_contract() {
   assert_eq!(PlatformArgument::SignedInteger(0).type_code(), 4);
   assert_eq!(PlatformArgument::Bool(false).type_code(), 5);
 }
+
+// Attachments carry the same metadata as on iOS: a required filename, stored in the attachment
+// state under the `filename` key exactly like the Swift bridge does, and a required content type.
+
+#[test]
+fn completed_attachment_records_filename_and_content_type_like_ios() {
+  let result = completed_result(
+    LogFields::default(),
+    Some(PlatformAttachment {
+      bytes: vec![0xFF, 0xD8],
+      filename: "screen.jpg".to_string(),
+      content_type: "image/jpeg".to_string(),
+    }),
+  );
+
+  let CommandResult::Completed {
+    attachment: Some(attachment),
+    ..
+  } = result
+  else {
+    panic!("expected a completed result with an attachment");
+  };
+  assert_eq!(attachment.content_type.as_deref(), Some("image/jpeg"));
+  assert_eq!(
+    attachment
+      .state
+      .get("filename")
+      .and_then(|value| value.as_str()),
+    Some("screen.jpg"),
+    "filename must travel as the `filename` attachment state field, as on iOS"
+  );
+}
+
+#[test]
+fn completed_result_without_attachment_has_no_attachment_state() {
+  let result = completed_result(LogFields::default(), None);
+
+  let CommandResult::Completed { attachment, .. } = result else {
+    panic!("expected a completed result");
+  };
+  assert!(attachment.is_none());
+}

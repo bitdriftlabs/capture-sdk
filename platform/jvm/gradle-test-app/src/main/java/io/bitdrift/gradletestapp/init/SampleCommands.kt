@@ -78,7 +78,7 @@ object SampleCommands {
                 val dump =
                     """{"max":${runtime.maxMemory()},"total":${runtime.totalMemory()},"free":${runtime.freeMemory()}}"""
                 if (arguments["is_attachment"].isTruthy()) {
-                    success(attachment = CommandAttachment(dump.toByteArray(), contentType = "application/json"))
+                    success(attachment = CommandAttachment(dump.toByteArray(), filename = "memory.json", contentType = "application/json"))
                 } else {
                     success(context = mapOf("memory" to dump))
                 }
@@ -124,7 +124,7 @@ object SampleCommands {
                 when (val result = StackSamplingProfiler.capture(context, durationMs.milliseconds)) {
                     is StackSamplingProfiler.Result.Trace ->
                         success(
-                            attachment = CommandAttachment(result.bytes, contentType = "application/octet-stream"),
+                            attachment = CommandAttachment(result.bytes, filename = "trace.perfetto-trace", contentType = "application/octet-stream"),
                             context =
                                 mapOf(
                                     "duration_ms" to durationMs.toString(),

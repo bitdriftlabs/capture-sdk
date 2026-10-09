@@ -1391,7 +1391,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
   error_message: JString<'_>,
   fields: JObjectArray<'_>,
   attachment: JObject<'_>,
-  content_type: JString<'_>,
+  attachment_filename: JString<'_>,
+  attachment_content_type: JString<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
@@ -1400,14 +1401,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
         let attachment = if attachment.is_null() {
           None
         } else {
-          Some(env.convert_byte_array(JByteArray::from(attachment))?)
+          // Kotlin guarantees filename and content type are present whenever the bytes are.
+          Some(commands::PlatformAttachment {
+            bytes: env.convert_byte_array(JByteArray::from(attachment))?,
+            filename: unsafe { env.get_string_unchecked(&attachment_filename) }?.into(),
+            content_type: unsafe { env.get_string_unchecked(&attachment_content_type) }?.into(),
+          })
         };
-        let content_type = if content_type.is_null() {
-          None
-        } else {
-          Some(unsafe { env.get_string_unchecked(&content_type) }?.into())
-        };
-        commands::completed_result(fields, attachment, content_type)
+        commands::completed_result(fields, attachment)
       } else {
         let error_code: String = unsafe { env.get_string_unchecked(&error_code) }?.into();
         let error_message = if error_message.is_null() {

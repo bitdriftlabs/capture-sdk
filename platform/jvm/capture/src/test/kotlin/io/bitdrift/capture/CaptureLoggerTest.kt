@@ -151,6 +151,7 @@ class CaptureLoggerTest {
             errorMessage: String?,
             fields: Array<Field>,
             attachment: ByteArray?,
+            attachmentFilename: String?,
             attachmentContentType: String?,
         ) = Unit
     }

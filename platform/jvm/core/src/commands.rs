@@ -63,17 +63,27 @@ pub(crate) fn complete_invocation(invocation_id: u64, result: CommandResult) {
   }
 }
 
+/// The attachment state key carrying the filename; the same key the iOS bridge uses, so artifacts
+/// from both platforms carry identical metadata.
+const ATTACHMENT_FILENAME_FIELD: &str = "filename";
+
+/// A successful result's attachment as reported by Kotlin: bytes plus required metadata.
+pub(crate) struct PlatformAttachment {
+  pub bytes: Vec<u8>,
+  pub filename: String,
+  pub content_type: String,
+}
+
 pub(crate) fn completed_result(
   fields: LogFields,
-  attachment: Option<Vec<u8>>,
-  content_type: Option<String>,
+  attachment: Option<PlatformAttachment>,
 ) -> CommandResult {
   CommandResult::Completed {
     fields,
-    attachment: attachment.map(|bytes| CommandAttachment {
-      source: bd_artifact_upload::UploadSource::Bytes(bytes),
-      content_type,
-      state: LogFields::default(),
+    attachment: attachment.map(|attachment| CommandAttachment {
+      source: bd_artifact_upload::UploadSource::Bytes(attachment.bytes),
+      content_type: Some(attachment.content_type),
+      state: [(ATTACHMENT_FILENAME_FIELD.into(), attachment.filename.into())].into(),
     }),
   }
 }

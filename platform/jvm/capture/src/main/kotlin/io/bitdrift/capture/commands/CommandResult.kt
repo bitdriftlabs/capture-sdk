@@ -37,12 +37,15 @@ sealed class CommandResult {
 }
 
 /**
- * A binary payload returned by a successful command.
+ * A binary payload returned by a successful command, uploaded as an artifact. Carries the same
+ * metadata as the iOS `CommandAttachment` so artifacts from both platforms look alike.
  *
  * @param bytes the payload.
+ * @param filename the name the artifact is shown with, e.g. `memory.json`.
  * @param contentType the MIME type of the payload, e.g. `application/json`.
  */
 class CommandAttachment(
     val bytes: ByteArray,
-    val contentType: String? = null,
+    val filename: String,
+    val contentType: String,
 )
