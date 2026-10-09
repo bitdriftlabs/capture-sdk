@@ -49,6 +49,7 @@ async fn completion_with_attachment_returns_completed_result() {
     Some("application/octet-stream".to_string()),
     Some("memory.bin".to_string()),
     None,
+    None,
   );
 
   let Ok(result) = receiver.await else {
@@ -77,7 +78,7 @@ async fn completion_with_attachment_returns_completed_result() {
 }
 
 #[tokio::test]
-async fn failed_completion_returns_error_and_context() {
+async fn failed_completion_with_unknown_code_returns_other_error_and_context() {
   let request_id = NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed);
   let (sender, receiver) = oneshot::channel();
   COMPLETIONS.lock().insert(request_id, sender);
@@ -89,6 +90,7 @@ async fn failed_completion_returns_error_and_context() {
     None,
     None,
     None,
+    Some("unsupported_command"),
     Some("Unsupported command".to_string()),
   );
 
@@ -100,6 +102,39 @@ async fn failed_completion_returns_error_and_context() {
     assert!(false, "expected failed command result");
     return;
   };
-  assert_eq!(error, "Unsupported command");
+  assert_eq!(error, CommandError::Other("Unsupported command".into()));
   assert_eq!(fields.len(), 1);
+}
+
+#[test]
+fn command_error_maps_known_codes_to_typed_errors() {
+  for (code, message, expected) in [
+    ("command_unknown", None, CommandError::CommandUnknown),
+    (
+      "max_command_concurrency",
+      None,
+      CommandError::MaxCommandConcurrency,
+    ),
+    (
+      "command_already_executing",
+      None,
+      CommandError::AlreadyExecuting,
+    ),
+    (
+      "invalid_arguments",
+      Some("argument 'verbose' has an invalid value"),
+      CommandError::InvalidArguments("argument 'verbose' has an invalid value".into()),
+    ),
+    (
+      "handler_failed",
+      Some("capture failed"),
+      CommandError::HandlerFailed("capture failed".into()),
+    ),
+    ("timeout", None, CommandError::Timeout),
+  ] {
+    assert_eq!(
+      command_error(Some(code), message.map(str::to_string)),
+      expected,
+    );
+  }
 }

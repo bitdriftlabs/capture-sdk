@@ -151,7 +151,8 @@ void capture_complete_command(
     const NSData *_Nullable attachment,
     const NSString *_Nullable attachment_mime_type,
     const NSString *_Nullable attachment_filename,
-    const NSString *_Nullable error
+    const NSString *_Nullable error_code,
+    const NSString *_Nullable error_message
 );
 
 /*

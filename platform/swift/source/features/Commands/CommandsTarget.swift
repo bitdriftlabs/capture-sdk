@@ -72,11 +72,11 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
         } catch let error as ArgumentParsingError {
             complete(
                 requestID: requestID,
-                result: .failure(CommandError(title: "Invalid command arguments", description: error.errorDescription))
+                result: .failure(CommandError.invalidArguments(description: error.errorDescription))
             )
             return
         } catch {
-            complete(requestID: requestID, result: .failure(CommandError(title: "Invalid command arguments")))
+            complete(requestID: requestID, result: .failure(CommandError.invalidArguments()))
             return
         }
 
@@ -153,6 +153,7 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
                 result.attachment?.data,
                 result.attachment?.mimeType,
                 result.attachment?.filename,
+                nil,
                 nil
             )
         case let .failure(error):
@@ -164,6 +165,7 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
                 nil,
                 nil,
                 nil,
+                error.code,
                 message
             )
         }
