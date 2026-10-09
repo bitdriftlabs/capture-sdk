@@ -1387,7 +1387,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   invocation_id: jlong,
-  error: JString<'_>,
+  error_code: JString<'_>,
+  error_message: JString<'_>,
   fields: JObjectArray<'_>,
   attachment: JObject<'_>,
   content_type: JString<'_>,
@@ -1395,7 +1396,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let fields = ffi::jarray_to_fields(&mut env, &fields)?;
-      let result = if error.is_null() {
+      let result = if error_code.is_null() {
         let attachment = if attachment.is_null() {
           None
         } else {
@@ -1408,8 +1409,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
         };
         commands::completed_result(fields, attachment, content_type)
       } else {
+        let error_code: String = unsafe { env.get_string_unchecked(&error_code) }?.into();
+        let error_message = if error_message.is_null() {
+          None
+        } else {
+          Some(unsafe { env.get_string_unchecked(&error_message) }?.into())
+        };
         bd_logger::CommandResult::Failed {
-          error: unsafe { env.get_string_unchecked(&error) }?.into(),
+          error: commands::command_error(&error_code, error_message),
           fields,
         }
       };

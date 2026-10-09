@@ -147,7 +147,8 @@ class CaptureLoggerTest {
 
         override fun completeCommand(
             invocationId: Long,
-            error: String?,
+            errorCode: String?,
+            errorMessage: String?,
             fields: Array<Field>,
             attachment: ByteArray?,
             attachmentContentType: String?,

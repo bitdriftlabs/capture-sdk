@@ -10,6 +10,7 @@ use crate::jni::{CachedMethod, initialize_method_handle};
 use bd_client_common::error::InvariantError;
 use bd_logger::{
   CommandAttachment,
+  CommandError,
   CommandInvocation,
   CommandResult,
   LogFields,
@@ -73,10 +74,30 @@ pub(crate) fn completed_result(
   }
 }
 
-fn failed_result(error: impl Into<String>) -> CommandResult {
+fn failed_result(error: CommandError) -> CommandResult {
   CommandResult::Failed {
-    error: error.into(),
+    error,
     fields: LogFields::default(),
+  }
+}
+
+/// Maps the error code reported by `CommandRegistry` (Kotlin `CommandErrorCode.wire`) to the typed
+/// `CommandError`. The codes are shared with the iOS bridge so both platforms report identically.
+pub(crate) fn command_error(code: &str, message: Option<String>) -> CommandError {
+  match code {
+    "command_unknown" => CommandError::CommandUnknown,
+    "command_already_executing" => CommandError::AlreadyExecuting,
+    "max_command_concurrency" => CommandError::MaxCommandConcurrency,
+    "invalid_arguments" => {
+      CommandError::InvalidArguments(message.unwrap_or_else(|| "invalid command arguments".into()))
+    },
+    "handler_failed" => {
+      CommandError::HandlerFailed(message.unwrap_or_else(|| "command handler failed".into()))
+    },
+    "timeout" => CommandError::Timeout,
+    other => {
+      CommandError::Other(message.unwrap_or_else(|| format!("unknown command error code: {other}")))
+    },
   }
 }
 
@@ -183,11 +204,15 @@ impl RegisteredCommandHandler for JniCommandHandler {
 
     if let Err(error) = self.dispatcher.dispatch(invocation_id, invocation) {
       pending_invocations().remove(&invocation_id);
-      return failed_result(format!("failed to dispatch command: {error}"));
+      return failed_result(CommandError::Other(format!(
+        "failed to dispatch command: {error}"
+      )));
     }
 
-    receiver
-      .await
-      .unwrap_or_else(|_| failed_result("command handler stopped without a result"))
+    receiver.await.unwrap_or_else(|_| {
+      failed_result(CommandError::Other(
+        "command handler stopped without a result".into(),
+      ))
+    })
   }
 }

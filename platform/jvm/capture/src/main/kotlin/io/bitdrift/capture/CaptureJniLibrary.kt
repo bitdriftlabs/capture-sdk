@@ -317,14 +317,17 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
      * Completes an in-flight command invocation.
      *
      * @param invocationId the invocation ID received through [ICommandDispatcher.dispatch].
-     * @param error the failure title, or null when the command succeeded.
+     * @param errorCode a [io.bitdrift.capture.commands.CommandErrorCode.wire] value selecting the
+     * Rust `CommandError` variant, or null when the command succeeded.
+     * @param errorMessage the failure detail; null when the command succeeded.
      * @param fields the fields describing the command result.
      * @param attachment optional binary attachment for a successful result.
      * @param attachmentContentType the MIME type of [attachment], e.g. `application/json`.
      */
     external override fun completeCommand(
         invocationId: Long,
-        error: String?,
+        errorCode: String?,
+        errorMessage: String?,
         fields: Array<Field>,
         attachment: ByteArray?,
         attachmentContentType: String?,

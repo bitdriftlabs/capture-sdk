@@ -508,10 +508,11 @@ object Capture {
          * Commands can be registered before or after [start].
          *
          * Each command runs at most one invocation at a time: while one is in flight, further
-         * invocations of the same [key] fail immediately with a `busy` error rather than waiting.
-         * Different commands run in parallel, up to [CommandRegistry.MAX_CONCURRENT_INVOCATIONS]
-         * at once across all commands; an invocation arriving beyond that fails immediately with
-         * a `max_concurrency` error. Nothing is ever queued. Handlers run on a dedicated I/O
+         * invocations of the same [key] fail immediately with a `command_already_executing` error
+         * rather than waiting. Different commands run in parallel, up to
+         * [CommandRegistry.MAX_CONCURRENT_INVOCATIONS] at once across all commands; an invocation
+         * arriving beyond that fails immediately with a `max_command_concurrency` error. Nothing
+         * is ever queued. Handlers run on a dedicated I/O
          * thread pool of the same size, so a handler may block without affecting the
          * application's own dispatchers.
          *

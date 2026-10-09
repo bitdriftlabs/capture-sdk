@@ -26,13 +26,14 @@ import java.util.concurrent.ConcurrentHashMap
  * Every invocation is launched on [dispatcher] and left alone: nothing is ever cancelled and
  * timeouts are enforced by the Rust layer. Two rules bound the work in flight, and both reject
  * instead of queueing so that memory never grows with the rate of incoming commands:
- * - a key runs one invocation at a time; a repeat while one is in flight fails with `busy`;
+ * - a key runs one invocation at a time; a repeat while one is in flight fails with
+ *   `command_already_executing`;
  * - at most [maxConcurrentInvocations] invocations exist across all keys; any more fail with
- *   `max_concurrency`.
+ *   `max_command_concurrency`.
  *
  * Registration is not atomic with respect to [attach]: a key registered while the logger starts
  * may be announced to the bridge twice, which Rust treats as a replacement, or left announced
- * after being removed, which [dispatch] answers with `unregistered_command`.
+ * after being removed, which [dispatch] answers with `command_unknown`.
  */
 internal class CommandRegistry(
     private val bridge: ICommandBridge,
@@ -89,48 +90,66 @@ internal class CommandRegistry(
     ) {
         val handler = handlers[key]
         if (handler == null) {
-            complete(invocationId, CommandResult.Error("unregistered_command", "no handler registered for $key"))
+            fail(invocationId, CommandErrorCode.COMMAND_UNKNOWN, "no handler registered for $key")
             return
         }
         if (!running.add(key)) {
-            complete(invocationId, CommandResult.Error("busy", "an invocation of $key is already running"))
+            fail(invocationId, CommandErrorCode.COMMAND_ALREADY_EXECUTING, "an invocation of $key is already running")
             return
         }
         if (!slots.tryAcquire()) {
             running.remove(key)
-            complete(
-                invocationId,
-                CommandResult.Error("max_concurrency", "$maxConcurrentInvocations commands are already running"),
-            )
+            fail(invocationId, CommandErrorCode.MAX_COMMAND_CONCURRENCY, "$maxConcurrentInvocations commands are already running")
             return
         }
         val invocation = CommandInvocation(key, commandId, sessionId, argumentNames.zip(argumentValues).toMap())
         scope.launch {
             // Free the slot and the key before reporting the result, so that by the time anyone
             // observes this invocation as finished, the key can be invoked again.
-            val result =
+            val outcome =
                 try {
-                    run(handler, invocation)
+                    Outcome.Returned(invocation.handler())
+                } catch (e: MissingCommandArgumentException) {
+                    Outcome.Failed(CommandErrorCode.INVALID_ARGUMENTS, "missing argument ${e.name}")
+                } catch (e: Throwable) {
+                    Outcome.Failed(CommandErrorCode.HANDLER_FAILED, e.toString())
                 } finally {
                     slots.release()
                     running.remove(key)
                 }
-            complete(invocationId, result)
+            when (outcome) {
+                is Outcome.Returned -> complete(invocationId, outcome.result)
+                is Outcome.Failed -> fail(invocationId, outcome.code, outcome.message)
+            }
         }
     }
 
-    private suspend fun run(
-        handler: suspend CommandScope.() -> CommandResult,
-        invocation: CommandInvocation,
-    ): CommandResult =
-        try {
-            invocation.handler()
-        } catch (e: MissingCommandArgumentException) {
-            CommandResult.Error("invalid_arguments", "missing argument ${e.name}")
-        } catch (e: Throwable) {
-            CommandResult.Error("handler_failed", e.toString())
-        }
+    private sealed interface Outcome {
+        class Returned(
+            val result: CommandResult,
+        ) : Outcome
 
+        class Failed(
+            val code: CommandErrorCode,
+            val message: String,
+        ) : Outcome
+    }
+
+    /** Reports a failure raised by the SDK itself. */
+    private fun fail(
+        invocationId: Long,
+        code: CommandErrorCode,
+        message: String,
+        fields: Array<Field> = emptyArray(),
+    ) {
+        bridge.completeCommand(invocationId, code.wire, message, fields, null, null)
+    }
+
+    /**
+     * Reports the handler's own result. An application [CommandResult.Error] is reported as
+     * `handler_failed` with "title: description" as the message and its context as fields, the
+     * same shape the iOS SDK produces.
+     */
     private fun complete(
         invocationId: Long,
         result: CommandResult,
@@ -140,17 +159,17 @@ internal class CommandRegistry(
                 bridge.completeCommand(
                     invocationId,
                     null,
+                    null,
                     result.context.toJniFields(),
                     result.attachment?.bytes,
                     result.attachment?.contentType,
                 )
             is CommandResult.Error ->
-                bridge.completeCommand(
+                fail(
                     invocationId,
-                    result.title,
-                    (result.description?.let { result.context + ("description" to it) } ?: result.context).toJniFields(),
-                    null,
-                    null,
+                    CommandErrorCode.HANDLER_FAILED,
+                    listOfNotNull(result.title, result.description).joinToString(": "),
+                    result.context.toJniFields(),
                 )
         }
     }

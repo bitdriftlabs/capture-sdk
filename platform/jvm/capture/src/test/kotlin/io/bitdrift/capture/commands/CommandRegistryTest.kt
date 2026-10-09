@@ -111,7 +111,7 @@ class CommandRegistryTest {
 
         assertThat(bridge.unregisterCalls).isEqualTo(1)
         registry.dispatch(1, "a", null, "session", emptyArray(), emptyArray())
-        assertThat(bridge.awaitCompletion().error).isEqualTo("unregistered_command")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
     }
 
     @Test
@@ -123,7 +123,7 @@ class CommandRegistryTest {
         assertThat(registry.unregister("a")).isTrue()
         registry.dispatch(1, "a", null, "session", emptyArray(), emptyArray())
 
-        assertThat(bridge.awaitCompletion().error).isEqualTo("unregistered_command")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
     }
 
     @Test
@@ -161,7 +161,7 @@ class CommandRegistryTest {
         job.cancel()
         registry.dispatch(2, "a", null, "session", emptyArray(), emptyArray())
 
-        assertThat(bridge.awaitCompletion().error).isEqualTo("unregistered_command")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -237,20 +237,21 @@ class CommandRegistryTest {
         registry.dispatch(1, "fail", null, "session", emptyArray(), emptyArray())
 
         val completion = bridge.awaitCompletion()
-        assertThat(completion.error).isEqualTo("Unsupported")
-        assertThat(completion.fields.map { it.key to it.stringValue })
-            .containsExactlyInAnyOrder("code" to "42", "description" to "always fails")
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).isEqualTo("Unsupported: always fails")
+        assertThat(completion.fields.map { it.key to it.stringValue }).containsExactly("code" to "42")
         assertThat(completion.attachment).isNull()
     }
 
     @Test
-    fun completesErrorWithoutDescriptionField() {
+    fun completesErrorWithoutDescription() {
         registry.register("fail") { error("Unsupported") }
 
         registry.dispatch(1, "fail", null, "session", emptyArray(), emptyArray())
 
         val completion = bridge.awaitCompletion()
-        assertThat(completion.error).isEqualTo("Unsupported")
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).isEqualTo("Unsupported")
         assertThat(completion.fields).isEmpty()
     }
 
@@ -262,7 +263,7 @@ class CommandRegistryTest {
 
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isEqualTo("invalid_arguments")
-        assertThat(completion.field("description")).isEqualTo("missing argument value")
+        assertThat(completion.message).isEqualTo("missing argument value")
     }
 
     @Test
@@ -273,7 +274,7 @@ class CommandRegistryTest {
 
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isEqualTo("handler_failed")
-        assertThat(completion.field("description")).contains("IllegalStateException", "unexpected")
+        assertThat(completion.message).contains("IllegalStateException", "unexpected")
     }
 
     @Test
@@ -287,12 +288,38 @@ class CommandRegistryTest {
     }
 
     @Test
+    fun errorCodesAreTheBridgeContract() {
+        // Shared with the iOS bridge and matched by name in commands.rs; renaming one breaks both.
+        assertThat(CommandErrorCode.entries.map { it.wire }).containsExactly(
+            "command_unknown",
+            "command_already_executing",
+            "max_command_concurrency",
+            "invalid_arguments",
+            "handler_failed",
+        )
+    }
+
+    @Test
+    fun sdkRaisedFailuresCarryNoFieldsAndAppFailuresKeepTheirContext() {
+        registry.register("app") { error("Unsupported", context = mapOf("code" to "42")) }
+        registry.dispatch(1, "missing", null, "session", emptyArray(), emptyArray())
+        registry.dispatch(2, "app", null, "session", emptyArray(), emptyArray())
+
+        val byId = List(2) { bridge.awaitCompletion() }.associateBy { it.invocationId }
+
+        assertThat(byId.getValue(1).error).isEqualTo("command_unknown")
+        assertThat(byId.getValue(1).fields).isEmpty()
+        assertThat(byId.getValue(2).error).isEqualTo("handler_failed")
+        assertThat(byId.getValue(2).field("code")).isEqualTo("42")
+    }
+
+    @Test
     fun reportsUnregisteredCommands() {
         registry.dispatch(1, "missing", null, "session", emptyArray(), emptyArray())
 
         val completion = bridge.awaitCompletion()
         assertThat(completion.invocationId).isEqualTo(1)
-        assertThat(completion.error).isEqualTo("unregistered_command")
+        assertThat(completion.error).isEqualTo("command_unknown")
     }
 
     @Test
@@ -368,8 +395,8 @@ class CommandRegistryTest {
 
         val rejected = List(2) { bridge.awaitCompletion() }
         assertThat(rejected.map { it.invocationId }).containsExactlyInAnyOrder(2, 3)
-        assertThat(rejected.map { it.error }).containsOnly("busy")
-        assertThat(rejected.first().field("description")).contains("busy")
+        assertThat(rejected.map { it.error }).containsOnly("command_already_executing")
+        assertThat(rejected.first().message).contains("already running")
         assertThat(gate.arrived()).isEqualTo(1)
 
         gate.release()
@@ -423,11 +450,11 @@ class CommandRegistryTest {
     fun releasesKeyWhenHandlerReturnsError() {
         registry.register("fail") { error("nope") }
         registry.dispatch(1, "fail", null, "session", emptyArray(), emptyArray())
-        assertThat(bridge.awaitCompletion().error).isEqualTo("nope")
+        assertThat(bridge.awaitCompletion().message).isEqualTo("nope")
 
         registry.dispatch(2, "fail", null, "session", emptyArray(), emptyArray())
 
-        assertThat(bridge.awaitCompletion().error).isEqualTo("nope")
+        assertThat(bridge.awaitCompletion().message).isEqualTo("nope")
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -452,8 +479,8 @@ class CommandRegistryTest {
 
         val rejected = bridge.awaitCompletion()
         assertThat(rejected.invocationId).isEqualTo(3)
-        assertThat(rejected.error).isEqualTo("max_concurrency")
-        assertThat(rejected.field("description")).isEqualTo("2 commands are already running")
+        assertThat(rejected.error).isEqualTo("max_command_concurrency")
+        assertThat(rejected.message).isEqualTo("2 commands are already running")
         assertThat(gate.arrived()).isEqualTo(2)
         gate.release()
         assertThat(List(2) { bridge.awaitCompletion() }.map { it.invocationId }).containsExactlyInAnyOrder(1, 2)
@@ -476,7 +503,7 @@ class CommandRegistryTest {
         gate.awaitArrivals()
 
         registry.dispatch(2, "b", null, "session", emptyArray(), emptyArray())
-        assertThat(bridge.awaitCompletion().error).isEqualTo("max_concurrency")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
         gate.release()
         bridge.awaitCompletion()
 
@@ -499,10 +526,10 @@ class CommandRegistryTest {
         gate.awaitArrivals()
 
         registry.dispatch(2, "b", null, "session", emptyArray(), emptyArray())
-        assertThat(bridge.awaitCompletion().error).isEqualTo("max_concurrency")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
         // Still over the cap: the second attempt is again max_concurrency, not busy.
         registry.dispatch(3, "b", null, "session", emptyArray(), emptyArray())
-        assertThat(bridge.awaitCompletion().error).isEqualTo("max_concurrency")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
 
         gate.release()
         bridge.awaitCompletion()
@@ -523,7 +550,7 @@ class CommandRegistryTest {
         gate.awaitArrivals()
 
         registry.dispatch(2, "a", null, "session", emptyArray(), emptyArray())
-        assertThat(bridge.awaitCompletion().error).isEqualTo("busy")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_already_executing")
         registry.dispatch(3, "b", null, "session", emptyArray(), emptyArray())
 
         // One slot is held by "a"; the busy rejection left the other one free for "b".
@@ -544,7 +571,7 @@ class CommandRegistryTest {
         // With a single slot, each of these only runs if the previous one gave its slot back.
         listOf("ok", "ko", "throws", "ok").forEachIndexed { i, key ->
             registry.dispatch(i.toLong(), key, null, "session", emptyArray(), emptyArray())
-            assertThat(bridge.awaitCompletion().error).isNotEqualTo("max_concurrency")
+            assertThat(bridge.awaitCompletion().error).isNotEqualTo("max_command_concurrency")
         }
     }
 
@@ -567,7 +594,7 @@ class CommandRegistryTest {
         gate.awaitArrivals()
         val rejected = bridge.awaitCompletion()
         assertThat(rejected.invocationId).isEqualTo((total - 1).toLong())
-        assertThat(rejected.error).isEqualTo("max_concurrency")
+        assertThat(rejected.error).isEqualTo("max_command_concurrency")
         assertThat(gate.arrived()).isEqualTo(CommandRegistry.MAX_CONCURRENT_INVOCATIONS)
         gate.release()
         assertThat(List(total - 1) { bridge.awaitCompletion() }.map { it.error }).containsOnlyNulls()
@@ -624,7 +651,7 @@ class CommandRegistryTest {
         handle.unregister()
         registry.dispatch(1, "gone", null, "session", emptyArray(), emptyArray())
 
-        assertThat(bridge.awaitCompletion().error).isEqualTo("unregistered_command")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
     }
 
     @Test
@@ -641,7 +668,7 @@ class CommandRegistryTest {
         handle.unregister()
         registry.register("key") { success(context = mapOf("handler" to "second")) }
         registry.dispatch(2, "key", null, "session", emptyArray(), emptyArray())
-        assertThat(bridge.awaitCompletion().error).isEqualTo("busy")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_already_executing")
 
         gate.release()
         assertThat(bridge.awaitCompletion().field("handler")).isEqualTo("first")
@@ -662,7 +689,7 @@ class CommandRegistryTest {
 
         registry.register("key") { success(context = mapOf("handler" to "second")) }
         registry.dispatch(2, "key", null, "session", emptyArray(), emptyArray())
-        assertThat(bridge.awaitCompletion().error).isEqualTo("busy")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_already_executing")
 
         gate.release()
         assertThat(bridge.awaitCompletion().field("handler")).isEqualTo("first")
@@ -735,12 +762,13 @@ class CommandRegistryTest {
 
         override fun completeCommand(
             invocationId: Long,
-            error: String?,
+            errorCode: String?,
+            errorMessage: String?,
             fields: Array<Field>,
             attachment: ByteArray?,
             attachmentContentType: String?,
         ) {
-            completions.add(Completion(invocationId, error, fields.toList(), attachment, attachmentContentType))
+            completions.add(Completion(invocationId, errorCode, errorMessage, fields.toList(), attachment, attachmentContentType))
         }
 
         fun awaitCompletion(): Completion = checkNotNull(completions.poll(5, TimeUnit.SECONDS)) { "no completion" }
@@ -750,7 +778,9 @@ class CommandRegistryTest {
 
     private data class Completion(
         val invocationId: Long,
+        /** The wire error code; null on success. */
         val error: String?,
+        val message: String?,
         val fields: List<Field>,
         val attachment: ByteArray?,
         val attachmentContentType: String?,
