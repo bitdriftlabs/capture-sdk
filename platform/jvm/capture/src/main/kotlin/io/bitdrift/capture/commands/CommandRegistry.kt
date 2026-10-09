@@ -186,9 +186,10 @@ internal class CommandRegistry(
         const val MAX_CONCURRENT_INVOCATIONS = 10
 
         /**
-         * Handlers may block, so they run on their own slice of [Dispatchers.IO], whose threads
-         * are created on demand and count against neither the application's [Dispatchers.Default]
-         * pool nor the IO pool's shared limit.
+         * Handlers may block, so they run on the IO scheduler. `IO.limitedParallelism(n)` is a view
+         * with its own permits: a blocked handler consumes neither one of [Dispatchers.IO]'s 64
+         * permits nor a [Dispatchers.Default] CPU permit, so commands and the application's own
+         * work cannot starve each other.
          */
         @OptIn(ExperimentalCoroutinesApi::class)
         internal fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_INVOCATIONS)
