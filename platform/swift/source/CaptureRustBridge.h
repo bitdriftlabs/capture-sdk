@@ -123,16 +123,36 @@ void capture_write_session_replay_screen_log(
 );
 
 /*
- * Writes a session replay screenshot log.
+ * Completes an in-flight remote device-command screenshot request.
  *
- * @param logger_id the ID of the logger to write to.
- * @param fields the fields to include with the log.
- * @param duration_s the duration of time the preparation of the session replay log took.
+ * @param request_id the opaque ID supplied to SessionReplayTarget.
+ * @param screenshot JPEG bytes, or null when the screenshot could not be captured.
  */
-void capture_write_session_replay_screenshot_log(
+void capture_complete_device_command_screenshot(
+    uint64_t request_id,
+    const NSData *_Nullable screenshot
+);
+
+void capture_register_command(
     logger_id logger_id,
-    const NSArray<const Field *> *fields,
-    double duration_s
+    const char *key,
+    id target
+);
+
+void capture_unregister_command(
+    logger_id logger_id,
+    const char *key
+);
+
+void capture_complete_command(
+    uint64_t request_id,
+    bool succeeded,
+    const NSDictionary<NSString *, NSString *> *context,
+    const NSData *_Nullable attachment,
+    const NSString *_Nullable attachment_mime_type,
+    const NSString *_Nullable attachment_filename,
+    const NSString *_Nullable error_code,
+    const NSString *_Nullable error_message
 );
 
 /*

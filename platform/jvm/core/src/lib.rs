@@ -18,6 +18,7 @@
 #[path = "./test_jvm_test.rs"]
 mod test_jvm;
 
+mod commands;
 pub mod events;
 pub mod executor;
 pub mod ffi;

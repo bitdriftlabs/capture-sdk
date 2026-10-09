@@ -10,10 +10,15 @@
 mod bridge_tests;
 
 use crate::bridge::ffi::make_nsstring;
-use crate::ffi::{make_empty_nsstring, nsstring_into_arc_str, nsstring_into_string};
+use crate::ffi::{
+  FromObjcObject,
+  make_empty_nsstring,
+  nsstring_into_arc_str,
+  nsstring_into_string,
+};
 use crate::key_value_storage::UserDefaultsStorage;
 use crate::session::{SessionCallback, timeout_from_seconds};
-use crate::{events, ffi, resource_utilization, session_replay};
+use crate::{commands, events, ffi, resource_utilization, session_replay};
 use anyhow::anyhow;
 use bd_api::{PlatformNetworkManager, PlatformNetworkStream, StreamEvent};
 use bd_crash_handler::{CrashReportHook, CrashReportInfo};
@@ -794,19 +799,104 @@ extern "C" fn capture_write_session_replay_screen_log(
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn capture_write_session_replay_screenshot_log(
-  logger_id: LoggerId<'_>,
-  fields: *const Object,
-  duration_s: f64,
+extern "C" fn capture_complete_device_command_screenshot(
+  request_id: u64,
+  screenshot: *const Object,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = unsafe { ffi::convert_annotated_fields(fields, LogFieldKind::Ootb) }?;
-
-      logger_id.log_session_replay_screenshot(fields, time::Duration::seconds_f64(duration_s));
+      let screenshot = if screenshot.is_null() {
+        None
+      } else {
+        Some(unsafe { <[u8]>::from_objc(screenshot)? }.to_vec())
+      };
+      session_replay::complete_device_command_screenshot(request_id, screenshot);
       Ok(())
     },
-    "swift write session replay screenshot log",
+    "swift complete device command screenshot",
+  );
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn capture_register_command(
+  logger_id: LoggerId<'_>,
+  key: *const c_char,
+  target: *mut Object,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
+      commands::register(&logger_id, key, target);
+      Ok(())
+    },
+    "swift register command",
+  );
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn capture_unregister_command(logger_id: LoggerId<'_>, key: *const c_char) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let key = unsafe { CStr::from_ptr(key) }.to_str()?;
+      commands::unregister(&logger_id, key);
+      Ok(())
+    },
+    "swift unregister command",
+  );
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn capture_complete_command(
+  request_id: u64,
+  succeeded: bool,
+  context: *const Object,
+  attachment: *const Object,
+  attachment_mime_type: *const Object,
+  attachment_filename: *const Object,
+  error_code: *const Object,
+  error_message: *const Object,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let context = unsafe { commands::string_dictionary_from_objc(context) }?;
+      let attachment = if attachment.is_null() {
+        None
+      } else {
+        Some(unsafe { <[u8]>::from_objc(attachment)? }.to_vec())
+      };
+      let attachment_mime_type = if attachment_mime_type.is_null() {
+        None
+      } else {
+        Some(unsafe { nsstring_into_string(attachment_mime_type) }?)
+      };
+      let attachment_filename = if attachment_filename.is_null() {
+        None
+      } else {
+        Some(unsafe { nsstring_into_string(attachment_filename) }?)
+      };
+      let error_code = if error_code.is_null() {
+        None
+      } else {
+        Some(unsafe { nsstring_into_string(error_code) }?)
+      };
+      let error_message = if error_message.is_null() {
+        None
+      } else {
+        Some(unsafe { nsstring_into_string(error_message) }?)
+      };
+      commands::complete(
+        request_id,
+        succeeded,
+        &context,
+        attachment,
+        attachment_mime_type,
+        attachment_filename,
+        error_code.as_deref(),
+        error_message,
+      );
+      Ok(())
+    },
+    "swift complete command",
   );
 }
 

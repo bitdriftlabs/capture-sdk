@@ -16,6 +16,11 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.Logger.startSpan
 import io.bitdrift.capture.LoggerImpl.SdkConfiguredDuration
+import io.bitdrift.capture.commands.CommandErrorCode
+import io.bitdrift.capture.commands.CommandHandle
+import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.CommandResult
+import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -71,6 +76,8 @@ internal sealed class LoggerState {
 object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
+
+    internal val commandRegistry = CommandRegistry(CaptureJniLibrary)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -486,6 +493,53 @@ object Capture {
         fun getSdkStatus(): SdkStatus =
             (logger() as? LoggerImpl)?.getSdkStatus()
                 ?: SdkStatus(InitializationState.NOT_STARTED, null, null)
+
+        /**
+         * Registers a command that can be invoked remotely from the live debugger or from a workflow.
+         *
+         * ```kotlin
+         * Logger.registerCommand("flip_flag") {
+         *     val flag = argument("flag")
+         *     val previous = flags.isEnabled(flag)
+         *     flags.flip(flag)
+         *     success(context = mapOf("from" to previous.toString()))
+         * }
+         * ```
+         *
+         * Commands can be registered before or after [start].
+         *
+         * A command runs one invocation at a time and at most
+         * [CommandRegistry.MAX_CONCURRENT_INVOCATIONS] invocations run at once across all commands;
+         * an invocation beyond either limit fails immediately rather than waiting. Handlers run on
+         * a dedicated I/O thread pool and may block without affecting the application's own
+         * dispatchers.
+         *
+         * The SDK never cancels a running handler. An invocation that outlives the execution
+         * timeout is reported as timed out while the handler runs to completion, whose result is
+         * then discarded. Unregistering or re-registering [key] likewise leaves a started
+         * invocation alone, so handlers must tolerate running after [unregisterCommand] returns.
+         *
+         * @param key the unique key identifying the command. Registering a key that is already
+         * registered replaces the handler used by future invocations.
+         * @param handler the suspending handler executing the command. Arguments are read through
+         * [CommandScope.argument] and [CommandScope.arguments]; a failure is reported with
+         * [CommandScope.error] and a [CommandErrorCode].
+         * @return a [CommandHandle] used to unregister the command.
+         */
+        @ExperimentalBitdriftApi
+        fun registerCommand(
+            key: String,
+            handler: suspend CommandScope.() -> CommandResult,
+        ): CommandHandle = commandRegistry.register(key, handler)
+
+        /**
+         * Unregisters the command registered with [key]. Running invocations are not cancelled.
+         *
+         * @return whether a command was registered with [key].
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun unregisterCommand(key: String): Boolean = commandRegistry.unregister(key)
 
         /**
          * Adds a field that should be attached to all logs emitted by the logger going forward.

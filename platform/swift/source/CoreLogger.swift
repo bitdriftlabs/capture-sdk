@@ -33,6 +33,14 @@ final class CoreLogger {
 }
 
 extension CoreLogger: CoreLogging {
+    func registerCommand(key: String, target: AnyObject) {
+        self.underlyingLogger.registerCommand(key: key, target: target)
+    }
+
+    func unregisterCommand(key: String) {
+        self.underlyingLogger.unregisterCommand(key: key)
+    }
+
     func log(
         level: LogLevel,
         message: @autoclosure () -> String,
@@ -89,14 +97,6 @@ extension CoreLogger: CoreLogging {
     func logSessionReplayScreen(screen: SessionReplayCapture, duration: TimeInterval) {
         self.underlyingLogger.logSessionReplayScreen(
             fields: self.convertFields(fields: ["screen": screen]),
-            duration: duration
-        )
-    }
-
-    func logSessionReplayScreenshot(screen: SessionReplayCapture?, duration: TimeInterval) {
-        let fields = screen.flatMap { screen in self.convertFields(fields: ["screen_px": screen]) } ?? []
-        self.underlyingLogger.logSessionReplayScreenshot(
-            fields: fields,
             duration: duration
         )
     }

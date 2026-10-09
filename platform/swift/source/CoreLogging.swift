@@ -26,6 +26,10 @@ protocol CoreLogging: AnyObject {
     /// Starts the logger. Needs to be called before logger is used to emit logs.
     func start()
 
+    func registerCommand(key: String, target: AnyObject)
+
+    func unregisterCommand(key: String)
+
     /// Logs messages using `normal` log type and non-blocking mode. Intended to be called from within the
     /// implementation of methods that expose logging interfaces to customers of the SDK.
     ///
@@ -62,12 +66,6 @@ protocol CoreLogging: AnyObject {
     /// - parameter screen:   The captured screen.
     /// - parameter duration: The duration of time the preparation of the log took.
     func logSessionReplayScreen(screen: SessionReplayCapture, duration: TimeInterval)
-
-    /// Writes a session replay screen log.
-    ///
-    /// - parameter screen:   The captured screenshot. `nil` if screenshot couldn't be taken.
-    /// - parameter duration: The duration of time the preparation of the log took.
-    func logSessionReplayScreenshot(screen: SessionReplayCapture?, duration: TimeInterval)
 
     /// Writes a resource utilization log.
     ///

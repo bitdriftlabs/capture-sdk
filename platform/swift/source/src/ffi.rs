@@ -18,7 +18,7 @@ use bd_logger::{
   LogFieldValue,
   LogFields,
 };
-use objc::rc::StrongPtr;
+use objc::rc::{StrongPtr, autoreleasepool};
 use objc::runtime::Object;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
@@ -156,13 +156,32 @@ pub fn convert_map<S: ::std::hash::BuildHasher>(
 ) -> anyhow::Result<StrongPtr> {
   let objc_headers = unsafe { StrongPtr::new(msg_send![class!(NSMutableDictionary), new]) };
   for (key, value) in map {
-    unsafe {
-      let () =
-        msg_send![*objc_headers, setObject:*make_nsstring(value)? forKey:*make_nsstring(key)?];
-    };
+    set_dictionary_value(&objc_headers, key, &make_nsstring(value)?)?;
   }
 
   Ok(objc_headers)
+}
+
+/// Stores an object in a mutable Foundation dictionary under a UTF-8 key.
+pub fn set_dictionary_value(
+  dictionary: &StrongPtr,
+  key: &str,
+  value: &StrongPtr,
+) -> anyhow::Result<()> {
+  autoreleasepool(|| {
+    let key = make_nsstring(key)?;
+    unsafe {
+      let (): () = msg_send![**dictionary, setObject:**value forKey:*key];
+    }
+    Ok(())
+  })
+}
+
+/// Appends an object to a mutable Foundation array.
+pub fn append_array_value(array: &StrongPtr, value: &StrongPtr) {
+  unsafe {
+    let (): () = msg_send![**array, addObject:**value];
+  }
 }
 
 const FIELD_TYPE_STRING: usize = 0;
