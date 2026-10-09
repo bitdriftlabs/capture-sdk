@@ -101,6 +101,14 @@ Primary: **Bazel** (`./bazelw`). Secondary: Gradle for Android (`platform/jvm/gr
 
 Key Bazel configs: `--config android`, `--config release-ios`, `--config release-android`, `--config ci`
 
+## SDK Size Comparisons
+
+Load [sdk-size-analysis](.claude/skills/sdk-size-analysis/SKILL.md) for Android/iOS size work.
+Its one-command entry point owns setup, release builds, artifact discovery, accounting, audits,
+recovery and publication; its references are the canonical measurement and interpretation docs.
+Use this standalone SDK's `./bazelw`, preserve user/dependency edits, and keep scratch under `.tmp/`.
+Do not equate framework metadata or an unsigned stripped-app proxy with signed App Thinning.
+
 ## Release Build Cache Policy
 
 Release workflows must not use the Bazel/BuildBuddy remote cache. Release Bazel invocations include
