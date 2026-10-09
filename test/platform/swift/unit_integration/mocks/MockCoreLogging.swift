@@ -100,6 +100,10 @@ public final class MockCoreLogging {
 extension MockCoreLogging: CoreLogging {
     public func start() {}
 
+    public func registerCommand(key _: String, target _: AnyObject) {}
+
+    public func unregisterCommand(key _: String) {}
+
     public func startNewSession(sessionID _: String?) {}
 
     public func getSessionID() -> String { "foo" }
@@ -147,8 +151,6 @@ extension MockCoreLogging: CoreLogging {
         )
         self.logSessionReplayScreenExpectation?.fulfill()
     }
-
-    public func logSessionReplayScreenshot(screen _: SessionReplayCapture?, duration _: TimeInterval) {}
 
     public func logResourceUtilization(fields: Fields, duration: TimeInterval) {
         self.resourceUtilizationLogs.append(ResourceUtilizationLog(fields: fields, duration: duration))

@@ -15,6 +15,7 @@ use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandl
 use crate::session::SessionCallback;
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
+  commands,
   define_object_wrapper,
   events,
   ffi,
@@ -44,6 +45,7 @@ use futures_util::FutureExt;
 use jni::descriptors::Desc;
 use jni::objects::{
   GlobalRef,
+  JByteArray,
   JClass,
   JMethodID,
   JObject,
@@ -56,6 +58,7 @@ use jni::objects::{
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::{
   JNI_ERR,
+  JNI_FALSE,
   JNI_TRUE,
   jboolean,
   jbyteArray,
@@ -410,6 +413,7 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   report_processing::initialize(&mut env)?;
   resource_utilization::initialize(&mut env)?;
   session_replay::initialize(&mut env)?;
+  commands::initialize(&mut env)?;
 
   Ok(env.get_version()?.into())
 }
@@ -1320,23 +1324,107 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionReplayScreenshotLog(
-  mut env: JNIEnv<'_>,
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeDeviceCommandScreenshot(
+  env: JNIEnv<'_>,
   _class: JClass<'_>,
-  logger_id: jlong,
-  fields: JObjectArray<'_>,
-  duration_s: jdouble,
+  request_id: jlong,
+  screenshot: JObject<'_>,
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jarray_to_annotated_fields(&mut env, &fields, LogFieldKind::Ootb)?;
-
-      let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.log_session_replay_screenshot(fields, Duration::seconds_f64(duration_s));
-
+      let screenshot = if screenshot.is_null() {
+        None
+      } else {
+        Some(env.convert_byte_array(JByteArray::from(screenshot))?)
+      };
+      session_replay::complete_device_command_screenshot(request_id.cast_unsigned(), screenshot);
       Ok(())
     },
-    "jni write replay screenshot log",
+    "jni complete device command screenshot",
+  );
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerCommand(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  key: JString<'_>,
+  dispatcher: JObject<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let key: String = unsafe { env.get_string_unchecked(&key) }?.into();
+      let handler = commands::JniCommandHandler::new(&env, dispatcher)?;
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.register_command_handler(key, Arc::new(handler));
+      Ok(())
+    },
+    "jni register command",
+  );
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_unregisterCommand(
+  env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  logger_id: jlong,
+  key: JString<'_>,
+) -> jboolean {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<jboolean> {
+      let key: String = unsafe { env.get_string_unchecked(&key) }?.into();
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      Ok(logger.unregister_command_handler(&key).into())
+    },
+    JNI_FALSE,
+    "jni unregister command",
+  )
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeCommand(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  invocation_id: jlong,
+  error_code: JString<'_>,
+  error_message: JString<'_>,
+  fields: JObjectArray<'_>,
+  attachment: JObject<'_>,
+  attachment_filename: JString<'_>,
+  attachment_content_type: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let fields = ffi::jarray_to_fields(&mut env, &fields)?;
+      let result = if error_code.is_null() {
+        let attachment = if attachment.is_null() {
+          None
+        } else {
+          // Kotlin guarantees filename and content type are present whenever the bytes are.
+          Some(commands::PlatformAttachment {
+            bytes: env.convert_byte_array(JByteArray::from(attachment))?,
+            filename: unsafe { env.get_string_unchecked(&attachment_filename) }?.into(),
+            content_type: unsafe { env.get_string_unchecked(&attachment_content_type) }?.into(),
+          })
+        };
+        commands::completed_result(fields, attachment)
+      } else {
+        let error_code: String = unsafe { env.get_string_unchecked(&error_code) }?.into();
+        let error_message = if error_message.is_null() {
+          None
+        } else {
+          Some(unsafe { env.get_string_unchecked(&error_message) }?.into())
+        };
+        bd_logger::CommandResult::Failed {
+          error: commands::command_error(&error_code, error_message),
+          fields,
+        }
+      };
+      commands::complete_invocation(invocation_id.cast_unsigned(), result);
+      Ok(())
+    },
+    "jni complete command",
   );
 }
 

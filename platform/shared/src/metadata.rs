@@ -53,7 +53,6 @@ pub struct AppleStaticFields {
 enum PlatformStaticFields {
   Android(AndroidStaticFields),
   Apple(AppleStaticFields),
-  Electron,
 }
 
 // A collection of typed metadata that is used to identify the client when communicating with
@@ -125,27 +124,6 @@ impl Mobile {
     }
   }
 
-  #[must_use]
-  pub const fn electron(
-    app_id: Option<String>,
-    app_version: Option<String>,
-    os: String,
-    os_version: Option<String>,
-    device: Arc<bd_logger::Device>,
-    model: String,
-  ) -> Self {
-    Self {
-      app_id,
-      app_version,
-      platform: Platform::Electron,
-      os,
-      device,
-      os_version,
-      model,
-      platform_static_fields: PlatformStaticFields::Electron,
-    }
-  }
-
   /// Returns immutable fields that belong on every log line as OOTB metadata.
   ///
   /// The log `os` value uses the platform's established casing (for example, `Android` and
@@ -179,13 +157,11 @@ impl Mobile {
       PlatformStaticFields::Apple(apple) => {
         fields.insert("_build_number".into(), apple.build_number.clone().into());
       },
-      PlatformStaticFields::Electron => {},
     }
 
     let log_os = match self.platform {
       Platform::Android => "Android",
       Platform::Apple => "iOS",
-      Platform::Electron => &self.os,
     };
     fields.insert("os".into(), log_os.into());
     fields.insert("model".into(), self.model.clone().into());
@@ -197,7 +173,7 @@ impl Mobile {
   pub const fn android_static_fields(&self) -> Option<&AndroidStaticFields> {
     match &self.platform_static_fields {
       PlatformStaticFields::Android(fields) => Some(fields),
-      PlatformStaticFields::Apple(_) | PlatformStaticFields::Electron => None,
+      PlatformStaticFields::Apple(_) => None,
     }
   }
 }

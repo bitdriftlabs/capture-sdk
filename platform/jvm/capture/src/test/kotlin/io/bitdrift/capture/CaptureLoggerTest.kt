@@ -16,6 +16,9 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.timeout
 import com.nhaarman.mockitokotlin2.verify
+import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.ICommandBridge
+import io.bitdrift.capture.commands.ICommandDispatcher
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.WindowManager
@@ -25,6 +28,7 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.HttpUrlPath
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.DateProvider
+import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldGetter
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.SystemDateProvider
@@ -94,9 +98,10 @@ class CaptureLoggerTest {
             SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
         context: android.content.Context = ContextHolder.APP_CONTEXT,
         windowManager: IWindowManager = WindowManager(ErrorHandler()),
+        commandRegistry: CommandRegistry = Capture.commandRegistry,
         block: (LoggerImpl) -> T,
     ): T {
-        val logger = buildLogger(fieldGetter, initialFields, dateProvider, sessionStrategy, context, windowManager)
+        val logger = buildLogger(fieldGetter, initialFields, dateProvider, sessionStrategy, context, windowManager, commandRegistry)
         try {
             return block(logger)
         } finally {
@@ -104,6 +109,51 @@ class CaptureLoggerTest {
             // Small delay to allow the OS to release the file lock before the next test
             Thread.sleep(100)
         }
+    }
+
+    @Test
+    fun `commands registered before the logger exists are announced to native once it does`() {
+        val bridge = RecordingCommandBridge()
+        val registry = CommandRegistry(bridge)
+        registry.register("pre_start") { success() }
+        assertThat(bridge.registered).isEmpty()
+
+        withLogger(commandRegistry = registry) { logger ->
+            assertThat(bridge.registered).containsExactly(logger.loggerId to "pre_start")
+
+            registry.register("post_start") { success() }
+            assertThat(bridge.registered).containsExactly(logger.loggerId to "pre_start", logger.loggerId to "post_start")
+
+            assertThat(registry.unregister("pre_start")).isTrue()
+            assertThat(bridge.registered).containsExactly(logger.loggerId to "post_start")
+        }
+    }
+
+    private class RecordingCommandBridge : ICommandBridge {
+        val registered = mutableListOf<Pair<Long, String>>()
+
+        override fun registerCommand(
+            loggerId: Long,
+            key: String,
+            dispatcher: ICommandDispatcher,
+        ) {
+            registered.add(loggerId to key)
+        }
+
+        override fun unregisterCommand(
+            loggerId: Long,
+            key: String,
+        ): Boolean = registered.removeAll { it.second == key }
+
+        override fun completeCommand(
+            invocationId: Long,
+            errorCode: String?,
+            errorMessage: String?,
+            fields: Array<Field>,
+            attachment: ByteArray?,
+            attachmentFilename: String?,
+            attachmentContentType: String?,
+        ) = Unit
     }
 
     @Test
@@ -490,6 +540,7 @@ class CaptureLoggerTest {
             SessionStrategy.Configuration(SessionConfiguration(initialSessionId = "SESSION_ID")),
         context: android.content.Context = ContextHolder.APP_CONTEXT,
         windowManager: IWindowManager = WindowManager(ErrorHandler()),
+        commandRegistry: CommandRegistry = Capture.commandRegistry,
     ): LoggerImpl {
         val customFieldGetters = fieldGetter?.let { listOf(it) }.orEmpty()
         val loggerImpl =
@@ -503,6 +554,7 @@ class CaptureLoggerTest {
                 dateProvider = dateProvider,
                 configuration = Configuration(),
                 windowManager = windowManager,
+                commandRegistry = commandRegistry,
             )
         val sdkConfiguredDuration =
             LoggerImpl.SdkConfiguredDuration(

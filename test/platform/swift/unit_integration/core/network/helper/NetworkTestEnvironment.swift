@@ -138,7 +138,9 @@ final class NetworkTestEnvironment {
 
     private final class MockSessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget {
         func captureScreen() {}
-        func captureScreenshot() {}
+        func captureDeviceCommandScreenshot(_ requestID: UInt64) {
+            capture_complete_device_command_screenshot(requestID, nil)
+        }
     }
 
     private final class RecordingNetwork: Network {

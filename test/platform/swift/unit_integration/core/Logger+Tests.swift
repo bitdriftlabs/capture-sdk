@@ -18,6 +18,7 @@ extension Logger {
         dateProvider: DateProvider? = nil,
         customFieldGetters: [CustomFieldsProviderController.FieldGetter] = [],
         initialFields: Fields = [:],
+        commands: [Command] = [],
         configuration: Configuration = .testConfiguration,
         loggerBridgingFactoryProvider: LoggerBridgingFactoryProvider = LoggerBridgingFactory()
     ) throws -> Logger
@@ -31,6 +32,7 @@ extension Logger {
                 dateProvider: dateProvider,
                 customFieldGetters: customFieldGetters,
                 initialFields: initialFields,
+                commands: commands,
                 enableNetwork: false,
                 storageProvider: MockStorageProvider(),
                 timeProvider: SystemTimeProvider(),

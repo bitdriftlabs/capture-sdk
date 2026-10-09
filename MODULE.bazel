@@ -254,6 +254,7 @@ maven.install(
         # Resolves strict Coursier conflicts from Activity/Compose's transitive lifecycle runtime.
         "androidx.lifecycle:lifecycle-runtime:{}".format(LIFECYCLE_VERSION),
         "org.jetbrains.kotlin:kotlin-stdlib:{}".format(KOTLIN_STD_VERSION),
+        "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.3",
         "androidx.emoji2:emoji2:1.5.0",
         "androidx.collection:collection:1.4.5",
         "androidx.metrics:metrics-performance:1.0.0",
