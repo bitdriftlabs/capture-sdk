@@ -36,6 +36,7 @@ import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
+import kotlinx.coroutines.CoroutineScope
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -517,11 +518,16 @@ object Capture {
          * The SDK never cancels a running handler on its own. An invocation that outlives the
          * execution timeout is reported as timed out while the handler runs to completion, whose
          * result is then discarded. Unregistering or re-registering [key] likewise leaves a
-         * started invocation alone. To cancel in-flight work together with a component, tie the
-         * returned handle to its scope with [CommandHandle.unregisterOn].
+         * started invocation alone. To tie a command to a component, pass its scope as [owner].
          *
          * @param key the unique key identifying the command. Registering a key that is already
          * registered replaces the handler used by future invocations.
+         * @param owner the scope that owns this registration, e.g. a `viewModelScope`. When it
+         * completes or is cancelled, the command is unregistered and its in-flight invocations are
+         * cancelled and reported as failed, so a handler does not outlive the component that
+         * registered it. Cancellation is cooperative: it reaches a handler at its next suspension
+         * point, so a handler doing long blocking work should check `ensureActive()` periodically;
+         * one that completes anyway reports its own result.
          * @param handler the suspending handler executing the command. It should do its work inline
          * rather than launching it in another scope: the SDK only limits, times out and reports what
          * the handler itself runs, and a launched job escapes all three. Arguments are read through
@@ -532,8 +538,9 @@ object Capture {
         @ExperimentalBitdriftApi
         fun registerCommand(
             key: String,
+            owner: CoroutineScope? = null,
             handler: suspend CommandScope.() -> CommandResult,
-        ): CommandHandle = commandRegistry.register(key, handler)
+        ): CommandHandle = commandRegistry.register(key, owner, handler)
 
         /**
          * Unregisters the command registered with [key]. Running invocations are not cancelled.

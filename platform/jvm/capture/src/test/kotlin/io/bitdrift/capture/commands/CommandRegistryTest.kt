@@ -13,6 +13,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.util.concurrent.CountDownLatch
@@ -165,18 +168,17 @@ class CommandRegistryTest {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Owner scope: completing the scope passed to unregisterOn also cancels in-flight invocations
+    // Owner scope: a registration's owner unregisters it and cancels its in-flight invocations
     // ---------------------------------------------------------------------------------------------
 
     @Test
     fun ownerScopeCompletionCancelsInFlightInvocation() {
         val owner = Job()
         val gate = Gate(expectedArrivals = 1)
-        registry
-            .register("vm") {
-                gate.arriveAndAwaitRelease()
-                success()
-            }.unregisterOn(CoroutineScope(owner))
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            gate.arriveAndAwaitRelease()
+            success()
+        }
         registry.dispatch(1, "vm", null, "session")
         gate.awaitArrivals()
 
@@ -185,7 +187,46 @@ class CommandRegistryTest {
         val completion = bridge.awaitCompletion()
         assertThat(completion.invocationId).isEqualTo(1)
         assertThat(completion.error).isEqualTo("handler_failed")
-        assertThat(completion.message).isEqualTo("cancelled because the command's owner scope completed")
+        assertThat(completion.message).isEqualTo(OWNER_SCOPE_COMPLETED)
+    }
+
+    @Test
+    fun invocationDispatchedRightAfterRegistrationIsOwned() {
+        // The owner is part of the registration, so no dispatch can start before it is known.
+        val owner = Job()
+        val gate = Gate(expectedArrivals = 1)
+        registry.attach(LOGGER_ID)
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            gate.arriveAndAwaitRelease()
+            success()
+        }
+        registry.dispatch(1, "vm", null, "session")
+        gate.awaitArrivals()
+
+        owner.cancel()
+
+        assertThat(bridge.awaitCompletion().message).isEqualTo(OWNER_SCOPE_COMPLETED)
+    }
+
+    @Test
+    fun ownerScopeCompletionUnregistersTheCommand() {
+        val owner = Job()
+        registry.register("vm", owner = CoroutineScope(owner)) { success() }
+
+        owner.cancel()
+        registry.dispatch(1, "vm", null, "session")
+
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
+    }
+
+    @Test
+    fun alreadyCompletedOwnerUnregistersImmediately() {
+        val owner = Job().apply { cancel() }
+
+        registry.register("vm", owner = CoroutineScope(owner)) { success() }
+        registry.dispatch(1, "vm", null, "session")
+
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
     }
 
     @Test
@@ -193,11 +234,10 @@ class CommandRegistryTest {
         val registry = CommandRegistry(bridge, Dispatchers.Default, maxConcurrentInvocations = 1)
         val owner = Job()
         val gate = Gate(expectedArrivals = 1)
-        registry
-            .register("vm") {
-                gate.arriveAndAwaitRelease()
-                success()
-            }.unregisterOn(CoroutineScope(owner))
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            gate.arriveAndAwaitRelease()
+            success()
+        }
         registry.register("other") { success() }
         registry.dispatch(1, "vm", null, "session")
         gate.awaitArrivals()
@@ -213,7 +253,7 @@ class CommandRegistryTest {
     fun ownerScopeOnlyCancelsItsOwnRegistration() {
         val owner = Job()
         val gate = Gate(expectedArrivals = 1)
-        registry.register("vm") { success() }.unregisterOn(CoroutineScope(owner))
+        registry.register("vm", owner = CoroutineScope(owner)) { success() }
         registry.register("unowned") {
             gate.arriveAndAwaitRelease()
             success(context = mapOf("finished" to "true"))
@@ -231,7 +271,7 @@ class CommandRegistryTest {
     fun staleOwnerDoesNotCancelReplacementInvocations() {
         val staleOwner = Job()
         val gate = Gate(expectedArrivals = 1)
-        registry.register("key") { success() }.unregisterOn(CoroutineScope(staleOwner))
+        registry.register("key", owner = CoroutineScope(staleOwner)) { success() }
         registry.register("key") {
             gate.arriveAndAwaitRelease()
             success(context = mapOf("handler" to "replacement"))
@@ -248,7 +288,7 @@ class CommandRegistryTest {
     @Test
     fun completedInvocationIsUnaffectedByLaterOwnerCancellation() {
         val owner = Job()
-        registry.register("vm") { success() }.unregisterOn(CoroutineScope(owner))
+        registry.register("vm", owner = CoroutineScope(owner)) { success() }
         registry.dispatch(1, "vm", null, "session")
         assertThat(bridge.awaitCompletion().error).isNull()
 
@@ -256,6 +296,45 @@ class CommandRegistryTest {
 
         Thread.sleep(100)
         assertThat(bridge.pendingCompletions()).isZero()
+    }
+
+    @Test
+    fun handlerSelfCancellationIsNotReportedAsOwnerCancellation() {
+        registry.register("unowned") {
+            currentCoroutineContext().cancel(CancellationException("gave up"))
+            awaitCancellation()
+        }
+        registry.register("owned", owner = CoroutineScope(Job())) {
+            currentCoroutineContext().cancel(CancellationException("gave up"))
+            awaitCancellation()
+        }
+
+        registry.dispatch(1, "unowned", null, "session")
+        registry.dispatch(2, "owned", null, "session")
+
+        val completions = List(2) { bridge.awaitCompletion() }
+        assertThat(completions.map { it.error }).containsOnly("handler_failed")
+        assertThat(completions.map { it.message }).allSatisfy { assertThat(it).contains("gave up").isNotEqualTo(OWNER_SCOPE_COMPLETED) }
+    }
+
+    @Test
+    fun unregisterOnOnlyUnregistersAndDoesNotCancel() {
+        val scope = Job()
+        val gate = Gate(expectedArrivals = 1)
+        registry
+            .register("vm") {
+                gate.arriveAndAwaitRelease()
+                success(context = mapOf("finished" to "true"))
+            }.unregisterOn(CoroutineScope(scope))
+        registry.dispatch(1, "vm", null, "session")
+        gate.awaitArrivals()
+
+        scope.cancel()
+        gate.release()
+
+        assertThat(bridge.awaitCompletion().field("finished")).isEqualTo("true")
+        registry.dispatch(2, "vm", null, "session")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1045,5 +1124,6 @@ class CommandRegistryTest {
 
     private companion object {
         const val LOGGER_ID = 1L
+        const val OWNER_SCOPE_COMPLETED = "cancelled because the command's owner scope completed"
     }
 }

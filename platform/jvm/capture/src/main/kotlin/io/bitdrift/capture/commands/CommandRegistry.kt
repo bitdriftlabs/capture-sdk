@@ -16,20 +16,21 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Keeps the handlers registered by the application and runs them when the Rust core dispatches
  * an invocation.
  *
  * Invocations are launched on [dispatcher]; the execution timeout lives in the Rust core. The SDK
- * never cancels an invocation on its own, but one whose registration has an owner scope (see
- * [CommandHandle.unregisterOn]) is cancelled when that scope completes, as structured concurrency
- * would. Two rules bound the work in flight, and both reject rather than queue so that
+ * never cancels an invocation on its own, but a registration may have an owner scope: when it
+ * completes, the registration is removed and its in-flight invocations are cancelled, as
+ * structured concurrency would. The owner is fixed at registration, so it covers every invocation
+ * of that registration. Two rules bound the work in flight, and both reject rather than queue so that
  * memory does not grow with the rate of incoming commands: a key runs one invocation at a time,
  * and at most [maxConcurrentInvocations] invocations exist across all keys.
  *
@@ -56,18 +57,20 @@ internal class CommandRegistry(
 
     fun register(
         key: String,
+        owner: CoroutineScope? = null,
         handler: suspend CommandScope.() -> CommandResult,
     ): CommandHandle {
-        val registration = Registration(handler)
+        val registration = Registration(handler, owner?.coroutineContext?.get(Job))
         handlers[key] = registration
         loggerId?.let { bridge.registerCommand(it, key, this) }
         // `remove(key, value)` compares by identity, so a handle only removes its own registration
         // and is a no-op once the key has been re-registered.
-        return CommandHandle(
-            key,
-            onUnregister = { if (handlers.remove(key, registration)) loggerId?.let { bridge.unregisterCommand(it, key) } },
-            onOwner = { registration.owner = it },
-        )
+        val handle =
+            CommandHandle(key) {
+                if (handlers.remove(key, registration)) loggerId?.let { bridge.unregisterCommand(it, key) }
+            }
+        registration.owner?.invokeOnCompletion { handle.unregister() }
+        return handle
     }
 
     fun unregister(key: String): Boolean {
@@ -120,7 +123,12 @@ internal class CommandRegistry(
         val invocation = CommandInvocation(key, commandId, sessionId, arguments)
         scope.launch {
             val invocationJob = coroutineContext[Job]
-            val ownerLink = registration.owner?.invokeOnCompletion { invocationJob?.cancel() }
+            val ownerCancelled = AtomicBoolean(false)
+            val ownerLink =
+                registration.owner?.invokeOnCompletion {
+                    ownerCancelled.set(true)
+                    invocationJob?.cancel()
+                }
             // Release before reporting, so an observed completion implies the key is free again.
             val outcome =
                 try {
@@ -129,10 +137,9 @@ internal class CommandRegistry(
                     Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
                 } catch (e: Throwable) {
                     // Every invocation must be reported, so cancellation is caught here and rethrown
-                    // below once reported. The SDK's own scope is never cancelled, so an inactive
-                    // job means the owner was; a CancellationException while active is the
-                    // handler's own failure.
-                    val message = if (isActive) e.toString() else OWNER_SCOPE_COMPLETED
+                    // below once reported. Anything other than the owner's cancellation, including a
+                    // handler cancelling itself, is the handler's own failure.
+                    val message = if (ownerCancelled.get()) OWNER_SCOPE_COMPLETED else e.toString()
                     Outcome.Failed(CommandErrorCode.HandlerFailed, message)
                 } finally {
                     ownerLink?.dispose()
@@ -149,10 +156,8 @@ internal class CommandRegistry(
 
     private class Registration(
         val handler: suspend CommandScope.() -> CommandResult,
-    ) {
-        @Volatile
-        var owner: Job? = null
-    }
+        val owner: Job?,
+    )
 
     private sealed interface Outcome {
         class Returned(

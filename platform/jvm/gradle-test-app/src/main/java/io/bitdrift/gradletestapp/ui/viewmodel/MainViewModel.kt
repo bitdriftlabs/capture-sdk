@@ -7,7 +7,6 @@
 
 package io.bitdrift.gradletestapp.ui.viewmodel
 
-import android.util.Log
 import android.app.Application
 import android.util.Log
 import android.widget.Toast
@@ -164,8 +163,7 @@ class MainViewModel(
 
     @OptIn(ExperimentalBitdriftApi::class)
     private fun registerUiStateCommand() {
-        Logger
-            .registerCommand("ui_state") {
+        Logger.registerCommand("ui_state", owner = viewModelScope) {
                 val state = _uiState.value
                 success(
                     context =
@@ -175,11 +173,10 @@ class MainViewModel(
                             "global_fields" to state.globalFields.size.toString(),
                         ),
                 )
-            }.unregisterOn(viewModelScope)
+        }
 
         // Owned by this ViewModel: clearing it cancels an in-flight invocation.
-        Logger
-            .registerCommand("ui_state_slow") {
+        Logger.registerCommand("ui_state_slow", owner = viewModelScope) {
                 val durationMs =
                     when (val argument = arguments["duration_ms"]) {
                         is CommandArgument.Text -> argument.value.toLongOrNull()
@@ -196,7 +193,7 @@ class MainViewModel(
                 }
                 Log.i(OWNED_COMMAND_TAG, "ui_state_slow finished")
                 success(context = mapOf("slept_ms" to durationMs.toString()))
-            }.unregisterOn(viewModelScope)
+        }
     }
 
     override fun onCleared() {
