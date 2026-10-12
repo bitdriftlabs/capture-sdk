@@ -13,7 +13,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import java.util.Collections
@@ -23,8 +25,10 @@ import java.util.concurrent.ConcurrentHashMap
  * Keeps the handlers registered by the application and runs them when the Rust core dispatches
  * an invocation.
  *
- * Invocations are launched on [dispatcher] and never cancelled; the execution timeout lives in
- * the Rust core. Two rules bound the work in flight, and both reject rather than queue so that
+ * Invocations are launched on [dispatcher]; the execution timeout lives in the Rust core. The SDK
+ * never cancels an invocation on its own, but one whose registration has an owner scope (see
+ * [CommandHandle.unregisterOn]) is cancelled when that scope completes, as structured concurrency
+ * would. Two rules bound the work in flight, and both reject rather than queue so that
  * memory does not grow with the rate of incoming commands: a key runs one invocation at a time,
  * and at most [maxConcurrentInvocations] invocations exist across all keys.
  *
@@ -37,7 +41,7 @@ internal class CommandRegistry(
     dispatcher: CoroutineDispatcher = defaultDispatcher(),
     private val maxConcurrentInvocations: Int = MAX_CONCURRENT_INVOCATIONS,
 ) : ICommandDispatcher {
-    private val handlers = ConcurrentHashMap<String, suspend CommandScope.() -> CommandResult>()
+    private val handlers = ConcurrentHashMap<String, Registration>()
 
     /** Keys with an invocation in flight; `add` is an atomic claim. (`newKeySet()` needs API 24.) */
     private val running: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
@@ -53,13 +57,16 @@ internal class CommandRegistry(
         key: String,
         handler: suspend CommandScope.() -> CommandResult,
     ): CommandHandle {
-        handlers[key] = handler
+        val registration = Registration(handler)
+        handlers[key] = registration
         loggerId?.let { bridge.registerCommand(it, key, this) }
-        // `remove(key, value)` compares the lambda by identity, so a handle only removes its own
-        // registration and is a no-op once the key has been re-registered.
-        return CommandHandle(key) {
-            if (handlers.remove(key, handler)) loggerId?.let { bridge.unregisterCommand(it, key) }
-        }
+        // `remove(key, value)` compares by identity, so a handle only removes its own registration
+        // and is a no-op once the key has been re-registered.
+        return CommandHandle(
+            key,
+            onUnregister = { if (handlers.remove(key, registration)) loggerId?.let { bridge.unregisterCommand(it, key) } },
+            onOwner = { registration.owner = it },
+        )
     }
 
     fun unregister(key: String): Boolean {
@@ -82,8 +89,8 @@ internal class CommandRegistry(
         argumentTypes: IntArray,
         argumentValues: Array<Any?>,
     ) {
-        val handler = handlers[key]
-        if (handler == null) {
+        val registration = handlers[key]
+        if (registration == null) {
             fail(invocationId, CommandErrorCode.CommandUnknown, "no handler registered for $key")
             return
         }
@@ -111,15 +118,20 @@ internal class CommandRegistry(
         }
         val invocation = CommandInvocation(key, commandId, sessionId, arguments)
         scope.launch {
+            val invocationJob = coroutineContext[Job]
+            val ownerLink = registration.owner?.invokeOnCompletion { invocationJob?.cancel() }
             // Release before reporting, so an observed completion implies the key is free again.
             val outcome =
                 try {
-                    Outcome.Returned(invocation.handler())
+                    Outcome.Returned(registration.handler(invocation))
                 } catch (e: InvalidCommandArgumentException) {
                     Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
                 } catch (e: Throwable) {
-                    Outcome.Failed(CommandErrorCode.HandlerFailed, e.toString())
+                    // The SDK's own scope is never cancelled, so an inactive job means the owner was.
+                    val message = if (isActive) e.toString() else OWNER_SCOPE_COMPLETED
+                    Outcome.Failed(CommandErrorCode.HandlerFailed, message)
                 } finally {
+                    ownerLink?.dispose()
                     slots.release()
                     running.remove(key)
                 }
@@ -128,6 +140,13 @@ internal class CommandRegistry(
                 is Outcome.Failed -> fail(invocationId, outcome.code, outcome.message)
             }
         }
+    }
+
+    private class Registration(
+        val handler: suspend CommandScope.() -> CommandResult,
+    ) {
+        @Volatile
+        var owner: Job? = null
     }
 
     private sealed interface Outcome {
@@ -179,6 +198,8 @@ internal class CommandRegistry(
     private fun Map<String, String>.toJniFields(): Array<Field> = map { (key, value) -> Field(key, value.toFieldValue()) }.toTypedArray()
 
     companion object {
+        private const val OWNER_SCOPE_COMPLETED = "cancelled because the command's owner scope completed"
+
         /**
          * Both the cap on invocations in flight and the size of their thread pool, so an admitted
          * invocation always has a thread even when every handler blocks.

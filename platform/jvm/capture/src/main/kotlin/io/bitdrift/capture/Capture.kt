@@ -514,10 +514,11 @@ object Capture {
          * a dedicated I/O thread pool and may block without affecting the application's own
          * dispatchers.
          *
-         * The SDK never cancels a running handler. An invocation that outlives the execution
-         * timeout is reported as timed out while the handler runs to completion, whose result is
-         * then discarded. Unregistering or re-registering [key] likewise leaves a started
-         * invocation alone, so handlers must tolerate running after [unregisterCommand] returns.
+         * The SDK never cancels a running handler on its own. An invocation that outlives the
+         * execution timeout is reported as timed out while the handler runs to completion, whose
+         * result is then discarded. Unregistering or re-registering [key] likewise leaves a
+         * started invocation alone. To cancel in-flight work together with a component, tie the
+         * returned handle to its scope with [CommandHandle.unregisterOn].
          *
          * @param key the unique key identifying the command. Registering a key that is already
          * registered replaces the handler used by future invocations.

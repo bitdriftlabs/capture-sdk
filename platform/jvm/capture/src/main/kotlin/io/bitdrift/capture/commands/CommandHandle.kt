@@ -17,22 +17,28 @@ class CommandHandle internal constructor(
     /** The key the command was registered with. */
     val key: String,
     private val onUnregister: () -> Unit,
+    private val onOwner: (Job) -> Unit,
 ) {
     /**
      * Unregisters the handler this handle was returned for. Does nothing if that handler was
      * already unregistered or replaced, so a handle never removes a registration it does not own;
      * `Logger.unregisterCommand(key)` removes whatever is current. Running invocations are not
-     * cancelled.
+     * cancelled; see [unregisterOn] for that.
      */
     fun unregister() {
         onUnregister()
     }
 
     /**
-     * Unregisters the command once [scope] completes or is cancelled, e.g. a `viewModelScope`.
+     * Ties the command to [scope], e.g. a `viewModelScope`: once the scope completes or is
+     * cancelled, the command is unregistered and its in-flight invocations are cancelled, so a
+     * handler does not outlive the component that registered it. A cancelled invocation is reported
+     * as failed. Does nothing for a scope without a [Job].
      */
     fun unregisterOn(scope: CoroutineScope): CommandHandle {
-        scope.coroutineContext[Job]?.invokeOnCompletion { unregister() }
+        val job = scope.coroutineContext[Job] ?: return this
+        onOwner(job)
+        job.invokeOnCompletion { unregister() }
         return this
     }
 }
