@@ -8,6 +8,7 @@
 package io.bitdrift.gradletestapp.ui.viewmodel
 
 import android.app.Application
+import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +34,9 @@ import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.init.SampleCommands
+import kotlin.time.Duration.Companion.milliseconds
+import io.bitdrift.gradletestapp.data.model.ProfilingState
+import io.bitdrift.gradletestapp.init.AppProfiler
 import io.bitdrift.gradletestapp.diagnostics.PreInitOrderingExample
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -277,6 +281,7 @@ class MainViewModel(
             is StressTestAction.FillDiskSpace -> fillDiskSpace()
             is StressTestAction.ClearDiskSpace -> clearDiskSpace()
             is StressTestAction.RefreshDiskSpace -> refreshDiskSpace()
+            is StressTestAction.StartProfiling -> startProfiling(action.type, action.durationMs)
             is ClearError -> clearError()
 
             // For now, navigation actions are handled at the Fragment level
@@ -303,6 +308,29 @@ class MainViewModel(
     private fun refreshDiskSpace() {
         _uiState.update {
             it.copy(diskPressure = stressTestRepository.refreshDiskSpace())
+        }
+    }
+
+    private fun startProfiling(
+        type: AppProfiler.ProfilingType,
+        durationMs: Long,
+    ) {
+        if (_uiState.value.profiling is ProfilingState.Running) return
+        _uiState.update { it.copy(profiling = ProfilingState.Running(type)) }
+        viewModelScope.launch {
+            Log.i(PROFILER_TAG, "starting ${type.name} (${durationMs}ms)")
+            val state =
+                when (val result = AppProfiler.capture(application, type, durationMs.milliseconds)) {
+                    is AppProfiler.Result.Saved -> {
+                        Log.i(PROFILER_TAG, "${type.name} saved to ${result.path}")
+                        ProfilingState.Saved(type, result.path)
+                    }
+                    is AppProfiler.Result.Failure -> {
+                        Log.w(PROFILER_TAG, "${type.name} failed: ${result.reason}")
+                        ProfilingState.Failed(type, result.reason)
+                    }
+                }
+            _uiState.update { it.copy(profiling = state) }
         }
     }
 
@@ -618,3 +646,5 @@ private val ANR_CRASH_REASONS =
         AppExitReason.ANR_GENERIC,
         AppExitReason.ANR_SLEEP_MAIN_THREAD,
     )
+
+private const val PROFILER_TAG = "AppProfiler"
