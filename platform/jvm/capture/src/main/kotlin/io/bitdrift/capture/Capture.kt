@@ -522,7 +522,9 @@ object Capture {
          *
          * @param key the unique key identifying the command. Registering a key that is already
          * registered replaces the handler used by future invocations.
-         * @param handler the suspending handler executing the command. Arguments are read through
+         * @param handler the suspending handler executing the command. It should do its work inline
+         * rather than launching it in another scope: the SDK only limits, times out and reports what
+         * the handler itself runs, and a launched job escapes all three. Arguments are read through
          * [CommandScope.argument] and [CommandScope.arguments]; a failure is reported with
          * [CommandScope.error] and a [CommandErrorCode].
          * @return a [CommandHandle] used to unregister the command.

@@ -33,7 +33,9 @@ class CommandHandle internal constructor(
      * Ties the command to [scope], e.g. a `viewModelScope`: once the scope completes or is
      * cancelled, the command is unregistered and its in-flight invocations are cancelled, so a
      * handler does not outlive the component that registered it. A cancelled invocation is reported
-     * as failed. Does nothing for a scope without a [Job].
+     * as failed. Cancellation is cooperative: it reaches the handler at its next suspension point,
+     * so a handler doing long blocking work should check `ensureActive()` periodically. Does nothing
+     * for a scope without a [Job].
      */
     fun unregisterOn(scope: CoroutineScope): CommandHandle {
         val job = scope.coroutineContext[Job] ?: return this

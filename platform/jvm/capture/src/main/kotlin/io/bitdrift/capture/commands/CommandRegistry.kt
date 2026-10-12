@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -127,7 +128,10 @@ internal class CommandRegistry(
                 } catch (e: InvalidCommandArgumentException) {
                     Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
                 } catch (e: Throwable) {
-                    // The SDK's own scope is never cancelled, so an inactive job means the owner was.
+                    // Every invocation must be reported, so cancellation is caught here and rethrown
+                    // below once reported. The SDK's own scope is never cancelled, so an inactive
+                    // job means the owner was; a CancellationException while active is the
+                    // handler's own failure.
                     val message = if (isActive) e.toString() else OWNER_SCOPE_COMPLETED
                     Outcome.Failed(CommandErrorCode.HandlerFailed, message)
                 } finally {
@@ -139,6 +143,7 @@ internal class CommandRegistry(
                 is Outcome.Returned -> complete(invocationId, outcome.result)
                 is Outcome.Failed -> fail(invocationId, outcome.code, outcome.message)
             }
+            ensureActive()
         }
     }
 
