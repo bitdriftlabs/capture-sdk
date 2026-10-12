@@ -7,6 +7,7 @@
 
 package io.bitdrift.gradletestapp.ui.viewmodel
 
+import android.util.Log
 import android.app.Application
 import android.util.Log
 import android.widget.Toast
@@ -14,6 +15,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.commands.CommandArgument
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
@@ -40,6 +42,7 @@ import io.bitdrift.gradletestapp.init.AppProfiler
 import io.bitdrift.gradletestapp.diagnostics.PreInitOrderingExample
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -173,6 +176,32 @@ class MainViewModel(
                         ),
                 )
             }.unregisterOn(viewModelScope)
+
+        // Owned by this ViewModel: clearing it cancels an in-flight invocation.
+        Logger
+            .registerCommand("ui_state_slow") {
+                val durationMs =
+                    when (val argument = arguments["duration_ms"]) {
+                        is CommandArgument.Text -> argument.value.toLongOrNull()
+                        is CommandArgument.UnsignedInteger -> argument.value.toLong()
+                        is CommandArgument.SignedInteger -> argument.value
+                        else -> null
+                    } ?: 4_000L
+                Log.i(OWNED_COMMAND_TAG, "ui_state_slow started, sleeping ${durationMs}ms")
+                try {
+                    delay(durationMs)
+                } catch (e: CancellationException) {
+                    Log.i(OWNED_COMMAND_TAG, "ui_state_slow cancelled: ${e.message}")
+                    throw e
+                }
+                Log.i(OWNED_COMMAND_TAG, "ui_state_slow finished")
+                success(context = mapOf("slept_ms" to durationMs.toString()))
+            }.unregisterOn(viewModelScope)
+    }
+
+    override fun onCleared() {
+        Log.i(OWNED_COMMAND_TAG, "MainViewModel cleared")
+        super.onCleared()
     }
 
     fun handleAction(action: AppAction) {
@@ -648,3 +677,4 @@ private val ANR_CRASH_REASONS =
     )
 
 private const val PROFILER_TAG = "AppProfiler"
+private const val OWNED_COMMAND_TAG = "OwnedCommand"
