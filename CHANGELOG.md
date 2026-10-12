@@ -1,13 +1,59 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.25.1...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.26.0-rc.1...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.26.0-rc.1]
+[0.26.0-rc.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.26.0-rc.1
 
 ### Both
 
 **Added**
 
 - WebView events emitted during a Page View are now associated with that Page View span.
+- Workflow metrics can now use JSON paths to extract group-by tags and numeric values from fields containing JSON strings.
 
 **Changed**
 
