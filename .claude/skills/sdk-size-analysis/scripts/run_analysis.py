@@ -183,7 +183,7 @@ def compare_evidence(baseline, candidate):
     for key in ("analysis_script_sha256", "python", "xcode", "host"):
         if baseline["run"].get(key) != candidate["run"].get(key):
             differences.append(f"run.{key}")
-    for key in (".bazelrc", ".bazelversion", "MODULE.bazel", "MODULE.bazel.lock", "Cargo.lock",
+    for key in (".bazelrc", ".bazelversion", "MODULE.bazel", "MODULE.bazel.lock", "Cargo.toml", "Cargo.lock",
                 "examples/swift/hello_world/BUILD"):
         if baseline["run"]["snapshot_sha256"].get(key) != candidate["run"]["snapshot_sha256"].get(key):
             differences.append(f"snapshot.{key}")
@@ -266,8 +266,11 @@ def report_markdown(evidence):
     largest = sum(entry["bytes"] for entry in logger["largest"])
     lines = ["# Capture SDK Code Size: Pristine Baseline", "",
         f"Measured **{date}** at SDK revision `{evidence['revision']}` with committed dependency pins.",
-        "This baseline uses fresh replacement evidence. All Android and iOS artifacts were built",
-        "from a clean detached worktree in this run; no historical spike or retained app is an input.", "",
+        "The recorded Android and iOS artifacts were built from a clean detached worktree;",
+        "no historical spike or retained app was an input.", "",
+        "## Evidence Availability", "",
+        "This publication contains the report and compact JSON. Raw artifacts and analysis inputs",
+        "are not included. Independent verification requires a fresh collection with the size-analysis skill.", "",
         "## Findings", "",
         f"- Android ARM64: **{evidence['raw_bytes']:,} bytes raw**, **{evidence['zip_bytes']:,} bytes ZIP**",
         f"  ({(evidence['zip_bytes'] + 1023) // 1024:,} CI-style rounded-up KiB).",
@@ -278,7 +281,7 @@ def report_markdown(evidence):
         f"- Protobuf messages/runtime: **{proto:,} bytes ({100 * proto / executable:.2f}%)**.",
         "  Most message-labeled code is specialized container/support code, not named wire loops.",
         f"- iOS ARM64 static framework: **{ios['framework']['bytes']:,} bytes**.",
-        f"  Fresh stripped sample executable: **{ios['stripped']['file_bytes']:,} bytes**;",
+        f"  Stripped sample executable: **{ios['stripped']['file_bytes']:,} bytes**;",
         f"  normalized unsigned IPA: **{ios['normalized_ipa']['bytes']:,} bytes**.",
         "  This is a local stripped-app proxy, not signed App Thinning or SDK-only app overhead.", "",
         "## Inputs and Controls", "", "| Input | Value |", "| --- | --- |",
@@ -298,7 +301,9 @@ def report_markdown(evidence):
         f"| Native build ID | `{', '.join(evidence['build_ids'])}` |",
         f"| Native SHA-256 | `{evidence['native_sha256']}` |", "",
         "The evidence records all manifest/lock/BUILD hashes, dependency revisions, tool hashes,",
-        "analysis-script hashes and exact commands. Release flags use size optimization, one",
+        "analysis-script hashes and commands with local paths replaced by placeholders.",
+        "These commands are historical provenance, not references to distributed artifacts.",
+        "Release flags use size optimization, one",
         "codegen unit and fat LTO; Android forces unwind tables and compresses CFI, while iOS",
         "disables Rust unwind tables and uses Swift size/WMO optimization. The SDK MODULE pins",
         "the Rust toolchain; its hash is retained with the controls. `--config=nocache` disables",
@@ -327,8 +332,9 @@ def report_markdown(evidence):
         "LTO crate costs or independent feature savings. No DWARF inline provenance is available.", ""])
     table("Protobuf Decomposition", "Function Shape", evidence["protobuf_message_shapes"].items())
     lines.extend([f"Descriptor/reflection inventory: **{evidence['descriptor_reflection_symbol_count']} symbol(s)**.",
-        "Full identities are retained in scratch analysis; absence of named descriptor graphs does",
-        "not establish an exact zero-byte reflection or constant-data cost. JNI descriptors are excluded.", ""])
+        "The full inventory is not included in the compact summary. Absence of named descriptor",
+        "graphs does not establish an exact zero-byte reflection or constant-data cost.",
+        "JNI descriptors are excluded.", ""])
     table("Logger Origins", "Origin Label", logger["bucket_origins"].items())
     table("Logger Modules", "Module", logger["modules"].items())
     table("Largest Logger Functions", "Function",
@@ -336,7 +342,7 @@ def report_markdown(evidence):
     table("Logger Direct Dependencies", "Separately Named Dependency", logger["direct_dependency_named_bytes"].items())
     lines.extend(["Dependencies in this table are already outside the logger bucket. Do not charge",
         "their bytes to every caller, multiply them by static calls, or treat them as removal savings.", ""])
-    table("iOS Fresh Measurements", "Metric", [
+    table("iOS Measurements", "Metric", [
         ("ARM64 static framework", ios["framework"]["bytes"]),
         ("Unsigned sample executable", ios["original"]["file_bytes"]),
         ("Unsigned stripped sample executable", ios["stripped"]["file_bytes"]),
@@ -384,12 +390,10 @@ def report_markdown(evidence):
         "No Rust/FFI behavior changes, device execution, CPU/allocation/throughput measurements,",
         "signed exports, or unrelated SDK Clippy/behavior test validation are claimed.", "",
         f"Run the one-command workflow in [the size-analysis skill]({evidence['report_skill_path']}).",
-        "The runner saves fresh Android/iOS artifacts, all logs, sections, symbols, intervals and",
-        "eight logger disassemblies under the chosen workspace `.tmp/` directory. It emits a",
-        "hash-checked report and [compact evidence](" + evidence["report_evidence_filename"] + ").",
-        "Use `--publish-only` to regenerate publication without rebuilding; it checks artifact",
-        "hashes and revision/lock agreement first. Exact commands and tool/script hashes are",
-        "recorded in the evidence. Existing variants are never overwritten.", "",
+        "The [compact evidence](" + evidence["report_evidence_filename"] + ") records results, not an artifact bundle.",
+        "`--publish-only` requires a retained complete run. Otherwise, rerun the skill with",
+        "`--revision` set to the recorded commit and `--report-prefix` set to a new destination.",
+        "Compare toolchain and build controls before attributing differences to SDK changes.", "",
         "## Next Investigations, Not Claimed Savings", "",
         "1. Startup/runtime construction and the event loop are the largest logger ranges. Inspect",
         "   their disassembly and matching pinned source before testing a shared non-inlined or",
@@ -404,6 +408,23 @@ def report_markdown(evidence):
         "   bytes. Verify transitive users; retain raw, ZIP, code, data and metadata results for",
         "   each isolated experiment, including rejected regressions.", ""])
     return "\n".join(lines)
+
+
+def redact_commands(commands, sdk_root, output=None):
+    replacements = {str(sdk_root.resolve()): "<sdk-root>", str(sys.executable): "<venv-python>",
+                    str(SCRIPTS.parents[3]): "<analysis-checkout>", str(Path.home()): "<home>"}
+    if output is not None:
+        replacements[str(output.resolve())] = "<run-output>"
+    for command in commands:
+        for execution_root in re.findall(r"/[^\s'\"<>]+/execroot/[^/\s'\"<>]+", command):
+            replacements[execution_root] = "<bazel-execroot>"
+            replacements[str(Path(execution_root).parents[1])] = "<bazel-output-base>"
+    redacted = []
+    for command in commands:
+        for path, placeholder in sorted(replacements.items(), key=lambda entry: -len(entry[0])):
+            command = command.replace(path, placeholder)
+        redacted.append(re.sub(r"/(?:Users|home)/[^/\s'\"<>]+", "<home>", command))
+    return redacted
 
 
 def publish_report(output, prefix, sdk_root, baseline=None):
@@ -454,12 +475,11 @@ def publish_report(output, prefix, sdk_root, baseline=None):
     residual = ios["stripped"]["file_bytes"] - backed - linkedit
     require(residual >= 0, "negative Mach-O file accounting residual")
     ios["stripped_file_accounting"] = dict(file_backed_sections=backed, linkedit=linkedit, headers_padding=residual)
-    run["commands"] = [command.replace(str(sdk_root.resolve()), "<sdk-root>")
-        .replace(str(sys.executable), "<venv-python>").replace(str(SCRIPTS.parents[3]), "<analysis-checkout>")
-        for command in run["commands"]]
+    run["commands"] = redact_commands(run["commands"], sdk_root, output)
     evidence.update(ios=ios, run=run, report_evidence_filename=prefix.name + ".evidence.json",
                     report_skill_path=os.path.relpath(SCRIPTS.parent / "SKILL.md", prefix.parent.resolve()),
                     publication=dict(published_at=datetime.now(timezone.utc).isoformat(),
+                        raw_artifacts_included=False,
                         script_sha256={path.name: digest(path) for path in sorted(SCRIPTS.glob("*.py"))}))
     prefix.parent.mkdir(parents=True, exist_ok=True)
     write_analysis_packet(output, evidence, baseline)

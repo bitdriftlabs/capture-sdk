@@ -71,5 +71,5 @@ its historical warning with current findings; the archived report remains histor
   prerequisites, staged runs, preservation, metrics, legacy and exceptional paths.
 - [Interpretation and experiment ledger](./references/interpretation.md): attribution
   caveats and the reasoning required after collection.
-- [Historical baseline](../../../docs/sdk-code-size-2026-10-08.md): explicitly dated
+- [Historical baseline](../../../docs/sdk-code-size-2026-10-09.md): explicitly dated
   evidence, not a substitute for a fresh run.

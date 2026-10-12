@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import re
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -10,7 +11,8 @@ from categories import PROTO_REFLECTION, classify
 from elf_analysis import label_debug_disassembly, logger_analysis, partition_text, symbol_identity, verify_debug_symbols
 from macho_analysis import classify_macho
 from measure import archive_partial, completed_stage, recover_unsigned_probe, script_hashes, setup_python
-from run_analysis import (android_inputs, compare_evidence, load_run_provenance, report_markdown, unsigned_build,
+from run_analysis import (SCRIPTS, android_inputs, compare_evidence, load_run_provenance, redact_commands,
+                          report_markdown, unsigned_build,
                           unsigned_probe, verify_artifact, write_analysis_packet, write_report)
 
 
@@ -92,8 +94,8 @@ class AccountingTests(unittest.TestCase):
 class BaselineReportTests(unittest.TestCase):
     def test_durable_report_matches_accounting_evidence(self):
         root = Path(__file__).resolve().parents[4]
-        evidence = json.loads((root / "docs/sdk-code-size-2026-10-08.evidence.json").read_text())
-        report = (root / "docs/sdk-code-size-2026-10-08.md").read_text()
+        evidence = json.loads((root / "docs/sdk-code-size-2026-10-09.evidence.json").read_text())
+        report = (root / "docs/sdk-code-size-2026-10-09.md").read_text()
         self.assertEqual(sum(evidence["categories"].values()), evidence["executable_bytes"])
         self.assertEqual(sum(section["bytes"] for section in evidence["raw_sections"]) +
                          evidence["headers_padding_bytes"], evidence["raw_bytes"])
@@ -108,11 +110,26 @@ class BaselineReportTests(unittest.TestCase):
         self.assertEqual(evidence["revision"], evidence["provenance"]["sdk_revision"])
         self.assertRegex(evidence["revision"], r"^[0-9a-f]{40}$")
         self.assertIn(evidence["revision"], report)
+        self.assertFalse(evidence["publication"]["raw_artifacts_included"])
+        self.assertIn("## Evidence Availability", report)
+        self.assertNotIn(".tmp/", report)
+        self.assertNotIn(".tmp/", json.dumps(evidence))
+
+    def test_report_publication_is_self_contained(self):
+        root = Path(__file__).resolve().parents[4]
+        evidence = json.loads((root / "docs/sdk-code-size-2026-10-09.evidence.json").read_text())
+        report = report_markdown(evidence)
+        self.assertIn("## Evidence Availability", report)
+        self.assertIn("are not included", report)
+        self.assertIn("requires a fresh collection", report)
+        self.assertIn("`--publish-only` requires a retained complete run", report)
+        self.assertNotIn(".tmp/", report)
+        self.assertNotIn("retained in scratch", report)
 
     def test_ios_report_and_evidence_reconcile(self):
         root = Path(__file__).resolve().parents[4]
-        evidence = json.loads((root / "docs/sdk-code-size-2026-10-08.evidence.json").read_text())
-        report = (root / "docs/sdk-code-size-2026-10-08.md").read_text()
+        evidence = json.loads((root / "docs/sdk-code-size-2026-10-09.evidence.json").read_text())
+        report = (root / "docs/sdk-code-size-2026-10-09.md").read_text()
         ios = evidence["ios"]
         self.assertEqual(ios["revision"], evidence["revision"])
         for label in ("original", "stripped"):
@@ -150,12 +167,14 @@ class RunnerTests(unittest.TestCase):
         frontmatter = (skill / "SKILL.md").read_text().split("---", 2)[1]
         self.assertRegex(frontmatter, r"(?m)^name: sdk-size-analysis$")
         self.assertRegex(frontmatter, r"(?m)^description:")
-        documents = [skill / "SKILL.md", root / "docs/sdk-size-comparison.md", *skill.glob("references/*.md")]
+        documents = [skill / "SKILL.md", root / "docs/sdk-size-comparison.md",
+                     root / "docs/sdk-code-size-2026-10-09.md", *skill.glob("references/*.md")]
         for document in documents:
             for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", document.read_text()):
                 if "://" in target:
                     continue
                 filename, _, anchor = unquote(target).partition("#")
+                self.assertNotIn(".tmp", Path(filename).parts, f"{document}: workspace-local link {target}")
                 linked = document.parent / filename if filename else document
                 self.assertTrue(linked.exists(), f"{document}: missing link {target}")
                 if anchor:
@@ -251,7 +270,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_packet_exposes_computed_calls_reflection_and_ios_hotspots(self):
         root = Path(__file__).resolve().parents[4]
-        evidence = json.loads((root / "docs/sdk-code-size-2026-10-08.evidence.json").read_text())
+        evidence = json.loads((root / "docs/sdk-code-size-2026-10-09.evidence.json").read_text())
         (root / ".tmp").mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(dir=root / ".tmp") as temporary:
             output = Path(temporary)
@@ -286,14 +305,38 @@ class RunnerTests(unittest.TestCase):
 
     def test_comparison_calculates_deltas_and_flags_control_changes(self):
         root = Path(__file__).resolve().parents[4]
-        baseline = json.loads((root / "docs/sdk-code-size-2026-10-08.evidence.json").read_text())
+        baseline = json.loads((root / "docs/sdk-code-size-2026-10-09.evidence.json").read_text())
         candidate = json.loads(json.dumps(baseline))
         candidate["raw_bytes"] -= 12
         comparison = compare_evidence(baseline, candidate)
         self.assertTrue(comparison["matched_controls"])
         self.assertEqual(comparison["metrics"]["android_raw"]["delta"], -12)
+        candidate["run"]["snapshot_sha256"]["Cargo.toml"] = "different"
+        comparison = compare_evidence(baseline, candidate)
+        self.assertFalse(comparison["matched_controls"])
+        self.assertEqual(comparison["control_differences"], ["snapshot.Cargo.toml"])
         candidate["run"]["xcode"] = "different"
         self.assertIn("run.xcode", compare_evidence(baseline, candidate)["control_differences"])
+
+    def test_publication_redacts_host_paths(self):
+        sdk = Path("/checkout/size probe/sdk")
+        cache = "/Users/collector/Library/Caches/bazel/_bazel_collector/hash"
+        output = SCRIPTS.parents[3] / ".tmp/sdk-size-analysis/example-run/results"
+        commands = [f"'{sdk}/bazelw' build --config=nocache //:capture_aar",
+                    f"'{sys.executable}' {SCRIPTS}/collect_android.py "
+                    f"--debug-map {cache}/execroot/_main/bazel-out/capture.debug.gz "
+                    f"--tools {cache}/external/ndk/bin --output {Path.home()}/results",
+                    "cat /home/other-collector/source/Cargo.toml",
+                    f"xcrun strip -u -r '{output}/ios/Bitdrift Sample App.app/hello_world_app'"]
+        redacted = redact_commands(commands, sdk, output)
+        self.assertEqual(redacted, ["'<sdk-root>/bazelw' build --config=nocache //:capture_aar",
+            "'<venv-python>' <analysis-checkout>/.claude/skills/sdk-size-analysis/scripts/collect_android.py "
+            "--debug-map <bazel-execroot>/bazel-out/capture.debug.gz "
+            "--tools <bazel-output-base>/external/ndk/bin --output <home>/results",
+            "cat <home>/source/Cargo.toml",
+            "xcrun strip -u -r '<run-output>/ios/Bitdrift Sample App.app/hello_world_app'"])
+        self.assertEqual(redact_commands(redacted, sdk, output), redacted)
+        self.assertIn(cache, commands[1])
 
     def test_legacy_report_is_archived_and_interpretation_migrated(self):
         root = Path(__file__).resolve().parents[4]
@@ -313,7 +356,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_debug_only_report_discloses_unverified_content(self):
         root = Path(__file__).resolve().parents[4]
-        evidence = json.loads((root / "docs/sdk-code-size-2026-10-08.evidence.json").read_text())
+        evidence = json.loads((root / "docs/sdk-code-size-2026-10-09.evidence.json").read_text())
         evidence["audit"]["allocated_content_verified"] = False
         report = report_markdown(evidence)
         self.assertIn("NOBITS allocated-byte identity is unverified", report)

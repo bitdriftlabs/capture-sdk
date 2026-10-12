@@ -3,8 +3,13 @@
 # Capture SDK Code Size: Pristine Baseline
 
 Measured **2026-10-09** at SDK revision `12a2977ece84b0c90e4861aa6d5407abd3f2c12a` with committed dependency pins.
-This baseline uses fresh replacement evidence. All Android and iOS artifacts were built
-from a clean detached worktree in this run; no historical spike or retained app is an input.
+The recorded Android and iOS artifacts were built from a clean detached worktree;
+no historical spike or retained app was an input.
+
+## Evidence Availability
+
+This publication contains the report and compact JSON. Raw artifacts and analysis inputs
+are not included. Independent verification requires a fresh collection with the size-analysis skill.
 
 ## Findings
 
@@ -17,7 +22,7 @@ from a clean detached worktree in this run; no historical spike or retained app 
 - Protobuf messages/runtime: **169,740 bytes (11.81%)**.
   Most message-labeled code is specialized container/support code, not named wire loops.
 - iOS ARM64 static framework: **8,959,600 bytes**.
-  Fresh stripped sample executable: **3,245,584 bytes**;
+  Stripped sample executable: **3,245,584 bytes**;
   normalized unsigned IPA: **1,581,007 bytes**.
   This is a local stripped-app proxy, not signed App Thinning or SDK-only app overhead.
 
@@ -41,7 +46,9 @@ from a clean detached worktree in this run; no historical spike or retained app 
 | Native SHA-256 | `ff7d0276834b484bbe94cdcf96e8955ef90e3496718e8c0edee323061664469a` |
 
 The evidence records all manifest/lock/BUILD hashes, dependency revisions, tool hashes,
-analysis-script hashes and exact commands. Release flags use size optimization, one
+analysis-script hashes and commands with local paths replaced by placeholders.
+These commands are historical provenance, not references to distributed artifacts.
+Release flags use size optimization, one
 codegen unit and fat LTO; Android forces unwind tables and compresses CFI, while iOS
 disables Rust unwind tables and uses Swift size/WMO optimization. The SDK MODULE pins
 the Rust toolchain; its hash is retained with the controls. `--config=nocache` disables
@@ -127,8 +134,9 @@ LTO crate costs or independent feature savings. No DWARF inline provenance is av
 | Other generated message functions | 9,932 |
 
 Descriptor/reflection inventory: **1 symbol(s)**.
-Full identities are retained in scratch analysis; absence of named descriptor graphs does
-not establish an exact zero-byte reflection or constant-data cost. JNI descriptors are excluded.
+The full inventory is not included in the compact summary. Absence of named descriptor
+graphs does not establish an exact zero-byte reflection or constant-data cost.
+JNI descriptors are excluded.
 
 ## Logger Origins
 
@@ -229,7 +237,7 @@ not establish an exact zero-byte reflection or constant-data cost. JNI descripto
 Dependencies in this table are already outside the logger bucket. Do not charge
 their bytes to every caller, multiply them by static calls, or treat them as removal savings.
 
-## iOS Fresh Measurements
+## iOS Measurements
 
 | Metric | Bytes |
 | --- | ---: |
@@ -343,12 +351,10 @@ No Rust/FFI behavior changes, device execution, CPU/allocation/throughput measur
 signed exports, or unrelated SDK Clippy/behavior test validation are claimed.
 
 Run the one-command workflow in [the size-analysis skill](../.claude/skills/sdk-size-analysis/SKILL.md).
-The runner saves fresh Android/iOS artifacts, all logs, sections, symbols, intervals and
-eight logger disassemblies under the chosen workspace `.tmp/` directory. It emits a
-hash-checked report and [compact evidence](sdk-code-size-2026-10-08.evidence.json).
-Use `--publish-only` to regenerate publication without rebuilding; it checks artifact
-hashes and revision/lock agreement first. Exact commands and tool/script hashes are
-recorded in the evidence. Existing variants are never overwritten.
+The [compact evidence](sdk-code-size-2026-10-09.evidence.json) records results, not an artifact bundle.
+`--publish-only` requires a retained complete run. Otherwise, rerun the skill with
+`--revision` set to the recorded commit and `--report-prefix` set to a new destination.
+Compare toolchain and build controls before attributing differences to SDK changes.
 
 ## Next Investigations, Not Claimed Savings
 
@@ -368,17 +374,9 @@ recorded in the evidence. Existing variants are never overwritten.
 
 ## Analyst Interpretation
 
-Interpretation reviewed **2026-10-09** against this run's frozen artifacts and pinned
-logger source, not the prior report. The October 8 filename is retained as requested;
-the measured revision and date above identify the replacement baseline. The original
-report remains in [the historical archive](sdk-code-size-2026-10-08.previous-675dd3a90889.md).
-
-Local investigation evidence is in [the analysis packet](../.tmp/sdk-size-analysis/run-tsou9f33/results/ANALYSIS.md).
-The adjacent compact evidence is durable; full artifacts, source snapshots, disassemblies
-and logs remain workspace-local. Three independent detached-worktree collections
-produced identical measured binaries and totals while validating tooling fixes. Local
-build-cache hits are permitted; this is not a cache-free compiler reproducibility claim.
-No baseline comparison or SDK optimization experiment was performed.
+Observations recorded **2026-10-09** from matching source and disassembly.
+Raw inputs are not included; rerun the skill to verify instruction-level details.
+No SDK optimization experiment or baseline comparison was performed.
 
 ## Source and Disassembly Interpretation
 
@@ -392,9 +390,6 @@ upload/crash/API workers, and joins them. A blanket recommendation to box these 
 would duplicate existing boundaries. A cold startup helper is only a testable hypothesis;
 fat LTO may inline it again, and changing erasure or allocation can worsen size or runtime.
 
-See the frozen [builder source](../.tmp/sdk-size-analysis/run-tsou9f33/results/android/logger-source/builder.rs)
-and [runtime-wrapper instructions](../.tmp/sdk-size-analysis/run-tsou9f33/results/android/analysis/logger-disassembly-04.txt).
-
 **Event loop.** `AsyncLogBuffer::run_with_shutdown` and its select/poll helper total
 48,488 Android bytes. The source multiplexes configuration, previous-run crash reports,
 workflow completions, ingress/control batches, pipeline work, timers, resource reporting,
@@ -406,9 +401,6 @@ serialization support inside a logger-labeled range; it does not make shared cal
 additive or measure execution frequency. The iOS event-loop body and builder initialization
 future are also the two largest linked ranges, at 35,564 and 31,168 estimated bytes.
 
-See the frozen [event-loop source](../.tmp/sdk-size-analysis/run-tsou9f33/results/android/logger-source/async_log_buffer.rs)
-and [event-loop instructions](../.tmp/sdk-size-analysis/run-tsou9f33/results/android/analysis/logger-disassembly-00.txt).
-
 **Configuration and uploads.** The 14,312-byte configuration future's source awaits
 trigger-buffer reconciliation before rebuilding producers and publishing updates, so
 recovered uploads can relock buffers before ordinary writers see new producers. The
@@ -417,10 +409,6 @@ and persists the admitted set before starting workers. Its 8,736-byte trigger-up
 has 12 static String-clone sites; the configuration body has nine. Shared ownership or
 error-conversion boundaries are plausible experiments, not measured savings. Preserve
 configuration ordering, crash/restart replay, failure completion and cancellation.
-
-See the frozen [configuration source](../.tmp/sdk-size-analysis/run-tsou9f33/results/android/logger-source/client_config.rs),
-[upload source](../.tmp/sdk-size-analysis/run-tsou9f33/results/android/logger-source/consumer.rs)
-and [trigger-upload instructions](../.tmp/sdk-size-analysis/run-tsou9f33/results/android/analysis/logger-disassembly-06.txt).
 
 **Protobuf.** The 100,224-byte type-specialized container/support label is much larger
 than the 23,572-byte named merge/size/write label. The one reflection inventory match
@@ -442,21 +430,6 @@ link-edit data and alignment beyond its 2,253,884-byte text section. The static 
 3,729,576-byte Rust LTO member and 903,208-byte symbol index are distribution costs,
 not corresponding stripped-app savings. Never strip that linkable framework. An SDK-free
 sample control and signed App Thinning export are separate experiments; neither was run.
-
-## Workflow Validation
-
-- The documented entry point completed Android and iOS collection and publication at
-  HEAD without hand-built commands, output-path guesses, dependency rewiring or SDK edits.
-- Android used uploaded debug symbols because the full ELF was unavailable. Symbol
-  identities, build IDs, retained sections and layouts were audited; NOBITS allocated-byte
-  identity remains unverified. Debug-only disassembly now uses audited symbol labels,
-  rather than objdump's misleading nearest exported JNI function.
-- The packet now exposes computed static call sites, reflection matches and iOS hotspots;
-  durable publication also retains the promised local report/evidence pair. Legacy report
-  migration no longer imports obsolete workflow notes or duplicated generated proposals.
-- The final collection uses the corrected script hashes. Focused regression tests cover
-  the corrections. No SDK behavior, ABI, CPU, allocation, throughput or signed thinning
-  claim is inferred from these tooling-only checks.
 
 ## Experiment Decisions
 
