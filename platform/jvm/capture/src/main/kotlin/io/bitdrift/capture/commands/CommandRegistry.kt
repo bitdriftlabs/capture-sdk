@@ -132,7 +132,10 @@ internal class CommandRegistry(
             // Release before reporting, so an observed completion implies the key is free again.
             val outcome =
                 try {
-                    Outcome.Returned(registration.handler(invocation))
+                    val result = registration.handler(invocation)
+                    // Like withContext, a result produced after cancellation is discarded.
+                    ensureActive()
+                    Outcome.Returned(result)
                 } catch (e: InvalidCommandArgumentException) {
                     Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
                 } catch (e: Throwable) {

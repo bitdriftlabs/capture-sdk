@@ -299,6 +299,27 @@ class CommandRegistryTest {
     }
 
     @Test
+    fun blockingHandlerFinishingAfterOwnerCancellationIsReportedAsCancelled() {
+        // Like withContext, a result produced after cancellation is discarded.
+        val owner = Job()
+        val gate = Gate(expectedArrivals = 1)
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            gate.arriveAndBlockUntilReleased()
+            success(context = mapOf("finished" to "true"))
+        }
+        registry.dispatch(1, "vm", null, "session")
+        gate.awaitArrivals()
+
+        owner.cancel()
+        gate.release()
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).isEqualTo(OWNER_SCOPE_COMPLETED)
+        assertThat(completion.fields).isEmpty()
+    }
+
+    @Test
     fun handlerSelfCancellationIsNotReportedAsOwnerCancellation() {
         registry.register("unowned") {
             currentCoroutineContext().cancel(CancellationException("gave up"))
