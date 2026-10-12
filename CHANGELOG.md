@@ -53,6 +53,7 @@
 **Added**
 
 - WebView events emitted during a Page View are now associated with that Page View span.
+- Workflow metrics can now use JSON paths to extract group-by tags and numeric values from fields containing JSON strings.
 
 **Changed**
 
