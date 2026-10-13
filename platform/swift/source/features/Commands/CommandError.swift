@@ -5,20 +5,56 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-public enum CommandError: Error, Equatable, Sendable {
-    case notFound
-    case alreadyExecuting
-    case maximumConcurrency
-    case invalidArguments(description: String? = nil)
-    case handlerFailed(title: String, description: String?, context: [String: String])
+public struct CommandError: Error, Equatable, Sendable {
+    private enum Kind: Equatable, Sendable {
+        case commandUnknown
+        case commandAlreadyExecuting
+        case maxCommandConcurrency
+        case invalidArguments(description: String?)
+        case handlerFailed(title: String, description: String?, context: [String: String])
+    }
+
+    private let kind: Kind
+
+    /// Creates an error indicating that a command handler could not complete its work.
+    ///
+    /// - parameter title:       A short description of the failure.
+    ///
+    /// - parameter description: Additional details about the failure.
+    ///
+    /// - parameter context:     Fields to report with the failed command.
+    public init(
+        title: String,
+        description: String? = nil,
+        context: [String: String] = [:]
+    ) {
+        kind = .handlerFailed(title: title, description: description, context: context)
+    }
+
+    /// Creates an error indicating that the command's arguments could not be used.
+    ///
+    /// - parameter description: Details about why the arguments were invalid.
+    ///
+    /// - returns: An invalid-arguments error.
+    public static func invalidArguments(description: String? = nil) -> CommandError {
+        CommandError(kind: .invalidArguments(description: description))
+    }
+
+    static let notFound = CommandError(kind: .commandUnknown)
+    static let alreadyExecuting = CommandError(kind: .commandAlreadyExecuting)
+    static let maximumConcurrency = CommandError(kind: .maxCommandConcurrency)
+
+    private init(kind: Kind) {
+        self.kind = kind
+    }
 
     var code: String {
-        switch self {
-        case .notFound:
+        switch kind {
+        case .commandUnknown:
             "command_unknown"
-        case .alreadyExecuting:
+        case .commandAlreadyExecuting:
             "command_already_executing"
-        case .maximumConcurrency:
+        case .maxCommandConcurrency:
             "max_command_concurrency"
         case .invalidArguments:
             "invalid_arguments"
@@ -27,21 +63,13 @@ public enum CommandError: Error, Equatable, Sendable {
         }
     }
 
-    public init(
-        title: String,
-        description: String? = nil,
-        context: [String: String] = [:]
-    ) {
-        self = .handlerFailed(title: title, description: description, context: context)
-    }
-
     public var title: String {
-        switch self {
-        case .notFound:
+        switch kind {
+        case .commandUnknown:
             "Command not found"
-        case .alreadyExecuting:
+        case .commandAlreadyExecuting:
             "Command is already executing"
-        case .maximumConcurrency:
+        case .maxCommandConcurrency:
             "Maximum command concurrency reached"
         case .invalidArguments:
             "Invalid command arguments"
@@ -51,7 +79,7 @@ public enum CommandError: Error, Equatable, Sendable {
     }
 
     public var description: String? {
-        switch self {
+        switch kind {
         case let .invalidArguments(description), let .handlerFailed(_, description, _):
             description
         default:
@@ -60,7 +88,7 @@ public enum CommandError: Error, Equatable, Sendable {
     }
 
     public var context: [String: String] {
-        switch self {
+        switch kind {
         case let .handlerFailed(_, _, context):
             context
         default:

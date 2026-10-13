@@ -115,8 +115,21 @@ pub fn unregister(logger: &bd_logger::LoggerHandle, key: &str) {
   let _ = logger.unregister_command_handler(key);
 }
 
-pub fn complete<S: BuildHasher>(
+pub fn take_completion(request_id: u64) -> Option<oneshot::Sender<CommandResult>> {
+  COMPLETIONS.lock().remove(&request_id)
+}
+
+pub fn complete_taken(
   request_id: u64,
+  sender: oneshot::Sender<CommandResult>,
+  result: CommandResult,
+) {
+  if sender.send(result).is_err() {
+    log::debug!("command {request_id} completed after its caller stopped waiting");
+  }
+}
+
+pub fn result_from_platform_completion<S: BuildHasher>(
   succeeded: bool,
   context: &HashMap<String, String, S>,
   attachment: Option<Vec<u8>>,
@@ -124,14 +137,8 @@ pub fn complete<S: BuildHasher>(
   attachment_filename: Option<String>,
   error_code: Option<&str>,
   error_message: Option<String>,
-) {
-  let sender = COMPLETIONS.lock().remove(&request_id);
-  let Some(sender) = sender else {
-    log::debug!("ignoring completion for unknown command {request_id}");
-    return;
-  };
-
-  let result = if succeeded {
+) -> CommandResult {
+  if succeeded {
     let attachment = attachment
       .zip(attachment_mime_type)
       .map(|(bytes, content_type)| {
@@ -150,38 +157,20 @@ pub fn complete<S: BuildHasher>(
       attachment,
     }
   } else {
-    failed_result(command_error(error_code, error_message), context)
-  };
-
-  let _ = sender.send(result);
+    failed_result(
+      platform_shared::command_error::from_command_error_wire(error_code, error_message),
+      context,
+    )
+  }
 }
 
-fn failed_result<S: BuildHasher>(
+pub fn failed_result<S: BuildHasher>(
   error: CommandError,
   context: &HashMap<String, String, S>,
 ) -> CommandResult {
   CommandResult::Failed {
     error,
     fields: context_to_fields(context),
-  }
-}
-
-fn command_error(error_code: Option<&str>, error_message: Option<String>) -> CommandError {
-  match error_code {
-    Some("command_unknown") => CommandError::CommandUnknown,
-    Some("max_command_concurrency") => CommandError::MaxCommandConcurrency,
-    Some("command_already_executing") => CommandError::AlreadyExecuting,
-    Some("invalid_arguments") => CommandError::InvalidArguments(
-      error_message.unwrap_or_else(|| "invalid command arguments".into()),
-    ),
-    Some("handler_failed") => {
-      CommandError::HandlerFailed(error_message.unwrap_or_else(|| "command handler failed".into()))
-    },
-    Some("timeout") => CommandError::Timeout,
-    Some(code) => CommandError::Other(
-      error_message.unwrap_or_else(|| format!("unknown command error code: {code}")),
-    ),
-    None => CommandError::Other(error_message.unwrap_or_else(|| "command failed".into())),
   }
 }
 

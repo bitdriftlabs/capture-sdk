@@ -195,10 +195,18 @@ final class CommandRegistryTests: XCTestCase {
     func testUnregisteringCommandByKeyPreventsFutureExecutions() async {
         await givenRegisteredCommand(key: "memory") { _ in .success(CommandResult()) }
 
-        await whenUnregisteringCommand(key: "memory")
+        let wasUnregistered = await whenUnregisteringCommand(key: "memory")
+
+        XCTAssertTrue(wasUnregistered)
         let result = await whenExecutingCommand(key: "memory")
 
         thenResultIsCommandNotFound(result)
+    }
+
+    func testUnregisteringAnUnknownCommandReportsNoRegistrationWasRemoved() async {
+        let wasUnregistered = await whenUnregisteringCommand(key: "missing")
+
+        XCTAssertFalse(wasUnregistered)
     }
 
     func testExecutionIsRejectedWhenTheGlobalConcurrencyLimitIsReached() async throws {
@@ -278,7 +286,7 @@ private extension CommandRegistryTests {
         await handle.unregister()
     }
 
-    func whenUnregisteringCommand(key: String) async {
+    func whenUnregisteringCommand(key: String) async -> Bool {
         await sut.unregister(key: key)
     }
 

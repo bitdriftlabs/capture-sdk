@@ -161,3 +161,28 @@ fn completed_result_without_attachment_has_no_attachment_state() {
   };
   assert!(attachment.is_none());
 }
+
+#[tokio::test]
+async fn conversion_failure_completes_the_pending_invocation() {
+  let invocation_id = NEXT_INVOCATION_ID.fetch_add(1, Ordering::Relaxed);
+  let (sender, receiver) = oneshot::channel();
+  pending_invocations().insert(invocation_id, sender);
+
+  complete_taken_invocation(
+    invocation_id,
+    take_invocation(invocation_id).unwrap(),
+    failed_result(CommandError::HandlerFailed(
+      "failed to convert command completion: simulated allocation failure".into(),
+    )),
+  );
+
+  assert_eq!(
+    receiver.await.unwrap(),
+    CommandResult::Failed {
+      error: CommandError::HandlerFailed(
+        "failed to convert command completion: simulated allocation failure".into(),
+      ),
+      fields: Default::default(),
+    },
+  );
+}

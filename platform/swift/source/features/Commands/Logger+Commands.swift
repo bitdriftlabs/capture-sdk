@@ -28,11 +28,13 @@ extension Logger {
         )
     }
 
-    /// Unregisters a previously registered command. Calling this for an unknown key is a no-op.
+    /// Unregisters the command currently registered for a key.
     ///
     /// - parameter key: The command identifier to unregister.
-    public static func unregisterCommand(key: String) async {
-        await (Self.getShared() as? Logger)?.unregisterCommand(key: key)
+    ///
+    /// - returns: `true` if a command was registered for `key`; otherwise, `false`.
+    public static func unregisterCommand(key: String) async -> Bool {
+        await (Self.getShared() as? Logger)?.unregisterCommand(key: key) ?? false
     }
 
     func executeCommand(
@@ -42,7 +44,7 @@ extension Logger {
         await commandRegistry.execute(key: key, arguments: arguments)
     }
 
-    private func unregisterCommand(key: String) async {
+    private func unregisterCommand(key: String) async -> Bool {
         await commandRegistry.unregister(key: key)
     }
 }

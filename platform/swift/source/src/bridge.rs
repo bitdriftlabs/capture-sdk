@@ -32,6 +32,7 @@ use bd_error_reporter::reporter::{
 use bd_logger::{
   Block,
   CaptureSession,
+  CommandError,
   LogAttributesOverrides,
   LogFieldKind,
   LogFields,
@@ -856,44 +857,71 @@ extern "C" fn capture_complete_command(
   error_code: *const Object,
   error_message: *const Object,
 ) {
+  let Some(sender) = commands::take_completion(request_id) else {
+    log::debug!("ignoring completion for unknown command {request_id}");
+    return;
+  };
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let context = unsafe { commands::string_dictionary_from_objc(context) }?;
-      let attachment = if attachment.is_null() {
-        None
-      } else {
-        Some(unsafe { <[u8]>::from_objc(attachment)? }.to_vec())
+      let converted = (|| -> anyhow::Result<_> {
+        let context = unsafe { commands::string_dictionary_from_objc(context) }?;
+        let attachment = if attachment.is_null() {
+          None
+        } else {
+          Some(unsafe { <[u8]>::from_objc(attachment)? }.to_vec())
+        };
+        let attachment_mime_type = if attachment_mime_type.is_null() {
+          None
+        } else {
+          Some(unsafe { nsstring_into_string(attachment_mime_type) }?)
+        };
+        let attachment_filename = if attachment_filename.is_null() {
+          None
+        } else {
+          Some(unsafe { nsstring_into_string(attachment_filename) }?)
+        };
+        let error_code = if error_code.is_null() {
+          None
+        } else {
+          Some(unsafe { nsstring_into_string(error_code) }?)
+        };
+        let error_message = if error_message.is_null() {
+          None
+        } else {
+          Some(unsafe { nsstring_into_string(error_message) }?)
+        };
+        Ok((
+          context,
+          attachment,
+          attachment_mime_type,
+          attachment_filename,
+          error_code,
+          error_message,
+        ))
+      })();
+      let result = match converted {
+        Ok((
+          context,
+          attachment,
+          attachment_mime_type,
+          attachment_filename,
+          error_code,
+          error_message,
+        )) => commands::result_from_platform_completion(
+          succeeded,
+          &context,
+          attachment,
+          attachment_mime_type,
+          attachment_filename,
+          error_code.as_deref(),
+          error_message,
+        ),
+        Err(error) => commands::failed_result(
+          CommandError::HandlerFailed(format!("failed to convert command completion: {error}")),
+          &std::collections::HashMap::new(),
+        ),
       };
-      let attachment_mime_type = if attachment_mime_type.is_null() {
-        None
-      } else {
-        Some(unsafe { nsstring_into_string(attachment_mime_type) }?)
-      };
-      let attachment_filename = if attachment_filename.is_null() {
-        None
-      } else {
-        Some(unsafe { nsstring_into_string(attachment_filename) }?)
-      };
-      let error_code = if error_code.is_null() {
-        None
-      } else {
-        Some(unsafe { nsstring_into_string(error_code) }?)
-      };
-      let error_message = if error_message.is_null() {
-        None
-      } else {
-        Some(unsafe { nsstring_into_string(error_message) }?)
-      };
-      commands::complete(
-        request_id,
-        succeeded,
-        &context,
-        attachment,
-        attachment_mime_type,
-        attachment_filename,
-        error_code.as_deref(),
-        error_message,
-      );
+      commands::complete_taken(request_id, sender, result);
       Ok(())
     },
     "swift complete command",
