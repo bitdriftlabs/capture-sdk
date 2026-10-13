@@ -131,9 +131,9 @@ class CommandRegistryTest {
 
     @Test
     fun lifecycleScopedHandleOutlivedByReplacementIsHarmless() {
-        // VM1 registers and ties the handle to its scope; VM2 replaces the handler; VM1 is cleared.
+        // VM1 registers as the owner; VM2 replaces the handler; VM1 is cleared.
         val vm1 = Job()
-        registry.register("ui_state") { success(context = mapOf("vm" to "1")) }.unregisterOn(CoroutineScope(vm1))
+        registry.register("ui_state", owner = CoroutineScope(vm1)) { success(context = mapOf("vm" to "1")) }
         registry.register("ui_state") { success(context = mapOf("vm" to "2")) }
 
         vm1.cancel()
@@ -152,19 +152,6 @@ class CommandRegistryTest {
 
         assertThat(bridge.unregisterCalls).isEqualTo(1)
         assertThat(registry.unregister("a")).isFalse()
-    }
-
-    @Test
-    fun unregisterOnScopeRemovesCommandWhenScopeCompletes() {
-        val job = Job()
-        registry.register("a") { success() }.unregisterOn(CoroutineScope(job))
-        registry.dispatch(1, "a", null, "session")
-        assertThat(bridge.awaitCompletion().error).isNull()
-
-        job.cancel()
-        registry.dispatch(2, "a", null, "session")
-
-        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -336,26 +323,6 @@ class CommandRegistryTest {
         val completions = List(2) { bridge.awaitCompletion() }
         assertThat(completions.map { it.error }).containsOnly("handler_failed")
         assertThat(completions.map { it.message }).allSatisfy { assertThat(it).contains("gave up").isNotEqualTo(OWNER_SCOPE_COMPLETED) }
-    }
-
-    @Test
-    fun unregisterOnOnlyUnregistersAndDoesNotCancel() {
-        val scope = Job()
-        val gate = Gate(expectedArrivals = 1)
-        registry
-            .register("vm") {
-                gate.arriveAndAwaitRelease()
-                success(context = mapOf("finished" to "true"))
-            }.unregisterOn(CoroutineScope(scope))
-        registry.dispatch(1, "vm", null, "session")
-        gate.awaitArrivals()
-
-        scope.cancel()
-        gate.release()
-
-        assertThat(bridge.awaitCompletion().field("finished")).isEqualTo("true")
-        registry.dispatch(2, "vm", null, "session")
-        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
     }
 
     // ---------------------------------------------------------------------------------------------

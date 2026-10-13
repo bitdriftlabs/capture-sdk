@@ -7,9 +7,6 @@
 
 package io.bitdrift.capture.commands
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-
 /**
  * A handle to a registered command.
  */
@@ -22,18 +19,10 @@ class CommandHandle internal constructor(
      * Unregisters the handler this handle was returned for. Does nothing if that handler was
      * already unregistered or replaced, so a handle never removes a registration it does not own;
      * `Logger.unregisterCommand(key)` removes whatever is current. Running invocations are not
-     * cancelled; pass an owner to `registerCommand` for that.
+     * cancelled. To tie a command to a component's lifecycle, pass its scope as
+     * `registerCommand`'s owner instead.
      */
     fun unregister() {
         onUnregister()
-    }
-
-    /**
-     * Unregisters the command once [scope] completes or is cancelled. Running invocations are not
-     * cancelled; pass the scope as `registerCommand`'s owner to also cancel them.
-     */
-    fun unregisterOn(scope: CoroutineScope): CommandHandle {
-        scope.coroutineContext[Job]?.invokeOnCompletion { unregister() }
-        return this
     }
 }
