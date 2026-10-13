@@ -129,13 +129,14 @@ async fn conversion_failure_completes_the_pending_request() {
     ),
   );
 
+  let CommandResult::Failed { error, fields } = receiver.await.unwrap() else {
+    panic!("expected a failed command result");
+  };
   assert_eq!(
-    receiver.await.unwrap(),
-    CommandResult::Failed {
-      error: CommandError::HandlerFailed(
-        "failed to convert command completion: simulated allocation failure".into(),
-      ),
-      fields: Default::default(),
-    },
+    error,
+    CommandError::HandlerFailed(
+      "failed to convert command completion: simulated allocation failure".into(),
+    ),
   );
+  assert_eq!(fields.len(), 0);
 }
