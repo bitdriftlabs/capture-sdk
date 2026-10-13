@@ -32,7 +32,6 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * Sample live session commands that can be registered and unregistered at runtime.
  */
-@OptIn(ExperimentalBitdriftApi::class)
 object SampleCommands {
     private val flags = ConcurrentHashMap<String, Boolean>()
     private val handles = mutableListOf<CommandHandle>()
@@ -57,6 +56,7 @@ object SampleCommands {
         _registeredKeys.value = emptyList()
     }
 
+    @OptIn(ExperimentalBitdriftApi::class)
     private fun registerAll(): List<CommandHandle> =
         listOf(
             Capture.Logger.registerCommand("flip_flag") {

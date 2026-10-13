@@ -22,7 +22,6 @@ import io.bitdrift.capture.commands.ICommandDispatcher
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.WindowManager
-import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponse
 import io.bitdrift.capture.network.HttpResponseInfo
@@ -113,7 +112,6 @@ class CaptureLoggerTest {
     }
 
     @Test
-    @OptIn(ExperimentalBitdriftApi::class)
     fun `commands registered before the logger exists are announced to native once it does`() {
         val bridge = RecordingCommandBridge()
         val registry = CommandRegistry(bridge)

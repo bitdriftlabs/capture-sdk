@@ -7,12 +7,9 @@
 
 package io.bitdrift.capture.commands
 
-import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
-
 /**
  * A handle to a registered command.
  */
-@ExperimentalBitdriftApi
 class CommandHandle internal constructor(
     /** The key the command was registered with. */
     val key: String,
