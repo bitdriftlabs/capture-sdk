@@ -38,15 +38,13 @@ fn failed_command_completion_clears_pending_jni_exception() -> Result<()> {
     let error = anyhow!("simulated allocation failure");
     let result = failed_command_completion_result(env, &error);
 
-    let CommandResult::Failed { error, .. } = result else {
-      panic!("expected a failed command result");
-    };
-    assert_eq!(
-      error,
-      CommandError::HandlerFailed(
-        "failed to convert command completion: simulated allocation failure".into()
-      ),
-    );
+    assert!(matches!(
+      result,
+      CommandResult::Failed { error, .. }
+        if error == CommandError::HandlerFailed(
+          "failed to convert command completion: simulated allocation failure".into()
+        )
+    ));
     assert!(!env.exception_check()?);
     Ok(())
   })
