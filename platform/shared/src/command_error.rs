@@ -12,7 +12,7 @@ mod tests;
 use bd_logger::CommandError;
 
 /// Converts the stable error code sent by a platform command implementation into the logger's
-/// typed error. 
+/// typed error.
 #[must_use]
 pub fn from_command_error_wire(code: Option<&str>, message: Option<String>) -> CommandError {
   match code {
