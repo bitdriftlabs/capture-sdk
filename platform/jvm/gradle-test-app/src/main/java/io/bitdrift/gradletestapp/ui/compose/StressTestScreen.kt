@@ -8,10 +8,16 @@
 package io.bitdrift.gradletestapp.ui.compose
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.text.format.Formatter
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -23,8 +29,10 @@ import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.DiskPressureState
 import io.bitdrift.gradletestapp.data.model.JankType
+import io.bitdrift.gradletestapp.data.model.ProfilingState
 import io.bitdrift.gradletestapp.data.model.StressTestAction
 import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
+import io.bitdrift.gradletestapp.init.AppProfiler
 import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
 import io.bitdrift.gradletestapp.ui.designsystem.BdDropdownField
 import io.bitdrift.gradletestapp.ui.designsystem.BdPrimaryButton
@@ -41,6 +49,7 @@ fun StressTestScreen(
     onAction: (AppAction) -> Unit,
     onNavigateBack: () -> Unit,
     diskPressure: DiskPressureState,
+    profiling: ProfilingState = ProfilingState.Idle,
 ) {
     LaunchedEffect(Unit) {
         onAction(StressTestAction.RefreshDiskSpace)
@@ -74,6 +83,12 @@ fun StressTestScreen(
         }
         item {
             ScreenReplayCard(onAction = onAction)
+        }
+        item {
+            ProfilingCard(
+                profiling = profiling,
+                onAction = onAction,
+            )
         }
     }
 }
@@ -294,6 +309,92 @@ private fun ScreenReplayCard(onAction: (AppAction) -> Unit) {
             )
         }
     }
+}
+
+@Composable
+private fun ProfilingCard(
+    profiling: ProfilingState,
+    onAction: (AppAction) -> Unit,
+) {
+    val context = LocalContext.current
+    var selectedType by remember { mutableStateOf(AppProfiler.ProfilingType.STACK_SAMPLING) }
+    var durationInput by remember { mutableStateOf("5000") }
+    val durationMs = durationInput.toLongOrNull()
+    val durationValid = !selectedType.usesDuration || (durationMs != null && durationMs > 0)
+    val running = profiling is ProfilingState.Running
+
+    BdSectionCard(
+        title = "Profiling",
+        subtitle = "Capture a profile of this process with the platform ProfilingManager (API 35+)",
+    ) {
+        BdDropdownField(
+            label = "Profile type",
+            selected = selectedType,
+            options = AppProfiler.ProfilingType.entries,
+            onSelected = { selectedType = it },
+            optionLabel = { it.displayName },
+        )
+
+        OutlinedTextField(
+            value = if (selectedType.usesDuration) durationInput else "",
+            onValueChange = { value ->
+                if (value.all(Char::isDigit)) {
+                    durationInput = value
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(if (selectedType.usesDuration) "Duration (ms)" else "Duration (not used for heap dumps)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            enabled = selectedType.usesDuration,
+            isError = !durationValid,
+            shape = BdShape.Field,
+            colors = bdFieldColors(),
+        )
+
+        BdPrimaryButton(
+            text = if (running) "Profiling…" else "Start ${selectedType.displayName}",
+            onClick = { onAction(StressTestAction.StartProfiling(selectedType, durationMs ?: 0L)) },
+            enabled = !running && durationValid,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        when (profiling) {
+            ProfilingState.Idle -> Unit
+            is ProfilingState.Running ->
+                CardHint("Capturing ${profiling.type.displayName}. The file path appears here when the system delivers it.")
+            is ProfilingState.Failed ->
+                Text(
+                    text = "${profiling.type.displayName} failed: ${profiling.reason}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = BitdriftColors.Error,
+                )
+            is ProfilingState.Saved ->
+                OutlinedTextField(
+                    value = profiling.path,
+                    onValueChange = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("${profiling.type.displayName} file") },
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { copyToClipboard(context, profiling.path) }) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy file path")
+                        }
+                    },
+                    shape = BdShape.Field,
+                    colors = bdFieldColors(),
+                )
+        }
+    }
+}
+
+private fun copyToClipboard(
+    context: Context,
+    text: String,
+) {
+    val clipboard = context.getSystemService(ClipboardManager::class.java)
+    clipboard.setPrimaryClip(ClipData.newPlainText("Profile file path", text))
+    Toast.makeText(context, "Copied file path", Toast.LENGTH_SHORT).show()
 }
 
 @Preview

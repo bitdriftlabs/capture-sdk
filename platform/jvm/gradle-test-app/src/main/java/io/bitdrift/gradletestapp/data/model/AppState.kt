@@ -7,6 +7,8 @@
 
 package io.bitdrift.gradletestapp.data.model
 
+import io.bitdrift.gradletestapp.init.AppProfiler
+
 /**
  * Root app UI state composed of feature states and global UI flags
  */
@@ -16,9 +18,28 @@ data class AppState(
     val diagnostics: DiagnosticsState = DiagnosticsState(),
     val globalFields: List<GlobalFieldEntry> = emptyList(),
     val diskPressure: DiskPressureState = DiskPressureState.Loading,
+    val profiling: ProfilingState = ProfilingState.Idle,
     val isLoading: Boolean = false,
     val error: String? = null,
 )
+
+sealed interface ProfilingState {
+    data object Idle : ProfilingState
+
+    data class Running(
+        val type: AppProfiler.ProfilingType,
+    ) : ProfilingState
+
+    data class Saved(
+        val type: AppProfiler.ProfilingType,
+        val path: String,
+    ) : ProfilingState
+
+    data class Failed(
+        val type: AppProfiler.ProfilingType,
+        val reason: String,
+    ) : ProfilingState
+}
 
 sealed interface DiskPressureState {
     data object Loading : DiskPressureState

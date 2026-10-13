@@ -54,6 +54,7 @@ class StressTestFragment : Fragment() {
                         onAction = viewModel::handleAction,
                         onNavigateBack = { findNavController().popBackStack() },
                         diskPressure = uiState.diskPressure,
+                        profiling = uiState.profiling,
                     )
                 }
             }

@@ -8,6 +8,7 @@
 package io.bitdrift.gradletestapp.data.model
 
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.gradletestapp.init.AppProfiler
 
 /** Namespace feature actions under a sealed AppAction interface */
 sealed interface AppAction
@@ -140,6 +141,11 @@ sealed class StressTestAction : AppAction {
     object ClearDiskSpace : StressTestAction()
 
     object RefreshDiskSpace : StressTestAction()
+
+    data class StartProfiling(
+        val type: AppProfiler.ProfilingType,
+        val durationMs: Long,
+    ) : StressTestAction()
 }
 
 enum class StrictModeViolationType(val displayName: String) {
