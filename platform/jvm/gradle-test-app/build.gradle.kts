@@ -189,6 +189,7 @@ android {
         }
         release {
             signingConfig = signingConfigs.getByName("release")
+            ndk.debugSymbolLevel = "FULL"
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -210,6 +211,12 @@ android {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_1_8
         }
+    }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        variant.packaging.jniLibs.keepDebugSymbols.set(setOf("**/libcapture.so"))
     }
 }
 

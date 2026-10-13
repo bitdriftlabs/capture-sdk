@@ -19,6 +19,7 @@ import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandHandle
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.gradletestapp.diagnostics.fatalissues.NativeThreads
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -79,7 +80,7 @@ object SampleCommands {
                 val dump =
                     """{"max":${runtime.maxMemory()},"total":${runtime.totalMemory()},"free":${runtime.freeMemory()}}"""
                 if (arguments["is_attachment"].isTruthy()) {
-                    success(attachment = CommandAttachment(dump.toByteArray(), filename = "memory.json", contentType = "application/json"))
+                    success(attachment = CommandAttachment(dump.toByteArray(), contentType = "application/json"))
                 } else {
                     success(context = mapOf("memory" to dump))
                 }
@@ -125,10 +126,18 @@ object SampleCommands {
                             return@registerCommand error("invalid_duration_ms", argument.toString(), code = CommandErrorCode.InvalidArguments)
                     }
                 val context = appContext ?: return@registerCommand error("no_context")
-                when (val result = StackSamplingProfiler.capture(context, durationMs.milliseconds)) {
+                val workload =
+                    if (arguments["symbolication_workload"].isTruthy()) PerfettoWorkload.start(durationMs) else emptyList()
+                val result =
+                    try {
+                        StackSamplingProfiler.capture(context, durationMs.milliseconds)
+                    } finally {
+                        withContext(Dispatchers.IO) { workload.forEach { it.join() } }
+                    }
+                when (result) {
                     is StackSamplingProfiler.Result.Trace ->
                         success(
-                            attachment = CommandAttachment(result.bytes, filename = "trace.perfetto-trace", contentType = "application/octet-stream"),
+                            attachment = CommandAttachment(result.bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
                             context =
                                 mapOf(
                                     "duration_ms" to durationMs.toString(),
@@ -170,4 +179,25 @@ object SampleCommands {
 
     private const val LOG_TAG = "SampleCommands"
     private const val DEFAULT_TRACE_DURATION_MS = 5_000L
+}
+
+private object PerfettoWorkload {
+    @Volatile private var result = 0L
+
+    fun start(durationMs: Long): List<Thread> {
+        val workloadMs = durationMs.coerceIn(0, 3000) + 1000
+        return listOf(
+            Thread({ perfettoJavaCpuWorkload(workloadMs) }, "perfetto-java"),
+            Thread({ NativeThreads.runCpuWorkload(workloadMs) }, "perfetto-native"),
+        ).onEach { it.start() }
+    }
+
+    private fun perfettoJavaCpuWorkload(durationMs: Long) {
+        val deadline = System.nanoTime() + durationMs * 1_000_000
+        var accumulator = 1L
+        do {
+            repeat(10_000) { accumulator = accumulator * 1_664_525 + 1_013_904_223 }
+        } while (System.nanoTime() < deadline)
+        result = accumulator
+    }
 }

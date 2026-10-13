@@ -86,7 +86,6 @@ struct MemoryDump: Encodable {
                 CommandResult(
                     attachment: CommandAttachment(
                         data: data,
-                        filename: "memory_dump.json",
                         mimeType: "application/json"
                     )
                 )
