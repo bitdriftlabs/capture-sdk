@@ -33,6 +33,7 @@ extension Logger {
                 customFieldGetters: customFieldGetters,
                 initialFields: initialFields,
                 commands: commands,
+                enableNetwork: false,
                 storageProvider: MockStorageProvider(),
                 timeProvider: SystemTimeProvider(),
                 loggerBridgingFactoryProvider: loggerBridgingFactoryProvider
