@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.commands
 
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.toFieldValue
 import kotlinx.coroutines.CoroutineDispatcher
@@ -38,6 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * key announced to the bridge twice is a replacement on the Rust side, and a key left announced
  * after removal is answered by [dispatch] with [CommandErrorCode.CommandUnknown].
  */
+@OptIn(ExperimentalBitdriftApi::class)
 internal class CommandRegistry(
     private val bridge: ICommandBridge,
     dispatcher: CoroutineDispatcher = defaultDispatcher(),

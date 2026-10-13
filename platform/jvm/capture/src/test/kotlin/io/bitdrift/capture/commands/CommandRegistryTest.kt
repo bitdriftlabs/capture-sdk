@@ -7,6 +7,7 @@
 
 package io.bitdrift.capture.commands
 
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.providers.Field
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -27,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * Pins the command execution rules: no cancellation, no per-key queue, one invocation per key at a
  * time, different keys in parallel on a bounded pool, and exactly one completion per dispatch.
  */
+@OptIn(ExperimentalBitdriftApi::class)
 class CommandRegistryTest {
     private val bridge = FakeCommandBridge()
     private val registry = CommandRegistry(bridge, Dispatchers.Default)
