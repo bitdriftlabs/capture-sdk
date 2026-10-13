@@ -509,8 +509,8 @@ object Capture {
          *
          * Commands can be registered before or after [start].
          *
-         * A command runs one invocation at a time and at most
-         * [CommandRegistry.MAX_CONCURRENT_INVOCATIONS] invocations run at once across all commands;
+         * A command runs one invocation at a time and at most 10 invocations run at once across all
+         * commands;
          * an invocation beyond either limit fails immediately rather than waiting. Handlers run on
          * a dedicated I/O thread pool and may block without affecting the application's own
          * dispatchers.

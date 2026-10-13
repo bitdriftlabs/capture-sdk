@@ -18,6 +18,7 @@ import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandHandle
 import io.bitdrift.capture.commands.CommandScope
+import io.bitdrift.capture.commands.argument
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -113,17 +114,7 @@ object SampleCommands {
             },
             Capture.Logger.registerCommand("system_trace") {
                 announce()
-                val durationMs =
-                    when (val argument = arguments["duration_ms"]) {
-                        null -> DEFAULT_TRACE_DURATION_MS
-                        is CommandArgument.UnsignedInteger -> argument.value.toLong()
-                        is CommandArgument.SignedInteger -> argument.value
-                        is CommandArgument.Text ->
-                            argument.value.toLongOrNull()
-                                ?: return@registerCommand error("invalid_duration_ms", argument.value, code = CommandErrorCode.InvalidArguments)
-                        else ->
-                            return@registerCommand error("invalid_duration_ms", argument.toString(), code = CommandErrorCode.InvalidArguments)
-                    }
+                val durationMs = if ("duration_ms" in arguments) argument<Long>("duration_ms") else DEFAULT_TRACE_DURATION_MS
                 val context = appContext ?: return@registerCommand error("no_context")
                 when (val result = StackSamplingProfiler.capture(context, durationMs.milliseconds)) {
                     is StackSamplingProfiler.Result.Trace ->

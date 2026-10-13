@@ -952,6 +952,100 @@ class CommandRegistryTest {
     }
 
     @Test
+    fun typedArgumentGetterReadsEachSupportedType() {
+        val bytes = byteArrayOf(0xFF.toByte(), 0x00)
+        val seen =
+            java.util.concurrent.atomic
+                .AtomicReference<List<Any>>()
+        registry.register("typed") {
+            seen.set(
+                listOf(
+                    argument<String>("text"),
+                    argument<Long>("signed"),
+                    argument<ULong>("unsigned"),
+                    argument<Double>("decimal"),
+                    argument<Boolean>("flag"),
+                    argument<ByteArray>("bytes").toList(),
+                ),
+            )
+            success()
+        }
+
+        registry.dispatch(
+            1,
+            "typed",
+            null,
+            "session",
+            "text" to text("hello"),
+            "signed" to CommandArgument.SignedInteger(-5),
+            "unsigned" to CommandArgument.UnsignedInteger(ULong.MAX_VALUE),
+            "decimal" to CommandArgument.Decimal(0.1),
+            "flag" to CommandArgument.Bool(true),
+            "bytes" to CommandArgument.Binary(bytes),
+        )
+
+        assertThat(bridge.awaitCompletion().error).isNull()
+        assertThat(seen.get()).containsExactly("hello", -5L, ULong.MAX_VALUE, 0.1, true, bytes.toList())
+    }
+
+    @Test
+    fun typedIntegerGetterAcceptsEitherSignednessWhenTheValueFits() {
+        val seen =
+            java.util.concurrent.atomic
+                .AtomicReference<Pair<Long, ULong>>()
+        registry.register("ints") {
+            seen.set(argument<Long>("u") to argument<ULong>("s"))
+            success()
+        }
+
+        registry.dispatch(1, "ints", null, "session", "u" to CommandArgument.UnsignedInteger(7u), "s" to CommandArgument.SignedInteger(9))
+
+        assertThat(bridge.awaitCompletion().error).isNull()
+        assertThat(seen.get()).isEqualTo(7L to 9uL)
+    }
+
+    @Test
+    fun typedIntegerGetterRejectsValuesThatDoNotFit() {
+        registry.register("big") { success(context = mapOf("v" to argument<Long>("n").toString())) }
+        registry.register("negative") { success(context = mapOf("v" to argument<ULong>("n").toString())) }
+
+        registry.dispatch(1, "big", null, "session", "n" to CommandArgument.UnsignedInteger(ULong.MAX_VALUE))
+        registry.dispatch(2, "negative", null, "session", "n" to CommandArgument.SignedInteger(-1))
+
+        val byId = List(2) { bridge.awaitCompletion() }.associateBy { it.invocationId }
+        assertThat(byId.getValue(1).error).isEqualTo("invalid_arguments")
+        assertThat(byId.getValue(1).message).isEqualTo("argument n is not a long: UnsignedInteger(value=18446744073709551615)")
+        assertThat(byId.getValue(2).error).isEqualTo("invalid_arguments")
+        assertThat(byId.getValue(2).message).isEqualTo("argument n is not an unsigned long: SignedInteger(value=-1)")
+    }
+
+    @Test
+    fun typedGetterRejectsWrongTypeAndMissingArguments() {
+        registry.register("wrong") { success(context = mapOf("v" to argument<Boolean>("n").toString())) }
+        registry.register("missing") { success(context = mapOf("v" to argument<Double>("n").toString())) }
+
+        registry.dispatch(1, "wrong", null, "session", "n" to text("true"))
+        registry.dispatch(2, "missing", null, "session")
+
+        val byId = List(2) { bridge.awaitCompletion() }.associateBy { it.invocationId }
+        assertThat(byId.getValue(1).error).isEqualTo("invalid_arguments")
+        assertThat(byId.getValue(1).message).isEqualTo("argument n is not a boolean: Text(value=true)")
+        assertThat(byId.getValue(2).error).isEqualTo("invalid_arguments")
+        assertThat(byId.getValue(2).message).isEqualTo("missing argument n")
+    }
+
+    @Test
+    fun typedGetterForAnUnsupportedTypeIsAHandlerBug() {
+        registry.register("int") { success(context = mapOf("v" to argument<Int>("n").toString())) }
+
+        registry.dispatch(1, "int", null, "session", "n" to CommandArgument.SignedInteger(1))
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).contains("unsupported argument type Int")
+    }
+
+    @Test
     fun unknownArgumentTypeCodeFailsBeforeTheHandlerRuns() {
         val ran = AtomicInteger()
         registry.register("x") {

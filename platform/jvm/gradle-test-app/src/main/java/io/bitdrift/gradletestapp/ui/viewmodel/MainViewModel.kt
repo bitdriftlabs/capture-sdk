@@ -14,7 +14,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.commands.CommandArgument
+import io.bitdrift.capture.commands.argument
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
@@ -177,13 +177,7 @@ class MainViewModel(
 
         // Owned by this ViewModel: clearing it cancels an in-flight invocation.
         Logger.registerCommand("ui_state_slow", owner = viewModelScope) {
-                val durationMs =
-                    when (val argument = arguments["duration_ms"]) {
-                        is CommandArgument.Text -> argument.value.toLongOrNull()
-                        is CommandArgument.UnsignedInteger -> argument.value.toLong()
-                        is CommandArgument.SignedInteger -> argument.value
-                        else -> null
-                    } ?: 4_000L
+                val durationMs = if ("duration_ms" in arguments) argument<Long>("duration_ms") else 4_000L
                 Log.i(OWNED_COMMAND_TAG, "ui_state_slow started, sleeping ${durationMs}ms")
                 try {
                     delay(durationMs)
