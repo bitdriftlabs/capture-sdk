@@ -905,9 +905,9 @@ class CommandRegistryTest {
             "session",
             "text" to CommandArgument.Text("hello"),
             "bytes" to CommandArgument.Binary(bytes),
-            "unsigned" to CommandArgument.UnsignedInteger(ULong.MAX_VALUE),
-            "signed" to CommandArgument.SignedInteger(Long.MIN_VALUE),
-            "decimal" to CommandArgument.Decimal(0.1),
+            "unsigned" to CommandArgument.UInt64(ULong.MAX_VALUE),
+            "signed" to CommandArgument.Int64(Long.MIN_VALUE),
+            "decimal" to CommandArgument.Float64(0.1),
             "flag" to CommandArgument.Bool(true),
         )
 
@@ -916,9 +916,9 @@ class CommandRegistryTest {
             mapOf(
                 "text" to CommandArgument.Text("hello"),
                 "bytes" to CommandArgument.Binary(bytes),
-                "unsigned" to CommandArgument.UnsignedInteger(ULong.MAX_VALUE),
-                "signed" to CommandArgument.SignedInteger(Long.MIN_VALUE),
-                "decimal" to CommandArgument.Decimal(0.1),
+                "unsigned" to CommandArgument.UInt64(ULong.MAX_VALUE),
+                "signed" to CommandArgument.Int64(Long.MIN_VALUE),
+                "decimal" to CommandArgument.Float64(0.1),
                 "flag" to CommandArgument.Bool(true),
             ),
         )
@@ -934,7 +934,7 @@ class CommandRegistryTest {
             success()
         }
 
-        registry.dispatch(1, "digits", null, "session", "n" to CommandArgument.UnsignedInteger(0u), "s" to text("0"))
+        registry.dispatch(1, "digits", null, "session", "n" to CommandArgument.UInt64(0u), "s" to text("0"))
 
         bridge.awaitCompletion()
         assertThat(seen.get().getValue("n")).isNotEqualTo(seen.get().getValue("s"))
@@ -944,11 +944,11 @@ class CommandRegistryTest {
     fun argumentHelperRejectsNonTextValues() {
         registry.register("strict") { success(context = mapOf("v" to argument("n"))) }
 
-        registry.dispatch(1, "strict", null, "session", "n" to CommandArgument.SignedInteger(42))
+        registry.dispatch(1, "strict", null, "session", "n" to CommandArgument.Int64(42))
 
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isEqualTo("invalid_arguments")
-        assertThat(completion.message).isEqualTo("argument n is not a string: SignedInteger(value=42)")
+        assertThat(completion.message).isEqualTo("argument n is not a string: Int64(value=42)")
     }
 
     @Test
@@ -977,9 +977,9 @@ class CommandRegistryTest {
             null,
             "session",
             "text" to text("hello"),
-            "signed" to CommandArgument.SignedInteger(-5),
-            "unsigned" to CommandArgument.UnsignedInteger(ULong.MAX_VALUE),
-            "decimal" to CommandArgument.Decimal(0.1),
+            "signed" to CommandArgument.Int64(-5),
+            "unsigned" to CommandArgument.UInt64(ULong.MAX_VALUE),
+            "decimal" to CommandArgument.Float64(0.1),
             "flag" to CommandArgument.Bool(true),
             "bytes" to CommandArgument.Binary(bytes),
         )
@@ -998,7 +998,7 @@ class CommandRegistryTest {
             success()
         }
 
-        registry.dispatch(1, "ints", null, "session", "u" to CommandArgument.UnsignedInteger(7u), "s" to CommandArgument.SignedInteger(9))
+        registry.dispatch(1, "ints", null, "session", "u" to CommandArgument.UInt64(7u), "s" to CommandArgument.Int64(9))
 
         assertThat(bridge.awaitCompletion().error).isNull()
         assertThat(seen.get()).isEqualTo(7L to 9uL)
@@ -1009,14 +1009,14 @@ class CommandRegistryTest {
         registry.register("big") { success(context = mapOf("v" to argument<Long>("n").toString())) }
         registry.register("negative") { success(context = mapOf("v" to argument<ULong>("n").toString())) }
 
-        registry.dispatch(1, "big", null, "session", "n" to CommandArgument.UnsignedInteger(ULong.MAX_VALUE))
-        registry.dispatch(2, "negative", null, "session", "n" to CommandArgument.SignedInteger(-1))
+        registry.dispatch(1, "big", null, "session", "n" to CommandArgument.UInt64(ULong.MAX_VALUE))
+        registry.dispatch(2, "negative", null, "session", "n" to CommandArgument.Int64(-1))
 
         val byId = List(2) { bridge.awaitCompletion() }.associateBy { it.invocationId }
         assertThat(byId.getValue(1).error).isEqualTo("invalid_arguments")
-        assertThat(byId.getValue(1).message).isEqualTo("argument n is not a long: UnsignedInteger(value=18446744073709551615)")
+        assertThat(byId.getValue(1).message).isEqualTo("argument n is not a long: UInt64(value=18446744073709551615)")
         assertThat(byId.getValue(2).error).isEqualTo("invalid_arguments")
-        assertThat(byId.getValue(2).message).isEqualTo("argument n is not an unsigned long: SignedInteger(value=-1)")
+        assertThat(byId.getValue(2).message).isEqualTo("argument n is not an unsigned long: Int64(value=-1)")
     }
 
     @Test
@@ -1038,7 +1038,7 @@ class CommandRegistryTest {
     fun typedGetterForAnUnsupportedTypeIsAHandlerBug() {
         registry.register("int") { success(context = mapOf("v" to argument<Int>("n").toString())) }
 
-        registry.dispatch(1, "int", null, "session", "n" to CommandArgument.SignedInteger(1))
+        registry.dispatch(1, "int", null, "session", "n" to CommandArgument.Int64(1))
 
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isEqualTo("handler_failed")
@@ -1089,9 +1089,9 @@ class CommandRegistryTest {
                     when (argument) {
                         is CommandArgument.Text -> argument.value
                         is CommandArgument.Binary -> argument.value
-                        is CommandArgument.UnsignedInteger -> argument.value.toLong()
-                        is CommandArgument.SignedInteger -> argument.value
-                        is CommandArgument.Decimal -> argument.value
+                        is CommandArgument.UInt64 -> argument.value.toLong()
+                        is CommandArgument.Int64 -> argument.value
+                        is CommandArgument.Float64 -> argument.value
                         is CommandArgument.Bool -> argument.value
                     }
                 }.toTypedArray()
@@ -1101,9 +1101,9 @@ class CommandRegistryTest {
                     when (argument) {
                         is CommandArgument.Text -> CommandArgument.TYPE_TEXT
                         is CommandArgument.Binary -> CommandArgument.TYPE_BINARY
-                        is CommandArgument.UnsignedInteger -> CommandArgument.TYPE_UNSIGNED_INTEGER
-                        is CommandArgument.SignedInteger -> CommandArgument.TYPE_SIGNED_INTEGER
-                        is CommandArgument.Decimal -> CommandArgument.TYPE_DECIMAL
+                        is CommandArgument.UInt64 -> CommandArgument.TYPE_UINT64
+                        is CommandArgument.Int64 -> CommandArgument.TYPE_INT64
+                        is CommandArgument.Float64 -> CommandArgument.TYPE_FLOAT64
                         is CommandArgument.Bool -> CommandArgument.TYPE_BOOL
                     }
                 }.toIntArray()

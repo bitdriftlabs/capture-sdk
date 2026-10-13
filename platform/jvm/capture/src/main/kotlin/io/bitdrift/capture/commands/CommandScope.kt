@@ -80,20 +80,20 @@ private val ARGUMENT_READERS: Map<KClass<*>, ArgumentReader> =
         Long::class to
             ArgumentReader("a long") {
                 when (it) {
-                    is CommandArgument.SignedInteger -> it.value
-                    is CommandArgument.UnsignedInteger -> it.value.takeIf { value -> value <= Long.MAX_VALUE.toULong() }?.toLong()
+                    is CommandArgument.Int64 -> it.value
+                    is CommandArgument.UInt64 -> it.value.takeIf { value -> value <= Long.MAX_VALUE.toULong() }?.toLong()
                     else -> null
                 }
             },
         ULong::class to
             ArgumentReader("an unsigned long") {
                 when (it) {
-                    is CommandArgument.UnsignedInteger -> it.value
-                    is CommandArgument.SignedInteger -> it.value.takeIf { value -> value >= 0 }?.toULong()
+                    is CommandArgument.UInt64 -> it.value
+                    is CommandArgument.Int64 -> it.value.takeIf { value -> value >= 0 }?.toULong()
                     else -> null
                 }
             },
-        Double::class to ArgumentReader("a double") { (it as? CommandArgument.Decimal)?.value },
+        Double::class to ArgumentReader("a double") { (it as? CommandArgument.Float64)?.value },
         Boolean::class to ArgumentReader("a boolean") { (it as? CommandArgument.Bool)?.value },
         ByteArray::class to ArgumentReader("binary") { (it as? CommandArgument.Binary)?.value },
     )
