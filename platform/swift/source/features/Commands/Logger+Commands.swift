@@ -33,6 +33,7 @@ extension Logger {
     /// - parameter key: The command identifier to unregister.
     ///
     /// - returns: `true` if a command was registered for `key`; otherwise, `false`.
+    @discardableResult
     public static func unregisterCommand(key: String) async -> Bool {
         await (Self.getShared() as? Logger)?.unregisterCommand(key: key) ?? false
     }
