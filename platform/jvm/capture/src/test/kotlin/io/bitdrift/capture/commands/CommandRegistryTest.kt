@@ -13,14 +13,18 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executor
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -270,6 +274,27 @@ class CommandRegistryTest {
         gate.release()
 
         assertThat(bridge.awaitCompletion().field("handler")).isEqualTo("replacement")
+    }
+
+    @Test
+    fun handlerDoesNotStartOnceItsOwnerCompleted() {
+        val queued = ConcurrentLinkedQueue<Runnable>()
+        val registry = CommandRegistry(bridge, Executor { queued.add(it) }.asCoroutineDispatcher())
+        val owner = Job()
+        val handlerRan = AtomicBoolean(false)
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            handlerRan.set(true)
+            success()
+        }
+        registry.dispatch(1, "vm", null, "session")
+
+        owner.cancel()
+        generateSequence { queued.poll() }.forEach { it.run() }
+
+        val completion = bridge.awaitCompletion()
+        assertThat(handlerRan.get()).describedAs("handler ran after its owner completed").isFalse()
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).isEqualTo(OWNER_SCOPE_COMPLETED)
     }
 
     @Test

@@ -132,6 +132,9 @@ internal class CommandRegistry(
             // Release before reporting, so an observed completion implies the key is free again.
             val outcome =
                 try {
+                    // Calling a suspend function does not check for cancellation, so an owner that
+                    // completed before the invocation started would otherwise still run the handler.
+                    ensureActive()
                     val result = registration.handler(invocation)
                     // Like withContext, a result produced after cancellation is discarded.
                     ensureActive()

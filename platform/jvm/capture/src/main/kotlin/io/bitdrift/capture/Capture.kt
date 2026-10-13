@@ -528,7 +528,9 @@ object Capture {
          * registered it. Cancellation is cooperative: it reaches a handler at its next suspension
          * point, so a handler doing long blocking work should check `ensureActive()` periodically.
          * If it completes after its owner was cancelled, its result is discarded and the invocation
-         * is reported as cancelled; side effects it already performed are not undone.
+         * is reported as cancelled; side effects it already performed are not undone. The owner takes
+         * effect when its job completes, which for a scope such as `viewModelScope` is only after
+         * the scope's own children have finished cancelling.
          * @param handler the suspending handler executing the command. It should do its work inline
          * rather than launching it in another scope: the SDK only limits, times out and reports what
          * the handler itself runs, and a launched job escapes all three. Arguments are read through
