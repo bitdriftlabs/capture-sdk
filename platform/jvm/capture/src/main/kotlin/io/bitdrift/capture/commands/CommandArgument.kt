@@ -28,19 +28,19 @@ sealed class CommandArgument {
     }
 
     /** An unsigned 64-bit integer. */
-    data class UnsignedInteger(
+    data class UInt64(
         /** The unsigned value. */
         val value: ULong,
     ) : CommandArgument()
 
     /** A signed 64-bit integer. */
-    data class SignedInteger(
+    data class Int64(
         /** The signed value. */
         val value: Long,
     ) : CommandArgument()
 
     /** A 64-bit floating point number. */
-    data class Decimal(
+    data class Float64(
         /** The floating point value. */
         val value: Double,
     ) : CommandArgument()
@@ -55,9 +55,9 @@ sealed class CommandArgument {
         // JNI contract with `platform/jvm/core/src/commands.rs`; the values also match the iOS bridge.
         const val TYPE_TEXT = 0
         const val TYPE_BINARY = 1
-        const val TYPE_UNSIGNED_INTEGER = 2
-        const val TYPE_DECIMAL = 3
-        const val TYPE_SIGNED_INTEGER = 4
+        const val TYPE_UINT64 = 2
+        const val TYPE_FLOAT64 = 3
+        const val TYPE_INT64 = 4
         const val TYPE_BOOL = 5
 
         /**
@@ -71,9 +71,9 @@ sealed class CommandArgument {
             when (type) {
                 TYPE_TEXT -> (value as? String)?.let(::Text)
                 TYPE_BINARY -> (value as? ByteArray)?.let(::Binary)
-                TYPE_UNSIGNED_INTEGER -> (value as? Long)?.let { UnsignedInteger(it.toULong()) }
-                TYPE_DECIMAL -> (value as? Double)?.let(::Decimal)
-                TYPE_SIGNED_INTEGER -> (value as? Long)?.let(::SignedInteger)
+                TYPE_UINT64 -> (value as? Long)?.let { UInt64(it.toULong()) }
+                TYPE_FLOAT64 -> (value as? Double)?.let(::Float64)
+                TYPE_INT64 -> (value as? Long)?.let(::Int64)
                 TYPE_BOOL -> (value as? Boolean)?.let(::Bool)
                 else -> null
             }

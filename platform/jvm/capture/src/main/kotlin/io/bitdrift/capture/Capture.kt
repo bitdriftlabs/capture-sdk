@@ -36,6 +36,7 @@ import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
+import kotlinx.coroutines.CoroutineScope
 import okhttp3.HttpUrl
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -508,20 +509,31 @@ object Capture {
          *
          * Commands can be registered before or after [start].
          *
-         * A command runs one invocation at a time and at most
-         * [CommandRegistry.MAX_CONCURRENT_INVOCATIONS] invocations run at once across all commands;
+         * A command runs one invocation at a time and at most 10 invocations run at once across all
+         * commands;
          * an invocation beyond either limit fails immediately rather than waiting. Handlers run on
          * a dedicated I/O thread pool and may block without affecting the application's own
          * dispatchers.
          *
-         * The SDK never cancels a running handler. An invocation that outlives the execution
-         * timeout is reported as timed out while the handler runs to completion, whose result is
-         * then discarded. Unregistering or re-registering [key] likewise leaves a started
-         * invocation alone, so handlers must tolerate running after [unregisterCommand] returns.
+         * The SDK never cancels a running handler on its own. An invocation that outlives the
+         * execution timeout is reported as timed out while the handler runs to completion, whose
+         * result is then discarded. Unregistering or re-registering [key] likewise leaves a
+         * started invocation alone. To tie a command to a component, pass its scope as [owner].
          *
          * @param key the unique key identifying the command. Registering a key that is already
          * registered replaces the handler used by future invocations.
-         * @param handler the suspending handler executing the command. Arguments are read through
+         * @param owner the scope that owns this registration, e.g. a `viewModelScope`. When it
+         * completes or is cancelled, the command is unregistered and its in-flight invocations are
+         * cancelled and reported as failed, so a handler does not outlive the component that
+         * registered it. Cancellation is cooperative: it reaches a handler at its next suspension
+         * point, so a handler doing long blocking work should check `ensureActive()` periodically.
+         * If it completes after its owner was cancelled, its result is discarded and the invocation
+         * is reported as cancelled; side effects it already performed are not undone. The owner takes
+         * effect when its job completes, which for a scope such as `viewModelScope` is only after
+         * the scope's own children have finished cancelling.
+         * @param handler the suspending handler executing the command. It should do its work inline
+         * rather than launching it in another scope: the SDK only limits, times out and reports what
+         * the handler itself runs, and a launched job escapes all three. Arguments are read through
          * [CommandScope.argument] and [CommandScope.arguments]; a failure is reported with
          * [CommandScope.error] and a [CommandErrorCode].
          * @return a [CommandHandle] used to unregister the command.
@@ -529,8 +541,9 @@ object Capture {
         @ExperimentalBitdriftApi
         fun registerCommand(
             key: String,
+            owner: CoroutineScope? = null,
             handler: suspend CommandScope.() -> CommandResult,
-        ): CommandHandle = commandRegistry.register(key, handler)
+        ): CommandHandle = commandRegistry.register(key, owner, handler)
 
         /**
          * Unregisters the command registered with [key]. Running invocations are not cancelled.

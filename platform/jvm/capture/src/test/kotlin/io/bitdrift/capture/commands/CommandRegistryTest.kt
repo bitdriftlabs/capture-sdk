@@ -13,11 +13,18 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executor
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -128,9 +135,9 @@ class CommandRegistryTest {
 
     @Test
     fun lifecycleScopedHandleOutlivedByReplacementIsHarmless() {
-        // VM1 registers and ties the handle to its scope; VM2 replaces the handler; VM1 is cleared.
+        // VM1 registers as the owner; VM2 replaces the handler; VM1 is cleared.
         val vm1 = Job()
-        registry.register("ui_state") { success(context = mapOf("vm" to "1")) }.unregisterOn(CoroutineScope(vm1))
+        registry.register("ui_state", owner = CoroutineScope(vm1)) { success(context = mapOf("vm" to "1")) }
         registry.register("ui_state") { success(context = mapOf("vm" to "2")) }
 
         vm1.cancel()
@@ -151,17 +158,196 @@ class CommandRegistryTest {
         assertThat(registry.unregister("a")).isFalse()
     }
 
-    @Test
-    fun unregisterOnScopeRemovesCommandWhenScopeCompletes() {
-        val job = Job()
-        registry.register("a") { success() }.unregisterOn(CoroutineScope(job))
-        registry.dispatch(1, "a", null, "session")
-        assertThat(bridge.awaitCompletion().error).isNull()
+    // ---------------------------------------------------------------------------------------------
+    // Owner scope: a registration's owner unregisters it and cancels its in-flight invocations
+    // ---------------------------------------------------------------------------------------------
 
-        job.cancel()
-        registry.dispatch(2, "a", null, "session")
+    @Test
+    fun ownerScopeCompletionCancelsInFlightInvocation() {
+        val owner = Job()
+        val gate = Gate(expectedArrivals = 1)
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            gate.arriveAndAwaitRelease()
+            success()
+        }
+        registry.dispatch(1, "vm", null, "session")
+        gate.awaitArrivals()
+
+        owner.cancel()
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.invocationId).isEqualTo(1)
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).isEqualTo(OWNER_SCOPE_COMPLETED)
+    }
+
+    @Test
+    fun invocationDispatchedRightAfterRegistrationIsOwned() {
+        // The owner is part of the registration, so no dispatch can start before it is known.
+        val owner = Job()
+        val gate = Gate(expectedArrivals = 1)
+        registry.attach(LOGGER_ID)
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            gate.arriveAndAwaitRelease()
+            success()
+        }
+        registry.dispatch(1, "vm", null, "session")
+        gate.awaitArrivals()
+
+        owner.cancel()
+
+        assertThat(bridge.awaitCompletion().message).isEqualTo(OWNER_SCOPE_COMPLETED)
+    }
+
+    @Test
+    fun ownerScopeCompletionUnregistersTheCommand() {
+        val owner = Job()
+        registry.register("vm", owner = CoroutineScope(owner)) { success() }
+
+        owner.cancel()
+        registry.dispatch(1, "vm", null, "session")
 
         assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
+    }
+
+    @Test
+    fun alreadyCompletedOwnerUnregistersImmediately() {
+        val owner = Job().apply { cancel() }
+
+        registry.register("vm", owner = CoroutineScope(owner)) { success() }
+        registry.dispatch(1, "vm", null, "session")
+
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
+    }
+
+    @Test
+    fun ownerCancellationReleasesKeyAndSlot() {
+        val registry = CommandRegistry(bridge, Dispatchers.Default, maxConcurrentInvocations = 1)
+        val owner = Job()
+        val gate = Gate(expectedArrivals = 1)
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            gate.arriveAndAwaitRelease()
+            success()
+        }
+        registry.register("other") { success() }
+        registry.dispatch(1, "vm", null, "session")
+        gate.awaitArrivals()
+
+        owner.cancel()
+        bridge.awaitCompletion()
+        registry.dispatch(2, "other", null, "session")
+
+        assertThat(bridge.awaitCompletion().error).isNull()
+    }
+
+    @Test
+    fun ownerScopeOnlyCancelsItsOwnRegistration() {
+        val owner = Job()
+        val gate = Gate(expectedArrivals = 1)
+        registry.register("vm", owner = CoroutineScope(owner)) { success() }
+        registry.register("unowned") {
+            gate.arriveAndAwaitRelease()
+            success(context = mapOf("finished" to "true"))
+        }
+        registry.dispatch(1, "unowned", null, "session")
+        gate.awaitArrivals()
+
+        owner.cancel()
+        gate.release()
+
+        assertThat(bridge.awaitCompletion().field("finished")).isEqualTo("true")
+    }
+
+    @Test
+    fun staleOwnerDoesNotCancelReplacementInvocations() {
+        val staleOwner = Job()
+        val gate = Gate(expectedArrivals = 1)
+        registry.register("key", owner = CoroutineScope(staleOwner)) { success() }
+        registry.register("key") {
+            gate.arriveAndAwaitRelease()
+            success(context = mapOf("handler" to "replacement"))
+        }
+        registry.dispatch(1, "key", null, "session")
+        gate.awaitArrivals()
+
+        staleOwner.cancel()
+        gate.release()
+
+        assertThat(bridge.awaitCompletion().field("handler")).isEqualTo("replacement")
+    }
+
+    @Test
+    fun handlerDoesNotStartOnceItsOwnerCompleted() {
+        val queued = ConcurrentLinkedQueue<Runnable>()
+        val registry = CommandRegistry(bridge, Executor { queued.add(it) }.asCoroutineDispatcher())
+        val owner = Job()
+        val handlerRan = AtomicBoolean(false)
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            handlerRan.set(true)
+            success()
+        }
+        registry.dispatch(1, "vm", null, "session")
+
+        owner.cancel()
+        generateSequence { queued.poll() }.forEach { it.run() }
+
+        val completion = bridge.awaitCompletion()
+        assertThat(handlerRan.get()).describedAs("handler ran after its owner completed").isFalse()
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).isEqualTo(OWNER_SCOPE_COMPLETED)
+    }
+
+    @Test
+    fun completedInvocationIsUnaffectedByLaterOwnerCancellation() {
+        val owner = Job()
+        registry.register("vm", owner = CoroutineScope(owner)) { success() }
+        registry.dispatch(1, "vm", null, "session")
+        assertThat(bridge.awaitCompletion().error).isNull()
+
+        owner.cancel()
+
+        Thread.sleep(100)
+        assertThat(bridge.pendingCompletions()).isZero()
+    }
+
+    @Test
+    fun blockingHandlerFinishingAfterOwnerCancellationIsReportedAsCancelled() {
+        // Like withContext, a result produced after cancellation is discarded.
+        val owner = Job()
+        val gate = Gate(expectedArrivals = 1)
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            gate.arriveAndBlockUntilReleased()
+            success(context = mapOf("finished" to "true"))
+        }
+        registry.dispatch(1, "vm", null, "session")
+        gate.awaitArrivals()
+
+        owner.cancel()
+        gate.release()
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).isEqualTo(OWNER_SCOPE_COMPLETED)
+        assertThat(completion.fields).isEmpty()
+    }
+
+    @Test
+    fun handlerSelfCancellationIsNotReportedAsOwnerCancellation() {
+        registry.register("unowned") {
+            currentCoroutineContext().cancel(CancellationException("gave up"))
+            awaitCancellation()
+        }
+        registry.register("owned", owner = CoroutineScope(Job())) {
+            currentCoroutineContext().cancel(CancellationException("gave up"))
+            awaitCancellation()
+        }
+
+        registry.dispatch(1, "unowned", null, "session")
+        registry.dispatch(2, "owned", null, "session")
+
+        val completions = List(2) { bridge.awaitCompletion() }
+        assertThat(completions.map { it.error }).containsOnly("handler_failed")
+        assertThat(completions.map { it.message }).allSatisfy { assertThat(it).contains("gave up").isNotEqualTo(OWNER_SCOPE_COMPLETED) }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -742,9 +928,9 @@ class CommandRegistryTest {
             "session",
             "text" to CommandArgument.Text("hello"),
             "bytes" to CommandArgument.Binary(bytes),
-            "unsigned" to CommandArgument.UnsignedInteger(ULong.MAX_VALUE),
-            "signed" to CommandArgument.SignedInteger(Long.MIN_VALUE),
-            "decimal" to CommandArgument.Decimal(0.1),
+            "unsigned" to CommandArgument.UInt64(ULong.MAX_VALUE),
+            "signed" to CommandArgument.Int64(Long.MIN_VALUE),
+            "decimal" to CommandArgument.Float64(0.1),
             "flag" to CommandArgument.Bool(true),
         )
 
@@ -753,9 +939,9 @@ class CommandRegistryTest {
             mapOf(
                 "text" to CommandArgument.Text("hello"),
                 "bytes" to CommandArgument.Binary(bytes),
-                "unsigned" to CommandArgument.UnsignedInteger(ULong.MAX_VALUE),
-                "signed" to CommandArgument.SignedInteger(Long.MIN_VALUE),
-                "decimal" to CommandArgument.Decimal(0.1),
+                "unsigned" to CommandArgument.UInt64(ULong.MAX_VALUE),
+                "signed" to CommandArgument.Int64(Long.MIN_VALUE),
+                "decimal" to CommandArgument.Float64(0.1),
                 "flag" to CommandArgument.Bool(true),
             ),
         )
@@ -771,7 +957,7 @@ class CommandRegistryTest {
             success()
         }
 
-        registry.dispatch(1, "digits", null, "session", "n" to CommandArgument.UnsignedInteger(0u), "s" to text("0"))
+        registry.dispatch(1, "digits", null, "session", "n" to CommandArgument.UInt64(0u), "s" to text("0"))
 
         bridge.awaitCompletion()
         assertThat(seen.get().getValue("n")).isNotEqualTo(seen.get().getValue("s"))
@@ -781,11 +967,105 @@ class CommandRegistryTest {
     fun argumentHelperRejectsNonTextValues() {
         registry.register("strict") { success(context = mapOf("v" to argument("n"))) }
 
-        registry.dispatch(1, "strict", null, "session", "n" to CommandArgument.SignedInteger(42))
+        registry.dispatch(1, "strict", null, "session", "n" to CommandArgument.Int64(42))
 
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isEqualTo("invalid_arguments")
-        assertThat(completion.message).isEqualTo("argument n is not a string: SignedInteger(value=42)")
+        assertThat(completion.message).isEqualTo("argument n is not a string: Int64(value=42)")
+    }
+
+    @Test
+    fun typedArgumentGetterReadsEachSupportedType() {
+        val bytes = byteArrayOf(0xFF.toByte(), 0x00)
+        val seen =
+            java.util.concurrent.atomic
+                .AtomicReference<List<Any>>()
+        registry.register("typed") {
+            seen.set(
+                listOf(
+                    argument<String>("text"),
+                    argument<Long>("signed"),
+                    argument<ULong>("unsigned"),
+                    argument<Double>("decimal"),
+                    argument<Boolean>("flag"),
+                    argument<ByteArray>("bytes").toList(),
+                ),
+            )
+            success()
+        }
+
+        registry.dispatch(
+            1,
+            "typed",
+            null,
+            "session",
+            "text" to text("hello"),
+            "signed" to CommandArgument.Int64(-5),
+            "unsigned" to CommandArgument.UInt64(ULong.MAX_VALUE),
+            "decimal" to CommandArgument.Float64(0.1),
+            "flag" to CommandArgument.Bool(true),
+            "bytes" to CommandArgument.Binary(bytes),
+        )
+
+        assertThat(bridge.awaitCompletion().error).isNull()
+        assertThat(seen.get()).containsExactly("hello", -5L, ULong.MAX_VALUE, 0.1, true, bytes.toList())
+    }
+
+    @Test
+    fun typedIntegerGetterAcceptsEitherSignednessWhenTheValueFits() {
+        val seen =
+            java.util.concurrent.atomic
+                .AtomicReference<Pair<Long, ULong>>()
+        registry.register("ints") {
+            seen.set(argument<Long>("u") to argument<ULong>("s"))
+            success()
+        }
+
+        registry.dispatch(1, "ints", null, "session", "u" to CommandArgument.UInt64(7u), "s" to CommandArgument.Int64(9))
+
+        assertThat(bridge.awaitCompletion().error).isNull()
+        assertThat(seen.get()).isEqualTo(7L to 9uL)
+    }
+
+    @Test
+    fun typedIntegerGetterRejectsValuesThatDoNotFit() {
+        registry.register("big") { success(context = mapOf("v" to argument<Long>("n").toString())) }
+        registry.register("negative") { success(context = mapOf("v" to argument<ULong>("n").toString())) }
+
+        registry.dispatch(1, "big", null, "session", "n" to CommandArgument.UInt64(ULong.MAX_VALUE))
+        registry.dispatch(2, "negative", null, "session", "n" to CommandArgument.Int64(-1))
+
+        val byId = List(2) { bridge.awaitCompletion() }.associateBy { it.invocationId }
+        assertThat(byId.getValue(1).error).isEqualTo("invalid_arguments")
+        assertThat(byId.getValue(1).message).isEqualTo("argument n is not a long: UInt64(value=18446744073709551615)")
+        assertThat(byId.getValue(2).error).isEqualTo("invalid_arguments")
+        assertThat(byId.getValue(2).message).isEqualTo("argument n is not an unsigned long: Int64(value=-1)")
+    }
+
+    @Test
+    fun typedGetterRejectsWrongTypeAndMissingArguments() {
+        registry.register("wrong") { success(context = mapOf("v" to argument<Boolean>("n").toString())) }
+        registry.register("missing") { success(context = mapOf("v" to argument<Double>("n").toString())) }
+
+        registry.dispatch(1, "wrong", null, "session", "n" to text("true"))
+        registry.dispatch(2, "missing", null, "session")
+
+        val byId = List(2) { bridge.awaitCompletion() }.associateBy { it.invocationId }
+        assertThat(byId.getValue(1).error).isEqualTo("invalid_arguments")
+        assertThat(byId.getValue(1).message).isEqualTo("argument n is not a boolean: Text(value=true)")
+        assertThat(byId.getValue(2).error).isEqualTo("invalid_arguments")
+        assertThat(byId.getValue(2).message).isEqualTo("missing argument n")
+    }
+
+    @Test
+    fun typedGetterForAnUnsupportedTypeIsAHandlerBug() {
+        registry.register("int") { success(context = mapOf("v" to argument<Int>("n").toString())) }
+
+        registry.dispatch(1, "int", null, "session", "n" to CommandArgument.Int64(1))
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).contains("unsupported argument type Int")
     }
 
     @Test
@@ -832,9 +1112,9 @@ class CommandRegistryTest {
                     when (argument) {
                         is CommandArgument.Text -> argument.value
                         is CommandArgument.Binary -> argument.value
-                        is CommandArgument.UnsignedInteger -> argument.value.toLong()
-                        is CommandArgument.SignedInteger -> argument.value
-                        is CommandArgument.Decimal -> argument.value
+                        is CommandArgument.UInt64 -> argument.value.toLong()
+                        is CommandArgument.Int64 -> argument.value
+                        is CommandArgument.Float64 -> argument.value
                         is CommandArgument.Bool -> argument.value
                     }
                 }.toTypedArray()
@@ -844,9 +1124,9 @@ class CommandRegistryTest {
                     when (argument) {
                         is CommandArgument.Text -> CommandArgument.TYPE_TEXT
                         is CommandArgument.Binary -> CommandArgument.TYPE_BINARY
-                        is CommandArgument.UnsignedInteger -> CommandArgument.TYPE_UNSIGNED_INTEGER
-                        is CommandArgument.SignedInteger -> CommandArgument.TYPE_SIGNED_INTEGER
-                        is CommandArgument.Decimal -> CommandArgument.TYPE_DECIMAL
+                        is CommandArgument.UInt64 -> CommandArgument.TYPE_UINT64
+                        is CommandArgument.Int64 -> CommandArgument.TYPE_INT64
+                        is CommandArgument.Float64 -> CommandArgument.TYPE_FLOAT64
                         is CommandArgument.Bool -> CommandArgument.TYPE_BOOL
                     }
                 }.toIntArray()
@@ -947,5 +1227,6 @@ class CommandRegistryTest {
 
     private companion object {
         const val LOGGER_ID = 1L
+        const val OWNER_SCOPE_COMPLETED = "cancelled because the command's owner scope completed"
     }
 }

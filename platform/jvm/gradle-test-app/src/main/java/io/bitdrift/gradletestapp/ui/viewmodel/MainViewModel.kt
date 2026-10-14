@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.commands.argument
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.AppExitReason
@@ -40,6 +41,7 @@ import io.bitdrift.gradletestapp.init.AppProfiler
 import io.bitdrift.gradletestapp.diagnostics.PreInitOrderingExample
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -161,8 +163,7 @@ class MainViewModel(
 
     @OptIn(ExperimentalBitdriftApi::class)
     private fun registerUiStateCommand() {
-        Logger
-            .registerCommand("ui_state") {
+        Logger.registerCommand("ui_state", owner = viewModelScope) {
                 val state = _uiState.value
                 success(
                     context =
@@ -172,7 +173,26 @@ class MainViewModel(
                             "global_fields" to state.globalFields.size.toString(),
                         ),
                 )
-            }.unregisterOn(viewModelScope)
+        }
+
+        // Owned by this ViewModel: clearing it cancels an in-flight invocation.
+        Logger.registerCommand("ui_state_slow", owner = viewModelScope) {
+                val durationMs = if ("duration_ms" in arguments) argument<Long>("duration_ms") else 4_000L
+                Log.i(OWNED_COMMAND_TAG, "ui_state_slow started, sleeping ${durationMs}ms")
+                try {
+                    delay(durationMs)
+                } catch (e: CancellationException) {
+                    Log.i(OWNED_COMMAND_TAG, "ui_state_slow cancelled: ${e.message}")
+                    throw e
+                }
+                Log.i(OWNED_COMMAND_TAG, "ui_state_slow finished")
+                success(context = mapOf("slept_ms" to durationMs.toString()))
+        }
+    }
+
+    override fun onCleared() {
+        Log.i(OWNED_COMMAND_TAG, "MainViewModel cleared")
+        super.onCleared()
     }
 
     fun handleAction(action: AppAction) {
@@ -648,3 +668,4 @@ private val ANR_CRASH_REASONS =
     )
 
 private const val PROFILER_TAG = "AppProfiler"
+private const val OWNED_COMMAND_TAG = "OwnedCommand"
