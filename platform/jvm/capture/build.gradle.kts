@@ -116,10 +116,10 @@ val bazelWorkspace = file("../../..")
 val bazelCaptureLibrary = "//platform/jvm:capture_shared"
 
 /**
- * Controls the Rust debug information included in a Bazel-built JNI library.
+ * Selects the Bazel-built JNI library's Rust linker strip level, not AGP's debugSymbolLevel.
  *
- * Gradle does not strip the library because that requires an NDK installation. Instead, this
- * value selects the equivalent Rust linker behavior in Bazel.
+ * Release uses capture.debug_info to extract full symbols before stripping the packaged copy.
+ * Debug retains the symbol table; profileable retains DWARF as well. AGP only packages the result.
  */
 enum class BazelRustStripLevel(
     /** The value supplied to Bazel's `capture_rust_strip_level` define, when one is needed. */
@@ -171,7 +171,7 @@ fun registerBazelRustBuild(
             args("--config=release-android", "--config=nocache")
         }
         if (packaged) {
-            args("--android_platforms=${bazelAndroidTarget.platform}")
+            args("--android_platforms=${bazelAndroidTarget.platform}", "--output_groups=+objcopy")
         } else {
             args("--platforms=${bazelAndroidTarget.platform}")
             if (release) {
@@ -179,8 +179,7 @@ fun registerBazelRustBuild(
             }
         }
         if (stripLevel.bazelDefineValue != null) {
-            // Preserve the Gradle variant's debugSymbolLevel through Bazel, which owns the
-            // Rust linker and does not require Gradle to install the NDK.
+            // This define is consumed by //platform/jvm:capture_shared, not by AGP.
             args("--define=capture_rust_strip_level=${stripLevel.bazelDefineValue}")
         }
     }

@@ -52,7 +52,7 @@ fn collect_inner_includes_os_version_and_android_manufacturer() {
     "Pixel".to_string(),
     AndroidStaticFields {
       manufacturer: "Google".to_string(),
-      app_version_code: 123,
+      app_version_code: 4_294_967_296,
       os_api_level: 35,
       architecture: "arm64-v8a".to_string(),
     },
@@ -65,7 +65,10 @@ fn collect_inner_includes_os_version_and_android_manufacturer() {
     android.map(|fields| fields.manufacturer.as_str()),
     Some("Google")
   );
-  assert_eq!(android.map(|fields| fields.app_version_code), Some(123));
+  assert_eq!(
+    android.map(|fields| fields.app_version_code),
+    Some(4_294_967_296)
+  );
   assert_eq!(
     android.map(|fields| fields.architecture.as_str()),
     Some("arm64-v8a")
@@ -73,6 +76,16 @@ fn collect_inner_includes_os_version_and_android_manufacturer() {
 
   assert_eq!(collected.get("os_version"), Some(&"14".to_string()));
   assert_eq!(collected.get("_manufacturer"), Some(&"Google".to_string()));
+  assert!(!collected.contains_key("_app_version_code"));
+  assert_eq!(
+    bd_api::Metadata::command_artifact_metadata(&metadata),
+    HashMap::from([
+      ("platform".to_string(), "android".to_string()),
+      ("app_id".to_string(), "app-id".to_string()),
+      ("app_version".to_string(), "1.2.3".to_string()),
+      ("_app_version_code".to_string(), "4294967296".to_string()),
+    ])
+  );
 
   let initial_fields = metadata.static_log_fields();
   assert_eq!(
@@ -111,7 +124,7 @@ fn collect_inner_includes_os_version_and_android_manufacturer() {
     initial_fields
       .get("_app_version_code")
       .and_then(|value| value.as_str()),
-    Some("123")
+    Some("4294967296")
   );
   assert_eq!(
     initial_fields
@@ -146,6 +159,16 @@ fn collect_inner_omits_manufacturer_for_non_android() {
 
   assert_eq!(collected.get("os_version"), Some(&"18.0".to_string()));
   assert!(!collected.contains_key("_manufacturer"));
+  assert!(!collected.contains_key("_build_number"));
+  assert_eq!(
+    bd_api::Metadata::command_artifact_metadata(&metadata),
+    HashMap::from([
+      ("platform".to_string(), "apple".to_string()),
+      ("app_id".to_string(), "app-id".to_string()),
+      ("app_version".to_string(), "1.2.3".to_string()),
+      ("_build_number".to_string(), "456".to_string()),
+    ])
+  );
 
   let initial_fields = metadata.static_log_fields();
   assert_eq!(

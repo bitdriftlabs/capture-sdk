@@ -152,7 +152,6 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
                 result.context,
                 result.attachment?.data,
                 result.attachment?.mimeType,
-                result.attachment?.filename,
                 nil,
                 nil
             )
@@ -162,7 +161,6 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
                 requestID,
                 false,
                 error.context,
-                nil,
                 nil,
                 nil,
                 error.code,

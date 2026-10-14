@@ -39,12 +39,10 @@ bitdrift_rust_shared_library(
         ],
         "//conditions:default": ["@platforms//:incompatible"],
     }) + select({
-        # Gradle selects this define for variants that previously used
-        # debugSymbolLevel = "SYMBOL_TABLE". Keep the symbol table while
-        # stripping debug information without requiring Gradle's NDK tools.
+        # The debug variant retains names without DWARF; AGP does not strip this library.
         ":strip_debug_info": ["-Cstrip=debuginfo"],
-        # Gradle selects this define for variants that previously used
-        # debugSymbolLevel = "FULL".
+        # Profileable keeps full symbols in the optimized library for local profiling.
+        # Release instead uses //:capture.debug_info to extract symbols and strip its APK copy.
         ":strip_none": ["-Cstrip=none"],
         "//conditions:default": [],
     }) + select({

@@ -322,8 +322,6 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
      * @param errorMessage the failure detail; null when the command succeeded.
      * @param fields the fields describing the command result.
      * @param attachment optional binary attachment for a successful result.
-     * @param attachmentFilename the filename of [attachment], e.g. `memory.json`; null iff
-     * [attachment] is null.
      * @param attachmentContentType the MIME type of [attachment], e.g. `application/json`; null iff
      * [attachment] is null.
      */
@@ -333,7 +331,6 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
         errorMessage: String?,
         fields: Array<Field>,
         attachment: ByteArray?,
-        attachmentFilename: String?,
         attachmentContentType: String?,
     )
 
