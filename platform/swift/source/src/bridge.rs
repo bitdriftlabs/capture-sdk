@@ -852,7 +852,6 @@ extern "C" fn capture_complete_command(
   context: *const Object,
   attachment: *const Object,
   attachment_mime_type: *const Object,
-  attachment_filename: *const Object,
   error_code: *const Object,
   error_message: *const Object,
 ) {
@@ -868,11 +867,6 @@ extern "C" fn capture_complete_command(
         None
       } else {
         Some(unsafe { nsstring_into_string(attachment_mime_type) }?)
-      };
-      let attachment_filename = if attachment_filename.is_null() {
-        None
-      } else {
-        Some(unsafe { nsstring_into_string(attachment_filename) }?)
       };
       let error_code = if error_code.is_null() {
         None
@@ -890,7 +884,6 @@ extern "C" fn capture_complete_command(
         &context,
         attachment,
         attachment_mime_type,
-        attachment_filename,
         error_code.as_deref(),
         error_message,
       );

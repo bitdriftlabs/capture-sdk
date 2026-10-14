@@ -114,7 +114,6 @@ android {
     namespace = "io.bitdrift.gradletestapp"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
-    ndkVersion = "27.2.12479018"
 
     buildFeatures {
         compose = true
@@ -141,16 +140,10 @@ android {
         )
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
-    }
-
     packaging {
         jniLibs {
-            // Gradle must preserve the JNI libraries so it does not require the NDK's strip tool.
-            // Bazel controls libcapture stripping through --config=release-android.
+            // Bazel supplies stripped release libraries and unstripped profileable libraries.
+            // Preserve those decisions; AGP must not strip either native library a second time.
             keepDebugSymbols += "**/*.so"
         }
     }
@@ -189,6 +182,7 @@ android {
         }
         release {
             signingConfig = signingConfigs.getByName("release")
+            // R8 controls managed-code obfuscation; Bazel emits native symbols separately.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -198,6 +192,7 @@ android {
             initWith(getByName("release"))
             matchingFallbacks += listOf("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Keep managed names for local profiling, independently of Bazel's native strip level.
             proguardFiles("profileable-rules.pro")
         }
     }
@@ -210,6 +205,64 @@ android {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_1_8
         }
+    }
+}
+
+val bazelWorkspace = file("../../..")
+val bazelNativePackage = "platform/jvm/gradle-test-app/src/main/cpp"
+val nativeAbi =
+    when (val rustTarget = providers.gradleProperty("rust-target").getOrElse("arm64")) {
+        "arm64", "arm64-v8a", "aarch64-linux-android" -> "arm64-v8a"
+        "arm", "armv7", "armeabi-v7a" -> "armeabi-v7a"
+        "x86" -> "x86"
+        "x86_64" -> "x86_64"
+        else -> throw GradleException("Unsupported Rust Android target: $rustTarget")
+    }
+
+listOf("debug", "release", "profileable").forEach { buildType ->
+    val variantName = buildType.replaceFirstChar(Char::uppercase)
+    val packaged = buildType == "release"
+    val buildNative =
+        tasks.register<Exec>("buildBazel${variantName}Native") {
+            // Copy the SDK output before another Bazel invocation can change bazel-bin's config.
+            dependsOn(":capture:copyBazel${variantName}Rust")
+            workingDir = bazelWorkspace
+            commandLine(
+                "./bazelw",
+                "build",
+                if (packaged) {
+                    "//$bazelNativePackage:gradletestapp_native.debug_info"
+                } else {
+                    "//$bazelNativePackage:libgradletestapp_native.so"
+                },
+            )
+            if (buildType != "debug") {
+                args("--config=release-android", "--config=nocache")
+            }
+            if (packaged) {
+                // The default output is stripped; objcopy produces the matching full-symbol DIF.
+                args("--android_platforms=@rules_android//:$nativeAbi", "--output_groups=+objcopy")
+            } else {
+                args("--platforms=@rules_android//:$nativeAbi")
+                if (buildType == "debug") {
+                    args("--config=android")
+                }
+            }
+        }
+    val copyNative =
+        tasks.register<Copy>("copyBazel${variantName}Native") {
+            dependsOn(buildNative)
+            val sourceDir = "bazel-bin/$bazelNativePackage" + if (packaged) "/$nativeAbi" else ""
+            from(bazelWorkspace.resolve("$sourceDir/libgradletestapp_native.so"))
+            into(layout.buildDirectory.dir("generated/jniLibs/$buildType/$nativeAbi"))
+            doFirst {
+                destinationDir.resolve("libgradletestapp_native.so").setWritable(true)
+            }
+            filePermissions { unix("rwxr-xr-x") }
+        }
+    android.sourceSets.getByName(buildType).jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/$buildType"))
+    tasks.matching { it.name == "merge${variantName}JniLibFolders" }.configureEach {
+        dependsOn(copyNative)
     }
 }
 

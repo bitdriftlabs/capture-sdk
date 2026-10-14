@@ -41,13 +41,19 @@ async fn completion_with_attachment_returns_completed_result() {
   let (sender, receiver) = oneshot::channel();
   COMPLETIONS.lock().insert(request_id, sender);
 
+  let context = HashMap::from([
+    ("memory_bytes".to_string(), "42".to_string()),
+    ("filename".to_string(), "caller-name".to_string()),
+    ("app_id".to_string(), "caller-app".to_string()),
+    ("platform".to_string(), "caller-platform".to_string()),
+    ("_build_number".to_string(), "caller-build".to_string()),
+  ]);
   complete(
     request_id,
     true,
-    &HashMap::from([("memory_bytes".to_string(), "42".to_string())]),
+    &context,
     Some(vec![1, 2, 3]),
     Some("application/octet-stream".to_string()),
-    Some("memory.bin".to_string()),
     None,
     None,
   );
@@ -60,7 +66,13 @@ async fn completion_with_attachment_returns_completed_result() {
     assert!(false, "expected completed command result");
     return;
   };
-  assert_eq!(fields.len(), 1);
+  assert_eq!(
+    fields
+      .into_iter()
+      .map(|(key, value)| (key.to_string(), value.as_str().unwrap().to_string()))
+      .collect::<HashMap<_, _>>(),
+    context
+  );
   let Some(attachment) = attachment else {
     assert!(false, "expected attachment");
     return;
@@ -69,7 +81,6 @@ async fn completion_with_attachment_returns_completed_result() {
     attachment.content_type.as_deref(),
     Some("application/octet-stream")
   );
-  assert_eq!(attachment.state.len(), 2);
   let UploadSource::Bytes(bytes) = attachment.source else {
     assert!(false, "expected bytes attachment source");
     return;
@@ -87,7 +98,6 @@ async fn failed_completion_with_unknown_code_returns_other_error_and_context() {
     request_id,
     false,
     &HashMap::from([("reason".to_string(), "unsupported".to_string())]),
-    None,
     None,
     None,
     Some("unsupported_command"),

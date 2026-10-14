@@ -1,0 +1,53 @@
+diff --git a/src/symbolize/gimli/libs_macos.rs b/src/symbolize/gimli/libs_macos.rs
+--- a/src/symbolize/gimli/libs_macos.rs
++++ b/src/symbolize/gimli/libs_macos.rs
+@@ -7,6 +7,14 @@
+ use core::convert::TryInto;
+-use core::ffi::CStr;
++use core::ffi::{c_char, CStr};
+ use core::mem;
++
++// libc exposes these declarations only on macOS, but dyld is also available on iOS.
++unsafe extern "C" {
++    fn _dyld_image_count() -> u32;
++    fn _dyld_get_image_name(image_index: u32) -> *const c_char;
++    fn _dyld_get_image_header(image_index: u32) -> *const u32;
++    fn _dyld_get_image_vmaddr_slide(image_index: u32) -> libc::intptr_t;
++}
+
+ // FIXME: replace with ptr::from_ref once MSRV is high enough
+ #[inline(always)]
+@@ -18,6 +26,6 @@
+ pub(super) fn native_libraries() -> Vec<Library> {
+     let mut ret = Vec::new();
+-    let images = unsafe { libc::_dyld_image_count() };
++    let images = unsafe { _dyld_image_count() };
+     for i in 0..images {
+         ret.extend(native_library(i));
+     }
+@@ -34,7 +42,7 @@
+     let name = unsafe {
+-        let name = libc::_dyld_get_image_name(i);
++        let name = _dyld_get_image_name(i);
+         if name.is_null() {
+             return None;
+         }
+         CStr::from_ptr(name)
+     };
+@@ -46,8 +54,8 @@
+-        let header = libc::_dyld_get_image_header(i);
++        let header = _dyld_get_image_header(i);
+         if header.is_null() {
+             return None;
+         }
+-        match (*header).magic {
++        match *header {
+             macho::MH_MAGIC => {
+                 let endian = NativeEndian;
+                 let header = &*header.cast::<macho::MachHeader32<NativeEndian>>();
+@@ -140,4 +148,4 @@
+-    let mut slide = unsafe { libc::_dyld_get_image_vmaddr_slide(i) as usize };
++    let mut slide = unsafe { _dyld_get_image_vmaddr_slide(i) as usize };
+     if !text_fileoff_zero {
+         let adjust = segments[first_text].stated_virtual_memory_address;
+         for segment in segments.iter_mut() {
