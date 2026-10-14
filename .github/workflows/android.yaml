@@ -99,12 +99,15 @@ jobs:
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
-      - name: Build Bazel APK and AAR
+      - name: Build Bazel APK and ARM64 AAR size target
         timeout-minutes: 30
         run: |
+          # The emulator is x86_64, so preserve an x86_64 APK for its tests.
+          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:x86_64 //examples/android:android_app
+
           # The size target depends on the AAR, so it is built without being a
-          # separate top-level output.
-          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:arm64-v8a //examples/android:android_app :capture_aar_so_size_arm64_v8a
+          # separate top-level output. Measure the production ARM64 library.
+          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:arm64-v8a :capture_aar_so_size_arm64_v8a
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
@@ -119,7 +122,7 @@ jobs:
         run: |
           # Get APK size
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          APK_SIZE_FILE=ci/baseline_binary_size_arm64_v8a.txt
+          APK_SIZE_FILE=ci/baseline_binary_size.txt
           stat -c%s "$APK_PATH" > "$APK_SIZE_FILE"
 
           # Get the Bazel-generated compressed arm64-v8a SO size.
@@ -137,7 +140,7 @@ jobs:
           cp "$SO_SIZE_FILE" temp-worktree/ci/
 
           cd temp-worktree
-          git add ci/baseline_binary_size_arm64_v8a.txt ci/baseline_so_size_arm64_v8a_kb.txt
+          git add ci/baseline_binary_size.txt ci/baseline_so_size_arm64_v8a_kb.txt
 
           if ! git diff --cached --quiet; then
             git commit -m "ci: update APK and AAR SO size baselines [skip ci]"
@@ -154,9 +157,7 @@ jobs:
         run: |
           git fetch origin ci-baseline
           git worktree add temp-baseline origin/ci-baseline
-          if [ -f temp-baseline/ci/baseline_binary_size_arm64_v8a.txt ]; then
-            cp temp-baseline/ci/baseline_binary_size_arm64_v8a.txt ci/
-          fi
+          cp temp-baseline/ci/baseline_binary_size.txt ci/
           if [ -f temp-baseline/ci/baseline_so_size_arm64_v8a_kb.txt ]; then
             cp temp-baseline/ci/baseline_so_size_arm64_v8a_kb.txt ci/
           fi
@@ -167,7 +168,7 @@ jobs:
         id: apk_size
         run: |
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          BASELINE_PATH=ci/baseline_binary_size_arm64_v8a.txt
+          BASELINE_PATH=ci/baseline_binary_size.txt
 
           if [ -z "$APK_PATH" ]; then
             echo "Current APK file not found!"
