@@ -128,7 +128,7 @@ object SampleCommands {
                 when (result) {
                     is StackSamplingProfiler.Result.Trace ->
                         success(
-                            attachment = CommandAttachment(result.bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
+                            attachment = CommandAttachment(result.bytes, contentType = "application/x-perfetto-trace"),
                             context =
                                 mapOf(
                                     "duration_ms" to durationMs.toString(),

@@ -75,6 +75,7 @@ class MainViewModel(
 
     init {
         registerUiStateCommand()
+        SampleCommands.register(application)
         viewModelScope.launch {
             CaptureSdkInitializer.sdkInitializationState.collect { initialized ->
                 when (initialized) {
