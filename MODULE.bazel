@@ -514,6 +514,14 @@ crate.annotation(
     rustc_flags = ["--check-cfg=cfg(anyhow_no_backtrace)"],
 )
 
+# libc 0.2.190 made its dyld declarations macOS-only; backtrace also uses them on iOS.
+# Remove this patch when upstream backtrace declares its own Apple dyld FFI.
+crate.annotation(
+    crate = "backtrace",
+    patch_args = ["-p1"],
+    patches = ["//bazel/third_party:backtrace_apple_dyld.patch"],
+)
+
 # File generation must be skipped because of https://github.com/bazelbuild/rules_rust/issues/3552
 crate.annotation(
     build_script_env = {"SKIP_PROTO_GEN": "1"},

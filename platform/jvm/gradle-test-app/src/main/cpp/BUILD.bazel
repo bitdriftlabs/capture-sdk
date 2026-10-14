@@ -1,0 +1,25 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("//bazel:android_debug_info.bzl", "android_debug_info")
+
+# Keep DWARF in the build input; the debug-info rule extracts it before stripping the APK copy.
+cc_binary(
+    name = "libgradletestapp_native.so",
+    srcs = ["native_threads.c"],
+    copts = ["-g"],
+    linkopts = [
+        "-llog",
+        "-Wl,-z,max-page-size=16384",
+    ],
+    linkshared = True,
+    linkstatic = True,
+    target_compatible_with = ["@platforms//os:android"],
+    visibility = ["//visibility:public"],
+)
+
+# Release APKs consume the stripped default output; full symbols are in the objcopy output group.
+# Debug/profileable APKs consume the unstripped cc_binary directly.
+android_debug_info(
+    name = "gradletestapp_native.debug_info",
+    dep = ":libgradletestapp_native.so",
+    visibility = ["//visibility:public"],
+)
