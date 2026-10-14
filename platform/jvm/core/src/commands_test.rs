@@ -8,6 +8,7 @@
 #![allow(clippy::unwrap_used)]
 
 use super::*;
+use bd_artifact_upload::UploadSource;
 use bd_proto::protos::logging::payload::{ArrayData, BinaryData, MapData};
 use jni::objects::{JClass, JObject, JObjectArray, JString};
 
@@ -121,36 +122,37 @@ fn type_codes_match_the_kotlin_and_ios_contract() {
   assert_eq!(PlatformArgument::Bool(false).type_code(), 5);
 }
 
-// Attachments carry a required filename, as the `filename` attachment state field, and content
-// type.
-
 #[test]
-fn completed_attachment_records_filename_and_content_type() {
+fn completed_attachment_preserves_result_context_and_payload() {
+  let context: LogFields = [
+    ("filename".into(), "caller-name".into()),
+    ("platform".into(), "caller-platform".into()),
+    ("app_id".into(), "caller-app".into()),
+    ("_app_version_code".into(), "caller-build".into()),
+    ("custom".into(), "caller-value".into()),
+  ]
+  .into();
   let result = completed_result(
-    LogFields::default(),
+    context.clone(),
     Some(PlatformAttachment {
       bytes: vec![0xFF, 0xD8],
-      filename: "screen.jpg".to_string(),
       content_type: "image/jpeg".to_string(),
     }),
   );
 
   let CommandResult::Completed {
     attachment: Some(attachment),
-    ..
+    fields,
   } = result
   else {
     panic!("expected a completed result with an attachment");
   };
+  assert_eq!(fields, context);
   assert_eq!(attachment.content_type.as_deref(), Some("image/jpeg"));
-  assert_eq!(
-    attachment
-      .state
-      .get("filename")
-      .and_then(|value| value.as_str()),
-    Some("screen.jpg"),
-    "filename must travel as the `filename` attachment state field"
-  );
+  let UploadSource::Bytes(bytes) = attachment.source else {
+    panic!("expected attachment bytes");
+  };
+  assert_eq!(bytes, vec![0xFF, 0xD8]);
 }
 
 #[test]
@@ -202,7 +204,6 @@ fn malformed_jni_completion_completes_and_clears_exception() -> anyhow::Result<(
       JObjectArray::from(JObject::null()),
       JObject::null(),
       JString::from(JObject::null()),
-      JString::from(JObject::null()),
     );
 
     assert!(!env.exception_check()?);
@@ -210,7 +211,7 @@ fn malformed_jni_completion_completes_and_clears_exception() -> anyhow::Result<(
       receiver.try_recv()?,
       CommandResult::Failed { error, fields }
         if matches!(
-          error,
+          &error,
           CommandError::HandlerFailed(message)
             if message.starts_with("failed to convert command completion:")
         ) && fields.is_empty()

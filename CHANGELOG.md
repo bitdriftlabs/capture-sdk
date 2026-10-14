@@ -11,7 +11,9 @@
 
 **Changed**
 
-- Nothing yet!
+- Command attachments no longer accept a filename. Construct attachments with payload and MIME
+  type only; command artifact metadata is supplied by the SDK using app identity and version
+  code/build number. Command result context remains separate from attachment metadata.
 
 **Fixed**
 

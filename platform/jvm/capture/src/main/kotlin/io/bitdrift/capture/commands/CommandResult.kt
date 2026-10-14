@@ -42,11 +42,9 @@ sealed class CommandResult {
  * A binary payload returned by a successful command, uploaded as an artifact.
  *
  * @param bytes the payload.
- * @param filename the name the artifact is shown with, e.g. `memory.json`.
  * @param contentType the MIME type of the payload, e.g. `application/json`.
  */
 class CommandAttachment(
     val bytes: ByteArray,
-    val filename: String,
     val contentType: String,
 )

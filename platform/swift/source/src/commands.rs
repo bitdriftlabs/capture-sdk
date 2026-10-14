@@ -33,7 +33,6 @@ mod commands_test;
 const ARGUMENT_NAME_KEY: &str = "name";
 const ARGUMENT_TYPE_KEY: &str = "type";
 const ARGUMENT_VALUE_KEY: &str = "value";
-const ATTACHMENT_FILENAME_FIELD: &str = "filename";
 
 const ARGUMENT_TYPE_STRING: usize = 0;
 const ARGUMENT_TYPE_BINARY: usize = 1;
@@ -134,23 +133,15 @@ pub fn result_from_platform_completion<S: BuildHasher>(
   context: &HashMap<String, String, S>,
   attachment: Option<Vec<u8>>,
   attachment_mime_type: Option<String>,
-  attachment_filename: Option<String>,
   error_code: Option<&str>,
   error_message: Option<String>,
 ) -> CommandResult {
   if succeeded {
     let attachment = attachment
       .zip(attachment_mime_type)
-      .map(|(bytes, content_type)| {
-        let mut state = context_to_fields(context);
-        if let Some(filename) = attachment_filename {
-          state.insert(ATTACHMENT_FILENAME_FIELD.into(), filename.into());
-        }
-        CommandAttachment {
-          source: UploadSource::Bytes(bytes),
-          content_type: Some(content_type),
-          state,
-        }
+      .map(|(bytes, content_type)| CommandAttachment {
+        source: UploadSource::Bytes(bytes),
+        content_type: Some(content_type),
       });
     CommandResult::Completed {
       fields: context_to_fields(context),

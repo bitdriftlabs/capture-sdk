@@ -1391,7 +1391,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
   error_message: JString<'_>,
   fields: JObjectArray<'_>,
   attachment: JObject<'_>,
-  attachment_filename: JString<'_>,
   attachment_content_type: JString<'_>,
 ) {
   let invocation_id = invocation_id.cast_unsigned();
@@ -1407,7 +1406,6 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
         &error_message,
         &fields,
         &attachment,
-        &attachment_filename,
         &attachment_content_type,
       );
       commands::complete_taken_invocation(invocation_id, sender, result);
@@ -1423,7 +1421,6 @@ fn command_completion_result(
   error_message: &JString<'_>,
   fields: &JObjectArray<'_>,
   attachment: &JObject<'_>,
-  attachment_filename: &JString<'_>,
   attachment_content_type: &JString<'_>,
 ) -> bd_logger::CommandResult {
   (|| -> anyhow::Result<bd_logger::CommandResult> {
@@ -1433,10 +1430,9 @@ fn command_completion_result(
         let attachment = if attachment.is_null() {
           None
         } else {
-          // Kotlin guarantees filename and content type are present whenever the bytes are.
+          // Kotlin guarantees content type is present whenever the bytes are.
           Some(commands::PlatformAttachment {
             bytes: env.convert_byte_array(<&JByteArray<'_>>::from(attachment))?,
-            filename: unsafe { env.get_string_unchecked(attachment_filename) }?.into(),
             content_type: unsafe { env.get_string_unchecked(attachment_content_type) }?.into(),
           })
         };

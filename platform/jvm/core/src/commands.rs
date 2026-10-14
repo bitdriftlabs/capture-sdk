@@ -67,13 +67,9 @@ pub(crate) fn complete_taken_invocation(
   }
 }
 
-/// Attachment state key for the filename; shared with the iOS bridge.
-const ATTACHMENT_FILENAME_FIELD: &str = "filename";
-
 /// A successful result's attachment as reported by Kotlin.
 pub(crate) struct PlatformAttachment {
   pub bytes: Vec<u8>,
-  pub filename: String,
   pub content_type: String,
 }
 
@@ -86,7 +82,6 @@ pub(crate) fn completed_result(
     attachment: attachment.map(|attachment| CommandAttachment {
       source: bd_artifact_upload::UploadSource::Bytes(attachment.bytes),
       content_type: Some(attachment.content_type),
-      state: [(ATTACHMENT_FILENAME_FIELD.into(), attachment.filename.into())].into(),
     }),
   }
 }

@@ -195,6 +195,24 @@ impl bd_api::Metadata for Mobile {
     self.device.id()
   }
 
+  fn command_artifact_metadata(&self) -> HashMap<String, String> {
+    let mut identity = self.collect_inner();
+    identity.retain(|key, _| matches!(key.as_str(), "app_id" | "app_version"));
+    identity.insert("platform".to_string(), self.platform.as_str().to_string());
+    match &self.platform_static_fields {
+      PlatformStaticFields::Android(android) => {
+        identity.insert(
+          "_app_version_code".to_string(),
+          android.app_version_code.to_string(),
+        );
+      },
+      PlatformStaticFields::Apple(apple) => {
+        identity.insert("_build_number".to_string(), apple.build_number.clone());
+      },
+    }
+    identity
+  }
+
   fn collect_inner(&self) -> HashMap<String, String> {
     let mut metadata_map = HashMap::new();
 

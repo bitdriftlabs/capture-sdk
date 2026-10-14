@@ -20,4 +20,7 @@ object NativeThreads {
      */
     @JvmStatic
     external fun spawn(count: Int): Int
+
+    @JvmStatic
+    external fun runCpuWorkload(durationMs: Long)
 }

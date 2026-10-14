@@ -7,10 +7,34 @@
 
 #include <jni.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 #include <unistd.h>
 
 #define NATIVE_THREAD_STACK_SIZE (64 * 1024)
+
+static __attribute__((noinline)) void perfetto_native_cpu_workload(jlong duration_ms) {
+  struct timespec current;
+  clock_gettime(CLOCK_MONOTONIC, &current);
+  int64_t deadline = (int64_t)current.tv_sec * 1000000000 + current.tv_nsec + duration_ms * 1000000;
+  volatile uint64_t accumulator = 1;
+  do {
+    for (int iteration = 0; iteration < 10000; iteration++) {
+      accumulator = accumulator * 1664525 + 1013904223;
+    }
+    clock_gettime(CLOCK_MONOTONIC, &current);
+  } while ((int64_t)current.tv_sec * 1000000000 + current.tv_nsec < deadline);
+}
+
+JNIEXPORT void JNICALL
+Java_io_bitdrift_gradletestapp_diagnostics_fatalissues_NativeThreads_runCpuWorkload(JNIEnv *env, jclass clazz, jlong duration_ms) {
+  (void)env;
+  (void)clazz;
+  if (duration_ms > 0 && duration_ms <= 4000) {
+    perfetto_native_cpu_workload(duration_ms);
+  }
+}
 
 static void *block_forever(void *arg) {
   (void)arg;

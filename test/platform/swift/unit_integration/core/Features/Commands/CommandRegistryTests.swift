@@ -20,13 +20,20 @@ final class CommandRegistryTests: XCTestCase {
     }
 
     func testRegisteringCommandExecutesHandlerWithNamedArguments() async throws {
+        let attachment = CommandAttachment(data: Data([0xff, 0x00, 0x80]), mimeType: "application/octet-stream")
+        let context = ["filename": "caller-name", "app_id": "caller-app", "_build_number": "caller-build"]
         await givenRegisteredCommand(key: "flip_flag") { arguments in
-            .success(CommandResult(context: ["flag": arguments.string(for: "flag") ?? ""]))
+            var resultContext = context
+            resultContext["flag"] = arguments.string(for: "flag") ?? ""
+            return .success(CommandResult(attachment: attachment, context: resultContext))
         }
 
         let result = await whenExecutingCommand(key: "flip_flag", arguments: ["flag": .string("dark_mode")])
 
-        try thenResultIsSuccess(result, context: ["flag": "dark_mode"])
+        var expectedContext = context
+        expectedContext["flag"] = "dark_mode"
+        try thenResultIsSuccess(result, context: expectedContext)
+        XCTAssertEqual(try result.get().attachment, attachment)
     }
 
     func testInitialCommandsAreAvailableBeforeAnyDynamicRegistration() async throws {
