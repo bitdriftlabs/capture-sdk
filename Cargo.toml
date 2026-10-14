@@ -11,12 +11,14 @@ members = [
   "test/platform/jvm",
   "test/platform/swift/bridging",
   "test/platform/pom_checker",
+  "tools/capture-dev",
 ]
 resolver = "3"
 
 [workspace.dependencies]
 ahash = "0.8.12"
 android_logger = { version = "0.15.1", default-features = false }
+anstyle = "1.0.14"
 anyhow = "1.0.104"
 assert_matches = "1.5.0"
 async-trait = "0.1.92"
