@@ -99,12 +99,12 @@ jobs:
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
-      - name: Build Bazel multi-ABI APK and ARM64 AAR size target
+      - name: Build Bazel multi-ABI APK and AAR size targets
         timeout-minutes: 30
         run: |
           # Package both the emulator ABI and the production ABI in one build.
-          # The size target extracts only the ARM64 library from the resulting AAR.
-          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_arm64_v8a
+          # The size targets extract each library from the resulting AAR.
+          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_arm64_v8a :capture_aar_so_size_x86_64
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
@@ -122,10 +122,13 @@ jobs:
           APK_SIZE_FILE=ci/baseline_binary_size_arm64_v8a_x86_64.txt
           stat -c%s "$APK_PATH" > "$APK_SIZE_FILE"
 
-          # Get the Bazel-generated compressed arm64-v8a SO size.
-          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_arm64_v8a_kb.txt)
-          SO_SIZE_FILE=ci/baseline_so_size_arm64_v8a_kb.txt
-          echo "$SO_SIZE_KB" > "$SO_SIZE_FILE"
+          # Get the Bazel-generated compressed SO sizes for each packaged ABI.
+          ARM64_SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_arm64_v8a_kb.txt)
+          ARM64_SO_SIZE_FILE=ci/baseline_so_size_arm64_v8a_kb.txt
+          echo "$ARM64_SO_SIZE_KB" > "$ARM64_SO_SIZE_FILE"
+          X86_64_SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
+          X86_64_SO_SIZE_FILE=ci/baseline_so_size_x86_64_kb.txt
+          echo "$X86_64_SO_SIZE_KB" > "$X86_64_SO_SIZE_FILE"
 
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
@@ -134,10 +137,11 @@ jobs:
           git worktree add temp-worktree origin/ci-baseline
 
           cp "$APK_SIZE_FILE" temp-worktree/ci/
-          cp "$SO_SIZE_FILE" temp-worktree/ci/
+          cp "$ARM64_SO_SIZE_FILE" temp-worktree/ci/
+          cp "$X86_64_SO_SIZE_FILE" temp-worktree/ci/
 
           cd temp-worktree
-          git add ci/baseline_binary_size_arm64_v8a_x86_64.txt ci/baseline_so_size_arm64_v8a_kb.txt
+          git add ci/baseline_binary_size_arm64_v8a_x86_64.txt ci/baseline_so_size_arm64_v8a_kb.txt ci/baseline_so_size_x86_64_kb.txt
 
           if ! git diff --cached --quiet; then
             git commit -m "ci: update APK and AAR SO size baselines [skip ci]"
@@ -159,6 +163,9 @@ jobs:
           fi
           if [ -f temp-baseline/ci/baseline_so_size_arm64_v8a_kb.txt ]; then
             cp temp-baseline/ci/baseline_so_size_arm64_v8a_kb.txt ci/
+          fi
+          if [ -f temp-baseline/ci/baseline_so_size_x86_64_kb.txt ]; then
+            cp temp-baseline/ci/baseline_so_size_x86_64_kb.txt ci/
           fi
           git worktree remove temp-baseline --force
 
@@ -189,15 +196,39 @@ jobs:
             echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
           fi
 
-      - name: Compute and compare AAR SO size
+      - name: Compute and compare ARM64 AAR SO size
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        id: so_size
+        id: arm64_so_size
         run: |
           SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_arm64_v8a_kb.txt)
           BASELINE_PATH=ci/baseline_so_size_arm64_v8a_kb.txt
 
           if [ -z "$SO_SIZE_KB" ]; then
             echo "Current SO size not found!"
+            exit 1
+          fi
+
+          echo "current_kb=$SO_SIZE_KB" >> $GITHUB_OUTPUT
+
+          if [ ! -f "$BASELINE_PATH" ]; then
+            echo "baseline_kb=" >> $GITHUB_OUTPUT
+            echo "diff_kb=" >> $GITHUB_OUTPUT
+          else
+            BASELINE_KB=$(cat "$BASELINE_PATH")
+            DIFF_KB=$((SO_SIZE_KB - BASELINE_KB))
+            echo "baseline_kb=$BASELINE_KB" >> $GITHUB_OUTPUT
+            echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compute and compare x86_64 AAR SO size
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        id: x86_64_so_size
+        run: |
+          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
+          BASELINE_PATH=ci/baseline_so_size_x86_64_kb.txt
+
+          if [ -z "$SO_SIZE_KB" ]; then
+            echo "Current x86_64 SO size not found!"
             exit 1
           fi
 
@@ -221,38 +252,36 @@ jobs:
           APK_CURRENT_KB: ${{ steps.apk_size.outputs.current_kb }}
           APK_BASELINE_KB: ${{ steps.apk_size.outputs.baseline_kb }}
           APK_DIFF_KB: ${{ steps.apk_size.outputs.diff_kb }}
-          SO_CURRENT_KB: ${{ steps.so_size.outputs.current_kb }}
-          SO_BASELINE_KB: ${{ steps.so_size.outputs.baseline_kb }}
-          SO_DIFF_KB: ${{ steps.so_size.outputs.diff_kb }}
+          ARM64_SO_CURRENT_KB: ${{ steps.arm64_so_size.outputs.current_kb }}
+          ARM64_SO_BASELINE_KB: ${{ steps.arm64_so_size.outputs.baseline_kb }}
+          ARM64_SO_DIFF_KB: ${{ steps.arm64_so_size.outputs.diff_kb }}
+          X86_64_SO_CURRENT_KB: ${{ steps.x86_64_so_size.outputs.current_kb }}
+          X86_64_SO_BASELINE_KB: ${{ steps.x86_64_so_size.outputs.baseline_kb }}
+          X86_64_SO_DIFF_KB: ${{ steps.x86_64_so_size.outputs.diff_kb }}
         with:
           script: |
             const apkCurrent = process.env.APK_CURRENT_KB;
             const apkBaseline = process.env.APK_BASELINE_KB;
             const apkDiff = process.env.APK_DIFF_KB;
-            const soCurrent = process.env.SO_CURRENT_KB;
-            const soBaseline = process.env.SO_BASELINE_KB;
-            const soDiff = process.env.SO_DIFF_KB;
+            const arm64SoCurrent = process.env.ARM64_SO_CURRENT_KB;
+            const arm64SoBaseline = process.env.ARM64_SO_BASELINE_KB;
+            const arm64SoDiff = process.env.ARM64_SO_DIFF_KB;
+            const x86_64SoCurrent = process.env.X86_64_SO_CURRENT_KB;
+            const x86_64SoBaseline = process.env.X86_64_SO_BASELINE_KB;
+            const x86_64SoDiff = process.env.X86_64_SO_DIFF_KB;
 
             const marker = '<!-- android-size-report-comment -->';
             let body = `${marker}\n## Android Size Comparison Report (arm64-v8a + x86_64)\n\n`;
 
-            // Combined table for both APK and SO sizes
-            if ((apkBaseline && apkBaseline !== '') || (soBaseline && soBaseline !== '')) {
+            if ((apkBaseline && apkBaseline !== '') || (arm64SoBaseline && arm64SoBaseline !== '') || (x86_64SoBaseline && x86_64SoBaseline !== '')) {
               body += `
-              | Metric     | APK (KB) | SO (KB) |
-              |------------|-----------|---------|`;
-              
-              if (apkBaseline && apkBaseline !== '') {
-                body += `
-              | Baseline   | ${apkBaseline} | ${soBaseline || 'N/A'} |`;
-              }
-              
-              body += `
-              | Current    | ${apkCurrent} | ${soCurrent} |
-              | Difference | ${apkDiff || 'N/A'} | ${soDiff || 'N/A'} |
+              | Metric     | APK multi-ABI (KB) | SO arm64-v8a (KB) | SO x86_64 (KB) |
+              |------------|--------------------|-------------------|-----------------|
+              | Baseline   | ${apkBaseline || 'N/A'} | ${arm64SoBaseline || 'N/A'} | ${x86_64SoBaseline || 'N/A'} |
+              | Current    | ${apkCurrent} | ${arm64SoCurrent} | ${x86_64SoCurrent} |
+              | Difference | ${apkDiff || 'N/A'} | ${arm64SoDiff || 'N/A'} | ${x86_64SoDiff || 'N/A'} |
               `;
 
-              // Summary for APK
               if (apkBaseline && apkBaseline !== '') {
                 if (parseInt(apkDiff, 10) > 0) {
                   body += `\n> APK size increased by ${apkDiff} KB.`;
@@ -263,18 +292,22 @@ jobs:
                 }
               }
 
-              // Summary for SO
-              if (soBaseline && soBaseline !== '') {
-                if (parseInt(soDiff, 10) > 0) {
-                  body += ` SO size increased by ${soDiff} KB.`;
-                } else if (parseInt(soDiff, 10) < 0) {
-                  body += ` SO size decreased by ${Math.abs(soDiff)} KB.`;
-                } else {
-                  body += ` SO size unchanged.`;
+              for (const [abi, baseline, diff] of [
+                ['arm64-v8a', arm64SoBaseline, arm64SoDiff],
+                ['x86_64', x86_64SoBaseline, x86_64SoDiff],
+              ]) {
+                if (baseline && baseline !== '') {
+                  if (parseInt(diff, 10) > 0) {
+                    body += `\n> ${abi} SO size increased by ${diff} KB.`;
+                  } else if (parseInt(diff, 10) < 0) {
+                    body += `\n> ${abi} SO size decreased by ${Math.abs(diff)} KB.`;
+                  } else {
+                    body += `\n> ${abi} SO size unchanged.`;
+                  }
                 }
               }
             } else {
-              body += `Current sizes: APK ${apkCurrent} KB, SO ${soCurrent} KB (No baselines available for comparison).`;
+              body += `Current sizes: multi-ABI APK ${apkCurrent} KB, arm64-v8a SO ${arm64SoCurrent} KB, x86_64 SO ${x86_64SoCurrent} KB (No baselines available for comparison).`;
             }
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
