@@ -104,7 +104,7 @@ jobs:
         run: |
           # The size target depends on the AAR, so it is built without being a
           # separate top-level output.
-          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_x86_64
+          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:arm64-v8a //examples/android:android_app :capture_aar_so_size_arm64_v8a
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
@@ -119,12 +119,12 @@ jobs:
         run: |
           # Get APK size
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          APK_SIZE_FILE=ci/baseline_binary_size.txt
+          APK_SIZE_FILE=ci/baseline_binary_size_arm64_v8a.txt
           stat -c%s "$APK_PATH" > "$APK_SIZE_FILE"
 
-          # Get the Bazel-generated compressed x86_64 SO size.
-          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
-          SO_SIZE_FILE=ci/baseline_so_size_x86_64_kb.txt
+          # Get the Bazel-generated compressed arm64-v8a SO size.
+          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_arm64_v8a_kb.txt)
+          SO_SIZE_FILE=ci/baseline_so_size_arm64_v8a_kb.txt
           echo "$SO_SIZE_KB" > "$SO_SIZE_FILE"
 
           git config user.name "github-actions"
@@ -137,7 +137,7 @@ jobs:
           cp "$SO_SIZE_FILE" temp-worktree/ci/
 
           cd temp-worktree
-          git add ci/baseline_binary_size.txt ci/baseline_so_size_x86_64_kb.txt
+          git add ci/baseline_binary_size_arm64_v8a.txt ci/baseline_so_size_arm64_v8a_kb.txt
 
           if ! git diff --cached --quiet; then
             git commit -m "ci: update APK and AAR SO size baselines [skip ci]"
@@ -154,9 +154,11 @@ jobs:
         run: |
           git fetch origin ci-baseline
           git worktree add temp-baseline origin/ci-baseline
-          cp temp-baseline/ci/baseline_binary_size.txt ci/
-          if [ -f temp-baseline/ci/baseline_so_size_x86_64_kb.txt ]; then
-            cp temp-baseline/ci/baseline_so_size_x86_64_kb.txt ci/
+          if [ -f temp-baseline/ci/baseline_binary_size_arm64_v8a.txt ]; then
+            cp temp-baseline/ci/baseline_binary_size_arm64_v8a.txt ci/
+          fi
+          if [ -f temp-baseline/ci/baseline_so_size_arm64_v8a_kb.txt ]; then
+            cp temp-baseline/ci/baseline_so_size_arm64_v8a_kb.txt ci/
           fi
           git worktree remove temp-baseline --force
 
@@ -165,7 +167,7 @@ jobs:
         id: apk_size
         run: |
           APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
-          BASELINE_PATH=ci/baseline_binary_size.txt
+          BASELINE_PATH=ci/baseline_binary_size_arm64_v8a.txt
 
           if [ -z "$APK_PATH" ]; then
             echo "Current APK file not found!"
@@ -191,8 +193,8 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: so_size
         run: |
-          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
-          BASELINE_PATH=ci/baseline_so_size_x86_64_kb.txt
+          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_arm64_v8a_kb.txt)
+          BASELINE_PATH=ci/baseline_so_size_arm64_v8a_kb.txt
 
           if [ -z "$SO_SIZE_KB" ]; then
             echo "Current SO size not found!"
@@ -232,7 +234,7 @@ jobs:
             const soDiff = process.env.SO_DIFF_KB;
 
             const marker = '<!-- android-size-report-comment -->';
-            let body = `${marker}\n## Android Size Comparison Report (x86_64)\n\n`;
+            let body = `${marker}\n## Android Size Comparison Report (arm64-v8a)\n\n`;
 
             // Combined table for both APK and SO sizes
             if ((apkBaseline && apkBaseline !== '') || (soBaseline && soBaseline !== '')) {
