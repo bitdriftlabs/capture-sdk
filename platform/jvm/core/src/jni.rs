@@ -1393,37 +1393,103 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
   attachment: JObject<'_>,
   attachment_content_type: JString<'_>,
 ) {
+  let invocation_id = invocation_id.cast_unsigned();
+  let Some(sender) = commands::take_invocation(invocation_id) else {
+    log::debug!("ignoring completion for unknown command invocation {invocation_id}");
+    return;
+  };
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let fields = ffi::jarray_to_fields(&mut env, &fields)?;
-      let result = if error_code.is_null() {
+      let result = command_completion_result(
+        &mut env,
+        &error_code,
+        &error_message,
+        &fields,
+        &attachment,
+        &attachment_content_type,
+      );
+      commands::complete_taken_invocation(invocation_id, sender, result);
+      Ok(())
+    },
+    "jni complete command",
+  );
+}
+
+fn command_completion_result(
+  env: &mut JNIEnv<'_>,
+  error_code: &JString<'_>,
+  error_message: &JString<'_>,
+  fields: &JObjectArray<'_>,
+  attachment: &JObject<'_>,
+  attachment_content_type: &JString<'_>,
+) -> bd_logger::CommandResult {
+  (|| -> anyhow::Result<bd_logger::CommandResult> {
+    let fields = ffi::jarray_to_fields(env, fields)?;
+    Ok(
+      if error_code.is_null() {
         let attachment = if attachment.is_null() {
           None
         } else {
           // Kotlin guarantees content type is present whenever the bytes are.
           Some(commands::PlatformAttachment {
-            bytes: env.convert_byte_array(JByteArray::from(attachment))?,
-            content_type: unsafe { env.get_string_unchecked(&attachment_content_type) }?.into(),
+            bytes: env.convert_byte_array(<&JByteArray<'_>>::from(attachment))?,
+            content_type: unsafe { env.get_string_unchecked(attachment_content_type) }?.into(),
           })
         };
         commands::completed_result(fields, attachment)
       } else {
-        let error_code: String = unsafe { env.get_string_unchecked(&error_code) }?.into();
+        let error_code: String = unsafe { env.get_string_unchecked(error_code) }?.into();
         let error_message = if error_message.is_null() {
           None
         } else {
-          Some(unsafe { env.get_string_unchecked(&error_message) }?.into())
+          Some(unsafe { env.get_string_unchecked(error_message) }?.into())
         };
         bd_logger::CommandResult::Failed {
-          error: commands::command_error(&error_code, error_message),
+          error: platform_shared::command_error::from_command_error_wire(
+            Some(&error_code),
+            error_message,
+          ),
           fields,
         }
-      };
-      commands::complete_invocation(invocation_id.cast_unsigned(), result);
-      Ok(())
+      },
+    )
+  })()
+  .unwrap_or_else(|error| failed_command_completion_result(env, &error))
+}
+
+fn failed_command_completion_result(
+  env: &mut JNIEnv<'_>,
+  error: &anyhow::Error,
+) -> bd_logger::CommandResult {
+  clear_pending_command_completion_exception(env);
+  commands::failed_result(bd_logger::CommandError::HandlerFailed(format!(
+    "failed to convert command completion: {error}"
+  )))
+}
+
+fn clear_pending_command_completion_exception(env: &mut JNIEnv<'_>) {
+  match crate::executor::check_exception(env) {
+    Ok(Some(exception)) => {
+      log::error!("cleared pending JNI exception while converting command completion: {exception}");
     },
-    "jni complete command",
-  );
+    Ok(None) => {},
+    Err(error) => {
+      log::error!(
+        "failed to report pending JNI exception while converting command completion: {error}"
+      );
+      match env.exception_check() {
+        Ok(true) => {
+          if let Err(clear_error) = env.exception_clear() {
+            log::error!("failed to clear pending JNI exception: {clear_error}");
+          }
+        },
+        Ok(false) => {},
+        Err(check_error) => {
+          log::error!("failed to check for a pending JNI exception: {check_error}");
+        },
+      }
+    },
+  }
 }
 
 #[unsafe(no_mangle)]

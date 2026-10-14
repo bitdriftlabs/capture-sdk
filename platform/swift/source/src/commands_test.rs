@@ -48,14 +48,17 @@ async fn completion_with_attachment_returns_completed_result() {
     ("platform".to_string(), "caller-platform".to_string()),
     ("_build_number".to_string(), "caller-build".to_string()),
   ]);
-  complete(
+  complete_taken(
     request_id,
-    true,
-    &context,
-    Some(vec![1, 2, 3]),
-    Some("application/octet-stream".to_string()),
-    None,
-    None,
+    take_completion(request_id).unwrap(),
+    result_from_platform_completion(
+      true,
+      &context,
+      Some(vec![1, 2, 3]),
+      Some("application/octet-stream".to_string()),
+      None,
+      None,
+    ),
   );
 
   let Ok(result) = receiver.await else {
@@ -94,14 +97,17 @@ async fn failed_completion_with_unknown_code_returns_other_error_and_context() {
   let (sender, receiver) = oneshot::channel();
   COMPLETIONS.lock().insert(request_id, sender);
 
-  complete(
+  complete_taken(
     request_id,
-    false,
-    &HashMap::from([("reason".to_string(), "unsupported".to_string())]),
-    None,
-    None,
-    Some("unsupported_command"),
-    Some("Unsupported command".to_string()),
+    take_completion(request_id).unwrap(),
+    result_from_platform_completion(
+      false,
+      &HashMap::from([("reason".to_string(), "unsupported".to_string())]),
+      None,
+      None,
+      Some("unsupported_command"),
+      Some("Unsupported command".to_string()),
+    ),
   );
 
   let Ok(result) = receiver.await else {
@@ -116,35 +122,28 @@ async fn failed_completion_with_unknown_code_returns_other_error_and_context() {
   assert_eq!(fields.len(), 1);
 }
 
-#[test]
-fn command_error_maps_known_codes_to_typed_errors() {
-  for (code, message, expected) in [
-    ("command_unknown", None, CommandError::CommandUnknown),
-    (
-      "max_command_concurrency",
-      None,
-      CommandError::MaxCommandConcurrency,
+#[tokio::test]
+async fn conversion_failure_completes_the_pending_request() {
+  let request_id = NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed);
+  let (sender, receiver) = oneshot::channel();
+  COMPLETIONS.lock().insert(request_id, sender);
+
+  complete_taken(
+    request_id,
+    take_completion(request_id).unwrap(),
+    failed_result(
+      CommandError::HandlerFailed(
+        "failed to convert command completion: simulated allocation failure".into(),
+      ),
+      &HashMap::new(),
     ),
-    (
-      "command_already_executing",
-      None,
-      CommandError::AlreadyExecuting,
-    ),
-    (
-      "invalid_arguments",
-      Some("argument 'verbose' has an invalid value"),
-      CommandError::InvalidArguments("argument 'verbose' has an invalid value".into()),
-    ),
-    (
-      "handler_failed",
-      Some("capture failed"),
-      CommandError::HandlerFailed("capture failed".into()),
-    ),
-    ("timeout", None, CommandError::Timeout),
-  ] {
-    assert_eq!(
-      command_error(Some(code), message.map(str::to_string)),
-      expected,
-    );
-  }
+  );
+
+  assert!(matches!(
+    receiver.await.unwrap(),
+    CommandResult::Failed { error, fields }
+      if error == CommandError::HandlerFailed(
+        "failed to convert command completion: simulated allocation failure".into(),
+      ) && fields.is_empty()
+  ));
 }

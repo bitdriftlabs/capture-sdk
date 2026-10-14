@@ -46,7 +46,7 @@ actor CommandRegistry {
         }
         return CommandHandle { [weak self, weak registration] in
             guard let registration else { return }
-            await self?.unregister(key: key, matching: registration)
+            _ = await self?.unregister(key: key, matching: registration)
         }
     }
 
@@ -69,14 +69,15 @@ actor CommandRegistry {
         return await registration.handler(arguments)
     }
 
-    func unregister(key: String) {
+    func unregister(key: String) -> Bool {
         unregister(key: key, matching: nil)
     }
 
-    private func unregister(key: String, matching expectedRegistration: Registration?) {
-        guard let registration = registrations[key] else { return }
-        guard expectedRegistration == nil || registration === expectedRegistration else { return }
+    private func unregister(key: String, matching expectedRegistration: Registration?) -> Bool {
+        guard let registration = registrations[key] else { return false }
+        guard expectedRegistration == nil || registration === expectedRegistration else { return false }
         registrations.removeValue(forKey: key)
         bridge?.unregisterCommand(key: key)
+        return true
     }
 }

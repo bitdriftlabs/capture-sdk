@@ -10,6 +10,7 @@
 use super::*;
 use bd_artifact_upload::UploadSource;
 use bd_proto::protos::logging::payload::{ArrayData, BinaryData, MapData};
+use jni::objects::{JClass, JObject, JObjectArray, JString};
 
 fn data(data_type: Data_type) -> Data {
   Data {
@@ -162,4 +163,59 @@ fn completed_result_without_attachment_has_no_attachment_state() {
     panic!("expected a completed result");
   };
   assert!(attachment.is_none());
+}
+
+#[tokio::test]
+async fn conversion_failure_completes_the_pending_invocation() {
+  let invocation_id = NEXT_INVOCATION_ID.fetch_add(1, Ordering::Relaxed);
+  let (sender, receiver) = oneshot::channel();
+  pending_invocations().insert(invocation_id, sender);
+
+  complete_taken_invocation(
+    invocation_id,
+    take_invocation(invocation_id).unwrap(),
+    failed_result(CommandError::HandlerFailed(
+      "failed to convert command completion: simulated allocation failure".into(),
+    )),
+  );
+
+  assert!(matches!(
+    receiver.await.unwrap(),
+    CommandResult::Failed { error, fields }
+      if error == CommandError::HandlerFailed(
+        "failed to convert command completion: simulated allocation failure".into(),
+      ) && fields.is_empty()
+  ));
+}
+
+#[test]
+fn malformed_jni_completion_completes_and_clears_exception() -> anyhow::Result<()> {
+  crate::test_jvm::with_env(|env| -> anyhow::Result<()> {
+    let invocation_id = NEXT_INVOCATION_ID.fetch_add(1, Ordering::Relaxed);
+    let (sender, mut receiver) = oneshot::channel();
+    pending_invocations().insert(invocation_id, sender);
+
+    crate::jni::Java_io_bitdrift_capture_CaptureJniLibrary_completeCommand(
+      unsafe { env.unsafe_clone() },
+      JClass::from(JObject::null()),
+      invocation_id.cast_signed(),
+      JString::from(JObject::null()),
+      JString::from(JObject::null()),
+      JObjectArray::from(JObject::null()),
+      JObject::null(),
+      JString::from(JObject::null()),
+    );
+
+    assert!(!env.exception_check()?);
+    assert!(matches!(
+      receiver.try_recv()?,
+      CommandResult::Failed { error, fields }
+        if matches!(
+          &error,
+          CommandError::HandlerFailed(message)
+            if message.starts_with("failed to convert command completion:")
+        ) && fields.is_empty()
+    ));
+    Ok(())
+  })
 }

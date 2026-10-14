@@ -14,6 +14,7 @@
   clippy::unwrap_used
 )]
 
+pub mod command_error;
 pub mod error;
 pub mod javascript_error;
 pub mod metadata;

@@ -53,11 +53,15 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
   )
 }
 
-pub(crate) fn complete_invocation(invocation_id: u64, result: CommandResult) {
-  let Some(sender) = pending_invocations().remove(&invocation_id) else {
-    log::debug!("ignoring completion for unknown command invocation {invocation_id}");
-    return;
-  };
+pub(crate) fn take_invocation(invocation_id: u64) -> Option<oneshot::Sender<CommandResult>> {
+  pending_invocations().remove(&invocation_id)
+}
+
+pub(crate) fn complete_taken_invocation(
+  invocation_id: u64,
+  sender: oneshot::Sender<CommandResult>,
+  result: CommandResult,
+) {
   if sender.send(result).is_err() {
     log::debug!("command invocation {invocation_id} completed after its caller stopped waiting");
   }
@@ -82,30 +86,10 @@ pub(crate) fn completed_result(
   }
 }
 
-fn failed_result(error: CommandError) -> CommandResult {
+pub(crate) fn failed_result(error: CommandError) -> CommandResult {
   CommandResult::Failed {
     error,
     fields: LogFields::default(),
-  }
-}
-
-/// Maps a Kotlin `CommandErrorCode.wire` string to the typed `CommandError`. The strings are shared
-/// with the iOS bridge.
-pub(crate) fn command_error(code: &str, message: Option<String>) -> CommandError {
-  match code {
-    "command_unknown" => CommandError::CommandUnknown,
-    "command_already_executing" => CommandError::AlreadyExecuting,
-    "max_command_concurrency" => CommandError::MaxCommandConcurrency,
-    "invalid_arguments" => {
-      CommandError::InvalidArguments(message.unwrap_or_else(|| "invalid command arguments".into()))
-    },
-    "handler_failed" => {
-      CommandError::HandlerFailed(message.unwrap_or_else(|| "command handler failed".into()))
-    },
-    "timeout" => CommandError::Timeout,
-    other => {
-      CommandError::Other(message.unwrap_or_else(|| format!("unknown command error code: {other}")))
-    },
   }
 }
 
