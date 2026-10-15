@@ -264,6 +264,112 @@ void main() {
     expect(histogram(capture())[ReplayType.label], 1);
   });
 
+  testWidgets('hidden controls are not captured', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              Opacity(
+                opacity: 0,
+                child: ElevatedButton(onPressed: () {}, child: const Text('a')),
+              ),
+              Offstage(
+                child: TextButton(onPressed: () {}, child: const Text('b')),
+              ),
+              Opacity(
+                opacity: 0,
+                child: IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () {},
+                ),
+              ),
+              Opacity(
+                opacity: 0,
+                child: Switch(value: true, onChanged: (_) {}),
+              ),
+              const Opacity(
+                opacity: 0,
+                child: Card(child: SizedBox(height: 20)),
+              ),
+              Visibility(
+                visible: false,
+                child: OutlinedButton(onPressed: () {}, child: const Text('c')),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Only the scaffold remains.
+    expect(histogram(capture()), {ReplayType.view: 1});
+  });
+
+  testWidgets('translucent controls are still captured', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Opacity(
+            opacity: 0.5,
+            child: ElevatedButton(onPressed: () {}, child: const Text('a')),
+          ),
+        ),
+      ),
+    );
+
+    expect(histogram(capture())[ReplayType.button], 1);
+  });
+
+  testWidgets('directly clipped controls are clipped', (tester) async {
+    final button = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: ClipRect(
+              clipper: const _LeftHalfClipper(),
+              child: ElevatedButton(
+                key: button,
+                onPressed: () {},
+                child: const Text('Clipped'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final painted = tester.getRect(find.byKey(button));
+    final rect = capture().singleWhere((r) => r.type == ReplayType.button);
+    expect(rect.x, painted.left.round());
+    expect(rect.y, painted.top.round());
+    expect(rect.width, closeTo(painted.width / 2, 1));
+    expect(rect.height, painted.height.round());
+  });
+
+  testWidgets('fully clipped controls are not captured', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: ClipRect(
+              clipper: const _EmptyClipper(),
+              child: ElevatedButton(
+                onPressed: () {},
+                child: const Text('Clipped'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final types = histogram(capture());
+    expect(types[ReplayType.button], isNull);
+    expect(types[ReplayType.label], isNull);
+  });
+
   testWidgets('capturing a large tree stays fast', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -320,4 +426,30 @@ class _KeepAliveState extends State<_KeepAlive>
     super.build(context);
     return widget.child;
   }
+}
+
+class _LeftHalfClipper extends CustomClipper<Rect> {
+  const _LeftHalfClipper();
+
+  @override
+  Rect getClip(Size size) => Offset.zero & Size(size.width / 2, size.height);
+
+  @override
+  Rect getApproximateClipRect(Size size) => getClip(size);
+
+  @override
+  bool shouldReclip(_LeftHalfClipper oldClipper) => false;
+}
+
+class _EmptyClipper extends CustomClipper<Rect> {
+  const _EmptyClipper();
+
+  @override
+  Rect getClip(Size size) => Rect.zero;
+
+  @override
+  Rect getApproximateClipRect(Size size) => getClip(size);
+
+  @override
+  bool shouldReclip(_EmptyClipper oldClipper) => false;
 }

@@ -29,9 +29,7 @@ class ReplayCaptureScheduler {
       _framesDuringCooldown = true;
       return;
     }
-    _settle?.cancel();
-    _settle = Timer(settleDelay, _capture);
-    _deadline ??= Timer(maxDelay, _capture);
+    _scheduleCapture(maxDelay);
   }
 
   void cancel() {
@@ -44,6 +42,12 @@ class ReplayCaptureScheduler {
     _framesDuringCooldown = false;
   }
 
+  void _scheduleCapture(Duration deadline) {
+    _settle?.cancel();
+    _settle = Timer(settleDelay, _capture);
+    _deadline ??= Timer(deadline, _capture);
+  }
+
   void _capture() {
     _settle?.cancel();
     _deadline?.cancel();
@@ -54,7 +58,9 @@ class ReplayCaptureScheduler {
       _cooldown = null;
       if (_framesDuringCooldown) {
         _framesDuringCooldown = false;
-        onFrame();
+        // The cooldown already used part of the max-delay budget.
+        final remaining = maxDelay - minInterval;
+        _scheduleCapture(remaining.isNegative ? Duration.zero : remaining);
       }
     });
   }

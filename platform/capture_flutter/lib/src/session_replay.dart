@@ -188,19 +188,9 @@ class _ReplayWalker {
 
   void _walk(Element element, Rect clip, {required bool insideControl}) {
     if (element is RenderObjectElement) {
-      final renderObject = element.renderObject;
-      if (_hidden.contains(renderObject) || !renderObject.attached) return;
-      final parent = renderObject.parent;
-      if (parent != null) {
-        if (!parent.paintsChild(renderObject)) return;
-        final parentClip = parent.describeApproximatePaintClip(renderObject);
-        if (parentClip != null) {
-          clip = clip.intersect(
-            MatrixUtils.transformRect(parent.getTransformTo(null), parentClip),
-          );
-          if (clip.isEmpty) return;
-        }
-      }
+      final paintClip = _paintClip(element.renderObject, clip);
+      if (paintClip == null) return;
+      clip = paintClip;
     }
 
     if (element.widget is Overlay) {
@@ -213,11 +203,18 @@ class _ReplayWalker {
       final renderObject = element.renderObject;
       if (renderObject is RenderBox &&
           renderObject.hasSize &&
-          _emitted.add(renderObject)) {
+          !_emitted.contains(renderObject)) {
+        // A composite widget has no render object of its own, so its nearest
+        // render object descendant has not been checked yet.
+        final paintClip = element is RenderObjectElement
+            ? clip
+            : _paintClip(renderObject, clip);
+        if (paintClip == null) return;
+        _emitted.add(renderObject);
         final bounds = MatrixUtils.transformRect(
           renderObject.getTransformTo(null),
           Offset.zero & renderObject.size,
-        ).intersect(clip);
+        ).intersect(paintClip);
         if (bounds.width >= 1 && bounds.height >= 1) {
           rects.add(
             ReplayRect(
@@ -239,6 +236,21 @@ class _ReplayWalker {
     element.visitChildren(
       (child) => _walk(child, clip, insideControl: childInsideControl),
     );
+  }
+
+  /// Returns [clip] narrowed by the paint clip [renderObject]'s parent applies
+  /// to it, or null when [renderObject] is not painted.
+  Rect? _paintClip(RenderObject renderObject, Rect clip) {
+    if (_hidden.contains(renderObject) || !renderObject.attached) return null;
+    final parent = renderObject.parent;
+    if (parent == null) return clip;
+    if (!parent.paintsChild(renderObject)) return null;
+    final parentClip = parent.describeApproximatePaintClip(renderObject);
+    if (parentClip == null) return clip;
+    final result = clip.intersect(
+      MatrixUtils.transformRect(parent.getTransformTo(null), parentClip),
+    );
+    return result.isEmpty ? null : result;
   }
 
   /// The overlay only paints its onstage entries, which are the children it

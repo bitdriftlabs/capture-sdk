@@ -18,6 +18,7 @@ class HttpRequestInfo {
   final String spanId;
   final Map<String, String>? extraFields;
   final DateTime startedAt;
+  final Stopwatch _stopwatch = Stopwatch()..start();
 
   HttpRequestInfo({
     required this.method,
@@ -97,7 +98,7 @@ class HttpResponseInfo {
     this.requestBodyBytesSentCount,
     this.responseBodyBytesReceivedCount,
     this.extraFields,
-  }) : duration = duration ?? DateTime.now().difference(request.startedAt);
+  }) : duration = duration ?? request._stopwatch.elapsed;
 
   Map<String, Object?> toMap() => {
     'request': request.toMap(),

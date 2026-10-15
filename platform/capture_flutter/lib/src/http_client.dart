@@ -42,15 +42,13 @@ class CaptureHttpClient extends http.BaseClient {
 
     var received = 0;
     var logged = false;
-    void logResponse({Object? error}) {
+    void logResponse(HttpResult result, {Object? error}) {
       if (logged) return;
       logged = true;
       Capture.logNetworkResponse(
         HttpResponseInfo(
           request: requestInfo,
-          result: error == null && response.statusCode < 400
-              ? HttpResult.success
-              : HttpResult.failure,
+          result: result,
           statusCode: response.statusCode,
           headers: response.headers,
           error: error,
@@ -60,26 +58,40 @@ class CaptureHttpClient extends http.BaseClient {
       );
     }
 
-    final stream = response.stream
-        .map((chunk) {
-          received += chunk.length;
-          return chunk;
-        })
-        .transform<List<int>>(
-          StreamTransformer.fromHandlers(
-            handleError: (error, stack, sink) {
-              logResponse(error: error);
-              sink.addError(error, stack);
-            },
-            handleDone: (sink) {
-              logResponse();
-              sink.close();
-            },
-          ),
+    late final StreamSubscription<List<int>> subscription;
+    late final StreamController<List<int>> controller;
+    controller = StreamController<List<int>>(
+      sync: true,
+      onListen: () {
+        subscription = response.stream.listen(
+          (chunk) {
+            received += chunk.length;
+            controller.add(chunk);
+          },
+          onError: (Object error, StackTrace stack) {
+            logResponse(HttpResult.failure, error: error);
+            controller.addError(error, stack);
+          },
+          onDone: () {
+            logResponse(
+              response.statusCode < 400
+                  ? HttpResult.success
+                  : HttpResult.failure,
+            );
+            controller.close();
+          },
         );
+      },
+      onPause: () => subscription.pause(),
+      onResume: () => subscription.resume(),
+      onCancel: () {
+        logResponse(HttpResult.canceled);
+        return subscription.cancel();
+      },
+    );
 
     return http.StreamedResponse(
-      http.ByteStream(stream),
+      http.ByteStream(controller.stream),
       response.statusCode,
       contentLength: response.contentLength,
       request: response.request,

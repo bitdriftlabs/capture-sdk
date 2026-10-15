@@ -29,6 +29,7 @@ class Capture {
   static const _channel = MethodChannel('io.bitdrift.capture_flutter');
 
   static bool _started = false;
+  static bool _sessionReplayEnabled = false;
   static bool _replayActive = false;
   static bool _replayCallbackRegistered = false;
   static Int32List? _lastPushedReplayRects;
@@ -66,7 +67,8 @@ class Capture {
       'initialFields': initialFields,
     });
     _started = result ?? false;
-    if (_started && enableSessionReplay) {
+    _sessionReplayEnabled = _started && enableSessionReplay;
+    if (_sessionReplayEnabled) {
       startSessionReplay();
     } else {
       stopSessionReplay();
@@ -312,15 +314,28 @@ class Capture {
   /// tree as wireframe rects at ~2Hz. On Android the encoded screen is sent
   /// to the Capture backend directly; on iOS the rects are exposed to the
   /// native session replay capture.
-  static void startSessionReplay() {
-    if (_replayActive) return;
+  ///
+  /// On iOS the native session replay capture is only set up when the SDK is
+  /// started with `enableSessionReplay: true`, so this does nothing and
+  /// returns false otherwise. Returns whether replay capture is active.
+  static bool startSessionReplay() {
+    if (defaultTargetPlatform == TargetPlatform.iOS && !_sessionReplayEnabled) {
+      debugPrint(
+        'Capture: session replay on iOS requires Capture.start with '
+        'enableSessionReplay: true',
+      );
+      return false;
+    }
+    if (_replayActive) return true;
     _replayActive = true;
-    if (_replayCallbackRegistered) return;
-    _replayCallbackRegistered = true;
-    WidgetsBinding.instance.addPersistentFrameCallback((_) {
-      if (_replayActive) _replayScheduler.onFrame();
-    });
+    if (!_replayCallbackRegistered) {
+      _replayCallbackRegistered = true;
+      WidgetsBinding.instance.addPersistentFrameCallback((_) {
+        if (_replayActive) _replayScheduler.onFrame();
+      });
+    }
     WidgetsBinding.instance.scheduleFrame();
+    return true;
   }
 
   static void _captureReplay() {

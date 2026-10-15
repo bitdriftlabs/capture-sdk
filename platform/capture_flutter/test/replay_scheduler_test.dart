@@ -52,6 +52,72 @@ void main() {
     scheduler.cancel();
   });
 
+  testWidgets('continuous animations are captured at most max delay apart', (
+    tester,
+  ) async {
+    await frames(tester, const Duration(seconds: 5));
+    scheduler.cancel();
+
+    // Timers fire on the next pump step, so allow one step of slack.
+    const slack = Duration(milliseconds: 4);
+    expect(captures, hasLength(greaterThanOrEqualTo(4)));
+    expect(captures.first, lessThanOrEqualTo(scheduler.maxDelay + slack));
+    for (var i = 1; i < captures.length; i++) {
+      final gap = captures[i] - captures[i - 1];
+      expect(gap, lessThanOrEqualTo(scheduler.maxDelay + slack));
+      expect(gap, greaterThanOrEqualTo(scheduler.minInterval));
+    }
+  });
+
+  testWidgets('max delay below the min interval still respects the interval', (
+    tester,
+  ) async {
+    scheduler = ReplayCaptureScheduler(
+      () => captures.add(now),
+      maxDelay: const Duration(milliseconds: 300),
+    );
+    await frames(tester, const Duration(seconds: 3));
+    scheduler.cancel();
+
+    const slack = Duration(milliseconds: 4);
+    expect(captures, hasLength(greaterThanOrEqualTo(5)));
+    for (var i = 1; i < captures.length; i++) {
+      final gap = captures[i] - captures[i - 1];
+      expect(gap, greaterThanOrEqualTo(scheduler.minInterval));
+      expect(gap, lessThanOrEqualTo(scheduler.minInterval + slack));
+    }
+  });
+
+  testWidgets('frames that stop during the cooldown settle after it', (
+    tester,
+  ) async {
+    scheduler.onFrame();
+    await advance(tester, const Duration(milliseconds: 200));
+    expect(captures, hasLength(1));
+
+    // A single frame during the cooldown is captured once it settles, well
+    // before the remaining max-delay budget runs out.
+    scheduler.onFrame();
+    await advance(tester, const Duration(milliseconds: 700));
+    expect(captures, hasLength(2));
+    expect(
+      captures[1] - captures[0],
+      lessThanOrEqualTo(
+        scheduler.minInterval +
+            scheduler.settleDelay +
+            const Duration(milliseconds: 4),
+      ),
+    );
+    scheduler.cancel();
+  });
+
+  testWidgets('cancel drops pending captures', (tester) async {
+    await frames(tester, const Duration(milliseconds: 100));
+    scheduler.cancel();
+    await advance(tester, const Duration(seconds: 2));
+    expect(captures, isEmpty);
+  });
+
   testWidgets('frames during the cooldown produce a trailing capture', (
     tester,
   ) async {

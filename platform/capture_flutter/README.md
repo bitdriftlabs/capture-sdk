@@ -95,7 +95,7 @@ await Capture.start(
 Capture.stopSessionReplay();
 ```
 
-On iOS, the Flutter wireframe is merged into the native session replay capture, so screens are captured at the cadence configured for the native SDK.
+On iOS, the Flutter wireframe is merged into the native session replay capture, so screens are captured at the cadence configured for the native SDK. The native capture is only set up when the SDK is started with `enableSessionReplay: true`; otherwise `Capture.startSessionReplay()` does nothing and returns `false`.
 
 ## Network Logging
 
