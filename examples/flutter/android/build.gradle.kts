@@ -2,7 +2,12 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://dl.bitdrift.io/sdk/android-maven/") }
+        maven {
+            url = uri("https://dl.bitdrift.io/sdk/android-maven/")
+            content {
+                includeGroup("io.bitdrift")
+            }
+        }
     }
 }
 
