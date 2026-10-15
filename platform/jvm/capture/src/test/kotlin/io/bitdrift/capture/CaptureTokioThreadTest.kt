@@ -16,19 +16,14 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
 class CaptureTokioThreadTest {
     @Test
-    fun `custom field getter runs on the Capture background worker`() {
-        // Log admission captures dynamic fields on Capture's producer worker so they describe the
-        // state when the log is emitted, rather than later on the Tokio runtime thread.
-        val latch = CountDownLatch(1)
-        val threadName = AtomicReference<String?>(null)
+    fun `custom field getter runs inline on the logging thread`() {
+        // Startup logs on background threads must not overwrite the test log's observation.
+        val getterThread = ThreadLocal<Thread>()
 
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
@@ -40,17 +35,16 @@ class CaptureTokioThreadTest {
             customFieldGetters =
                 listOf(
                     {
-                        threadName.set(Thread.currentThread().name)
-                        latch.countDown()
+                        getterThread.set(Thread.currentThread())
                         mapOf()
                     },
                 ),
             bridge = CaptureJniLibrary,
         )
 
+        getterThread.remove()
         Logger.logInfo { "Test log message" }
 
-        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue()
-        assertThat(threadName.get()).isEqualTo("io.bitdrift.capture.background-thread-worker")
+        assertThat(getterThread.get()).isSameAs(Thread.currentThread())
     }
 }
