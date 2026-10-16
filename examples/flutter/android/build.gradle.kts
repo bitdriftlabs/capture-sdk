@@ -2,7 +2,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://dl.bitdrift.io/sdk/android-maven/") }
     }
 }
 

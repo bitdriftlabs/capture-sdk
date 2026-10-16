@@ -1,9 +1,18 @@
+import 'dart:async';
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:capture_flutter/capture_flutter.dart';
 
+final _timeToInteractive = Completer<Duration>();
+
 void main() {
+  final launchStopwatch = Stopwatch()..start();
+  WidgetsFlutterBinding.ensureInitialized()
+      .waitUntilFirstFrameRasterized
+      .then((_) => _timeToInteractive.complete(launchStopwatch.elapsed));
   runApp(const CaptureExampleApp());
 }
 
@@ -33,6 +42,16 @@ class _HomePageState extends State<HomePage> {
   String? _entityId;
   String? _apiKey;
   String _apiUrl = 'https://api.bitdrift.io';
+  bool _switchValue = true;
+  bool _sleepMode = false;
+  bool _ttiLogged = false;
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   void initState() {
@@ -61,7 +80,12 @@ class _HomePageState extends State<HomePage> {
         apiKey: _apiKey!,
         apiUrl: _apiUrl,
         enableSessionReplay: true,
+        initialFields: const {'example_app': 'flutter'},
       );
+      if (success && !_ttiLogged) {
+        _ttiLogged = true;
+        _timeToInteractive.future.then(Capture.logAppLaunchTTI);
+      }
       final sessionId = await Capture.sessionId;
       const entityId = 'flutter-example-user';
       if (success) {
@@ -96,6 +120,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
             onPressed: _openSettings,
           ),
         ],
@@ -194,16 +219,101 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: () {
-                // Force a crash to test crash reporting
-                throw StateError('Test crash from Flutter');
-              },
+              onPressed: () => const MethodChannel(
+                'io.bitdrift.flutter_example/crash',
+              ).invokeMethod<void>('nativeCrash'),
               icon: const Icon(Icons.warning),
               label: const Text('Crash App'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () {
+                throw StateError('Test crash from Flutter');
+              },
+              icon: const Icon(Icons.error_outline),
+              label: const Text('Throw Dart Error'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () => Pointer<Int32>.fromAddress(0).value,
+              icon: const Icon(Icons.dangerous_outlined),
+              label: const Text('Dart Fatal (FFI)'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () {
+                Future<void>.delayed(Duration.zero, () {
+                  throw UnsupportedError('Async test error from Flutter');
+                });
+              },
+              icon: const Icon(Icons.bolt),
+              label: const Text('Throw Async Error'),
+            ),
+            SwitchListTile(
+              title: const Text('Sample Switch'),
+              value: _switchValue,
+              onChanged: (value) => setState(() => _switchValue = value),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await CaptureHttpClient().get(
+                    Uri.parse('https://httpbin.org/get?source=flutter'),
+                  );
+                  _showMessage('Network request sent');
+                } catch (e) {
+                  _showMessage('Network request failed: $e');
+                }
+              },
+              child: const Text('Network Request'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                try {
+                  throw const FormatException('Invalid payload');
+                } catch (error, stack) {
+                  Capture.logError(
+                    'Caught Dart error',
+                    error: error,
+                    stackTrace: stack,
+                  );
+                }
+                _showMessage('Error with stack trace logged');
+              },
+              child: const Text('Log Error With Stack'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                Capture.setFeatureFlagExposure('new_checkout', 'variant_b');
+                Capture.setFeatureFlagExposureBool('dark_mode', true);
+                _showMessage('Feature flags exposed');
+              },
+              child: const Text('Expose Feature Flags'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async {
+                final info = await Capture.previousRunInfo;
+                _showMessage('Previous run: ${info ?? 'unavailable'}');
+              },
+              child: const Text('Previous Run Info'),
+            ),
+            SwitchListTile(
+              title: const Text('Sleep Mode'),
+              value: _sleepMode,
+              onChanged: (value) {
+                Capture.setSleepMode(
+                  value ? SleepMode.enabled : SleepMode.disabled,
+                );
+                setState(() => _sleepMode = value);
+              },
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
