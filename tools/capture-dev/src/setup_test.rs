@@ -7,11 +7,11 @@
 
 #![allow(clippy::unwrap_used)]
 
-use super::{BitwardenItem, SigningAssets};
+use super::{SecretVaultItem, SigningAssets};
 
 #[test]
 fn signing_assets_require_one_certificate_profiles_and_password() {
-  let item = serde_json::from_str::<BitwardenItem>(
+  let item = serde_json::from_str::<SecretVaultItem>(
     r#"{
       "id": "item-id",
       "attachments": [
@@ -30,7 +30,7 @@ fn signing_assets_require_one_certificate_profiles_and_password() {
 
 #[test]
 fn signing_assets_explain_the_required_password_field() {
-  let item = serde_json::from_str::<BitwardenItem>(
+  let item = serde_json::from_str::<SecretVaultItem>(
     r#"{
       "id": "item-id",
       "attachments": [
@@ -43,6 +43,6 @@ fn signing_assets_explain_the_required_password_field() {
 
   assert_eq!(
     SigningAssets::from_item(&item).unwrap_err(),
-    "The Bitwarden item needs a non-empty `p12_password` custom field."
+    "The secret-vault item needs a non-empty `p12_password` custom field."
   );
 }
