@@ -123,8 +123,8 @@ object CaptureSdkInitializer {
             when (startResult) {
                 is CaptureResult.Success -> {
                     val logger = startResult.value
-                    Log.d("bitdrift","SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}, userUuid=${userUuid}")
-                    Capture.Logger.setEntityId(userUuid)
+                    Log.d("bitdrift","SDK started successfully. sessionId=${logger.sessionId}, sessionUrl=${logger.sessionUrl}, deviceId=${logger.deviceId}")
+                    Capture.Logger.setEntityId(logger.deviceId)
                     addSessionUrlToThirdPartySdks(context, logger.sessionUrl)
                     _isStarting.value = false
                     _sdkInitializationState.value = true
