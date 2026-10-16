@@ -1,5 +1,9 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
+# Run the mobile developer environment tool. For example: `just capture-dev doctor ios`.
+capture-dev *args:
+    @cargo run --quiet --package capture-dev -- {{args}}
+
 # Generate the Bazel-derived Rust Analyzer project and local editor configuration.
 ra:
     @./scripts/setup-rust-analyzer.sh
