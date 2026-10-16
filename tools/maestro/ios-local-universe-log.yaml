@@ -33,8 +33,10 @@ appId: ${APP_ID || "io.bitdrift.example.swiftapp.helloworld"}
 - copyTextFrom:
     id: log_message_preview
 - assertTrue: ${maestro.copiedText === MESSAGE}
+# Sending has no persistent UI change; never retry this side effect automatically.
 - tapOn:
     id: log_send
+    retryTapIfNoChange: false
 - tapOn: "Debug Panel"
 - assertVisible:
     id: manual_log_open

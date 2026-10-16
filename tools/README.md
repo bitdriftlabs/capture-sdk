@@ -43,7 +43,8 @@ The flow foregrounds without stopping, relaunching, clearing app state, or chang
 clears the composer through its explicit Clear message control (not caret-relative backspaces),
 uses Done editing to dismiss the keyboard, and asserts the field exactly equals `MESSAGE`.
 After selecting INFO and scrolling to Send, it asserts the text again immediately before sending
-exactly one supplied message, so scrolling cannot silently change the input. This final check reads
+exactly one supplied message, with automatic tap retries disabled so an unchanged UI cannot
+duplicate the submission. Scrolling cannot silently change the input. This final check reads
 the visible preview bound to the same message state submitted to the logger; iOS omits the offscreen
 input field from its accessibility tree.
 It returns to the Debug Panel, so the same flow can run again with a distinct positive-phase message after the caller
