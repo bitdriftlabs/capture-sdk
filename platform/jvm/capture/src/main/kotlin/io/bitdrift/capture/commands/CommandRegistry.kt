@@ -11,8 +11,11 @@ import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.toFieldValue
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ensureActive
@@ -27,8 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  * an invocation.
  *
  * Invocations are launched on [dispatcher]; the execution timeout lives in the Rust core. The SDK
- * never cancels an invocation on its own, but a registration may have an owner scope: when it
- * completes, the registration is removed and its in-flight invocations are cancelled, as
+ * core cancels invocations whose lifetime ends. A registration may also have an owner scope: when it
+ * starts cancelling or completes normally, the registration is removed and its invocations are cancelled, as
  * structured concurrency would. The owner is fixed at registration, so it covers every invocation
  * of that registration. Two rules bound the work in flight, and both reject rather than queue so that
  * memory does not grow with the rate of incoming commands: a key runs one invocation at a time,
@@ -51,6 +54,8 @@ internal class CommandRegistry(
     /** One permit per invocation in flight; only ever `tryAcquire`d, so nothing waits on it. */
     private val slots = Semaphore(maxConcurrentInvocations)
 
+    private val invocations = ConcurrentHashMap<Long, RunningInvocation>()
+
     @Volatile
     private var loggerId: Long? = null
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -69,7 +74,7 @@ internal class CommandRegistry(
             CommandHandle(key) {
                 if (handlers.remove(key, registration)) loggerId?.let { bridge.unregisterCommand(it, key) }
             }
-        registration.owner?.invokeOnCompletion { handle.unregister() }
+        registration.invokeOnOwnerEnd { handle.unregister() }
         return handle
     }
 
@@ -121,43 +126,73 @@ internal class CommandRegistry(
             return
         }
         val invocation = CommandInvocation(key, commandId, sessionId, arguments)
-        scope.launch {
-            val invocationJob = coroutineContext[Job]
-            val ownerCancelled = AtomicBoolean(false)
-            val ownerLink =
-                registration.owner?.invokeOnCompletion {
-                    ownerCancelled.set(true)
-                    invocationJob?.cancel()
-                }
-            // Release before reporting, so an observed completion implies the key is free again.
-            val outcome =
-                try {
-                    // Calling a suspend function does not check for cancellation, so an owner that
-                    // completed before the invocation started would otherwise still run the handler.
-                    ensureActive()
-                    val result = registration.handler(invocation)
-                    // Like withContext, a result produced after cancellation is discarded.
-                    ensureActive()
-                    Outcome.Returned(result)
-                } catch (e: InvalidCommandArgumentException) {
-                    Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
-                } catch (e: Throwable) {
-                    // Every invocation must be reported, so cancellation is caught here and rethrown
-                    // below once reported. Anything other than the owner's cancellation, including a
-                    // handler cancelling itself, is the handler's own failure.
-                    val message = if (ownerCancelled.get()) OWNER_SCOPE_COMPLETED else e.toString()
-                    Outcome.Failed(CommandErrorCode.HandlerFailed, message)
-                } finally {
-                    ownerLink?.dispose()
-                    slots.release()
-                    running.remove(key)
-                }
-            when (outcome) {
-                is Outcome.Returned -> complete(invocationId, outcome.result)
-                is Outcome.Failed -> fail(invocationId, outcome.code, outcome.message)
+        val ownerCancelled = AtomicBoolean(false)
+        var outcome: Outcome? = null
+        // Publish before starting: an immediate completion must not leave a stale Job behind.
+        val job =
+            scope.launch(start = CoroutineStart.LAZY) {
+                outcome =
+                    try {
+                        // Calling a suspend function does not check for cancellation, so an owner that
+                        // completed before the invocation started would otherwise still run the handler.
+                        ensureActive()
+                        val result = registration.handler(invocation)
+                        // Like withContext, a result produced after cancellation is discarded.
+                        ensureActive()
+                        Outcome.Returned(result)
+                    } catch (e: InvalidCommandArgumentException) {
+                        Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
+                    } catch (e: Throwable) {
+                        val message = if (ownerCancelled.get()) OWNER_SCOPE_COMPLETED else e.toString()
+                        Outcome.Failed(CommandErrorCode.HandlerFailed, message)
+                    }
             }
-            ensureActive()
+        val runningInvocation = RunningInvocation(job)
+        invocations[invocationId] = runningInvocation
+        val ownerLink =
+            registration.invokeOnOwnerEnd {
+                ownerCancelled.set(true)
+                job.cancel()
+            }
+        job.invokeOnCompletion { cause ->
+            ownerLink?.dispose()
+            invocations.remove(invocationId, runningInvocation)
+            // Completion also runs for a Job cancelled before its body starts, but only after a
+            // non-cooperative handler really exits. Release every claim exactly once, before reporting.
+            slots.release()
+            running.remove(key)
+            if (!runningInvocation.cancelledByCore.get()) {
+                when (val result = outcome) {
+                    is Outcome.Returned -> complete(invocationId, result.result)
+                    is Outcome.Failed -> fail(invocationId, result.code, result.message)
+                    null ->
+                        fail(
+                            invocationId,
+                            CommandErrorCode.HandlerFailed,
+                            if (ownerCancelled.get()) OWNER_SCOPE_COMPLETED else cause.toString(),
+                        )
+                }
+            }
         }
+        job.start()
+    }
+
+    override fun cancel(invocationId: Long) {
+        val invocation = invocations[invocationId] ?: return
+        invocation.cancelledByCore.set(true)
+        invocation.job.cancel()
+    }
+
+    // Observe cancellation before the owner's other children finish. Making commands children of
+    // the owner instead would prevent normal owner completion from cancelling outstanding commands.
+    @OptIn(InternalCoroutinesApi::class)
+    private fun Registration.invokeOnOwnerEnd(handler: () -> Unit): DisposableHandle? =
+        owner?.invokeOnCompletion(onCancelling = true, invokeImmediately = true) { handler() }
+
+    private class RunningInvocation(
+        val job: Job,
+    ) {
+        val cancelledByCore = AtomicBoolean(false)
     }
 
     private class Registration(

@@ -515,10 +515,10 @@ object Capture {
          * a dedicated I/O thread pool and may block without affecting the application's own
          * dispatchers.
          *
-         * The SDK never cancels a running handler on its own. An invocation that outlives the
-         * execution timeout is reported as timed out while the handler runs to completion, whose
-         * result is then discarded. Unregistering or re-registering [key] likewise leaves a
-         * started invocation alone. To tie a command to a component, pass its scope as [owner].
+         * The SDK attempts cooperative cancellation when an invocation times out, its session changes,
+         * or its workflow resets. A non-cooperative handler can continue running; its late result is
+         * discarded and it keeps its concurrency slot until it exits. Unregistering or re-registering
+         * [key] leaves a started invocation alone. To tie a command to a component, pass its scope as [owner].
          *
          * @param key the unique key identifying the command. Registering a key that is already
          * registered replaces the handler used by future invocations.
@@ -528,9 +528,9 @@ object Capture {
          * registered it. Cancellation is cooperative: it reaches a handler at its next suspension
          * point, so a handler doing long blocking work should check `ensureActive()` periodically.
          * If it completes after its owner was cancelled, its result is discarded and the invocation
-         * is reported as cancelled; side effects it already performed are not undone. The owner takes
-         * effect when its job completes, which for a scope such as `viewModelScope` is only after
-         * the scope's own children have finished cancelling.
+         * is reported as cancelled; side effects it already performed are not undone. Cancellation
+         * takes effect when the owner begins cancelling, without waiting for its other children to
+         * finish. Normal owner completion also unregisters the command and cancels active invocations.
          * @param handler the suspending handler executing the command. It should do its work inline
          * rather than launching it in another scope: the SDK only limits, times out and reports what
          * the handler itself runs, and a launched job escapes all three. Arguments are read through

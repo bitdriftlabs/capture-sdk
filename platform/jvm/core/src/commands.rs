@@ -32,6 +32,7 @@ use std::sync::{LazyLock, Mutex, MutexGuard, OnceLock, PoisonError};
 use tokio::sync::oneshot;
 
 static COMMAND_DISPATCHER_DISPATCH: OnceLock<CachedMethod> = OnceLock::new();
+static COMMAND_DISPATCHER_CANCEL: OnceLock<CachedMethod> = OnceLock::new();
 static NEXT_INVOCATION_ID: AtomicU64 = AtomicU64::new(1);
 static PENDING_INVOCATIONS: LazyLock<Mutex<HashMap<u64, oneshot::Sender<CommandResult>>>> =
   LazyLock::new(Mutex::default);
@@ -50,7 +51,34 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
     "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[I[Ljava/lang/\
      Object;)V",
     &COMMAND_DISPATCHER_DISPATCH,
+  )?;
+  initialize_method_handle(
+    env,
+    "io/bitdrift/capture/commands/ICommandDispatcher",
+    "cancel",
+    "(J)V",
+    &COMMAND_DISPATCHER_CANCEL,
   )
+}
+
+struct PendingInvocation<'a> {
+  invocation_id: u64,
+  dispatcher: &'a CommandDispatcherHandle,
+  armed: bool,
+}
+
+impl Drop for PendingInvocation<'_> {
+  fn drop(&mut self) {
+    if self.armed {
+      take_invocation(self.invocation_id);
+      if let Err(error) = self.dispatcher.cancel(self.invocation_id) {
+        log::debug!(
+          "failed to cancel command invocation {}: {error}",
+          self.invocation_id
+        );
+      }
+    }
+  }
 }
 
 pub(crate) fn take_invocation(invocation_id: u64) -> Option<oneshot::Sender<CommandResult>> {
@@ -201,6 +229,23 @@ unsafe impl Send for CommandDispatcherHandle {}
 unsafe impl Sync for CommandDispatcherHandle {}
 
 impl CommandDispatcherHandle {
+  fn cancel(&self, invocation_id: u64) -> anyhow::Result<()> {
+    self.execute(|env, dispatcher| {
+      COMMAND_DISPATCHER_CANCEL
+        .get()
+        .ok_or(InvariantError::Invariant)?
+        .call_method(
+          env,
+          dispatcher,
+          ReturnType::Primitive(Primitive::Void),
+          &[jvalue {
+            j: invocation_id.cast_signed(),
+          }],
+        )
+        .map(|_| ())
+    })
+  }
+
   fn dispatch(
     &self,
     invocation_id: u64,
@@ -268,21 +313,31 @@ impl RegisteredCommandHandler for JniCommandHandler {
     let invocation_id = NEXT_INVOCATION_ID.fetch_add(1, Ordering::Relaxed);
     let (sender, receiver) = oneshot::channel();
     pending_invocations().insert(invocation_id, sender);
+    let mut pending = PendingInvocation {
+      invocation_id,
+      dispatcher: &self.dispatcher,
+      armed: true,
+    };
 
     if let Err(error) = self
       .dispatcher
       .dispatch(invocation_id, &invocation, &arguments)
     {
-      pending_invocations().remove(&invocation_id);
       return failed_result(CommandError::Other(format!(
         "failed to dispatch command: {error}"
       )));
     }
 
-    receiver.await.unwrap_or_else(|_| {
-      failed_result(CommandError::Other(
-        "command handler stopped without a result".into(),
-      ))
-    })
+    receiver.await.map_or_else(
+      |_| {
+        failed_result(CommandError::Other(
+          "command handler stopped without a result".into(),
+        ))
+      },
+      |result| {
+        pending.armed = false;
+        result
+      },
+    )
   }
 }

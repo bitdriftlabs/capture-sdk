@@ -16,6 +16,7 @@ pub fn java_vm() -> &'static JavaVM {
   JVM.get_or_init(|| {
     let arguments = InitArgsBuilder::new()
       .option("-Xcheck:jni")
+      .option("-Djava.class.path=platform/jvm/core/libcommand_dispatcher_test_fixture.jar")
       .build()
       .expect("valid JVM arguments");
     // `jni` 0.21 finds the VM through JAVA_HOME. The Bazel wrapper sets it to its selected JDK.

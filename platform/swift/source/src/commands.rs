@@ -53,6 +53,31 @@ pub struct Target {
 unsafe impl Send for Target {}
 unsafe impl Sync for Target {}
 
+//
+// PendingRequest
+//
+
+struct PendingRequest<'a> {
+  target: &'a Target,
+  request_id: u64,
+  armed: bool,
+}
+
+impl Drop for PendingRequest<'_> {
+  fn drop(&mut self) {
+    if !self.armed {
+      return;
+    }
+    // Release the map lock before calling Swift, which may finish the task synchronously.
+    let sender = COMPLETIONS.lock().remove(&self.request_id);
+    drop(sender);
+    log::debug!("cancelling Apple command request {}", self.request_id);
+    autoreleasepool(|| unsafe {
+      let (): () = msg_send![*self.target.swift_object, cancelCommand: self.request_id];
+    });
+  }
+}
+
 impl Target {
   #[allow(clippy::not_unsafe_ptr_arg_deref)]
   pub fn new(swift_object: *mut Object) -> Self {
@@ -65,7 +90,7 @@ impl Target {
 #[async_trait::async_trait]
 impl RegisteredCommandHandler for Target {
   async fn execute(&self, invocation: CommandInvocation) -> CommandResult {
-    let receiver = {
+    let (mut pending_request, receiver) = {
       let arguments = match make_arguments(&invocation.arguments) {
         Ok(arguments) => arguments,
         Err(error) => {
@@ -76,33 +101,46 @@ impl RegisteredCommandHandler for Target {
         },
       };
 
+      let command_key = match make_nsstring(&invocation.registered_command_id) {
+        Ok(command_key) => command_key,
+        Err(error) => {
+          return failed_result(
+            CommandError::InvalidArguments(error.to_string()),
+            &HashMap::new(),
+          );
+        },
+      };
       let request_id = NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed);
       let (sender, receiver) = oneshot::channel();
       COMPLETIONS.lock().insert(request_id, sender);
+      let pending_request = PendingRequest {
+        target: self,
+        request_id,
+        armed: true,
+      };
 
-      autoreleasepool(|| {
-        let Ok(command_key) = make_nsstring(&invocation.registered_command_id) else {
-          let sender = COMPLETIONS.lock().remove(&request_id);
-          drop(sender);
-          return;
-        };
-        unsafe {
-          let (): () = msg_send![*self.swift_object,
-            executeCommand: *command_key
-            arguments: *arguments
-            requestID: request_id
-          ];
-        }
+      autoreleasepool(|| unsafe {
+        let (): () = msg_send![*self.swift_object,
+          executeCommand: *command_key
+          arguments: *arguments
+          requestID: request_id
+        ];
       });
-      receiver
+      (pending_request, receiver)
     };
 
-    receiver.await.unwrap_or_else(|_| {
-      failed_result(
-        CommandError::Other("The command handler was released before completing".into()),
-        &HashMap::new(),
-      )
-    })
+    receiver.await.map_or_else(
+      |_| {
+        failed_result(
+          CommandError::Other("The command handler was released before completing".into()),
+          &HashMap::new(),
+        )
+      },
+      |result| {
+        pending_request.armed = false;
+        result
+      },
+    )
   }
 }
 

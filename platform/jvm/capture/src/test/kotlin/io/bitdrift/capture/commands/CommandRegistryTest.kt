@@ -13,10 +13,13 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -28,12 +31,229 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Pins the command execution rules: no cancellation, no per-key queue, one invocation per key at a
- * time, different keys in parallel on a bounded pool, and exactly one completion per dispatch.
+ * Pins command execution and cancellation: no per-key queue, one invocation per key at a time,
+ * bounded parallelism, and one completion per invocation unless the Rust core cancelled it.
  */
 class CommandRegistryTest {
     private val bridge = FakeCommandBridge()
     private val registry = CommandRegistry(bridge, Dispatchers.Default)
+
+    @Test
+    fun jniCancellationContractHasAnUnmangledLongToVoidMethod() {
+        val method = ICommandDispatcher::class.java.getMethod("cancel", java.lang.Long.TYPE)
+
+        assertThat(method.returnType).isEqualTo(java.lang.Void.TYPE)
+    }
+
+    @Test
+    fun coreCancellationReachesTheSuspendedHandlerAndReleasesItsClaims() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher, maxConcurrentInvocations = 1)
+        val entered = AtomicBoolean()
+        val exited = AtomicBoolean()
+        registry.register("key") {
+            entered.set(true)
+            try {
+                awaitCancellation()
+            } finally {
+                exited.set(true)
+            }
+        }
+        registry.dispatch(1, "key", null, "session")
+        queued.runAll()
+        assertThat(entered.get()).isTrue()
+
+        registry.cancel(1)
+        queued.runAll()
+
+        assertThat(exited.get()).isTrue()
+        assertThat(bridge.pendingCompletions()).isZero()
+        registry.register("key") { success() }
+        registry.dispatch(2, "key", null, "session")
+        queued.runAll()
+        assertThat(bridge.awaitCompletion().invocationId).isEqualTo(2)
+        assertNoRetainedInvocations(registry)
+    }
+
+    @Test
+    fun cancellationBeforeFirstStartNeverCallsHandlerAndReleasesExactlyOneSlot() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher, maxConcurrentInvocations = 1)
+        val calls = AtomicInteger()
+        registry.register("key") {
+            calls.incrementAndGet()
+            success()
+        }
+        registry.register("other") { success() }
+        registry.dispatch(1, "key", null, "session")
+
+        registry.cancel(1)
+        registry.cancel(1)
+        queued.runAll()
+
+        assertThat(calls.get()).isZero()
+        assertThat(bridge.pendingCompletions()).isZero()
+        assertNoRetainedInvocations(registry)
+        registry.dispatch(2, "key", null, "session")
+        registry.dispatch(3, "other", null, "session")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
+        queued.runAll()
+        assertThat(bridge.awaitCompletion().invocationId).isEqualTo(2)
+        assertThat(calls.get()).isEqualTo(1)
+        registry.dispatch(4, "other", null, "session")
+        queued.runAll()
+        assertThat(bridge.awaitCompletion().error).isNull()
+    }
+
+    @Test
+    fun invocationIsPublishedBeforeDispatcherCanCancelItsFirstStart() {
+        val queued = ConcurrentLinkedQueue<Runnable>()
+        lateinit var registry: CommandRegistry
+        val dispatcher =
+            Executor {
+                registry.cancel(1)
+                queued.add(it)
+            }.asCoroutineDispatcher()
+        registry = CommandRegistry(bridge, dispatcher, maxConcurrentInvocations = 1)
+        val ran = AtomicBoolean()
+        registry.register("key") {
+            ran.set(true)
+            success()
+        }
+
+        registry.dispatch(1, "key", null, "session")
+        generateSequence { queued.poll() }.forEach { it.run() }
+
+        assertThat(ran.get()).isFalse()
+        assertThat(bridge.pendingCompletions()).isZero()
+        assertNoRetainedInvocations(registry)
+        registry.register("key") { success() }
+        registry.dispatch(2, "key", null, "session")
+        generateSequence { queued.poll() }.forEach { it.run() }
+        assertThat(bridge.awaitCompletion().error).isNull()
+    }
+
+    @Test
+    fun immediateCompletionDoesNotRetainJobsOrLeakClaims() {
+        val registry = CommandRegistry(bridge, Dispatchers.Unconfined, maxConcurrentInvocations = 1)
+        registry.register("key") { success() }
+
+        repeat(100) {
+            val id = it.toLong()
+            registry.dispatch(id, "key", null, "session")
+            val completion = bridge.awaitCompletion()
+            assertThat(completion.invocationId).isEqualTo(id)
+            assertThat(completion.error).isNull()
+            registry.cancel(id)
+            assertNoRetainedInvocations(registry)
+        }
+
+        assertThat(bridge.pendingCompletions()).isZero()
+    }
+
+    @Test
+    fun resultReturnedByHandlerAfterCatchingCancellationIsDiscarded() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher)
+        val caught = AtomicBoolean()
+        registry.register("key") {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                caught.set(true)
+                success(context = mapOf("late" to "true"))
+            }
+        }
+        registry.dispatch(1, "key", null, "session")
+        queued.runAll()
+
+        registry.cancel(1)
+        queued.runAll()
+
+        assertThat(caught.get()).isTrue()
+        assertThat(bridge.pendingCompletions()).isZero()
+        assertNoRetainedInvocations(registry)
+    }
+
+    @Test
+    fun nonCooperativeHandlerKeepsKeyAndSlotUntilRealExitAndCannotPublishLateSuccess() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher, maxConcurrentInvocations = 1)
+        val release = CompletableDeferred<Unit>()
+        val exited = AtomicBoolean()
+        registry.register("key") {
+            try {
+                withContext(NonCancellable) {
+                    release.await()
+                    success(context = mapOf("late" to "true"))
+                }
+            } finally {
+                exited.set(true)
+            }
+        }
+        registry.register("other") { success() }
+        registry.dispatch(1, "key", null, "session")
+        queued.runAll()
+
+        registry.cancel(1)
+        queued.runAll()
+
+        assertThat(exited.get()).isFalse()
+        registry.dispatch(2, "key", null, "session")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("command_already_executing")
+        registry.dispatch(3, "other", null, "session")
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
+        release.complete(Unit)
+        queued.runAll()
+        assertThat(exited.get()).isTrue()
+        assertThat(bridge.pendingCompletions()).isZero()
+        assertNoRetainedInvocations(registry)
+        registry.dispatch(4, "key", null, "session")
+        queued.runAll()
+        assertThat(bridge.awaitCompletion().error).isNull()
+        registry.dispatch(5, "other", null, "session")
+        queued.runAll()
+        assertThat(bridge.awaitCompletion().error).isNull()
+    }
+
+    @Test
+    fun cancellationOnlyAffectsItsInvocationAndUnknownIdsAreHarmless() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher, maxConcurrentInvocations = 2)
+        val release = CompletableDeferred<Unit>()
+        val firstExited = AtomicBoolean()
+        val secondExited = AtomicBoolean()
+        registry.register("first") {
+            try {
+                awaitCancellation()
+            } finally {
+                firstExited.set(true)
+            }
+        }
+        registry.register("second") {
+            release.await()
+            secondExited.set(true)
+            success()
+        }
+        registry.dispatch(1, "first", null, "session")
+        registry.dispatch(2, "second", null, "session")
+        queued.runAll()
+
+        registry.cancel(999)
+        registry.cancel(1)
+        registry.cancel(1)
+        queued.runAll()
+
+        assertThat(firstExited.get()).isTrue()
+        assertThat(secondExited.get()).isFalse()
+        assertThat(bridge.pendingCompletions()).isZero()
+        release.complete(Unit)
+        queued.runAll()
+        assertThat(bridge.awaitCompletion().invocationId).isEqualTo(2)
+        registry.cancel(2)
+        assertThat(bridge.pendingCompletions()).isZero()
+        assertNoRetainedInvocations(registry)
+    }
 
     // ---------------------------------------------------------------------------------------------
     // Registration and the native bridge
@@ -161,6 +381,126 @@ class CommandRegistryTest {
     // ---------------------------------------------------------------------------------------------
     // Owner scope: a registration's owner unregisters it and cancels its in-flight invocations
     // ---------------------------------------------------------------------------------------------
+
+    @Test
+    fun ownerCancellationDoesNotWaitForOtherChildrenToFinish() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher, maxConcurrentInvocations = 1)
+        registry.attach(LOGGER_ID)
+        val owner = Job()
+        val releaseChild = CompletableDeferred<Unit>()
+        CoroutineScope(owner + queued.dispatcher).launch {
+            withContext(NonCancellable) { releaseChild.await() }
+        }
+        val cancelled = AtomicBoolean()
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            try {
+                awaitCancellation()
+            } finally {
+                cancelled.set(true)
+            }
+        }
+        registry.register("other") { success() }
+        registry.dispatch(1, "vm", null, "session")
+        queued.runAll()
+
+        try {
+            owner.cancel()
+            queued.runAll()
+
+            assertThat(owner.isCancelled).isTrue()
+            assertThat(owner.isCompleted).isFalse()
+            assertThat(cancelled.get()).isTrue()
+            val completion = bridge.awaitCompletion()
+            assertThat(completion.invocationId).isEqualTo(1)
+            assertThat(completion.message).isEqualTo(OWNER_SCOPE_COMPLETED)
+            assertThat(bridge.unregisterCalls).isEqualTo(1)
+            registry.dispatch(2, "vm", null, "session")
+            assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
+
+            registry.register("late", owner = CoroutineScope(owner)) {
+                error("a cancelling owner must not start a new invocation")
+            }
+            registry.dispatch(3, "late", null, "session")
+            assertThat(bridge.awaitCompletion().error).isEqualTo("command_unknown")
+            registry.dispatch(4, "other", null, "session")
+            queued.runAll()
+            assertThat(bridge.awaitCompletion().error).isNull()
+            assertThat(owner.isCompleted).isFalse()
+            assertNoRetainedInvocations(registry)
+        } finally {
+            releaseChild.complete(Unit)
+            queued.runAll()
+        }
+        assertThat(owner.isCompleted).isTrue()
+        assertThat(bridge.pendingCompletions()).isZero()
+    }
+
+    @Test
+    fun normalOwnerCompletionStillCancelsOutstandingInvocations() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher)
+        val owner = Job()
+        val cancelled = AtomicBoolean()
+        registry.register("vm", owner = CoroutineScope(owner)) {
+            try {
+                awaitCancellation()
+            } finally {
+                cancelled.set(true)
+            }
+        }
+        registry.dispatch(1, "vm", null, "session")
+        queued.runAll()
+
+        assertThat(owner.complete()).isTrue()
+        queued.runAll()
+
+        assertThat(owner.isCompleted).isTrue()
+        assertThat(cancelled.get()).isTrue()
+        assertThat(bridge.awaitCompletion().message).isEqualTo(OWNER_SCOPE_COMPLETED)
+        assertNoRetainedInvocations(registry)
+    }
+
+    @Test
+    fun ownerCancellationKeepsNonCooperativeHandlerClaimsUntilExit() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher, maxConcurrentInvocations = 1)
+        val owner = Job()
+        val release = CompletableDeferred<Unit>()
+        registry.register("key", owner = CoroutineScope(owner)) {
+            withContext(NonCancellable) {
+                release.await()
+                success(context = mapOf("late" to "true"))
+            }
+        }
+        registry.register("other") { success() }
+        registry.dispatch(1, "key", null, "session")
+        queued.runAll()
+
+        try {
+            owner.cancel()
+            queued.runAll()
+            registry.register("key") { success() }
+            registry.dispatch(2, "key", null, "session")
+            assertThat(bridge.awaitCompletion().error).isEqualTo("command_already_executing")
+            registry.dispatch(3, "other", null, "session")
+            assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
+            assertThat(bridge.pendingCompletions()).isZero()
+        } finally {
+            release.complete(Unit)
+            queued.runAll()
+        }
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.invocationId).isEqualTo(1)
+        assertThat(completion.message).isEqualTo(OWNER_SCOPE_COMPLETED)
+        assertThat(completion.fields).isEmpty()
+        registry.dispatch(4, "key", null, "session")
+        queued.runAll()
+        assertThat(bridge.awaitCompletion().error).isNull()
+        assertNoRetainedInvocations(registry)
+        assertThat(bridge.pendingCompletions()).isZero()
+    }
 
     @Test
     fun ownerScopeCompletionCancelsInFlightInvocation() {
@@ -1136,6 +1476,20 @@ class CommandRegistryTest {
     // ---------------------------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------------------------
+
+    private class QueuedDispatcher {
+        private val queued = ConcurrentLinkedQueue<Runnable>()
+        val dispatcher = Executor { queued.add(it) }.asCoroutineDispatcher()
+
+        fun runAll() {
+            generateSequence { queued.poll() }.forEach { it.run() }
+        }
+    }
+
+    private fun assertNoRetainedInvocations(registry: CommandRegistry) {
+        val field = CommandRegistry::class.java.getDeclaredField("invocations").apply { isAccessible = true }
+        assertThat(field.get(registry) as Map<*, *>).isEmpty()
+    }
 
     /** Lets a test hold handlers inside their body until it decides to release them. */
     private class Gate(

@@ -51,6 +51,9 @@ actor CommandRegistry {
     }
 
     func execute(key: String, arguments: CommandArguments) async -> Result<CommandResult, CommandError> {
+        guard !Task.isCancelled else {
+            return .failure(CommandError(title: "Command cancelled"))
+        }
         guard let registration = registrations[key] else {
             return .failure(.notFound)
         }
@@ -66,7 +69,15 @@ actor CommandRegistry {
             activeExecutionCount -= 1
             executingKeys.remove(key)
         }
-        return await registration.handler(arguments)
+        guard !Task.isCancelled else {
+            return .failure(CommandError(title: "Command cancelled"))
+        }
+        // Invoke the handler in the caller's task so bridge cancellation reaches app code.
+        let result = await registration.handler(arguments)
+        guard !Task.isCancelled else {
+            return .failure(CommandError(title: "Command cancelled"))
+        }
+        return result
     }
 
     func unregister(key: String) -> Bool {

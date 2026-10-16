@@ -9,7 +9,7 @@ package io.bitdrift.capture.commands
 
 /**
  * Receives command invocations from the Rust logger. Every invocation must be completed exactly
- * once through `CaptureJniLibrary.completeCommand`.
+ * once through `CaptureJniLibrary.completeCommand`, unless Rust cancels it first.
  */
 internal interface ICommandDispatcher {
     /**
@@ -27,4 +27,7 @@ internal interface ICommandDispatcher {
         argumentTypes: IntArray,
         argumentValues: Array<Any?>,
     )
+
+    /** Cancels the invocation's coroutine. Unknown or already completed IDs are harmless. */
+    fun cancel(invocationId: Long)
 }
