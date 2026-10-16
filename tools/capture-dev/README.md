@@ -58,6 +58,22 @@ just capture-dev run ios --device DEVICE-UDID
 just capture-dev run ios --non-interactive --simulator SIMULATOR-UDID
 ```
 
+### Install iOS signing assets from Bitwarden
+
+```bash
+# Authenticate and unlock Bitwarden in the current shell.
+export BW_SESSION="$(bw unlock --raw)"
+
+# Download the assets only into a temporary directory, import the certificate into the login
+# keychain, and install profiles in UserData.
+just capture-dev setup ios --bitwarden-item SIGNING-ITEM-ID
+
+# Suitable for a local script or CI, with the item identifier supplied as a secret.
+CAPTURE_DEV_IOS_SIGNING_ITEM=SIGNING-ITEM-ID just capture-dev setup ios
+```
+
+`capture-dev` never prints the Bitwarden session, the certificate password, or the downloaded asset contents. A locked vault or an incomplete item produces an actionable error without making any keychain or profile changes.
+
 ## Build and test
 
 ```bash

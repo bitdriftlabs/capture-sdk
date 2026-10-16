@@ -18,12 +18,14 @@ mod command;
 mod devices;
 mod doctor;
 mod run;
+mod setup;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use command::SystemCommandRunner;
 use devices::{DevicePlatform, run_devices};
 use doctor::{DoctorOptions, DoctorTarget, run_doctor};
 use run::{RunOptions, RunPlatform, run};
+use setup::{SetupOptions, SetupPlatform, run_setup};
 use std::process::ExitCode;
 
 #[derive(Debug, Parser)]
@@ -75,6 +77,14 @@ enum Command {
     /// Do not prompt; require an explicit simulator or device selector.
     #[arg(long)]
     non_interactive: bool,
+  },
+  /// Install iOS signing assets from an unlocked Bitwarden vault.
+  Setup {
+    #[arg(value_enum)]
+    platform: SetupPlatform,
+    /// Bitwarden item ID or unique name. Defaults to `CAPTURE_DEV_IOS_SIGNING_ITEM`.
+    #[arg(long, env = "CAPTURE_DEV_IOS_SIGNING_ITEM")]
+    bitwarden_item: Option<String>,
   },
 }
 
@@ -171,6 +181,20 @@ fn main() -> ExitCode {
           ExitCode::from(1)
         },
       }
+    },
+    Command::Setup {
+      platform,
+      bitwarden_item,
+    } => match run_setup(
+      &SystemCommandRunner,
+      platform,
+      &SetupOptions { bitwarden_item },
+    ) {
+      Ok(()) => ExitCode::SUCCESS,
+      Err(message) => {
+        eprintln!("[BLOCKED] {message}");
+        ExitCode::from(1)
+      },
     },
   }
 }
