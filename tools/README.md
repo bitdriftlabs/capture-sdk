@@ -1,5 +1,75 @@
 # Assortment of scripts and tools
 
+## iOS local-universe log flow
+
+Build the **source-linked Simulator** sample (not `:ios_app`, which uses the distribution XCFramework):
+
+```sh
+./bazelw build --ios_multi_cpus=sim_arm64 //examples/swift/hello_world:hello_world_app
+./bazelw cquery --ios_multi_cpus=sim_arm64 --output=files //examples/swift/hello_world:hello_world_app
+./bazelw info execution_root
+```
+
+Resolve the cquery output relative to `execution_root`, not `bazel-bin`. This build reports
+`hello_world_app.ipa`, but it is a **Simulator archive**, containing
+`Payload/Bitdrift Sample App.app` with `CFBundleSupportedPlatforms = [iPhoneSimulator]`.
+Extract that bundle for `simctl install`; do not use a device IPA or guess a configuration-specific
+Bazel directory. The bundle ID is `io.bitdrift.example.swiftapp.helloworld`.
+
+Before SDK initialization, the Simulator sample reads these **process environment** variables:
+
+- `BITDRIFT_E2E=1`
+- `BITDRIFT_E2E_API_URL=http://127.0.0.1:8001` (HTTP/HTTPS loopback origin only;
+  `localhost` and `[::1]` are also accepted)
+- `BITDRIFT_E2E_API_KEY` (nonempty; supply only through the launch environment, never Maestro)
+- `BITDRIFT_E2E_RUN` (nonempty unique run marker, attached as the initial/global field `workflow_e2e_run`)
+
+With `simctl launch`, prefix each variable with `SIMCTL_CHILD_`. The launcher must install and launch
+the app with all four variables **before** running the flow. Overrides are never written to UserDefaults.
+Any partial or invalid E2E configuration prevents SDK startup and displays a red error in the existing
+SDK State panel (`e2e_startup_error`); it never falls back to saved or production credentials.
+When none of these variables are present, ordinary saved configuration and the production default
+are unchanged. Physical-device builds ignore these overrides.
+
+With the app already running on the Debug Panel:
+
+```sh
+maestro --device "$SIMULATOR_UDID" test \
+  -e MESSAGE="local-universe-negative-$RUN_ID" \
+  tools/maestro/ios-local-universe-log.yaml
+```
+
+The flow foregrounds without stopping, relaunching, clearing app state, or changing credentials. It
+clears the composer through its explicit Clear message control (not caret-relative backspaces),
+uses Done editing to dismiss the keyboard, and asserts the field exactly equals `MESSAGE`.
+After selecting INFO and scrolling to Send, it asserts the text again immediately before sending
+exactly one supplied message, with automatic tap retries disabled so an unchanged UI cannot
+duplicate the submission. Scrolling cannot silently change the input. This final check reads
+the visible preview bound to the same message state submitted to the logger; iOS omits the offscreen
+input field from its accessibility tree.
+It returns to the Debug Panel, so the same flow can run again with a distinct positive-phase message after the caller
+independently verifies the negative phase and changes/verifies backend configuration.
+`APP_ID` may optionally override the default bundle ID. Keep messages nonempty and ASCII
+(Maestro `inputText` limitation), with no surrounding whitespace (the sample trims it before logging).
+Do not pass the API key to Maestro or print it.
+
+Stable UI IDs: `manual_log_open`, `log_message`, `log_message_clear`, `log_message_done`,
+`log_message_preview`,
+`log_level_info` (also the other level raw values),
+`log_send`, `session_id`, `sdk_check_state`, `sdk_initialization_state`, `sdk_last_handshake`,
+`sdk_last_config_delivery`, and `e2e_startup_error`. The existing SDK State timestamps are readiness
+hints, not backend identity or proof that a particular configuration was applied. The caller owns
+backend identity checks, configuration checks, and negative/positive log queries; there is no flush hook.
+
+Focused startup-validation tests:
+
+```sh
+./bazelw test --ios_multi_cpus=sim_arm64 --ios_simulator_version=26.0 \
+  //examples/swift/hello_world/tests:test
+```
+
+Select an installed Simulator runtime if iOS 26.0 is unavailable.
+
 ## Crash Symbolication Tool
 
 Symbolicate Android native crash stack traces using Bitdrift Capture SDK debug symbols. Supports standard Android Logcat/Tombstone traces, custom crash reporting dumps like from bitdrift Capture, Firebase Crashlytics absolute-address format, Bugsnag, and raw `debuggerd` output formats.

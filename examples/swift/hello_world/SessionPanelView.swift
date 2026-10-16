@@ -25,6 +25,7 @@ struct SessionPanelView: View {
                         .foregroundColor(Theme.textSecondary)
 
                     Text(self.currentSessionID)
+                        .accessibilityIdentifier("session_id")
                         .font(.system(.body, design: .monospaced).weight(.semibold))
                         .foregroundColor(Theme.textPrimary)
                         .textSelection(.enabled)

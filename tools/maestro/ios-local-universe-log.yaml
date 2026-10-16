@@ -1,0 +1,42 @@
+appId: ${APP_ID || "io.bitdrift.example.swiftapp.helloworld"}
+---
+# The caller must already have launched the app with its Simulator E2E environment.
+- assertTrue: ${typeof MESSAGE !== "undefined" && MESSAGE.trim().length > 0 && MESSAGE === MESSAGE.trim()}
+- launchApp:
+    stopApp: false
+- scrollUntilVisible:
+    element:
+      id: manual_log_open
+    direction: DOWN
+- tapOn:
+    id: manual_log_open
+- tapOn:
+    id: log_message_clear
+- tapOn:
+    id: log_message
+- inputText: ${MESSAGE}
+- tapOn:
+    id: log_message_done
+- copyTextFrom:
+    id: log_message
+- assertTrue: ${maestro.copiedText === MESSAGE}
+- scrollUntilVisible:
+    element:
+      id: log_level_info
+    direction: DOWN
+- tapOn:
+    id: log_level_info
+- scrollUntilVisible:
+    element:
+      id: log_send
+    direction: DOWN
+- copyTextFrom:
+    id: log_message_preview
+- assertTrue: ${maestro.copiedText === MESSAGE}
+# Sending has no persistent UI change; never retry this side effect automatically.
+- tapOn:
+    id: log_send
+    retryTapIfNoChange: false
+- tapOn: "Debug Panel"
+- assertVisible:
+    id: manual_log_open
