@@ -18,12 +18,14 @@ mod command;
 mod devices;
 mod doctor;
 mod run;
+mod setup;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use command::SystemCommandRunner;
 use devices::{DevicePlatform, run_devices};
 use doctor::{DoctorOptions, DoctorTarget, run_doctor};
 use run::{RunOptions, RunPlatform, run};
+use setup::{SetupOptions, SetupPlatform, run_setup};
 use std::process::ExitCode;
 
 #[derive(Debug, Parser)]
@@ -75,6 +77,14 @@ enum Command {
     /// Do not prompt; require an explicit simulator or device selector.
     #[arg(long)]
     non_interactive: bool,
+  },
+  /// Install iOS signing assets from an unlocked secret vault.
+  Setup {
+    #[arg(value_enum)]
+    platform: SetupPlatform,
+    /// Secret-vault item ID or unique name. Defaults to `CAPTURE_DEV_IOS_SECRET_VAULT_ITEM`.
+    #[arg(long, env = "CAPTURE_DEV_IOS_SECRET_VAULT_ITEM")]
+    secret_vault_item: Option<String>,
   },
 }
 
@@ -171,6 +181,20 @@ fn main() -> ExitCode {
           ExitCode::from(1)
         },
       }
+    },
+    Command::Setup {
+      platform,
+      secret_vault_item,
+    } => match run_setup(
+      &SystemCommandRunner,
+      platform,
+      &SetupOptions { secret_vault_item },
+    ) {
+      Ok(()) => ExitCode::SUCCESS,
+      Err(message) => {
+        eprintln!("[BLOCKED] {message}");
+        ExitCode::from(1)
+      },
     },
   }
 }
