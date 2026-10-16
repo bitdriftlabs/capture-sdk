@@ -25,24 +25,24 @@ pub(crate) enum SetupPlatform {
 
 #[derive(Debug)]
 pub(crate) struct SetupOptions {
-  pub(crate) bitwarden_item: Option<String>,
+  pub(crate) secret_vault_item: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-struct BitwardenItem {
+struct SecretVaultItem {
   id: String,
-  attachments: Option<Vec<BitwardenAttachment>>,
-  fields: Option<Vec<BitwardenField>>,
+  attachments: Option<Vec<SecretVaultAttachment>>,
+  fields: Option<Vec<SecretVaultField>>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct BitwardenAttachment {
+struct SecretVaultAttachment {
   file_name: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct BitwardenField {
+struct SecretVaultField {
   name: String,
   value: Option<String>,
 }
@@ -68,13 +68,13 @@ fn setup_ios(runner: &dyn CommandRunner, options: &SetupOptions) -> Result<(), S
   if std::env::consts::OS != "macos" {
     return Err("iOS signing assets can only be installed on macOS.".to_owned());
   }
-  let item_selector = options.bitwarden_item.as_deref().ok_or_else(|| {
-    "Choose the signing item with `--bitwarden-item <id-or-name>` or set \
-     CAPTURE_DEV_IOS_SIGNING_ITEM. Run `bw list items` to find its ID."
+  let item_selector = options.secret_vault_item.as_deref().ok_or_else(|| {
+    "Choose the signing item with `--secret-vault-item <id-or-name>` or set \
+     CAPTURE_DEV_IOS_SECRET_VAULT_ITEM. Use your secret-vault CLI to find its ID."
       .to_owned()
   })?;
-  ensure_unlocked_bitwarden(runner)?;
-  let item = bitwarden_item(runner, item_selector)?;
+  ensure_unlocked_secret_vault(runner)?;
+  let item = secret_vault_item(runner, item_selector)?;
   let assets = SigningAssets::from_item(&item)?;
   let profiles_directory = provisioning_profiles_directory()?;
   fs::create_dir_all(&profiles_directory)
@@ -82,7 +82,7 @@ fn setup_ios(runner: &dyn CommandRunner, options: &SetupOptions) -> Result<(), S
 
   let temporary_directory = TempDir::new()
     .map_err(|error| format!("Could not create a temporary signing directory: {error}"))?;
-  println!("[1/3] Downloading signing assets from Bitwarden...");
+  println!("[1/3] Downloading signing assets from the secret vault...");
   let certificate =
     download_attachment(runner, &item.id, &assets.certificate, &temporary_directory)?;
   let profiles = assets
@@ -98,10 +98,9 @@ fn setup_ios(runner: &dyn CommandRunner, options: &SetupOptions) -> Result<(), S
     profiles.len()
   );
   for profile in profiles {
-    let destination =
-      profiles_directory.join(profile.file_name().ok_or_else(|| {
-        "Bitwarden returned a provisioning profile without a filename.".to_owned()
-      })?);
+    let destination = profiles_directory.join(profile.file_name().ok_or_else(|| {
+      "The secret vault returned a provisioning profile without a filename.".to_owned()
+    })?);
     fs::copy(&profile, &destination)
       .map_err(|error| format!("Could not install {}: {error}", destination.display()))?;
   }
@@ -112,7 +111,7 @@ fn setup_ios(runner: &dyn CommandRunner, options: &SetupOptions) -> Result<(), S
 }
 
 impl SigningAssets {
-  fn from_item(item: &BitwardenItem) -> Result<Self, String> {
+  fn from_item(item: &SecretVaultItem) -> Result<Self, String> {
     let attachments = item.attachments.as_deref().unwrap_or_default();
     let certificates = attachments
       .iter()
@@ -121,7 +120,7 @@ impl SigningAssets {
       .collect::<Vec<_>>();
     if certificates.len() != 1 {
       return Err(
-        "The Bitwarden item must contain exactly one `.p12` certificate attachment.".to_owned(),
+        "The secret-vault item must contain exactly one `.p12` certificate attachment.".to_owned(),
       );
     }
     let profiles = attachments
@@ -131,7 +130,7 @@ impl SigningAssets {
       .collect::<Vec<_>>();
     if profiles.is_empty() {
       return Err(
-        "The Bitwarden item must contain at least one `.mobileprovision` attachment.".to_owned(),
+        "The secret-vault item must contain at least one `.mobileprovision` attachment.".to_owned(),
       );
     }
     let password = item
@@ -143,7 +142,7 @@ impl SigningAssets {
       .and_then(|field| field.value.clone())
       .filter(|value| !value.is_empty())
       .ok_or_else(|| {
-        format!("The Bitwarden item needs a non-empty `{P12_PASSWORD_FIELD}` custom field.")
+        format!("The secret-vault item needs a non-empty `{P12_PASSWORD_FIELD}` custom field.")
       })?;
     Ok(Self {
       certificate: certificates.into_iter().next().unwrap_or_default(),
@@ -153,15 +152,17 @@ impl SigningAssets {
   }
 }
 
-fn ensure_unlocked_bitwarden(runner: &dyn CommandRunner) -> Result<(), String> {
+fn ensure_unlocked_secret_vault(runner: &dyn CommandRunner) -> Result<(), String> {
   let status = runner.run("bw", &["status"]);
   if !status.success {
     return Err(
-      "Bitwarden CLI (`bw`) is unavailable. Install it, log in, and unlock your vault.".to_owned(),
+      "The secret-vault CLI (`bw`) is unavailable. Install it, log in, and unlock your vault."
+        .to_owned(),
     );
   }
   let status = serde_json::from_str::<serde_json::Value>(&status.stdout).map_err(|_| {
-    "Bitwarden did not return a readable status. Run `bw status` and resolve its error.".to_owned()
+    "The secret vault did not return a readable status. Run `bw status` and resolve its error."
+      .to_owned()
   })?;
   if status
     .pointer("/status")
@@ -170,18 +171,21 @@ fn ensure_unlocked_bitwarden(runner: &dyn CommandRunner) -> Result<(), String> {
   {
     return Ok(());
   }
-  Err("Bitwarden is locked. Run `export BW_SESSION=\"$(bw unlock --raw)\"`, then retry.".to_owned())
+  Err("The secret vault is locked. Unlock it in this shell, then retry.".to_owned())
 }
 
-fn bitwarden_item(runner: &dyn CommandRunner, selector: &str) -> Result<BitwardenItem, String> {
+fn secret_vault_item(
+  runner: &dyn CommandRunner,
+  selector: &str,
+) -> Result<SecretVaultItem, String> {
   let item = runner.run("bw", &["get", "item", selector]);
   if !item.success {
     return Err(format!(
-      "Could not retrieve Bitwarden item `{selector}`. Use its exact ID or unique name."
+      "Could not retrieve secret-vault item `{selector}`. Use its exact ID or unique name."
     ));
   }
   serde_json::from_str(&item.stdout)
-    .map_err(|_| "Bitwarden returned an unreadable signing item.".to_owned())
+    .map_err(|_| "The secret vault returned an unreadable signing item.".to_owned())
 }
 
 fn download_attachment(
@@ -208,7 +212,7 @@ fn download_attachment(
     Ok(destination)
   } else {
     Err(format!(
-      "Could not download Bitwarden attachment `{filename}`."
+      "Could not download secret-vault attachment `{filename}`."
     ))
   }
 }

@@ -78,13 +78,13 @@ enum Command {
     #[arg(long)]
     non_interactive: bool,
   },
-  /// Install iOS signing assets from an unlocked Bitwarden vault.
+  /// Install iOS signing assets from an unlocked secret vault.
   Setup {
     #[arg(value_enum)]
     platform: SetupPlatform,
-    /// Bitwarden item ID or unique name. Defaults to `CAPTURE_DEV_IOS_SIGNING_ITEM`.
-    #[arg(long, env = "CAPTURE_DEV_IOS_SIGNING_ITEM")]
-    bitwarden_item: Option<String>,
+    /// Secret-vault item ID or unique name. Defaults to `CAPTURE_DEV_IOS_SECRET_VAULT_ITEM`.
+    #[arg(long, env = "CAPTURE_DEV_IOS_SECRET_VAULT_ITEM")]
+    secret_vault_item: Option<String>,
   },
 }
 
@@ -184,11 +184,11 @@ fn main() -> ExitCode {
     },
     Command::Setup {
       platform,
-      bitwarden_item,
+      secret_vault_item,
     } => match run_setup(
       &SystemCommandRunner,
       platform,
-      &SetupOptions { bitwarden_item },
+      &SetupOptions { secret_vault_item },
     ) {
       Ok(()) => ExitCode::SUCCESS,
       Err(message) => {
