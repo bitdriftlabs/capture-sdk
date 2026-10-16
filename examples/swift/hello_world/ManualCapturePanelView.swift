@@ -29,6 +29,7 @@ struct ManualCapturePanelView: View {
                 )
             }
             .buttonStyle(PressableCardButtonStyle())
+            .accessibilityIdentifier("manual_log_open")
 
             Button(action: { self.loggerCustomer.simulateSpan() }) {
                 PanelRow(

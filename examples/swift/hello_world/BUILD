@@ -13,6 +13,11 @@ CI_APP_ICONS = select({
     "//conditions:default": APP_ICONS,
 })
 
+exports_files(
+    ["E2EStartupConfiguration.swift"],
+    visibility = ["//examples/swift/hello_world/tests:__pkg__"],
+)
+
 genrule(
     name = "expanded_xcframework",
     srcs = ["//:ios_xcframework_for_distribution"],

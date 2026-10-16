@@ -40,6 +40,7 @@ private struct JSONFieldExample: Encodable {
 
 final class LoggerCustomer: NSObject, URLSessionDelegate {
     private(set) static var webViewManualInstrumentationEnabled = false
+    private(set) var startupConfigurationError: String?
 
     private struct RequestDefinition {
         let method: String
@@ -99,8 +100,27 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
 
         Self.webViewManualInstrumentationEnabled = Configuration.storedWebViewManualInstrumentation
 
-        guard let apiURL = URL(string: Configuration.storedAPIURL) else {
-            print("failed to initialize logger due to invalid API URL: \(Configuration.storedAPIURL)")
+        let apiURL: URL
+        let apiKey: String
+        var initialFields: Fields = [
+            "app": "hello_world",
+            "user_id": UUID().uuidString,
+            "invalid_utf8": ("abc💇‍♀️" as NSString).substring(with: NSRange(location: 0, length: 4)),
+        ]
+        switch E2EStartupConfiguration.resolve(environment: ProcessInfo.processInfo.environment) {
+        case .normal:
+            guard let storedURL = URL(string: Configuration.storedAPIURL) else {
+                print("failed to initialize logger due to invalid API URL: \(Configuration.storedAPIURL)")
+                return
+            }
+            apiURL = storedURL
+            apiKey = Configuration.storedAPIKey ?? ""
+        case let .enabled(localURL, localKey, run):
+            apiURL = localURL
+            apiKey = localKey
+            initialFields["workflow_e2e_run"] = run
+        case .invalid:
+            self.startupConfigurationError = E2EStartupConfiguration.errorMessage
             return
         }
 
@@ -120,17 +140,13 @@ final class LoggerCustomer: NSObject, URLSessionDelegate {
 
         Logger
             .start(
-                withAPIKey: Configuration.storedAPIKey ?? "",
+                withAPIKey: apiKey,
                 sessionStrategy: sessionStrategy,
                 configuration: Capture.Configuration(
                     apiURL: apiURL,
                     issueCallbackConfiguration: issueCallbackConfiguration
                 ),
-                initialFields: [
-                    "app": "hello_world",
-                    "user_id": UUID().uuidString,
-                    "invalid_utf8": ("abc💇‍♀️" as NSString).substring(with: NSRange(location: 0, length: 4)),
-                ],
+                initialFields: initialFields,
                 startResult: { result in
                     switch result {
                     case .success(let logger):

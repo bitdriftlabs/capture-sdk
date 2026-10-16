@@ -12,6 +12,7 @@ struct LogComposerView: View {
     @Binding var selectedLogLevel: LoggerCustomer.LogLevel
 
     @State private var message = "Manual log from the debug panel"
+    @FocusState private var messageFocused: Bool
 
     var body: some View {
         PanelScreen {
@@ -23,9 +24,30 @@ struct LogComposerView: View {
                     PanelInputField(
                         title: "Message",
                         placeholder: "Enter log message",
-                        text: self.$message
+                        text: self.$message,
+                        accessibilityID: "log_message",
+                        focus: self.$messageFocused,
+                        submitLabel: .done
                     )
 
+                    HStack {
+                        Button(action: { self.message = "" }) {
+                            Text("Clear message")
+                        }
+                        .accessibilityIdentifier("log_message_clear")
+
+                        Button(action: { self.messageFocused = false }) {
+                            Text("Done editing")
+                        }
+                        .accessibilityIdentifier("log_message_done")
+                    }
+                    .buttonStyle(
+                        OutlineButtonStyle(
+                            stroke: Theme.textSecondary,
+                            foreground: Theme.textPrimary,
+                            background: Color.white.opacity(0.05)
+                        )
+                    )
                     VStack(spacing: 12) {
                         ForEach(LoggerCustomer.LogLevel.allCases) { level in
                             Button(action: {
@@ -70,8 +92,15 @@ struct LogComposerView: View {
                                 )
                             }
                             .buttonStyle(PressableCardButtonStyle(cornerRadius: 18))
+                            .accessibilityIdentifier("log_level_\(level.rawValue)")
                         }
                     }
+
+                    Text(self.message)
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("log_message_preview")
 
                     Button(action: {
                         self.loggerCustomer.log(
@@ -87,6 +116,7 @@ struct LogComposerView: View {
                             foreground: Theme.textPrimary
                         )
                     )
+                    .accessibilityIdentifier("log_send")
 
                     Button(action: {
                         self.loggerCustomer.logJSONField()

@@ -24,7 +24,7 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             PanelScreen {
-                SdkStatusPanelView()
+                SdkStatusPanelView(startupConfigurationError: self.loggerCustomer.startupConfigurationError)
                 PreviousRunInfoPanelView()
                 SessionPanelView(loggerCustomer: self.loggerCustomer)
                 ManualCapturePanelView(loggerCustomer: self.loggerCustomer)

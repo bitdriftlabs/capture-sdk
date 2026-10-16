@@ -11,6 +11,11 @@ struct PanelInputField: View {
     let title: String
     let placeholder: String
     @Binding var text: String
+    var accessibilityID = ""
+    var focus: FocusState<Bool>.Binding?
+    var submitLabel: SubmitLabel = .return
+
+    @FocusState private var localFocus: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -19,6 +24,10 @@ struct PanelInputField: View {
                 .foregroundColor(Theme.textPrimary)
 
             TextField(self.placeholder, text: self.$text)
+                .accessibilityIdentifier(self.accessibilityID)
+                .focused(self.focus ?? self.$localFocus)
+                .submitLabel(self.submitLabel)
+                .onSubmit { self.focus?.wrappedValue = false }
                 .textInputAutocapitalization(.never)
                 .disableAutocorrection(true)
                 .foregroundColor(Theme.textPrimary)

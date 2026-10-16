@@ -9,6 +9,7 @@ import Capture
 import SwiftUI
 
 struct SdkStatusPanelView: View {
+    var startupConfigurationError: String?
     @State private var sdkStatus: SdkStatus?
     @State private var isTracingActive = false
     @State private var lastCheckTime: Date?
@@ -22,13 +23,19 @@ struct SdkStatusPanelView: View {
     var body: some View {
         PanelSection(title: "SDK State") {
             PanelCard(background: Color.black.opacity(0.24)) {
-                if let status = sdkStatus {
+                if let error = self.startupConfigurationError {
+                    Text(error)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Theme.danger)
+                        .accessibilityIdentifier("e2e_startup_error")
+                } else if let status = sdkStatus {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("State:")
                                 .font(.subheadline.weight(.medium))
                                 .foregroundColor(Theme.textSecondary)
                             Text(stateLabel(for: status.initializationState))
+                                .accessibilityIdentifier("sdk_initialization_state")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(
                                     status.initializationState == .running
@@ -52,6 +59,7 @@ struct SdkStatusPanelView: View {
                                     .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                                 Text(dateFormatter.string(from: handshake))
+                                    .accessibilityIdentifier("sdk_last_handshake")
                                     .font(.system(.caption, design: .monospaced))
                                     .foregroundColor(Theme.textPrimary)
                             }
@@ -67,6 +75,7 @@ struct SdkStatusPanelView: View {
                                     .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                                 Text(dateFormatter.string(from: configDelivery))
+                                    .accessibilityIdentifier("sdk_last_config_delivery")
                                     .font(.system(.caption, design: .monospaced))
                                     .foregroundColor(Theme.textPrimary)
                             }
@@ -98,6 +107,7 @@ struct SdkStatusPanelView: View {
                         background: Theme.secondary.opacity(0.10)
                     )
                 )
+                .accessibilityIdentifier("sdk_check_state")
             }
         }
         .onAppear {
