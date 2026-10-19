@@ -11,8 +11,11 @@ mod tests;
 
 use crate::command::CommandRunner;
 use clap::ValueEnum;
+use dialoguer::FuzzySelect;
+use dialoguer::theme::ColorfulTheme;
 use serde::Deserialize;
 use std::fs;
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
@@ -26,6 +29,7 @@ pub(crate) enum SetupPlatform {
 #[derive(Debug)]
 pub(crate) struct SetupOptions {
   pub(crate) secret_vault_item: Option<String>,
+  pub(crate) non_interactive: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -33,6 +37,12 @@ struct SecretVaultItem {
   id: String,
   attachments: Option<Vec<SecretVaultAttachment>>,
   fields: Option<Vec<SecretVaultField>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SecretVaultItemSummary {
+  id: String,
+  name: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -68,13 +78,9 @@ fn setup_ios(runner: &dyn CommandRunner, options: &SetupOptions) -> Result<(), S
   if std::env::consts::OS != "macos" {
     return Err("iOS signing assets can only be installed on macOS.".to_owned());
   }
-  let item_selector = options.secret_vault_item.as_deref().ok_or_else(|| {
-    "Choose the signing item with `--secret-vault-item <id-or-name>` or set \
-     CAPTURE_DEV_IOS_SECRET_VAULT_ITEM. Use your secret-vault CLI to find its ID."
-      .to_owned()
-  })?;
   ensure_unlocked_secret_vault(runner)?;
-  let item = secret_vault_item(runner, item_selector)?;
+  let item_selector = resolve_secret_vault_item(runner, options)?;
+  let item = secret_vault_item(runner, &item_selector)?;
   let assets = SigningAssets::from_item(&item)?;
   let profiles_directory = provisioning_profiles_directory()?;
   fs::create_dir_all(&profiles_directory)
@@ -186,6 +192,47 @@ fn secret_vault_item(
   }
   serde_json::from_str(&item.stdout)
     .map_err(|_| "The secret vault returned an unreadable signing item.".to_owned())
+}
+
+fn resolve_secret_vault_item(
+  runner: &dyn CommandRunner,
+  options: &SetupOptions,
+) -> Result<String, String> {
+  if let Some(selector) = &options.secret_vault_item {
+    return Ok(selector.clone());
+  }
+  if options.non_interactive {
+    return Err(
+      "`--non-interactive` requires `--secret-vault-item` or CAPTURE_DEV_IOS_SECRET_VAULT_ITEM."
+        .to_owned(),
+    );
+  }
+  if !std::io::stdin().is_terminal() || !std::io::stderr().is_terminal() {
+    return Err(
+      "No interactive terminal is available. Pass `--secret-vault-item <id-or-name>`.".to_owned(),
+    );
+  }
+  let result = runner.run("bw", &["list", "items"]);
+  if !result.success {
+    return Err("Could not list secret-vault items.".to_owned());
+  }
+  let items = serde_json::from_str::<Vec<SecretVaultItemSummary>>(&result.stdout)
+    .map_err(|_| "The secret vault returned an unreadable item list.".to_owned())?;
+  if items.is_empty() {
+    return Err("The secret vault does not contain any selectable items.".to_owned());
+  }
+  let labels = items
+    .iter()
+    .map(|item| item.name.as_str())
+    .collect::<Vec<_>>();
+  let selected = FuzzySelect::with_theme(&ColorfulTheme::default())
+    .with_prompt("Choose an iOS signing item")
+    .items(&labels)
+    .interact_opt()
+    .map_err(|error| format!("Could not select a secret-vault item: {error}"))?;
+  selected
+    .map(|index| items[index].id.clone())
+    .ok_or_else(|| "No secret-vault item was selected.".to_owned())
 }
 
 fn download_attachment(

@@ -85,6 +85,9 @@ enum Command {
     /// Secret-vault item ID or unique name. Defaults to `CAPTURE_DEV_IOS_SECRET_VAULT_ITEM`.
     #[arg(long, env = "CAPTURE_DEV_IOS_SECRET_VAULT_ITEM")]
     secret_vault_item: Option<String>,
+    /// Do not prompt; require a secret-vault item selector.
+    #[arg(long)]
+    non_interactive: bool,
   },
 }
 
@@ -185,10 +188,14 @@ fn main() -> ExitCode {
     Command::Setup {
       platform,
       secret_vault_item,
+      non_interactive,
     } => match run_setup(
       &SystemCommandRunner,
       platform,
-      &SetupOptions { secret_vault_item },
+      &SetupOptions {
+        secret_vault_item,
+        non_interactive,
+      },
     ) {
       Ok(()) => ExitCode::SUCCESS,
       Err(message) => {
