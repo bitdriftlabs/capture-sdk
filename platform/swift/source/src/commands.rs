@@ -101,7 +101,9 @@ impl RegisteredCommandHandler for Target {
         },
       };
 
-      let command_key = match make_nsstring(&invocation.registered_command_id) {
+      // Rust workers have no ambient pool. The retained key stays alive for dispatch after
+      // draining.
+      let command_key = match autoreleasepool(|| make_nsstring(&invocation.registered_command_id)) {
         Ok(command_key) => command_key,
         Err(error) => {
           return failed_result(
