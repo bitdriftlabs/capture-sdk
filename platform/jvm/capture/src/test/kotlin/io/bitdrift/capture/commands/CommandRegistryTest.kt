@@ -20,6 +20,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -253,6 +254,70 @@ class CommandRegistryTest {
         registry.cancel(2)
         assertThat(bridge.pendingCompletions()).isZero()
         assertNoRetainedInvocations(registry)
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Reporting: where it runs and what it leaves behind
+    // ---------------------------------------------------------------------------------------------
+
+    @Test
+    fun ownerCancellingAQueuedInvocationReportsFromTheDispatcherNotTheCancellingThread() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher)
+        val owner = Job()
+        registry.register("vm", owner = CoroutineScope(owner)) { success() }
+        registry.dispatch(1, "vm", null, "session")
+
+        owner.cancel()
+
+        assertThat(bridge.pendingCompletions()).describedAs("reported on the owner's thread").isZero()
+        queued.runAll()
+        assertThat(bridge.awaitCompletion().message).isEqualTo(OWNER_SCOPE_COMPLETED)
+    }
+
+    @Test
+    fun bridgeFailureWhileReportingStillReleasesKeyAndSlot() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher, maxConcurrentInvocations = 1)
+        registry.register("key") { success() }
+        bridge.failNextCompletion = true
+
+        registry.dispatch(1, "key", null, "session")
+        queued.runAll()
+        registry.dispatch(2, "key", null, "session")
+        queued.runAll()
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.invocationId).isEqualTo(2)
+        assertThat(completion.error).isNull()
+        assertNoRetainedInvocations(registry)
+    }
+
+    @Test
+    fun concurrentCoreCancellationReportsEachInvocationAtMostOnceAndReleasesEveryClaim() {
+        val slots = 4
+        val registry = CommandRegistry(bridge, Dispatchers.Default, maxConcurrentInvocations = slots)
+        repeat(slots) { i ->
+            registry.register("k$i") {
+                yield()
+                success()
+            }
+        }
+        val cancelled = mutableSetOf<Long>()
+        repeat(250) { round ->
+            val ids = List(slots) { round * slots + it + 1L }
+            val canceller = Thread { ids.filter { it % 2 == 0L }.forEach(registry::cancel) }
+            ids.forEachIndexed { i, id -> registry.dispatch(id, "k$i", null, "session") }
+            canceller.start()
+            canceller.join()
+            cancelled += ids.filter { it % 2 == 0L }
+            awaitNoRetainedInvocations(registry)
+        }
+
+        val reported = generateSequence { bridge.pollCompletion() }.map { it.invocationId }.toList()
+        assertThat(reported).doesNotHaveDuplicates()
+        assertThat((1L..250L * slots).filter { it !in cancelled }).allSatisfy { assertThat(reported).contains(it) }
+        assertEverySlotIsFree(registry, slots)
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1486,6 +1551,28 @@ class CommandRegistryTest {
         }
     }
 
+    private fun awaitNoRetainedInvocations(registry: CommandRegistry) {
+        val field = CommandRegistry::class.java.getDeclaredField("invocations").apply { isAccessible = true }
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while ((field.get(registry) as Map<*, *>).isNotEmpty()) {
+            check(System.nanoTime() < deadline) { "invocations still running" }
+            Thread.sleep(1)
+        }
+    }
+
+    /** Exactly [slots] blocked invocations are admitted: fewer means a leaked slot, more a double release. */
+    private fun assertEverySlotIsFree(
+        registry: CommandRegistry,
+        slots: Int,
+    ) {
+        val release = CompletableDeferred<Unit>()
+        repeat(slots + 1) { i -> registry.register("probe$i") { release.await().let { success() } } }
+        repeat(slots + 1) { i -> registry.dispatch(10_000L + i, "probe$i", null, "session") }
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
+        release.complete(Unit)
+        assertThat(List(slots) { bridge.awaitCompletion().error }).containsOnlyNulls()
+    }
+
     private fun assertNoRetainedInvocations(registry: CommandRegistry) {
         val field = CommandRegistry::class.java.getDeclaredField("invocations").apply { isAccessible = true }
         assertThat(field.get(registry) as Map<*, *>).isEmpty()
@@ -1530,6 +1617,10 @@ class CommandRegistryTest {
         val registered = mutableListOf<Pair<Long, String>>()
         var registerCalls = 0
         var unregisterCalls = 0
+
+        /** Makes the next `completeCommand` throw, as a failing JNI call would. */
+        @Volatile
+        var failNextCompletion = false
         private val completions = LinkedBlockingQueue<Completion>()
 
         override fun registerCommand(
@@ -1557,6 +1648,10 @@ class CommandRegistryTest {
             attachment: ByteArray?,
             attachmentContentType: String?,
         ) {
+            if (failNextCompletion) {
+                failNextCompletion = false
+                throw IllegalStateException("completeCommand failed")
+            }
             completions.add(
                 Completion(invocationId, errorCode, errorMessage, fields.toList(), attachment, attachmentContentType),
             )
@@ -1565,6 +1660,8 @@ class CommandRegistryTest {
         fun awaitCompletion(): Completion = checkNotNull(completions.poll(5, TimeUnit.SECONDS)) { "no completion" }
 
         fun pendingCompletions(): Int = completions.size
+
+        fun pollCompletion(): Completion? = completions.poll()
     }
 
     private data class Completion(
