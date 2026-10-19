@@ -70,7 +70,9 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
 
     init(
         registry: CommandRegistry,
-        completion: @escaping @Sendable (UInt64, Result<CommandResult, CommandError>) -> Void = CommandsTarget.complete
+        completion: @escaping @Sendable (UInt64, Result<CommandResult, CommandError>) -> Void = {
+            CommandsTarget.complete(requestID: $0, result: $1)
+        }
     ) {
         self.registry = registry
         self.completion = completion
