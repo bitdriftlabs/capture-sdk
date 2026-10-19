@@ -5,9 +5,9 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-public typealias CommandArguments = [String: CommandArgument]
+@_spi(ExperimentalAPI) public typealias CommandArguments = [String: CommandArgument]
 
-public extension Dictionary where Key == String, Value == CommandArgument {
+@_spi(ExperimentalAPI) public extension Dictionary where Key == String, Value == CommandArgument {
     /// Returns the string value for `key`, or `nil` when it is absent or has another type.
     ///
     /// - parameter key: The argument name.

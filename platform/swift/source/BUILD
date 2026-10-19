@@ -38,6 +38,7 @@ swift_library(
         "swift.enable_library_evolution",
     ],
     generates_header = True,
+    library_evolution = True,
     module_name = "Capture",
     private_deps = [
         ":CapturePassable",
