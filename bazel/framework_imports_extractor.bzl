@@ -29,7 +29,8 @@ def _framework_imports_extractor(ctx):
             arch = arch[4:]
 
         outputs.extend([
-            ctx.actions.declare_file("Capture.framework/Modules/Capture.swiftmodule/{}.swiftmodule".format(arch)),
+            ctx.actions.declare_file("Capture.framework/Modules/Capture.swiftmodule/{}.swiftinterface".format(arch)),
+            ctx.actions.declare_file("Capture.framework/Modules/Capture.swiftmodule/{}.private.swiftinterface".format(arch)),
         ])
 
     if len(ctx.attr.framework[0].files.to_list()) != 1:
