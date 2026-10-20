@@ -99,6 +99,39 @@ final class CommandsTargetTests: XCTestCase {
         XCTAssertEqual(next, .success(CommandResult()))
     }
 
+    func testCancelCommandReturnsBeforeCancellationHandlersFinish() async throws {
+        let started = expectation(description: "handler started")
+        let cancellationFinished = expectation(description: "cancellation handler finished")
+        let release = DispatchSemaphore(value: 0)
+        let gate = CommandExecutionGate()
+        let handlerFinished = CommandTestValue(false)
+        let registry = CommandRegistry(commands: [
+            Command(key: "first") { _ in
+                started.fulfill()
+                await withTaskCancellationHandler {
+                    await gate.wait()
+                } onCancel: {
+                    _ = release.wait(timeout: .now() + 5)
+                    handlerFinished.set(true)
+                    cancellationFinished.fulfill()
+                }
+                return .success(CommandResult())
+            },
+        ])
+        sut = CommandsTarget(registry: registry) { _, _ in }
+        sut.executeCommand("first", arguments: [], requestID: 1)
+        await fulfillment(of: [started])
+        let task = try XCTUnwrap(sut.executionTask(for: 1))
+
+        sut.cancelCommand(1)
+
+        XCTAssertFalse(handlerFinished.value)
+        release.signal()
+        await fulfillment(of: [cancellationFinished])
+        await gate.open()
+        await task.value
+    }
+
     func testCancellationBeforeRegistryEntryNeverInvokesHandlerOrPublishesResult() async throws {
         let held = expectation(description: "registry executor held")
         let barrier = CommandRegistryBarrier(held: held)
@@ -118,6 +151,7 @@ final class CommandsTargetTests: XCTestCase {
         sut.executeCommand("first", arguments: [], requestID: 1)
         let task = try XCTUnwrap(sut.executionTask(for: 1))
         sut.cancelCommand(1)
+        await waitUntilCancelled(task)
         barrier.open()
         await holdingTask.value
         await task.value
@@ -192,6 +226,12 @@ private extension CommandsTargetTests {
 
     func thenErrorHasDescription(_ error: Error, _ expectedDescription: String) {
         XCTAssertEqual(error.localizedDescription, expectedDescription)
+    }
+
+    func waitUntilCancelled(_ task: Task<Void, Never>) async {
+        while !task.isCancelled {
+            await Task.yield()
+        }
     }
 }
 

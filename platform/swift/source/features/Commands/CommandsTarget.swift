@@ -64,7 +64,7 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
     }
 
     private let registry: CommandRegistry
-    private let lock = NSLock()
+    private let lock = Lock()
     private var executions = [UInt64: Execution]()
     private let completion: @Sendable (UInt64, Result<CommandResult, CommandError>) -> Void
 
@@ -96,45 +96,41 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
 
         // The task must cross this lock before entering the registry or completing. This makes
         // publication of its handle atomic with both cancellation and an immediate result.
-        lock.lock()
-        let task = Task { [self, registry] in
-            guard canExecute(requestID: requestID), !Task.isCancelled else {
-                finish(requestID: requestID, result: nil)
-                return
+        lock.withLock {
+            let task = Task { [self, registry] in
+                guard canExecute(requestID: requestID), !Task.isCancelled else {
+                    finish(requestID: requestID, result: nil)
+                    return
+                }
+                let result = await registry.execute(key: key as String, arguments: parsedArguments)
+                finish(requestID: requestID, result: result)
             }
-            let result = await registry.execute(key: key as String, arguments: parsedArguments)
-            finish(requestID: requestID, result: result)
+            executions[requestID] = Execution(task: task)
         }
-        executions[requestID] = Execution(task: task)
-        lock.unlock()
     }
 
     @objc(cancelCommand:)
     func cancelCommand(_ requestID: UInt64) {
-        lock.lock()
-        executions[requestID]?.cancelled = true
-        let task = executions[requestID]?.task
-        lock.unlock()
-        // Task cancellation can run application cancellation handlers; never do it under our lock.
-        task?.cancel()
+        let task = lock.withLock {
+            executions[requestID]?.cancelled = true
+            return executions[requestID]?.task
+        }
+        guard let task else { return }
+        // Task cancellation runs application cancellation handlers; never run them under our lock
+        // or on the calling Rust thread.
+        DispatchQueue.global().async { task.cancel() }
     }
 
     func executionTask(for requestID: UInt64) -> Task<Void, Never>? {
-        lock.lock()
-        defer { lock.unlock() }
-        return executions[requestID]?.task
+        lock.withLock { executions[requestID]?.task }
     }
 
     private func canExecute(requestID: UInt64) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return executions[requestID]?.cancelled == false
+        lock.withLock { executions[requestID]?.cancelled == false }
     }
 
     private func finish(requestID: UInt64, result: Result<CommandResult, CommandError>?) {
-        lock.lock()
-        let execution = executions.removeValue(forKey: requestID)
-        lock.unlock()
+        let execution = lock.withLock { executions.removeValue(forKey: requestID) }
         guard let execution, !execution.cancelled, !Task.isCancelled, let result else {
             return
         }
