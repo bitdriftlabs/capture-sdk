@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum CommandArgument: Equatable, Sendable {
+@_spi(ExperimentalAPI) public enum CommandArgument: Equatable, Sendable {
     case string(String)
     case binary(Data)
     case uint64(UInt64)

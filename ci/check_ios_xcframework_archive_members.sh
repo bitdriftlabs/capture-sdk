@@ -16,6 +16,16 @@ if [[ ! -f "$archive" ]]; then
   exit 1
 fi
 
+for interface in \
+  "$framework_root/ios-arm64/Capture.framework/Modules/Capture.swiftmodule/arm64.private.swiftinterface" \
+  "$framework_root/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/arm64.private.swiftinterface" \
+  "$framework_root/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/x86_64.private.swiftinterface"; do
+  if [[ ! -f "$interface" ]]; then
+    echo "no private Swift interface found at $interface" >&2
+    exit 1
+  fi
+done
+
 metadata_members=$("$archive_tool" t "$archive" | grep -E '^lib\.rmeta(-link)?$' || true)
 if [[ -n "$metadata_members" ]]; then
   echo "Rust compiler metadata must not be shipped in the XCFramework archive:" >&2

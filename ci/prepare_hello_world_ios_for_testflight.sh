@@ -10,7 +10,9 @@ fi
 
 readonly marketing_version="$1"
 readonly build_number="$2"
-readonly target="//examples/swift/hello_world:hello_world_app"
+# Keep this on the XCFramework-backed target so the resulting IPA validates the
+# same binary-distribution path used by external consumers.
+readonly target="//examples/swift/hello_world:ios_app"
 readonly embed_label="HelloWorld_${marketing_version}_build_${build_number}"
 
 echo "Building release IPA for $target"
@@ -18,13 +20,14 @@ echo "Version: $marketing_version ($build_number)"
 
 ./bazelw build \
   --config=release-ios \
+  --config=nocache \
   --cpu=ios_arm64 \
   --apple_generate_dsym \
   --output_groups=+dsyms \
   --embed_label="$embed_label" \
   "$target"
 
-readonly dsym_output_dir="bazel-bin/examples/swift/hello_world/hello_world_app_dsyms"
+readonly dsym_output_dir="bazel-bin/examples/swift/hello_world/ios_app_dsyms"
 
 dsym_paths=()
 while IFS= read -r dsym_path; do
@@ -38,7 +41,7 @@ fi
 
 echo
 echo "IPA ready at:"
-echo "  bazel-bin/examples/swift/hello_world/hello_world_app.ipa"
+echo "  bazel-bin/examples/swift/hello_world/ios_app.ipa"
 echo "dSYM outputs:"
 printf '  %s\n' "${dsym_paths[@]}"
 echo

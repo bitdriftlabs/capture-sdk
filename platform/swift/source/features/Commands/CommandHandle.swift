@@ -7,7 +7,7 @@
 
 import Foundation
 
-public final class CommandHandle: @unchecked Sendable {
+@_spi(ExperimentalAPI) public final class CommandHandle: @unchecked Sendable {
     private let unregisterHandler: @Sendable () async -> Void
 
     init(unregisterHandler: @escaping @Sendable () async -> Void) {

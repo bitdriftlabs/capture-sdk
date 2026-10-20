@@ -22,6 +22,9 @@ swift_library(
         exclude = ["bridging/**/*.swift"],
     ) + ["//proto:log_type_swift_source"],
     copts = [
+        # Xcode 27 requires an explicit language mode when emitting module interfaces.
+        "-language-mode",
+        "5",
         "-Xcc",
         "-Xclang",
         "-Xcc",
@@ -38,6 +41,7 @@ swift_library(
         "swift.enable_library_evolution",
     ],
     generates_header = True,
+    library_evolution = True,
     module_name = "Capture",
     private_deps = [
         ":CapturePassable",

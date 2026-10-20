@@ -41,7 +41,6 @@ extension Logger {
     /// - parameter configuration:   A configuration that used to set up Capture features.
     /// - parameter initialFields:   Fields to seed at SDK startup. `addField(withKey:value:)` can update
     ///                              their values later.
-    /// - parameter commands:        Commands to register before the SDK starts receiving remote work.
     /// - parameter dateProvider:    An optional date provider to set on the default logger.
     /// - parameter startResult:     An optional callback invoked with the result of the SDK initialization.
     ///                              The callback is always called on the calling thread before `start` returns.
@@ -54,12 +53,48 @@ extension Logger {
         sessionStrategy: SessionStrategy,
         configuration: Configuration = .init(),
         initialFields: Fields = [:],
-        commands: [Command] = [],
         dateProvider: DateProvider? = nil,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator?
     {
         return self.start(
+            withAPIKey: apiKey,
+            sessionStrategy: sessionStrategy,
+            configuration: configuration,
+            customFieldGetters: [],
+            initialFields: initialFields,
+            commands: [],
+            dateProvider: dateProvider,
+            loggerBridgingFactoryProvider: LoggerBridgingFactory(),
+            startResult: startResult
+        )
+    }
+
+    /// Initializes Capture and registers commands before it starts receiving remote work.
+    ///
+    /// - parameter apiKey:          The API key provided by bitdrift.
+    /// - parameter sessionStrategy: The strategy to determine a session identifier.
+    /// - parameter configuration:   A configuration that used to set up Capture features.
+    /// - parameter initialFields:   Fields to seed at SDK startup. `addField(withKey:value:)` can update
+    ///                              their values later.
+    /// - parameter commands:        Commands to register before the SDK starts receiving remote work.
+    /// - parameter dateProvider:    An optional date provider to set on the default logger.
+    /// - parameter startResult:     An optional callback invoked with the result of the SDK initialization.
+    ///                              The callback is always called on the calling thread before `start` returns.
+    ///                              On success, it receives a `Logging` instance. On failure, it receives an error.
+    ///
+    /// - returns: A logger integrator that can be used to enable various SDK integration.
+    @discardableResult
+    @_spi(ExperimentalAPI) public static func start(
+        withAPIKey apiKey: String,
+        sessionStrategy: SessionStrategy,
+        configuration: Configuration = .init(),
+        initialFields: Fields = [:],
+        commands: [Command],
+        dateProvider: DateProvider? = nil,
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
+    ) -> LoggerIntegrator? {
+        self.start(
             withAPIKey: apiKey,
             sessionStrategy: sessionStrategy,
             configuration: configuration,
@@ -79,7 +114,6 @@ extension Logger {
     /// - parameter configuration:        The configuration used to set up Capture features.
     /// - parameter initialFields:        Fields to seed at SDK startup. `addField(withKey:value:)` can update
     ///                                   their values later.
-    /// - parameter commands:             Commands to register before the SDK starts receiving remote work.
     /// - parameter dateProvider:         An optional date provider for the default logger.
     /// - parameter startResult:          An optional callback invoked with the SDK initialization result.
     ///
@@ -90,7 +124,42 @@ extension Logger {
         sessionConfiguration: SessionConfiguration = .init(),
         configuration: Configuration = .init(),
         initialFields: Fields = [:],
-        commands: [Command] = [],
+        dateProvider: DateProvider? = nil,
+        startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
+    ) -> LoggerIntegrator? {
+        self.start(
+            withAPIKey: apiKey,
+            sessionStrategy: .configuration(sessionConfiguration),
+            configuration: configuration,
+            customFieldGetters: [],
+            initialFields: initialFields,
+            commands: [],
+            dateProvider: dateProvider,
+            loggerBridgingFactoryProvider: LoggerBridgingFactory(),
+            startResult: startResult
+        )
+    }
+
+    /// Initializes Capture with the canonical session configuration API and registers commands before
+    /// it starts receiving remote work.
+    ///
+    /// - parameter apiKey:               The API key provided by bitdrift.
+    /// - parameter sessionConfiguration: The session-ID lifecycle configuration.
+    /// - parameter configuration:        The configuration used to set up Capture features.
+    /// - parameter initialFields:        Fields to seed at SDK startup. `addField(withKey:value:)` can update
+    ///                                   their values later.
+    /// - parameter commands:             Commands to register before the SDK starts receiving remote work.
+    /// - parameter dateProvider:         An optional date provider for the default logger.
+    /// - parameter startResult:          An optional callback invoked with the SDK initialization result.
+    ///
+    /// - returns: A logger integrator that can enable SDK integrations.
+    @discardableResult
+    @_spi(ExperimentalAPI) public static func start(
+        withAPIKey apiKey: String,
+        sessionConfiguration: SessionConfiguration = .init(),
+        configuration: Configuration = .init(),
+        initialFields: Fields = [:],
+        commands: [Command],
         dateProvider: DateProvider? = nil,
         startResult: ((Result<Logging, Swift.Error>) -> Void)? = nil
     ) -> LoggerIntegrator? {

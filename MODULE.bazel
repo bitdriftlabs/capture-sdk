@@ -64,6 +64,14 @@ bazel_dep(name = "rules_swift", version = "3.6.1")
 bazel_dep(name = "bazel_skylib", version = "1.9.2")
 bazel_dep(name = "rules_xcodeproj", version = "4.1.0")
 bazel_dep(name = "rules_apple", version = "4.5.3")
+
+# rules_apple bundles public Swift interfaces but not their private companions.
+# The private interface carries @_spi declarations needed by opted-in SDK clients.
+single_version_override(
+    module_name = "rules_apple",
+    patches = ["//bazel/third_party/patches:rules_apple_private_swiftinterface.patch"],
+)
+
 bazel_dep(name = "rules_pkg", version = "1.3.0")
 bazel_dep(name = "rules_cc", version = "0.2.22")
 bazel_dep(name = "rules_java", version = "9.7.1")
