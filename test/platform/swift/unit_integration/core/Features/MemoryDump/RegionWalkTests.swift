@@ -15,7 +15,7 @@ final class RegionWalkTests: XCTestCase {
     private let regionSize = 8 << 20
 
     private var mappedRegion: UnsafeMutableRawPointer?
-    private var sections: [RegionWalk.Section] = []
+    private var sections: [RegionWalk.Report] = []
 
     override func tearDown() {
         if let mappedRegion {
@@ -83,7 +83,7 @@ private extension RegionWalkTests {
         }
     }
 
-    func taggedRow(in section: RegionWalk.Section) throws -> RegionWalk.TagRow {
+    func taggedRow(in section: RegionWalk.Report) throws -> RegionWalk.TagRow {
         try XCTUnwrap(section.byTag.first { $0.tag == applicationTag })
     }
 

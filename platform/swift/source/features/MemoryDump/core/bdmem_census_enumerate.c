@@ -221,8 +221,9 @@ void bdmem_census_enumerate(bdmem_census_t *census) {
     // interrupted, but the overrun is not taken from the zones after it.
     uint64_t budget_left_ns = census->options.budget_ms * 1000000ull;
 
-    // One zone locked at a time. A zone's enumerator may allocate from another zone (the nano
+    // One zone locked at a time. A zone's enumerator may allocate from another zone (e.g. the nano
     // zone does), and with that zone locked too the process aborts on a recursive lock.
+    // This may cause some allocations to be lost (pre or after locking that zone), but it's safer
     for (unsigned index = 0; index < zone_count; index++) {
         malloc_zone_t *zone = (malloc_zone_t *)zone_addresses[index];
         bdmem_zone_summary_t *zone_summary = &summary->zones[index];

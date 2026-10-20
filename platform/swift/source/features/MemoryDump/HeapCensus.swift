@@ -8,9 +8,9 @@
 internal import CaptureMemoryCore
 import Darwin
 
-/// Stage 3: the malloc heap's live blocks, grouped by type and by owning image.
+/// Malloc heap's live blocks, grouped by type and by owning image.
 enum HeapCensus {
-    struct Section: Encodable, Equatable {
+    struct Report: Encodable, Equatable {
         /// The lock budget ran out: the figures are a floor, not an inventory.
         let truncated: Bool
         let totalBlocks: UInt64
@@ -87,11 +87,13 @@ enum HeapCensus {
 
     static let otherRowName = "(other)"
 
-    /// Its lock was held for 9.9 s with a web view open, and its enumerator reported nothing.
+    /// When we tested this, the malloc lock was held for 9.9 s with a web view open,
+    /// and the enumerator reported nothing. Probably it's blocked for security reasons.
+    /// We'll just avoid enumerating into that malloc zone.
     static let webKitZoneName = "WebKit Malloc"
 
-    static func capture(_ options: MemoryDumpRequest.HeapOptions, demangle: Bool) throws(CommandError) -> Section {
-        let skippedZones = options.webkit ? [] : [Self.webKitZoneName]
+    static func capture(_ options: MemoryDumpRequest.HeapOptions, demangle: Bool) throws(CommandError) -> Report {
+        let skippedZones = [Self.webKitZoneName]
         let census = try Self.makeCensus(options, skippedZones: skippedZones)
         defer { bdmem_census_destroy(census) }
 
@@ -101,7 +103,7 @@ enum HeapCensus {
 
         let (types, owners, images) = Self.rows(of: census, demangle: demangle)
         let limit = options.limit.map { Int(clamping: $0) }
-        return Section(
+        return Report(
             truncated: summary.truncated,
             totalBlocks: summary.total_blocks,
             totalBytes: summary.total_bytes,

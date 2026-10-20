@@ -10,8 +10,8 @@ import Foundation
 final class MemoryDumpCommand: @unchecked Sendable {
     static let key = "ios_memory_dump"
 
-    /// A lower priority stretches the time the heap census holds the malloc zone locks.
-    /// Dont change this without performing benchmarks.
+    /// A lower priority queue increases the time the heap census holds the malloc zone locks,
+    /// so dont change this without performing benchmarks.
     private let queue = DispatchQueue(label: "io.bitdrift.capture.memory-dump", qos: .userInitiated)
     private weak var logger: CoreLogging?
 

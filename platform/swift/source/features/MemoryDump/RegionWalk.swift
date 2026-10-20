@@ -9,7 +9,7 @@ internal import CaptureMemoryCore
 
 /// Process VM regions, aggregated by Mach tag and by owning image.
 enum RegionWalk {
-    struct Section: Encodable, Equatable {
+    struct Report: Encodable, Equatable {
         let mode: String
         let regions: UInt32
         let truncated: Bool
@@ -58,7 +58,7 @@ enum RegionWalk {
 
     static let otherRowName = "(other)"
 
-    static func capture(_ options: MemoryDumpRequest.RegionsOptions) throws(CommandError) -> Section {
+    static func capture(_ options: MemoryDumpRequest.RegionsOptions) throws(CommandError) -> Report {
         let images = bdmem_image_table_create()
         defer { bdmem_image_table_destroy(images) }
 
@@ -75,7 +75,7 @@ enum RegionWalk {
 
         let tagRows = Self.tagRows(from: &result)
         let limit = options.limit.map { Int(clamping: $0) }
-        return Section(
+        return Report(
             mode: options.mode.rawValue,
             regions: result.region_count,
             truncated: result.truncated,

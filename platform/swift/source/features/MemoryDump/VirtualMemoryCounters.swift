@@ -85,6 +85,8 @@ enum VirtualMemoryCounters {
     }
 }
 
+/// TODO(ademarco): move this to MemorySnapshotProvider so we have the same logic
+/// to get vm info from the mach task.
 struct TaskVirtualMemoryInfo {
     let info: task_vm_info_data_t
     let count: mach_msg_type_number_t

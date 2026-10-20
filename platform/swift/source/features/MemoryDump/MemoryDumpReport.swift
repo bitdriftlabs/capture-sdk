@@ -13,8 +13,8 @@ struct MemoryDumpReport: Encodable, Equatable {
 
     let schemaVersion = Self.currentSchemaVersion
     var counters: VirtualMemoryCounters.Report?
-    var regions: RegionWalk.Section?
-    var heap: HeapCensus.Section?
+    var regions: RegionWalk.Report?
+    var heap: HeapCensus.Report?
 
     func encoded() throws -> Data {
         let encoder = JSONEncoder()

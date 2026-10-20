@@ -78,6 +78,9 @@ static int bdmem_compare_segments(const void *lhs, const void *rhs) {
     return (left > right) - (left < right);
 }
 
+/// TODO(ademarco): could probably include some sort of cache in the image table
+/// as this operation is not cheap, and once we run the command is something we may
+/// wanna reuse (potentially, we can reuse it on the crash reporter module)
 bdmem_image_table_t *bdmem_image_table_create(void) {
     bdmem_image_table_t *table = calloc(1, sizeof(*table));
     if (table == NULL) {

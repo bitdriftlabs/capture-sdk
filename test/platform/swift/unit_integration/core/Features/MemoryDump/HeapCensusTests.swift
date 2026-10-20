@@ -36,7 +36,7 @@ final class HeapCensusTests: XCTestCase {
     private var retained: [AnyObject] = []
     private var genericArrays: [[HeapCensusElement]] = []
     private var buffers: [UnsafeMutableRawPointer] = []
-    private var sections: [HeapCensus.Section] = []
+    private var sections: [HeapCensus.Report] = []
     private var summary: bdmem_census_summary_t?
     private var mapper: RegionMapper?
     private var zone: UnsafeMutablePointer<malloc_zone_t>?

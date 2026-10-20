@@ -246,8 +246,8 @@ bool bdmem_census_run(bdmem_census_t *census) {
     }
     census->has_run = true;
 
-    // Syscalls and allocations happen here, before any zone is locked: the recorder filters
-    // candidates against this survey and writes into these tables without making any.
+    // Every syscall and allocation happen here, before any zone is locked: the recorder filters
+    // candidates against this survey and writes into these tables without making any allocation.
     bdmem_census_survey_ranges(census);
     if (census->options.attribute_owners) {
         bdmem_census_reserve_owner_tables(census);

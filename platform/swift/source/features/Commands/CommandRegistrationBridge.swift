@@ -7,7 +7,6 @@
 
 /// Forwards command lifecycle updates to the thread-safe Rust logger handle.
 final class CommandRegistrationBridge: CommandRegistrationBridging, @unchecked Sendable {
-    // Weak: the Rust logger retains every registered command's target, which leads back here.
     private weak var logger: CoreLogging?
 
     init(logger: CoreLogging) {
