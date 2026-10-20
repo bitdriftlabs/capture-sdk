@@ -9,6 +9,11 @@ internal import CaptureLoggerBridge
 import Foundation
 
 final class CommandsTarget: NSObject, @unchecked Sendable {
+    private struct Execution {
+        let task: Task<Void, Never>
+        var cancelled = false
+    }
+
     private enum ArgumentType: UInt {
         case string
         case binary
@@ -59,9 +64,18 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
     }
 
     private let registry: CommandRegistry
+    private let lock = Lock()
+    private var executions = [UInt64: Execution]()
+    private let completion: @Sendable (UInt64, Result<CommandResult, CommandError>) -> Void
 
-    init(registry: CommandRegistry) {
+    init(
+        registry: CommandRegistry,
+        completion: @escaping @Sendable (UInt64, Result<CommandResult, CommandError>) -> Void = {
+            CommandsTarget.complete(requestID: $0, result: $1)
+        }
+    ) {
         self.registry = registry
+        self.completion = completion
     }
 
     @objc(executeCommand:arguments:requestID:)
@@ -70,20 +84,57 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
         do {
             parsedArguments = try parseArguments(arguments)
         } catch let error as ArgumentParsingError {
-            complete(
-                requestID: requestID,
-                result: .failure(CommandError.invalidArguments(description: error.errorDescription))
+            completion(
+                requestID,
+                .failure(CommandError.invalidArguments(description: error.errorDescription))
             )
             return
         } catch {
-            complete(requestID: requestID, result: .failure(CommandError.invalidArguments()))
+            completion(requestID, .failure(CommandError.invalidArguments()))
             return
         }
 
-        Task { [registry] in
-            let result = await registry.execute(key: key as String, arguments: parsedArguments)
-            complete(requestID: requestID, result: result)
+        // The task must cross this lock before entering the registry or completing. This makes
+        // publication of its handle atomic with both cancellation and an immediate result.
+        lock.withLock {
+            let task = Task { [self, registry] in
+                guard canExecute(requestID: requestID), !Task.isCancelled else {
+                    finish(requestID: requestID, result: nil)
+                    return
+                }
+                let result = await registry.execute(key: key as String, arguments: parsedArguments)
+                finish(requestID: requestID, result: result)
+            }
+            executions[requestID] = Execution(task: task)
         }
+    }
+
+    @objc(cancelCommand:)
+    func cancelCommand(_ requestID: UInt64) {
+        let task = lock.withLock {
+            executions[requestID]?.cancelled = true
+            return executions[requestID]?.task
+        }
+        guard let task else { return }
+        // Task cancellation runs application cancellation handlers; never run them under our lock
+        // or on the calling Rust thread.
+        DispatchQueue.global().async { task.cancel() }
+    }
+
+    func executionTask(for requestID: UInt64) -> Task<Void, Never>? {
+        lock.withLock { executions[requestID]?.task }
+    }
+
+    private func canExecute(requestID: UInt64) -> Bool {
+        lock.withLock { executions[requestID]?.cancelled == false }
+    }
+
+    private func finish(requestID: UInt64, result: Result<CommandResult, CommandError>?) {
+        let execution = lock.withLock { executions.removeValue(forKey: requestID) }
+        guard let execution, !execution.cancelled, !Task.isCancelled, let result else {
+            return
+        }
+        completion(requestID, result)
     }
 
     func parseArguments(_ arguments: NSArray) throws -> CommandArguments {
@@ -143,7 +194,7 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
         }
     }
 
-    private func complete(requestID: UInt64, result: Result<CommandResult, CommandError>) {
+    private static func complete(requestID: UInt64, result: Result<CommandResult, CommandError>) {
         switch result {
         case let .success(result):
             capture_complete_command(

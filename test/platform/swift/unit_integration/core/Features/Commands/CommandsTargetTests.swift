@@ -52,6 +52,165 @@ final class CommandsTargetTests: XCTestCase {
             "Argument 'is_attachment' has a value that does not match its declared bool type."
         )
     }
+
+    func testCancellationReachesHandlerTaskAndSuppressesLateResultWithoutReleasingClaimsEarly() async throws {
+        let started = expectation(description: "handler started")
+        let cancelled = expectation(description: "handler task cancelled")
+        let gate = CommandExecutionGate()
+        let sawCancellation = CommandTestValue(false)
+        let completions = CommandTestValue([UInt64]())
+        let registry = CommandRegistry(commands: [
+            Command(key: "first") { _ in
+                started.fulfill()
+                await withTaskCancellationHandler {
+                    await gate.wait()
+                } onCancel: {
+                    cancelled.fulfill()
+                }
+                sawCancellation.set(Task.isCancelled)
+                return .success(CommandResult(context: ["late": "result"]))
+            },
+            Command(key: "second") { _ in .success(CommandResult()) },
+        ], maxConcurrentExecutions: 1)
+        sut = CommandsTarget(registry: registry) { requestID, _ in
+            completions.append(requestID)
+        }
+        XCTAssertTrue(sut.responds(to: NSSelectorFromString("cancelCommand:")))
+        sut.executeCommand("first", arguments: [], requestID: 1)
+        await fulfillment(of: [started])
+        let task = try XCTUnwrap(sut.executionTask(for: 1))
+
+        sut.cancelCommand(999)
+        sut.cancelCommand(1)
+        sut.cancelCommand(1)
+        await fulfillment(of: [cancelled])
+
+        let sameKey = await registry.execute(key: "first", arguments: [:])
+        let otherKey = await registry.execute(key: "second", arguments: [:])
+        XCTAssertEqual(sameKey, .failure(.alreadyExecuting))
+        XCTAssertEqual(otherKey, .failure(.maximumConcurrency))
+        await gate.open()
+        await task.value
+
+        XCTAssertTrue(sawCancellation.value)
+        XCTAssertEqual(completions.value, [])
+        XCTAssertNil(sut.executionTask(for: 1))
+        let next = await registry.execute(key: "second", arguments: [:])
+        XCTAssertEqual(next, .success(CommandResult()))
+    }
+
+    func testCancelCommandReturnsBeforeCancellationHandlersFinish() async throws {
+        let started = expectation(description: "handler started")
+        let cancellationFinished = expectation(description: "cancellation handler finished")
+        let release = DispatchSemaphore(value: 0)
+        let gate = CommandExecutionGate()
+        let handlerFinished = CommandTestValue(false)
+        let registry = CommandRegistry(commands: [
+            Command(key: "first") { _ in
+                started.fulfill()
+                await withTaskCancellationHandler {
+                    await gate.wait()
+                } onCancel: {
+                    _ = release.wait(timeout: .now() + 5)
+                    handlerFinished.set(true)
+                    cancellationFinished.fulfill()
+                }
+                return .success(CommandResult())
+            },
+        ])
+        sut = CommandsTarget(registry: registry) { _, _ in }
+        sut.executeCommand("first", arguments: [], requestID: 1)
+        await fulfillment(of: [started])
+        let task = try XCTUnwrap(sut.executionTask(for: 1))
+
+        sut.cancelCommand(1)
+
+        XCTAssertFalse(handlerFinished.value)
+        release.signal()
+        await fulfillment(of: [cancellationFinished])
+        await gate.open()
+        await task.value
+    }
+
+    func testCancellationBeforeRegistryEntryNeverInvokesHandlerOrPublishesResult() async throws {
+        let held = expectation(description: "registry executor held")
+        let barrier = CommandRegistryBarrier(held: held)
+        let invoked = CommandTestValue(false)
+        let completed = CommandTestValue(false)
+        let registry = CommandRegistry(commands: [
+            Command(key: "first") { _ in
+                invoked.set(true)
+                return .success(CommandResult())
+            },
+        ], maxConcurrentExecutions: 1)
+        sut = CommandsTarget(registry: registry) { _, _ in completed.set(true) }
+        let holdingTask = Task { await registry.holdExecutor(barrier) }
+        await fulfillment(of: [held])
+        defer { barrier.open() }
+
+        sut.executeCommand("first", arguments: [], requestID: 1)
+        let task = try XCTUnwrap(sut.executionTask(for: 1))
+        sut.cancelCommand(1)
+        await waitUntilCancelled(task)
+        barrier.open()
+        await holdingTask.value
+        await task.value
+
+        XCTAssertFalse(invoked.value)
+        XCTAssertFalse(completed.value)
+        XCTAssertNil(sut.executionTask(for: 1))
+        let next = await registry.execute(key: "first", arguments: [:])
+        XCTAssertEqual(next, .success(CommandResult()))
+    }
+
+    func testImmediateResultsRemoveRegisteredTasksAndCompleteExactlyOnce() async {
+        let completed = expectation(description: "all requests completed")
+        completed.expectedFulfillmentCount = 32
+        let completions = CommandTestValue([UInt64]())
+        sut = CommandsTarget(registry: CommandRegistry(commands: [
+            Command(key: "first") { _ in .success(CommandResult()) },
+        ])) { requestID, _ in
+            completions.append(requestID)
+            completed.fulfill()
+        }
+
+        for requestID in UInt64(1) ... 32 {
+            sut.executeCommand("first", arguments: [], requestID: requestID)
+        }
+        await fulfillment(of: [completed])
+
+        XCTAssertEqual(completions.value.sorted(), Array(UInt64(1) ... 32))
+        for requestID in UInt64(1) ... 32 {
+            XCTAssertNil(sut.executionTask(for: requestID))
+            sut.cancelCommand(requestID)
+        }
+        XCTAssertEqual(completions.value.count, 32)
+    }
+
+    func testRegistryRejectsNoncooperativeSuccessAfterCancellationAndReleasesClaimsOnExit() async {
+        let started = expectation(description: "handler started")
+        let gate = CommandExecutionGate()
+        let registry = CommandRegistry(commands: [
+            Command(key: "first") { _ in
+                started.fulfill()
+                await gate.wait()
+                return .success(CommandResult())
+            },
+            Command(key: "second") { _ in .success(CommandResult()) },
+        ], maxConcurrentExecutions: 1)
+        let task = Task { await registry.execute(key: "first", arguments: [:]) }
+        await fulfillment(of: [started])
+
+        task.cancel()
+        let busy = await registry.execute(key: "first", arguments: [:])
+        XCTAssertEqual(busy, .failure(.alreadyExecuting))
+        await gate.open()
+        let result = await task.value
+
+        XCTAssertEqual(result, .failure(CommandError(title: "Command cancelled")))
+        let next = await registry.execute(key: "second", arguments: [:])
+        XCTAssertEqual(next, .success(CommandResult()))
+    }
 }
 
 private extension CommandsTargetTests {
@@ -67,5 +226,86 @@ private extension CommandsTargetTests {
 
     func thenErrorHasDescription(_ error: Error, _ expectedDescription: String) {
         XCTAssertEqual(error.localizedDescription, expectedDescription)
+    }
+
+    func waitUntilCancelled(_ task: Task<Void, Never>) async {
+        while !task.isCancelled {
+            await Task.yield()
+        }
+    }
+}
+
+private actor CommandExecutionGate {
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var isOpen = false
+
+    func wait() async {
+        guard !isOpen else { return }
+        await withCheckedContinuation { continuation = $0 }
+    }
+
+    func open() {
+        isOpen = true
+        continuation?.resume()
+        continuation = nil
+    }
+}
+
+private final class CommandTestValue<Value>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: Value
+
+    init(_ value: Value) {
+        stored = value
+    }
+
+    var value: Value {
+        lock.lock()
+        defer { lock.unlock() }
+        return stored
+    }
+
+    func set(_ value: Value) {
+        lock.lock()
+        defer { lock.unlock() }
+        stored = value
+    }
+
+    func append(_ requestID: UInt64) where Value == [UInt64] {
+        lock.lock()
+        defer { lock.unlock() }
+        stored.append(requestID)
+    }
+}
+
+private final class CommandRegistryBarrier: @unchecked Sendable {
+    private let condition = NSCondition()
+    private let held: XCTestExpectation
+    private var isOpen = false
+
+    init(held: XCTestExpectation) {
+        self.held = held
+    }
+
+    func wait() {
+        condition.lock()
+        defer { condition.unlock() }
+        held.fulfill()
+        while !isOpen {
+            condition.wait()
+        }
+    }
+
+    func open() {
+        condition.lock()
+        defer { condition.unlock() }
+        isOpen = true
+        condition.broadcast()
+    }
+}
+
+private extension CommandRegistry {
+    func holdExecutor(_ barrier: CommandRegistryBarrier) {
+        barrier.wait()
     }
 }
