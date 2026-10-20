@@ -22,6 +22,9 @@ swift_library(
         exclude = ["bridging/**/*.swift"],
     ) + ["//proto:log_type_swift_source"],
     copts = [
+        # Xcode 27 requires an explicit language mode when emitting module interfaces.
+        "-language-mode",
+        "5",
         "-Xcc",
         "-Xclang",
         "-Xcc",
