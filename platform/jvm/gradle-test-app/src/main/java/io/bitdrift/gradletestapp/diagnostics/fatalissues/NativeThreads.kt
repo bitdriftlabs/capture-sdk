@@ -23,4 +23,7 @@ object NativeThreads {
 
     @JvmStatic
     external fun runCpuWorkload(durationMs: Long)
+
+    @JvmStatic
+    external fun runAllocationWorkload(durationMs: Long)
 }

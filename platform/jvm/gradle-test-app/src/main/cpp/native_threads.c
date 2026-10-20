@@ -9,6 +9,8 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -33,6 +35,36 @@ Java_io_bitdrift_gradletestapp_diagnostics_fatalissues_NativeThreads_runCpuWorkl
   (void)clazz;
   if (duration_ms > 0 && duration_ms <= 4000) {
     perfetto_native_cpu_workload(duration_ms);
+  }
+}
+
+static __attribute__((noinline)) void perfetto_native_allocation_workload(jlong duration_ms) {
+  struct timespec current;
+  clock_gettime(CLOCK_MONOTONIC, &current);
+  int64_t deadline = (int64_t)current.tv_sec * 1000000000 + current.tv_nsec + duration_ms * 1000000;
+  void *allocations[64] = {0};
+  size_t index = 0;
+  do {
+    free(allocations[index]);
+    allocations[index] = malloc(32768);
+    if (allocations[index] != NULL) {
+      memset(allocations[index], (int)index, 32768);
+    }
+    index = (index + 1) % 64;
+    usleep(1000);
+    clock_gettime(CLOCK_MONOTONIC, &current);
+  } while ((int64_t)current.tv_sec * 1000000000 + current.tv_nsec < deadline);
+  for (size_t i = 0; i < 64; i++) {
+    free(allocations[i]);
+  }
+}
+
+JNIEXPORT void JNICALL
+Java_io_bitdrift_gradletestapp_diagnostics_fatalissues_NativeThreads_runAllocationWorkload(JNIEnv *env, jclass clazz, jlong duration_ms) {
+  (void)env;
+  (void)clazz;
+  if (duration_ms > 0 && duration_ms <= 1000) {
+    perfetto_native_allocation_workload(duration_ms);
   }
 }
 
