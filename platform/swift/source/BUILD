@@ -41,6 +41,7 @@ swift_library(
     module_name = "Capture",
     private_deps = [
         ":CapturePassable",
+        ":memory_core",
         ":objc_bridge",
     ],
     tags = [
@@ -133,6 +134,21 @@ objc_library(
         ":bitdrift_enhanced_crash_data",
         ":capture_rust",
     ],
+)
+
+objc_library(
+    name = "memory_core",
+    srcs = glob(
+        [
+            "features/MemoryDump/core/*.c",
+            "features/MemoryDump/core/*.h",
+        ],
+        exclude = ["features/MemoryDump/core/bdmem.h"],
+    ),
+    hdrs = ["features/MemoryDump/core/bdmem.h"],
+    module_name = "CaptureMemoryCore",
+    tags = ["macos_only"],
+    visibility = ["//visibility:public"],
 )
 
 objc_library(

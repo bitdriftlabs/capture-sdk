@@ -7,17 +7,18 @@
 
 /// Forwards command lifecycle updates to the thread-safe Rust logger handle.
 final class CommandRegistrationBridge: CommandRegistrationBridging, @unchecked Sendable {
-    private let logger: CoreLogging
+    // Weak: the Rust logger retains every registered command's target, which leads back here.
+    private weak var logger: CoreLogging?
 
     init(logger: CoreLogging) {
         self.logger = logger
     }
 
     func registerCommand(key: String, target: CommandsTarget) {
-        logger.registerCommand(key: key, target: target)
+        logger?.registerCommand(key: key, target: target)
     }
 
     func unregisterCommand(key: String) {
-        logger.unregisterCommand(key: key)
+        logger?.unregisterCommand(key: key)
     }
 }

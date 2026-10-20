@@ -22,6 +22,11 @@ final class CommandsViewModel: ObservableObject {
             description: "Takes a screenshot of the app.",
             isBuiltIn: true
         ),
+        CommandDefinition(
+            key: "ios_memory_dump",
+            description: "Captures memory counters, VM regions and a heap census as a JSON attachment.",
+            isBuiltIn: true
+        ),
     ]
 
     @Published private(set) var registeredKeys = Set<String>()
