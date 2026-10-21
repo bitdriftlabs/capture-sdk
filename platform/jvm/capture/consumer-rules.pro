@@ -121,8 +121,12 @@
 
 -keep class io.bitdrift.capture.providers.** { *; }
 
-# Keep the generated tombstone for parsing native crash
--keep class io.bitdrift.capture.** extends com.google.protobuf.GeneratedMessageLite { *; }
+# Keep backing fields for tombstone protos so R8 can strip unused setters, builders, and
+# getters. Names must not be obfuscated: protobuf-lite resolves fields reflectively by name
+# (e.g. "arch_"), and they must not be optimized since they're only written via reflection.
+-keepclassmembers class io.bitdrift.capture.TombstoneProtos$* extends com.google.protobuf.GeneratedMessageLite {
+    <fields>;
+}
 
 -dontwarn android.app.ApplicationStartInfo
 -dontwarn kotlin.time.LongSaturatedMathKt
@@ -147,5 +151,4 @@
 # WebViewCapture.instrument() - called by Gradle plugin bytecode injection when `automaticWebViewInstrumentation` is set to true
 -keep class io.bitdrift.capture.webview.WebViewCapture {
     public static void instrument(android.webkit.WebView);
-    public static void instrument(android.webkit.WebView, io.bitdrift.capture.ILogger);
 }
