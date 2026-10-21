@@ -121,9 +121,10 @@
 
 -keep class io.bitdrift.capture.providers.** { *; }
 
-# Keep backing fields for tombstone protos, allowing R8 to obfuscate field names
-# and strip all unused setters, builders, and unread getters.
--keepclassmembers,allowobfuscation,allowoptimization class io.bitdrift.capture.TombstoneProtos$* extends com.google.protobuf.GeneratedMessageLite {
+# Keep backing fields for tombstone protos so R8 can strip unused setters, builders, and
+# getters. Names must not be obfuscated: protobuf-lite resolves fields reflectively by name
+# (e.g. "arch_"), and they must not be optimized since they're only written via reflection.
+-keepclassmembers class io.bitdrift.capture.TombstoneProtos$* extends com.google.protobuf.GeneratedMessageLite {
     <fields>;
 }
 

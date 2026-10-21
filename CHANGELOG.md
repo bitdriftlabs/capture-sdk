@@ -30,7 +30,7 @@
 
 **Changed**
 
-- Reduced tombstone protobuf footprint in consumer apps by ~75% by allowing r8/proguard to strip proto-generated classes more aggressively.
+- Reduced R8-minified consumer app size (~145 KB of DEX, ~52 KB compressed) by allowing r8/proguard to strip unused code from the tombstone protos used for native crash parsing.
 
 **Fixed**
 
