@@ -121,8 +121,11 @@
 
 -keep class io.bitdrift.capture.providers.** { *; }
 
-# Keep the generated tombstone for parsing native crash
--keep class io.bitdrift.capture.** extends com.google.protobuf.GeneratedMessageLite { *; }
+# Keep backing fields for tombstone protos, allowing R8 to obfuscate field names
+# and strip all unused setters, builders, and unread getters.
+-keepclassmembers,allowobfuscation,allowoptimization class io.bitdrift.capture.TombstoneProtos$* extends com.google.protobuf.GeneratedMessageLite {
+    <fields>;
+}
 
 -dontwarn android.app.ApplicationStartInfo
 -dontwarn kotlin.time.LongSaturatedMathKt
