@@ -30,7 +30,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced tombstone protobuf footprint in consumer apps by ~75% by allowing r8/proguard to strip proto-generated classes more aggressively.
 
 **Fixed**
 
