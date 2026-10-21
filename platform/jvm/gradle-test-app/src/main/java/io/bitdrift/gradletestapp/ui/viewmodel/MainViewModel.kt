@@ -346,8 +346,10 @@ class MainViewModel(
                         ProfilingState.Saved(type, result.path)
                     }
                     is AppProfiler.Result.Failure -> {
-                        Log.w(PROFILER_TAG, "${type.name} failed: ${result.reason}")
-                        ProfilingState.Failed(type, result.reason)
+                        val reason =
+                            result.errorName?.let { "$it (${result.errorCode}): ${result.message}" } ?: result.message
+                        Log.w(PROFILER_TAG, "${type.name} failed: $reason")
+                        ProfilingState.Failed(type, reason)
                     }
                 }
             _uiState.update { it.copy(profiling = state) }

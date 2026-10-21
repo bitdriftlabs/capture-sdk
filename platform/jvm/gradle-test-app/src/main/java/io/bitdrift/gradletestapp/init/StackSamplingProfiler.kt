@@ -32,7 +32,7 @@ object StackSamplingProfiler {
         duration: Duration,
     ): Result =
         when (val result = AppProfiler.capture(context, AppProfiler.ProfilingType.STACK_SAMPLING, duration)) {
-            is AppProfiler.Result.Failure -> Result.Failure(result.reason)
+            is AppProfiler.Result.Failure -> Result.Failure(result.errorName ?: result.message)
             is AppProfiler.Result.Saved ->
                 withContext(Dispatchers.IO) {
                     File(result.path).takeIf(File::exists)?.readBytes()?.let(Result::Trace)

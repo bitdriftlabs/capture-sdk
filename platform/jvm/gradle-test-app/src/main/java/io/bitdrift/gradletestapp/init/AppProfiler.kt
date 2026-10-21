@@ -11,6 +11,7 @@ import android.content.Context
 import android.os.Build
 import android.os.CancellationSignal
 import android.os.ProfilingResult
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.os.HeapProfileRequestBuilder
 import androidx.core.os.JavaHeapDumpRequestBuilder
@@ -21,6 +22,9 @@ import androidx.core.os.requestProfiling
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.IOException
 import java.util.function.Consumer
 import kotlin.coroutines.resume
 import kotlin.time.Duration
@@ -45,8 +49,14 @@ object AppProfiler {
             val path: String,
         ) : Result
 
+        /**
+         * [errorCode] and [errorName] are the system's [ProfilingResult] error, and are null when the
+         * capture failed before the system profiler answered.
+         */
         class Failure(
-            val reason: String,
+            val message: String,
+            val errorCode: Int? = null,
+            val errorName: String? = null,
         ) : Result
     }
 
@@ -59,7 +69,33 @@ object AppProfiler {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             return Result.Failure("requires API 35, device is API ${Build.VERSION.SDK_INT}")
         }
-        return request(context, type, duration)
+        val result = request(context, type, duration)
+        if (result is Result.Saved) {
+            withContext(Dispatchers.IO) { exportProfiles(context) }
+        }
+        return result
+    }
+
+    /**
+     * Copies saved profiles that are not exported yet into the app's external files directory. The
+     * system writes profiles to internal storage, which `adb` cannot read when the app is not
+     * debuggable and the device is not rooted; the external copy can be fetched with
+     * `adb pull /sdcard/Android/data/<package>/files/profiling/`. Performs disk I/O on the caller's
+     * thread.
+     */
+    fun exportProfiles(context: Context) {
+        val profiles = File(context.filesDir, PROFILING_DIR).listFiles() ?: return
+        val destination = context.getExternalFilesDir(PROFILING_DIR) ?: return
+        profiles
+            .filter { it.isFile && !File(destination, it.name).exists() }
+            .forEach { profile ->
+                try {
+                    val exported = profile.copyTo(File(destination, profile.name))
+                    Log.i(LOG_TAG, "exported ${profile.name} to ${exported.path}")
+                } catch (e: IOException) {
+                    Log.w(LOG_TAG, "failed to export ${profile.name}", e)
+                }
+            }
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
@@ -81,10 +117,24 @@ object AppProfiler {
             }
 
         if (profilingResult.errorCode != ProfilingResult.ERROR_NONE) {
-            return Result.Failure("errorCode=${profilingResult.errorCode} ${profilingResult.errorMessage.orEmpty()}")
+            val errorCode = profilingResult.errorCode
+            return Result.Failure(profilingResult.errorMessage.orEmpty(), errorCode, errorCodeName(errorCode))
         }
         return profilingResult.resultFilePath?.let(Result::Saved) ?: Result.Failure("no profile file produced")
     }
+
+    private fun errorCodeName(errorCode: Int): String =
+        when (errorCode) {
+            ProfilingResult.ERROR_FAILED_RATE_LIMIT_SYSTEM -> "ERROR_FAILED_RATE_LIMIT_SYSTEM"
+            ProfilingResult.ERROR_FAILED_RATE_LIMIT_PROCESS -> "ERROR_FAILED_RATE_LIMIT_PROCESS"
+            ProfilingResult.ERROR_FAILED_PROFILING_IN_PROGRESS -> "ERROR_FAILED_PROFILING_IN_PROGRESS"
+            ProfilingResult.ERROR_FAILED_EXECUTING -> "ERROR_FAILED_EXECUTING"
+            ProfilingResult.ERROR_FAILED_POST_PROCESSING -> "ERROR_FAILED_POST_PROCESSING"
+            ProfilingResult.ERROR_FAILED_NO_DISK_SPACE -> "ERROR_FAILED_NO_DISK_SPACE"
+            ProfilingResult.ERROR_FAILED_INVALID_REQUEST -> "ERROR_FAILED_INVALID_REQUEST"
+            ProfilingResult.ERROR_UNKNOWN -> "ERROR_UNKNOWN"
+            else -> "UNRECOGNIZED_ERROR"
+        }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     private fun buildRequest(
@@ -116,6 +166,8 @@ object AppProfiler {
                     .build()
         }
 
+    private const val PROFILING_DIR = "profiling"
+    private const val LOG_TAG = "AppProfiler"
     private const val STACK_SAMPLING_BUFFER_SIZE_KB = 4096
     private const val STACK_SAMPLING_FREQUENCY_HZ = 100
 }
