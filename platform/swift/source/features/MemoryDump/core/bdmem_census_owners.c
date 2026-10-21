@@ -6,13 +6,14 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 // Owner attribution: an unnamed buffer has no type to read, but usually exactly one live object
-// points at it. Every word of every named block is checked against the unnamed blocks, and the
-// first named block found pointing into one is credited with it.
+// points at it. Every word of every named block is checked against the unnamed blocks. A named
+// block pointing at the start of a buffer beats one pointing inside it, and among equals the first
+// one found is credited. Blocks above BDMEM_OWNER_INTERIOR_MAX_SIZE need a pointer to their start.
 //
 // Runs after the locks, so named blocks may have been freed since they were recorded. Each one is
 // read through bdmem_safe_read into a scratch copy and the copy is scanned. Known limits:
 // - an integer that equals a block address counts as a pointer;
-// - a buffer several objects point at goes to the first one scanned;
+// - a buffer several objects point at equally well goes to the first one scanned;
 // - only blocks of classes in the runtime's class list are sources.
 
 #include "bdmem_census.h"
@@ -82,61 +83,77 @@ static bdmem_unnamed_block_t *bdmem_find_unnamed(bdmem_census_t *census, uintptr
 }
 
 static bool bdmem_candidate_was_resolved(const bdmem_census_t *census, uintptr_t metadata) {
-    uint32_t index = bdmem_candidate_slot(metadata);
-    for (uint32_t probe = 0; probe < BDMEM_CANDIDATE_PROBE_LIMIT; probe++) {
-        const bdmem_candidate_t *candidate = &census->candidates[index];
-        if (candidate->metadata == 0) {
-            return false;
-        }
-        if (candidate->metadata == metadata) {
-            return candidate->kind != BDMEM_CANDIDATE_UNRESOLVED;
-        }
-        index = (index + 1) & (BDMEM_CANDIDATE_CAPACITY - 1);
-    }
-    return false;
+    const bdmem_candidate_t *candidate = bdmem_census_find_candidate(census, metadata);
+    return candidate != NULL && candidate->kind != BDMEM_CANDIDATE_UNRESOLVED;
 }
 
-static void bdmem_scan_words(bdmem_census_t *census, const uint8_t *copy, size_t size,
-                             int32_t class_index, uintptr_t low_bound, uintptr_t high_bound) {
+static void bdmem_credit_owner(bdmem_census_t *census, bdmem_unnamed_block_t *target,
+                               int32_t class_index, bool points_at_start) {
+    target->owner = class_index;
+    target->owner_points_at_start = points_at_start;
+    target->referrers = 1;
+    census->class_owned_blocks[class_index]++;
+    census->class_owned_bytes[class_index] += target->size;
+}
+
+static void bdmem_uncredit_owner(bdmem_census_t *census, bdmem_unnamed_block_t *target) {
+    census->class_owned_blocks[target->owner]--;
+    census->class_owned_bytes[target->owner] -= target->size;
+    if (target->referrers >= 2) {
+        census->summary.shared_owned_blocks--;
+    }
+}
+
+static void bdmem_scan_words(bdmem_census_t *census, uintptr_t source, const uint8_t *copy,
+                             size_t size, int32_t class_index, uintptr_t low_bound,
+                             uintptr_t high_bound) {
     bdmem_census_summary_t *summary = &census->summary;
 
     // Word zero is the isa, which points at a class and never at storage.
     for (size_t offset = sizeof(uintptr_t); offset + sizeof(uintptr_t) <= size;
          offset += sizeof(uintptr_t)) {
-        const uintptr_t word = *(const uintptr_t *)(copy + offset) & BDMEM_ADDRESS_MASK;
+        const uintptr_t word = *(const uintptr_t *)(copy + offset) & BDMEM_TOP_BYTE_MASK;
         if (word < low_bound || word >= high_bound) {
             continue;
         }
         bdmem_unnamed_block_t *target = bdmem_find_unnamed(census, word);
-        if (target == NULL) {
+        if (target == NULL || target->referrer == source) {
+            continue;
+        }
+        const bool points_at_start = word == target->address;
+        if (!points_at_start && target->size > BDMEM_OWNER_INTERIOR_MAX_SIZE) {
             continue;
         }
         // Resolution already moved this block to a C++ type or an image.
         if (target->candidate != 0 && bdmem_candidate_was_resolved(census, target->candidate)) {
             continue;
         }
+        target->referrer = source;
 
-        target->referrers++;
-        if (target->owner >= 0) {
+        if (target->owner < 0) {
+            bdmem_credit_owner(census, target, class_index, points_at_start);
+            summary->owned_blocks++;
+            summary->owned_bytes += target->size;
+        } else if (points_at_start && !target->owner_points_at_start) {
+            bdmem_uncredit_owner(census, target);
+            bdmem_credit_owner(census, target, class_index, points_at_start);
+        } else if (points_at_start == target->owner_points_at_start) {
+            target->referrers++;
             if (target->referrers == 2) {
                 summary->shared_owned_blocks++;
             }
-            continue;
         }
-        target->owner = class_index;
-        census->class_owned_blocks[class_index]++;
-        census->class_owned_bytes[class_index] += target->size;
-        summary->owned_blocks++;
-        summary->owned_bytes += target->size;
     }
 }
+
 
 /// Copies a single named block and scans the copy.
 static void bdmem_scan_block(bdmem_census_t *census, const bdmem_named_block_t *block,
                              uint8_t *scratch, uintptr_t low_bound, uintptr_t high_bound) {
     const size_t size = block->size < BDMEM_OWNER_SCRATCH_SIZE ? block->size : BDMEM_OWNER_SCRATCH_SIZE;
     if (bdmem_safe_read(block->address, scratch, size)) {
-        bdmem_scan_words(census, scratch, size, block->class_index, low_bound, high_bound);
+        bdmem_scan_words(census, block->address, scratch, size, block->class_index, low_bound,
+                         high_bound);
     }
 }
 
@@ -196,8 +213,8 @@ void bdmem_census_attribute_owners(bdmem_census_t *census) {
         if (window_fits && bdmem_safe_read(window_start, scratch, window_end - window_start)) {
             for (uint32_t block = index; block <= last; block++) {
                 const bdmem_named_block_t *named = &census->named[block];
-                bdmem_scan_words(census, scratch + (named->address - window_start), named->size,
-                                 named->class_index, low_bound, high_bound);
+                bdmem_scan_words(census, named->address, scratch + (named->address - window_start),
+                                 named->size, named->class_index, low_bound, high_bound);
             }
         } else {
             // Part of the window went away, or a single block is larger than the scratch buffer.

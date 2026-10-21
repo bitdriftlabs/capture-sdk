@@ -27,6 +27,27 @@ final class HeapCensusOwner {
     }
 }
 
+final class HeapCensusLargeOwner {
+    static let bufferSize = 8 << 20
+    let buffer: UnsafeMutableRawPointer
+
+    init() {
+        buffer = calloc(1, Self.bufferSize)!
+    }
+
+    deinit {
+        free(buffer)
+    }
+}
+
+final class HeapCensusStartHolder {
+    var word: UInt = 0
+}
+
+final class HeapCensusInteriorHolder {
+    var word: UInt = 0
+}
+
 struct HeapCensusElement {
     var first = 0
     var second = 0
@@ -36,6 +57,10 @@ final class HeapCensusTests: XCTestCase {
     private var retained: [AnyObject] = []
     private var genericArrays: [[HeapCensusElement]] = []
     private var buffers: [UnsafeMutableRawPointer] = []
+    /// Blocks no named object may point at: stored scrambled so this test's own arrays do not own
+    /// them.
+    private var unreferencedBlocks: [UInt] = []
+    private static let scramble: UInt = 0xA5A5_A5A5_A5A5_A5A5
     private var sections: [HeapCensus.Report] = []
     private var summary: bdmem_census_summary_t?
     private var mapper: RegionMapper?
@@ -49,6 +74,8 @@ final class HeapCensusTests: XCTestCase {
         zone = nil
         buffers.forEach { free($0) }
         buffers = []
+        unreferencedBlocks.forEach { free(UnsafeMutableRawPointer(bitPattern: $0 ^ Self.scramble)) }
+        unreferencedBlocks = []
         retained = []
         genericArrays = []
         super.tearDown()
@@ -103,16 +130,49 @@ final class HeapCensusTests: XCTestCase {
         try thenNothingIsOwned()
     }
 
-    func testWebKitZoneIsNotLockedByDefault() throws {
-        givenZone(named: HeapCensus.webKitZoneName, blocks: 100)
+    func testLargeBufferIsAttributedToTheObjectHoldingItsStart() throws {
+        givenLargeOwnerInstance()
         whenCapturing()
-        try thenZone(named: HeapCensus.webKitZoneName, isSkipped: true)
+        try thenOwnerRow(
+            matching: { $0.hasSuffix(".HeapCensusLargeOwner") },
+            ownsAtLeast: 1,
+            bytes: HeapCensusLargeOwner.bufferSize
+        )
     }
 
-    func testWebKitZoneIsEnumeratedWhenRequested() throws {
-        givenZone(named: HeapCensus.webKitZoneName, blocks: 100)
-        whenCapturing(webkit: true)
-        try thenZone(named: HeapCensus.webKitZoneName, isSkipped: false)
+    func testPointerInsideALargeBlockDoesNotOwnIt() throws {
+        let block = givenUnreferencedBlock(size: 4 << 20)
+        givenStartHolder(pointingAt: block + 4_096)
+        whenCapturing()
+        try thenNothingIsOwned(by: ".HeapCensusStartHolder")
+    }
+
+    func testWordWithBitsAboveTheAddressDoesNotOwnABlock() throws {
+        let block = givenUnreferencedBlock(size: 256)
+        givenStartHolder(pointingAt: block | (0x5A << 48))
+        whenCapturing()
+        try thenNothingIsOwned(by: ".HeapCensusStartHolder")
+    }
+
+    func testPointerToTheStartBeatsPointerInside() throws {
+        let block = givenUnreferencedBlock(size: 1_024)
+        givenInteriorHolder(pointingAt: block + 64)
+        givenStartHolder(pointingAt: block)
+        whenCapturing()
+        try thenOwnerRow(matching: { $0.hasSuffix(".HeapCensusStartHolder") }, ownsAtLeast: 1, bytes: 1_024)
+        try thenNothingIsOwned(by: ".HeapCensusInteriorHolder")
+    }
+
+    func testWebKitZoneIsNeverLocked() throws {
+        givenZone(named: "WebKit Malloc", blocks: 100)
+        whenCapturing()
+        try thenZone(named: "WebKit Malloc", isSkipped: true)
+    }
+
+    func testOtherZonesAreEnumerated() throws {
+        givenZone(named: "HeapCensusTests", blocks: 100)
+        whenCapturing()
+        try thenZone(named: "HeapCensusTests", isSkipped: false)
     }
 
     func testCapturesSurviveRegionsBeingMappedAndUnmapped() throws {
@@ -150,6 +210,32 @@ private extension HeapCensusTests {
         retained = (0..<count).map { _ in HeapCensusOwner() }
     }
 
+    func givenLargeOwnerInstance() {
+        retained.append(HeapCensusLargeOwner())
+    }
+
+    func givenUnreferencedBlock(size: Int) -> UInt {
+        guard let block = calloc(1, size) else {
+            XCTFail("calloc failed")
+            return 0
+        }
+        let address = UInt(bitPattern: block)
+        unreferencedBlocks.append(address ^ Self.scramble)
+        return address
+    }
+
+    func givenStartHolder(pointingAt word: UInt) {
+        let holder = HeapCensusStartHolder()
+        holder.word = word
+        retained.append(holder)
+    }
+
+    func givenInteriorHolder(pointingAt word: UInt) {
+        let holder = HeapCensusInteriorHolder()
+        holder.word = word
+        retained.append(holder)
+    }
+
     func givenZone(named name: String, blocks: Int) {
         guard let zone = malloc_create_zone(0, 0) else {
             return XCTFail("malloc_create_zone failed")
@@ -166,15 +252,10 @@ private extension HeapCensusTests {
         mapper?.start()
     }
 
-    func whenCapturing(budgetMs: UInt64 = 1_000, owners: Bool = true, webkit: Bool = false, demangle: Bool = true) {
+    func whenCapturing(budgetMs: UInt64 = 1_000, owners: Bool = true, demangle: Bool = true) {
         do {
-            let options = MemoryDumpRequest.HeapOptions(
-                budgetMs: budgetMs,
-                limit: 100_000,
-                owners: owners,
-                webkit: webkit
-            )
-            sections.append(try HeapCensus.capture(options, demangle: demangle))
+            let options = MemoryDumpRequest.HeapOptions(budgetMs: budgetMs, owners: owners)
+            sections.append(try HeapCensus.capture(options, images: ImageTable(), demangle: demangle))
         } catch {
             XCTFail("heap census failed: \(error)")
         }
@@ -204,7 +285,7 @@ private extension HeapCensusTests {
         options.before_resolve_context = Unmanaged.passUnretained(unmap).toOpaque()
 
         withExtendedLifetime(unmap) {
-            guard let census = bdmem_census_create(&options) else {
+            guard let census = bdmem_census_create(&options, nil) else {
                 return XCTFail("census creation failed")
             }
             defer { bdmem_census_destroy(census) }
@@ -261,6 +342,11 @@ private extension HeapCensusTests {
         XCTAssertGreaterThan(section.ownedBytes, 0)
         XCTAssertLessThanOrEqual(section.ownedBytes, section.unclassifiedBytes)
         XCTAssertLessThanOrEqual(section.ownedBlocks, section.unclassifiedBlocks)
+    }
+
+    func thenNothingIsOwned(by ownerSuffix: String) throws {
+        let section = try XCTUnwrap(sections.last)
+        XCTAssertFalse(section.byOwner.contains { $0.name.hasSuffix(ownerSuffix) })
     }
 
     func thenNothingIsOwned() throws {

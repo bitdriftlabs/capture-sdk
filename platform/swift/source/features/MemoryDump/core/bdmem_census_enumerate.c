@@ -16,6 +16,10 @@
 #include <string.h>
 
 /// The enumerated addresses are this process's own, so no copy is needed.
+/// Zones that are never locked. With a web view open, WebKit's zone stayed locked for 9.9 s and
+/// its enumerator reported nothing: the zone is private to WebKit.
+static const char *const bdmem_skipped_zones[] = {"WebKit Malloc"};
+
 static kern_return_t bdmem_identity_reader(task_t task, vm_address_t remote_address,
                                            vm_size_t size, void **local_memory) {
     (void)task;
@@ -180,9 +184,10 @@ static void bdmem_range_recorder(task_t task, void *context, unsigned type, vm_r
     }
 }
 
-static bool bdmem_zone_is_skipped(const bdmem_census_t *census, const char *name) {
-    for (uint32_t index = 0; index < census->skipped_zone_count; index++) {
-        if (strncmp(census->skipped_zone_names[index], name, BDMEM_ZONE_NAME_CAPACITY) == 0) {
+static bool bdmem_zone_is_skipped(const char *name) {
+    for (size_t index = 0; index < sizeof(bdmem_skipped_zones) / sizeof(*bdmem_skipped_zones);
+         index++) {
+        if (strcmp(bdmem_skipped_zones[index], name) == 0) {
             return true;
         }
     }
@@ -213,7 +218,7 @@ void bdmem_census_enumerate(bdmem_census_t *census) {
         malloc_zone_t *zone = (malloc_zone_t *)zone_addresses[index];
         const char *name = zone != NULL && zone->zone_name != NULL ? zone->zone_name : "(unnamed)";
         strlcpy(summary->zones[index].name, name, sizeof(summary->zones[index].name));
-        summary->zones[index].skipped = bdmem_zone_is_skipped(census, summary->zones[index].name);
+        summary->zones[index].skipped = bdmem_zone_is_skipped(summary->zones[index].name);
         zones_left += !summary->zones[index].skipped && bdmem_zone_is_enumerable(zone);
     }
 

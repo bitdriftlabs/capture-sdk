@@ -9,7 +9,7 @@ import Foundation
 
 /// The JSON attachment of an `ios_memory_dump` invocation: one section per stage that ran.
 struct MemoryDumpReport: Encodable, Equatable {
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
 
     let schemaVersion = Self.currentSchemaVersion
     var counters: VirtualMemoryCounters.Report?

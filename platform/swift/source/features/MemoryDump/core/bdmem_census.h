@@ -27,6 +27,11 @@
 /// any byte.
 #define BDMEM_ADDRESS_MASK (BDMEM_ISA_MASK | (uintptr_t)0x7)
 
+/// Clears only the top byte, which the hardware ignores and memory tagging uses. Owner attribution
+/// keeps every other bit: masking a word down to 36 bits turns string bytes and byte counts into
+/// heap addresses.
+#define BDMEM_TOP_BYTE_MASK ((uintptr_t)0x00ffffffffffffffULL)
+
 /// Swift metadata kinds of heap objects that have no class.
 #define BDMEM_SWIFT_KIND_HEAP_LOCAL_VARIABLE 0x400
 #define BDMEM_SWIFT_KIND_HEAP_GENERIC_LOCAL_VARIABLE 0x500
@@ -47,7 +52,9 @@
 #define BDMEM_OWNER_UNNAMED_CAPACITY (1u << 20)
 #define BDMEM_OWNER_NAMED_CAPACITY (1u << 19)
 
-#define BDMEM_ZONE_NAME_CAPACITY 64
+/// Above this size an unnamed block is credited only to an object pointing at its start. A large
+/// block spans so much of the address space that any number in a named object lands inside one.
+#define BDMEM_OWNER_INTERIOR_MAX_SIZE (16u * 1024u)
 
 typedef struct {
     uintptr_t start;
@@ -74,8 +81,13 @@ typedef struct {
     /// The candidate it was filed under, or 0. A candidate resolution named belongs to another
     /// bucket and must not also be credited to an owner.
     uintptr_t candidate;
+    /// The named block last credited, so an object pointing twice at a buffer counts once.
+    uintptr_t referrer;
     int32_t owner;
+    /// Named objects that pointed at the block as well as the owner did.
     uint32_t referrers;
+    /// The owner points at the start of the block rather than inside it.
+    bool owner_points_at_start;
 } bdmem_unnamed_block_t;
 
 /// A block of a known class: a source of owner attribution.
@@ -114,7 +126,7 @@ struct bdmem_census {
     void *tables;
     size_t tables_size;
 
-    bdmem_image_table_t *images;
+    const bdmem_image_table_t *images;
 
     /// C++ names copied out of foreign memory.
     char *names;
@@ -126,8 +138,6 @@ struct bdmem_census {
 
     bdmem_census_summary_t summary;
 
-    char skipped_zone_names[BDMEM_MAX_ZONES][BDMEM_ZONE_NAME_CAPACITY];
-    uint32_t skipped_zone_count;
 
     // NULL unless owners are attributed; valid from before the locks until the scan ends.
     bdmem_unnamed_block_t *unnamed;
@@ -157,6 +167,10 @@ uintptr_t bdmem_census_readable_end(const bdmem_census_t *census, uintptr_t addr
 
 /// Index of the class at `pointer`, or -1. No allocations.
 int32_t bdmem_census_find_class(const bdmem_census_t *census, uintptr_t pointer);
+
+/// The candidate recorded for `metadata`, or NULL. No allocations.
+const bdmem_candidate_t *bdmem_census_find_candidate(const bdmem_census_t *census,
+                                                     uintptr_t metadata);
 
 uint32_t bdmem_size_bucket(uint64_t size);
 

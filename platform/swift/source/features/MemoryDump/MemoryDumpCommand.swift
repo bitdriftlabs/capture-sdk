@@ -56,12 +56,18 @@ final class MemoryDumpCommand: @unchecked Sendable {
         let demangleOnDevice: Bool
     }
 
-    private static func run(_ request: MemoryDumpRequest, flags: Flags) -> Result<CommandResult, CommandError> {
+    private static func run(
+        _ request: MemoryDumpRequest,
+        flags: Flags
+    ) -> Result<CommandResult, CommandError> {
         var context: [String: String] = [:]
         var report = MemoryDumpReport()
         var stagesRun: [MemoryDumpRequest.Stage] = []
 
         context["phys_footprint_before"] = VirtualMemoryCounters.physFootprint().map(String.init)
+
+        let needsImages = request.stages.contains(.regions) || (request.stages.contains(.heap) && flags.heapEnabled)
+        let images = needsImages ? ImageTable() : nil
 
         for stage in request.stages {
             if stage == .heap, !flags.heapEnabled {
@@ -75,9 +81,9 @@ final class MemoryDumpCommand: @unchecked Sendable {
                 case .counters:
                     report.counters = try VirtualMemoryCounters.capture()
                 case .regions:
-                    report.regions = try RegionWalk.capture(request.regions)
+                    report.regions = try RegionWalk.capture(images: images)
                 case .heap:
-                    let heap = try HeapCensus.capture(request.heap, demangle: flags.demangleOnDevice)
+                    let heap = try HeapCensus.capture(request.heap, images: images, demangle: flags.demangleOnDevice)
                     report.heap = heap
                     context["heap_truncated"] = String(heap.truncated)
                     context["heap_zones_not_seen"] = heap.zonesNotSeen.joined(separator: ",")

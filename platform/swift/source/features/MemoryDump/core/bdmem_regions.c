@@ -59,9 +59,7 @@ static void bdmem_attribute_to_images(const bdmem_image_table_t *images,
     }
 }
 
-bool bdmem_regions_walk(bdmem_regions_mode_t mode,
-                        const bdmem_image_table_t *images,
-                        bdmem_regions_result_t *out) {
+bool bdmem_regions_walk(const bdmem_image_table_t *images, bdmem_regions_result_t *out) {
     if (out == NULL) {
         return false;
     }
@@ -114,16 +112,14 @@ bool bdmem_regions_walk(bdmem_regions_mode_t mode,
 
         unsigned ref_count = short_info.ref_count;
         uint64_t dirty = 0;
-        uint64_t swapped = 0;
+        uint64_t compressed = 0;
 
         // Current protection is not enough: dyld writes into __DATA_CONST and then makes it
         // read-only, and those pages stay dirty.
         const bool could_be_written =
             ((short_info.protection | short_info.max_protection) & VM_PROT_WRITE) != 0;
-        const bool count_pages = mode == BDMEM_REGIONS_FULL ||
-                                 (mode == BDMEM_REGIONS_WRITABLE && could_be_written);
 
-        if (count_pages) {
+        if (could_be_written) {
             vm_region_submap_info_data_64_t info;
             mach_msg_type_number_t info_count = VM_REGION_SUBMAP_INFO_COUNT_64;
             vm_address_t probe_address = address;
@@ -137,7 +133,7 @@ bool bdmem_regions_walk(bdmem_regions_mode_t mode,
             // wrong region.
             if (probe_status == KERN_SUCCESS && probe_address == address) {
                 dirty = (uint64_t)info.pages_dirtied * page_size;
-                swapped = (uint64_t)info.pages_swapped_out * page_size;
+                compressed = (uint64_t)info.pages_swapped_out * page_size;
                 ref_count = info.ref_count;
             } else {
                 out->truncated = true;
@@ -147,7 +143,7 @@ bool bdmem_regions_walk(bdmem_regions_mode_t mode,
         bdmem_tag_totals_t *totals = &out->by_tag[short_info.user_tag & (BDMEM_TAG_COUNT - 1)];
         totals->regions++;
         totals->virtual_size += (uint64_t)size;
-        totals->swapped += swapped;
+        totals->compressed += compressed;
 
         const bool shared = bdmem_is_shared(short_info.share_mode, ref_count);
         if (shared) {
@@ -156,7 +152,7 @@ bool bdmem_regions_walk(bdmem_regions_mode_t mode,
             totals->private_dirty += dirty;
         }
 
-        const uint64_t charged = (shared ? 0 : dirty) + swapped;
+        const uint64_t charged = (shared ? 0 : dirty) + compressed;
         if (charged > 0 && charged_by_image != NULL) {
             bdmem_attribute_to_images(images, (uintptr_t)address, (uintptr_t)address + size,
                                       charged, out);

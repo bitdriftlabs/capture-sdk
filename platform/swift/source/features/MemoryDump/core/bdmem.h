@@ -40,16 +40,6 @@ const char *bdmem_image_table_image_name(const bdmem_image_table_t *table, uint3
 /// Mach's `user_tag` ranges from 0 to 255.
 #define BDMEM_TAG_COUNT 256
 
-typedef enum {
-    /// Layout only: no page counts, so every byte figure except `virtual_size` stays zero.
-    BDMEM_REGIONS_LAYOUT = 0,
-    /// Page counts only for regions whose current or maximum protection allows writing. A region
-    /// that could never be written cannot hold a dirty page.
-    BDMEM_REGIONS_WRITABLE = 1,
-    /// Page counts for every region.
-    BDMEM_REGIONS_FULL = 2,
-} bdmem_regions_mode_t;
-
 typedef struct {
     /// Dirty bytes in regions only this process maps.
     uint64_t private_dirty;
@@ -57,7 +47,7 @@ typedef struct {
     /// charged to this process.
     uint64_t shared_dirty;
     /// Bytes taken by the compressor. Charged to this process whether shared or not.
-    uint64_t swapped;
+    uint64_t compressed;
     uint64_t virtual_size;
     uint32_t regions;
 } bdmem_tag_totals_t;
@@ -65,7 +55,7 @@ typedef struct {
 typedef struct {
     bdmem_tag_totals_t by_tag[BDMEM_TAG_COUNT];
     /// Caller-provided, `image_count` entries indexed like the image table, or NULL. Receives the
-    /// charged bytes (private dirty plus swapped) of the regions overlapping each image, prorated
+    /// charged bytes (private dirty plus compressed) of the regions overlapping each image, prorated
     /// by overlap when a region spans several.
     uint64_t *charged_by_image;
     uint32_t image_count;
@@ -74,13 +64,13 @@ typedef struct {
     bool truncated;
 } bdmem_regions_result_t;
 
-/// Walks this process's VM map. Takes no locks and does not allocate.
+/// Walks this process's VM map. Takes no locks and does not allocate. Pages are counted only for
+/// regions whose current or maximum protection allows writing: a region that could never be
+/// written cannot hold a dirty page.
 ///
 /// `out->charged_by_image` and `out->image_count` are read on entry; every other field is
 /// overwritten. `images` may be NULL, in which case nothing is attributed to images.
-bool bdmem_regions_walk(bdmem_regions_mode_t mode,
-                        const bdmem_image_table_t *images,
-                        bdmem_regions_result_t *out);
+bool bdmem_regions_walk(const bdmem_image_table_t *images, bdmem_regions_result_t *out);
 
 /// Readable name for a Mach `user_tag`, or NULL when the tag is unknown.
 const char *bdmem_tag_name(uint32_t tag);
@@ -99,9 +89,6 @@ typedef struct {
     uint64_t budget_ms;
     /// Credit unnamed blocks to the named object that points at them.
     bool attribute_owners;
-    /// Names of zones that are neither locked nor enumerated.
-    const char *const *skipped_zone_names;
-    uint32_t skipped_zone_count;
     /// Test seam, NULL in production: called after the locks are released and the readable ranges
     /// are surveyed, right before candidates are read.
     void (*before_resolve)(void *context);
@@ -131,6 +118,7 @@ typedef struct {
     uint64_t owned_blocks;
     uint64_t owned_bytes;
 } bdmem_type_entry_t;
+
 
 typedef struct {
     char name[64];
@@ -178,7 +166,8 @@ typedef struct {
     /// Unnamed blocks credited to an owner, a subset of the unclassified ones.
     uint64_t owned_blocks;
     uint64_t owned_bytes;
-    /// Owned blocks more than one named object pointed at; credited to the first one found.
+    /// Owned blocks more than one named object pointed at equally well; credited to the first one
+    /// found.
     uint64_t shared_owned_blocks;
     /// Blocks that did not fit the owner tables. Above zero, the owner figures are a floor.
     uint64_t owner_table_overflow;
@@ -190,8 +179,10 @@ typedef struct {
 typedef struct bdmem_census bdmem_census_t;
 
 /// Builds the class table and reserves every table the run writes into. Allocates. Returns NULL
-/// on failure.
-bdmem_census_t *bdmem_census_create(const bdmem_census_options_t *options);
+/// on failure. `images` is borrowed and must outlive the census; when NULL, no block is
+/// attributed to an image.
+bdmem_census_t *bdmem_census_create(const bdmem_census_options_t *options,
+                                    const bdmem_image_table_t *images);
 
 /// Enumerates the live heap blocks one malloc zone at a time, then resolves what could not be
 /// named under the locks. Nothing allocates while a zone is locked. Runs once per census.

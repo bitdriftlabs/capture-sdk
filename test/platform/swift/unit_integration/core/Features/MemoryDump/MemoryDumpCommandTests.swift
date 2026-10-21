@@ -55,13 +55,15 @@ final class MemoryDumpCommandTests: XCTestCase {
 
     func testRegionsStageIsReportedInContextAndAttachment() async throws {
         givenMemoryDumpCommand()
-        await whenExecuting(["stages": .string("regions"), "regions.limit": .uint64(3)])
+        await whenExecuting(["stages": .string("regions")])
         let context = try thenContext()
         XCTAssertEqual(context["stages"], "regions")
         XCTAssertNotNil(context["regions_ms"])
         let regions = try thenAttachmentSection("regions")
-        XCTAssertEqual(regions["mode"] as? String, "writable")
-        XCTAssertEqual((regions["by_tag"] as? [Any])?.count, 4)
+        XCTAssertNil(regions["mode"])
+        XCTAssertNotNil(regions["compressed"])
+        XCTAssertFalse(try XCTUnwrap(regions["by_tag"] as? [Any]).isEmpty)
+        XCTAssertFalse(try XCTUnwrap(regions["by_image"] as? [Any]).isEmpty)
         XCTAssertNil(try thenAttachmentJSON()["counters"])
     }
 
@@ -76,6 +78,7 @@ final class MemoryDumpCommandTests: XCTestCase {
         let heap = try thenAttachmentSection("heap")
         XCTAssertGreaterThan(try XCTUnwrap(heap["total_blocks"] as? UInt64), 0)
         XCTAssertFalse(try XCTUnwrap(heap["by_type"] as? [Any]).isEmpty)
+        XCTAssertFalse(try XCTUnwrap(heap["by_image"] as? [Any]).isEmpty)
     }
 
     func testPayloadCarriesNoAddresses() async throws {
@@ -84,17 +87,6 @@ final class MemoryDumpCommandTests: XCTestCase {
         let payload = try XCTUnwrap(String(data: try thenAttachment().data, encoding: .utf8))
         XCTAssertFalse(payload.contains("0x"))
         XCTAssertFalse(payload.contains("unknown context at"))
-    }
-
-    func testDefaultLimitKeepsEveryRow() async throws {
-        givenMemoryDumpCommand()
-        await whenExecuting(["stages": .string("regions,heap"), "heap.budget_ms": .uint64(1_000)])
-        let regions = try thenAttachmentSection("regions")
-        let heap = try thenAttachmentSection("heap")
-        for rows in [regions["by_tag"], regions["by_image"], heap["by_type"], heap["by_owner"], heap["by_image"]] {
-            let names = try XCTUnwrap(rows as? [[String: Any]]).compactMap { $0["name"] as? String }
-            XCTAssertFalse(names.contains(RegionWalk.otherRowName))
-        }
     }
 
     func testDisabledHeapIsSkippedAndReported() async throws {

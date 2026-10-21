@@ -23,19 +23,24 @@ final class MemoryDumpRequestTests: XCTestCase {
     func testExplicitArgumentsOverrideDefaults() {
         givenArguments([
             "stages": .string("regions"),
-            "regions.mode": .string("full"),
-            "regions.limit": .uint64(10),
             "heap.budget_ms": .uint64(100),
-            "heap.limit": .uint64(5),
             "heap.owners": .bool(false),
-            "heap.webkit": .bool(true),
         ])
         whenParsing()
         thenRequestEquals(MemoryDumpRequest(
             stages: [.regions],
-            regions: .init(mode: .full, limit: 10),
-            heap: .init(budgetMs: 100, limit: 5, owners: false, webkit: true)
+            heap: .init(budgetMs: 100, owners: false)
         ))
+    }
+
+    func testRemovedOptionsAreRejected() {
+        for name in ["regions.mode", "regions.limit", "heap.limit", "heap.webkit"] {
+            givenArguments([name: .uint64(1)])
+            whenParsing()
+            thenFailsWithInvalidArguments(mentioning: name)
+            request = nil
+            error = nil
+        }
     }
 
     func testStagesRunInExecutionOrderWithoutDuplicates() {
@@ -66,18 +71,6 @@ final class MemoryDumpRequestTests: XCTestCase {
         givenArguments(["stages": .string("counters,")])
         whenParsing()
         thenFailsWithInvalidArguments(mentioning: "stage")
-    }
-
-    func testUnknownRegionsModeIsRejected() {
-        givenArguments(["regions.mode": .string("everything")])
-        whenParsing()
-        thenFailsWithInvalidArguments(mentioning: "everything")
-    }
-
-    func testZeroLimitIsRejected() {
-        givenArguments(["heap.limit": .uint64(0)])
-        whenParsing()
-        thenFailsWithInvalidArguments(mentioning: "heap.limit")
     }
 
     func testHeapBudgetIsClampedBelowTheCommandTimeout() {

@@ -55,15 +55,15 @@ enum HeapCensus {
         }
     }
 
-    struct TypeRow: Encodable, Equatable {
-        enum Kind: String, Encodable {
-            case `class`
-            case cxx
-        }
+    enum Kind: String, Encodable {
+        case `class`
+        case cxx
+        case image
+    }
 
+    struct TypeRow: Encodable, Equatable {
         let name: String
-        /// `nil` for the `(other)` row.
-        let kind: Kind?
+        let kind: Kind
         var blocks: UInt64
         var bytes: UInt64
     }
@@ -85,16 +85,17 @@ enum HeapCensus {
         let truncated: Bool
     }
 
-    static let otherRowName = "(other)"
-
-    /// When we tested this, the malloc lock was held for 9.9 s with a web view open,
-    /// and the enumerator reported nothing. Probably it's blocked for security reasons.
-    /// We'll just avoid enumerating into that malloc zone.
-    static let webKitZoneName = "WebKit Malloc"
-
-    static func capture(_ options: MemoryDumpRequest.HeapOptions, demangle: Bool) throws(CommandError) -> Report {
-        let skippedZones = [Self.webKitZoneName]
-        let census = try Self.makeCensus(options, skippedZones: skippedZones)
+    static func capture(
+        _ options: MemoryDumpRequest.HeapOptions,
+        images: ImageTable?,
+        demangle: Bool
+    ) throws(CommandError) -> Report {
+        var censusOptions = bdmem_census_options_t()
+        censusOptions.budget_ms = options.budgetMs
+        censusOptions.attribute_owners = options.owners
+        guard let census = bdmem_census_create(&censusOptions, images?.pointer) else {
+            throw CommandError(title: "Unable to create the heap census")
+        }
         defer { bdmem_census_destroy(census) }
 
         guard bdmem_census_run(census), let summary = bdmem_census_summary(census)?.pointee else {
@@ -102,7 +103,6 @@ enum HeapCensus {
         }
 
         let (types, owners, images) = Self.rows(of: census, demangle: demangle)
-        let limit = options.limit.map { Int(clamping: $0) }
         return Report(
             truncated: summary.truncated,
             totalBlocks: summary.total_blocks,
@@ -130,33 +130,11 @@ enum HeapCensus {
             lockWaitMs: Self.milliseconds(summary.lock_wait_ns),
             resolveMs: Self.milliseconds(summary.resolve_ns),
             ownersMs: Self.milliseconds(summary.owners_ns),
-            byType: Self.keepingTop(limit, of: types),
-            byOwner: Self.keepingTop(limit, of: owners),
-            byImage: Self.keepingTop(limit, of: images),
+            byType: types,
+            byOwner: owners,
+            byImage: images,
             zones: Self.zoneRows(of: summary)
         )
-    }
-
-    private static func makeCensus(
-        _ options: MemoryDumpRequest.HeapOptions,
-        skippedZones: [String]
-    ) throws(CommandError) -> OpaquePointer {
-        // The census copies the names, so they only need to outlive creation.
-        let names = skippedZones.map { strdup($0) }
-        defer { names.forEach { free($0) } }
-
-        let census = names.map { UnsafePointer($0) }.withUnsafeBufferPointer { buffer in
-            var censusOptions = bdmem_census_options_t()
-            censusOptions.budget_ms = options.budgetMs
-            censusOptions.attribute_owners = options.owners
-            censusOptions.skipped_zone_names = buffer.baseAddress
-            censusOptions.skipped_zone_count = UInt32(buffer.count)
-            return bdmem_census_create(&censusOptions)
-        }
-        guard let census else {
-            throw CommandError(title: "Unable to create the heap census")
-        }
-        return census
     }
 
     private static func rows(
@@ -174,12 +152,17 @@ enum HeapCensus {
             }
             let name = String(cString: rawName)
 
-            switch entry.kind {
-            case BDMEM_TYPE_CLASS, BDMEM_TYPE_CXX:
-                let kind: TypeRow.Kind = entry.kind == BDMEM_TYPE_CLASS ? .class : .cxx
-                let readable = kind == .class
-                    ? SymbolNames.swiftClassName(name, classPointer: UInt(entry.class_pointer), demangle: demangle)
-                    : SymbolNames.cxxTypeName(name, demangle: demangle)
+            guard let kind = Self.kind(entry.kind) else {
+                continue
+            }
+            switch kind {
+            case .class, .cxx:
+                let readable = Self.readableName(
+                    name,
+                    kind: kind,
+                    classPointer: entry.class_pointer,
+                    demangle: demangle
+                )
                 // Types whose readable names collide are reported together.
                 let key = "\(kind.rawValue)|\(readable)"
                 types[key, default: TypeRow(name: readable, kind: kind, blocks: 0, bytes: 0)].blocks += entry.blocks
@@ -189,13 +172,10 @@ enum HeapCensus {
                         entry.owned_blocks
                     owners[key]?.bytes += entry.owned_bytes
                 }
-            case BDMEM_TYPE_IMAGE:
-                // Only the binary's name: paths carry the app container and user directories.
-                let binary = name.split(separator: "/").last.map(String.init) ?? name
+            case .image:
+                let binary = ImageTable.binaryName(name)
                 images[binary, default: ImageRow(name: binary, blocks: 0, bytes: 0)].blocks += entry.blocks
                 images[binary]?.bytes += entry.bytes
-            default:
-                continue
             }
         }
 
@@ -204,6 +184,30 @@ enum HeapCensus {
             owners.values.sorted { ($0.bytes, $1.name) > ($1.bytes, $0.name) },
             images.values.sorted { ($0.bytes, $1.name) > ($1.bytes, $0.name) }
         )
+    }
+
+    private static func readableName(_ name: String, kind: Kind, classPointer: UInt, demangle: Bool) -> String {
+        switch kind {
+        case .class:
+            SymbolNames.swiftClassName(name, classPointer: classPointer, demangle: demangle)
+        case .cxx:
+            SymbolNames.cxxTypeName(name, demangle: demangle)
+        case .image:
+            ImageTable.binaryName(name)
+        }
+    }
+
+    private static func kind(_ kind: bdmem_type_kind_t) -> Kind? {
+        switch kind {
+        case BDMEM_TYPE_CLASS:
+            .class
+        case BDMEM_TYPE_CXX:
+            .cxx
+        case BDMEM_TYPE_IMAGE:
+            .image
+        default:
+            nil
+        }
     }
 
     private static func zoneRows(of summary: bdmem_census_summary_t) -> [ZoneRow] {
@@ -224,33 +228,6 @@ enum HeapCensus {
                     )
                 }
         }
-    }
-
-    private static func keepingTop(_ limit: Int?, of rows: [TypeRow]) -> [TypeRow] {
-        guard let limit, rows.count > limit else {
-            return rows
-        }
-        let rest = rows[limit...]
-        let other = TypeRow(
-            name: Self.otherRowName,
-            kind: nil,
-            blocks: rest.reduce(0) { $0 + $1.blocks },
-            bytes: rest.reduce(0) { $0 + $1.bytes }
-        )
-        return Array(rows.prefix(limit)) + [other]
-    }
-
-    private static func keepingTop(_ limit: Int?, of rows: [ImageRow]) -> [ImageRow] {
-        guard let limit, rows.count > limit else {
-            return rows
-        }
-        let rest = rows[limit...]
-        let other = ImageRow(
-            name: Self.otherRowName,
-            blocks: rest.reduce(0) { $0 + $1.blocks },
-            bytes: rest.reduce(0) { $0 + $1.bytes }
-        )
-        return Array(rows.prefix(limit)) + [other]
     }
 
     private static func milliseconds(_ nanoseconds: UInt64) -> Double {

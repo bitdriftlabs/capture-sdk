@@ -10,7 +10,6 @@
 #include <mach/mach.h>
 #include <objc/runtime.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/mman.h>
 #include <time.h>
 
@@ -33,7 +32,8 @@ static int bdmem_compare_pointers(const void *lhs, const void *rhs) {
     return (left > right) - (left < right);
 }
 
-bdmem_census_t *bdmem_census_create(const bdmem_census_options_t *options) {
+bdmem_census_t *bdmem_census_create(const bdmem_census_options_t *options,
+                                    const bdmem_image_table_t *images) {
     if (options == NULL) {
         return NULL;
     }
@@ -51,17 +51,7 @@ bdmem_census_t *bdmem_census_create(const bdmem_census_options_t *options) {
         return NULL;
     }
     census->options = *options;
-    // The names are borrowed from the caller: keep copies instead.
-    for (uint32_t index = 0;
-         index < options->skipped_zone_count && census->skipped_zone_count < BDMEM_MAX_ZONES;
-         index++) {
-        if (options->skipped_zone_names != NULL && options->skipped_zone_names[index] != NULL) {
-            strlcpy(census->skipped_zone_names[census->skipped_zone_count++],
-                    options->skipped_zone_names[index], BDMEM_ZONE_NAME_CAPACITY);
-        }
-    }
-    census->options.skipped_zone_names = NULL;
-    census->options.skipped_zone_count = 0;
+    census->images = images;
 
     // One reservation for every table the run writes into, so enumeration never touches malloc.
     const size_t count = class_count;
@@ -120,7 +110,6 @@ bdmem_census_t *bdmem_census_create(const bdmem_census_options_t *options) {
         census->candidates[index].kind = BDMEM_CANDIDATE_UNRESOLVED;
     }
 
-    census->images = bdmem_image_table_create();
     return census;
 }
 
@@ -128,7 +117,6 @@ void bdmem_census_destroy(bdmem_census_t *census) {
     if (census == NULL) {
         return;
     }
-    bdmem_image_table_destroy(census->images);
     if (census->owner_tables != NULL) {
         munmap(census->owner_tables, census->owner_tables_size);
     }
@@ -211,6 +199,25 @@ int32_t bdmem_census_find_class(const bdmem_census_t *census, uintptr_t pointer)
         }
     }
     return -1;
+}
+
+const bdmem_candidate_t *bdmem_census_find_candidate(const bdmem_census_t *census,
+                                                     uintptr_t metadata) {
+    if (metadata == 0) {
+        return NULL;
+    }
+    uint32_t index = bdmem_candidate_slot(metadata);
+    for (uint32_t probe = 0; probe < BDMEM_CANDIDATE_PROBE_LIMIT; probe++) {
+        const bdmem_candidate_t *candidate = &census->candidates[index];
+        if (candidate->metadata == 0) {
+            return NULL;
+        }
+        if (candidate->metadata == metadata) {
+            return candidate;
+        }
+        index = (index + 1) & (BDMEM_CANDIDATE_CAPACITY - 1);
+    }
+    return NULL;
 }
 
 /// Lists the classes and candidates that ended up with a name, for indexed reads from Swift.
