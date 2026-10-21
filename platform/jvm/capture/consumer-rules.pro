@@ -150,5 +150,4 @@
 # WebViewCapture.instrument() - called by Gradle plugin bytecode injection when `automaticWebViewInstrumentation` is set to true
 -keep class io.bitdrift.capture.webview.WebViewCapture {
     public static void instrument(android.webkit.WebView);
-    public static void instrument(android.webkit.WebView, io.bitdrift.capture.ILogger);
 }
