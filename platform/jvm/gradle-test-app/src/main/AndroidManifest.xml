@@ -19,6 +19,8 @@
         android:theme="@style/Theme.MyApplication"
         tools:targetApi="35">
 
+        <profileable android:enabled="true" android:shell="false" />
+
         <meta-data android:name="io.sentry.auto-init" android:value="false" />
 
         <provider
