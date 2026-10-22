@@ -9,6 +9,8 @@ version      = "0.1.0"
 [dependencies]
 anstyle.workspace    = true
 clap.workspace       = true
+dialoguer.workspace  = true
 env_logger.workspace = true
 serde.workspace      = true
 serde_json.workspace = true
+tempfile.workspace   = true

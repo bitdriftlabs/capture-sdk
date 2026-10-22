@@ -32,6 +32,32 @@ just capture-dev doctor android
 just capture-dev --help
 ```
 
+### Discover iOS destinations
+
+```bash
+# List all available simulators and connected devices.
+just capture-dev devices ios
+
+# Open a fuzzy picker and print the chosen selector.
+just capture-dev devices ios --select
+```
+
+The picker requires an interactive terminal; scripts and CI should use the stable `selector` identifiers from the regular or JSON listing. The listing never guesses a device: if Simulator services or physical-device discovery are unavailable, it prints a diagnostic and an actionable next step instead.
+
+### Build, install, and launch the iOS sample
+
+```bash
+# Pick a simulator or a connected physical device, then build, install, and launch.
+just capture-dev run ios
+
+# Skip the picker with an explicit destination from `devices ios`.
+just capture-dev run ios --simulator SIMULATOR-UDID
+just capture-dev run ios --device DEVICE-UDID
+
+# Headless mode requires an explicit destination, so CI never guesses.
+just capture-dev run ios --non-interactive --simulator SIMULATOR-UDID
+```
+
 ## Build and test
 
 ```bash
