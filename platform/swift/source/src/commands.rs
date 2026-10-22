@@ -5,7 +5,13 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use crate::ffi::{append_array_value, make_nsstring, nsstring_into_string, set_dictionary_value};
+use crate::ffi::{
+  append_array_value,
+  make_nsdata,
+  make_nsstring,
+  nsstring_into_string,
+  set_dictionary_value,
+};
 use anyhow::{Result, anyhow};
 use bd_artifact_upload::UploadSource;
 use bd_logger::{
@@ -201,7 +207,7 @@ fn make_command_argument(name: &str, argument_type: usize, value: &StrongPtr) ->
 fn make_argument_value(data_type: &Data_type) -> Result<(usize, StrongPtr)> {
   match data_type {
     Data_type::StringData(value) => Ok((ARGUMENT_TYPE_STRING, make_nsstring(value)?)),
-    Data_type::BinaryData(value) => Ok((ARGUMENT_TYPE_BINARY, data_from_bytes(&value.payload))),
+    Data_type::BinaryData(value) => Ok((ARGUMENT_TYPE_BINARY, make_nsdata(&value.payload))),
     Data_type::IntData(value) => Ok((ARGUMENT_TYPE_UINT64, number_with_unsigned_long_long(*value))),
     Data_type::DoubleData(value) => Ok((ARGUMENT_TYPE_DOUBLE, number_with_double(*value))),
     Data_type::SintData(value) => Ok((ARGUMENT_TYPE_INT64, number_with_long_long(*value))),
@@ -209,12 +215,6 @@ fn make_argument_value(data_type: &Data_type) -> Result<(usize, StrongPtr)> {
     Data_type::MapData(_) | Data_type::ArrayData(_) => {
       Err(anyhow!("nested command argument values are unsupported"))
     },
-  }
-}
-
-fn data_from_bytes(bytes: &[u8]) -> StrongPtr {
-  unsafe {
-    StrongPtr::retain(msg_send![class!(NSData), dataWithBytes: bytes.as_ptr() length: bytes.len()])
   }
 }
 

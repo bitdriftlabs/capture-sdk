@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+internal import CaptureLoggerBridge
 import Foundation
 
 final class MemoryDumpCommand: @unchecked Sendable {
@@ -40,82 +41,59 @@ final class MemoryDumpCommand: @unchecked Sendable {
             return .failure(error)
         }
 
-        let flags = Flags(
-            heapEnabled: self.runtimeValue(.memoryDumpHeapEnabled),
-            demangleOnDevice: self.runtimeValue(.memoryDumpDemangleOnDevice)
-        )
+        let heapEnabled = self.runtimeValue(.memoryDumpHeapEnabled)
         return await withCheckedContinuation { continuation in
             self.queue.async {
-                continuation.resume(returning: Self.run(request, flags: flags))
+                continuation.resume(returning: Self.run(request, heapEnabled: heapEnabled))
             }
         }
     }
 
-    private struct Flags {
-        let heapEnabled: Bool
-        let demangleOnDevice: Bool
-    }
-
-    private static func run(
-        _ request: MemoryDumpRequest,
-        flags: Flags
-    ) -> Result<CommandResult, CommandError> {
+    private static func run(_ request: MemoryDumpRequest, heapEnabled: Bool) -> Result<CommandResult, CommandError> {
+        var stages = request.stages
         var context: [String: String] = [:]
-        var report = MemoryDumpReport()
-        var stagesRun: [MemoryDumpRequest.Stage] = []
-
-        context["phys_footprint_before"] = VirtualMemoryCounters.physFootprint().map(String.init)
-
-        let needsImages = request.stages.contains(.regions) || (request.stages.contains(.heap) && flags.heapEnabled)
-        let images = needsImages ? ImageTable() : nil
-
-        for stage in request.stages {
-            if stage == .heap, !flags.heapEnabled {
-                context["heap"] = "disabled"
-                continue
-            }
-
-            let started = DispatchTime.now()
-            do {
-                switch stage {
-                case .counters:
-                    report.counters = try VirtualMemoryCounters.capture()
-                case .regions:
-                    report.regions = try RegionWalk.capture(images: images)
-                case .heap:
-                    let heap = try HeapCensus.capture(request.heap, images: images, demangle: flags.demangleOnDevice)
-                    report.heap = heap
-                    context["heap_truncated"] = String(heap.truncated)
-                    context["heap_zones_not_seen"] = heap.zonesNotSeen.joined(separator: ",")
-                    context["heap_zones_skipped"] = heap.zonesSkipped.joined(separator: ",")
-                }
-            } catch {
-                return .failure(error)
-            }
-            context["\(stage.rawValue)_ms"] = Self.milliseconds(since: started)
-            stagesRun.append(stage)
+        if !heapEnabled, stages.contains(.heap) {
+            stages.removeAll { $0 == .heap }
+            context["heap"] = "disabled"
         }
 
-        context["phys_footprint_after"] = VirtualMemoryCounters.physFootprint().map(String.init)
-        context["stages"] = stagesRun.map(\.rawValue).joined(separator: ",")
-
-        do {
-            let attachment = CommandAttachment(data: try report.encoded(), mimeType: "application/json")
-            return .success(CommandResult(attachment: attachment, context: context))
-        } catch {
-            return .failure(CommandError(
-                title: "Unable to encode memory dump",
-                description: error.localizedDescription
-            ))
+        let output = capture_memory_dump(
+            stages.reduce(0) { $0 | $1.mask },
+            request.heap.budgetMs,
+            request.heap.owners
+        ) as? [String: Any]
+        guard let output else {
+            return .failure(CommandError(title: "Unable to capture memory dump"))
         }
-    }
+        if let error = output["error"] as? String {
+            return .failure(CommandError(title: "Unable to capture memory dump", description: error))
+        }
+        guard let attachment = output["attachment"] as? Data else {
+            return .failure(CommandError(title: "Unable to capture memory dump"))
+        }
 
-    private static func milliseconds(since start: DispatchTime) -> String {
-        let elapsed = DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds
-        return String(format: "%.1f", Double(elapsed) / 1_000_000)
+        context.merge(output["context"] as? [String: String] ?? [:]) { current, _ in current }
+        return .success(CommandResult(
+            attachment: CommandAttachment(data: attachment, mimeType: "application/json"),
+            context: context
+        ))
     }
 
     private func runtimeValue(_ variable: RuntimeVariable<Bool>) -> Bool {
         self.logger?.runtimeValue(variable) ?? variable.defaultValue
+    }
+}
+
+private extension MemoryDumpRequest.Stage {
+    /// The stage's bit in `capture_memory_dump`'s mask.
+    var mask: UInt32 {
+        switch self {
+        case .counters:
+            1 << 0
+        case .regions:
+            1 << 1
+        case .heap:
+            1 << 2
+        }
     }
 }

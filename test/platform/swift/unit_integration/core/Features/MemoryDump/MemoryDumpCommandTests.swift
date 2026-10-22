@@ -9,8 +9,14 @@
 @testable import CaptureMocks
 import XCTest
 
+struct MemoryDumpElement {
+    var first = 0
+    var second = 0
+}
+
 final class MemoryDumpCommandTests: XCTestCase {
     private let logger = MockCoreLogging()
+    private var genericArrays: [[MemoryDumpElement]] = []
     private var sut: MemoryDumpCommand!
     private var result: Result<CommandResult, CommandError>!
 
@@ -40,7 +46,7 @@ final class MemoryDumpCommandTests: XCTestCase {
         let attachment = try thenAttachment()
         XCTAssertEqual(attachment.mimeType, "application/json")
         let json = try thenAttachmentJSON()
-        XCTAssertEqual(json["schema_version"] as? Int, MemoryDumpReport.currentSchemaVersion)
+        XCTAssertEqual(json["schema_version"] as? Int, 1)
     }
 
     func testContextReportsStagesTimingAndFootprint() async throws {
@@ -81,12 +87,24 @@ final class MemoryDumpCommandTests: XCTestCase {
         XCTAssertFalse(try XCTUnwrap(heap["by_image"] as? [Any]).isEmpty)
     }
 
+    func testSwiftGenericInstantiationsAreNamedMangled() async throws {
+        genericArrays = (0..<500).map { [MemoryDumpElement(first: $0, second: $0)] }
+        givenMemoryDumpCommand()
+        await whenExecuting(["stages": .string("heap"), "heap.budget_ms": .uint64(1_000)])
+        let rows = try XCTUnwrap(try thenAttachmentSection("heap")["by_type"] as? [[String: Any]])
+        let names = rows.compactMap { $0["name"] as? String }
+        XCTAssertTrue(
+            names.contains { $0.hasPrefix("_TtGC") && $0.contains("MemoryDumpElement") },
+            "no mangled generic among \(names.count) rows"
+        )
+    }
+
     func testPayloadCarriesNoAddresses() async throws {
         givenMemoryDumpCommand()
         await whenExecuting(["heap.budget_ms": .uint64(1_000)])
         let payload = try XCTUnwrap(String(data: try thenAttachment().data, encoding: .utf8))
         XCTAssertFalse(payload.contains("0x"))
-        XCTAssertFalse(payload.contains("unknown context at"))
+        XCTAssertFalse(payload.contains("/Users/"))
     }
 
     func testDisabledHeapIsSkippedAndReported() async throws {

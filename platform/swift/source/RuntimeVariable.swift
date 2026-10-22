@@ -159,11 +159,6 @@ extension RuntimeVariable<Bool> {
         name: "client_feature.ios.memory_dump_heap",
         defaultValue: true
     )
-
-    static let memoryDumpDemangleOnDevice = RuntimeVariable(
-        name: "client_feature.ios.memory_dump_demangle_on_device",
-        defaultValue: true
-    )
 }
 
 extension RuntimeVariable<UInt32> {
