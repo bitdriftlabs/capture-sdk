@@ -112,7 +112,12 @@ fn census_with_budget(budget_ms: u64, owners: bool) -> HeapReport {
 }
 
 fn owned_by<'a>(report: &'a HeapReport, class: &str) -> Option<&'a crate::report::TypeRow> {
-  report.by_owner.iter().find(|row| row.name == class)
+  report
+    .owners
+    .as_ref()?
+    .by_type
+    .iter()
+    .find(|row| row.name == class)
 }
 
 #[test]
@@ -154,7 +159,7 @@ fn zero_budget_is_reported_as_truncated() {
   assert!(report.truncated);
   assert!(!report.zones.is_empty());
   assert!(report.zones.iter().all(|zone| !zone.enumerated));
-  assert_eq!(report.total_blocks, 0);
+  assert_eq!(report.total.blocks, 0);
 }
 
 #[test]
@@ -169,9 +174,10 @@ fn buffer_is_attributed_to_the_object_holding_it() {
   let row = owned_by(&report, "BdMemoryDumpStartHolder").unwrap();
   assert!(row.blocks >= 200);
   assert!(row.bytes >= 200 * 4_096);
-  assert!(report.owned_bytes <= report.unclassified_bytes);
-  assert!(report.owned_blocks <= report.unclassified_blocks);
-  assert_eq!(report.owner_table_overflow, 0);
+  let owners = report.owners.as_ref().unwrap();
+  assert!(owners.bytes <= report.unclassified.bytes);
+  assert!(owners.blocks <= report.unclassified.blocks);
+  assert_eq!(owners.table_overflow, 0);
 }
 
 #[test]
@@ -221,16 +227,17 @@ fn owners_are_not_attributed_when_disabled() {
   let buffer = fixture.block(4_096);
   fixture.holder(start_holder(), buffer);
   let report = census(false);
-  assert_eq!(report.owned_blocks, 0);
-  assert!(report.by_owner.is_empty());
+  assert!(report.owners.is_none());
+  let json = serde_json::to_value(&report).unwrap();
+  assert!(json.get("owners").is_none());
 }
 
 #[test]
 fn the_dump_tables_are_reported_apart() {
   let _lock = heap_lock();
   let report = census(true);
-  assert!(report.reporter_blocks >= 3);
-  assert!(report.reporter_bytes > 0);
+  assert!(report.reporter.blocks >= 3);
+  assert!(report.reporter.bytes > 0);
 }
 
 fn zone_named(name: &str, blocks: usize) -> *mut c_void {
@@ -308,7 +315,7 @@ fn captures_survive_regions_being_mapped_and_unmapped() {
     })
   };
   for _ in 0 .. 5 {
-    assert!(census(true).total_blocks > 0);
+    assert!(census(true).total.blocks > 0);
   }
   running.store(false, Ordering::Relaxed);
   mapper.join().unwrap();
@@ -359,6 +366,6 @@ fn candidate_unmapped_before_resolution_stays_unresolved() {
     // SAFETY: allocated above.
     unsafe { free(block.cast()) };
   }
-  assert!(report.unreadable_candidates >= 1);
-  assert!(report.unclassified_blocks > 0);
+  assert!(report.dropped.unreadable_candidates >= 1);
+  assert!(report.unclassified.blocks > 0);
 }

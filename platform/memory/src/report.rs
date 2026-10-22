@@ -109,40 +109,63 @@ pub struct ImageChargeRow {
 pub struct HeapReport {
   /// The lock budget ran out: the figures are a floor, not an inventory.
   pub truncated: bool,
-  pub total_blocks: u64,
-  pub total_bytes: u64,
-  pub named_blocks: u64,
-  pub named_bytes: u64,
-  pub swift_box_blocks: u64,
-  pub swift_box_bytes: u64,
-  pub image_blocks: u64,
-  pub image_bytes: u64,
-  /// The tables of the dump itself, counted in the totals but in no other category.
-  pub reporter_blocks: u64,
-  pub reporter_bytes: u64,
-  pub unclassified_blocks: u64,
-  pub unclassified_bytes: u64,
-  /// Unclassified blocks per power-of-two size: index `n` counts sizes in [2^n, 2^(n+1)).
-  pub unclassified_histogram: Vec<u64>,
+  pub total: BlockCount,
   pub largest_block_bytes: u64,
+  pub named: BlockCount,
+  pub swift_boxes: BlockCount,
+  pub images: BlockCount,
+  /// The tables of the dump itself, counted in the totals but in no other category.
+  pub reporter: BlockCount,
+  pub unclassified: Unclassified,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub owners: Option<Owners>,
+  pub dropped: Dropped,
+  pub timings: HeapTimings,
+  pub by_type: Vec<TypeRow>,
+  pub by_image: Vec<ImageBlocksRow>,
+  pub zones: Vec<ZoneRow>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct BlockCount {
+  pub blocks: u64,
+  pub bytes: u64,
+}
+
+#[derive(Serialize, Debug)]
+pub struct Unclassified {
+  pub blocks: u64,
+  pub bytes: u64,
+  /// Blocks per power-of-two size: index `n` counts sizes in [2^n, 2^(n+1)).
+  pub histogram: Vec<u64>,
+}
+
+/// Unclassified blocks credited to the named object pointing at them. A subset of
+/// `unclassified`, never an addition to it.
+#[derive(Serialize, Debug)]
+pub struct Owners {
+  pub blocks: u64,
+  pub bytes: u64,
+  pub shared_blocks: u64,
+  pub table_overflow: u64,
+  /// Types by the unclassified bytes they own.
+  pub by_type: Vec<TypeRow>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct Dropped {
   pub skipped_blocks: u64,
   pub candidate_overflow: u64,
   pub unreadable_candidates: u64,
-  /// Unclassified blocks credited to the named object pointing at them. A subset of
-  /// `unclassified_*`, never an addition to it.
-  pub owned_blocks: u64,
-  pub owned_bytes: u64,
-  pub shared_owned_blocks: u64,
-  pub owner_table_overflow: u64,
+}
+
+#[derive(Serialize, Debug)]
+#[allow(clippy::struct_field_names)]
+pub struct HeapTimings {
   pub lock_held_ms: f64,
   pub lock_wait_ms: f64,
   pub resolve_ms: f64,
   pub owners_ms: f64,
-  pub by_type: Vec<TypeRow>,
-  /// Types by the unclassified bytes they own, empty when owners are not attributed.
-  pub by_owner: Vec<TypeRow>,
-  pub by_image: Vec<ImageBlocksRow>,
-  pub zones: Vec<ZoneRow>,
 }
 
 #[derive(Serialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]

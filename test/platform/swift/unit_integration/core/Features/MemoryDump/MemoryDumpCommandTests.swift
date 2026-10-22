@@ -82,7 +82,10 @@ final class MemoryDumpCommandTests: XCTestCase {
         XCTAssertEqual(context["heap_truncated"], "false")
         XCTAssertNotNil(context["heap_zones_not_seen"])
         let heap = try thenAttachmentSection("heap")
-        XCTAssertGreaterThan(try XCTUnwrap(heap["total_blocks"] as? UInt64), 0)
+        let total = try XCTUnwrap(heap["total"] as? [String: Any])
+        XCTAssertGreaterThan(try XCTUnwrap(total["blocks"] as? UInt64), 0)
+        XCTAssertNotNil(heap["owners"])
+        XCTAssertNotNil(heap["timings"])
         XCTAssertFalse(try XCTUnwrap(heap["by_type"] as? [Any]).isEmpty)
         XCTAssertFalse(try XCTUnwrap(heap["by_image"] as? [Any]).isEmpty)
     }

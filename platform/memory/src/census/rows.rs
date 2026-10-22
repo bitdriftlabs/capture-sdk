@@ -9,7 +9,19 @@
 
 use super::Census;
 use super::tables::Resolution;
-use crate::report::{HeapReport, ImageBlocksRow, TypeKind, TypeRow, ZoneRow, milliseconds};
+use crate::report::{
+  BlockCount,
+  Dropped,
+  HeapReport,
+  HeapTimings,
+  ImageBlocksRow,
+  Owners,
+  TypeKind,
+  TypeRow,
+  Unclassified,
+  ZoneRow,
+  milliseconds,
+};
 use std::collections::HashMap;
 
 //
@@ -85,33 +97,51 @@ impl Census<'_> {
     let summary = self.summary;
     HeapReport {
       truncated: summary.truncated,
-      total_blocks: summary.total_blocks,
-      total_bytes: summary.total_bytes,
-      named_blocks: summary.named_blocks,
-      named_bytes: summary.named_bytes,
-      swift_box_blocks: summary.swift_box_blocks,
-      swift_box_bytes: summary.swift_box_bytes,
-      image_blocks: summary.image_blocks,
-      image_bytes: summary.image_bytes,
-      reporter_blocks: summary.reporter_blocks,
-      reporter_bytes: summary.reporter_bytes,
-      unclassified_blocks: summary.unclassified_blocks,
-      unclassified_bytes: summary.unclassified_bytes,
-      unclassified_histogram: summary.unclassified_histogram.to_vec(),
+      total: BlockCount {
+        blocks: summary.total_blocks,
+        bytes: summary.total_bytes,
+      },
       largest_block_bytes: summary.largest_block_bytes,
-      skipped_blocks: summary.skipped_blocks,
-      candidate_overflow: summary.candidate_overflow,
-      unreadable_candidates: summary.unreadable_candidates,
-      owned_blocks: summary.owned_blocks,
-      owned_bytes: summary.owned_bytes,
-      shared_owned_blocks: summary.shared_owned_blocks,
-      owner_table_overflow: summary.owner_table_overflow,
-      lock_held_ms: milliseconds(summary.lock_held_ns),
-      lock_wait_ms: milliseconds(summary.lock_wait_ns),
-      resolve_ms: milliseconds(summary.resolve_ns),
-      owners_ms: milliseconds(summary.owners_ns),
+      named: BlockCount {
+        blocks: summary.named_blocks,
+        bytes: summary.named_bytes,
+      },
+      swift_boxes: BlockCount {
+        blocks: summary.swift_box_blocks,
+        bytes: summary.swift_box_bytes,
+      },
+      images: BlockCount {
+        blocks: summary.image_blocks,
+        bytes: summary.image_bytes,
+      },
+      reporter: BlockCount {
+        blocks: summary.reporter_blocks,
+        bytes: summary.reporter_bytes,
+      },
+      unclassified: Unclassified {
+        blocks: summary.unclassified_blocks,
+        bytes: summary.unclassified_bytes,
+        histogram: summary.unclassified_histogram.to_vec(),
+      },
+      owners: self.options.owners.then(|| Owners {
+        blocks: summary.owned_blocks,
+        bytes: summary.owned_bytes,
+        shared_blocks: summary.shared_owned_blocks,
+        table_overflow: summary.owner_table_overflow,
+        by_type: type_rows(owners),
+      }),
+      dropped: Dropped {
+        skipped_blocks: summary.skipped_blocks,
+        candidate_overflow: summary.candidate_overflow,
+        unreadable_candidates: summary.unreadable_candidates,
+      },
+      timings: HeapTimings {
+        lock_held_ms: milliseconds(summary.lock_held_ns),
+        lock_wait_ms: milliseconds(summary.lock_wait_ns),
+        resolve_ms: milliseconds(summary.resolve_ns),
+        owners_ms: milliseconds(summary.owners_ns),
+      },
       by_type: type_rows(types),
-      by_owner: type_rows(owners),
       by_image: image_rows(images),
       zones: self
         .zones
