@@ -9,8 +9,14 @@
 @testable import CaptureMocks
 import XCTest
 
+struct MemoryDumpElement {
+    var first = 0
+    var second = 0
+}
+
 final class MemoryDumpCommandTests: XCTestCase {
     private let logger = MockCoreLogging()
+    private var genericArrays: [[MemoryDumpElement]] = []
     private var sut: MemoryDumpCommand!
     private var result: Result<CommandResult, CommandError>!
 
@@ -67,9 +73,38 @@ final class MemoryDumpCommandTests: XCTestCase {
         XCTAssertNil(try thenAttachmentJSON()["counters"])
     }
 
+    func testHeapStageIsReportedInContextAndAttachment() async throws {
+        givenMemoryDumpCommand()
+        await whenExecuting(["stages": .string("heap"), "heap.budget_ms": .uint64(1_000)])
+        let context = try thenContext()
+        XCTAssertEqual(context["stages"], "heap")
+        XCTAssertNotNil(context["heap_ms"])
+        XCTAssertEqual(context["heap_truncated"], "false")
+        XCTAssertNotNil(context["heap_zones_not_seen"])
+        let heap = try thenAttachmentSection("heap")
+        let total = try XCTUnwrap(heap["total"] as? [String: Any])
+        XCTAssertGreaterThan(try XCTUnwrap(total["blocks"] as? UInt64), 0)
+        XCTAssertNotNil(heap["owners"])
+        XCTAssertNotNil(heap["timings"])
+        XCTAssertFalse(try XCTUnwrap(heap["by_type"] as? [Any]).isEmpty)
+        XCTAssertFalse(try XCTUnwrap(heap["by_image"] as? [Any]).isEmpty)
+    }
+
+    func testSwiftGenericInstantiationsAreNamedMangled() async throws {
+        genericArrays = (0..<500).map { [MemoryDumpElement(first: $0, second: $0)] }
+        givenMemoryDumpCommand()
+        await whenExecuting(["stages": .string("heap"), "heap.budget_ms": .uint64(1_000)])
+        let rows = try XCTUnwrap(try thenAttachmentSection("heap")["by_type"] as? [[String: Any]])
+        let names = rows.compactMap { $0["name"] as? String }
+        XCTAssertTrue(
+            names.contains { $0.hasPrefix("_TtGC") && $0.contains("MemoryDumpElement") },
+            "no mangled generic among \(names.count) rows"
+        )
+    }
+
     func testPayloadCarriesNoAddresses() async throws {
         givenMemoryDumpCommand()
-        await whenExecuting(["stages": .string("counters,regions")])
+        await whenExecuting(["heap.budget_ms": .uint64(1_000)])
         let payload = try XCTUnwrap(String(data: try thenAttachment().data, encoding: .utf8))
         XCTAssertFalse(payload.contains("0x"))
         XCTAssertFalse(payload.contains("/Users/"))

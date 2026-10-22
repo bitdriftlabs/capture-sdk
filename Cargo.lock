@@ -919,6 +919,7 @@ dependencies = [
  "anyhow",
  "libc",
  "log",
+ "objc",
  "serde",
  "serde_json",
 ]
