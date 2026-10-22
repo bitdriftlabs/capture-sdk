@@ -29,10 +29,12 @@ import io.bitdrift.gradletestapp.R
 import io.bitdrift.gradletestapp.data.model.AppAction
 import io.bitdrift.gradletestapp.data.model.DiskPressureState
 import io.bitdrift.gradletestapp.data.model.JankType
+import io.bitdrift.gradletestapp.data.model.ProfileExportState
 import io.bitdrift.gradletestapp.data.model.ProfilingState
 import io.bitdrift.gradletestapp.data.model.StressTestAction
 import io.bitdrift.gradletestapp.data.model.StrictModeViolationType
 import io.bitdrift.gradletestapp.init.AppProfiler
+import io.bitdrift.gradletestapp.init.ProfileExporter
 import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
 import io.bitdrift.gradletestapp.ui.designsystem.BdDropdownField
 import io.bitdrift.gradletestapp.ui.designsystem.BdPrimaryButton
@@ -50,6 +52,7 @@ fun StressTestScreen(
     onNavigateBack: () -> Unit,
     diskPressure: DiskPressureState,
     profiling: ProfilingState = ProfilingState.Idle,
+    profileExport: ProfileExportState = ProfileExportState(),
 ) {
     LaunchedEffect(Unit) {
         onAction(StressTestAction.RefreshDiskSpace)
@@ -87,6 +90,7 @@ fun StressTestScreen(
         item {
             ProfilingCard(
                 profiling = profiling,
+                profileExport = profileExport,
                 onAction = onAction,
             )
         }
@@ -314,9 +318,9 @@ private fun ScreenReplayCard(onAction: (AppAction) -> Unit) {
 @Composable
 private fun ProfilingCard(
     profiling: ProfilingState,
+    profileExport: ProfileExportState,
     onAction: (AppAction) -> Unit,
 ) {
-    val context = LocalContext.current
     var selectedType by remember { mutableStateOf(AppProfiler.ProfilingType.STACK_SAMPLING) }
     var durationInput by remember { mutableStateOf("5000") }
     val durationMs = durationInput.toLongOrNull()
@@ -369,32 +373,86 @@ private fun ProfilingCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = BitdriftColors.Error,
                 )
-            is ProfilingState.Saved ->
-                OutlinedTextField(
-                    value = profiling.path,
-                    onValueChange = {},
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("${profiling.type.displayName} file") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { copyToClipboard(context, profiling.path) }) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy file path")
-                        }
-                    },
-                    shape = BdShape.Field,
-                    colors = bdFieldColors(),
-                )
+            is ProfilingState.Saved -> {
+                CopyableField(label = "${profiling.type.displayName} file", value = profiling.path)
+                when {
+                    profiling.adbCommand != null -> CopyableField(label = "adb command", value = profiling.adbCommand)
+                    profileExport.access == ProfileExporter.AdbAccess.EXPORT ->
+                        BdSecondaryButton(
+                            text = "Export for adb",
+                            onClick = { onAction(StressTestAction.ExportProfile(profiling.path)) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                }
+            }
         }
+
+        SavedProfilesSection(profileExport = profileExport, onAction = onAction)
     }
+}
+
+@Composable
+private fun SavedProfilesSection(
+    profileExport: ProfileExportState,
+    onAction: (AppAction) -> Unit,
+) {
+    val exportNeeded = profileExport.access == ProfileExporter.AdbAccess.EXPORT
+    CardHint(
+        when (profileExport.access) {
+            ProfileExporter.AdbAccess.EXPORT ->
+                "adb can't read this app's storage on this device, so profiles must be exported to shared storage first."
+            ProfileExporter.AdbAccess.RUN_AS -> "This build is debuggable, so adb reads profiles in place with run-as."
+            ProfileExporter.AdbAccess.ROOT -> "This device allows adb root, so adb reads profiles in place."
+        },
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(BdSpacing.sm)) {
+        if (exportNeeded) {
+            BdSecondaryButton(
+                text = "Export all saved",
+                onClick = { onAction(StressTestAction.ExportAllProfiles) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        BdSecondaryButton(
+            text = "Clear exported",
+            onClick = { onAction(StressTestAction.ClearExportedProfiles) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+    profileExport.status?.let { CardHint(it) }
+    profileExport.adbCommand?.let { CopyableField(label = "adb command", value = it) }
+}
+
+@Composable
+private fun CopyableField(
+    label: String,
+    value: String,
+) {
+    val context = LocalContext.current
+    OutlinedTextField(
+        value = value,
+        onValueChange = {},
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(label) },
+        readOnly = true,
+        trailingIcon = {
+            IconButton(onClick = { copyToClipboard(context, label, value) }) {
+                Icon(Icons.Default.ContentCopy, contentDescription = "Copy $label")
+            }
+        },
+        shape = BdShape.Field,
+        colors = bdFieldColors(),
+    )
 }
 
 private fun copyToClipboard(
     context: Context,
+    label: String,
     text: String,
 ) {
     val clipboard = context.getSystemService(ClipboardManager::class.java)
-    clipboard.setPrimaryClip(ClipData.newPlainText("Profile file path", text))
-    Toast.makeText(context, "Copied file path", Toast.LENGTH_SHORT).show()
+    clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+    Toast.makeText(context, "Copied $label", Toast.LENGTH_SHORT).show()
 }
 
 @Preview

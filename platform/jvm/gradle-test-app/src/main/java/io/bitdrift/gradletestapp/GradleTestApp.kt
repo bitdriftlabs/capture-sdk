@@ -16,13 +16,11 @@ import io.bitdrift.gradletestapp.diagnostics.lifecycle.LifecycleEventLogger
 import io.bitdrift.gradletestapp.diagnostics.papa.PapaTelemetry
 import io.bitdrift.gradletestapp.diagnostics.startup.AppStartInfoLogger
 import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
-import io.bitdrift.gradletestapp.init.AppProfiler
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.init.SampleCommands
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DIAGNOSTICS_ENABLED_KEY
 import timber.log.Timber
-import kotlin.concurrent.thread
 
 /**
  * A Kotlin app entry point that initializes the Bitdrift Logger automatically only when ConfigState.isDeferredStart is set to false
@@ -32,8 +30,6 @@ class GradleTestApp : Application() {
         super.onCreate()
 
         LifecycleEventLogger.install()
-
-        thread(name = "profile-export") { AppProfiler.exportProfiles(this) }
 
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
 

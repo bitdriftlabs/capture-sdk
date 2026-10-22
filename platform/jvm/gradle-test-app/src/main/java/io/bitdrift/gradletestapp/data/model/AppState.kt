@@ -8,6 +8,7 @@
 package io.bitdrift.gradletestapp.data.model
 
 import io.bitdrift.gradletestapp.init.AppProfiler
+import io.bitdrift.gradletestapp.init.ProfileExporter
 
 /**
  * Root app UI state composed of feature states and global UI flags
@@ -19,6 +20,7 @@ data class AppState(
     val globalFields: List<GlobalFieldEntry> = emptyList(),
     val diskPressure: DiskPressureState = DiskPressureState.Loading,
     val profiling: ProfilingState = ProfilingState.Idle,
+    val profileExport: ProfileExportState = ProfileExportState(),
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -30,9 +32,11 @@ sealed interface ProfilingState {
         val type: AppProfiler.ProfilingType,
     ) : ProfilingState
 
+    /** [adbCommand] reads the profile from a host, and is null until the profile is exported. */
     data class Saved(
         val type: AppProfiler.ProfilingType,
         val path: String,
+        val adbCommand: String? = null,
     ) : ProfilingState
 
     data class Failed(
@@ -40,6 +44,13 @@ sealed interface ProfilingState {
         val reason: String,
     ) : ProfilingState
 }
+
+/** How adb can read saved profiles on this device, and the outcome of the last export or clear. */
+data class ProfileExportState(
+    val access: ProfileExporter.AdbAccess = ProfileExporter.AdbAccess.EXPORT,
+    val status: String? = null,
+    val adbCommand: String? = null,
+)
 
 sealed interface DiskPressureState {
     data object Loading : DiskPressureState

@@ -11,7 +11,6 @@ import android.content.Context
 import android.os.Build
 import android.os.CancellationSignal
 import android.os.ProfilingResult
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.os.HeapProfileRequestBuilder
 import androidx.core.os.JavaHeapDumpRequestBuilder
@@ -22,9 +21,6 @@ import androidx.core.os.requestProfiling
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.IOException
 import java.util.function.Consumer
 import kotlin.coroutines.resume
 import kotlin.time.Duration
@@ -69,33 +65,7 @@ object AppProfiler {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             return Result.Failure("requires API 35, device is API ${Build.VERSION.SDK_INT}")
         }
-        val result = request(context, type, duration)
-        if (result is Result.Saved) {
-            withContext(Dispatchers.IO) { exportProfiles(context) }
-        }
-        return result
-    }
-
-    /**
-     * Copies saved profiles that are not exported yet into the app's external files directory. The
-     * system writes profiles to internal storage, which `adb` cannot read when the app is not
-     * debuggable and the device is not rooted; the external copy can be fetched with
-     * `adb pull /sdcard/Android/data/<package>/files/profiling/`. Performs disk I/O on the caller's
-     * thread.
-     */
-    fun exportProfiles(context: Context) {
-        val profiles = File(context.filesDir, PROFILING_DIR).listFiles() ?: return
-        val destination = context.getExternalFilesDir(PROFILING_DIR) ?: return
-        profiles
-            .filter { it.isFile && !File(destination, it.name).exists() }
-            .forEach { profile ->
-                try {
-                    val exported = profile.copyTo(File(destination, profile.name))
-                    Log.i(LOG_TAG, "exported ${profile.name} to ${exported.path}")
-                } catch (e: IOException) {
-                    Log.w(LOG_TAG, "failed to export ${profile.name}", e)
-                }
-            }
+        return request(context, type, duration)
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
@@ -166,8 +136,6 @@ object AppProfiler {
                     .build()
         }
 
-    private const val PROFILING_DIR = "profiling"
-    private const val LOG_TAG = "AppProfiler"
     private const val STACK_SAMPLING_BUFFER_SIZE_KB = 4096
     private const val STACK_SAMPLING_FREQUENCY_HZ = 100
 }
