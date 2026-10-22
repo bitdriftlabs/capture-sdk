@@ -7,7 +7,7 @@ Pod::Spec.new do |s|
   s.license          = { :type => 'MIT' }
   s.author           = { 'Bitdrift' => 'support@bitdrift.io' }
   s.source           = { :path => '.' }
-  s.source_files     = 'Classes/**/*'
+  s.source_files     = 'capture_flutter/Sources/capture_flutter/**/*.swift'
   s.dependency 'Flutter'
   s.dependency 'BitdriftCapture', '0.24.1'
   s.static_framework = true

@@ -19,6 +19,16 @@ using platform channels.
 
 4. Tap the settings icon and enter your Bitdrift API key (and optionally override the API URL).
 
+## Integration Tests
+
+The integration tests run the example app against the native Capture SDK, so
+they need a connected device or simulator:
+
+```bash
+flutter drive --driver=test_driver/integration_test.dart \
+  --target=integration_test/capture_test.dart
+```
+
 ## Architecture
 
 This example uses Flutter platform channels (`MethodChannel`) to bridge Dart
