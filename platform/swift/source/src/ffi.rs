@@ -120,6 +120,14 @@ pub fn make_nsstring(s: &str) -> anyhow::Result<StrongPtr> {
   Ok(unsafe { StrongPtr::retain(msg_send![string_cls, stringWithUTF8String: c_str.as_ptr()]) })
 }
 
+/// Copies bytes into a new `NSData`.
+#[must_use]
+pub fn make_nsdata(bytes: &[u8]) -> StrongPtr {
+  unsafe {
+    StrongPtr::retain(msg_send![class!(NSData), dataWithBytes: bytes.as_ptr() length: bytes.len()])
+  }
+}
+
 /// Creates an empty `NSString`.
 #[must_use]
 pub fn make_empty_nsstring() -> StrongPtr {

@@ -913,6 +913,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bd-memory-dump"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bd-metadata"
 version = "1.0.0"
 source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
@@ -3783,6 +3792,7 @@ dependencies = [
  "bd-key-value",
  "bd-log-primitives",
  "bd-logger",
+ "bd-memory-dump",
  "bd-noop-network",
  "bd-proto",
  "bd-report-parsers",

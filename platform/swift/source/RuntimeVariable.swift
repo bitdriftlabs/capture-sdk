@@ -149,6 +149,16 @@ extension RuntimeVariable<Bool> {
         name: "client_feature.ios.webview_swizzling",
         defaultValue: true
     )
+
+    static let memoryDumpEnabled = RuntimeVariable(
+        name: "client_feature.ios.memory_dump",
+        defaultValue: true
+    )
+
+    static let memoryDumpHeapEnabled = RuntimeVariable(
+        name: "client_feature.ios.memory_dump_heap",
+        defaultValue: true
+    )
 }
 
 extension RuntimeVariable<UInt32> {
