@@ -40,7 +40,10 @@ final class LoggerTests: XCTestCase {
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
 
-        XCTAssertEqual(bridge.commandRegistrationEvents, ["register:memory_dump", "start"])
+        XCTAssertEqual(
+            bridge.commandRegistrationEvents,
+            ["register:\(MemoryDumpCommand.key)", "register:memory_dump", "start"]
+        )
         let result = await logger.executeCommand(key: "memory_dump", arguments: [:])
         let commandResult = try result.get()
         XCTAssertEqual(commandResult.context["source"], "second")

@@ -155,6 +155,22 @@ void capture_complete_command(
 );
 
 /*
+ * Runs the requested stages of a memory dump on the calling thread.
+ *
+ * @param stages a bitmask of the stages to run: 1 counters, 2 regions, 4 heap.
+ * @param heap_budget_ms the time the heap census may hold the malloc zone locks.
+ * @param heap_owners whether the heap census credits unnamed blocks to the objects holding them.
+ *
+ * @return a dictionary with `context` (string to string) and `attachment` (the JSON report), or
+ *         with `error` when the dump failed; nil on an unexpected failure.
+ */
+NSDictionary *_Nullable capture_memory_dump(
+    uint32_t stages,
+    uint64_t heap_budget_ms,
+    bool heap_owners
+);
+
+/*
  * Writes a resource utilization log.
  *
  * @param logger_id the ID of the logger to write to.

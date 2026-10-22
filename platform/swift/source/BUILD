@@ -80,6 +80,7 @@ bitdrift_rust_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//platform/memory:bd_memory_dump",
         "//platform/shared:platform-shared",
     ],
 )
