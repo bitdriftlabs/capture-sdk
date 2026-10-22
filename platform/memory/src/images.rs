@@ -78,6 +78,18 @@ impl ImageTable {
     self.names.get(image).map(String::as_str)
   }
 
+  /// The image owning `address`. Does not allocate.
+  pub fn owner(&self, address: usize) -> Option<usize> {
+    let index = self
+      .segments
+      .partition_point(|segment| segment.end <= address);
+    self
+      .segments
+      .get(index)
+      .filter(|segment| segment.start <= address)
+      .map(|segment| segment.image)
+  }
+
   /// Calls `visit` with each image overlapping [start, end) and the bytes of the overlap, once
   /// per overlapping segment. Does not allocate.
   pub fn for_each_overlap(&self, start: usize, end: usize, mut visit: impl FnMut(usize, u64)) {

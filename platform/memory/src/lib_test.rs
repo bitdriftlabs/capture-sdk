@@ -7,9 +7,11 @@
 #![allow(clippy::unwrap_used)]
 
 use super::*;
+use crate::test_support::memory_lock;
 use serde_json::Value;
 
 fn capture_json(stages: Stages) -> (Value, Vec<(String, String)>) {
+  let _lock = memory_lock();
   let dump = capture(&Request {
     stages,
     heap: HeapOptions {
@@ -51,11 +53,16 @@ fn every_stage_runs_in_order() {
   let (json, context) = capture_json(Stages {
     counters: true,
     regions: true,
-    ..Stages::default()
+    heap: true,
   });
   assert!(json["counters"]["phys_footprint"].as_u64().unwrap() > 0);
-  assert!(!json["regions"]["by_tag"].as_array().unwrap().is_empty());
-  assert_eq!(context_value(&context, "stages"), Some("counters,regions"));
+  assert!(!json["heap"]["by_type"].as_array().unwrap().is_empty());
+  assert!(!json["heap"]["by_image"].as_array().unwrap().is_empty());
+  assert_eq!(
+    context_value(&context, "stages"),
+    Some("counters,regions,heap")
+  );
+  assert_eq!(context_value(&context, "heap_truncated"), Some("false"));
   assert!(context_value(&context, "phys_footprint_before").is_some());
   assert!(context_value(&context, "phys_footprint_after").is_some());
 }
@@ -64,6 +71,7 @@ fn every_stage_runs_in_order() {
 fn payload_carries_no_addresses() {
   let (json, _) = capture_json(Stages {
     regions: true,
+    heap: true,
     ..Stages::default()
   });
   let payload = json.to_string();
