@@ -24,10 +24,13 @@ genrule(
     outs = [
         "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/x86_64.swiftdoc",
         "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftinterface",
+        "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/arm64.private.swiftinterface",
         "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftdoc",
         "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/x86_64.swiftinterface",
+        "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/x86_64.private.swiftinterface",
         "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Capture",
         "Capture.xcframework/ios-arm64/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftinterface",
+        "Capture.xcframework/ios-arm64/Capture.framework/Modules/Capture.swiftmodule/arm64.private.swiftinterface",
         "Capture.xcframework/ios-arm64/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftdoc",
         "Capture.xcframework/ios-arm64/Capture.framework/Capture",
         "Capture.xcframework/Info.plist",

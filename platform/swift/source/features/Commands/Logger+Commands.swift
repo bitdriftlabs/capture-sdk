@@ -14,7 +14,7 @@ extension Logger {
     ///
     /// - returns: A handle that can be used to unregister this command, or `nil` if the logger has not started.
     @discardableResult
-    public static func registerCommand(
+    @_spi(ExperimentalAPI) public static func registerCommand(
         key: String,
         handler: @escaping CommandHandler
     ) async -> CommandHandle? {
@@ -34,7 +34,7 @@ extension Logger {
     ///
     /// - returns: `true` if a command was registered for `key`; otherwise, `false`.
     @discardableResult
-    public static func unregisterCommand(key: String) async -> Bool {
+    @_spi(ExperimentalAPI) public static func unregisterCommand(key: String) async -> Bool {
         await (Self.getShared() as? Logger)?.unregisterCommand(key: key) ?? false
     }
 

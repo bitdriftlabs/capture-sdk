@@ -20,13 +20,14 @@ import io.bitdrift.capture.commands.CommandHandle
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.argument
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
-import io.bitdrift.gradletestapp.diagnostics.fatalissues.NativeThreads
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -116,26 +117,41 @@ object SampleCommands {
             Capture.Logger.registerCommand("system_trace") {
                 announce()
                 val durationMs = if ("duration_ms" in arguments) argument<Long>("duration_ms") else DEFAULT_TRACE_DURATION_MS
+                if (durationMs !in 1..60_000) {
+                    return@registerCommand error("invalid_duration", code = CommandErrorCode.InvalidArguments)
+                }
+                val requestedType = if ("profiling_type" in arguments) argument<String>("profiling_type") else "STACK_SAMPLING"
+                val profilingType =
+                    AppProfiler.ProfilingType.entries.firstOrNull { it.name.equals(requestedType, ignoreCase = true) }
+                        ?: return@registerCommand error("invalid_profiling_type", requestedType, code = CommandErrorCode.InvalidArguments)
                 val context = appContext ?: return@registerCommand error("no_context")
                 val workload =
-                    if (arguments["symbolication_workload"].isTruthy()) PerfettoWorkload.start(durationMs) else emptyList()
+                    if (arguments["symbolication_workload"].isTruthy()) PerfettoWorkload.start(profilingType, durationMs) else null
                 val result =
                     try {
-                        StackSamplingProfiler.capture(context, durationMs.milliseconds)
+                        AppProfiler.capture(context, profilingType, durationMs.milliseconds)
                     } finally {
-                        withContext(Dispatchers.IO) { workload.forEach { it.join() } }
+                        withContext(NonCancellable + Dispatchers.IO) { workload?.close() }
                     }
                 when (result) {
-                    is StackSamplingProfiler.Result.Trace ->
+                    is AppProfiler.Result.Saved -> {
+                        val file = File(result.path)
+                        Log.i(LOG_TAG, "Profiling result type=${profilingType.name} bytes=${file.length()}")
+                        val bytes =
+                            withContext(Dispatchers.IO) {
+                                file.takeIf(File::exists)?.readBytes()
+                            } ?: return@registerCommand error("profiling_failed", "trace file missing")
                         success(
-                            attachment = CommandAttachment(result.bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
+                            attachment = CommandAttachment(bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
                             context =
                                 mapOf(
+                                    "profiling_type" to profilingType.name,
                                     "duration_ms" to durationMs.toString(),
-                                    "trace_bytes" to result.bytes.size.toString(),
+                                    "trace_bytes" to bytes.size.toString(),
                                 ),
                         )
-                    is StackSamplingProfiler.Result.Failure -> error("profiling_failed", result.reason)
+                    }
+                    is AppProfiler.Result.Failure -> error("profiling_failed", result.reason)
                 }
             },
         )
@@ -170,25 +186,4 @@ object SampleCommands {
 
     private const val LOG_TAG = "SampleCommands"
     private const val DEFAULT_TRACE_DURATION_MS = 5_000L
-}
-
-private object PerfettoWorkload {
-    @Volatile private var result = 0L
-
-    fun start(durationMs: Long): List<Thread> {
-        val workloadMs = durationMs.coerceIn(0, 3000) + 1000
-        return listOf(
-            Thread({ perfettoJavaCpuWorkload(workloadMs) }, "perfetto-java"),
-            Thread({ NativeThreads.runCpuWorkload(workloadMs) }, "perfetto-native"),
-        ).onEach { it.start() }
-    }
-
-    private fun perfettoJavaCpuWorkload(durationMs: Long) {
-        val deadline = System.nanoTime() + durationMs * 1_000_000
-        var accumulator = 1L
-        do {
-            repeat(10_000) { accumulator = accumulator * 1_664_525 + 1_013_904_223 }
-        } while (System.nanoTime() < deadline)
-        result = accumulator
-    }
 }

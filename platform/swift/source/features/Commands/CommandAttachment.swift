@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct CommandAttachment: Equatable, Sendable {
+@_spi(ExperimentalAPI) public struct CommandAttachment: Equatable, Sendable {
     public let data: Data
     public let mimeType: String
 

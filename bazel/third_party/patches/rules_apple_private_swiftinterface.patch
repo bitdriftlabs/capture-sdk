@@ -1,0 +1,76 @@
+diff --git apple/internal/swift_info_support.bzl apple/internal/swift_info_support.bzl
+--- apple/internal/swift_info_support.bzl
++++ apple/internal/swift_info_support.bzl
+@@ -278,6 +278,39 @@ def _declare_swiftinterface(
+     )
+     return bundle_interface
+ 
++def _declare_private_swiftinterface(
++        *,
++        actions,
++        arch,
++        label_name,
++        output_discriminator,
++        private_swiftinterface):
++    """Declares the private swiftinterface for this Swift framework.
++
++    Args:
++        actions: The actions provider from `ctx.actions`.
++        arch: The CPU architecture that the generated swiftinterface belongs to.
++        label_name: Name of the target being built.
++        output_discriminator: A string to differentiate between different target intermediate files
++            or `None`.
++        private_swiftinterface: A File referencing the private swiftinterface file from a SwiftInfo
++            provider.
++
++    Returns:
++        A File referencing the intermediate private swiftinterface.
++    """
++    bundle_interface = intermediates.file(
++        actions = actions,
++        target_name = label_name,
++        output_discriminator = output_discriminator,
++        file_name = "{}.private.swiftinterface".format(arch),
++    )
++    actions.symlink(
++        target_file = private_swiftinterface,
++        output = bundle_interface,
++    )
++    return bundle_interface
++
+ def _declare_swiftmodule(
+         *,
+         actions,
+@@ -318,5 +351,6 @@ swift_info_support = struct(
+     declare_generated_header = _declare_generated_header,
+     declare_swiftdoc = _declare_swiftdoc,
+     declare_swiftinterface = _declare_swiftinterface,
++    declare_private_swiftinterface = _declare_private_swiftinterface,
+     declare_swiftmodule = _declare_swiftmodule,
+ )
+diff --git apple/internal/partials/swift_framework.bzl apple/internal/partials/swift_framework.bzl
+--- apple/internal/partials/swift_framework.bzl
++++ apple/internal/partials/swift_framework.bzl
+@@ -90,6 +90,22 @@ def _swift_framework_partial_impl(
+             )
+             bundle_files.append((processor.location.bundle, modules_parent, depset([bundle_swiftmodule])))
+ 
++        # SPI declarations are emitted only in the private swiftinterface, which must be bundled
++        # alongside the public interface for clients that opt in to use them.
++        if swift_module.swift.private_swiftinterface:
++            bundle_private_interface = swift_info_support.declare_private_swiftinterface(
++                actions = actions,
++                arch = arch,
++                label_name = label_name,
++                output_discriminator = output_discriminator,
++                private_swiftinterface = swift_module.swift.private_swiftinterface,
++            )
++            bundle_files.append((
++                processor.location.bundle,
++                modules_parent,
++                depset([bundle_private_interface]),
++            ))
++
+         bundle_doc = swift_info_support.declare_swiftdoc(
+             actions = actions,
+             arch = arch,

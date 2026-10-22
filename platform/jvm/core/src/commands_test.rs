@@ -10,7 +10,262 @@
 use super::*;
 use bd_artifact_upload::UploadSource;
 use bd_proto::protos::logging::payload::{ArrayData, BinaryData, MapData};
+use bd_time::TimeDurationExt;
+use futures_util::poll;
 use jni::objects::{JClass, JObject, JObjectArray, JString};
+use std::sync::{Arc, Once};
+use time::Duration;
+
+fn handler() -> anyhow::Result<JniCommandHandler> {
+  crate::test_jvm::with_env(|env| {
+    static INITIALIZE: Once = Once::new();
+    INITIALIZE.call_once(|| initialize(env).unwrap());
+    let dispatcher = env.new_object(
+      "io/bitdrift/capture/commands/ICommandDispatcher$Recording",
+      "()V",
+      &[],
+    )?;
+    Ok(JniCommandHandler::new(env, dispatcher)?)
+  })
+}
+
+fn invocation() -> CommandInvocation {
+  CommandInvocation {
+    command_id: None,
+    registered_command_id: "test".into(),
+    arguments: HashMap::new(),
+    session_id: "session".into(),
+  }
+}
+
+fn dispatched_id(handler: &JniCommandHandler) -> u64 {
+  handler
+    .dispatcher
+    .execute(|env, object| {
+      Ok(
+        env
+          .get_field(object, "dispatched", "J")?
+          .j()?
+          .cast_unsigned(),
+      )
+    })
+    .unwrap()
+}
+
+fn assert_cancelled(handler: &JniCommandHandler, invocation_id: u64) {
+  handler
+    .dispatcher
+    .execute(|env, object| {
+      assert_eq!(
+        env
+          .get_field(object, "cancelled", "J")?
+          .j()?
+          .cast_unsigned(),
+        invocation_id
+      );
+      assert_eq!(env.get_field(object, "cancelCount", "I")?.i()?, 1);
+      assert!(!env.exception_check()?);
+      Ok(())
+    })
+    .unwrap();
+  assert!(!pending_invocations().contains_key(&invocation_id));
+}
+
+#[tokio::test]
+async fn dropping_execution_removes_sender_and_calls_real_jni_cancel_method() {
+  let handler = handler().unwrap();
+  let mut execution = handler.execute(invocation());
+  assert!(poll!(&mut execution).is_pending());
+  let id = dispatched_id(&handler);
+  assert!(pending_invocations().contains_key(&id));
+
+  drop(execution);
+
+  assert_cancelled(&handler, id);
+  // A late callback is discarded before attempting to convert even malformed JNI arguments.
+  crate::test_jvm::with_env(|env| -> anyhow::Result<()> {
+    crate::jni::Java_io_bitdrift_capture_CaptureJniLibrary_completeCommand(
+      unsafe { env.unsafe_clone() },
+      JClass::from(JObject::null()),
+      id.cast_signed(),
+      JString::from(JObject::null()),
+      JString::from(JObject::null()),
+      JObjectArray::from(JObject::null()),
+      JObject::null(),
+      JString::from(JObject::null()),
+    );
+    assert!(!env.exception_check()?);
+    Ok(())
+  })
+  .unwrap();
+}
+
+#[tokio::test]
+async fn normal_completion_disarms_jni_cancellation() {
+  let handler = handler().unwrap();
+  let mut execution = handler.execute(invocation());
+  assert!(poll!(&mut execution).is_pending());
+  let id = dispatched_id(&handler);
+  complete_taken_invocation(
+    id,
+    take_invocation(id).unwrap(),
+    completed_result(LogFields::default(), None),
+  );
+
+  assert!(matches!(execution.await, CommandResult::Completed { .. }));
+  assert!(!pending_invocations().contains_key(&id));
+  handler
+    .dispatcher
+    .execute(|env, object| {
+      assert_eq!(env.get_field(object, "cancelCount", "I")?.i()?, 0);
+      Ok(())
+    })
+    .unwrap();
+}
+
+#[tokio::test]
+async fn cancellation_after_sender_is_taken_still_cancels_platform_and_ignores_late_result() {
+  let handler = handler().unwrap();
+  let mut execution = handler.execute(invocation());
+  assert!(poll!(&mut execution).is_pending());
+  let id = dispatched_id(&handler);
+  let sender = take_invocation(id).unwrap();
+
+  drop(execution);
+  complete_taken_invocation(id, sender, completed_result(LogFields::default(), None));
+
+  assert_cancelled(&handler, id);
+}
+
+#[tokio::test]
+async fn losing_completion_sender_cancels_platform_instead_of_leaking_work() {
+  let handler = handler().unwrap();
+  let mut execution = handler.execute(invocation());
+  assert!(poll!(&mut execution).is_pending());
+  let id = dispatched_id(&handler);
+
+  drop(take_invocation(id).unwrap());
+
+  assert!(matches!(execution.await, CommandResult::Failed { .. }));
+  assert_cancelled(&handler, id);
+}
+
+#[tokio::test(start_paused = true)]
+async fn rust_timeout_calls_jni_cancel_method() {
+  let handler = handler().unwrap();
+  let mut execution = Box::pin(Duration::seconds(5).timeout(handler.execute(invocation())));
+  assert!(poll!(&mut execution).is_pending());
+  let id = dispatched_id(&handler);
+
+  tokio::time::advance(Duration::seconds(5).unsigned_abs()).await;
+  assert!(execution.await.is_err());
+
+  assert_cancelled(&handler, id);
+}
+
+#[tokio::test(start_paused = true)]
+async fn ready_completion_at_timeout_boundary_does_not_call_jni_cancel() {
+  let handler = handler().unwrap();
+  let mut execution = Box::pin(Duration::seconds(5).timeout(handler.execute(invocation())));
+  assert!(poll!(&mut execution).is_pending());
+  let id = dispatched_id(&handler);
+  complete_taken_invocation(
+    id,
+    take_invocation(id).unwrap(),
+    completed_result(LogFields::default(), None),
+  );
+  tokio::time::advance(Duration::seconds(5).unsigned_abs()).await;
+
+  assert!(matches!(
+    execution.await,
+    Ok(CommandResult::Completed { .. })
+  ));
+  handler
+    .dispatcher
+    .execute(|env, object| {
+      assert_eq!(env.get_field(object, "cancelCount", "I")?.i()?, 0);
+      Ok(())
+    })
+    .unwrap();
+}
+
+#[tokio::test]
+async fn aborting_rust_task_calls_jni_cancel_method() {
+  let handler = Arc::new(handler().unwrap());
+  let task_handler = handler.clone();
+  let (started_tx, started_rx) = oneshot::channel();
+  let execution = tokio::spawn(async move {
+    let mut execution = task_handler.execute(invocation());
+    assert!(poll!(&mut execution).is_pending());
+    started_tx.send(dispatched_id(&task_handler)).unwrap();
+    execution.await
+  });
+  let id = started_rx.await.unwrap();
+
+  execution.abort();
+  assert!(execution.await.unwrap_err().is_cancelled());
+
+  assert_cancelled(&handler, id);
+}
+
+#[tokio::test]
+async fn cancellation_only_removes_its_own_pending_invocation() {
+  let handler = handler().unwrap();
+  let mut first = handler.execute(invocation());
+  let mut second = handler.execute(invocation());
+  assert!(poll!(&mut first).is_pending());
+  let first_id = dispatched_id(&handler);
+  assert!(poll!(&mut second).is_pending());
+  let second_id = dispatched_id(&handler);
+
+  drop(first);
+
+  assert_cancelled(&handler, first_id);
+  complete_taken_invocation(
+    second_id,
+    take_invocation(second_id).unwrap(),
+    completed_result(LogFields::default(), None),
+  );
+  assert!(matches!(second.await, CommandResult::Completed { .. }));
+}
+
+#[tokio::test]
+async fn cancellation_jni_exception_does_not_panic_or_retain_pending_sender() {
+  let handler = handler().unwrap();
+  handler
+    .dispatcher
+    .execute(|env, object| {
+      env.set_field(object, "throwOnCancel", "Z", JValue::Bool(1))?;
+      Ok(())
+    })
+    .unwrap();
+  let mut execution = handler.execute(invocation());
+  assert!(poll!(&mut execution).is_pending());
+  let id = dispatched_id(&handler);
+
+  drop(execution);
+
+  assert_cancelled(&handler, id);
+}
+
+#[tokio::test]
+async fn dispatch_failure_cleans_up_and_cancels_partially_dispatched_invocation() {
+  let handler = handler().unwrap();
+  handler
+    .dispatcher
+    .execute(|env, object| {
+      env.set_field(object, "throwOnDispatch", "Z", JValue::Bool(1))?;
+      Ok(())
+    })
+    .unwrap();
+
+  assert!(matches!(
+    handler.execute(invocation()).await,
+    CommandResult::Failed { .. }
+  ));
+
+  assert_cancelled(&handler, dispatched_id(&handler));
+}
 
 fn data(data_type: Data_type) -> Data {
   Data {

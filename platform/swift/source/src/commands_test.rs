@@ -8,6 +8,269 @@
 #![allow(clippy::assertions_on_constants, clippy::unwrap_used)]
 
 use super::*;
+use bd_time::TimeDurationExt;
+use objc::declare::ClassDecl;
+use objc::runtime::{Class, Sel};
+use std::future::poll_fn;
+use std::task::Poll;
+use time::Duration;
+
+static COMMAND_TARGET_CLASS: LazyLock<&Class> = LazyLock::new(|| {
+  let mut class = ClassDecl::new("CaptureCommandCancellationTestTarget", class!(NSObject)).unwrap();
+  for name in [
+    "requestID",
+    "cancelledID",
+    "cancelCount",
+    "pendingOnCancel",
+    "completeImmediately",
+  ] {
+    class.add_ivar::<u64>(name);
+  }
+  unsafe {
+    class.add_method(
+      sel!(executeCommand:arguments:requestID:),
+      execute_command as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, u64),
+    );
+    class.add_method(
+      sel!(cancelCommand:),
+      cancel_command as extern "C" fn(&mut Object, Sel, u64),
+    );
+  }
+  class.register()
+});
+
+extern "C" fn execute_command(
+  target: &mut Object,
+  _: Sel,
+  _: *mut Object,
+  _: *mut Object,
+  request_id: u64,
+) {
+  unsafe {
+    target.set_ivar("requestID", request_id);
+    if *target.get_ivar::<u64>("completeImmediately") != 0 {
+      complete_taken(
+        request_id,
+        take_completion(request_id).unwrap(),
+        result_from_platform_completion(true, &HashMap::new(), None, None, None, None),
+      );
+    }
+  }
+}
+
+extern "C" fn cancel_command(target: &mut Object, _: Sel, request_id: u64) {
+  unsafe {
+    target.set_ivar("cancelledID", request_id);
+    target.set_ivar("cancelCount", *target.get_ivar::<u64>("cancelCount") + 1);
+    target.set_ivar(
+      "pendingOnCancel",
+      u64::from(COMPLETIONS.lock().contains_key(&request_id)),
+    );
+  }
+}
+
+fn command_target() -> StrongPtr {
+  autoreleasepool(|| unsafe { StrongPtr::new(msg_send![*COMMAND_TARGET_CLASS, new]) })
+}
+
+fn command_invocation() -> CommandInvocation {
+  CommandInvocation {
+    command_id: None,
+    registered_command_id: "test".into(),
+    arguments: HashMap::new(),
+    session_id: "session".into(),
+  }
+}
+
+#[tokio::test]
+async fn dropping_execute_removes_completion_before_cancelling_objective_c_request() {
+  let object = command_target();
+  let target = Target::new(*object);
+  let mut execution = Box::pin(target.execute(command_invocation()));
+  poll_fn(|context| {
+    assert!(execution.as_mut().poll(context).is_pending());
+    Poll::Ready(())
+  })
+  .await;
+  let request_id = unsafe { *(**object).get_ivar::<u64>("requestID") };
+  assert!(COMPLETIONS.lock().contains_key(&request_id));
+
+  drop(execution);
+
+  assert!(take_completion(request_id).is_none());
+  unsafe {
+    assert_eq!(*(**object).get_ivar::<u64>("cancelledID"), request_id);
+    assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 1);
+    assert_eq!(*(**object).get_ivar::<u64>("pendingOnCancel"), 0);
+  }
+}
+
+#[tokio::test]
+async fn normal_immediate_completion_disarms_objective_c_cancellation() {
+  let object = command_target();
+  unsafe { (**object).set_ivar("completeImmediately", 1_u64) };
+  let target = Target::new(*object);
+
+  assert!(matches!(
+    target.execute(command_invocation()).await,
+    CommandResult::Completed { .. }
+  ));
+
+  unsafe {
+    assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 0);
+    assert!(take_completion(*(**object).get_ivar::<u64>("requestID")).is_none());
+  }
+}
+
+#[tokio::test]
+async fn dropping_execute_cancels_even_when_completion_sender_was_already_taken() {
+  let object = command_target();
+  let target = Target::new(*object);
+  let mut execution = Box::pin(target.execute(command_invocation()));
+  poll_fn(|context| {
+    assert!(execution.as_mut().poll(context).is_pending());
+    Poll::Ready(())
+  })
+  .await;
+  let request_id = unsafe { *(**object).get_ivar::<u64>("requestID") };
+  let sender = take_completion(request_id).unwrap();
+
+  drop(execution);
+  assert!(
+    sender
+      .send(result_from_platform_completion(
+        true,
+        &HashMap::new(),
+        None,
+        None,
+        None,
+        None
+      ))
+      .is_err()
+  );
+  unsafe { assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 1) };
+}
+
+#[tokio::test]
+async fn queued_completion_does_not_disarm_a_dropped_execution() {
+  let object = command_target();
+  let target = Target::new(*object);
+  let mut execution = Box::pin(target.execute(command_invocation()));
+  poll_fn(|context| {
+    assert!(execution.as_mut().poll(context).is_pending());
+    Poll::Ready(())
+  })
+  .await;
+  let request_id = unsafe { *(**object).get_ivar::<u64>("requestID") };
+  complete_taken(
+    request_id,
+    take_completion(request_id).unwrap(),
+    result_from_platform_completion(true, &HashMap::new(), None, None, None, None),
+  );
+
+  drop(execution);
+
+  assert!(take_completion(request_id).is_none());
+  unsafe { assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 1) };
+}
+
+#[tokio::test]
+async fn closed_completion_channel_cancels_objective_c_request() {
+  let object = command_target();
+  let target = Target::new(*object);
+  let mut execution = Box::pin(target.execute(command_invocation()));
+  poll_fn(|context| {
+    assert!(execution.as_mut().poll(context).is_pending());
+    Poll::Ready(())
+  })
+  .await;
+  let request_id = unsafe { *(**object).get_ivar::<u64>("requestID") };
+  drop(take_completion(request_id));
+
+  assert!(matches!(execution.await, CommandResult::Failed { .. }));
+  assert!(take_completion(request_id).is_none());
+  unsafe {
+    assert_eq!(*(**object).get_ivar::<u64>("cancelledID"), request_id);
+    assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 1);
+    assert_eq!(*(**object).get_ivar::<u64>("pendingOnCancel"), 0);
+  }
+}
+
+#[tokio::test(start_paused = true)]
+async fn rust_timeout_cancels_objective_c_request() {
+  let object = command_target();
+  let target = Target::new(*object);
+  let mut execution = Box::pin(Duration::seconds(5).timeout(target.execute(command_invocation())));
+  poll_fn(|context| {
+    assert!(execution.as_mut().poll(context).is_pending());
+    Poll::Ready(())
+  })
+  .await;
+  let request_id = unsafe { *(**object).get_ivar::<u64>("requestID") };
+
+  tokio::time::advance(Duration::seconds(5).unsigned_abs()).await;
+  assert!(execution.await.is_err());
+
+  assert!(take_completion(request_id).is_none());
+  unsafe {
+    assert_eq!(*(**object).get_ivar::<u64>("cancelledID"), request_id);
+    assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 1);
+    assert_eq!(*(**object).get_ivar::<u64>("pendingOnCancel"), 0);
+  }
+}
+
+#[tokio::test(start_paused = true)]
+async fn ready_completion_at_timeout_boundary_does_not_cancel_objective_c_request() {
+  let object = command_target();
+  let target = Target::new(*object);
+  let mut execution = Box::pin(Duration::seconds(5).timeout(target.execute(command_invocation())));
+  poll_fn(|context| {
+    assert!(execution.as_mut().poll(context).is_pending());
+    Poll::Ready(())
+  })
+  .await;
+  let request_id = unsafe { *(**object).get_ivar::<u64>("requestID") };
+  complete_taken(
+    request_id,
+    take_completion(request_id).unwrap(),
+    result_from_platform_completion(true, &HashMap::new(), None, None, None, None),
+  );
+  tokio::time::advance(Duration::seconds(5).unsigned_abs()).await;
+
+  assert!(matches!(
+    execution.await,
+    Ok(CommandResult::Completed { .. })
+  ));
+  unsafe { assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 0) };
+}
+
+#[tokio::test]
+async fn aborting_rust_task_cancels_objective_c_request() {
+  let object = command_target();
+  let target = Target::new(*object);
+  let (started_tx, started_rx) = oneshot::channel();
+  let execution = tokio::spawn(async move {
+    let mut execution = target.execute(command_invocation());
+    poll_fn(|context| {
+      assert!(execution.as_mut().poll(context).is_pending());
+      Poll::Ready(())
+    })
+    .await;
+    let request_id = unsafe { *(**target.swift_object).get_ivar::<u64>("requestID") };
+    started_tx.send(request_id).unwrap();
+    execution.await
+  });
+  let request_id = started_rx.await.unwrap();
+
+  execution.abort();
+  assert!(execution.await.unwrap_err().is_cancelled());
+
+  assert!(take_completion(request_id).is_none());
+  unsafe {
+    assert_eq!(*(**object).get_ivar::<u64>("cancelledID"), request_id);
+    assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 1);
+  }
+}
 
 #[test]
 fn command_argument_dictionary_preserves_name_type_and_value() {

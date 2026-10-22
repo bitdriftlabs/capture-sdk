@@ -17,7 +17,10 @@
 
 **Fixed**
 
-- Nothing yet!
+- Outstanding device commands are cancelled when their session changes or their workflow resets.
+  Command spans end in the original session with an explicit cancellation reason. Registered
+  command handlers receive cooperative Kotlin Job or Swift Task cancellation; work already handed
+  off to screenshot capture, flushing, or uploads may still finish.
 
 ### Android
 
@@ -27,11 +30,12 @@
 
 **Changed**
 
-- Nothing yet!
+- Reduced R8-minified consumer app size (~145 KB of DEX, ~52 KB compressed) by allowing r8/proguard to strip unused code from the tombstone protos used for native crash parsing.
 
 **Fixed**
 
-- Nothing yet!
+- Owner-scoped commands are cancelled and unregistered as soon as their owner starts cancelling,
+  without waiting for other owner children to finish cleanup.
 
 ### iOS
 
@@ -45,7 +49,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Commands attempt cooperative platform cancellation if their Rust completion channel is lost.
 
 ## [0.26.0-rc.1]
 [0.26.0-rc.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.26.0-rc.1
