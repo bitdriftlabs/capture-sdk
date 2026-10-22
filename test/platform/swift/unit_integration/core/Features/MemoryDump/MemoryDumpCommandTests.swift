@@ -53,6 +53,28 @@ final class MemoryDumpCommandTests: XCTestCase {
         XCTAssertGreaterThan(UInt64(try XCTUnwrap(context["phys_footprint_after"])) ?? 0, 0)
     }
 
+    func testRegionsStageIsReportedInContextAndAttachment() async throws {
+        givenMemoryDumpCommand()
+        await whenExecuting(["stages": .string("regions")])
+        let context = try thenContext()
+        XCTAssertEqual(context["stages"], "regions")
+        XCTAssertNotNil(context["regions_ms"])
+        let regions = try thenAttachmentSection("regions")
+        XCTAssertNil(regions["mode"])
+        XCTAssertNotNil(regions["compressed"])
+        XCTAssertFalse(try XCTUnwrap(regions["by_tag"] as? [Any]).isEmpty)
+        XCTAssertFalse(try XCTUnwrap(regions["by_image"] as? [Any]).isEmpty)
+        XCTAssertNil(try thenAttachmentJSON()["counters"])
+    }
+
+    func testPayloadCarriesNoAddresses() async throws {
+        givenMemoryDumpCommand()
+        await whenExecuting(["stages": .string("counters,regions")])
+        let payload = try XCTUnwrap(String(data: try thenAttachment().data, encoding: .utf8))
+        XCTAssertFalse(payload.contains("0x"))
+        XCTAssertFalse(payload.contains("/Users/"))
+    }
+
     func testDisabledHeapIsSkippedAndReported() async throws {
         givenMemoryDumpCommand(heapEnabled: false)
         await whenExecuting(["stages": .string("counters,heap")])

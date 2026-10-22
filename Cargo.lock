@@ -918,6 +918,7 @@ version = "1.0.0"
 dependencies = [
  "anyhow",
  "libc",
+ "log",
  "serde",
  "serde_json",
 ]
