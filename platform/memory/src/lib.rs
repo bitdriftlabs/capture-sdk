@@ -4,7 +4,8 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-//! Memory diagnostics for the `ios_memory_dump` command, captured from inside the process.
+//! Memory diagnostics for the `ios_memory_dump` command: kernel counters, captured from inside the
+//! process.
 
 #![deny(
   clippy::expect_used,
@@ -19,9 +20,12 @@
 #[path = "./lib_test.rs"]
 mod tests;
 
+mod counters;
 mod report;
+mod sys;
 
 use report::{Report, SCHEMA_VERSION};
+use std::time::Instant;
 
 //
 // Stages
@@ -83,14 +87,35 @@ pub struct Dump {
 
 pub fn capture(request: &Request) -> anyhow::Result<Dump> {
   let mut context = Vec::new();
-  let report = Report {
+  let mut report = Report {
     schema_version: SCHEMA_VERSION,
+    counters: None,
   };
 
+  if let Some(footprint) = counters::phys_footprint() {
+    context.push(("phys_footprint_before".to_string(), footprint.to_string()));
+  }
+
+  if request.stages.counters {
+    let started = Instant::now();
+    report.counters = Some(counters::capture()?);
+    context.push(timing("counters", started));
+  }
+
+  if let Some(footprint) = counters::phys_footprint() {
+    context.push(("phys_footprint_after".to_string(), footprint.to_string()));
+  }
   context.push(("stages".to_string(), request.stages.names().join(",")));
 
   Ok(Dump {
     attachment: serde_json::to_vec(&report)?,
     context,
   })
+}
+
+fn timing(stage: &str, started: Instant) -> (String, String) {
+  (
+    format!("{stage}_ms"),
+    format!("{:.1}", started.elapsed().as_secs_f64() * 1_000.0),
+  )
 }
