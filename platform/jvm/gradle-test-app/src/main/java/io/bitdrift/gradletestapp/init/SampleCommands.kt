@@ -151,7 +151,23 @@ object SampleCommands {
                                 ),
                         )
                     }
-                    is AppProfiler.Result.Failure -> error("profiling_failed", result.reason)
+                    is AppProfiler.Result.Failure -> {
+                        Log.w(
+                            LOG_TAG,
+                            "Profiling failed type=${profilingType.name} errorName=${result.errorName} " +
+                                "errorCode=${result.errorCode} message=${result.message}",
+                        )
+                        error(
+                            "profiling_failed",
+                            listOfNotNull(result.errorName, result.message.ifEmpty { null }).joinToString(": "),
+                            context =
+                                buildMap {
+                                    put("profiling_type", profilingType.name)
+                                    result.errorCode?.let { put("error_code", it.toString()) }
+                                    result.errorName?.let { put("error_name", it) }
+                                },
+                        )
+                    }
                 }
             },
         )

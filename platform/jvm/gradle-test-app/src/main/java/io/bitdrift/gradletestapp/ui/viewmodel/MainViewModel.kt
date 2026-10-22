@@ -36,8 +36,10 @@ import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.init.SampleCommands
 import kotlin.time.Duration.Companion.milliseconds
+import io.bitdrift.gradletestapp.data.model.ProfileExportState
 import io.bitdrift.gradletestapp.data.model.ProfilingState
 import io.bitdrift.gradletestapp.init.AppProfiler
+import io.bitdrift.gradletestapp.init.ProfileExporter
 import io.bitdrift.gradletestapp.diagnostics.PreInitOrderingExample
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -50,6 +52,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 import kotlinx.coroutines.channels.BufferOverflow
 import timber.log.Timber
 
@@ -63,8 +66,9 @@ class MainViewModel(
     private val networkTestingRepository: NetworkTestingRepository,
     private val appExitRepository: AppExitRepository,
     private val stressTestRepository: StressTestRepository,
+    private val profileExporter: ProfileExporter = ProfileExporter.create(application),
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(AppState())
+    private val _uiState = MutableStateFlow(AppState(profileExport = ProfileExportState(profileExporter.access)))
     val uiState: StateFlow<AppState> = _uiState.asStateFlow()
     private var preInitOrderingJob: Job? = null
     private val diskPressureCommands =
@@ -302,6 +306,9 @@ class MainViewModel(
             is StressTestAction.ClearDiskSpace -> clearDiskSpace()
             is StressTestAction.RefreshDiskSpace -> refreshDiskSpace()
             is StressTestAction.StartProfiling -> startProfiling(action.type, action.durationMs)
+            is StressTestAction.ExportProfile -> exportProfile(action.path)
+            is StressTestAction.ExportAllProfiles -> exportAllProfiles()
+            is StressTestAction.ClearExportedProfiles -> clearExportedProfiles()
             is ClearError -> clearError()
 
             // For now, navigation actions are handled at the Fragment level
@@ -343,15 +350,69 @@ class MainViewModel(
                 when (val result = AppProfiler.capture(application, type, durationMs.milliseconds)) {
                     is AppProfiler.Result.Saved -> {
                         Log.i(PROFILER_TAG, "${type.name} saved to ${result.path}")
-                        ProfilingState.Saved(type, result.path)
+                        ProfilingState.Saved(type, result.path, profileExporter.adbCommand(File(result.path)))
                     }
                     is AppProfiler.Result.Failure -> {
-                        Log.w(PROFILER_TAG, "${type.name} failed: ${result.reason}")
-                        ProfilingState.Failed(type, result.reason)
+                        val reason =
+                            result.errorName?.let { "$it (${result.errorCode}): ${result.message}" } ?: result.message
+                        Log.w(PROFILER_TAG, "${type.name} failed: $reason")
+                        ProfilingState.Failed(type, reason)
                     }
                 }
             _uiState.update { it.copy(profiling = state) }
         }
+    }
+
+    private fun exportProfile(path: String) {
+        viewModelScope.launch {
+            when (val result = profileExporter.export(File(path))) {
+                is ProfileExporter.Result.Exported -> {
+                    Log.i(PROFILER_TAG, "exported $path, pull with: ${result.adbCommand}")
+                    _uiState.update { state ->
+                        val saved = state.profiling as? ProfilingState.Saved
+                        if (saved?.path == path) state.copy(profiling = saved.copy(adbCommand = result.adbCommand)) else state
+                    }
+                }
+                is ProfileExporter.Result.Failed -> reportExport("Export failed: ${result.reason}", adbCommand = null)
+            }
+        }
+    }
+
+    private fun exportAllProfiles() {
+        viewModelScope.launch {
+            when (val result = profileExporter.exportAll()) {
+                is ProfileExporter.Result.Exported ->
+                    reportExport(
+                        "Exported ${result.copied} profiles, ${result.alreadyExported} already exported",
+                        result.adbCommand,
+                    )
+                is ProfileExporter.Result.Failed -> reportExport("Export failed: ${result.reason}", adbCommand = null)
+            }
+        }
+    }
+
+    private fun clearExportedProfiles() {
+        viewModelScope.launch {
+            val removed = profileExporter.clearExported()
+            reportExport("Deleted $removed exported profiles", adbCommand = null)
+            // An exported profile's pull command no longer works once its copy is deleted.
+            _uiState.update { state ->
+                val saved = state.profiling as? ProfilingState.Saved
+                if (saved != null && profileExporter.access == ProfileExporter.AdbAccess.EXPORT) {
+                    state.copy(profiling = saved.copy(adbCommand = null))
+                } else {
+                    state
+                }
+            }
+        }
+    }
+
+    private fun reportExport(
+        status: String,
+        adbCommand: String?,
+    ) {
+        Log.i(PROFILER_TAG, status)
+        _uiState.update { it.copy(profileExport = it.profileExport.copy(status = status, adbCommand = adbCommand)) }
     }
 
     private enum class DiskPressureCommand {

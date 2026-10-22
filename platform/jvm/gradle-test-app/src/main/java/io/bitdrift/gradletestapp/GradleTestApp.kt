@@ -17,6 +17,7 @@ import io.bitdrift.gradletestapp.diagnostics.papa.PapaTelemetry
 import io.bitdrift.gradletestapp.diagnostics.startup.AppStartInfoLogger
 import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
+import io.bitdrift.gradletestapp.init.SampleCommands
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFERRED_START_PREFS_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DIAGNOSTICS_ENABLED_KEY
 import timber.log.Timber
@@ -43,6 +44,8 @@ class GradleTestApp : Application() {
         } else {
             CaptureSdkInitializer.initFromPreferences(this, sharedPreferences)
         }
+
+        SampleCommands.register(this)
     }
 
     private fun areAdditionalDiagnosticToolsEnabled(sharedPreferences: SharedPreferences): Boolean =

@@ -45,8 +45,14 @@ object AppProfiler {
             val path: String,
         ) : Result
 
+        /**
+         * [errorCode] and [errorName] are the system's [ProfilingResult] error, and are null when the
+         * capture failed before the system profiler answered.
+         */
         class Failure(
-            val reason: String,
+            val message: String,
+            val errorCode: Int? = null,
+            val errorName: String? = null,
         ) : Result
     }
 
@@ -81,10 +87,24 @@ object AppProfiler {
             }
 
         if (profilingResult.errorCode != ProfilingResult.ERROR_NONE) {
-            return Result.Failure("errorCode=${profilingResult.errorCode} ${profilingResult.errorMessage.orEmpty()}")
+            val errorCode = profilingResult.errorCode
+            return Result.Failure(profilingResult.errorMessage.orEmpty(), errorCode, errorCodeName(errorCode))
         }
         return profilingResult.resultFilePath?.let(Result::Saved) ?: Result.Failure("no profile file produced")
     }
+
+    private fun errorCodeName(errorCode: Int): String =
+        when (errorCode) {
+            ProfilingResult.ERROR_FAILED_RATE_LIMIT_SYSTEM -> "ERROR_FAILED_RATE_LIMIT_SYSTEM"
+            ProfilingResult.ERROR_FAILED_RATE_LIMIT_PROCESS -> "ERROR_FAILED_RATE_LIMIT_PROCESS"
+            ProfilingResult.ERROR_FAILED_PROFILING_IN_PROGRESS -> "ERROR_FAILED_PROFILING_IN_PROGRESS"
+            ProfilingResult.ERROR_FAILED_EXECUTING -> "ERROR_FAILED_EXECUTING"
+            ProfilingResult.ERROR_FAILED_POST_PROCESSING -> "ERROR_FAILED_POST_PROCESSING"
+            ProfilingResult.ERROR_FAILED_NO_DISK_SPACE -> "ERROR_FAILED_NO_DISK_SPACE"
+            ProfilingResult.ERROR_FAILED_INVALID_REQUEST -> "ERROR_FAILED_INVALID_REQUEST"
+            ProfilingResult.ERROR_UNKNOWN -> "ERROR_UNKNOWN"
+            else -> "UNRECOGNIZED_ERROR"
+        }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     private fun buildRequest(

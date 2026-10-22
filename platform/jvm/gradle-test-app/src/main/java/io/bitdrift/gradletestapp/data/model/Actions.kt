@@ -146,6 +146,14 @@ sealed class StressTestAction : AppAction {
         val type: AppProfiler.ProfilingType,
         val durationMs: Long,
     ) : StressTestAction()
+
+    data class ExportProfile(
+        val path: String,
+    ) : StressTestAction()
+
+    object ExportAllProfiles : StressTestAction()
+
+    object ClearExportedProfiles : StressTestAction()
 }
 
 enum class StrictModeViolationType(val displayName: String) {
