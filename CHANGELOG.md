@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.26.0-rc.1...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.26.0...HEAD
 
 ### Both
 
@@ -11,16 +11,11 @@
 
 **Changed**
 
-- Command attachments no longer accept a filename. Construct attachments with payload and MIME
-  type only; command artifact metadata is supplied by the SDK using app identity and version
-  code/build number. Command result context remains separate from attachment metadata.
+- Nothing yet!
 
 **Fixed**
 
-- Outstanding device commands are cancelled when their session changes or their workflow resets.
-  Command spans end in the original session with an explicit cancellation reason. Registered
-  command handlers receive cooperative Kotlin Job or Swift Task cancellation; work already handed
-  off to screenshot capture, flushing, or uploads may still finish.
+- Nothing yet!
 
 ### Android
 
@@ -30,12 +25,11 @@
 
 **Changed**
 
-- Reduced R8-minified consumer app size (~145 KB of DEX, ~52 KB compressed) by allowing r8/proguard to strip unused code from the tombstone protos used for native crash parsing.
+- Nothing yet!
 
 **Fixed**
 
-- Owner-scoped commands are cancelled and unregistered as soon as their owner starts cancelling,
-  without waiting for other owner children to finish cleanup.
+- Nothing yet!
 
 ### iOS
 
@@ -49,7 +43,58 @@
 
 **Fixed**
 
-- Commands attempt cooperative platform cancellation if their Rust completion channel is lost.
+- Nothing yet!
+
+## [0.26.0]
+[0.26.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.26.0
+
+### Both
+
+**Added**
+
+- Added experimental support for commands.
+- WebView events are now associated with their originating Page View.
+- WebView events now contain separated fields for URLs (host, path, query and path template).
+
+**Changed**
+
+- Web Vitals now use separate event names.
+- Raised WebView page view, navigation, lifecycle, long task, and non-poor Web Vital events from debug to info.
+- WebView error and promise-rejection events no longer include source-location details or stack traces.
+- Reduced native SDK size by disabling automatic internal error backtraces and using a lighter regex implementation.
+
+**Fixed**
+
+- Prevented idle timeouts from closing the SDK connection while server responses are pending.
+
+### Android
+
+**Added**
+
+- Added `_thread_count` reporting to resource utilization logs.
+
+**Changed**
+
+- Reduced R8-minified consumer app size (~145 KB of DEX, ~52 KB compressed) by allowing r8/proguard to strip unused code from the tombstone protos used for native crash parsing.
+- Reduced native release size by compressing unwind metadata.
+
+**Fixed**
+
+- Nothing yet!
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Reduced SDK binary size by linking the Rust core as a single LTO static library.
+
+**Fixed**
+
+- Fixed WebView events using inconsistent log types compared with Android.
 
 ## [0.26.0-rc.1]
 [0.26.0-rc.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.26.0-rc.1
