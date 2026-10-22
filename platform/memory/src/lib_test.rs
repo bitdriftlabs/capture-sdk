@@ -34,20 +34,39 @@ fn context_value<'a>(context: &'a [(String, String)], key: &str) -> Option<&'a s
 #[test]
 fn only_requested_stages_are_reported() {
   let (json, context) = capture_json(Stages {
-    counters: true,
+    regions: true,
     ..Stages::default()
   });
   assert_eq!(json["schema_version"], 1);
-  assert!(json["counters"]["phys_footprint"].as_u64().unwrap() > 0);
-  assert!(json.get("regions").is_none());
+  assert!(json.get("counters").is_none());
   assert!(json.get("heap").is_none());
-  assert_eq!(context_value(&context, "stages"), Some("counters"));
-  assert!(context_value(&context, "counters_ms").is_some());
+  assert!(json["regions"]["compressed"].is_u64());
+  assert!(json["regions"].get("mode").is_none());
+  assert_eq!(context_value(&context, "stages"), Some("regions"));
+  assert!(context_value(&context, "regions_ms").is_some());
 }
 
 #[test]
-fn footprint_is_reported_around_the_stages() {
-  let (_, context) = capture_json(Stages::default());
+fn every_stage_runs_in_order() {
+  let (json, context) = capture_json(Stages {
+    counters: true,
+    regions: true,
+    ..Stages::default()
+  });
+  assert!(json["counters"]["phys_footprint"].as_u64().unwrap() > 0);
+  assert!(!json["regions"]["by_tag"].as_array().unwrap().is_empty());
+  assert_eq!(context_value(&context, "stages"), Some("counters,regions"));
   assert!(context_value(&context, "phys_footprint_before").is_some());
   assert!(context_value(&context, "phys_footprint_after").is_some());
+}
+
+#[test]
+fn payload_carries_no_addresses() {
+  let (json, _) = capture_json(Stages {
+    regions: true,
+    ..Stages::default()
+  });
+  let payload = json.to_string();
+  assert!(!payload.contains("0x"));
+  assert!(!payload.contains("/Users/"));
 }
