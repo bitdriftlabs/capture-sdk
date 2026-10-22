@@ -12,6 +12,9 @@ use std::ffi::OsStr;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
+use tempfile::NamedTempFile;
+
+const SAMPLE_APP_BUNDLE_ID: &str = "io.bitdrift.example.swiftapp.helloworld";
 
 // DoctorTarget.
 #[derive(Clone, Copy, Debug)]
@@ -167,7 +170,7 @@ fn ios_checks(runner: &dyn CommandRunner, for_device_install: bool) -> Vec<Check
   ));
 
   checks.push(signing_identity_check(runner));
-  checks.push(provisioning_profile_check());
+  checks.push(provisioning_profile_check(runner, for_device_install));
   checks.push(ios_device_check(runner, for_device_install));
   checks
 }
@@ -195,7 +198,7 @@ fn signing_identity_check(runner: &dyn CommandRunner) -> Check {
   }
 }
 
-fn provisioning_profile_check() -> Check {
+fn provisioning_profile_check(runner: &dyn CommandRunner, for_device_install: bool) -> Check {
   let Some(home) = env::var_os("HOME") else {
     return Check {
       id: "ios.provisioning_profiles",
@@ -207,26 +210,57 @@ fn provisioning_profile_check() -> Check {
     };
   };
   let profile_directories = provisioning_profile_directories(Path::new(&home));
-  let profile_count = profile_directories
+  let profiles = profile_directories
     .iter()
-    .map(|directory| provisioning_profile_count(directory))
-    .sum::<usize>();
-  if profile_count == 0 {
+    .flat_map(|directory| provisioning_profiles(directory))
+    .collect::<Vec<_>>();
+  if profiles.is_empty() {
     Check {
       id: "ios.provisioning_profiles",
       state: CheckState::Warning,
       summary: "No local provisioning profiles were found.".to_owned(),
       next_step: Some(
-        "This can be resolved by Xcode automatic signing; explicit profile synchronization will \
-         be added to capture-dev."
-          .to_owned(),
+        "Run `capture-dev setup ios` to install signing assets from the secret vault.".to_owned(),
       ),
     }
   } else {
-    passed(
-      "ios.provisioning_profiles",
-      format!("{profile_count} local provisioning profile(s) found."),
-    )
+    let connected_devices = if for_device_install {
+      connected_device_identifiers(runner)
+    } else {
+      Vec::new()
+    };
+    let mut metadata = profiles
+      .iter()
+      .filter_map(|profile| provisioning_profile_metadata(runner, profile, &connected_devices))
+      .collect::<Vec<_>>();
+    let exact_profiles = metadata
+      .iter()
+      .filter(|profile| profile.application_id.ends_with(SAMPLE_APP_BUNDLE_ID))
+      .cloned()
+      .collect::<Vec<_>>();
+    if exact_profiles.is_empty() {
+      metadata.retain(|profile| profile.application_id.ends_with(".*"));
+    } else {
+      metadata = exact_profiles;
+    }
+    let details = metadata
+      .iter()
+      .map(ProvisioningProfileMetadata::summary)
+      .collect::<Vec<_>>()
+      .join("; ");
+    if details.is_empty() {
+      Check {
+        id: "ios.provisioning_profiles",
+        state: CheckState::Warning,
+        summary: format!(
+          "{} local provisioning profile(s) found, but none could be decoded.",
+          profiles.len()
+        ),
+        next_step: Some("Re-run `capture-dev setup ios` to refresh the profiles.".to_owned()),
+      }
+    } else {
+      passed("ios.provisioning_profiles", details)
+    }
   }
 }
 
@@ -245,14 +279,129 @@ fn provisioning_profile_directories(home: &Path) -> [PathBuf; 2] {
   ]
 }
 
-fn provisioning_profile_count(profile_directory: &Path) -> usize {
+fn provisioning_profiles(profile_directory: &Path) -> Vec<PathBuf> {
   fs::read_dir(profile_directory)
     .ok()
     .into_iter()
     .flatten()
     .filter_map(Result::ok)
-    .filter(|entry| entry.path().extension() == Some(OsStr::new("mobileprovision")))
-    .count()
+    .map(|entry| entry.path())
+    .filter(|path| path.extension() == Some(OsStr::new("mobileprovision")))
+    .collect()
+}
+
+#[derive(Clone)]
+struct ProvisioningProfileMetadata {
+  name: String,
+  team_id: String,
+  application_id: String,
+  expiration: String,
+  device_count: usize,
+  covered_connected_devices: Option<usize>,
+}
+
+impl ProvisioningProfileMetadata {
+  fn summary(&self) -> String {
+    let coverage = self
+      .covered_connected_devices
+      .map_or_else(String::new, |covered| {
+        format!(", covers {covered} connected device(s)")
+      });
+    format!(
+      "{}: Team {}, App {}, expires {}, {} registered device(s){}",
+      self.name, self.team_id, self.application_id, self.expiration, self.device_count, coverage
+    )
+  }
+}
+
+fn provisioning_profile_metadata(
+  runner: &dyn CommandRunner,
+  profile: &Path,
+  connected_devices: &[String],
+) -> Option<ProvisioningProfileMetadata> {
+  let profile = profile.to_string_lossy();
+  let decoded = runner.run("security", &["cms", "-D", "-i", &profile]);
+  if !decoded.success {
+    return None;
+  }
+  let temporary_file = NamedTempFile::new().ok()?;
+  fs::write(temporary_file.path(), decoded.stdout).ok()?;
+  let plist = temporary_file.path().to_string_lossy();
+  let team_id = profile_array(runner, &plist, "TeamIdentifier")?
+    .into_iter()
+    .next()?;
+  let entitlements = profile_json_property(runner, &plist, "Entitlements")?;
+  let application_id = entitlements
+    .get("application-identifier")
+    .and_then(serde_json::Value::as_str)?
+    .to_owned();
+  let expiration = profile_raw_property(runner, &plist, "ExpirationDate")?;
+  let provisioned_devices = profile_array(runner, &plist, "ProvisionedDevices").unwrap_or_default();
+  Some(ProvisioningProfileMetadata {
+    name: Path::new(&*profile)
+      .file_name()?
+      .to_string_lossy()
+      .into_owned(),
+    team_id,
+    application_id,
+    expiration,
+    device_count: provisioned_devices.len(),
+    covered_connected_devices: (!connected_devices.is_empty()).then(|| {
+      connected_devices
+        .iter()
+        .filter(|device| provisioned_devices.contains(device))
+        .count()
+    }),
+  })
+}
+
+fn connected_device_identifiers(runner: &dyn CommandRunner) -> Vec<String> {
+  let devices = runner.run("xcrun", &["xcdevice", "list"]);
+  if !devices.success {
+    return Vec::new();
+  }
+  serde_json::from_str::<serde_json::Value>(&devices.stdout)
+    .ok()
+    .and_then(|devices| devices.as_array().cloned())
+    .unwrap_or_default()
+    .iter()
+    .filter(|device| {
+      device.get("platform").and_then(serde_json::Value::as_str)
+        == Some("com.apple.platform.iphoneos")
+    })
+    .filter(|device| device.get("available").and_then(serde_json::Value::as_bool) != Some(false))
+    .filter_map(|device| device.get("identifier").and_then(serde_json::Value::as_str))
+    .map(str::to_owned)
+    .collect()
+}
+
+fn profile_json_property(
+  runner: &dyn CommandRunner,
+  plist: &str,
+  key: &str,
+) -> Option<serde_json::Value> {
+  let result = runner.run("plutil", &["-extract", key, "json", "-o", "-", plist]);
+  result
+    .success
+    .then(|| serde_json::from_str(&result.stdout).ok())
+    .flatten()
+}
+
+fn profile_array(runner: &dyn CommandRunner, plist: &str, key: &str) -> Option<Vec<String>> {
+  profile_json_property(runner, plist, key).and_then(|value| {
+    value.as_array().map(|items| {
+      items
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .map(str::to_owned)
+        .collect()
+    })
+  })
+}
+
+fn profile_raw_property(runner: &dyn CommandRunner, plist: &str, key: &str) -> Option<String> {
+  let result = runner.run("plutil", &["-extract", key, "raw", "-o", "-", plist]);
+  result.success.then_some(result.stdout.trim().to_owned())
 }
 
 fn ios_device_check(runner: &dyn CommandRunner, for_device_install: bool) -> Check {
