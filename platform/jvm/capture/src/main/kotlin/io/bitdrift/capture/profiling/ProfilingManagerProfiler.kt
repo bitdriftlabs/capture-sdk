@@ -21,7 +21,8 @@ import java.util.function.Consumer
 /**
  * Runs captures through android.os.ProfilingManager, building each request with androidx.core's
  * request builders. Every sampling parameter is always set: the platform's own defaults are not
- * documented. The request tag is left unset so a future command argument can hand it to the app.
+ * documented. The request tag comes from the command so the app can recognise SDK captures in
+ * its own profiling results.
  */
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 internal class ProfilingManagerProfiler(
@@ -60,6 +61,7 @@ internal class ProfilingManagerProfiler(
                     .setDurationMs(durationMs.coerceIn(MIN_DURATION_MS, MAX_DURATION_MS).toInt())
                     .setSamplingFrequencyHz(frequencyHz)
                     .setBufferSizeKb(bufferSizeKb)
+                    .setTag(tag)
                     .setCancellationSignal(signal)
                     .build()
         }

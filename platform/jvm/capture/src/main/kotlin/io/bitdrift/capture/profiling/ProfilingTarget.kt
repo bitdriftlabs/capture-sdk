@@ -45,11 +45,12 @@ internal class ProfilingTarget(
         durationMs: Long,
         frequencyHz: Int,
         bufferSizeKb: Int,
+        tag: String,
     ) {
         // The core calls this on its runtime thread; the profileability check and the binder call
         // to ProfilingManager belong on the SDK's background thread.
         background.runAsync {
-            start(ProfileRequest(requestId, ProfileType.STACK_SAMPLING, durationMs, frequencyHz, bufferSizeKb))
+            start(ProfileRequest(requestId, ProfileType.STACK_SAMPLING, durationMs, frequencyHz, bufferSizeKb, tag))
         }
     }
 

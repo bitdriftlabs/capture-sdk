@@ -83,6 +83,7 @@ class ProfilingTargetTest {
                 java.lang.Long.TYPE,
                 Integer.TYPE,
                 Integer.TYPE,
+                String::class.java,
             )
         assertThat(capture.returnType).isEqualTo(java.lang.Void.TYPE)
         val cancel = IProfilingTarget::class.java.getMethod("cancelStackSample", java.lang.Long.TYPE)
@@ -93,9 +94,9 @@ class ProfilingTargetTest {
     fun savedCaptureIsMovedIntoTheSdkDirectoryBeforeItIsReported() {
         val systemTrace = File(systemDirectory, "profile_2026-10-23.perfetto-stack-sample")
         systemTrace.writeText("trace")
-        target.captureStackSample(7, 3_000, 100, 2_048)
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
 
-        assertThat(profiler.requests).containsExactly(ProfileRequest(7, ProfileType.STACK_SAMPLING, 3_000, 100, 2_048))
+        assertThat(profiler.requests).containsExactly(ProfileRequest(7, ProfileType.STACK_SAMPLING, 3_000, 100, 2_048, "bitdrift"))
         profiler.complete(ProfileOutcome.Saved(systemTrace.path))
 
         val expected = File(traceDirectory, systemTrace.name)
@@ -105,8 +106,15 @@ class ProfilingTargetTest {
     }
 
     @Test
+    fun requestTagIsHandedToTheProfiler() {
+        target.captureStackSample(7, 3_000, 100, 2_048, "app.checkout")
+
+        assertThat(profiler.requests.single().tag).isEqualTo("app.checkout")
+    }
+
+    @Test
     fun savedCaptureThatCannotBeMovedKeepsTheSystemPath() {
-        target.captureStackSample(7, 3_000, 100, 2_048)
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
         val missing = File(systemDirectory, "vanished.perfetto-stack-sample").path
         profiler.complete(ProfileOutcome.Saved(missing))
 
@@ -115,7 +123,7 @@ class ProfilingTargetTest {
 
     @Test
     fun failedCaptureReportsTheProfilerError() {
-        target.captureStackSample(7, 3_000, 100, 2_048)
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
         profiler.complete(ProfileOutcome.Failed(2, "FAILED_RATE_LIMIT_PROCESS", "rate limited"))
 
         assertThat(bridge.completions).containsExactly(
@@ -127,7 +135,7 @@ class ProfilingTargetTest {
     fun nonProfileableProcessFailsWithoutCallingTheProfiler() {
         profileable = false
 
-        target.captureStackSample(7, 3_000, 100, 2_048)
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
 
         assertThat(profiler.requests).isEmpty()
         assertThat(bridge.completions).hasSize(1)
@@ -138,21 +146,21 @@ class ProfilingTargetTest {
 
     @Test
     fun secondCaptureIsRejectedWhileOneIsRunning() {
-        target.captureStackSample(1, 3_000, 100, 2_048)
-        target.captureStackSample(2, 3_000, 100, 2_048)
+        target.captureStackSample(1, 3_000, 100, 2_048, "bitdrift")
+        target.captureStackSample(2, 3_000, 100, 2_048, "bitdrift")
 
         assertThat(profiler.requests).hasSize(1)
         assertThat(bridge.completions.map { it.requestId to it.errorName }).containsExactly(2L to "already_executing")
 
         profiler.complete(ProfileOutcome.Saved("/trace"))
-        target.captureStackSample(3, 1_000, 50, 256)
+        target.captureStackSample(3, 1_000, 50, 256, "bitdrift")
 
         assertThat(profiler.requests.map { it.requestId }).containsExactly(1L, 3L)
     }
 
     @Test
     fun cancelStopsTheRunningCaptureAndItsLateOutcomeIsStillReportedOnce() {
-        target.captureStackSample(7, 3_000, 100, 2_048)
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
         target.cancelStackSample(8)
         assertThat(profiler.cancelled).isEmpty()
 
@@ -162,7 +170,7 @@ class ProfilingTargetTest {
         // The platform reports the stopped capture; the core ignores it, but the slot must be free.
         profiler.complete(ProfileOutcome.Failed(0, "cancelled", "cancelled"))
         assertThat(bridge.completions.map { it.requestId }).containsExactly(7L)
-        target.captureStackSample(9, 3_000, 100, 2_048)
+        target.captureStackSample(9, 3_000, 100, 2_048, "bitdrift")
         assertThat(profiler.requests.map { it.requestId }).containsExactly(7L, 9L)
     }
 
@@ -173,7 +181,7 @@ class ProfilingTargetTest {
         orphan.setLastModified(System.currentTimeMillis() - 60 * 60 * 1000L)
         val recent = File(traceDirectory, "recent.perfetto-stack-sample").apply { writeText("new") }
 
-        target.captureStackSample(1, 3_000, 100, 2_048)
+        target.captureStackSample(1, 3_000, 100, 2_048, "bitdrift")
 
         assertThat(orphan).doesNotExist()
         assertThat(recent).exists()
@@ -182,13 +190,13 @@ class ProfilingTargetTest {
         profiler.complete(ProfileOutcome.Failed(0, "cancelled", "cancelled"))
         val later = File(traceDirectory, "later.perfetto-stack-sample").apply { writeText("old") }
         later.setLastModified(System.currentTimeMillis() - 60 * 60 * 1000L)
-        target.captureStackSample(2, 3_000, 100, 2_048)
+        target.captureStackSample(2, 3_000, 100, 2_048, "bitdrift")
         assertThat(later).exists()
     }
 
     @Test
     fun noopTargetFailsAsUnsupported() {
-        NoopProfilingTarget(bridge).captureStackSample(4, 3_000, 100, 2_048)
+        NoopProfilingTarget(bridge).captureStackSample(4, 3_000, 100, 2_048, "bitdrift")
 
         assertThat(bridge.completions).hasSize(1)
         assertThat(bridge.completions[0].requestId).isEqualTo(4)

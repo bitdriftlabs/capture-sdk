@@ -15,13 +15,15 @@ internal enum class ProfileType {
     STACK_SAMPLING,
 }
 
-/** One capture as the platform should run it; the core has already clamped every value. */
+/** One capture as the platform should run it; the core has already validated every value. */
 internal data class ProfileRequest(
     val requestId: Long,
     val type: ProfileType,
     val durationMs: Long,
     val frequencyHz: Int,
     val bufferSizeKb: Int,
+    /** Recorded with the capture; the platform puts it in the file name and in the result. */
+    val tag: String,
 )
 
 internal sealed interface ProfileOutcome {
