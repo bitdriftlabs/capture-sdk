@@ -12,6 +12,7 @@ import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.common.IBackgroundThreadHandler
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Runs one stack sample at a time, fails fast when the process cannot be profiled, and reports
@@ -37,6 +38,7 @@ internal class ProfilingTarget(
 
     private val lock = Any()
     private var active: Active? = null
+    private val swept = AtomicBoolean(false)
 
     override fun captureStackSample(
         requestId: Long,
@@ -57,6 +59,7 @@ internal class ProfilingTarget(
     }
 
     private fun start(request: ProfileRequest) {
+        if (swept.compareAndSet(false, true)) sweepOrphans()
         if (!profileability.isProfileable()) {
             complete(
                 request.requestId,
@@ -105,11 +108,31 @@ internal class ProfilingTarget(
         }
     }
 
+    /**
+     * Deletes traces an earlier process left behind: a trace stays in [traceDirectory] only between
+     * its move and the core persisting its upload, so one that is still there minutes later belongs
+     * to a process that died in between. Runs once per process, on the first capture, so the SDK
+     * does no disk work at startup. Recent files are left alone: a capture that finished moments ago
+     * may still be read by the uploader.
+     */
+    private fun sweepOrphans() {
+        val cutoff = System.currentTimeMillis() - ORPHAN_AGE_MS
+        val orphans = traceDirectory.listFiles { file -> file.isFile && file.lastModified() < cutoff } ?: return
+        val deleted = orphans.count { it.delete() }
+        if (deleted > 0) {
+            logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG) { "deleted $deleted orphaned stack sampling trace(s)" }
+        }
+    }
+
     /** Moves the trace into [traceDirectory]; a trace that cannot be moved stays where the system wrote it. */
     private fun claim(path: String): String {
         val source = File(path)
         val target = File(traceDirectory, source.name)
         val moved = (traceDirectory.isDirectory || traceDirectory.mkdirs()) && source.renameTo(target)
         return if (moved) target.path else path
+    }
+
+    private companion object {
+        const val ORPHAN_AGE_MS = 10 * 60 * 1000L
     }
 }

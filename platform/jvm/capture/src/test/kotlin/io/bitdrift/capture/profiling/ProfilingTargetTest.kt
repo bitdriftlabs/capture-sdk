@@ -167,6 +167,26 @@ class ProfilingTargetTest {
     }
 
     @Test
+    fun firstCaptureSweepsOldOrphansButKeepsRecentTracesAndSweepsOnlyOnce() {
+        traceDirectory.mkdirs()
+        val orphan = File(traceDirectory, "orphan.perfetto-stack-sample").apply { writeText("old") }
+        orphan.setLastModified(System.currentTimeMillis() - 60 * 60 * 1000L)
+        val recent = File(traceDirectory, "recent.perfetto-stack-sample").apply { writeText("new") }
+
+        target.captureStackSample(1, 3_000, 100, 2_048)
+
+        assertThat(orphan).doesNotExist()
+        assertThat(recent).exists()
+
+        // A later orphan is not swept again in this process.
+        profiler.complete(ProfileOutcome.Failed(0, "cancelled", "cancelled"))
+        val later = File(traceDirectory, "later.perfetto-stack-sample").apply { writeText("old") }
+        later.setLastModified(System.currentTimeMillis() - 60 * 60 * 1000L)
+        target.captureStackSample(2, 3_000, 100, 2_048)
+        assertThat(later).exists()
+    }
+
+    @Test
     fun noopTargetFailsAsUnsupported() {
         NoopProfilingTarget(bridge).captureStackSample(4, 3_000, 100, 2_048)
 
