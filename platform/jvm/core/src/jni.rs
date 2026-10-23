@@ -11,9 +11,9 @@ mod tests;
 
 use crate::events::ListenerTargetHandler as EventsListenerTargetHandler;
 use crate::key_value_storage::PreferencesHandle;
+use crate::profiling::{self, TargetHandler as ProfilingTargetHandler};
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use crate::session::SessionCallback;
-use crate::profiling::{self, TargetHandler as ProfilingTargetHandler};
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
   commands,
@@ -875,10 +875,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         events_listener_target,
       )?);
 
-      let profiling_target = Box::new(ProfilingTargetHandler::new_global(
-        &env,
-        profiling_target,
-      )?);
+      let profiling_target = Box::new(ProfilingTargetHandler::new_global(&env, profiling_target)?);
 
       // Errors emitted up until this point are not reported to bitdrift remote.
       // TODO(Augustyniak): Make it more obvious that as much work as possible should be done after
@@ -1367,13 +1364,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeStackS
 ) {
   with_handle_unexpected(
     || -> anyhow::Result<()> {
-      let optional_string = |env: &mut JNIEnv<'_>, value: &JString<'_>| -> anyhow::Result<Option<String>> {
-        if value.is_null() {
-          Ok(None)
-        } else {
-          Ok(Some(env.get_string(value)?.into()))
-        }
-      };
+      let optional_string =
+        |env: &mut JNIEnv<'_>, value: &JString<'_>| -> anyhow::Result<Option<String>> {
+          if value.is_null() {
+            Ok(None)
+          } else {
+            Ok(Some(env.get_string(value)?.into()))
+          }
+        };
       let path = optional_string(&mut env, &path)?;
       let error_name = optional_string(&mut env, &error_name)?;
       let error_message = optional_string(&mut env, &error_message)?;

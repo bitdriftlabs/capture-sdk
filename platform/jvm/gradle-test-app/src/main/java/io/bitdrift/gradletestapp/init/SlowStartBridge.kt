@@ -24,6 +24,7 @@ import io.bitdrift.capture.ISessionReplayTarget
 import io.bitdrift.capture.ITimestampProvider
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
+import io.bitdrift.capture.profiling.IProfilingTarget
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.FieldGetter
 import io.bitdrift.capture.providers.Fields
@@ -53,6 +54,7 @@ internal class SlowStartBridge(
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,
         eventsListenerTarget: IEventsListenerTarget,
+        profilingTarget: IProfilingTarget,
         applicationId: String,
         applicationVersion: String,
         osVersion: String,
@@ -85,6 +87,7 @@ internal class SlowStartBridge(
             resourceUtilizationTarget = resourceUtilizationTarget,
             sessionReplayTarget = sessionReplayTarget,
             eventsListenerTarget = eventsListenerTarget,
+            profilingTarget = profilingTarget,
             applicationId = applicationId,
             applicationVersion = applicationVersion,
             osVersion = osVersion,

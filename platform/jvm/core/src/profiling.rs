@@ -117,7 +117,11 @@ impl bd_logger::ProfilingTarget for TargetHandler {
               j: request.request_id.cast_signed(),
             },
             jvalue {
-              j: request.duration.whole_milliseconds().try_into().unwrap_or(i64::MAX),
+              j: request
+                .duration
+                .whole_milliseconds()
+                .try_into()
+                .unwrap_or(i64::MAX),
             },
             jvalue {
               i: request.frequency_hz.cast_signed(),
