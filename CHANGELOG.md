@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Nothing yet!
+- The minimum `androidx.core` dependency is now 1.15.0, which provides the `ProfilingManager` request builders used by the built-in `stack_sampling_trace` command.
 
 **Fixed**
 

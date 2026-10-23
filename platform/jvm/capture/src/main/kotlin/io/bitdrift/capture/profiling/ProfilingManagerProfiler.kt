@@ -9,18 +9,18 @@ package io.bitdrift.capture.profiling
 
 import android.content.Context
 import android.os.Build
-import android.os.Bundle
 import android.os.CancellationSignal
-import android.os.ProfilingManager
 import android.os.ProfilingResult
 import androidx.annotation.RequiresApi
+import androidx.core.os.ProfilingRequest
+import androidx.core.os.StackSamplingRequestBuilder
+import androidx.core.os.requestProfiling
 import java.util.concurrent.Executor
 import java.util.function.Consumer
 
 /**
- * Runs captures through android.os.ProfilingManager. The parameters are written under the Bundle
- * keys androidx.core's request builders use, so no androidx.core upgrade is needed. All three are
- * always set: the platform's own defaults are not documented.
+ * Runs captures through android.os.ProfilingManager by way of androidx.core's request builders.
+ * Every parameter is always set: the platform's own defaults are not documented.
  */
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 internal class ProfilingManagerProfiler(
@@ -31,32 +31,26 @@ internal class ProfilingManagerProfiler(
         request: ProfileRequest,
         callback: (ProfileOutcome) -> Unit,
     ): IProfilingCancel {
-        val manager = context.getSystemService(ProfilingManager::class.java)
-        if (manager == null) {
-            callback(ProfileOutcome.Failed(0, "unsupported", "ProfilingManager is not available"))
-            return IProfilingCancel {}
-        }
-        val parameters =
-            Bundle().apply {
-                putInt(KEY_DURATION_MS, request.durationMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
-                putInt(KEY_FREQUENCY_HZ, request.frequencyHz)
-                putInt(KEY_SIZE_KB, request.bufferSizeKb)
-            }
         val signal = CancellationSignal()
-        manager.requestProfiling(
-            request.type.platformType(),
-            parameters,
-            TAG,
-            signal,
+        requestProfiling(
+            context,
+            request.toPlatformRequest(signal),
             executor,
             Consumer<ProfilingResult> { result -> callback(result.toOutcome()) },
         )
         return IProfilingCancel { signal.cancel() }
     }
 
-    private fun ProfileType.platformType(): Int =
-        when (this) {
-            ProfileType.STACK_SAMPLING -> ProfilingManager.PROFILING_TYPE_STACK_SAMPLING
+    private fun ProfileRequest.toPlatformRequest(signal: CancellationSignal): ProfilingRequest =
+        when (type) {
+            ProfileType.STACK_SAMPLING ->
+                StackSamplingRequestBuilder()
+                    .setDurationMs(durationMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    .setSamplingFrequencyHz(frequencyHz)
+                    .setBufferSizeKb(bufferSizeKb)
+                    .setTag(TAG)
+                    .setCancellationSignal(signal)
+                    .build()
         }
 
     private fun ProfilingResult.toOutcome(): ProfileOutcome {
@@ -73,8 +67,5 @@ internal class ProfilingManagerProfiler(
     private companion object {
         // The output file's name prefix; used to recognise the SDK's own results.
         const val TAG = "bitdrift"
-        const val KEY_DURATION_MS = "KEY_DURATION_MS"
-        const val KEY_FREQUENCY_HZ = "KEY_FREQUENCY_HZ"
-        const val KEY_SIZE_KB = "KEY_SIZE_KB"
     }
 }
