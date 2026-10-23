@@ -4,10 +4,10 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-#![allow(clippy::unwrap_used, clippy::float_cmp)]
+#![allow(clippy::unwrap_used)]
 
 use super::*;
-use crate::report::{Dropped, HeapTimings, ImageChargeRow, Ledgers, Owners, TagRow, Unclassified};
+use crate::report::{ImageChargeRow, Ledgers, Owners, TagRow, Unclassified};
 use bd_proto::protos::memory::memory_dump::type_row::Kind;
 use bd_proto::protos::memory::memory_dump::{self as proto, MemoryDump};
 use protobuf::Message;
@@ -79,6 +79,7 @@ fn heap(image: usize, owners: bool) -> HeapReport {
   };
   HeapReport {
     truncated: true,
+    skipped_blocks: 16,
     total: count(1),
     largest_block_bytes: 2,
     named: count(3),
@@ -97,17 +98,6 @@ fn heap(image: usize, owners: bool) -> HeapReport {
       table_overflow: 14,
       by_type: vec![named(TypeKind::Class, "UIView", 15)],
     }),
-    dropped: Dropped {
-      skipped_blocks: 16,
-      candidate_overflow: 17,
-      unreadable_candidates: 18,
-    },
-    timings: HeapTimings {
-      lock_held_ms: 1.5,
-      lock_wait_ms: 2.5,
-      resolve_ms: 3.5,
-      owners_ms: 4.5,
-    },
     by_type: vec![
       named(TypeKind::Class, "_TtC7Example4Feed", 19),
       named(TypeKind::Cxx, "N5caulk4FileE", 20),
@@ -124,7 +114,6 @@ fn heap(image: usize, owners: bool) -> HeapReport {
       name: "DefaultMallocZone".to_string(),
       blocks: 23,
       bytes: 24,
-      lock_held_ms: 5.5,
       enumerated: true,
       seen: true,
       skipped: false,
@@ -248,28 +237,11 @@ fn every_heap_field_round_trips() {
   );
   assert_eq!(owners.by_type[0].name(), "UIView");
 
-  assert_eq!(
-    [
-      heap.dropped.skipped_blocks,
-      heap.dropped.candidate_overflow,
-      heap.dropped.unreadable_candidates,
-    ],
-    [16, 17, 18]
-  );
-  assert_eq!(
-    [
-      heap.timings.lock_held_ms,
-      heap.timings.lock_wait_ms,
-      heap.timings.resolve_ms,
-      heap.timings.owners_ms,
-    ],
-    [1.5, 2.5, 3.5, 4.5]
-  );
+  assert_eq!(heap.skipped_blocks, 16);
 
   let zone = &heap.zones[0];
   assert_eq!(zone.name, "DefaultMallocZone");
   assert_eq!([zone.blocks, zone.bytes], [23, 24]);
-  assert_eq!(zone.lock_held_ms, 5.5);
   assert_eq!(
     [zone.enumerated, zone.seen, zone.skipped, zone.truncated],
     [true, true, false, true]

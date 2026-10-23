@@ -90,6 +90,8 @@ pub struct ImageChargeRow {
 pub struct HeapReport {
   /// The lock budget ran out: the figures are a floor, not an inventory.
   pub truncated: bool,
+  /// Blocks a zone reported after its budget ran out, in no total.
+  pub skipped_blocks: u64,
   pub total: BlockCount,
   pub largest_block_bytes: u64,
   pub named: BlockCount,
@@ -99,8 +101,6 @@ pub struct HeapReport {
   pub reporter: BlockCount,
   pub unclassified: Unclassified,
   pub owners: Option<Owners>,
-  pub dropped: Dropped,
-  pub timings: HeapTimings,
   pub by_type: Vec<TypeRow>,
   pub zones: Vec<ZoneRow>,
 }
@@ -129,22 +129,6 @@ pub struct Owners {
   pub table_overflow: u64,
   /// Types by the unclassified bytes they own.
   pub by_type: Vec<TypeRow>,
-}
-
-#[derive(Debug)]
-pub struct Dropped {
-  pub skipped_blocks: u64,
-  pub candidate_overflow: u64,
-  pub unreadable_candidates: u64,
-}
-
-#[derive(Debug)]
-#[allow(clippy::struct_field_names)]
-pub struct HeapTimings {
-  pub lock_held_ms: f64,
-  pub lock_wait_ms: f64,
-  pub resolve_ms: f64,
-  pub owners_ms: f64,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -180,7 +164,6 @@ pub struct ZoneRow {
   pub name: String,
   pub blocks: u64,
   pub bytes: u64,
-  pub lock_held_ms: f64,
   /// The zone was locked and enumerated.
   pub enumerated: bool,
   /// The enumerator reported at least one batch.
@@ -189,9 +172,4 @@ pub struct ZoneRow {
   pub skipped: bool,
   /// The zone spent its budget share before its enumeration finished.
   pub truncated: bool,
-}
-
-#[allow(clippy::cast_precision_loss)]
-pub fn milliseconds(nanoseconds: u64) -> f64 {
-  (nanoseconds as f64 / 1_000.0).round() / 1_000.0
 }

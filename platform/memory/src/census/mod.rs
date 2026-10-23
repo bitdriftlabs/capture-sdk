@@ -77,8 +77,6 @@ struct Summary {
   unclassified_bytes: u64,
   unclassified_histogram: [u64; SIZE_BUCKETS],
   largest_block_bytes: u64,
-  candidate_overflow: u64,
-  unreadable_candidates: u64,
   truncated: bool,
   skipped_blocks: u64,
   lock_wait_ns: u64,
@@ -173,11 +171,17 @@ impl<'a> Census<'a> {
     }
     self.resolve();
     self.attribute_owners();
+    let summary = &self.summary;
     log::debug!(
-      "heap census: {} blocks, {} bytes, truncated: {}",
-      self.summary.total_blocks,
-      self.summary.total_bytes,
-      self.summary.truncated
+      "heap census: {} blocks, {} bytes, truncated: {}, locks held {} ms, waited {} ms, resolve \
+       {} ms, owners {} ms",
+      summary.total_blocks,
+      summary.total_bytes,
+      summary.truncated,
+      summary.lock_held_ns / 1_000_000,
+      summary.lock_wait_ns / 1_000_000,
+      summary.resolve_ns / 1_000_000,
+      summary.owners_ns / 1_000_000
     );
     self.report()
   }

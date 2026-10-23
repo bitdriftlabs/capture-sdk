@@ -94,18 +94,17 @@ mod image_charge_row {
 
 mod heap {
   pub const TRUNCATED: u32 = 1;
-  pub const TOTAL: u32 = 2;
-  pub const LARGEST_BLOCK_BYTES: u32 = 3;
-  pub const NAMED: u32 = 4;
-  pub const SWIFT_BOXES: u32 = 5;
-  pub const IMAGES: u32 = 6;
-  pub const REPORTER: u32 = 7;
-  pub const UNCLASSIFIED: u32 = 8;
-  pub const OWNERS: u32 = 9;
-  pub const DROPPED: u32 = 10;
-  pub const TIMINGS: u32 = 11;
-  pub const BY_TYPE: u32 = 12;
-  pub const ZONES: u32 = 13;
+  pub const SKIPPED_BLOCKS: u32 = 2;
+  pub const TOTAL: u32 = 3;
+  pub const LARGEST_BLOCK_BYTES: u32 = 4;
+  pub const NAMED: u32 = 5;
+  pub const SWIFT_BOXES: u32 = 6;
+  pub const IMAGES: u32 = 7;
+  pub const REPORTER: u32 = 8;
+  pub const UNCLASSIFIED: u32 = 9;
+  pub const OWNERS: u32 = 10;
+  pub const BY_TYPE: u32 = 11;
+  pub const ZONES: u32 = 12;
 }
 
 mod block_count {
@@ -127,25 +126,12 @@ mod owners {
   pub const BY_TYPE: u32 = 5;
 }
 
-mod dropped {
-  pub const SKIPPED_BLOCKS: u32 = 1;
-  pub const CANDIDATE_OVERFLOW: u32 = 2;
-  pub const UNREADABLE_CANDIDATES: u32 = 3;
-}
-
-mod heap_timings {
-  pub const LOCK_HELD_MS: u32 = 1;
-  pub const LOCK_WAIT_MS: u32 = 2;
-  pub const RESOLVE_MS: u32 = 3;
-  pub const OWNERS_MS: u32 = 4;
-}
-
 mod type_row {
   pub const NAME: u32 = 1;
-  pub const KIND: u32 = 2;
-  pub const BLOCKS: u32 = 3;
-  pub const BYTES: u32 = 4;
-  pub const ADDRESS: u32 = 5;
+  pub const ADDRESS: u32 = 2;
+  pub const KIND: u32 = 3;
+  pub const BLOCKS: u32 = 4;
+  pub const BYTES: u32 = 5;
 
   pub const KIND_CLASS: u64 = 1;
   pub const KIND_CXX: u64 = 2;
@@ -155,15 +141,13 @@ mod zone_row {
   pub const NAME: u32 = 1;
   pub const BLOCKS: u32 = 2;
   pub const BYTES: u32 = 3;
-  pub const LOCK_HELD_MS: u32 = 4;
-  pub const ENUMERATED: u32 = 5;
-  pub const SEEN: u32 = 6;
-  pub const SKIPPED: u32 = 7;
-  pub const TRUNCATED: u32 = 8;
+  pub const ENUMERATED: u32 = 4;
+  pub const SEEN: u32 = 5;
+  pub const SKIPPED: u32 = 6;
+  pub const TRUNCATED: u32 = 7;
 }
 
 const WIRE_VARINT: u64 = 0;
-const WIRE_FIXED64: u64 = 1;
 const WIRE_LENGTH_DELIMITED: u64 = 2;
 
 //
@@ -207,12 +191,6 @@ impl Writer {
     self.uint(field, u64::from(value));
   }
 
-  fn double(&mut self, field: u32, value: f64) {
-    if value.to_bits() != 0 {
-      self.key(field, WIRE_FIXED64);
-      self.bytes.extend_from_slice(&value.to_le_bytes());
-    }
-  }
 
   fn length_delimited(&mut self, field: u32, value: &[u8]) {
     self.key(field, WIRE_LENGTH_DELIMITED);
@@ -354,6 +332,7 @@ fn write_regions(writer: &mut Writer, report: &RegionsReport, numbers: &mut Imag
 
 fn write_heap(writer: &mut Writer, report: &HeapReport, numbers: &mut ImageNumbers) {
   writer.bool(heap::TRUNCATED, report.truncated);
+  writer.uint(heap::SKIPPED_BLOCKS, report.skipped_blocks);
   write_block_count(writer, heap::TOTAL, &report.total);
   writer.uint(heap::LARGEST_BLOCK_BYTES, report.largest_block_bytes);
   write_block_count(writer, heap::NAMED, &report.named);
@@ -378,23 +357,6 @@ fn write_heap(writer: &mut Writer, report: &HeapReport, numbers: &mut ImageNumbe
       }
     });
   }
-  writer.message(heap::DROPPED, |writer| {
-    writer.uint(dropped::SKIPPED_BLOCKS, report.dropped.skipped_blocks);
-    writer.uint(
-      dropped::CANDIDATE_OVERFLOW,
-      report.dropped.candidate_overflow,
-    );
-    writer.uint(
-      dropped::UNREADABLE_CANDIDATES,
-      report.dropped.unreadable_candidates,
-    );
-  });
-  writer.message(heap::TIMINGS, |writer| {
-    writer.double(heap_timings::LOCK_HELD_MS, report.timings.lock_held_ms);
-    writer.double(heap_timings::LOCK_WAIT_MS, report.timings.lock_wait_ms);
-    writer.double(heap_timings::RESOLVE_MS, report.timings.resolve_ms);
-    writer.double(heap_timings::OWNERS_MS, report.timings.owners_ms);
-  });
   for row in &report.by_type {
     writer.message(heap::BY_TYPE, |writer| {
       write_type_row(writer, row, numbers);
@@ -439,7 +401,6 @@ fn write_zone_row(writer: &mut Writer, row: &ZoneRow) {
   writer.string(zone_row::NAME, &row.name);
   writer.uint(zone_row::BLOCKS, row.blocks);
   writer.uint(zone_row::BYTES, row.bytes);
-  writer.double(zone_row::LOCK_HELD_MS, row.lock_held_ms);
   writer.bool(zone_row::ENUMERATED, row.enumerated);
   writer.bool(zone_row::SEEN, row.seen);
   writer.bool(zone_row::SKIPPED, row.skipped);

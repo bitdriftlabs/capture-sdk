@@ -11,16 +11,13 @@ use super::Census;
 use super::tables::Resolution;
 use crate::report::{
   BlockCount,
-  Dropped,
   HeapReport,
-  HeapTimings,
   Identity,
   Owners,
   TypeKind,
   TypeRow,
   Unclassified,
   ZoneRow,
-  milliseconds,
 };
 use std::collections::HashMap;
 
@@ -80,7 +77,7 @@ impl Census<'_> {
       .filter(|slot| slot.metadata != 0)
     {
       let identity = match candidate.resolution {
-        Resolution::Unresolved => continue,
+        Resolution::Unresolved | Resolution::SwiftBox => continue,
         Resolution::Image => self
           .images
           .and_then(|table| table.offset(candidate.name, candidate.metadata))
@@ -102,6 +99,7 @@ impl Census<'_> {
     let summary = self.summary;
     HeapReport {
       truncated: summary.truncated,
+      skipped_blocks: summary.skipped_blocks,
       total: BlockCount {
         blocks: summary.total_blocks,
         bytes: summary.total_bytes,
@@ -135,17 +133,6 @@ impl Census<'_> {
         table_overflow: summary.owner_table_overflow,
         by_type: type_rows(owners),
       }),
-      dropped: Dropped {
-        skipped_blocks: summary.skipped_blocks,
-        candidate_overflow: summary.candidate_overflow,
-        unreadable_candidates: summary.unreadable_candidates,
-      },
-      timings: HeapTimings {
-        lock_held_ms: milliseconds(summary.lock_held_ns),
-        lock_wait_ms: milliseconds(summary.lock_wait_ns),
-        resolve_ms: milliseconds(summary.resolve_ns),
-        owners_ms: milliseconds(summary.owners_ns),
-      },
       by_type: type_rows(types),
       zones: self
         .zones
@@ -156,7 +143,6 @@ impl Census<'_> {
             name: zone.name,
             blocks: zone.blocks,
             bytes: zone.bytes,
-            lock_held_ms: milliseconds(zone.lock_held_ns),
             enumerated: zone.enumerated,
             seen: zone.seen,
             skipped: zone.skipped,

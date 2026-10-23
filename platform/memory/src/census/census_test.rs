@@ -253,6 +253,23 @@ fn type_rows_add_up_to_the_named_and_image_blocks() {
 }
 
 #[test]
+fn blocks_pointing_at_box_metadata_are_swift_boxes() {
+  // A Swift box starts with a pointer to metadata whose first word is its kind.
+  static BOX_METADATA: [usize; 2] = [0x400, 0];
+  let _lock = memory_lock();
+  let before = census(false).swift_boxes.blocks;
+  let mut fixture = Fixture::default();
+  for _ in 0 .. 1_000 {
+    let block = fixture.block(32);
+    // SAFETY: a live block of 32 bytes.
+    unsafe { (block as *mut usize).write(BOX_METADATA.as_ptr() as usize) };
+  }
+  let report = census(false);
+  assert!(report.swift_boxes.blocks >= before + 1_000);
+  assert!(report.swift_boxes.bytes >= 32_000);
+}
+
+#[test]
 fn the_dump_tables_are_reported_apart() {
   let _lock = memory_lock();
   let report = census(true);
@@ -386,6 +403,9 @@ fn candidate_unmapped_before_resolution_stays_unresolved() {
     // SAFETY: allocated above.
     unsafe { free(block.cast()) };
   }
-  assert!(report.dropped.unreadable_candidates >= 1);
-  assert!(report.unclassified.blocks > 0);
+  assert!(report.unclassified.blocks >= 200);
+  assert_eq!(
+    report.unclassified.histogram.iter().sum::<u64>(),
+    report.unclassified.blocks
+  );
 }

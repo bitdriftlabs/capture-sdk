@@ -15,9 +15,6 @@ use crate::sys::mach::now_ns;
 use crate::sys::malloc::{MALLOC_PTR_IN_USE_RANGE_TYPE, RangeSink, Zone};
 use libc::vm_range_t;
 
-/// Swift metadata kinds of heap objects that have no class: closure boxes, existentials, errors.
-const SWIFT_BOX_KINDS: [usize; 3] = [0x400, 0x500, 0x501];
-
 /// The dump's own tables are all at least this large; smaller blocks skip the comparison.
 const REPORTER_BLOCK_MIN_SIZE: u64 = 16 * 1024;
 const REPORTER_BLOCK_CAPACITY: usize = 8;
@@ -32,7 +29,6 @@ pub struct ZoneSummary {
   pub name: String,
   pub blocks: u64,
   pub bytes: u64,
-  pub lock_held_ns: u64,
   pub enumerated: bool,
   pub seen: bool,
   pub skipped: bool,
@@ -149,12 +145,6 @@ impl Recorder<'_> {
       return;
     }
 
-    if SWIFT_BOX_KINDS.contains(&first_word) {
-      summary.swift_box_blocks += 1;
-      summary.swift_box_bytes += size;
-      return;
-    }
-
     summary.unclassified(size);
     let unnamed = self
       .owners
@@ -166,15 +156,13 @@ impl Recorder<'_> {
     if candidate > 0x1000
       && candidate.trailing_zeros() >= 3
       && self.ranges.readable_end(candidate).is_some()
+      && self.candidates.record(candidate, size)
     {
-      if self.candidates.record(candidate, size) {
-        if let Some(unnamed) = unnamed {
-          unnamed.candidate = candidate;
-        }
-        // The histogram is completed after resolution, from the candidates left unnamed.
-        return;
+      if let Some(unnamed) = unnamed {
+        unnamed.candidate = candidate;
       }
-      summary.candidate_overflow += 1;
+      // The histogram is completed after resolution, from the candidates left unnamed.
+      return;
     }
     summary.unclassified_histogram[size_bucket(size)] += 1;
   }
@@ -248,7 +236,6 @@ impl Census<'_> {
       budget_left_ns -= held_ns.min(share_ns);
       self.summary.lock_wait_ns += held_from - wait_started;
       self.summary.lock_held_ns += held_ns;
-      zone_summary.lock_held_ns = held_ns;
       zone_summary.enumerated = true;
     }
   }

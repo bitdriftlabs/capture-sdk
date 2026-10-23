@@ -20,6 +20,8 @@ const ISA_CHAIN_HOPS: usize = 3;
 const SUPERCLASS_CHAIN_HOPS: usize = 16;
 /// First words below this are Swift metadata kinds rather than pointers.
 const METADATA_KIND_MAX: usize = 0x800;
+/// Swift metadata kinds of heap objects that have no class: closure boxes, existentials, errors.
+const SWIFT_BOX_KINDS: [usize; 3] = [0x400, 0x500, 0x501];
 
 //
 // Resolver
@@ -138,9 +140,15 @@ fn resolve_candidate(
   summary: &mut super::Summary,
 ) {
   let Some(first_word) = resolver.read_word(candidate.metadata) else {
-    summary.unreadable_candidates += 1;
     return;
   };
+  if SWIFT_BOX_KINDS.contains(&first_word) {
+    candidate.resolution = Resolution::SwiftBox;
+    summary.swift_box_blocks += candidate.blocks;
+    summary.swift_box_bytes += candidate.bytes;
+    summary.reclassify(candidate.blocks, candidate.bytes);
+    return;
+  }
   // Struct, enum and tuple metadata: not a heap object type.
   if first_word < METADATA_KIND_MAX {
     return;
