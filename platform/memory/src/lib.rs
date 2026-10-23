@@ -22,6 +22,7 @@ mod tests;
 
 mod census;
 mod counters;
+mod encode;
 mod images;
 mod regions;
 mod report;
@@ -33,7 +34,7 @@ mod test_support;
 
 pub use census::HeapOptions;
 use images::ImageTable;
-use report::{HeapReport, Report, SCHEMA_VERSION};
+use report::{HeapReport, Report};
 use std::time::Instant;
 
 //
@@ -75,7 +76,7 @@ pub struct Request {
 //
 
 pub struct Dump {
-  /// The JSON report.
+  /// A `bitdrift_public.protobuf.memory.v1.MemoryDump`.
   pub attachment: Vec<u8>,
   /// Fields for the command result: timings and the flags worth searching on.
   pub context: Vec<(String, String)>,
@@ -84,7 +85,6 @@ pub struct Dump {
 pub fn capture(request: &Request) -> anyhow::Result<Dump> {
   let mut context = Vec::new();
   let mut report = Report {
-    schema_version: SCHEMA_VERSION,
     counters: None,
     regions: None,
     heap: None,
@@ -122,7 +122,7 @@ pub fn capture(request: &Request) -> anyhow::Result<Dump> {
   context.push(("stages".to_string(), request.stages.names().join(",")));
 
   Ok(Dump {
-    attachment: serde_json::to_vec(&report)?,
+    attachment: encode::memory_dump(&report, images.as_ref()),
     context,
   })
 }

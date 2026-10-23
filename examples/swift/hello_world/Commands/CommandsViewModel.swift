@@ -24,7 +24,7 @@ final class CommandsViewModel: ObservableObject {
         ),
         CommandDefinition(
             key: "ios_memory_dump",
-            description: "Captures memory counters, VM regions and a heap census as a JSON attachment.",
+            description: "Captures memory counters, VM regions and a heap census as a protobuf attachment.",
             isBuiltIn: true
         ),
     ]

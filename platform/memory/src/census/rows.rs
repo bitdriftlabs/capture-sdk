@@ -14,7 +14,7 @@ use crate::report::{
   Dropped,
   HeapReport,
   HeapTimings,
-  ImageBlocksRow,
+  Identity,
   Owners,
   TypeKind,
   TypeRow,
@@ -42,16 +42,23 @@ impl Totals {
 }
 
 impl Census<'_> {
+  fn named(&self, kind: TypeKind, name: usize) -> Option<Identity> {
+    let name = self.names.get(name)?.clone();
+    Some(Identity::Named { kind, name })
+  }
+
   pub(super) fn report(self) -> HeapReport {
-    let mut types: HashMap<(TypeKind, String), Totals> = HashMap::new();
-    let mut owners: HashMap<(TypeKind, String), Totals> = HashMap::new();
-    let mut images: HashMap<String, Totals> = HashMap::new();
+    let mut types: HashMap<Identity, Totals> = HashMap::new();
+    let mut owners: HashMap<Identity, Totals> = HashMap::new();
 
     for (entry, tally) in self.classes.entries.iter().zip(&self.classes.tallies) {
       if tally.blocks == 0 && tally.owned_blocks == 0 {
         continue;
       }
-      let key = (TypeKind::Class, entry.name.to_string_lossy().into_owned());
+      let key = Identity::Named {
+        kind: TypeKind::Class,
+        name: entry.name.to_string_lossy().into_owned(),
+      };
       if tally.blocks > 0 {
         types
           .entry(key.clone())
@@ -72,23 +79,21 @@ impl Census<'_> {
       .iter()
       .filter(|slot| slot.metadata != 0)
     {
-      let kind = match candidate.resolution {
+      let identity = match candidate.resolution {
         Resolution::Unresolved => continue,
-        Resolution::Image => {
-          if let Some(name) = self.images.and_then(|table| table.name(candidate.name)) {
-            images
-              .entry(name.to_string())
-              .or_default()
-              .add(candidate.blocks, candidate.bytes);
-          }
-          continue;
-        },
-        Resolution::Class => TypeKind::Class,
-        Resolution::Cxx => TypeKind::Cxx,
+        Resolution::Image => self
+          .images
+          .and_then(|table| table.offset(candidate.name, candidate.metadata))
+          .map(|offset| Identity::Address {
+            image: candidate.name,
+            offset,
+          }),
+        Resolution::Class => self.named(TypeKind::Class, candidate.name),
+        Resolution::Cxx => self.named(TypeKind::Cxx, candidate.name),
       };
-      if let Some(name) = self.names.get(candidate.name) {
+      if let Some(identity) = identity {
         types
-          .entry((kind, name.clone()))
+          .entry(identity)
           .or_default()
           .add(candidate.blocks, candidate.bytes);
       }
@@ -142,7 +147,6 @@ impl Census<'_> {
         owners_ms: milliseconds(summary.owners_ns),
       },
       by_type: type_rows(types),
-      by_image: image_rows(images),
       zones: self
         .zones
         .into_iter()
@@ -164,12 +168,11 @@ impl Census<'_> {
   }
 }
 
-fn type_rows(totals: HashMap<(TypeKind, String), Totals>) -> Vec<TypeRow> {
+fn type_rows(totals: HashMap<Identity, Totals>) -> Vec<TypeRow> {
   let mut rows: Vec<TypeRow> = totals
     .into_iter()
-    .map(|((kind, name), totals)| TypeRow {
-      name,
-      kind,
+    .map(|(identity, totals)| TypeRow {
+      identity,
       blocks: totals.blocks,
       bytes: totals.bytes,
     })
@@ -178,25 +181,7 @@ fn type_rows(totals: HashMap<(TypeKind, String), Totals>) -> Vec<TypeRow> {
     right
       .bytes
       .cmp(&left.bytes)
-      .then(left.name.cmp(&right.name))
-  });
-  rows
-}
-
-fn image_rows(totals: HashMap<String, Totals>) -> Vec<ImageBlocksRow> {
-  let mut rows: Vec<ImageBlocksRow> = totals
-    .into_iter()
-    .map(|(name, totals)| ImageBlocksRow {
-      name,
-      blocks: totals.blocks,
-      bytes: totals.bytes,
-    })
-    .collect();
-  rows.sort_by(|left, right| {
-    right
-      .bytes
-      .cmp(&left.bytes)
-      .then(left.name.cmp(&right.name))
+      .then(left.identity.cmp(&right.identity))
   });
   rows
 }

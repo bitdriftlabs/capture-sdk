@@ -32,21 +32,12 @@ final class MemoryDumpCommandTests: XCTestCase {
         thenFailsWithCode("invalid_arguments")
     }
 
-    func testCountersReportFootprint() async throws {
-        givenMemoryDumpCommand()
-        await whenExecuting(["stages": .string("counters")])
-        let counters = try thenAttachmentSection("counters")
-        XCTAssertGreaterThan(try XCTUnwrap(counters["phys_footprint"] as? UInt64), 0)
-        XCTAssertGreaterThan(try XCTUnwrap(counters["resident_size"] as? UInt64), 0)
-    }
-
-    func testAttachmentIsJSONWithSchemaVersion() async throws {
+    func testAttachmentIsAMemoryDumpProto() async throws {
         givenMemoryDumpCommand()
         await whenExecuting(["stages": .string("counters")])
         let attachment = try thenAttachment()
-        XCTAssertEqual(attachment.mimeType, "application/json")
-        let json = try thenAttachmentJSON()
-        XCTAssertEqual(json["schema_version"] as? Int, 1)
+        XCTAssertEqual(attachment.mimeType, "application/vnd.bitdrift.ios-memory-dump")
+        XCTAssertFalse(attachment.data.isEmpty)
     }
 
     func testContextReportsStagesTimingAndFootprint() async throws {
@@ -65,12 +56,7 @@ final class MemoryDumpCommandTests: XCTestCase {
         let context = try thenContext()
         XCTAssertEqual(context["stages"], "regions")
         XCTAssertNotNil(context["regions_ms"])
-        let regions = try thenAttachmentSection("regions")
-        XCTAssertNil(regions["mode"])
-        XCTAssertNotNil(regions["compressed"])
-        XCTAssertFalse(try XCTUnwrap(regions["by_tag"] as? [Any]).isEmpty)
-        XCTAssertFalse(try XCTUnwrap(regions["by_image"] as? [Any]).isEmpty)
-        XCTAssertNil(try thenAttachmentJSON()["counters"])
+        XCTAssertFalse(try thenAttachment().data.isEmpty)
     }
 
     func testHeapStageIsReportedInContextAndAttachment() async throws {
@@ -81,33 +67,21 @@ final class MemoryDumpCommandTests: XCTestCase {
         XCTAssertNotNil(context["heap_ms"])
         XCTAssertEqual(context["heap_truncated"], "false")
         XCTAssertNotNil(context["heap_zones_not_seen"])
-        let heap = try thenAttachmentSection("heap")
-        let total = try XCTUnwrap(heap["total"] as? [String: Any])
-        XCTAssertGreaterThan(try XCTUnwrap(total["blocks"] as? UInt64), 0)
-        XCTAssertNotNil(heap["owners"])
-        XCTAssertNotNil(heap["timings"])
-        XCTAssertFalse(try XCTUnwrap(heap["by_type"] as? [Any]).isEmpty)
-        XCTAssertFalse(try XCTUnwrap(heap["by_image"] as? [Any]).isEmpty)
+        XCTAssertFalse(try thenAttachment().data.isEmpty)
     }
 
     func testSwiftGenericInstantiationsAreNamedMangled() async throws {
         genericArrays = (0..<500).map { [MemoryDumpElement(first: $0, second: $0)] }
         givenMemoryDumpCommand()
         await whenExecuting(["stages": .string("heap"), "heap.budget_ms": .uint64(1_000)])
-        let rows = try XCTUnwrap(try thenAttachmentSection("heap")["by_type"] as? [[String: Any]])
-        let names = rows.compactMap { $0["name"] as? String }
-        XCTAssertTrue(
-            names.contains { $0.hasPrefix("_TtGC") && $0.contains("MemoryDumpElement") },
-            "no mangled generic among \(names.count) rows"
-        )
+        let payload = try thenAttachmentText()
+        XCTAssertNotNil(payload.range(of: "_TtGC[A-Za-z0-9_]*MemoryDumpElement", options: .regularExpression))
     }
 
-    func testPayloadCarriesNoAddresses() async throws {
+    func testPayloadCarriesNoPaths() async throws {
         givenMemoryDumpCommand()
         await whenExecuting(["heap.budget_ms": .uint64(1_000)])
-        let payload = try XCTUnwrap(String(data: try thenAttachment().data, encoding: .utf8))
-        XCTAssertFalse(payload.contains("0x"))
-        XCTAssertFalse(payload.contains("/Users/"))
+        XCTAssertFalse(try thenAttachmentText().contains("/Users/"))
     }
 
     func testDisabledHeapIsSkippedAndReported() async throws {
@@ -117,7 +91,6 @@ final class MemoryDumpCommandTests: XCTestCase {
         XCTAssertEqual(context["heap"], "disabled")
         XCTAssertEqual(context["stages"], "counters")
         XCTAssertNil(context["heap_ms"])
-        XCTAssertNil(try thenAttachmentJSON()["heap"])
     }
 }
 
@@ -154,12 +127,7 @@ private extension MemoryDumpCommandTests {
         try XCTUnwrap(try result.get().attachment)
     }
 
-    func thenAttachmentJSON() throws -> [String: Any] {
-        let object = try JSONSerialization.jsonObject(with: try thenAttachment().data)
-        return try XCTUnwrap(object as? [String: Any])
-    }
-
-    func thenAttachmentSection(_ name: String) throws -> [String: Any] {
-        try XCTUnwrap(try thenAttachmentJSON()[name] as? [String: Any])
+    func thenAttachmentText() throws -> String {
+        String(decoding: try thenAttachment().data, as: UTF8.self)
     }
 }

@@ -7,6 +7,7 @@
 #![allow(clippy::unwrap_used)]
 
 use super::*;
+use crate::report::{Identity, TypeRow};
 use crate::test_support::memory_lock;
 use libc::{
   MAP_ANON,
@@ -111,13 +112,17 @@ fn census_with_budget(budget_ms: u64, owners: bool) -> HeapReport {
   )
 }
 
-fn owned_by<'a>(report: &'a HeapReport, class: &str) -> Option<&'a crate::report::TypeRow> {
+fn is_named(row: &TypeRow, class: &str) -> bool {
+  matches!(&row.identity, Identity::Named { name, .. } if name == class)
+}
+
+fn owned_by<'a>(report: &'a HeapReport, class: &str) -> Option<&'a TypeRow> {
   report
     .owners
     .as_ref()?
     .by_type
     .iter()
-    .find(|row| row.name == class)
+    .find(|row| is_named(row, class))
 }
 
 #[test]
@@ -137,7 +142,7 @@ fn instances_of_a_known_class_are_counted_exactly() {
     report
       .by_type
       .iter()
-      .find(|row| row.name == "BdMemoryDumpStartHolder")
+      .find(|row| is_named(row, "BdMemoryDumpStartHolder"))
       .map_or(0, |row| row.blocks)
   };
   // The runtime keeps a few blocks of its own that start with the class pointer, so the instances
@@ -228,8 +233,23 @@ fn owners_are_not_attributed_when_disabled() {
   fixture.holder(start_holder(), buffer);
   let report = census(false);
   assert!(report.owners.is_none());
-  let json = serde_json::to_value(&report).unwrap();
-  assert!(json.get("owners").is_none());
+}
+
+#[test]
+fn type_rows_add_up_to_the_named_and_image_blocks() {
+  let _lock = memory_lock();
+  let report = census(false);
+  let sum = |named: bool| {
+    report
+      .by_type
+      .iter()
+      .filter(|row| matches!(row.identity, Identity::Named { .. }) == named)
+      .fold((0, 0), |(blocks, bytes), row| {
+        (blocks + row.blocks, bytes + row.bytes)
+      })
+  };
+  assert_eq!(sum(true), (report.named.blocks, report.named.bytes));
+  assert_eq!(sum(false), (report.images.blocks, report.images.bytes));
 }
 
 #[test]

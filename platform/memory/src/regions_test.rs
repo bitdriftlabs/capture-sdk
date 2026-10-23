@@ -87,10 +87,11 @@ fn submaps_do_not_loop() {
 }
 
 #[test]
-fn images_are_named_without_paths_and_sorted() {
-  let report = walk(Some(&ImageTable::survey()));
+fn image_rows_point_into_the_table_and_are_sorted() {
+  let images = ImageTable::survey();
+  let report = walk(Some(&images));
   assert!(!report.by_image.is_empty());
-  assert!(report.by_image.iter().all(|row| !row.name.contains('/')));
+  assert!(report.by_image.iter().all(|row| row.image < images.len()));
   assert!(
     report
       .by_image

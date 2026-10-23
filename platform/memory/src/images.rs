@@ -17,8 +17,11 @@ use crate::sys::dyld;
 
 const MH_MAGIC_64: u32 = 0xfeed_facf;
 const LC_SEGMENT_64: u32 = 0x19;
+const LC_UUID: u32 = 0x1b;
 const HEADER_SIZE: usize = 32;
 const SEGMENT_COMMAND_SIZE: usize = 72;
+const UUID_COMMAND_SIZE: usize = 24;
+const UUID_SIZE: usize = 16;
 
 //
 // Segment
@@ -31,27 +34,53 @@ struct Segment {
 }
 
 //
+// LoadedImage
+//
+
+struct LoadedImage {
+  name: String,
+  header: usize,
+  uuid: Option<[u8; UUID_SIZE]>,
+}
+
+//
+// LoadCommands
+//
+
+#[derive(Default)]
+struct LoadCommands {
+  /// The (vmaddr, vmsize) of each segment with file content.
+  segments: Vec<(usize, usize)>,
+  uuid: Option<[u8; UUID_SIZE]>,
+}
+
+//
 // ImageTable
 //
 
 pub struct ImageTable {
   segments: Vec<Segment>,
-  names: Vec<String>,
+  images: Vec<LoadedImage>,
 }
 
 impl ImageTable {
   pub fn survey() -> Self {
     let mut segments = Vec::new();
-    let mut names = Vec::new();
+    let mut images = Vec::new();
     for index in 0 .. dyld::image_count() {
       let (Some((header, slide)), Some(path)) =
         (dyld::image_header(index), dyld::image_path(index))
       else {
         continue;
       };
-      let image = names.len();
-      names.push(binary_name(&path).to_string());
-      for (address, size) in file_backed_segments(header) {
+      let image = images.len();
+      let commands = load_commands(header);
+      images.push(LoadedImage {
+        name: binary_name(&path).to_string(),
+        header,
+        uuid: commands.uuid,
+      });
+      for (address, size) in commands.segments {
         let start = address.wrapping_add(slide);
         segments.push(Segment {
           start,
@@ -63,19 +92,29 @@ impl ImageTable {
     segments.sort_unstable_by_key(|segment| segment.start);
     log::debug!(
       "surveyed {} images, {} segments",
-      names.len(),
+      images.len(),
       segments.len()
     );
-    Self { segments, names }
+    Self { segments, images }
   }
 
   pub const fn len(&self) -> usize {
-    self.names.len()
+    self.images.len()
   }
 
   /// The binary's name only: paths carry the app container and user directories.
   pub fn name(&self, image: usize) -> Option<&str> {
-    self.names.get(image).map(String::as_str)
+    self.images.get(image).map(|image| image.name.as_str())
+  }
+
+  pub fn uuid(&self, image: usize) -> Option<&[u8; UUID_SIZE]> {
+    self.images.get(image)?.uuid.as_ref()
+  }
+
+  /// `address` relative to the image's mach header, which removes the ASLR slide.
+  pub fn offset(&self, image: usize, address: usize) -> Option<u64> {
+    let offset = address.checked_sub(self.images.get(image)?.header)?;
+    Some(offset as u64)
   }
 
   /// The image owning `address`. Does not allocate.
@@ -113,20 +152,19 @@ pub fn binary_name(path: &str) -> &str {
   path.rsplit('/').next().unwrap_or(path)
 }
 
-/// The (vmaddr, vmsize) of each segment with file content.
-fn file_backed_segments(header: usize) -> Vec<(usize, usize)> {
+fn load_commands(header: usize) -> LoadCommands {
   let mut header_bytes = [0u8; HEADER_SIZE];
   if !safe_read::read(header, &mut header_bytes) || read_u32(&header_bytes, 0) != MH_MAGIC_64 {
-    return Vec::new();
+    return LoadCommands::default();
   }
   let command_count = read_u32(&header_bytes, 16);
   let commands_size = read_u32(&header_bytes, 20) as usize;
   let mut commands = vec![0u8; commands_size];
   if !safe_read::read(header + HEADER_SIZE, &mut commands) {
-    return Vec::new();
+    return LoadCommands::default();
   }
 
-  let mut segments = Vec::new();
+  let mut parsed = LoadCommands::default();
   let mut offset = 0;
   for _ in 0 .. command_count {
     let command = read_u32(&commands, offset);
@@ -142,12 +180,17 @@ fn file_backed_segments(header: usize) -> Vec<(usize, usize)> {
         && size > 0
         && file_size > 0
       {
-        segments.push((address, size));
+        parsed.segments.push((address, size));
       }
+    }
+    if command == LC_UUID && command_size >= UUID_COMMAND_SIZE {
+      parsed.uuid = commands
+        .get(offset + 8 .. offset + 8 + UUID_SIZE)
+        .and_then(|bytes| bytes.try_into().ok());
     }
     offset += command_size;
   }
-  segments
+  parsed
 }
 
 fn read_u32(bytes: &[u8], offset: usize) -> u32 {

@@ -8,9 +8,10 @@
 
 use super::*;
 use crate::test_support::memory_lock;
-use serde_json::Value;
+use bd_proto::protos::memory::memory_dump::MemoryDump;
+use protobuf::Message;
 
-fn capture_json(stages: Stages) -> (Value, Vec<(String, String)>) {
+fn capture_dump(stages: Stages) -> (MemoryDump, Vec<(String, String)>) {
   let _lock = memory_lock();
   let dump = capture(&Request {
     stages,
@@ -21,7 +22,7 @@ fn capture_json(stages: Stages) -> (Value, Vec<(String, String)>) {
   })
   .unwrap();
   (
-    serde_json::from_slice(&dump.attachment).unwrap(),
+    MemoryDump::parse_from_bytes(&dump.attachment).unwrap(),
     dump.context,
   )
 }
@@ -35,29 +36,27 @@ fn context_value<'a>(context: &'a [(String, String)], key: &str) -> Option<&'a s
 
 #[test]
 fn only_requested_stages_are_reported() {
-  let (json, context) = capture_json(Stages {
+  let (dump, context) = capture_dump(Stages {
     regions: true,
     ..Stages::default()
   });
-  assert_eq!(json["schema_version"], 1);
-  assert!(json.get("counters").is_none());
-  assert!(json.get("heap").is_none());
-  assert!(json["regions"]["compressed"].is_u64());
-  assert!(json["regions"].get("mode").is_none());
+  assert!(dump.counters.is_none());
+  assert!(dump.heap.is_none());
+  assert!(dump.regions.charged > 0);
   assert_eq!(context_value(&context, "stages"), Some("regions"));
   assert!(context_value(&context, "regions_ms").is_some());
 }
 
 #[test]
 fn every_stage_runs_in_order() {
-  let (json, context) = capture_json(Stages {
+  let (dump, context) = capture_dump(Stages {
     counters: true,
     regions: true,
     heap: true,
   });
-  assert!(json["counters"]["phys_footprint"].as_u64().unwrap() > 0);
-  assert!(!json["heap"]["by_type"].as_array().unwrap().is_empty());
-  assert!(!json["heap"]["by_image"].as_array().unwrap().is_empty());
+  assert!(dump.counters.phys_footprint > 0);
+  assert!(!dump.heap.by_type.is_empty());
+  assert!(dump.heap.owners.is_some());
   assert_eq!(
     context_value(&context, "stages"),
     Some("counters,regions,heap")
@@ -68,13 +67,42 @@ fn every_stage_runs_in_order() {
 }
 
 #[test]
-fn payload_carries_no_addresses() {
-  let (json, _) = capture_json(Stages {
+fn image_references_resolve_to_named_images() {
+  let (dump, _) = capture_dump(Stages {
     regions: true,
     heap: true,
     ..Stages::default()
   });
-  let payload = json.to_string();
-  assert!(!payload.contains("0x"));
-  assert!(!payload.contains("/Users/"));
+  assert!(!dump.images.is_empty());
+  for image in &dump.images {
+    assert!(!image.name.is_empty());
+    assert!(!image.name.contains('/'));
+    assert_eq!(image.uuid.len(), 16);
+  }
+  let addresses = dump
+    .heap
+    .by_type
+    .iter()
+    .filter(|row| row.has_address())
+    .map(|row| row.address().image);
+  let charged = dump.regions.by_image.iter().map(|row| row.image);
+  for image in addresses.chain(charged) {
+    assert!((image as usize) < dump.images.len());
+  }
+}
+
+#[test]
+fn payload_carries_no_absolute_addresses() {
+  let (dump, _) = capture_dump(Stages {
+    heap: true,
+    ..Stages::default()
+  });
+  assert!(
+    dump
+      .heap
+      .by_type
+      .iter()
+      .filter(|row| row.has_address())
+      .all(|row| row.address().offset < 1 << 32)
+  );
 }

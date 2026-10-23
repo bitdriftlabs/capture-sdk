@@ -74,7 +74,7 @@ final class MemoryDumpCommand: @unchecked Sendable {
 
         context.merge(output["context"] as? [String: String] ?? [:]) { current, _ in current }
         return .success(CommandResult(
-            attachment: CommandAttachment(data: attachment, mimeType: "application/json"),
+            attachment: CommandAttachment(data: attachment, mimeType: "application/vnd.bitdrift.ios-memory-dump"),
             context: context
         ))
     }
