@@ -11,10 +11,14 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 import io.bitdrift.capture.common.IBackgroundThreadHandler
+import java.io.File
 
 /**
  * Runs one stack sample at a time, fails fast when the process cannot be profiled, and reports
- * every outcome to the core through [IProfilingBridge].
+ * every outcome to the core through [IProfilingBridge]. A finished trace is moved into
+ * [traceDirectory], the SDK's own storage, before the core is told about it: the system writes
+ * every profile the app ever requests into one shared directory, so location, not the profiler's
+ * tag, is what marks a trace as the SDK's.
  */
 internal class ProfilingTarget(
     private val profiler: IProfiler,
@@ -22,6 +26,7 @@ internal class ProfilingTarget(
     private val background: IBackgroundThreadHandler,
     private val bridge: IProfilingBridge,
     private val logger: IInternalLogger,
+    private val traceDirectory: File,
 ) : IProfilingTarget {
     private class Active(
         val requestId: Long,
@@ -87,8 +92,9 @@ internal class ProfilingTarget(
         }
         when (outcome) {
             is ProfileOutcome.Saved -> {
-                logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG) { "stack sample $requestId saved to ${outcome.path}" }
-                bridge.completeStackSample(requestId, outcome.path, 0, null, null)
+                val path = claim(outcome.path)
+                logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG) { "stack sample $requestId saved to $path" }
+                bridge.completeStackSample(requestId, path, 0, null, null)
             }
             is ProfileOutcome.Failed -> {
                 logger.logInternal(LogType.INTERNALSDK, LogLevel.WARNING) {
@@ -97,5 +103,13 @@ internal class ProfilingTarget(
                 bridge.completeStackSample(requestId, null, outcome.code, outcome.name, outcome.message)
             }
         }
+    }
+
+    /** Moves the trace into [traceDirectory]; a trace that cannot be moved stays where the system wrote it. */
+    private fun claim(path: String): String {
+        val source = File(path)
+        val target = File(traceDirectory, source.name)
+        val moved = (traceDirectory.isDirectory || traceDirectory.mkdirs()) && source.renameTo(target)
+        return if (moved) target.path else path
     }
 }

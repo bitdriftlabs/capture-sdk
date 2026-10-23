@@ -37,18 +37,19 @@ internal sealed interface ProfileOutcome {
     ) : ProfileOutcome
 }
 
+/** The ProfilingResult.ERROR_* constant for a code, without the redundant prefix. */
 internal object ProfilingErrorCode {
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     fun name(code: Int): String =
         when (code) {
-            ProfilingResult.ERROR_FAILED_RATE_LIMIT_SYSTEM -> "ERROR_FAILED_RATE_LIMIT_SYSTEM"
-            ProfilingResult.ERROR_FAILED_RATE_LIMIT_PROCESS -> "ERROR_FAILED_RATE_LIMIT_PROCESS"
-            ProfilingResult.ERROR_FAILED_PROFILING_IN_PROGRESS -> "ERROR_FAILED_PROFILING_IN_PROGRESS"
-            ProfilingResult.ERROR_FAILED_EXECUTING -> "ERROR_FAILED_EXECUTING"
-            ProfilingResult.ERROR_FAILED_POST_PROCESSING -> "ERROR_FAILED_POST_PROCESSING"
-            ProfilingResult.ERROR_FAILED_NO_DISK_SPACE -> "ERROR_FAILED_NO_DISK_SPACE"
-            ProfilingResult.ERROR_FAILED_INVALID_REQUEST -> "ERROR_FAILED_INVALID_REQUEST"
-            ProfilingResult.ERROR_UNKNOWN -> "ERROR_UNKNOWN"
-            else -> "UNRECOGNIZED_ERROR"
+            ProfilingResult.ERROR_FAILED_RATE_LIMIT_SYSTEM -> "FAILED_RATE_LIMIT_SYSTEM"
+            ProfilingResult.ERROR_FAILED_RATE_LIMIT_PROCESS -> "FAILED_RATE_LIMIT_PROCESS"
+            ProfilingResult.ERROR_FAILED_PROFILING_IN_PROGRESS -> "FAILED_PROFILING_IN_PROGRESS"
+            ProfilingResult.ERROR_FAILED_EXECUTING -> "FAILED_EXECUTING"
+            ProfilingResult.ERROR_FAILED_POST_PROCESSING -> "FAILED_POST_PROCESSING"
+            ProfilingResult.ERROR_FAILED_NO_DISK_SPACE -> "FAILED_NO_DISK_SPACE"
+            ProfilingResult.ERROR_FAILED_INVALID_REQUEST -> "FAILED_INVALID_REQUEST"
+            ProfilingResult.ERROR_UNKNOWN -> "UNKNOWN"
+            else -> "UNRECOGNIZED"
         }
 }

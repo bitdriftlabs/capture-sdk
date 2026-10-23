@@ -236,6 +236,7 @@ internal class LoggerImpl(
                     background = eventListenerDispatcher,
                     bridge = profilingBridge,
                     logger = this,
+                    traceDirectory = File(sdkDirectory, "profiling"),
                 )
             } else {
                 NoopProfilingTarget(profilingBridge)

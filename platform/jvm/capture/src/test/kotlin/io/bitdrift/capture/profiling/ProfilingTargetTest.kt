@@ -12,6 +12,8 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import java.io.File
+import java.nio.file.Files
 
 /**
  * Pins the platform contract of the built-in stack sampling command: one capture at a time, fail
@@ -60,6 +62,8 @@ class ProfilingTargetTest {
     private val profiler = FakeProfiler()
     private val bridge = RecordingBridge()
     private var profileable = true
+    private val systemDirectory: File = Files.createTempDirectory("profiling-system").toFile()
+    private val traceDirectory: File = File(Files.createTempDirectory("profiling-sdk").toFile(), "profiling")
     private val target =
         ProfilingTarget(
             profiler = profiler,
@@ -67,6 +71,7 @@ class ProfilingTargetTest {
             background = FakeBackgroundThreadHandler(),
             bridge = bridge,
             logger = mock<IInternalLogger>(),
+            traceDirectory = traceDirectory,
         )
 
     @Test
@@ -85,24 +90,36 @@ class ProfilingTargetTest {
     }
 
     @Test
-    fun savedCaptureReportsItsPath() {
+    fun savedCaptureIsMovedIntoTheSdkDirectoryBeforeItIsReported() {
+        val systemTrace = File(systemDirectory, "profile_2026-10-23.perfetto-stack-sample")
+        systemTrace.writeText("trace")
         target.captureStackSample(7, 3_000, 100, 2_048)
 
         assertThat(profiler.requests).containsExactly(ProfileRequest(7, ProfileType.STACK_SAMPLING, 3_000, 100, 2_048))
-        profiler.complete(ProfileOutcome.Saved("/data/user/0/app/files/profiling/trace"))
+        profiler.complete(ProfileOutcome.Saved(systemTrace.path))
 
-        assertThat(bridge.completions).containsExactly(
-            RecordingBridge.Completion(7, "/data/user/0/app/files/profiling/trace", 0, null, null),
-        )
+        val expected = File(traceDirectory, systemTrace.name)
+        assertThat(bridge.completions).containsExactly(RecordingBridge.Completion(7, expected.path, 0, null, null))
+        assertThat(expected).hasContent("trace")
+        assertThat(systemTrace).doesNotExist()
+    }
+
+    @Test
+    fun savedCaptureThatCannotBeMovedKeepsTheSystemPath() {
+        target.captureStackSample(7, 3_000, 100, 2_048)
+        val missing = File(systemDirectory, "vanished.perfetto-stack-sample").path
+        profiler.complete(ProfileOutcome.Saved(missing))
+
+        assertThat(bridge.completions).containsExactly(RecordingBridge.Completion(7, missing, 0, null, null))
     }
 
     @Test
     fun failedCaptureReportsTheProfilerError() {
         target.captureStackSample(7, 3_000, 100, 2_048)
-        profiler.complete(ProfileOutcome.Failed(2, "ERROR_FAILED_RATE_LIMIT_PROCESS", "rate limited"))
+        profiler.complete(ProfileOutcome.Failed(2, "FAILED_RATE_LIMIT_PROCESS", "rate limited"))
 
         assertThat(bridge.completions).containsExactly(
-            RecordingBridge.Completion(7, null, 2, "ERROR_FAILED_RATE_LIMIT_PROCESS", "rate limited"),
+            RecordingBridge.Completion(7, null, 2, "FAILED_RATE_LIMIT_PROCESS", "rate limited"),
         )
     }
 

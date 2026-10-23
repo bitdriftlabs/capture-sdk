@@ -20,7 +20,8 @@ import java.util.function.Consumer
 
 /**
  * Runs captures through android.os.ProfilingManager, building each request with androidx.core's
- * request builders. Every parameter is always set: the platform's own defaults are not documented.
+ * request builders. Every sampling parameter is always set: the platform's own defaults are not
+ * documented. The request tag is left unset so a future command argument can hand it to the app.
  */
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 internal class ProfilingManagerProfiler(
@@ -59,7 +60,6 @@ internal class ProfilingManagerProfiler(
                     .setDurationMs(durationMs.coerceIn(MIN_DURATION_MS, MAX_DURATION_MS).toInt())
                     .setSamplingFrequencyHz(frequencyHz)
                     .setBufferSizeKb(bufferSizeKb)
-                    .setTag(TAG)
                     .setCancellationSignal(signal)
                     .build()
         }
@@ -76,9 +76,6 @@ internal class ProfilingManagerProfiler(
     }
 
     private companion object {
-        // The output file's name prefix; used to recognise the SDK's own results.
-        const val TAG = "bitdrift"
-
         // The core bounds the duration before it reaches this class (10 s by default, and never
         // more than its execution timeout allows). These only guard against a misconfigured
         // runtime flag, so they are deliberately wide.
