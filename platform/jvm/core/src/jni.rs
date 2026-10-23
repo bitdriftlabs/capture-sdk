@@ -13,6 +13,7 @@ use crate::events::ListenerTargetHandler as EventsListenerTargetHandler;
 use crate::key_value_storage::PreferencesHandle;
 use crate::resource_utilization::TargetHandler as ResourceUtilizationTargetHandler;
 use crate::session::SessionCallback;
+use crate::profiling::{self, TargetHandler as ProfilingTargetHandler};
 use crate::session_replay::{self, TargetHandler as SessionReplayTargetHandler};
 use crate::{
   commands,
@@ -414,6 +415,7 @@ fn jni_load_inner(vm: &JavaVM) -> anyhow::Result<jint> {
   resource_utilization::initialize(&mut env)?;
   session_replay::initialize(&mut env)?;
   commands::initialize(&mut env)?;
+  profiling::initialize(&mut env)?;
 
   Ok(env.get_version()?.into())
 }
@@ -773,6 +775,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
   resource_utilization_target: JObject<'_>,
   session_replay_target: JObject<'_>,
   events_listener_target: JObject<'_>,
+  profiling_target: JObject<'_>,
   application_id: JString<'_>,
   application_version: JString<'_>,
   os_version: JString<'_>,
@@ -872,6 +875,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         events_listener_target,
       )?);
 
+      let profiling_target = Box::new(ProfilingTargetHandler::new_global(
+        &env,
+        profiling_target,
+      )?);
+
       // Errors emitted up until this point are not reported to bitdrift remote.
       // TODO(Augustyniak): Make it more obvious that as much work as possible should be done after
       // the error reporter is set up.
@@ -906,6 +914,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       })
       .with_internal_logger(true)
       .with_crash_report_hook(crash_report_hook)
+      .with_profiling_target(profiling_target)
       .build()
       .map(|(logger, _, future, _)| {
         LoggerHolder::new_with_static_metadata(
@@ -1341,6 +1350,40 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeDevice
       Ok(())
     },
     "jni complete device command screenshot",
+  );
+}
+
+/// Completes a stack sample requested through `IProfilingTarget.captureStackSample`. A null
+/// `path` reports the failure described by the error arguments.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeStackSample(
+  mut env: JNIEnv<'_>,
+  _class: JClass<'_>,
+  request_id: jlong,
+  path: JString<'_>,
+  error_code: jint,
+  error_name: JString<'_>,
+  error_message: JString<'_>,
+) {
+  with_handle_unexpected(
+    || -> anyhow::Result<()> {
+      let optional_string = |env: &mut JNIEnv<'_>, value: &JString<'_>| -> anyhow::Result<Option<String>> {
+        if value.is_null() {
+          Ok(None)
+        } else {
+          Ok(Some(env.get_string(value)?.into()))
+        }
+      };
+      let path = optional_string(&mut env, &path)?;
+      let error_name = optional_string(&mut env, &error_name)?;
+      let error_message = optional_string(&mut env, &error_message)?;
+      profiling::complete_stack_sample(
+        request_id.cast_unsigned(),
+        profiling::stack_sample_result(path, error_code, error_name, error_message),
+      );
+      Ok(())
+    },
+    "jni complete stack sample",
   );
 }
 

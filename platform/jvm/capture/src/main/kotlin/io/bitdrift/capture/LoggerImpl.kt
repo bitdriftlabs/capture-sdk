@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -47,6 +48,12 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
+import io.bitdrift.capture.profiling.IProfilingBridge
+import io.bitdrift.capture.profiling.IProfilingTarget
+import io.bitdrift.capture.profiling.NoopProfilingTarget
+import io.bitdrift.capture.profiling.ProfileabilityChecker
+import io.bitdrift.capture.profiling.ProfilingManagerProfiler
+import io.bitdrift.capture.profiling.ProfilingTarget
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.CustomFieldsProvider
 import io.bitdrift.capture.providers.DateProvider
@@ -111,6 +118,7 @@ internal class LoggerImpl(
     private var deviceCodeService: DeviceCodeService = DeviceCodeService(apiClient),
     activityManager: ActivityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager,
     bridge: IBridge = CaptureJniLibrary,
+    profilingBridge: IProfilingBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     commandRegistry: CommandRegistry = Capture.commandRegistry,
@@ -219,6 +227,20 @@ internal class LoggerImpl(
                 )
             } ?: NoopSessionReplayTarget()
 
+        // ProfilingManager exists from Android 15; below it the command fails as unsupported.
+        val profilingTarget: IProfilingTarget =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                ProfilingTarget(
+                    profiler = ProfilingManagerProfiler(context, eventListenerDispatcher.executorService),
+                    profileability = ProfileabilityChecker(context),
+                    background = eventListenerDispatcher,
+                    bridge = profilingBridge,
+                    logger = this,
+                )
+            } else {
+                NoopProfilingTarget(profilingBridge)
+            }
+
         val sessionConfiguration = sessionStrategy.makeSessionConfiguration()
         val loggerId =
             bridge.createLogger(
@@ -241,6 +263,7 @@ internal class LoggerImpl(
                 // Pass the event listener target here and finish setting up
                 // before the logger is actually started.
                 eventsListenerTarget,
+                profilingTarget,
                 clientAttributes.appId,
                 clientAttributes.appVersion,
                 clientAttributes.osVersion,
