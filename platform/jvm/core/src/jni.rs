@@ -1437,7 +1437,9 @@ fn command_completion_result(
           ))
         } else if !attachment_path.is_null() {
           let path: String = unsafe { env.get_string_unchecked(attachment_path) }?.into();
-          Some(commands::PlatformAttachmentSource::Path(PathBuf::from(path)))
+          Some(commands::PlatformAttachmentSource::Path(PathBuf::from(
+            path,
+          )))
         } else {
           None
         };
