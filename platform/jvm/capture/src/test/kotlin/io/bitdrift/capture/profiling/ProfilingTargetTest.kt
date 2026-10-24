@@ -9,6 +9,7 @@ package io.bitdrift.capture.profiling
 
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.common.IBackgroundThreadHandler
 import io.bitdrift.capture.fakes.FakeBackgroundThreadHandler
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
@@ -24,6 +25,7 @@ class ProfilingTargetTest {
         val requests = mutableListOf<ProfileRequest>()
         val callbacks = mutableListOf<(ProfileOutcome) -> Unit>()
         val cancelled = mutableListOf<Long>()
+        var failure: RuntimeException? = null
 
         override fun request(
             request: ProfileRequest,
@@ -31,6 +33,7 @@ class ProfilingTargetTest {
         ): IProfilingCancel {
             requests += request
             callbacks += callback
+            failure?.let { throw it }
             return IProfilingCancel { cancelled += request.requestId }
         }
 
@@ -56,6 +59,19 @@ class ProfilingTargetTest {
             errorMessage: String?,
         ) {
             completions += Completion(requestId, path, errorCode, errorName, errorMessage)
+        }
+    }
+
+    /** Holds tasks until [runAll], like the real single-thread worker while it is busy. */
+    private class QueuedBackgroundThreadHandler : IBackgroundThreadHandler {
+        private val tasks = ArrayDeque<() -> Unit>()
+
+        override fun runAsync(task: () -> Unit) {
+            tasks += task
+        }
+
+        fun runAll() {
+            while (tasks.isNotEmpty()) tasks.removeFirst()()
         }
     }
 
@@ -156,6 +172,60 @@ class ProfilingTargetTest {
         target.captureStackSample(3, 1_000, 50, 256, "bitdrift")
 
         assertThat(profiler.requests.map { it.requestId }).containsExactly(1L, 3L)
+    }
+
+    @Test
+    fun requestFailureIsReportedAndFreesTheSlotEvenIfTheProfilerStillCallsBack() {
+        profiler.failure = IllegalStateException("profiling service unavailable")
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
+
+        assertThat(bridge.completions.map { it.requestId to it.errorName }).containsExactly(7L to "request_failed")
+        assertThat(bridge.completions[0].errorMessage).contains("profiling service unavailable")
+
+        // The platform may still deliver a result for the failed request; it must not be reported again.
+        profiler.complete(ProfileOutcome.Failed(1, "FAILED_RATE_LIMIT_SYSTEM", "late"))
+        assertThat(bridge.completions).hasSize(1)
+
+        profiler.failure = null
+        target.captureStackSample(8, 3_000, 100, 2_048, "bitdrift")
+        assertThat(profiler.requests.map { it.requestId }).containsExactly(7L, 8L)
+    }
+
+    @Test
+    fun cancelQueuedBehindAPendingStartStillStopsTheCapture() {
+        val queued = QueuedBackgroundThreadHandler()
+        val target =
+            ProfilingTarget(
+                profiler = profiler,
+                profileability = { profileable },
+                background = queued,
+                bridge = bridge,
+                logger = mock<IInternalLogger>(),
+                traceDirectory = traceDirectory,
+            )
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
+        target.cancelStackSample(7)
+        assertThat(profiler.requests).isEmpty()
+
+        queued.runAll()
+
+        assertThat(profiler.requests.map { it.requestId }).containsExactly(7L)
+        assertThat(profiler.cancelled).containsExactly(7L)
+    }
+
+    @Test
+    fun traceSavedAfterCancelIsDeletedAndReportedAsCancelled() {
+        val systemTrace = File(systemDirectory, "profile_2026-10-23.perfetto-stack-sample")
+        systemTrace.writeText("trace")
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
+        target.cancelStackSample(7)
+
+        profiler.complete(ProfileOutcome.Saved(systemTrace.path))
+
+        assertThat(systemTrace).doesNotExist()
+        assertThat(traceDirectory.listFiles().orEmpty()).isEmpty()
+        assertThat(bridge.completions.map { it.requestId to it.errorName }).containsExactly(7L to "cancelled")
+        assertThat(bridge.completions[0].path).isNull()
     }
 
     @Test

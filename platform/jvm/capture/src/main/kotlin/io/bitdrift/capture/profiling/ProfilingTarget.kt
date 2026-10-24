@@ -34,6 +34,8 @@ internal class ProfilingTarget(
     ) {
         @Volatile
         var cancel: IProfilingCancel? = null
+        val cancelled = AtomicBoolean(false)
+        val completed = AtomicBoolean(false)
     }
 
     private val lock = Any()
@@ -55,14 +57,19 @@ internal class ProfilingTarget(
     }
 
     override fun cancelStackSample(requestId: Long) {
-        val cancel = synchronized(lock) { active?.takeIf { it.requestId == requestId }?.cancel }
-        cancel?.cancel()
+        // Queued on the same serial worker as start(): the cancel always runs after the start it
+        // belongs to, once the profiler has handed back its cancel handle, so it cannot be lost.
+        background.runAsync {
+            val active = synchronized(lock) { active?.takeIf { it.requestId == requestId } } ?: return@runAsync
+            active.cancelled.set(true)
+            active.cancel?.cancel()
+        }
     }
 
     private fun start(request: ProfileRequest) {
         if (swept.compareAndSet(false, true)) sweepOrphans()
         if (!profileability.isProfileable()) {
-            complete(
+            report(
                 request.requestId,
                 ProfileOutcome.Failed(
                     0,
@@ -75,7 +82,7 @@ internal class ProfilingTarget(
         val pending = Active(request.requestId)
         val claimed = synchronized(lock) { (active == null).also { if (it) active = pending } }
         if (!claimed) {
-            complete(
+            report(
                 request.requestId,
                 ProfileOutcome.Failed(0, "already_executing", "a stack sampling capture is already in progress"),
             )
@@ -84,16 +91,40 @@ internal class ProfilingTarget(
         logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG) {
             "starting stack sample ${request.requestId}: ${request.durationMs} ms at ${request.frequencyHz} Hz"
         }
-        pending.cancel = profiler.request(request) { outcome -> complete(request.requestId, outcome) }
+        pending.cancel =
+            try {
+                profiler.request(request) { outcome -> finish(pending, outcome) }
+            } catch (e: RuntimeException) {
+                // A Binder failure in the profiling service must not take the host app down, and
+                // the slot must not stay claimed.
+                finish(pending, ProfileOutcome.Failed(0, "request_failed", e.toString()))
+                return
+            }
     }
 
-    private fun complete(
+    /** Ends a claimed capture exactly once, however many times the profiler reports it. */
+    private fun finish(
+        active: Active,
+        outcome: ProfileOutcome,
+    ) {
+        if (!active.completed.compareAndSet(false, true)) return
+        synchronized(lock) {
+            if (this.active === active) this.active = null
+        }
+        if (active.cancelled.get() && outcome is ProfileOutcome.Saved) {
+            // The core gave up on this capture when it cancelled it, so nobody would upload the
+            // file; reclaim it now rather than leaving it to a later process's sweep.
+            File(outcome.path).delete()
+            report(active.requestId, ProfileOutcome.Failed(0, "cancelled", "the stack sampling capture was cancelled"))
+            return
+        }
+        report(active.requestId, outcome)
+    }
+
+    private fun report(
         requestId: Long,
         outcome: ProfileOutcome,
     ) {
-        synchronized(lock) {
-            if (active?.requestId == requestId) active = null
-        }
         when (outcome) {
             is ProfileOutcome.Saved -> {
                 val path = claim(outcome.path)
