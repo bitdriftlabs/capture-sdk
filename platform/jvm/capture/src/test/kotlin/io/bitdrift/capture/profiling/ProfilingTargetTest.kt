@@ -192,6 +192,40 @@ class ProfilingTargetTest {
     }
 
     @Test
+    fun traceSavedAfterTheRequestWasReportedAsFailedIsReclaimed() {
+        val systemTrace = File(systemDirectory, "profile_2026-10-24.perfetto-stack-sample")
+        systemTrace.writeText("trace")
+        profiler.failure = IllegalStateException("profiling service unavailable")
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
+        assertThat(bridge.completions.map { it.errorName }).containsExactly("request_failed")
+
+        // The platform saved a trace anyway; the core already has its failure, so the file is removed
+        // instead of staying in the system directory, outside the SDK's sweep.
+        profiler.complete(ProfileOutcome.Saved(systemTrace.path))
+
+        assertThat(systemTrace).doesNotExist()
+        assertThat(traceDirectory.listFiles().orEmpty()).isEmpty()
+        assertThat(bridge.completions).hasSize(1)
+    }
+
+    @Test
+    fun duplicateSavedCallbackDoesNotDeleteATraceAlreadyHandedToTheCore() {
+        val systemTrace = File(systemDirectory, "profile_2026-10-24.perfetto-stack-sample")
+        systemTrace.writeText("trace")
+        target.captureStackSample(7, 3_000, 100, 2_048, "bitdrift")
+        val callback = profiler.callbacks.single()
+        callback(ProfileOutcome.Saved(systemTrace.path))
+        val claimed = File(bridge.completions.single().path!!)
+        assertThat(claimed).hasContent("trace")
+
+        // A second delivery for the same request must leave the file the core now owns alone.
+        callback(ProfileOutcome.Saved(claimed.path))
+
+        assertThat(claimed).hasContent("trace")
+        assertThat(bridge.completions).hasSize(1)
+    }
+
+    @Test
     fun cancelQueuedBehindAPendingStartStillStopsTheCapture() {
         val queued = QueuedBackgroundThreadHandler()
         val target =

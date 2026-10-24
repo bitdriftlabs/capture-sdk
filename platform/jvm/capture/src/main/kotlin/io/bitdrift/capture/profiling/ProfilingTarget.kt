@@ -36,6 +36,10 @@ internal class ProfilingTarget(
         var cancel: IProfilingCancel? = null
         val cancelled = AtomicBoolean(false)
         val completed = AtomicBoolean(false)
+
+        /** Set once a saved trace was reported to the core, which owns the file from then on. */
+        @Volatile
+        var handedOver = false
     }
 
     private val lock = Any()
@@ -107,7 +111,13 @@ internal class ProfilingTarget(
         active: Active,
         outcome: ProfileOutcome,
     ) {
-        if (!active.completed.compareAndSet(false, true)) return
+        if (!active.completed.compareAndSet(false, true)) {
+            // Already reported (for example `request()` threw and the platform still delivered).
+            // A trace that arrives now would be uploaded by nobody, so it is reclaimed, unless the
+            // first report already handed a file to the core, which owns it from then on.
+            if (outcome is ProfileOutcome.Saved && !active.handedOver) File(outcome.path).delete()
+            return
+        }
         synchronized(lock) {
             if (this.active === active) this.active = null
         }
@@ -118,6 +128,7 @@ internal class ProfilingTarget(
             report(active.requestId, ProfileOutcome.Failed(0, "cancelled", "the stack sampling capture was cancelled"))
             return
         }
+        active.handedOver = outcome is ProfileOutcome.Saved
         report(active.requestId, outcome)
     }
 
