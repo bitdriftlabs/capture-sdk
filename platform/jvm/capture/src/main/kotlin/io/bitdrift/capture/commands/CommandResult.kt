@@ -45,8 +45,9 @@ sealed class CommandResult {
  * held in memory ([bytes]) or read from [file].
  *
  * @param bytes the payload; empty when the attachment is backed by [file].
- * @param file the file holding the payload, or null for an in-memory payload. The SDK takes
- * ownership of the file: it is read once, compressed into the SDK's own storage and deleted.
+ * @param file the file holding the payload, or null for an in-memory payload, always as an absolute
+ * path. The SDK takes ownership of the file: it is read once, compressed into the SDK's own storage
+ * and deleted, or deleted unread if the command is cancelled before the payload is uploaded.
  * @param contentType the MIME type of the payload, e.g. `application/json`.
  */
 class CommandAttachment private constructor(
@@ -75,6 +76,6 @@ class CommandAttachment private constructor(
         fun file(
             file: File,
             contentType: String,
-        ): CommandAttachment = CommandAttachment(ByteArray(0), file, contentType)
+        ): CommandAttachment = CommandAttachment(ByteArray(0), file.absoluteFile, contentType)
     }
 }

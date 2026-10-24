@@ -844,6 +844,42 @@ class CommandRegistryTest {
     }
 
     @Test
+    fun fileAttachmentsReachTheBridgeAsAbsolutePaths() {
+        val relative = java.io.File("relative-trace.perfetto")
+        registry.register("trace") {
+            success(attachment = CommandAttachment.file(relative, contentType = "application/octet-stream"))
+        }
+
+        registry.dispatch(1, "trace", null, "session")
+
+        // The uploader resolves relative paths against the SDK directory, not the JVM working directory.
+        assertThat(bridge.awaitCompletion().attachmentPath).isEqualTo(relative.absolutePath)
+    }
+
+    @Test
+    fun fileAttachmentOfAResultDiscardedAfterCoreCancellationIsDeleted() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher)
+        val file = java.io.File.createTempFile("trace", ".perfetto")
+        val gate = CompletableDeferred<Unit>()
+        registry.register("trace") {
+            // Finishes the capture even once cancelled, like a handler in the middle of blocking work.
+            withContext(NonCancellable) { gate.await() }
+            success(attachment = CommandAttachment.file(file, contentType = "application/octet-stream"))
+        }
+        registry.dispatch(1, "trace", null, "session")
+        queued.runAll()
+
+        registry.cancel(1)
+        gate.complete(Unit)
+        queued.runAll()
+
+        // Nothing is reported for a cancelled invocation, and the file nobody will upload is gone.
+        assertThat(bridge.pendingCompletions()).isZero()
+        assertThat(file).doesNotExist()
+    }
+
+    @Test
     fun completesErrorWithTitleDescriptionAndContext() {
         registry.register("fail") { error("Unsupported", description = "always fails", context = mapOf("code" to "42")) }
 

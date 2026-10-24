@@ -19,6 +19,7 @@ import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import java.util.Collections
@@ -137,7 +138,9 @@ internal class CommandRegistry(
                         // completed before the invocation started would otherwise still run the handler.
                         ensureActive()
                         val result = registration.handler(invocation)
-                        // Like withContext, a result produced after cancellation is discarded.
+                        // Like withContext, a result produced after cancellation is discarded, and a
+                        // file it handed over with it: nobody will upload it.
+                        if (!isActive) result.discardOwnedFile()
                         ensureActive()
                         Outcome.Returned(result)
                     } catch (e: InvalidCommandArgumentException) {
@@ -161,7 +164,10 @@ internal class CommandRegistry(
             // non-cooperative handler really exits. Release every claim exactly once, before reporting.
             slots.release()
             running.remove(key)
-            if (!runningInvocation.cancelledByCore.get()) {
+            if (runningInvocation.cancelledByCore.get()) {
+                // The core stopped waiting; a result that still came back is never reported.
+                (outcome as? Outcome.Returned)?.result?.discardOwnedFile()
+            } else {
                 when (val result = outcome) {
                     is Outcome.Returned -> complete(invocationId, result.result)
                     is Outcome.Failed -> fail(invocationId, result.code, result.message)
@@ -244,6 +250,11 @@ internal class CommandRegistry(
                     result.context.toJniFields(),
                 )
         }
+    }
+
+    /** The SDK owns a file-backed attachment; one it will never upload is deleted here. */
+    private fun CommandResult.discardOwnedFile() {
+        (this as? CommandResult.Success)?.attachment?.file?.delete()
     }
 
     private fun Map<String, String>.toJniFields(): Array<Field> = map { (key, value) -> Field(key, value.toFieldValue()) }.toTypedArray()

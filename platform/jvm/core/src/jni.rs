@@ -1395,10 +1395,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
   attachment_content_type: JString<'_>,
 ) {
   let invocation_id = invocation_id.cast_unsigned();
-  let Some(sender) = commands::take_invocation(invocation_id) else {
-    log::debug!("ignoring completion for unknown command invocation {invocation_id}");
-    return;
-  };
+  let sender = commands::take_invocation(invocation_id);
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let result = command_completion_result(
@@ -1410,7 +1407,14 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
         &attachment_path,
         &attachment_content_type,
       );
-      commands::complete_taken_invocation(invocation_id, sender, result);
+      if let Some(sender) = sender {
+        commands::complete_taken_invocation(invocation_id, sender, result);
+      } else {
+        // The core already reported this command (timeout or cancellation); a file the
+        // platform handed over with the late result must not be left behind.
+        log::debug!("ignoring completion for unknown command invocation {invocation_id}");
+        commands::discard_result(result);
+      }
       Ok(())
     },
     "jni complete command",

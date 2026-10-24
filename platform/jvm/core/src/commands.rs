@@ -91,8 +91,32 @@ pub(crate) fn complete_taken_invocation(
   sender: oneshot::Sender<CommandResult>,
   result: CommandResult,
 ) {
-  if sender.send(result).is_err() {
+  if let Err(result) = sender.send(result) {
     log::debug!("command invocation {invocation_id} completed after its caller stopped waiting");
+    discard_result(result);
+  }
+}
+
+/// Drops a result nobody will upload. The platform handed the SDK ownership of a file-backed
+/// attachment, so the file is deleted rather than left behind. A relative path is left alone:
+/// each consumer resolves it against a different root.
+pub(crate) fn discard_result(result: CommandResult) {
+  if let CommandResult::Completed {
+    attachment:
+      Some(CommandAttachment {
+        source: bd_artifact_upload::UploadSource::Path(path),
+        ..
+      }),
+    ..
+  } = result
+    && path.is_absolute()
+    && let Err(error) = std::fs::remove_file(&path)
+    && error.kind() != std::io::ErrorKind::NotFound
+  {
+    log::debug!(
+      "failed to remove discarded command attachment {}: {error}",
+      path.display()
+    );
   }
 }
 

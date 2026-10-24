@@ -16,6 +16,7 @@ import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.InvalidCommandArgumentException
 import io.bitdrift.capture.commands.argument
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
@@ -128,27 +129,25 @@ internal class StackSamplingCommand(
     /**
      * Runs the capture and suspends until the profiler reports. Cancelling the coroutine stops the
      * capture; a trace the profiler still saves afterwards is deleted, since nobody would upload it.
+     * `resume(value, onCancellation)` is the documented way to release a resource whose resumption
+     * is lost to cancellation; it is still marked experimental in kotlinx-coroutines 1.7.
      */
+    @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun capture(request: ProfileRequest): ProfileOutcome =
         suspendCancellableCoroutine { continuation ->
-            val cancelled = AtomicBoolean(false)
             val cancel =
                 try {
                     profiler.request(request) { outcome ->
-                        if (cancelled.get() && outcome is ProfileOutcome.Saved) {
-                            File(outcome.path).delete()
-                        }
-                        continuation.resume(outcome)
+                        // The outcome is delivered unless the coroutine was cancelled before, or while,
+                        // it resumes; then a saved trace, which nobody would upload, is deleted.
+                        continuation.resume(outcome) { (outcome as? ProfileOutcome.Saved)?.let { File(it.path).delete() } }
                     }
                 } catch (e: RuntimeException) {
                     // A Binder failure in the profiling service must not take the host app down.
                     continuation.resume(ProfileOutcome.Failed(0, "request_failed", e.toString()))
                     return@suspendCancellableCoroutine
                 }
-            continuation.invokeOnCancellation {
-                cancelled.set(true)
-                cancel.cancel()
-            }
+            continuation.invokeOnCancellation { cancel.cancel() }
         }
 
     /** Moves the trace into [traceDirectory]; a trace that cannot be moved stays where the system wrote it. */

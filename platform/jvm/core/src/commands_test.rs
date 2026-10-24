@@ -476,3 +476,30 @@ fn malformed_jni_completion_completes_and_clears_exception() -> anyhow::Result<(
     Ok(())
   })
 }
+
+#[test]
+fn late_completion_deletes_the_file_the_platform_handed_over() {
+  let directory = tempfile::tempdir().unwrap();
+  let path = directory.path().join("trace.perfetto");
+  std::fs::write(&path, b"trace").unwrap();
+  let (sender, receiver) = oneshot::channel();
+  // The core stopped waiting (timeout or cancellation) before the platform reported.
+  drop(receiver);
+
+  complete_taken_invocation(
+    7,
+    sender,
+    CommandResult::Completed {
+      fields: LogFields::default(),
+      attachment: Some(CommandAttachment {
+        source: UploadSource::Path(path.clone()),
+        content_type: None,
+      }),
+    },
+  );
+
+  assert!(
+    !path.exists(),
+    "a result nobody uploads must not leave its file behind"
+  );
+}

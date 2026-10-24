@@ -16,6 +16,7 @@ import io.bitdrift.capture.commands.CommandInvocation
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -202,6 +203,27 @@ class StackSamplingCommandTest {
 
             // The platform still saves the trace; nobody will upload it, so it is removed at once.
             profiler.complete(ProfileOutcome.Saved(trace.path))
+            assertThat(trace).doesNotExist()
+            assertThat(traceDirectory.listFiles().orEmpty()).isEmpty()
+        }
+
+    @Test
+    fun traceSavedBeforeACancelledResumptionRunsIsDeleted(): Unit =
+        runBlocking {
+            val trace = systemTrace()
+            // A dispatcher that holds resumptions until asked, like a busy worker thread.
+            val queued = java.util.concurrent.ConcurrentLinkedQueue<Runnable>()
+            val executor = java.util.concurrent.Executor { queued.add(it) }
+            val dispatcher = executor.asCoroutineDispatcher()
+            val job = launch(dispatcher) { command.handler(invocation()) }
+            generateSequence { queued.poll() }.forEach { it.run() }
+            assertThat(profiler.requests).hasSize(1)
+
+            // The profiler reports, which schedules the resumption; the command is cancelled before it runs.
+            profiler.complete(ProfileOutcome.Saved(trace.path))
+            job.cancel()
+            generateSequence { queued.poll() }.forEach { it.run() }
+
             assertThat(trace).doesNotExist()
             assertThat(traceDirectory.listFiles().orEmpty()).isEmpty()
         }
