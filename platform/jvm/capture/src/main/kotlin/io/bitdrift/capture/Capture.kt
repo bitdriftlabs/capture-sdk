@@ -21,6 +21,7 @@ import io.bitdrift.capture.commands.CommandHandle
 import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
+import io.bitdrift.capture.profiling.StackSamplingCommand
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
@@ -521,7 +522,8 @@ object Capture {
          * [key] leaves a started invocation alone. To tie a command to a component, pass its scope as [owner].
          *
          * @param key the unique key identifying the command. Registering a key that is already
-         * registered replaces the handler used by future invocations.
+         * registered replaces the handler used by future invocations. Keys of the SDK's built-in
+         * commands (`stack_sampling_trace`) are reserved and rejected with an [IllegalArgumentException].
          * @param owner the scope that owns this registration, e.g. a `viewModelScope`. When it
          * completes or is cancelled, the command is unregistered and its in-flight invocations are
          * cancelled and reported as failed, so a handler does not outlive the component that
@@ -543,7 +545,10 @@ object Capture {
             key: String,
             owner: CoroutineScope? = null,
             handler: suspend CommandScope.() -> CommandResult,
-        ): CommandHandle = commandRegistry.register(key, owner, handler)
+        ): CommandHandle {
+            require(key !in StackSamplingCommand.RESERVED_KEYS) { "command key $key is reserved by the SDK" }
+            return commandRegistry.register(key, owner, handler)
+        }
 
         /**
          * Unregisters the command registered with [key]. Running invocations are not cancelled.
@@ -552,7 +557,7 @@ object Capture {
          */
         @JvmStatic
         @ExperimentalBitdriftApi
-        fun unregisterCommand(key: String): Boolean = commandRegistry.unregister(key)
+        fun unregisterCommand(key: String): Boolean = key !in StackSamplingCommand.RESERVED_KEYS && commandRegistry.unregister(key)
 
         /**
          * Adds a field that should be attached to all logs emitted by the logger going forward.
