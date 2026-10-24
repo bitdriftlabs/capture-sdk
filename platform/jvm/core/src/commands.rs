@@ -27,6 +27,7 @@ use jni::objects::{JIntArray, JObject, JObjectArray, JValue};
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::jvalue;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex, MutexGuard, OnceLock, PoisonError};
 use tokio::sync::oneshot;
@@ -95,9 +96,15 @@ pub(crate) fn complete_taken_invocation(
   }
 }
 
-/// A successful result's attachment as reported by Kotlin.
+/// A successful result's attachment as reported by Kotlin: either the payload itself or the path
+/// of a file the uploader reads once and deletes.
+pub(crate) enum PlatformAttachmentSource {
+  Bytes(Vec<u8>),
+  Path(PathBuf),
+}
+
 pub(crate) struct PlatformAttachment {
-  pub bytes: Vec<u8>,
+  pub source: PlatformAttachmentSource,
   pub content_type: String,
 }
 
@@ -108,7 +115,10 @@ pub(crate) fn completed_result(
   CommandResult::Completed {
     fields,
     attachment: attachment.map(|attachment| CommandAttachment {
-      source: bd_artifact_upload::UploadSource::Bytes(attachment.bytes),
+      source: match attachment.source {
+        PlatformAttachmentSource::Bytes(bytes) => bd_artifact_upload::UploadSource::Bytes(bytes),
+        PlatformAttachmentSource::Path(path) => bd_artifact_upload::UploadSource::Path(path),
+      },
       content_type: Some(attachment.content_type),
     }),
   }

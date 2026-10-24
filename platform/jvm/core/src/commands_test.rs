@@ -93,6 +93,7 @@ async fn dropping_execution_removes_sender_and_calls_real_jni_cancel_method() {
       JObjectArray::from(JObject::null()),
       JObject::null(),
       JString::from(JObject::null()),
+      JString::from(JObject::null()),
     );
     assert!(!env.exception_check()?);
     Ok(())
@@ -390,7 +391,7 @@ fn completed_attachment_preserves_result_context_and_payload() {
   let result = completed_result(
     context.clone(),
     Some(PlatformAttachment {
-      bytes: vec![0xFF, 0xD8],
+      source: PlatformAttachmentSource::Bytes(vec![0xFF, 0xD8]),
       content_type: "image/jpeg".to_string(),
     }),
   );
@@ -458,6 +459,7 @@ fn malformed_jni_completion_completes_and_clears_exception() -> anyhow::Result<(
       JString::from(JObject::null()),
       JObjectArray::from(JObject::null()),
       JObject::null(),
+      JString::from(JObject::null()),
       JString::from(JObject::null()),
     );
 

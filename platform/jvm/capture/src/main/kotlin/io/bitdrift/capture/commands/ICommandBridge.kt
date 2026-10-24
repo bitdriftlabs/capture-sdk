@@ -33,6 +33,7 @@ internal interface ICommandBridge {
         errorMessage: String?,
         fields: Array<Field>,
         attachment: ByteArray?,
+        attachmentPath: String?,
         attachmentContentType: String?,
     )
 }

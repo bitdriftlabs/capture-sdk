@@ -821,8 +821,26 @@ class CommandRegistryTest {
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isNull()
         assertThat(completion.attachment).isEqualTo(payload)
+        assertThat(completion.attachmentPath).isNull()
         assertThat(completion.attachmentContentType).isEqualTo("application/json")
         assertThat(completion.fields.associate { it.key to it.stringValue }).isEqualTo(context)
+    }
+
+    @Test
+    fun completesSuccessWithFileAttachmentByPath() {
+        val file = java.io.File.createTempFile("trace", ".perfetto")
+        registry.register("trace") {
+            success(attachment = CommandAttachment.file(file, contentType = "application/vnd.bitdrift.perfetto-trace"))
+        }
+
+        registry.dispatch(1, "trace", null, "session")
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.error).isNull()
+        assertThat(completion.attachment).isNull()
+        assertThat(completion.attachmentPath).isEqualTo(file.path)
+        assertThat(completion.attachmentContentType).isEqualTo("application/vnd.bitdrift.perfetto-trace")
+        file.delete()
     }
 
     @Test
@@ -1646,6 +1664,7 @@ class CommandRegistryTest {
             errorMessage: String?,
             fields: Array<Field>,
             attachment: ByteArray?,
+            attachmentPath: String?,
             attachmentContentType: String?,
         ) {
             if (failNextCompletion) {
@@ -1653,7 +1672,15 @@ class CommandRegistryTest {
                 throw IllegalStateException("completeCommand failed")
             }
             completions.add(
-                Completion(invocationId, errorCode, errorMessage, fields.toList(), attachment, attachmentContentType),
+                Completion(
+                    invocationId,
+                    errorCode,
+                    errorMessage,
+                    fields.toList(),
+                    attachment,
+                    attachmentPath,
+                    attachmentContentType,
+                ),
             )
         }
 
@@ -1671,6 +1698,7 @@ class CommandRegistryTest {
         val message: String?,
         val fields: List<Field>,
         val attachment: ByteArray?,
+        val attachmentPath: String?,
         val attachmentContentType: String?,
     ) {
         fun field(key: String): String? = fields.firstOrNull { it.key == key }?.stringValue

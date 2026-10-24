@@ -217,7 +217,7 @@ internal class CommandRegistry(
         message: String,
         fields: Array<Field> = emptyArray(),
     ) {
-        bridge.completeCommand(invocationId, code.wire, message, fields, null, null)
+        bridge.completeCommand(invocationId, code.wire, message, fields, null, null, null)
     }
 
     /** An error's title and description travel joined as the message; its context as fields. */
@@ -232,7 +232,8 @@ internal class CommandRegistry(
                     null,
                     null,
                     result.context.toJniFields(),
-                    result.attachment?.bytes,
+                    result.attachment?.takeIf { it.file == null }?.bytes,
+                    result.attachment?.file?.path,
                     result.attachment?.contentType,
                 )
             is CommandResult.Error ->
