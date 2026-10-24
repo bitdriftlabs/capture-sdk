@@ -35,10 +35,10 @@ use tokio::sync::oneshot;
 static COMMAND_DISPATCHER_DISPATCH: OnceLock<CachedMethod> = OnceLock::new();
 static COMMAND_DISPATCHER_CANCEL: OnceLock<CachedMethod> = OnceLock::new();
 static NEXT_INVOCATION_ID: AtomicU64 = AtomicU64::new(1);
-static PENDING_INVOCATIONS: LazyLock<Mutex<HashMap<u64, oneshot::Sender<CommandResult>>>> =
+static PENDING_INVOCATIONS: LazyLock<Mutex<HashMap<u64, oneshot::Sender<DeliveredResult>>>> =
   LazyLock::new(Mutex::default);
 
-fn pending_invocations() -> MutexGuard<'static, HashMap<u64, oneshot::Sender<CommandResult>>> {
+fn pending_invocations() -> MutexGuard<'static, HashMap<u64, oneshot::Sender<DeliveredResult>>> {
   PENDING_INVOCATIONS
     .lock()
     .unwrap_or_else(PoisonError::into_inner)
@@ -82,18 +82,43 @@ impl Drop for PendingInvocation<'_> {
   }
 }
 
-pub(crate) fn take_invocation(invocation_id: u64) -> Option<oneshot::Sender<CommandResult>> {
+/// A result on its way from the platform to the execute future that waits for it. If nobody takes
+/// it (the future was dropped after the send succeeded but before it read the channel, or the
+/// receiver was already gone), dropping it discards the result and so deletes a file-backed
+/// attachment the platform handed over.
+pub(crate) struct DeliveredResult(Option<CommandResult>);
+
+impl DeliveredResult {
+  fn into_inner(mut self) -> CommandResult {
+    // Taken exactly once; the fallback only exists to keep the type total.
+    self.0.take().unwrap_or_else(|| {
+      failed_result(CommandError::Other(
+        "command result was already taken".into(),
+      ))
+    })
+  }
+}
+
+impl Drop for DeliveredResult {
+  fn drop(&mut self) {
+    if let Some(result) = self.0.take() {
+      discard_result(result);
+    }
+  }
+}
+
+pub(crate) fn take_invocation(invocation_id: u64) -> Option<oneshot::Sender<DeliveredResult>> {
   pending_invocations().remove(&invocation_id)
 }
 
 pub(crate) fn complete_taken_invocation(
   invocation_id: u64,
-  sender: oneshot::Sender<CommandResult>,
+  sender: oneshot::Sender<DeliveredResult>,
   result: CommandResult,
 ) {
-  if let Err(result) = sender.send(result) {
+  // A failed send hands the result back, and dropping it discards it.
+  if sender.send(DeliveredResult(Some(result))).is_err() {
     log::debug!("command invocation {invocation_id} completed after its caller stopped waiting");
-    discard_result(result);
   }
 }
 
@@ -370,7 +395,7 @@ impl RegisteredCommandHandler for JniCommandHandler {
       },
       |result| {
         pending.armed = false;
-        result
+        result.into_inner()
       },
     )
   }

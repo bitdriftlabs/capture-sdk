@@ -436,7 +436,7 @@ async fn conversion_failure_completes_the_pending_invocation() {
   );
 
   assert!(matches!(
-    receiver.await.unwrap(),
+    receiver.await.unwrap().into_inner(),
     CommandResult::Failed { error, fields }
       if error == CommandError::HandlerFailed(
         "failed to convert command completion: simulated allocation failure".into(),
@@ -465,7 +465,7 @@ fn malformed_jni_completion_completes_and_clears_exception() -> anyhow::Result<(
 
     assert!(!env.exception_check()?);
     assert!(matches!(
-      receiver.try_recv()?,
+      receiver.try_recv()?.into_inner(),
       CommandResult::Failed { error, fields }
         if matches!(
           &error,
@@ -501,5 +501,34 @@ fn late_completion_deletes_the_file_the_platform_handed_over() {
   assert!(
     !path.exists(),
     "a result nobody uploads must not leave its file behind"
+  );
+}
+
+#[test]
+fn result_queued_for_a_future_that_never_reads_it_deletes_the_file_it_handed_over() {
+  let directory = tempfile::tempdir().unwrap();
+  let path = directory.path().join("trace.perfetto");
+  std::fs::write(&path, b"trace").unwrap();
+  let (sender, receiver) = oneshot::channel();
+
+  // The send succeeds: the receiver is alive, so the result sits in the channel...
+  complete_taken_invocation(
+    8,
+    sender,
+    CommandResult::Completed {
+      fields: LogFields::default(),
+      attachment: Some(CommandAttachment {
+        source: UploadSource::Path(path.clone()),
+        content_type: None,
+      }),
+    },
+  );
+  assert!(path.exists());
+
+  // ...until the execute future is dropped without ever reading it.
+  drop(receiver);
+  assert!(
+    !path.exists(),
+    "a queued result nobody reads must not leave its file behind"
   );
 }

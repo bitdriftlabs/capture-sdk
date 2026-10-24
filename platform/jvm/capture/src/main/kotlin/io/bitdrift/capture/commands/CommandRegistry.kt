@@ -9,6 +9,7 @@ package io.bitdrift.capture.commands
 
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.toFieldValue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -19,7 +20,6 @@ import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import java.util.Collections
@@ -139,9 +139,14 @@ internal class CommandRegistry(
                         ensureActive()
                         val result = registration.handler(invocation)
                         // Like withContext, a result produced after cancellation is discarded, and a
-                        // file it handed over with it: nobody will upload it.
-                        if (!isActive) result.discardOwnedFile()
-                        ensureActive()
+                        // file it handed over with it: nobody will upload it. The check and the
+                        // deletion share one branch so a cancellation cannot slip between them.
+                        try {
+                            ensureActive()
+                        } catch (e: CancellationException) {
+                            result.discardOwnedFile()
+                            throw e
+                        }
                         Outcome.Returned(result)
                     } catch (e: InvalidCommandArgumentException) {
                         Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
