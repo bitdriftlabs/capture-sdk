@@ -48,6 +48,9 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
+import io.bitdrift.capture.profiling.ProfileabilityChecker
+import io.bitdrift.capture.profiling.ProfilingManagerProfiler
+import io.bitdrift.capture.profiling.StackSamplingCommand
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.CustomFieldsProvider
 import io.bitdrift.capture.providers.DateProvider
@@ -78,9 +81,6 @@ import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
-import io.bitdrift.capture.profiling.ProfileabilityChecker
-import io.bitdrift.capture.profiling.ProfilingManagerProfiler
-import io.bitdrift.capture.profiling.StackSamplingCommand
 import java.io.File
 import java.util.UUID
 import kotlin.time.Duration

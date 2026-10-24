@@ -21,13 +21,13 @@ import io.bitdrift.capture.commands.CommandHandle
 import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
-import io.bitdrift.capture.profiling.StackSamplingCommand
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.events.span.Span
 import io.bitdrift.capture.events.span.SpanResult
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.network.HttpRequestInfo
 import io.bitdrift.capture.network.HttpResponseInfo
+import io.bitdrift.capture.profiling.StackSamplingCommand
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldGetter
 import io.bitdrift.capture.providers.Fields

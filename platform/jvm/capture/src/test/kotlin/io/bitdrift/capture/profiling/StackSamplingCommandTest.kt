@@ -9,17 +9,16 @@ package io.bitdrift.capture.profiling
 
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.Capture
-import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.commands.CommandArgument
 import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandInvocation
 import io.bitdrift.capture.commands.CommandResult
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Test
@@ -29,9 +28,10 @@ import java.nio.file.Files
 /**
  * Pins the built-in stack sampling handler: argument defaults and clamps, fail-fast when the process
  * is not profileable, the trace moved into SDK storage and attached by path, and cleanup after a
- * cancelled capture.
+ * cancelled capture. Handlers run on [Dispatchers.Unconfined] so they reach the profiler before the
+ * test continues and resume inline when the fake profiler reports.
  */
-@OptIn(ExperimentalCoroutinesApi::class, ExperimentalBitdriftApi::class)
+@OptIn(ExperimentalBitdriftApi::class)
 class StackSamplingCommandTest {
     private class FakeProfiler : IProfiler {
         val requests = mutableListOf<ProfileRequest>()
@@ -74,11 +74,10 @@ class StackSamplingCommandTest {
     private fun systemTrace(): File = File(systemDirectory, "profile_2026-10-24.perfetto-stack-sample").apply { writeText("trace") }
 
     @Test
-    fun defaultsApplyAndTheTraceIsMovedAndAttachedByPath() =
-        runTest {
+    fun defaultsApplyAndTheTraceIsMovedAndAttachedByPath(): Unit =
+        runBlocking {
             val trace = systemTrace()
-            val result = async { command.handler(invocation()) }
-            runCurrent()
+            val result = async(Dispatchers.Unconfined) { command.handler(invocation()) }
 
             assertThat(profiler.requests).containsExactly(
                 ProfileRequest(1, ProfileType.STACK_SAMPLING, 3_000, 100, 2_048, "bitdrift"),
@@ -103,10 +102,10 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun argumentsAreClampedAndTheTagIsPassedThrough() =
-        runTest {
+    fun argumentsAreClampedAndTheTagIsPassedThrough(): Unit =
+        runBlocking {
             val result =
-                async {
+                async(Dispatchers.Unconfined) {
                     command.handler(
                         invocation(
                             "duration_ms" to int(60_000),
@@ -116,7 +115,6 @@ class StackSamplingCommandTest {
                         ),
                     )
                 }
-            runCurrent()
 
             assertThat(profiler.requests.single()).isEqualTo(
                 ProfileRequest(1, ProfileType.STACK_SAMPLING, 10_000, 10, 16_384, "app.checkout_1"),
@@ -128,18 +126,17 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun emptyTagFallsBackToTheDefault() =
-        runTest {
-            val result = async { command.handler(invocation("tag" to text(""))) }
-            runCurrent()
+    fun emptyTagFallsBackToTheDefault(): Unit =
+        runBlocking {
+            val result = async(Dispatchers.Unconfined) { command.handler(invocation("tag" to text(""))) }
             assertThat(profiler.requests.single().tag).isEqualTo("bitdrift")
             profiler.complete(ProfileOutcome.Saved(systemTrace().path))
             result.await()
         }
 
     @Test
-    fun invalidArgumentsFailBeforeTheProfilerIsAsked() =
-        runTest {
+    fun invalidArgumentsFailBeforeTheProfilerIsAsked(): Unit =
+        runBlocking {
             val invalid =
                 listOf(
                     invocation("tag" to text("../escape")),
@@ -157,8 +154,8 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun nonProfileableProcessFailsWithoutCallingTheProfiler() =
-        runTest {
+    fun nonProfileableProcessFailsWithoutCallingTheProfiler(): Unit =
+        runBlocking {
             profileable = false
 
             val error = command.handler(invocation()) as CommandResult.Error
@@ -169,10 +166,9 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun profilerFailureIsReportedWithItsCodeAndName() =
-        runTest {
-            val result = async { command.handler(invocation()) }
-            runCurrent()
+    fun profilerFailureIsReportedWithItsCodeAndName(): Unit =
+        runBlocking {
+            val result = async(Dispatchers.Unconfined) { command.handler(invocation()) }
             profiler.complete(ProfileOutcome.Failed(2, "FAILED_RATE_LIMIT_PROCESS", "rate limited"))
 
             val error = result.await() as CommandResult.Error
@@ -184,8 +180,8 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun requestFailureIsReportedInsteadOfEscaping() =
-        runTest {
+    fun requestFailureIsReportedInsteadOfEscaping(): Unit =
+        runBlocking {
             profiler.failure = IllegalStateException("profiling service unavailable")
 
             val error = command.handler(invocation()) as CommandResult.Error
@@ -195,15 +191,13 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun cancellationStopsTheCaptureAndDeletesALateTrace() =
-        runTest {
+    fun cancellationStopsTheCaptureAndDeletesALateTrace(): Unit =
+        runBlocking {
             val trace = systemTrace()
-            val job = launch { command.handler(invocation()) }
-            runCurrent()
+            val job = launch(Dispatchers.Unconfined) { command.handler(invocation()) }
             assertThat(profiler.requests).hasSize(1)
 
             job.cancel()
-            runCurrent()
             assertThat(profiler.cancelled).containsExactly(1L)
 
             // The platform still saves the trace; nobody will upload it, so it is removed at once.
@@ -213,10 +207,9 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun savedTraceThatCannotBeMovedKeepsTheSystemPath() =
-        runTest {
-            val result = async { command.handler(invocation()) }
-            runCurrent()
+    fun savedTraceThatCannotBeMovedKeepsTheSystemPath(): Unit =
+        runBlocking {
+            val result = async(Dispatchers.Unconfined) { command.handler(invocation()) }
             val missing = File(systemDirectory, "vanished.perfetto-stack-sample")
             profiler.complete(ProfileOutcome.Saved(missing.path))
 
@@ -225,15 +218,14 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun firstCaptureSweepsOldOrphansButKeepsRecentTracesAndSweepsOnlyOnce() =
-        runTest {
+    fun firstCaptureSweepsOldOrphansButKeepsRecentTracesAndSweepsOnlyOnce(): Unit =
+        runBlocking {
             traceDirectory.mkdirs()
             val orphan = File(traceDirectory, "orphan.perfetto-stack-sample").apply { writeText("old") }
             orphan.setLastModified(System.currentTimeMillis() - 60 * 60 * 1000L)
             val recent = File(traceDirectory, "recent.perfetto-stack-sample").apply { writeText("new") }
 
-            val first = async { command.handler(invocation()) }
-            runCurrent()
+            val first = async(Dispatchers.Unconfined) { command.handler(invocation()) }
             assertThat(orphan).doesNotExist()
             assertThat(recent).exists()
             profiler.complete(ProfileOutcome.Failed(0, "cancelled", "cancelled"))
@@ -242,8 +234,7 @@ class StackSamplingCommandTest {
             // A later orphan is not swept again in this process.
             val later = File(traceDirectory, "later.perfetto-stack-sample").apply { writeText("old") }
             later.setLastModified(System.currentTimeMillis() - 60 * 60 * 1000L)
-            val second = async { command.handler(invocation()) }
-            runCurrent()
+            val second = async(Dispatchers.Unconfined) { command.handler(invocation()) }
             assertThat(later).exists()
             profiler.complete(ProfileOutcome.Failed(0, "cancelled", "cancelled"))
             second.await()
