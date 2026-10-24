@@ -97,6 +97,7 @@ class CaptureLoggerNetworkTest {
             resourceUtilizationTarget = mock(),
             sessionReplayTarget = mock(),
             eventsListenerTarget = mock(),
+            profilingTarget = mock(),
             applicationId = "test",
             applicationVersion = "test",
             osVersion = "14",

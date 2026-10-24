@@ -24,6 +24,7 @@ pub mod executor;
 pub mod ffi;
 pub mod jni;
 pub mod key_value_storage;
+pub mod profiling;
 mod report_processing;
 pub mod resource_utilization;
 mod session;

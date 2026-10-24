@@ -269,7 +269,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 [[package]]
 name = "bd-api"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -292,7 +292,7 @@ dependencies = [
  "bd-time",
  "bd-workspace-hack",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "protobuf 4.0.0-alpha.0",
  "thiserror 2.0.21",
  "time",
@@ -304,7 +304,7 @@ dependencies = [
 [[package]]
 name = "bd-artifact-upload"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -336,17 +336,18 @@ dependencies = [
 [[package]]
 name = "bd-backoff"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-workspace-hack",
  "rand 0.10.3",
  "time",
+ "tokio",
 ]
 
 [[package]]
 name = "bd-bonjson"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "ahash",
  "bd-workspace-hack",
@@ -359,7 +360,7 @@ dependencies = [
 [[package]]
 name = "bd-bonjson-ffi"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-bonjson",
  "bd-workspace-hack",
@@ -372,7 +373,7 @@ dependencies = [
 [[package]]
 name = "bd-bounded-buffer"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "ahash",
  "bd-client-stats-store",
@@ -388,7 +389,7 @@ dependencies = [
 [[package]]
 name = "bd-buffer"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -409,7 +410,7 @@ dependencies = [
  "intrusive-collections",
  "log",
  "memmap2",
- "parking_lot",
+ "parking_lot 0.13.0",
  "static_assertions",
  "thiserror 2.0.21",
  "time",
@@ -420,7 +421,7 @@ dependencies = [
 [[package]]
 name = "bd-client-common"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -438,7 +439,7 @@ dependencies = [
  "itertools 0.15.0",
  "log",
  "mockall",
- "parking_lot",
+ "parking_lot 0.13.0",
  "protobuf 4.0.0-alpha.0",
  "tempfile",
  "thiserror 2.0.21",
@@ -450,7 +451,7 @@ dependencies = [
 [[package]]
 name = "bd-client-stats"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -471,7 +472,7 @@ dependencies = [
  "futures-util",
  "itertools 0.15.0",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "protobuf 4.0.0-alpha.0",
  "sha2",
  "time",
@@ -481,7 +482,7 @@ dependencies = [
 [[package]]
 name = "bd-client-stats-store"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -490,7 +491,7 @@ dependencies = [
  "bd-stats-common",
  "bd-workspace-hack",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "sketches-rust",
  "thiserror 2.0.21",
  "tokio",
@@ -499,7 +500,7 @@ dependencies = [
 [[package]]
 name = "bd-completion"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-workspace-hack",
@@ -511,7 +512,7 @@ dependencies = [
 [[package]]
 name = "bd-crash-handler"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -558,13 +559,13 @@ dependencies = [
 [[package]]
 name = "bd-device"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-key-value",
  "bd-workspace-hack",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "time",
  "uuid",
 ]
@@ -572,7 +573,7 @@ dependencies = [
 [[package]]
 name = "bd-error-reporter"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-client-common",
@@ -581,7 +582,7 @@ dependencies = [
  "bd-stats-common",
  "bd-workspace-hack",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "tokio",
  "uuid",
 ]
@@ -589,7 +590,7 @@ dependencies = [
 [[package]]
 name = "bd-event-buffer"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-client-common",
  "bd-client-stats-store",
@@ -606,7 +607,7 @@ dependencies = [
 [[package]]
 name = "bd-events"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-runtime",
@@ -619,7 +620,7 @@ dependencies = [
 [[package]]
 name = "bd-grpc"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -663,7 +664,7 @@ dependencies = [
 [[package]]
 name = "bd-grpc-codec"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-stats-common",
  "bd-workspace-hack",
@@ -677,7 +678,7 @@ dependencies = [
 [[package]]
 name = "bd-hyper-network"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -703,7 +704,7 @@ dependencies = [
 [[package]]
 name = "bd-internal-logging"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-log-primitives",
  "bd-proto",
@@ -714,7 +715,7 @@ dependencies = [
 [[package]]
 name = "bd-key-value"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -722,7 +723,7 @@ dependencies = [
  "bd-log-util",
  "bd-workspace-hack",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "protobuf 4.0.0-alpha.0",
  "time",
  "tokio",
@@ -731,7 +732,7 @@ dependencies = [
 [[package]]
 name = "bd-log"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-workspace-hack",
@@ -740,7 +741,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
- "parking_lot",
+ "parking_lot 0.13.0",
  "time",
  "tokio",
  "tracing",
@@ -752,7 +753,7 @@ dependencies = [
 [[package]]
 name = "bd-log-filter"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-client-stats-store",
@@ -770,7 +771,7 @@ dependencies = [
 [[package]]
 name = "bd-log-matcher"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "ahash",
  "anyhow",
@@ -788,7 +789,7 @@ dependencies = [
 [[package]]
 name = "bd-log-metadata"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-log-primitives",
@@ -799,7 +800,7 @@ dependencies = [
 [[package]]
 name = "bd-log-primitives"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "ahash",
  "anyhow",
@@ -817,11 +818,11 @@ dependencies = [
 [[package]]
 name = "bd-log-util"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-workspace-hack",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "time",
  "tokio",
 ]
@@ -829,7 +830,7 @@ dependencies = [
 [[package]]
 name = "bd-logger"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -878,7 +879,7 @@ dependencies = [
  "libc",
  "log",
  "notify",
- "parking_lot",
+ "parking_lot 0.13.0",
  "protobuf 4.0.0-alpha.0",
  "sha2",
  "thiserror 2.0.21",
@@ -893,7 +894,7 @@ dependencies = [
 [[package]]
 name = "bd-macros"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-macros-impl",
  "bd-workspace-hack",
@@ -904,7 +905,7 @@ dependencies = [
 [[package]]
 name = "bd-macros-impl"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-workspace-hack",
  "proc-macro2",
@@ -915,7 +916,7 @@ dependencies = [
 [[package]]
 name = "bd-metadata"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-workspace-hack",
 ]
@@ -923,7 +924,7 @@ dependencies = [
 [[package]]
 name = "bd-network-quality"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-workspace-hack",
 ]
@@ -931,7 +932,7 @@ dependencies = [
 [[package]]
 name = "bd-noop-network"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -943,7 +944,7 @@ dependencies = [
 [[package]]
 name = "bd-panic"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-workspace-hack",
  "color-backtrace",
@@ -954,7 +955,7 @@ dependencies = [
 [[package]]
 name = "bd-pgv"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-workspace-hack",
  "log",
@@ -967,7 +968,7 @@ dependencies = [
 [[package]]
 name = "bd-proto"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-pgv",
  "bd-workspace-hack",
@@ -980,7 +981,7 @@ dependencies = [
 [[package]]
 name = "bd-proto-util"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "ahash",
  "anyhow",
@@ -1001,7 +1002,7 @@ dependencies = [
 [[package]]
 name = "bd-report-parsers"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-proto",
@@ -1015,7 +1016,7 @@ dependencies = [
 [[package]]
 name = "bd-report-writer"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-proto",
  "bd-workspace-hack",
@@ -1026,7 +1027,7 @@ dependencies = [
 [[package]]
 name = "bd-resource-utilization"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-client-common",
@@ -1043,7 +1044,7 @@ dependencies = [
 [[package]]
 name = "bd-runtime"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1052,7 +1053,7 @@ dependencies = [
  "bd-time",
  "bd-workspace-hack",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "protobuf 4.0.0-alpha.0",
  "tempfile",
  "time",
@@ -1062,7 +1063,7 @@ dependencies = [
 [[package]]
 name = "bd-runtime-config"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "async-trait",
  "bd-server-stats",
@@ -1070,7 +1071,7 @@ dependencies = [
  "bd-workspace-hack",
  "log",
  "notify",
- "parking_lot",
+ "parking_lot 0.13.0",
  "prometheus",
  "rand 0.10.3",
  "serde",
@@ -1083,7 +1084,7 @@ dependencies = [
 [[package]]
 name = "bd-server-stats"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-stats-common",
@@ -1092,7 +1093,7 @@ dependencies = [
  "concat-string",
  "dashmap",
  "itertools 0.15.0",
- "parking_lot",
+ "parking_lot 0.13.0",
  "prometheus",
  "regex",
  "thiserror 2.0.21",
@@ -1103,7 +1104,7 @@ dependencies = [
 [[package]]
 name = "bd-session"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-client-common",
@@ -1123,7 +1124,7 @@ dependencies = [
 [[package]]
 name = "bd-session-replay"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-client-common",
@@ -1137,7 +1138,7 @@ dependencies = [
  "bd-time",
  "bd-workspace-hack",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "time",
  "tokio",
 ]
@@ -1145,7 +1146,7 @@ dependencies = [
 [[package]]
 name = "bd-shutdown"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "bd-workspace-hack",
  "log",
@@ -1155,7 +1156,7 @@ dependencies = [
 [[package]]
 name = "bd-state"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "ahash",
  "anyhow",
@@ -1178,7 +1179,7 @@ dependencies = [
 [[package]]
 name = "bd-stats-common"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-workspace-hack",
@@ -1188,7 +1189,7 @@ dependencies = [
 [[package]]
 name = "bd-test-helpers"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1217,7 +1218,7 @@ dependencies = [
  "hyper-util",
  "log",
  "ordered-float",
- "parking_lot",
+ "parking_lot 0.13.0",
  "prometheus",
  "protobuf 4.0.0-alpha.0",
  "serde",
@@ -1233,7 +1234,7 @@ dependencies = [
 [[package]]
 name = "bd-test-helpers-core"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "async-trait",
  "bd-log",
@@ -1246,11 +1247,11 @@ dependencies = [
 [[package]]
 name = "bd-time"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "async-trait",
  "bd-workspace-hack",
- "parking_lot",
+ "parking_lot 0.13.0",
  "protobuf 4.0.0-alpha.0",
  "rand 0.10.3",
  "time",
@@ -1260,7 +1261,7 @@ dependencies = [
 [[package]]
 name = "bd-versioned-kv"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "ahash",
  "anyhow",
@@ -1287,7 +1288,7 @@ dependencies = [
 [[package]]
 name = "bd-workflow-stats"
 version = "1.0.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "bd-macros",
@@ -1300,7 +1301,7 @@ dependencies = [
 [[package]]
 name = "bd-workflows"
 version = "0.1.0"
-source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=4959f6b546bad912838cffafb5f9498f10481841#4959f6b546bad912838cffafb5f9498f10481841"
+source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a#a5efd3fca67a2a76f9311e9cc85af8b53b8d9b9a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1324,7 +1325,7 @@ dependencies = [
  "bd-workspace-hack",
  "itertools 0.15.0",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "protobuf 4.0.0-alpha.0",
  "regex-lite",
  "serde",
@@ -1704,9 +1705,9 @@ dependencies = [
  "cfg-if",
  "crossbeam-utils",
  "hashbrown 0.14.5",
- "lock_api",
+ "lock_api 0.4.14",
  "once_cell",
- "parking_lot_core",
+ "parking_lot_core 0.9.12",
 ]
 
 [[package]]
@@ -2540,6 +2541,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lock_api"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65d91b22da179613dcf4d6ec8349563f52a363f6849e03b00dd0a185ec4a59af"
+dependencies = [
+ "scopeguard",
+]
+
+[[package]]
 name = "log"
 version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2876,8 +2886,18 @@ version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93857453250e3077bd71ff98b6a65ea6621a19bb0f559a85248955ac12c45a1a"
 dependencies = [
- "lock_api",
- "parking_lot_core",
+ "lock_api 0.4.14",
+ "parking_lot_core 0.9.12",
+]
+
+[[package]]
+name = "parking_lot"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9cf937ca4e1d0b7578784559063422fc39ae7c5a00f02471f2614d5486fd226"
+dependencies = [
+ "lock_api 0.5.0",
+ "parking_lot_core 0.10.0",
 ]
 
 [[package]]
@@ -2888,7 +2908,19 @@ checksum = "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1"
 dependencies = [
  "cfg-if",
  "libc",
- "redox_syscall",
+ "redox_syscall 0.5.18",
+ "smallvec",
+ "windows-link",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9cfff060068cc18aa7815010fcaf80c68c7fb9e85fc7f5c0f9bf142c21d19826"
+dependencies = [
+ "libc",
+ "redox_syscall 0.9.5",
  "smallvec",
  "windows-link",
 ]
@@ -2949,7 +2981,7 @@ dependencies = [
  "bd-runtime",
  "bd-session",
  "log",
- "parking_lot",
+ "parking_lot 0.12.5",
  "time",
 ]
 
@@ -3080,7 +3112,7 @@ dependencies = [
  "fnv",
  "lazy_static",
  "memchr",
- "parking_lot",
+ "parking_lot 0.12.5",
  "protobuf 3.7.2",
  "thiserror 2.0.21",
 ]
@@ -3314,6 +3346,15 @@ name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
+dependencies = [
+ "bitflags",
+]
+
+[[package]]
+name = "redox_syscall"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "580c875845b41ecb1564ad1ae4703044cef774145e3d7a94dc2b3fa7c97868fd"
 dependencies = [
  "bitflags",
 ]
@@ -3794,7 +3835,7 @@ dependencies = [
  "env_logger",
  "log",
  "objc",
- "parking_lot",
+ "parking_lot 0.12.5",
  "platform-shared",
  "protobuf 4.0.0-alpha.0",
  "tempfile",
@@ -4024,7 +4065,7 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
- "parking_lot",
+ "parking_lot 0.12.5",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",

@@ -94,6 +94,10 @@
    public <methods>;
 }
 
+-keep, includedescriptorclasses class io.bitdrift.capture.profiling.IProfilingTarget {
+   public <methods>;
+}
+
 -keep, includedescriptorclasses class io.bitdrift.capture.commands.ICommandDispatcher {
    public <methods>;
 }

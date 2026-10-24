@@ -12,6 +12,8 @@ import io.bitdrift.capture.commands.ICommandBridge
 import io.bitdrift.capture.commands.ICommandDispatcher
 import io.bitdrift.capture.error.IErrorReporter
 import io.bitdrift.capture.network.ICaptureNetwork
+import io.bitdrift.capture.profiling.IProfilingBridge
+import io.bitdrift.capture.profiling.IProfilingTarget
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.session.SessionCallback
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
@@ -32,7 +34,10 @@ interface StackTraceProvider {
 }
 
 @Suppress("UndocumentedPublicClass")
-internal object CaptureJniLibrary : IBridge, ICommandBridge {
+internal object CaptureJniLibrary :
+    IBridge,
+    ICommandBridge,
+    IProfilingBridge {
     /**
      * Loads the shared library. This is safe to call multiple times.
      */
@@ -56,6 +61,7 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
      * @param resourceUtilizationTarget used to inform platform layer about a need to emit a resource log.
      * @param sessionReplayTarget used to inform platform layer about a need to emit session replay logs.
      * @param eventsListenerTarget responsible for listening to platform events and emitting logs in response to them.
+     * @param profilingTarget records stack sampling traces for the built-in stack_sampling_trace command.
      * @param applicationId the application ID of the current app, used to identify with the backend
      * @param applicationVersion the version of the current app, used to identify with the backend
      * @param osVersion the operating system version of the current device, used to identify with the backend
@@ -83,6 +89,7 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
         resourceUtilizationTarget: IResourceUtilizationTarget,
         sessionReplayTarget: ISessionReplayTarget,
         eventsListenerTarget: IEventsListenerTarget,
+        profilingTarget: IProfilingTarget,
         applicationId: String,
         applicationVersion: String,
         osVersion: String,
@@ -285,6 +292,15 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
     external fun completeDeviceCommandScreenshot(
         requestId: Long,
         screenshot: ByteArray?,
+    )
+
+    /** Completes a stack sample requested through [IProfilingTarget.captureStackSample]. */
+    external override fun completeStackSample(
+        requestId: Long,
+        path: String?,
+        errorCode: Int,
+        errorName: String?,
+        errorMessage: String?,
     )
 
     /**
