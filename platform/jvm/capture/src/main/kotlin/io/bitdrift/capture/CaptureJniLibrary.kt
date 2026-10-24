@@ -321,9 +321,12 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
      * Rust `CommandError` variant, or null when the command succeeded.
      * @param errorMessage the failure detail; null when the command succeeded.
      * @param fields the fields describing the command result.
-     * @param attachment optional binary attachment for a successful result.
-     * @param attachmentContentType the MIME type of [attachment], e.g. `application/json`; null iff
-     * [attachment] is null.
+     * @param attachment optional in-memory attachment for a successful result.
+     * @param attachmentPath optional path of a file holding the attachment for a successful result;
+     * the uploader reads it once and deletes it. At most one of [attachment] and [attachmentPath]
+     * is set.
+     * @param attachmentContentType the MIME type of the attachment, e.g. `application/json`; null
+     * iff both [attachment] and [attachmentPath] are null.
      */
     external override fun completeCommand(
         invocationId: Long,
@@ -331,6 +334,7 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
         errorMessage: String?,
         fields: Array<Field>,
         attachment: ByteArray?,
+        attachmentPath: String?,
         attachmentContentType: String?,
     )
 

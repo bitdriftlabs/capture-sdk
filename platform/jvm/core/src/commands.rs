@@ -27,6 +27,7 @@ use jni::objects::{JIntArray, JObject, JObjectArray, JValue};
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::jvalue;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex, MutexGuard, OnceLock, PoisonError};
 use tokio::sync::oneshot;
@@ -34,10 +35,10 @@ use tokio::sync::oneshot;
 static COMMAND_DISPATCHER_DISPATCH: OnceLock<CachedMethod> = OnceLock::new();
 static COMMAND_DISPATCHER_CANCEL: OnceLock<CachedMethod> = OnceLock::new();
 static NEXT_INVOCATION_ID: AtomicU64 = AtomicU64::new(1);
-static PENDING_INVOCATIONS: LazyLock<Mutex<HashMap<u64, oneshot::Sender<CommandResult>>>> =
+static PENDING_INVOCATIONS: LazyLock<Mutex<HashMap<u64, oneshot::Sender<DeliveredResult>>>> =
   LazyLock::new(Mutex::default);
 
-fn pending_invocations() -> MutexGuard<'static, HashMap<u64, oneshot::Sender<CommandResult>>> {
+fn pending_invocations() -> MutexGuard<'static, HashMap<u64, oneshot::Sender<DeliveredResult>>> {
   PENDING_INVOCATIONS
     .lock()
     .unwrap_or_else(PoisonError::into_inner)
@@ -81,23 +82,78 @@ impl Drop for PendingInvocation<'_> {
   }
 }
 
-pub(crate) fn take_invocation(invocation_id: u64) -> Option<oneshot::Sender<CommandResult>> {
+/// A result on its way from the platform to the execute future that waits for it. If nobody takes
+/// it (the future was dropped after the send succeeded but before it read the channel, or the
+/// receiver was already gone), dropping it discards the result and so deletes a file-backed
+/// attachment the platform handed over.
+pub(crate) struct DeliveredResult(Option<CommandResult>);
+
+impl DeliveredResult {
+  fn into_inner(mut self) -> CommandResult {
+    // Taken exactly once; the fallback only exists to keep the type total.
+    self.0.take().unwrap_or_else(|| {
+      failed_result(CommandError::Other(
+        "command result was already taken".into(),
+      ))
+    })
+  }
+}
+
+impl Drop for DeliveredResult {
+  fn drop(&mut self) {
+    if let Some(result) = self.0.take() {
+      discard_result(result);
+    }
+  }
+}
+
+pub(crate) fn take_invocation(invocation_id: u64) -> Option<oneshot::Sender<DeliveredResult>> {
   pending_invocations().remove(&invocation_id)
 }
 
 pub(crate) fn complete_taken_invocation(
   invocation_id: u64,
-  sender: oneshot::Sender<CommandResult>,
+  sender: oneshot::Sender<DeliveredResult>,
   result: CommandResult,
 ) {
-  if sender.send(result).is_err() {
+  // A failed send hands the result back, and dropping it discards it.
+  if sender.send(DeliveredResult(Some(result))).is_err() {
     log::debug!("command invocation {invocation_id} completed after its caller stopped waiting");
   }
 }
 
-/// A successful result's attachment as reported by Kotlin.
+/// Drops a result nobody will upload. The platform handed the SDK ownership of a file-backed
+/// attachment, so the file is deleted rather than left behind. A relative path is left alone:
+/// each consumer resolves it against a different root.
+pub(crate) fn discard_result(result: CommandResult) {
+  if let CommandResult::Completed {
+    attachment:
+      Some(CommandAttachment {
+        source: bd_artifact_upload::UploadSource::Path(path),
+        ..
+      }),
+    ..
+  } = result
+    && path.is_absolute()
+    && let Err(error) = std::fs::remove_file(&path)
+    && error.kind() != std::io::ErrorKind::NotFound
+  {
+    log::debug!(
+      "failed to remove discarded command attachment {}: {error}",
+      path.display()
+    );
+  }
+}
+
+/// A successful result's attachment as reported by Kotlin: either the payload itself or the path
+/// of a file the uploader reads once and deletes.
+pub(crate) enum PlatformAttachmentSource {
+  Bytes(Vec<u8>),
+  Path(PathBuf),
+}
+
 pub(crate) struct PlatformAttachment {
-  pub bytes: Vec<u8>,
+  pub source: PlatformAttachmentSource,
   pub content_type: String,
 }
 
@@ -108,7 +164,10 @@ pub(crate) fn completed_result(
   CommandResult::Completed {
     fields,
     attachment: attachment.map(|attachment| CommandAttachment {
-      source: bd_artifact_upload::UploadSource::Bytes(attachment.bytes),
+      source: match attachment.source {
+        PlatformAttachmentSource::Bytes(bytes) => bd_artifact_upload::UploadSource::Bytes(bytes),
+        PlatformAttachmentSource::Path(path) => bd_artifact_upload::UploadSource::Path(path),
+      },
       content_type: Some(attachment.content_type),
     }),
   }
@@ -336,7 +395,7 @@ impl RegisteredCommandHandler for JniCommandHandler {
       },
       |result| {
         pending.armed = false;
-        result
+        result.into_inner()
       },
     )
   }

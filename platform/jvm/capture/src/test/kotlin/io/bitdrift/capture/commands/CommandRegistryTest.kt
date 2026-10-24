@@ -821,8 +821,62 @@ class CommandRegistryTest {
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isNull()
         assertThat(completion.attachment).isEqualTo(payload)
+        assertThat(completion.attachmentPath).isNull()
         assertThat(completion.attachmentContentType).isEqualTo("application/json")
         assertThat(completion.fields.associate { it.key to it.stringValue }).isEqualTo(context)
+    }
+
+    @Test
+    fun completesSuccessWithFileAttachmentByPath() {
+        val file = java.io.File.createTempFile("trace", ".perfetto")
+        registry.register("trace") {
+            success(attachment = CommandAttachment.file(file, contentType = "application/vnd.bitdrift.perfetto-trace"))
+        }
+
+        registry.dispatch(1, "trace", null, "session")
+
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.error).isNull()
+        assertThat(completion.attachment).isNull()
+        assertThat(completion.attachmentPath).isEqualTo(file.path)
+        assertThat(completion.attachmentContentType).isEqualTo("application/vnd.bitdrift.perfetto-trace")
+        file.delete()
+    }
+
+    @Test
+    fun fileAttachmentsReachTheBridgeAsAbsolutePaths() {
+        val relative = java.io.File("relative-trace.perfetto")
+        registry.register("trace") {
+            success(attachment = CommandAttachment.file(relative, contentType = "application/octet-stream"))
+        }
+
+        registry.dispatch(1, "trace", null, "session")
+
+        // The uploader resolves relative paths against the SDK directory, not the JVM working directory.
+        assertThat(bridge.awaitCompletion().attachmentPath).isEqualTo(relative.absolutePath)
+    }
+
+    @Test
+    fun fileAttachmentOfAResultDiscardedAfterCoreCancellationIsDeleted() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher)
+        val file = java.io.File.createTempFile("trace", ".perfetto")
+        val gate = CompletableDeferred<Unit>()
+        registry.register("trace") {
+            // Finishes the capture even once cancelled, like a handler in the middle of blocking work.
+            withContext(NonCancellable) { gate.await() }
+            success(attachment = CommandAttachment.file(file, contentType = "application/octet-stream"))
+        }
+        registry.dispatch(1, "trace", null, "session")
+        queued.runAll()
+
+        registry.cancel(1)
+        gate.complete(Unit)
+        queued.runAll()
+
+        // Nothing is reported for a cancelled invocation, and the file nobody will upload is gone.
+        assertThat(bridge.pendingCompletions()).isZero()
+        assertThat(file).doesNotExist()
     }
 
     @Test
@@ -1646,6 +1700,7 @@ class CommandRegistryTest {
             errorMessage: String?,
             fields: Array<Field>,
             attachment: ByteArray?,
+            attachmentPath: String?,
             attachmentContentType: String?,
         ) {
             if (failNextCompletion) {
@@ -1653,7 +1708,15 @@ class CommandRegistryTest {
                 throw IllegalStateException("completeCommand failed")
             }
             completions.add(
-                Completion(invocationId, errorCode, errorMessage, fields.toList(), attachment, attachmentContentType),
+                Completion(
+                    invocationId,
+                    errorCode,
+                    errorMessage,
+                    fields.toList(),
+                    attachment,
+                    attachmentPath,
+                    attachmentContentType,
+                ),
             )
         }
 
@@ -1671,6 +1734,7 @@ class CommandRegistryTest {
         val message: String?,
         val fields: List<Field>,
         val attachment: ByteArray?,
+        val attachmentPath: String?,
         val attachmentContentType: String?,
     ) {
         fun field(key: String): String? = fields.firstOrNull { it.key == key }?.stringValue

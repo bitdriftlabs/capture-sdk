@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -47,6 +48,9 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
+import io.bitdrift.capture.profiling.ProfileabilityChecker
+import io.bitdrift.capture.profiling.ProfilingManagerProfiler
+import io.bitdrift.capture.profiling.StackSamplingCommand
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.CustomFieldsProvider
 import io.bitdrift.capture.providers.DateProvider
@@ -322,6 +326,21 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
+        // The built-in stack sampling command is an ordinary platform command handler the SDK
+        // registers for itself. ProfilingManager exists from Android 15; below it the command is
+        // not registered, and the core fails it as unknown.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            commandRegistry.register(
+                StackSamplingCommand.KEY,
+                handler =
+                    StackSamplingCommand(
+                        profiler = ProfilingManagerProfiler(context, eventListenerDispatcher.executorService),
+                        profileability = ProfileabilityChecker(context),
+                        traceDirectory = File(sdkDirectory, "profiling"),
+                        logger = this,
+                    ).handler,
+            )
+        }
         commandRegistry.attach(this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)

@@ -9,6 +9,7 @@ package io.bitdrift.capture.commands
 
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.toFieldValue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -137,8 +138,15 @@ internal class CommandRegistry(
                         // completed before the invocation started would otherwise still run the handler.
                         ensureActive()
                         val result = registration.handler(invocation)
-                        // Like withContext, a result produced after cancellation is discarded.
-                        ensureActive()
+                        // Like withContext, a result produced after cancellation is discarded, and a
+                        // file it handed over with it: nobody will upload it. The check and the
+                        // deletion share one branch so a cancellation cannot slip between them.
+                        try {
+                            ensureActive()
+                        } catch (e: CancellationException) {
+                            result.discardOwnedFile()
+                            throw e
+                        }
                         Outcome.Returned(result)
                     } catch (e: InvalidCommandArgumentException) {
                         Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
@@ -161,7 +169,10 @@ internal class CommandRegistry(
             // non-cooperative handler really exits. Release every claim exactly once, before reporting.
             slots.release()
             running.remove(key)
-            if (!runningInvocation.cancelledByCore.get()) {
+            if (runningInvocation.cancelledByCore.get()) {
+                // The core stopped waiting; a result that still came back is never reported.
+                (outcome as? Outcome.Returned)?.result?.discardOwnedFile()
+            } else {
                 when (val result = outcome) {
                     is Outcome.Returned -> complete(invocationId, result.result)
                     is Outcome.Failed -> fail(invocationId, result.code, result.message)
@@ -217,7 +228,7 @@ internal class CommandRegistry(
         message: String,
         fields: Array<Field> = emptyArray(),
     ) {
-        bridge.completeCommand(invocationId, code.wire, message, fields, null, null)
+        bridge.completeCommand(invocationId, code.wire, message, fields, null, null, null)
     }
 
     /** An error's title and description travel joined as the message; its context as fields. */
@@ -232,7 +243,8 @@ internal class CommandRegistry(
                     null,
                     null,
                     result.context.toJniFields(),
-                    result.attachment?.bytes,
+                    result.attachment?.takeIf { it.file == null }?.bytes,
+                    result.attachment?.file?.path,
                     result.attachment?.contentType,
                 )
             is CommandResult.Error ->
@@ -243,6 +255,11 @@ internal class CommandRegistry(
                     result.context.toJniFields(),
                 )
         }
+    }
+
+    /** The SDK owns a file-backed attachment; one it will never upload is deleted here. */
+    private fun CommandResult.discardOwnedFile() {
+        (this as? CommandResult.Success)?.attachment?.file?.delete()
     }
 
     private fun Map<String, String>.toJniFields(): Array<Field> = map { (key, value) -> Field(key, value.toFieldValue()) }.toTypedArray()

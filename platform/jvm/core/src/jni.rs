@@ -1391,13 +1391,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
   error_message: JString<'_>,
   fields: JObjectArray<'_>,
   attachment: JObject<'_>,
+  attachment_path: JString<'_>,
   attachment_content_type: JString<'_>,
 ) {
   let invocation_id = invocation_id.cast_unsigned();
-  let Some(sender) = commands::take_invocation(invocation_id) else {
-    log::debug!("ignoring completion for unknown command invocation {invocation_id}");
-    return;
-  };
+  let sender = commands::take_invocation(invocation_id);
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let result = command_completion_result(
@@ -1406,9 +1404,17 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
         &error_message,
         &fields,
         &attachment,
+        &attachment_path,
         &attachment_content_type,
       );
-      commands::complete_taken_invocation(invocation_id, sender, result);
+      if let Some(sender) = sender {
+        commands::complete_taken_invocation(invocation_id, sender, result);
+      } else {
+        // The core already reported this command (timeout or cancellation); a file the
+        // platform handed over with the late result must not be left behind.
+        log::debug!("ignoring completion for unknown command invocation {invocation_id}");
+        commands::discard_result(result);
+      }
       Ok(())
     },
     "jni complete command",
@@ -1421,21 +1427,34 @@ fn command_completion_result(
   error_message: &JString<'_>,
   fields: &JObjectArray<'_>,
   attachment: &JObject<'_>,
+  attachment_path: &JString<'_>,
   attachment_content_type: &JString<'_>,
 ) -> bd_logger::CommandResult {
   (|| -> anyhow::Result<bd_logger::CommandResult> {
     let fields = ffi::jarray_to_fields(env, fields)?;
     Ok(
       if error_code.is_null() {
-        let attachment = if attachment.is_null() {
-          None
+        // Kotlin sends at most one of the two sources, and a content type whenever it sends one.
+        let source = if !attachment.is_null() {
+          Some(commands::PlatformAttachmentSource::Bytes(
+            env.convert_byte_array(<&JByteArray<'_>>::from(attachment))?,
+          ))
+        } else if !attachment_path.is_null() {
+          let path: String = unsafe { env.get_string_unchecked(attachment_path) }?.into();
+          Some(commands::PlatformAttachmentSource::Path(PathBuf::from(
+            path,
+          )))
         } else {
-          // Kotlin guarantees content type is present whenever the bytes are.
-          Some(commands::PlatformAttachment {
-            bytes: env.convert_byte_array(<&JByteArray<'_>>::from(attachment))?,
-            content_type: unsafe { env.get_string_unchecked(attachment_content_type) }?.into(),
-          })
+          None
         };
+        let attachment = source
+          .map(|source| -> anyhow::Result<_> {
+            Ok(commands::PlatformAttachment {
+              source,
+              content_type: unsafe { env.get_string_unchecked(attachment_content_type) }?.into(),
+            })
+          })
+          .transpose()?;
         commands::completed_result(fields, attachment)
       } else {
         let error_code: String = unsafe { env.get_string_unchecked(error_code) }?.into();
