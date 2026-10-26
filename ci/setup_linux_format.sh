@@ -21,9 +21,9 @@ mv "$swift_archive_name" "$formatter_dir/swift"
 
 # swiftlint provides static linting of Swift code.
 pushd "$(mktemp -d)"
-curl -OL https://github.com/realm/SwiftLint/releases/download/0.59.1/swiftlint_linux.zip
-unzip swiftlint_linux.zip
-mv swiftlint "$formatter_dir/swiftlint"
+curl -OL https://github.com/realm/SwiftLint/releases/download/0.65.1/swiftlint_linux_amd64.zip
+unzip swiftlint_linux_amd64.zip
+mv swiftlint-static "$formatter_dir/swiftlint"
 chmod +x "$formatter_dir/swiftlint"
 popd
 

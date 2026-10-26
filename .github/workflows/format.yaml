@@ -33,8 +33,6 @@ jobs:
           key: ${{ runner.os }}-formatters-${{ hashFiles('./ci/setup_linux_format.sh') }}
       - run: ./ci/setup_linux_format.sh
         if: steps.cache-formatters.outputs.cache-hit != 'true'
-      - name: Install SwiftLint runtime dependency
-        run: sudo apt-get install --yes libxml2
       - name: configure bazelrc
         run: mkdir -p tmp/ && echo "build --config=ci" > tmp/ci-bazelrc
       - name: test
