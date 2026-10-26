@@ -19,14 +19,6 @@ curl -OL "https://download.swift.org/swift-6.2.3-release/ubuntu2204/swift-6.2.3-
 tar xf "$swift_archive_name.tar.gz"
 mv "$swift_archive_name" "$formatter_dir/swift"
 
-# swiftlint provides static linting of Swift code.
-pushd "$(mktemp -d)"
-curl -OL https://github.com/realm/SwiftLint/releases/download/0.65.1/swiftlint_linux_amd64.zip
-unzip swiftlint_linux_amd64.zip
-mv swiftlint-static "$formatter_dir/swiftlint"
-chmod +x "$formatter_dir/swiftlint"
-popd
-
 curl -OL "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-x86_64.gz"
 gzip -d "taplo-linux-x86_64.gz"
 mv "taplo-linux-x86_64" "$formatter_dir/taplo"
