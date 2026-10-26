@@ -69,7 +69,7 @@ extern "C" fn cancel_command(target: &mut Object, _: Sel, request_id: u64) {
   }
 }
 
-fn command_target() -> StrongPtr {
+pub(crate) fn command_target() -> StrongPtr {
   autoreleasepool(|| unsafe { StrongPtr::new(msg_send![*COMMAND_TARGET_CLASS, new]) })
 }
 

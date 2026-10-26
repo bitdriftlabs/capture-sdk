@@ -29,7 +29,7 @@ use tokio::sync::oneshot;
 
 #[cfg(test)]
 #[path = "./commands_test.rs"]
-mod commands_test;
+pub(crate) mod commands_test;
 
 const ARGUMENT_NAME_KEY: &str = "name";
 const ARGUMENT_TYPE_KEY: &str = "type";
