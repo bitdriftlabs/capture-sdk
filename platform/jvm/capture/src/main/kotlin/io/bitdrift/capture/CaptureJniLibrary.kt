@@ -281,11 +281,15 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
         duration: Double,
     )
 
-    /** Completes an in-flight remote device-command screenshot request. */
-    external fun completeDeviceCommandScreenshot(
-        requestId: Long,
-        screenshot: ByteArray?,
-    )
+    /** Registers an SDK-owned numeric built-in before logger startup. */
+    external override fun registerBuiltinCommand(
+        loggerId: Long,
+        commandType: Int,
+        key: String,
+        artifactType: String,
+        timeoutMs: Long,
+        dispatcher: ICommandDispatcher,
+    ): Boolean
 
     /**
      * Registers a platform handler for an application-defined command, replacing any handler
@@ -322,8 +326,9 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
      * @param errorMessage the failure detail; null when the command succeeded.
      * @param fields the fields describing the command result.
      * @param attachment optional binary attachment for a successful result.
-     * @param attachmentContentType the MIME type of [attachment], e.g. `application/json`; null iff
-     * [attachment] is null.
+     * @param attachmentPath optional absolute file path, mutually exclusive with [attachment].
+     * @param attachmentContentType the MIME type; null iff both attachment sources are null.
+     * @return whether Rust accepted ownership of the result and any attachment file.
      */
     external override fun completeCommand(
         invocationId: Long,
@@ -331,8 +336,9 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
         errorMessage: String?,
         fields: Array<Field>,
         attachment: ByteArray?,
+        attachmentPath: String?,
         attachmentContentType: String?,
-    )
+    ): Boolean
 
     /**
      * Writes a resource utilization log.

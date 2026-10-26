@@ -130,6 +130,15 @@ class CaptureLoggerTest {
     }
 
     private class RecordingCommandBridge : ICommandBridge {
+        override fun registerBuiltinCommand(
+            loggerId: Long,
+            commandType: Int,
+            key: String,
+            artifactType: String,
+            timeoutMs: Long,
+            dispatcher: ICommandDispatcher,
+        ): Boolean = true
+
         val registered = mutableListOf<Pair<Long, String>>()
 
         override fun registerCommand(
@@ -151,8 +160,9 @@ class CaptureLoggerTest {
             errorMessage: String?,
             fields: Array<Field>,
             attachment: ByteArray?,
+            attachmentPath: String?,
             attachmentContentType: String?,
-        ) = Unit
+        ): Boolean = true
     }
 
     @Test

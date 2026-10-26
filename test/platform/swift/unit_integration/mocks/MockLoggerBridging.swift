@@ -75,6 +75,10 @@ extension MockLoggerBridging: LoggerBridging {
 
     public func unregisterCommand(key _: String) {}
 
+    public func registerBuiltinCommand(
+        type _: Int32, key _: String, artifactType _: String, timeoutMilliseconds _: Int64, target _: AnyObject
+    ) -> Bool { true }
+
     public func start() {
         self.commandRegistrationEvents.append("start")
     }

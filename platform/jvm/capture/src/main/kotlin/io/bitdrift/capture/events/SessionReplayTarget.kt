@@ -8,11 +8,12 @@
 package io.bitdrift.capture.events
 
 import android.content.Context
-import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.ISessionReplayTarget
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.commands.CommandAttachment
+import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
@@ -31,6 +32,9 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
 import io.bitdrift.capture.replay.internal.FilteredCapture
 import io.bitdrift.capture.threading.CaptureDispatchers
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 // Controls the replay feature
 internal class SessionReplayTarget(
@@ -40,6 +44,7 @@ internal class SessionReplayTarget(
     private val logger: IInternalLogger,
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     windowManager: IWindowManager,
+    private val captureScreenshot: (() -> Unit)? = null,
 ) : ISessionReplayTarget,
     IReplayLogger,
     IScreenshotLogger {
@@ -49,7 +54,7 @@ internal class SessionReplayTarget(
     internal var runtime: Runtime? = null
     private val screenshotCaptureLock = Any()
     private var screenshotCaptureInProgress = false
-    private var deviceCommandScreenshotRequestId: Long? = null
+    private var commandScreenshotCompletion: CancellableContinuation<CommandResult>? = null
     private val sessionReplayController: SessionReplayController =
         SessionReplayController(
             errorHandler,
@@ -82,32 +87,62 @@ internal class SessionReplayTarget(
         )
     }
 
-    override fun captureDeviceCommandScreenshot(requestId: Long) {
-        synchronized(screenshotCaptureLock) {
-            if (screenshotCaptureInProgress) {
-                CaptureJniLibrary.completeDeviceCommandScreenshot(requestId, null)
-                return
-            }
-            screenshotCaptureInProgress = true
-            deviceCommandScreenshotRequestId = requestId
-        }
-        sessionReplayController.captureDeviceCommandScreenshot()
-    }
-
     override fun onDeviceCommandScreenshotCaptured(compressedScreen: ByteArray) {
-        val requestId =
+        val completion =
             synchronized(screenshotCaptureLock) {
-                screenshotCaptureInProgress = false
-                deviceCommandScreenshotRequestId.also { deviceCommandScreenshotRequestId = null }
+                commandScreenshotCompletion.also {
+                    commandScreenshotCompletion = null
+                    screenshotCaptureInProgress = false
+                }
             }
-        if (requestId != null) {
-            CaptureJniLibrary.completeDeviceCommandScreenshot(requestId, compressedScreen.takeIf { it.isNotEmpty() })
+        if (completion != null) {
+            val valid =
+                compressedScreen.size in 4..(2 * 1024 * 1024) &&
+                    compressedScreen[0] == 0xff.toByte() &&
+                    compressedScreen[1] == 0xd8.toByte() &&
+                    compressedScreen[compressedScreen.lastIndex - 1] == 0xff.toByte() &&
+                    compressedScreen.last() == 0xd9.toByte()
+            completion.resume(
+                if (valid) {
+                    CommandResult.Success(CommandAttachment(compressedScreen, "image/jpeg"))
+                } else {
+                    CommandResult.Error("invalid or unavailable screenshot")
+                },
+            )
             return
         }
         logger.logInternal(LogType.INTERNALSDK, LogLevel.ERROR) {
             "received an uncorrelated device command screenshot"
         }
     }
+
+    suspend fun captureCommandScreenshot(): CommandResult =
+        suspendCancellableCoroutine { completion ->
+            synchronized(screenshotCaptureLock) {
+                if (screenshotCaptureInProgress) {
+                    completion.resume(CommandResult.Error("screenshot capture already in progress"))
+                    return@suspendCancellableCoroutine
+                }
+                screenshotCaptureInProgress = true
+                commandScreenshotCompletion = completion
+            }
+            try {
+                val capture = captureScreenshot
+                if (capture != null) capture() else sessionReplayController.captureDeviceCommandScreenshot()
+            } catch (_: Exception) {
+                val pending =
+                    synchronized(screenshotCaptureLock) {
+                        if (commandScreenshotCompletion !== completion) {
+                            false
+                        } else {
+                            commandScreenshotCompletion = null
+                            screenshotCaptureInProgress = false
+                            true
+                        }
+                    }
+                if (pending) completion.resume(CommandResult.Error("screenshot capture failed"))
+            }
+        }
 
     override fun logVerboseInternal(message: String) {
         logger.logInternal(LogType.INTERNALSDK, LogLevel.TRACE) { message }

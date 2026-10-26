@@ -19,6 +19,64 @@ final class CommandRegistryTests: XCTestCase {
         target = CommandsTarget(registry: sut)
     }
 
+    func testBuiltinCannotBeShadowedOrUnregisteredByMatchingAppName() async throws {
+        let registry = CommandRegistry(
+            commands: [Command(key: "stack_sampling_trace") { _ in .success(CommandResult(context: ["app": "true"])) }],
+            builtins: CommandRegistry.platformBuiltins(screenshot: nil)
+        )
+        let appResult = await registry.execute(key: "stack_sampling_trace", arguments: [:])
+        XCTAssertEqual(try appResult.get().context, ["app": "true"])
+        let removed = await registry.unregister(key: "stack_sampling_trace")
+        XCTAssertTrue(removed)
+
+        let builtinResult = await registry.execute(key: "stack_sampling_trace", arguments: [:], builtinType: 3)
+        guard case let .failure(error) = builtinResult else {
+            return XCTFail("expected native stack stub failure")
+        }
+        XCTAssertEqual(error.title, "not implemented")
+        XCTAssertNil(error.description)
+    }
+
+    func testScreenshotValidatesArgumentsAndUnavailableProvider() async {
+        let registry = CommandRegistry(builtins: CommandRegistry.platformBuiltins(screenshot: nil))
+        let invalid = await registry.execute(key: "take_screenshot", arguments: ["extra": .bool(true)], builtinType: 2)
+        guard case let .failure(error) = invalid else { return XCTFail("expected invalid arguments") }
+        XCTAssertEqual(error.code, CommandError.invalidArguments().code)
+        let unavailable = await registry.execute(key: "take_screenshot", arguments: [:], builtinType: 2)
+        guard case let .failure(error) = unavailable else { return XCTFail("expected unavailable screenshot") }
+        XCTAssertEqual(error.title, "screenshot capture unavailable")
+    }
+
+    func testBuiltinsShareTheAppConcurrencyLimit() async throws {
+        let started = expectation(description: "app entered")
+        let gate = AsyncGate()
+        let registry = CommandRegistry(
+            commands: [Command(key: "app") { _ in
+                started.fulfill()
+                await gate.wait()
+                return .success(CommandResult())
+            }, ],
+            builtins: CommandRegistry.platformBuiltins(screenshot: nil),
+            maxConcurrentExecutions: 1
+        )
+        async let appResult = registry.execute(key: "app", arguments: [:])
+        await fulfillment(of: [started])
+        let builtinResult = await registry.execute(key: "take_screenshot", arguments: [:], builtinType: 2)
+        guard case let .failure(error) = builtinResult else { return XCTFail("expected shared admission rejection") }
+        XCTAssertEqual(error.code, CommandError.maximumConcurrency.code)
+        whenOpeningGate(gate)
+        _ = try await appResult.get()
+    }
+
+    func testFileFactoryPreservesDataApiWithoutReadingTheFile() {
+        let bytes = Data([1, 2, 3])
+        XCTAssertEqual(CommandAttachment(data: bytes, mimeType: "application/octet-stream").data, bytes)
+        let url = URL(fileURLWithPath: ".tmp/missing-command-file", relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
+        let attachment = CommandAttachment.file(url: url, mimeType: "application/octet-stream")
+        XCTAssertEqual(attachment.data, Data())
+        XCTAssertEqual(attachment.fileURL, url.standardizedFileURL)
+    }
+
     func testRegisteringCommandExecutesHandlerWithNamedArguments() async throws {
         let attachment = CommandAttachment(data: Data([0xff, 0x00, 0x80]), mimeType: "application/octet-stream")
         let context = ["filename": "caller-name", "app_id": "caller-app", "_build_number": "caller-build"]

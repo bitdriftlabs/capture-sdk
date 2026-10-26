@@ -195,6 +195,12 @@ final class LoggerBridge: LoggerBridging {
         capture_register_command(self.loggerID, key, target)
     }
 
+    func registerBuiltinCommand(
+        type: Int32, key: String, artifactType: String, timeoutMilliseconds: Int64, target: AnyObject
+    ) -> Bool {
+        capture_register_builtin_command(self.loggerID, type, key, artifactType, timeoutMilliseconds, target)
+    }
+
     func unregisterCommand(key: String) {
         capture_unregister_command(self.loggerID, key)
     }

@@ -211,9 +211,70 @@ final class CommandsTargetTests: XCTestCase {
         let next = await registry.execute(key: "second", arguments: [:])
         XCTAssertEqual(next, .success(CommandResult()))
     }
+
+    func testUnacceptedFileCompletionsAreDeletedForAppsAndBuiltins() async throws {
+        for builtinType: Int32? in [nil, 4711] {
+            let file = try makeAttachmentFile()
+            defer { try? FileManager.default.removeItem(at: file) }
+            let started = expectation(description: "file handler started")
+            let gate = CommandExecutionGate()
+            let command = Command(key: "file") { _ in
+                started.fulfill()
+                await gate.wait()
+                return .success(CommandResult(attachment: .file(url: file, mimeType: "application/octet-stream")))
+            }
+            let registry = CommandRegistry(
+                commands: [command],
+                builtins: [.init(type: 4711, command: command, artifactType: "file")]
+            )
+            let target = CommandsTarget(registry: registry, builtinType: builtinType)
+            target.executeCommand("file", arguments: [], requestID: UInt64.max)
+            await fulfillment(of: [started])
+            let task = try XCTUnwrap(target.executionTask(for: UInt64.max))
+            await gate.open()
+            await task.value
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        }
+    }
+
+    func testFileReturnedAfterCancellationIsDeletedWithoutCompleting() async throws {
+        let file = try makeAttachmentFile()
+        defer { try? FileManager.default.removeItem(at: file) }
+        let started = expectation(description: "file handler started")
+        let cancelled = expectation(description: "file handler cancelled")
+        let gate = CommandExecutionGate()
+        let completed = CommandTestValue(false)
+        sut = CommandsTarget(registry: CommandRegistry(commands: [Command(key: "file") { _ in
+            started.fulfill()
+            await withTaskCancellationHandler {
+                await gate.wait()
+            } onCancel: {
+                cancelled.fulfill()
+            }
+            return .success(CommandResult(attachment: .file(url: file, mimeType: "application/octet-stream")))
+        }, ])) { _, _ in completed.set(true) }
+        sut.executeCommand("file", arguments: [], requestID: 1)
+        await fulfillment(of: [started])
+        let task = try XCTUnwrap(sut.executionTask(for: 1))
+        sut.cancelCommand(1)
+        await fulfillment(of: [cancelled])
+        await gate.open()
+        await task.value
+        XCTAssertFalse(completed.value)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+    }
 }
 
 private extension CommandsTargetTests {
+    func makeAttachmentFile() throws -> URL {
+        let documents = try XCTUnwrap(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first)
+        let directory = documents.appendingPathComponent("command-test-files", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appendingPathComponent(UUID().uuidString)
+        try Data([1, 2, 3]).write(to: file)
+        return file
+    }
+
     func whenParsingArguments(_ arguments: NSArray) -> Error {
         do {
             _ = try sut.parseArguments(arguments)

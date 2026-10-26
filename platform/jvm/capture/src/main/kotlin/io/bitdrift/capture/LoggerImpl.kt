@@ -322,6 +322,17 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
+        commandRegistry.registerBuiltin(2, "take_screenshot", "screenshot") {
+            if (arguments.isNotEmpty()) {
+                error("screenshot does not accept arguments", code = io.bitdrift.capture.commands.CommandErrorCode.InvalidArguments)
+            } else {
+                (sessionReplayTarget as? SessionReplayTarget)?.captureCommandScreenshot()
+                    ?: error("screenshot capture unavailable")
+            }
+        }
+        commandRegistry.registerBuiltin(3, "stack_sampling_trace", "stack_sampling_trace", timeoutMs = 15_000) {
+            error("not implemented")
+        }
         commandRegistry.attach(this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)

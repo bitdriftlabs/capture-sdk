@@ -8,11 +8,38 @@
 import Foundation
 
 @_spi(ExperimentalAPI) public struct CommandAttachment: Equatable, Sendable {
+    /// The in-memory payload, or empty data when `fileURL` is present.
     public let data: Data
     public let mimeType: String
+    public let fileURL: URL?
 
     public init(data: Data, mimeType: String) {
         self.data = data
         self.mimeType = mimeType
+        self.fileURL = nil
+    }
+
+    /// Creates a file-backed attachment without reading it. Returning the attachment transfers
+    /// ownership of this dedicated local file to the SDK. Do not modify or reuse its path.
+    ///
+    /// - parameter url:      The dedicated local file to transfer when the attachment is returned.
+    /// - parameter mimeType: The MIME type of the file contents.
+    ///
+    /// - returns: An attachment whose data accessor is empty and whose source is the file URL.
+    public static func file(url: URL, mimeType: String) -> CommandAttachment {
+        CommandAttachment(fileURL: url, mimeType: mimeType)
+    }
+
+    private init(fileURL: URL, mimeType: String) {
+        self.data = Data()
+        self.mimeType = mimeType
+        self.fileURL = fileURL.isFileURL ? fileURL.standardizedFileURL : fileURL
+    }
+
+    func discardOwnedFile() {
+        guard let fileURL, fileURL.isFileURL,
+              (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true
+        else { return }
+        try? FileManager.default.removeItem(at: fileURL)
     }
 }

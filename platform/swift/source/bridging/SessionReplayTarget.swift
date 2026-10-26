@@ -12,8 +12,4 @@ import Foundation
 public protocol SessionReplayTarget {
     /// Called to indicate that the target is supposed to prepare and emit a session replay screen log.
     func captureScreen()
-    /// Called to capture JPEG bytes for a remote device command.
-    ///
-    /// - parameter requestID: The opaque remote command request ID to complete.
-    func captureDeviceCommandScreenshot(_ requestID: UInt64)
 }
