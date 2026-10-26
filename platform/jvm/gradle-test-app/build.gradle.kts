@@ -74,7 +74,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
     implementation("com.google.firebase:firebase-crashlytics")
     implementation("com.google.firebase:firebase-crashlytics-ndk")
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation("com.squareup.okhttp3:okhttp:5.5.1")
     implementation("com.squareup.papa:papa:0.26")
     implementation("com.bugsnag:bugsnag-android:6.25.0")
     implementation("io.reactivex.rxjava3:rxandroid:3.0.0")
