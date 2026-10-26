@@ -23,8 +23,8 @@ use objc::runtime::Object;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::hash::BuildHasher;
+use std::sync::LazyLock;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, LazyLock};
 use tokio::sync::oneshot;
 
 #[cfg(test)]
@@ -145,14 +145,6 @@ impl RegisteredCommandHandler for Target {
       },
     )
   }
-}
-
-pub fn register(logger: &bd_logger::LoggerHandle, key: String, target: *mut Object) {
-  logger.register_command_handler(key, Arc::new(Target::new(target)));
-}
-
-pub fn unregister(logger: &bd_logger::LoggerHandle, key: &str) {
-  let _ = logger.unregister_command_handler(key);
 }
 
 pub fn take_completion(request_id: u64) -> Option<oneshot::Sender<CommandResultGuard>> {

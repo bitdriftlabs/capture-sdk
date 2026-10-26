@@ -213,7 +213,9 @@ final class CommandsTargetTests: XCTestCase {
     }
 
     func testUnacceptedFileCompletionsAreDeletedForAppsAndBuiltins() async throws {
-        for builtinType: Int32? in [nil, 4711] {
+        // Deliberately outside WellKnownCommandType to exercise a future SDK-owned built-in.
+        let futureBuiltinType: Int32 = 4711
+        for builtinType: Int32? in [nil, futureBuiltinType] {
             let file = try makeAttachmentFile()
             defer { try? FileManager.default.removeItem(at: file) }
             let started = expectation(description: "file handler started")
@@ -225,9 +227,10 @@ final class CommandsTargetTests: XCTestCase {
             }
             let registry = CommandRegistry(
                 commands: [command],
-                builtins: [.init(type: 4711, command: command, artifactType: "file")]
+                builtins: [.init(type: futureBuiltinType, command: command, artifactType: "file")]
             )
             let target = CommandsTarget(registry: registry, builtinType: builtinType)
+            // This request ID has no native pending invocation, so the bridge rejects its result.
             target.executeCommand("file", arguments: [], requestID: UInt64.max)
             await fulfillment(of: [started])
             let task = try XCTUnwrap(target.executionTask(for: UInt64.max))

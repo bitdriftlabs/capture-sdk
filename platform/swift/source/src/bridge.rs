@@ -33,6 +33,7 @@ use bd_logger::{
   Block,
   CaptureSession,
   CommandError,
+  CommandRegistration,
   LogAttributesOverrides,
   LogFieldKind,
   LogFields,
@@ -812,10 +813,11 @@ extern "C" fn capture_register_builtin_command(
     || -> anyhow::Result<bool> {
       anyhow::ensure!(timeout_ms >= 0, "negative command timeout");
       anyhow::ensure!(!target.is_null(), "missing command target");
-      logger_id.register_builtin_command(bd_logger::BuiltinCommandRegistration {
+      logger_id.register_command(CommandRegistration::Builtin {
         command_type,
         key: unsafe { nsstring_into_string(key) }?,
         artifact_type_id: unsafe { nsstring_into_string(artifact_type) }?,
+        // A zero timeout inherits the command executor's runtime-configured default.
         timeout: (timeout_ms > 0).then(|| time::Duration::milliseconds(timeout_ms)),
         handler: Arc::new(commands::Target::new(target)),
       })?;
@@ -835,8 +837,10 @@ extern "C" fn capture_register_command(
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
-      commands::register(&logger_id, key, target);
-      Ok(())
+      logger_id.register_command(CommandRegistration::Registered(
+        key,
+        Arc::new(commands::Target::new(target)),
+      ))
     },
     "swift register command",
   );
@@ -847,7 +851,7 @@ extern "C" fn capture_unregister_command(logger_id: LoggerId<'_>, key: *const c_
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let key = unsafe { CStr::from_ptr(key) }.to_str()?;
-      commands::unregister(&logger_id, key);
+      let _ = logger_id.unregister_command(key);
       Ok(())
     },
     "swift unregister command",

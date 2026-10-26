@@ -53,6 +53,8 @@ extension SessionReplayController: CapturePassable.SessionReplayTarget {
     func captureCommandScreenshot() async -> Result<CommandResult, CommandError> {
         await withCheckedContinuation { continuation in
             guard startScreenshotCapture(completion: { jpeg in
+                // JPEG SOI (FF D8) and EOI (FF D9) markers need four bytes total; the screenshot
+                // artifact contract caps the entire JPEG at 2 MiB (1024 bytes per KiB).
                 guard let jpeg, jpeg.count >= 4, jpeg.count <= 2 * 1024 * 1024,
                       jpeg.starts(with: [0xff, 0xd8]), jpeg.suffix(2).elementsEqual([0xff, 0xd9])
                 else {

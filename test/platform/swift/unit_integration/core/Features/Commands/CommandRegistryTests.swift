@@ -9,6 +9,7 @@
 import XCTest
 
 final class CommandRegistryTests: XCTestCase {
+    // Built-in wire IDs match workflow_command.proto: 2 = TAKE_SCREENSHOT, 3 = STACK_SAMPLING_TRACE.
     private var sut: CommandRegistry!
     private var bridge: CommandRegistrationRecorder!
     private var target: CommandsTarget!

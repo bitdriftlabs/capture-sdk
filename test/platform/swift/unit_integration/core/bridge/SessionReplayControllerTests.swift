@@ -38,6 +38,7 @@ final class SessionReplayControllerTests: XCTestCase {
     }
 
     func testCommandScreenshotValidatesJpegAndSize() async throws {
+        // JPEG SOI is FF D8 and EOI is FF D9; oversized data exceeds the 2 MiB screenshot cap.
         let jpeg = Data([0xff, 0xd8, 1, 0xff, 0xd9])
         for bytes in [jpeg, nil, Data(), Data([1, 2, 3, 4]), Data(repeating: 0, count: 2 * 1024 * 1024 + 1)] {
             let started = expectation(description: "capture started")
@@ -82,6 +83,7 @@ final class SessionReplayControllerTests: XCTestCase {
         let second = Task { await target.captureCommandScreenshot() }
         await fulfillment(of: [secondStarted])
         XCTAssertEqual(capture.count, 2)
+        // Minimal marker-only JPEG: two-byte SOI (FF D8) followed by two-byte EOI (FF D9).
         capture.finish(Data([0xff, 0xd8, 0xff, 0xd9]))
         let result = await second.value
         guard case .success = result else { return XCTFail("expected next screenshot to succeed") }

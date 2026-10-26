@@ -108,6 +108,7 @@ internal class CommandRegistry(
         commandType: Int,
         key: String,
         artifactType: String,
+        // Zero inherits the Rust command executor's runtime-configured default timeout.
         timeoutMs: Long = 0,
         handler: suspend CommandScope.() -> CommandResult,
     ) {

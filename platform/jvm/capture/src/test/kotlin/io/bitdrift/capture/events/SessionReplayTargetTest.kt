@@ -69,6 +69,7 @@ class SessionReplayTargetTest {
     @Test
     fun commandScreenshotValidatesJpegAndSize() =
         runBlocking {
+            // JPEG SOI is FF D8 and EOI is FF D9; oversized data exceeds the 2 MiB screenshot cap.
             val jpeg = byteArrayOf(0xff.toByte(), 0xd8.toByte(), 1, 0xff.toByte(), 0xd9.toByte())
             val target = createTarget {}
             for (bytes in listOf(jpeg, byteArrayOf(), byteArrayOf(1, 2, 3, 4), ByteArray(2 * 1024 * 1024 + 1))) {

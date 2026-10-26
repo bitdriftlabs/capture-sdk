@@ -96,6 +96,8 @@ internal class SessionReplayTarget(
                 }
             }
         if (completion != null) {
+            // JPEG SOI (FF D8) and EOI (FF D9) markers need four bytes total; the screenshot
+            // artifact contract caps the entire JPEG at 2 MiB (1024 bytes per KiB).
             val valid =
                 compressedScreen.size in 4..(2 * 1024 * 1024) &&
                     compressedScreen[0] == 0xff.toByte() &&

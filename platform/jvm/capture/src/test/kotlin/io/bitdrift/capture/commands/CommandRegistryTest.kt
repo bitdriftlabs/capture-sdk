@@ -35,6 +35,8 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Pins command execution and cancellation: no per-key queue, one invocation per key at a time,
  * bounded parallelism, and one completion per invocation unless the Rust core cancelled it.
+ * Built-in IDs mirror workflow_command.proto: 2 = TAKE_SCREENSHOT, 3 = STACK_SAMPLING_TRACE.
+ * ID 4711 is deliberately unknown to WellKnownCommandType and represents a future built-in.
  */
 class CommandRegistryTest {
     private val bridge = FakeCommandBridge()

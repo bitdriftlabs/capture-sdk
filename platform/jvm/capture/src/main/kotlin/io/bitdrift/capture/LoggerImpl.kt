@@ -322,6 +322,7 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
+        // Wire ID 2 is WellKnownCommandType.TAKE_SCREENSHOT in workflow_command.proto.
         commandRegistry.registerBuiltin(2, "take_screenshot", "screenshot") {
             if (arguments.isNotEmpty()) {
                 error("screenshot does not accept arguments", code = io.bitdrift.capture.commands.CommandErrorCode.InvalidArguments)
@@ -330,6 +331,7 @@ internal class LoggerImpl(
                     ?: error("screenshot capture unavailable")
             }
         }
+        // Wire ID 3 is STACK_SAMPLING_TRACE; 15_000 ms preserves its 15-second execution budget.
         commandRegistry.registerBuiltin(3, "stack_sampling_trace", "stack_sampling_trace", timeoutMs = 15_000) {
             error("not implemented")
         }

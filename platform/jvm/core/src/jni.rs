@@ -36,7 +36,14 @@ use bd_error_reporter::reporter::{
   with_handle_unexpected,
   with_handle_unexpected_or,
 };
-use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
+use bd_logger::{
+  Block,
+  CaptureSession,
+  CommandRegistration,
+  LogAttributesOverrides,
+  LogFieldKind,
+  LogFields,
+};
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::MemoryPressureLevel;
 use bd_proto::protos::logging::payload::LogType;
 use bd_session::Strategy;
@@ -1341,10 +1348,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerBuilti
       let artifact_type_id = unsafe { env.get_string_unchecked(&artifact_type) }?.into();
       let handler = commands::JniCommandHandler::new(&env, dispatcher)?;
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.register_builtin_command(bd_logger::BuiltinCommandRegistration {
+      logger.register_command(CommandRegistration::Builtin {
         command_type,
         key,
         artifact_type_id,
+        // A zero timeout inherits the command executor's runtime-configured default.
         timeout: (timeout_ms > 0).then(|| Duration::milliseconds(timeout_ms)),
         handler: Arc::new(handler),
       })?;
@@ -1368,8 +1376,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerComman
       let key: String = unsafe { env.get_string_unchecked(&key) }?.into();
       let handler = commands::JniCommandHandler::new(&env, dispatcher)?;
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.register_command_handler(key, Arc::new(handler));
-      Ok(())
+      logger.register_command(CommandRegistration::Registered(key, Arc::new(handler)))
     },
     "jni register command",
   );
@@ -1386,7 +1393,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_unregisterComm
     || -> anyhow::Result<jboolean> {
       let key: String = unsafe { env.get_string_unchecked(&key) }?.into();
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      Ok(logger.unregister_command_handler(&key).into())
+      Ok(logger.unregister_command(&key).into())
     },
     JNI_FALSE,
     "jni unregister command",
