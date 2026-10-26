@@ -36,11 +36,12 @@ fix-yaml:
 	taplo fmt
 
 .PHONY: fix-swiftlint
+SWIFTLINT ?= swiftlint
 fix-swiftlint:
 # tools/lint:fix doesn't warn about all docstring violations.
 # WebViewBridgeScript.swift is auto-generated; swiftlint's --format flag reindents it via
 # SourceKit regardless of `excluded` in .swiftlint.yml, so it's passed an explicit file list here.
-	swiftlint --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
+	$(SWIFTLINT) --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
 
 .PHONY: lint-docstrings
 lint-docstrings:

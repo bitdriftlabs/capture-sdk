@@ -28,7 +28,7 @@ MOBILE_IMMEDIATE_ABORT_RUSTC_FLAGS = [
     "panic=immediate-abort",
 ]
 
-OKHTTP_VERSION = "4.12.0"
+OKHTTP_VERSION = "4.12.1"
 
 LIFECYCLE_VERSION = "2.8.7"
 
