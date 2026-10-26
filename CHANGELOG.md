@@ -7,8 +7,7 @@
 
 **Added**
 
-- Added file-backed attachments to the experimental command API on Android and iOS.
-- Added remote screenshot commands on Android and iOS.
+- Nothing yet!
 
 **Changed**
 
@@ -16,7 +15,7 @@
 
 **Fixed**
 
-- Fixed command attachment cleanup when execution is cancelled or native delivery is rejected.
+- Nothing yet!
 
 ### Android
 
