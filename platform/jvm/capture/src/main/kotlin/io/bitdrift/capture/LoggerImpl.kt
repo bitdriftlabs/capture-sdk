@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -18,6 +19,8 @@ import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.CommandResult
+import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -47,6 +50,9 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
+import io.bitdrift.capture.profiling.ProfileabilityChecker
+import io.bitdrift.capture.profiling.ProfilingManagerProfiler
+import io.bitdrift.capture.profiling.StackSamplingCommand
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.CustomFieldsProvider
 import io.bitdrift.capture.providers.DateProvider
@@ -331,10 +337,26 @@ internal class LoggerImpl(
                     ?: error("screenshot capture unavailable")
             }
         }
-        // Wire ID 3 is STACK_SAMPLING_TRACE; 15_000 ms preserves its 15-second execution budget.
-        commandRegistry.registerBuiltin(3, "stack_sampling_trace", "stack_sampling_trace", timeoutMs = 15_000) {
-            error("not implemented")
-        }
+        // ProfilingManager exists from Android 15; below that the command fails with a clear reason
+        // instead of being unknown to the core.
+        val stackSampling: suspend CommandScope.() -> CommandResult =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                StackSamplingCommand(
+                    profiler = ProfilingManagerProfiler(context, eventListenerDispatcher.executorService),
+                    profileability = ProfileabilityChecker(context),
+                    traceDirectory = File(sdkDirectory, "profiling"),
+                    logger = this,
+                ).handler
+            } else {
+                { error("unsupported", "stack sampling requires Android 15 or newer") }
+            }
+        commandRegistry.registerBuiltin(
+            StackSamplingCommand.COMMAND_TYPE,
+            StackSamplingCommand.KEY,
+            StackSamplingCommand.KEY,
+            timeoutMs = StackSamplingCommand.TIMEOUT_MS,
+            handler = stackSampling,
+        )
         commandRegistry.attach(this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)
