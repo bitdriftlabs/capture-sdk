@@ -14,7 +14,6 @@ use bd_client_common::error::InvariantError;
 use bd_error_reporter::reporter::with_handle_unexpected;
 use bd_logger::{StackSampleCompletion, StackSampleError, StackSampleOutcome, StackSampleRequest};
 use jni::JNIEnv;
-use jni::objects::JValue;
 use jni::signature::{Primitive, ReturnType};
 use jni::sys::jvalue;
 use std::collections::HashMap;
@@ -33,7 +32,7 @@ pub(crate) fn initialize(env: &mut JNIEnv<'_>) -> anyhow::Result<()> {
     env,
     &profiling_target.class,
     "captureStackSample",
-    "(JJIILjava/lang/String;)V",
+    "(JJII)V",
     &TARGET_CAPTURE_STACK_SAMPLE,
   )?;
   initialize_method_handle(
@@ -106,7 +105,6 @@ impl bd_logger::ProfilingTarget for TargetHandler {
     drop(pending);
 
     let result = self.execute(|env, target| {
-      let tag = env.new_string(&request.tag)?;
       TARGET_CAPTURE_STACK_SAMPLE
         .get()
         .ok_or(InvariantError::Invariant)?
@@ -131,7 +129,6 @@ impl bd_logger::ProfilingTarget for TargetHandler {
             jvalue {
               i: request.buffer_size_kb.cast_signed(),
             },
-            JValue::Object(&tag).as_jni(),
           ],
         )
         .map(|_| ())

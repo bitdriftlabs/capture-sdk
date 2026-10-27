@@ -21,7 +21,7 @@ import java.util.function.Consumer
 /**
  * Runs captures through android.os.ProfilingManager, building each request with androidx.core's
  * request builders. Every sampling parameter is always set: the platform's own defaults are not
- * documented. The request tag comes from the command so the app can recognise SDK captures in
+ * documented. The request tag marks the capture as the SDK's, so an app can recognise it among
  * its own profiling results.
  */
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)

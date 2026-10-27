@@ -16,10 +16,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Runs one stack sample at a time, fails fast when the process cannot be profiled, and reports
- * every outcome to the core through [IProfilingBridge]. A finished trace is moved into
- * [traceDirectory], the SDK's own storage, before the core is told about it: the system writes
- * every profile the app ever requests into one shared directory, so location, not the profiler's
- * tag, is what marks a trace as the SDK's.
+ * every outcome to the core through [IProfilingBridge]. Each capture carries the profiler tag
+ * [TAG], which marks it as the SDK's rather than one the app requested itself. A finished trace is
+ * moved into [traceDirectory], the SDK's own storage, before the core is told about it: the system
+ * writes every profile the app ever requests into one shared directory.
  */
 internal class ProfilingTarget(
     private val profiler: IProfiler,
@@ -51,12 +51,11 @@ internal class ProfilingTarget(
         durationMs: Long,
         frequencyHz: Int,
         bufferSizeKb: Int,
-        tag: String,
     ) {
         // The core calls this on its runtime thread; the profileability check and the binder call
         // to ProfilingManager belong on the SDK's background thread.
         background.runAsync {
-            start(ProfileRequest(requestId, ProfileType.STACK_SAMPLING, durationMs, frequencyHz, bufferSizeKb, tag))
+            start(ProfileRequest(requestId, ProfileType.STACK_SAMPLING, durationMs, frequencyHz, bufferSizeKb, TAG))
         }
     }
 
@@ -175,7 +174,13 @@ internal class ProfilingTarget(
         return if (moved) target.path else path
     }
 
-    private companion object {
+    internal companion object {
+        /**
+         * The profiler tag on every SDK capture. The system records it in the trace file name and
+         * reports it through `ProfilingResult.getTag()`, so an app that also uses the profiler can
+         * tell the SDK's captures from its own.
+         */
+        const val TAG = "bitdrift"
         const val ORPHAN_AGE_MS = 10 * 60 * 1000L
     }
 }

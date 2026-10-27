@@ -13,16 +13,12 @@ package io.bitdrift.capture.profiling
  * [IProfilingBridge.completeStackSample] for its request ID, including after a cancel.
  */
 interface IProfilingTarget {
-    /**
-     * Records a stack sampling trace of this process and reports its file through the bridge.
-     * [tag] is recorded with the capture and exposed to the app through `ProfilingResult.getTag()`.
-     */
+    /** Records a stack sampling trace of this process and reports its file through the bridge. */
     fun captureStackSample(
         requestId: Long,
         durationMs: Long,
         frequencyHz: Int,
         bufferSizeKb: Int,
-        tag: String,
     )
 
     /** Asks a running capture to stop early. Its completion is still reported, and ignored. */
@@ -38,7 +34,6 @@ internal class NoopProfilingTarget(
         durationMs: Long,
         frequencyHz: Int,
         bufferSizeKb: Int,
-        tag: String,
     ) {
         bridge.completeStackSample(
             requestId,

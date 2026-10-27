@@ -22,7 +22,7 @@ internal data class ProfileRequest(
     val durationMs: Long,
     val frequencyHz: Int,
     val bufferSizeKb: Int,
-    /** Recorded with the capture; the platform puts it in the file name and in the result. */
+    /** Marks the capture as the SDK's; the platform puts it in the file name and in the result. */
     val tag: String,
 )
 
