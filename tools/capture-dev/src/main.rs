@@ -17,6 +17,7 @@
 mod command;
 mod devices;
 mod doctor;
+mod maestro_setup;
 mod run;
 mod setup;
 
@@ -24,6 +25,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use command::SystemCommandRunner;
 use devices::{DevicePlatform, run_devices};
 use doctor::{DoctorOptions, DoctorTarget, run_doctor};
+use maestro_setup::setup_maestro;
 use run::{RunOptions, RunPlatform, run};
 use setup::{SetupOptions, SetupPlatform, run_setup};
 use std::process::ExitCode;
@@ -78,14 +80,15 @@ enum Command {
     #[arg(long)]
     non_interactive: bool,
   },
-  /// Install iOS signing assets from an unlocked secret vault.
+  /// Set up a supported development dependency.
   Setup {
     #[arg(value_enum)]
     platform: SetupPlatform,
-    /// Secret-vault item ID or unique name. Defaults to `CAPTURE_DEV_IOS_SECRET_VAULT_ITEM`.
+    /// iOS only: secret-vault item ID or unique name. Defaults to
+    /// `CAPTURE_DEV_IOS_SECRET_VAULT_ITEM`.
     #[arg(long, env = "CAPTURE_DEV_IOS_SECRET_VAULT_ITEM")]
     secret_vault_item: Option<String>,
-    /// Do not prompt; require a secret-vault item selector.
+    /// iOS only: do not prompt; require a secret-vault item selector.
     #[arg(long)]
     non_interactive: bool,
   },
@@ -189,20 +192,24 @@ fn main() -> ExitCode {
       platform,
       secret_vault_item,
       non_interactive,
-    } => match run_setup(
-      &SystemCommandRunner,
-      platform,
-      &SetupOptions {
-        secret_vault_item,
-        non_interactive,
-      },
-    ) {
-      Ok(()) => ExitCode::SUCCESS,
-      Err(message) => {
+    } => match platform {
+      SetupPlatform::Ios => run_setup(
+        &SystemCommandRunner,
+        platform,
+        &SetupOptions {
+          secret_vault_item,
+          non_interactive,
+        },
+      ),
+      SetupPlatform::Maestro => setup_maestro(&SystemCommandRunner),
+    }
+    .map_or_else(
+      |message| {
         eprintln!("[BLOCKED] {message}");
         ExitCode::from(1)
       },
-    },
+      |()| ExitCode::SUCCESS,
+    ),
   }
 }
 

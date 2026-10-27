@@ -24,6 +24,7 @@ const P12_PASSWORD_FIELD: &str = "p12_password";
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub(crate) enum SetupPlatform {
   Ios,
+  Maestro,
 }
 
 #[derive(Debug)]
@@ -71,6 +72,10 @@ pub(crate) fn run_setup(
 ) -> Result<(), String> {
   match platform {
     SetupPlatform::Ios => setup_ios(runner, options),
+    SetupPlatform::Maestro => Err(
+      "Run `capture-dev setup maestro` directly; it does not use secret-vault signing options."
+        .to_owned(),
+    ),
   }
 }
 

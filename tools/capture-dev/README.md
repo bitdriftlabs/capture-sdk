@@ -73,6 +73,15 @@ CAPTURE_DEV_IOS_SECRET_VAULT_ITEM=SIGNING-ITEM-ID just capture-dev setup ios
 
 `capture-dev` never prints the secret-vault session, the certificate password, or the downloaded asset contents. A locked vault or an incomplete item produces an actionable error without making any keychain or profile changes.
 
+### Setup Bitdrift Maestro
+
+```bash
+# Download the company release, verify its checksum, and install it for capture-dev.
+just capture-dev setup maestro
+```
+
+The release is installed under `~/Library/Application Support/capture-dev/maestro/`. This keeps the physical-device test runner on the Bitdrift Maestro fork without requiring a separate local clone.
+
 ## Build and test
 
 ```bash
