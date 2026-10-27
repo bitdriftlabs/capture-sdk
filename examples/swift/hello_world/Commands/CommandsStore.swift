@@ -16,7 +16,7 @@ actor CommandsStore {
         let result: Result<CommandResult, CommandError>
 
         switch key {
-        case "memory_dump":
+        case "task_vm_info":
             let isAttachment: Bool
             if case let .bool(value) = arguments["is_attachment"] {
                 isAttachment = value

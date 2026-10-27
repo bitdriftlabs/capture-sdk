@@ -34,20 +34,20 @@ final class LoggerTests: XCTestCase {
         let bridge = MockLoggerBridging()
         let logger = try Logger.testLogger(
             commands: [
-                Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "first"])) },
-                Command(key: "memory_dump") { _ in .success(CommandResult(context: ["source": "second"])) },
+                Command(key: "sample_command") { _ in .success(CommandResult(context: ["source": "first"])) },
+                Command(key: "sample_command") { _ in .success(CommandResult(context: ["source": "second"])) },
             ],
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
 
         XCTAssertEqual(
             bridge.commandRegistrationEvents,
-            ["register:\(MemoryDumpCommand.key)", "register:memory_dump", "start"]
+            ["register:\(MemoryDumpCommand.key)", "register:sample_command", "start"]
         )
-        let result = await logger.executeCommand(key: "memory_dump", arguments: [:])
+        let result = await logger.executeCommand(key: "sample_command", arguments: [:])
         let commandResult = try result.get()
         XCTAssertEqual(commandResult.context["source"], "second")
-        XCTAssertEqual(commandDuplicateKeys(from: bridge), "memory_dump")
+        XCTAssertEqual(commandDuplicateKeys(from: bridge), "sample_command")
 
         withExtendedLifetime(logger) {}
     }
@@ -60,7 +60,7 @@ final class LoggerTests: XCTestCase {
         Logger.resetShared()
         defer { Logger.resetShared() }
 
-        let handle = await Logger.registerCommand(key: "memory_dump") { _ in .success(CommandResult()) }
+        let handle = await Logger.registerCommand(key: "sample_command") { _ in .success(CommandResult()) }
 
         XCTAssertNil(handle)
     }

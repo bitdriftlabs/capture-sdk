@@ -4,7 +4,7 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-//! Memory diagnostics for the `ios_memory_dump` command: kernel counters, the VM map and a census
+//! Memory diagnostics for the `memory_dump` command: kernel counters, the VM map and a census
 //! of the malloc heap, captured from inside the process.
 
 #![deny(
@@ -122,7 +122,7 @@ pub fn capture(request: &Request) -> anyhow::Result<Dump> {
   context.push(("stages".to_string(), request.stages.names().join(",")));
 
   Ok(Dump {
-    attachment: encode::memory_dump(&report, images.as_ref()),
+    attachment: encode::memory_dump(&report, images.as_ref())?,
     context,
   })
 }

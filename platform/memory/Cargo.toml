@@ -6,13 +6,11 @@ publish      = false
 version      = "1.0.0"
 
 [dependencies]
-anyhow.workspace = true
-libc.workspace   = true
-log.workspace    = true
-objc.workspace   = true
-
-[dev-dependencies]
+anyhow.workspace   = true
 bd-proto.workspace = true
+libc.workspace     = true
+log.workspace      = true
+objc.workspace     = true
 protobuf.workspace = true
 
 [lib]

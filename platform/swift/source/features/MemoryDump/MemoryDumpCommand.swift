@@ -9,7 +9,7 @@ internal import CaptureLoggerBridge
 import Foundation
 
 final class MemoryDumpCommand: @unchecked Sendable {
-    static let key = "ios_memory_dump"
+    static let key = "memory_dump"
 
     /// A lower priority queue increases the time the heap census holds the malloc zone locks,
     /// so dont change this without performing benchmarks.

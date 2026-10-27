@@ -4,7 +4,7 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-// The report of an `ios_memory_dump` invocation, one section per stage that ran. Rows attributed
+// The report of a `memory_dump` invocation, one section per stage that ran. Rows attributed
 // to an image hold its `ImageTable` index.
 
 //

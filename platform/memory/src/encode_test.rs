@@ -13,7 +13,7 @@ use bd_proto::protos::memory::memory_dump::{self as proto, MemoryDump};
 use protobuf::Message;
 
 fn decode(report: &Report, images: &ImageTable) -> MemoryDump {
-  MemoryDump::parse_from_bytes(&memory_dump(report, Some(images))).unwrap()
+  MemoryDump::parse_from_bytes(&memory_dump(report, Some(images)).unwrap()).unwrap()
 }
 
 fn counters() -> CountersReport {
