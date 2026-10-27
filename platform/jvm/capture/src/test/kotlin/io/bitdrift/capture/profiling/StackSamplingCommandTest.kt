@@ -95,13 +95,12 @@ class StackSamplingCommandTest {
                     "duration_ms" to "3000",
                     "frequency_hz" to "100",
                     "buffer_size_kb" to "2048",
-                    "tag" to "bitdrift",
                 ),
             )
         }
 
     @Test
-    fun argumentsAreClampedAndTheTagIsPassedThrough(): Unit =
+    fun argumentsAreClamped(): Unit =
         runBlocking {
             val result =
                 async(Dispatchers.Unconfined) {
@@ -110,27 +109,17 @@ class StackSamplingCommandTest {
                             "duration_ms" to int(60_000),
                             "frequency_hz" to int(1),
                             "buffer_size_kb" to int(100_000),
-                            "tag" to text("app.checkout_1"),
                         ),
                     )
                 }
 
             assertThat(profiler.requests.single()).isEqualTo(
-                ProfileRequest(1, ProfileType.STACK_SAMPLING, 10_000, 10, 16_384, "app.checkout_1"),
+                ProfileRequest(1, ProfileType.STACK_SAMPLING, 10_000, 10, 16_384, "bitdrift"),
             )
             profiler.complete(ProfileOutcome.Saved(systemTrace().path))
             val success = result.await() as CommandResult.Success
             assertThat(success.context["duration_ms"]).isEqualTo("10000")
-            assertThat(success.context["tag"]).isEqualTo("app.checkout_1")
-        }
-
-    @Test
-    fun emptyTagFallsBackToTheDefault(): Unit =
-        runBlocking {
-            val result = async(Dispatchers.Unconfined) { command.handler(invocation("tag" to text(""))) }
-            assertThat(profiler.requests.single().tag).isEqualTo("bitdrift")
-            profiler.complete(ProfileOutcome.Saved(systemTrace().path))
-            result.await()
+            assertThat(success.context).doesNotContainKey("tag")
         }
 
     @Test
@@ -138,11 +127,9 @@ class StackSamplingCommandTest {
         runBlocking {
             val invalid =
                 listOf(
-                    invocation("tag" to text("../escape")),
-                    invocation("tag" to text("with space")),
-                    invocation("tag" to text("x".repeat(65))),
-                    invocation("tag" to int(7)),
                     invocation("duration_ms" to text("fast")),
+                    invocation("frequency_hz" to text("often")),
+                    invocation("buffer_size_kb" to text("big")),
                 )
             for (arguments in invalid) {
                 val error = command.handler(arguments) as CommandResult.Error

@@ -29,10 +29,10 @@ import kotlin.coroutines.resume
  * stack sampling trace of this process through the platform profiler and returns the trace file as
  * the command attachment.
  *
- * Every argument is optional and validated here: `duration_ms`, `frequency_hz`, `buffer_size_kb` and
- * `tag`. A finished trace is moved into [traceDirectory], the SDK's own storage, before it is
- * returned: the system writes every profile the app ever requests into one shared directory, so
- * location, not the profiler's tag, is what marks a trace as the SDK's.
+ * Every argument is optional and validated here: `duration_ms`, `frequency_hz` and `buffer_size_kb`.
+ * Each capture carries the profiler tag [TAG], which marks it as the SDK's rather than one the app
+ * requested itself. A finished trace is moved into [traceDirectory], the SDK's own storage, before
+ * it is returned: the system writes every profile the app ever requests into one shared directory.
  */
 internal class StackSamplingCommand(
     private val profiler: IProfiler,
@@ -52,11 +52,7 @@ internal class StackSamplingCommand(
                 parse()
             } catch (e: InvalidCommandArgumentException) {
                 return error("invalid_arguments", e.message, code = CommandErrorCode.InvalidArguments)
-            } ?: return error(
-                "invalid_arguments",
-                "argument tag must be at most 64 letters, digits, '.', '_' or '-'",
-                code = CommandErrorCode.InvalidArguments,
-            )
+            }
         if (swept.compareAndSet(false, true)) sweepOrphans()
         if (!profileability.isProfileable()) {
             return error(
@@ -93,22 +89,16 @@ internal class StackSamplingCommand(
         }
     }
 
-    /**
-     * Applies the documented defaults and clamps. A value of the wrong type throws; a tag that is
-     * not a safe file-name fragment returns null.
-     */
-    private fun CommandScope.parse(): ProfileRequest? {
-        val tag = if ("tag" in arguments) argument<String>("tag") else ""
-        if (tag.isNotEmpty() && !TAG_PATTERN.matches(tag)) return null
-        return ProfileRequest(
+    /** Applies the documented defaults and clamps. A value of the wrong type throws. */
+    private fun CommandScope.parse(): ProfileRequest =
+        ProfileRequest(
             requestId = nextRequestId.getAndIncrement(),
             type = ProfileType.STACK_SAMPLING,
             durationMs = clamped("duration_ms", DEFAULT_DURATION_MS, MIN_DURATION_MS, MAX_DURATION_MS),
             frequencyHz = clamped("frequency_hz", DEFAULT_FREQUENCY_HZ, MIN_FREQUENCY_HZ, MAX_FREQUENCY_HZ).toInt(),
             bufferSizeKb = clamped("buffer_size_kb", DEFAULT_BUFFER_KB, MIN_BUFFER_KB, MAX_BUFFER_KB).toInt(),
-            tag = tag.ifEmpty { DEFAULT_TAG },
+            tag = TAG,
         )
-    }
 
     private fun CommandScope.clamped(
         name: String,
@@ -123,7 +113,6 @@ internal class StackSamplingCommand(
             "duration_ms" to durationMs.toString(),
             "frequency_hz" to frequencyHz.toString(),
             "buffer_size_kb" to bufferSizeKb.toString(),
-            "tag" to tag,
         )
 
     /**
@@ -188,8 +177,12 @@ internal class StackSamplingCommand(
 
         const val CONTENT_TYPE = "application/vnd.bitdrift.perfetto-trace"
 
-        /** Lets an app that observes platform profiling results recognise the SDK's captures. */
-        const val DEFAULT_TAG = "bitdrift"
+        /**
+         * The profiler tag on every SDK capture. The system records it in the trace file name and
+         * reports it through `ProfilingResult.getTag()`, so an app that also uses the profiler can
+         * tell the SDK's captures from its own.
+         */
+        const val TAG = "bitdrift"
         const val DEFAULT_DURATION_MS = 3_000L
         const val MIN_DURATION_MS = 1_000L
         const val MAX_DURATION_MS = 10_000L
@@ -200,8 +193,5 @@ internal class StackSamplingCommand(
         const val MIN_BUFFER_KB = 256L
         const val MAX_BUFFER_KB = 16_384L
         const val ORPHAN_AGE_MS = 10 * 60 * 1000L
-
-        // The platform puts the tag in the output file name, so it must stay a safe file-name fragment.
-        private val TAG_PATTERN = Regex("[A-Za-z0-9._-]{1,64}")
     }
 }
