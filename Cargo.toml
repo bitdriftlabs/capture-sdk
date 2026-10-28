@@ -21,39 +21,39 @@ android_logger = { version = "0.15.1", default-features = false }
 anyhow = "1.0.104"
 assert_matches = "1.5.0"
 async-trait = "0.1.92"
-bd-api = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-api" }
-bd-artifact-upload = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-artifact-upload" }
-bd-bonjson = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-bonjson" }
-bd-bonjson-ffi = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-bonjson-ffi" }
-bd-buffer = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-buffer" }
-bd-client-common = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-client-common" }
-bd-client-stats-store = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-client-stats-store" }
-bd-crash-handler = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-crash-handler" }
-bd-device = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-device" }
-bd-error-reporter = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-error-reporter" }
-bd-grpc = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-grpc" }
-bd-hyper-network = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-hyper-network", default-features = false, features = [
+bd-api = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-artifact-upload = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-bonjson = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-bonjson-ffi = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-buffer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-client-common = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-client-stats-store = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-crash-handler = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-device = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-error-reporter = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-grpc = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-hyper-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443", default-features = false, features = [
   "ring",
 ] }
-bd-key-value = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-key-value" }
-bd-log = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-log" }
-bd-log-metadata = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-log-metadata" }
-bd-log-primitives = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-log-primitives" }
-bd-logger = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-logger" }
-bd-metadata = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-metadata" }
-bd-noop-network = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-noop-network" }
-bd-proto = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-proto" }
-bd-report-parsers = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-report-parsers" }
-bd-report-writer = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-report-writer" }
-bd-runtime = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-runtime" }
-bd-session = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-session" }
-bd-session-replay = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-session-replay" }
-bd-shutdown = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-shutdown" }
-bd-test-helpers = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-test-helpers", default-features = false, features = [
+bd-key-value = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-log = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-log-metadata = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-log-primitives = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-logger = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-metadata = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-noop-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-proto = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-report-parsers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-report-writer = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-runtime = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-session = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-session-replay = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-shutdown = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-test-helpers = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443", default-features = false, features = [
   "ring",
 ] }
-bd-test-helpers-core = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-test-helpers-core" }
-bd-time = { path = "/Users/mklein/.worktree-env/worktree3/monorepo/shared-core/bd-time" }
+bd-test-helpers-core = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
+bd-time = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "1d160421febdea64fc7bc57f7227ff4e603b7443" }
 clap = { version = "4.6.6", features = ["derive", "env"] }
 crc32fast = "1.5.1"
 ctor = "1.0.13"
