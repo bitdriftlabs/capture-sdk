@@ -99,6 +99,7 @@ def bitdrift_rust_library(
         crate_aliases = None,
         test_crate_aliases = None,
         configure_java_home = False,
+        target_compatible_with = [],
         **args):
     if crate_aliases == None:
         crate_aliases = _crate_aliases()
@@ -116,6 +117,7 @@ def bitdrift_rust_library(
 
     rust_library(
         name = name,
+        target_compatible_with = target_compatible_with,
         deps = deps + all_crate_deps(normal = True, cargo_only = True),
         srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
         disable_pipelining = True,
@@ -129,6 +131,7 @@ def bitdrift_rust_library(
 
     rust_test(
         name = raw_test_name,
+        target_compatible_with = target_compatible_with,
         crate = name,
         tags = _clippy_tags(test_tags),
         rustc_flags = _rustc_flags(),
@@ -144,12 +147,14 @@ def bitdrift_rust_library(
     if configure_java_home:
         _java_runtime_test(
             name = test_name,
+            target_compatible_with = target_compatible_with,
             test_binary = ":{}".format(raw_test_name),
             tags = test_tags,
         )
 
     rust_clippy(
         name = "_{}_rust_clippy".format(name),
+        target_compatible_with = target_compatible_with,
         testonly = True,
         deps = [
             name,

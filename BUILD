@@ -55,6 +55,7 @@ sh_test(
     srcs = ["ci/check_ios_xcframework_archive_members.sh"],
     data = [":ios_xcframework_for_distribution"],
     tags = ["macos_only"],
+    target_compatible_with = ["@platforms//os:macos"],
 )
 
 pkg_zip(
