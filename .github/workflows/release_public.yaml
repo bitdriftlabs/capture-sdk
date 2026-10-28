@@ -79,7 +79,34 @@ on:
         required: false
         default: main
 jobs:
+  verify-version:
+    name: Verify published release config version
+    runs-on: ubuntu-latest
+    outputs:
+      sdk-sha: ${{ steps.version.outputs.sdk-sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve release tag
+        id: tag
+        env:
+          VERSION: ${{ inputs.version }}
+          CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
+          PLATFORM: ${{ inputs.platform }}
+        run: |
+          tag="v$VERSION"
+          if [ -n "$CAPTURE_SUFFIX" ] && [ "$PLATFORM" = "android" ]; then
+            tag="$tag$CAPTURE_SUFFIX"
+          fi
+          echo "ref=refs/tags/$tag" >> "$GITHUB_OUTPUT"
+      - name: Verify included shared-core config version
+        id: version
+        uses: ./.github/actions/verify-release-version
+        with:
+          version: ${{ inputs.version }}
+          ref: ${{ steps.tag.outputs.ref }}
+
   release-ios:
+    needs: verify-version
     if: ${{ !inputs.dry-run && (inputs.platform == 'all' || inputs.platform == 'ios') }}
     name: Upload iOS artifacts to dl.bitdrift.io
     permissions:
@@ -89,7 +116,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: ${{ inputs.release-ref || github.ref_name }}
+        ref: ${{ needs.verify-version.outputs.sdk-sha }}
     - name: SOC2 Compliance
       run: |
         if [ "${{ github.event.inputs.emergency }}" == "true" ]; then
@@ -120,6 +147,7 @@ jobs:
       env:
         VERSION: ${{ inputs.version }}
   release-android:
+    needs: verify-version
     if: ${{ !inputs.dry-run && (inputs.platform == 'all' || inputs.platform == 'android') }}
     name: Upload Android artifacts to bitdrift maven and maven central
     permissions:
@@ -129,7 +157,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: ${{ inputs.release-ref || github.ref_name }}
+        ref: ${{ needs.verify-version.outputs.sdk-sha }}
     - name: SOC2 Compliance
       run: |
         if [ "${{ github.event.inputs.emergency }}" == "true" ]; then

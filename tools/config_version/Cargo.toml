@@ -1,0 +1,8 @@
+[package]
+edition = "2024"
+name    = "config-version"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+bd-metadata.workspace = true
