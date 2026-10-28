@@ -82,6 +82,25 @@ just capture-dev setup maestro
 
 The release is installed under `~/Library/Application Support/capture-dev/maestro/`. This keeps the physical-device test runner on the Bitdrift Maestro fork without requiring a separate local clone.
 
+### Run the iOS crash-recovery integration test
+
+Connect and unlock a trusted iPhone over USB, then run:
+
+```bash
+just capture-dev test crash_recovery.feature --platform ios
+```
+
+For CI or other headless use, select a device explicitly:
+
+```bash
+just capture-dev test crash_recovery.feature --platform ios --device <UDID> --non-interactive
+```
+
+The test builds the source-linked sample, uses Maestro to trigger its intentional `abort()` crash,
+checks that Capture persisted the crash state, relaunches the app, and waits for a new queued crash
+report. Gherkin remains the scenario source of truth while `capture-dev` supplies the platform
+actions and assertions. Android intentionally returns a clear TODO until its commands exist.
+
 ## Build and test
 
 ```bash

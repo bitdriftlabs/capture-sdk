@@ -20,6 +20,10 @@ const HELLO_WORLD_TARGET: &str = "//examples/swift/hello_world:hello_world_app";
 // This is also the device selector used by the iOS CI workflow.
 const IOS_DEVICE_CPU: &str = "--cpu=ios_arm64";
 
+pub(crate) const fn hello_world_bundle_id() -> &'static str {
+  HELLO_WORLD_BUNDLE_ID
+}
+
 // RunPlatform.
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub(crate) enum RunPlatform {
@@ -71,6 +75,40 @@ fn run_ios(runner: &dyn CommandRunner, options: &RunOptions) -> Result<(), Strin
   let ipa = build_hello_world(runner, destination.kind())?;
   let app = unpack_app(runner, &ipa)?;
   install_and_launch(runner, &destination, &app, !options.non_interactive)
+}
+
+/// Builds and installs the source-linked sample on one already-selected physical device.
+pub(crate) fn install_hello_world_on_physical_device(
+  runner: &dyn CommandRunner,
+  device: &SelectableDevice,
+) -> Result<(), String> {
+  let ipa = build_hello_world(runner, DeviceKind::Physical)?;
+  let app = unpack_app(runner, &ipa)?;
+  install_and_launch(runner, device, &app, false)
+}
+
+/// Starts the already-installed source-linked sample without rebuilding it.
+pub(crate) fn relaunch_hello_world_on_physical_device(
+  runner: &dyn CommandRunner,
+  device: &SelectableDevice,
+) -> Result<(), String> {
+  run_required(
+    runner,
+    "xcrun",
+    &[
+      "devicectl",
+      "device",
+      "process",
+      "launch",
+      "--device",
+      device.selector(),
+      "--terminate-existing",
+      HELLO_WORLD_BUNDLE_ID,
+    ],
+    "Could not relaunch the sample app on the device.",
+  )?;
+  println!("Launched the sample app on the physical device.");
+  Ok(())
 }
 
 fn build_hello_world(runner: &dyn CommandRunner, kind: DeviceKind) -> Result<PathBuf, String> {

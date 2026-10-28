@@ -17,6 +17,8 @@
 mod command;
 mod devices;
 mod doctor;
+mod feature;
+mod ios_integration;
 mod maestro_setup;
 mod run;
 mod setup;
@@ -25,6 +27,8 @@ use clap::{Parser, Subcommand, ValueEnum};
 use command::SystemCommandRunner;
 use devices::{DevicePlatform, run_devices};
 use doctor::{DoctorOptions, DoctorTarget, run_doctor};
+use feature::load_feature;
+use ios_integration::{IosIntegrationOptions, run_ios_feature};
 use maestro_setup::setup_maestro;
 use run::{RunOptions, RunPlatform, run};
 use setup::{SetupOptions, SetupPlatform, run_setup};
@@ -92,6 +96,20 @@ enum Command {
     #[arg(long)]
     non_interactive: bool,
   },
+  /// Run an integration feature on a selected platform.
+  Test {
+    /// Path to a Gherkin .feature file.
+    feature: std::path::PathBuf,
+    /// Platform that executes the feature.
+    #[arg(long, value_enum)]
+    platform: TestPlatform,
+    /// Physical iOS device UDID, as shown by `capture-dev devices ios`.
+    #[arg(long)]
+    device: Option<String>,
+    /// Do not prompt; require an explicit device selector.
+    #[arg(long)]
+    non_interactive: bool,
+  },
 }
 
 #[derive(Clone, Copy, Debug, Default, ValueEnum)]
@@ -100,6 +118,12 @@ enum Platform {
   All,
   Android,
   Ios,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum TestPlatform {
+  Ios,
+  Android,
 }
 
 impl From<Platform> for DoctorTarget {
@@ -210,6 +234,30 @@ fn main() -> ExitCode {
       },
       |()| ExitCode::SUCCESS,
     ),
+    Command::Test {
+      feature,
+      platform,
+      device,
+      non_interactive,
+    } => match load_feature(&feature).and_then(|plan| match platform {
+      TestPlatform::Ios => run_ios_feature(
+        &SystemCommandRunner,
+        &IosIntegrationOptions {
+          device,
+          non_interactive,
+        },
+        &plan,
+      ),
+      TestPlatform::Android => {
+        Err("TODO(ademarco): Android integration commands will be added later.".to_owned())
+      },
+    }) {
+      Ok(()) => ExitCode::SUCCESS,
+      Err(message) => {
+        eprintln!("[BLOCKED] {message}");
+        ExitCode::from(1)
+      },
+    },
   }
 }
 

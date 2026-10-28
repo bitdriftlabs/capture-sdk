@@ -1,0 +1,21 @@
+appId: io.bitdrift.example.swiftapp.helloworld
+---
+- scrollUntilVisible:
+    element:
+      text: "Crash lab"
+    direction: DOWN
+    speed: 100
+    visibilityPercentage: 50
+    centerElement: true
+    timeout: 30000
+- tapOn: "Crash lab"
+- scrollUntilVisible:
+    element:
+      text: "Call abort()"
+    direction: DOWN
+    speed: 100
+    visibilityPercentage: 50
+    centerElement: true
+    timeout: 30000
+- tapOn: "Call abort()"
+- tapOn: "Trigger now"

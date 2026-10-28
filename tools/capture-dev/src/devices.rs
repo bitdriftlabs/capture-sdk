@@ -128,6 +128,48 @@ impl DeviceReport {
       .ok_or_else(|| "No iOS destination was selected.".to_owned())
   }
 
+  pub(crate) fn resolve_physical_destination(
+    &self,
+    device: Option<&str>,
+    non_interactive: bool,
+  ) -> Result<SelectableDevice, String> {
+    if let Some(selector) = device {
+      return self.find(DeviceKind::Physical, selector);
+    }
+    if non_interactive {
+      return Err(
+        "`--non-interactive` requires `--device <selector>` for a physical-device test.".to_owned(),
+      );
+    }
+    if !std::io::stdin().is_terminal() || !std::io::stderr().is_terminal() {
+      return Err(
+        "No interactive terminal is available. Run `capture-dev devices ios` and pass `--device \
+         <selector>`."
+          .to_owned(),
+      );
+    }
+    if self.physical_devices.is_empty() {
+      return Err(
+        "No usable physical iOS device was found. Unlock and trust a USB-connected device, then \
+         rerun `capture-dev devices ios`."
+          .to_owned(),
+      );
+    }
+    let labels = self
+      .physical_devices
+      .iter()
+      .map(SelectableDevice::label)
+      .collect::<Vec<_>>();
+    let selected = FuzzySelect::with_theme(&ColorfulTheme::default())
+      .with_prompt("Choose a physical iOS device")
+      .items(&labels)
+      .interact_opt()
+      .map_err(|error| format!("Could not select a physical iOS device: {error}"))?;
+    selected
+      .map(|index| self.physical_devices[index].clone())
+      .ok_or_else(|| "No physical iOS device was selected.".to_owned())
+  }
+
   fn find(&self, kind: DeviceKind, selector: &str) -> Result<SelectableDevice, String> {
     self
       .simulators

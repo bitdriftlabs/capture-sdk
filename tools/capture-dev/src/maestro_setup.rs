@@ -108,6 +108,10 @@ pub(crate) fn setup_maestro(runner: &dyn CommandRunner) -> Result<(), String> {
   Ok(())
 }
 
+pub(crate) fn maestro_binary_path() -> Result<PathBuf, String> {
+  Ok(maestro_installation_directory()?.join("bin/maestro"))
+}
+
 fn maestro_installation_directory() -> Result<PathBuf, String> {
   let home = std::env::var_os("HOME").map(PathBuf::from).ok_or_else(|| {
     "Could not determine your home directory for the Maestro installation.".to_owned()
