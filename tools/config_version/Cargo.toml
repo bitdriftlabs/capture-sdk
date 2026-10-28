@@ -1,6 +1,7 @@
 [package]
 edition = "2024"
 name    = "config-version"
+license-file = "LICENSE"
 publish = false
 version = "0.1.0"
 
