@@ -19,7 +19,7 @@ protocol LoggerBridging {
     func registerCommand(key: String, target: AnyObject)
 
     func registerBuiltinCommand(
-        type: Int32, key: String, artifactType: String, timeoutMilliseconds: Int64, target: AnyObject
+        type: Int32, key: String, artifactType: String, timeoutMilliseconds: Int64?, target: AnyObject
     ) -> Bool
 
     func unregisterCommand(key: String)

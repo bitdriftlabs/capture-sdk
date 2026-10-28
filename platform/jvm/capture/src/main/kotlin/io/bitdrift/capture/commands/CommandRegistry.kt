@@ -60,7 +60,7 @@ internal class CommandRegistry(
     private class Builtin(
         val key: String,
         val artifactType: String,
-        val timeoutMs: Long,
+        val timeoutMs: Long?,
         val dispatcher: ICommandDispatcher,
     )
 
@@ -108,8 +108,7 @@ internal class CommandRegistry(
         commandType: Int,
         key: String,
         artifactType: String,
-        // Zero inherits the Rust command executor's runtime-configured default timeout.
-        timeoutMs: Long = 0,
+        timeoutMs: Long? = null,
         handler: suspend CommandScope.() -> CommandResult,
     ) {
         val identity = Identity.Builtin(commandType)
@@ -124,27 +123,31 @@ internal class CommandRegistry(
                     argumentNames: Array<String>,
                     argumentTypes: IntArray,
                     argumentValues: Array<Any?>,
-                ) = dispatch(identity, invocationId, key, commandId, sessionId, argumentNames, argumentTypes, argumentValues)
+                ) = dispatch(identity, invocationId, commandId, sessionId, argumentNames, argumentTypes, argumentValues)
 
                 override fun cancel(invocationId: Long) = this@CommandRegistry.cancel(invocationId)
             }
         builtins[commandType] = Builtin(key, artifactType, timeoutMs, adapter)
     }
 
-    fun attach(loggerId: Long) {
+    fun attach(loggerId: Long): List<String> {
         this.loggerId = loggerId
         handlers.keys.filterIsInstance<Identity.App>().forEach { bridge.registerCommand(loggerId, it.key, this) }
-        builtins.forEach { (commandType, definition) ->
-            check(
+        return builtins.mapNotNull { (commandType, definition) ->
+            if (
                 bridge.registerBuiltinCommand(
-                    loggerId,
-                    commandType,
-                    definition.key,
-                    definition.artifactType,
-                    definition.timeoutMs,
-                    definition.dispatcher,
-                ),
-            ) { "invalid SDK built-in registration: $commandType" }
+                    loggerId = loggerId,
+                    commandType = commandType,
+                    key = definition.key,
+                    artifactType = definition.artifactType,
+                    timeoutMs = definition.timeoutMs ?: 0,
+                    dispatcher = definition.dispatcher,
+                )
+            ) {
+                null
+            } else {
+                definition.key
+            }
         }
     }
 
@@ -157,19 +160,23 @@ internal class CommandRegistry(
         argumentTypes: IntArray,
         argumentValues: Array<Any?>,
     ) {
-        dispatch(Identity.App(key), invocationId, key, commandId, sessionId, argumentNames, argumentTypes, argumentValues)
+        dispatch(Identity.App(key), invocationId, commandId, sessionId, argumentNames, argumentTypes, argumentValues)
     }
 
     private fun dispatch(
         identity: Identity,
         invocationId: Long,
-        key: String,
         commandId: String?,
         sessionId: String,
         argumentNames: Array<String>,
         argumentTypes: IntArray,
         argumentValues: Array<Any?>,
     ) {
+        val key =
+            when (identity) {
+                is Identity.App -> identity.key
+                is Identity.Builtin -> builtins.getValue(identity.commandType).key
+            }
         val registration = handlers[identity]
         if (registration == null) {
             fail(invocationId, CommandErrorCode.CommandUnknown, "no handler registered for $key")
@@ -295,7 +302,13 @@ internal class CommandRegistry(
         message: String,
         fields: Array<Field> = emptyArray(),
     ) {
-        bridge.completeCommand(invocationId, code.wire, message, fields, null, null, null)
+        bridge.completeCommand(
+            invocationId = invocationId,
+            errorCode = code.wire,
+            errorMessage = message,
+            fields = fields,
+            attachment = null,
+        )
     }
 
     /** An error's title and description travel joined as the message; its context as fields. */
@@ -305,24 +318,15 @@ internal class CommandRegistry(
     ) {
         when (result) {
             is CommandResult.Success -> {
-                val attachment = result.attachment
-                val file = attachment?.file
-                if (file != null && (!file.isFile || !file.canRead())) {
-                    result.discardOwnedFile()
-                    fail(invocationId, CommandErrorCode.HandlerFailed, "attachment is not a readable file")
-                    return
-                }
                 var transferred = false
                 try {
                     transferred =
                         bridge.completeCommand(
-                            invocationId,
-                            null,
-                            null,
-                            result.context.toJniFields(),
-                            attachment?.takeIf { it.file == null }?.bytes,
-                            file?.path,
-                            attachment?.contentType,
+                            invocationId = invocationId,
+                            errorCode = null,
+                            errorMessage = null,
+                            fields = result.context.toJniFields(),
+                            attachment = result.attachment,
                         )
                 } finally {
                     if (!transferred) result.discardOwnedFile()

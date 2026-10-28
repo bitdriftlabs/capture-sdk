@@ -43,6 +43,21 @@ class CommandRegistryTest {
     private val registry = CommandRegistry(bridge, Dispatchers.Default)
 
     @Test
+    fun failedBuiltinRegistrationPreservesOtherCommands() {
+        val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
+        BuiltinCommands.register(registry) { CommandResult.Success() }
+        registry.register("app") { success() }
+        bridge.rejectedBuiltinTypes.add(BuiltinCommandType.TAKE_SCREENSHOT.wireValue)
+
+        assertThat(registry.attach(LOGGER_ID)).containsExactly(BuiltinCommandType.TAKE_SCREENSHOT.key)
+        assertThat(bridge.builtinDispatchers.keys).containsExactly(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue)
+        assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.TAKE_SCREENSHOT.wireValue, 0L)
+        assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue, 15_000L)
+        registry.dispatch(1, "app", null, "session")
+        assertThat(bridge.awaitCompletion().error).isNull()
+    }
+
+    @Test
     fun builtinIdentityCannotBeShadowedOrUnregisteredByAnAppKey() {
         val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
         registry.registerBuiltin(3, "stack_sampling_trace", "stack_sampling_trace") { error("not implemented") }
@@ -141,16 +156,21 @@ class CommandRegistryTest {
         }
 
     @Test
-    fun invalidFileAttachmentRejectsMissingFilesAndPreservesDirectories() =
+    fun fileValidationIsDeferredToRustAndRejectedDirectoriesArePreserved() =
         withAttachmentFile { file ->
             assertThat(file.delete()).isTrue()
+            bridge.acceptCompletion = false
             val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
             registry.register("file") { success(CommandAttachment.file(file, "application/octet-stream")) }
             registry.dispatch(1, "file", null, "session")
-            assertThat(bridge.awaitCompletion().error).isEqualTo("handler_failed")
+            val missing = bridge.awaitCompletion()
+            assertThat(missing.error).isNull()
+            assertThat(missing.attachmentPath).isEqualTo(file.absolutePath)
             assertThat(file.mkdir()).isTrue()
             registry.dispatch(2, "file", null, "session")
-            assertThat(bridge.awaitCompletion().error).isEqualTo("handler_failed")
+            val directory = bridge.awaitCompletion()
+            assertThat(directory.error).isNull()
+            assertThat(directory.attachmentPath).isEqualTo(file.absolutePath)
             assertThat(file.isDirectory).isTrue()
         }
 
@@ -1793,6 +1813,8 @@ class CommandRegistryTest {
 
     private class FakeCommandBridge : ICommandBridge {
         val builtinDispatchers = mutableMapOf<Int, ICommandDispatcher>()
+        val rejectedBuiltinTypes = mutableSetOf<Int>()
+        val builtinTimeouts = mutableMapOf<Int, Long>()
 
         override fun registerBuiltinCommand(
             loggerId: Long,
@@ -1802,6 +1824,8 @@ class CommandRegistryTest {
             timeoutMs: Long,
             dispatcher: ICommandDispatcher,
         ): Boolean {
+            builtinTimeouts[commandType] = timeoutMs
+            if (commandType in rejectedBuiltinTypes) return false
             builtinDispatchers[commandType] = dispatcher
             return true
         }
@@ -1838,16 +1862,22 @@ class CommandRegistryTest {
             errorCode: String?,
             errorMessage: String?,
             fields: Array<Field>,
-            attachment: ByteArray?,
-            attachmentPath: String?,
-            attachmentContentType: String?,
+            attachment: CommandAttachment?,
         ): Boolean {
             if (failNextCompletion) {
                 failNextCompletion = false
                 throw IllegalStateException("completeCommand failed")
             }
             completions.add(
-                Completion(invocationId, errorCode, errorMessage, fields.toList(), attachment, attachmentPath, attachmentContentType),
+                Completion(
+                    invocationId,
+                    errorCode,
+                    errorMessage,
+                    fields.toList(),
+                    attachment?.takeIf { it.file == null }?.bytes,
+                    attachment?.file?.path,
+                    attachment?.contentType,
+                ),
             )
             return acceptCompletion
         }

@@ -212,6 +212,46 @@ final class CommandsTargetTests: XCTestCase {
         XCTAssertEqual(next, .success(CommandResult()))
     }
 
+    func testOwnedFileCleanupUsesInjectedFileManager() throws {
+        let file = try makeAttachmentFile()
+        defer { try? FileManager.default.removeItem(at: file) }
+        let fileManager = CommandFileManager()
+
+        CommandAttachment.file(url: file, mimeType: "application/octet-stream").discardOwnedFile(using: fileManager)
+
+        XCTAssertEqual(fileManager.removals, [file])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+    }
+
+    func testOwnedFileCleanupToleratesRemovalFailure() throws {
+        let file = try makeAttachmentFile()
+        defer { try? FileManager.default.removeItem(at: file) }
+        let fileManager = CommandFileManager()
+        fileManager.removalError = CocoaError(.fileWriteNoPermission)
+
+        CommandAttachment.file(url: file, mimeType: "application/octet-stream").discardOwnedFile(using: fileManager)
+
+        XCTAssertEqual(fileManager.removals, [file])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: file.path))
+    }
+
+    func testOwnedFileCleanupPreservesDirectoriesAndIgnoresRemoteURLs() throws {
+        let directory = try makeAttachmentFile()
+        try FileManager.default.removeItem(at: directory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let remote = try XCTUnwrap(URL(string: "https://example.com/attachment"))
+        let fileManager = CommandFileManager()
+
+        for url in [directory, remote] {
+            CommandAttachment.file(url: url, mimeType: "application/octet-stream").discardOwnedFile(using: fileManager)
+        }
+
+        XCTAssertEqual(fileManager.removals, [])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: directory.path))
+        XCTAssertEqual(CommandError.invalidAttachment.code, CommandError(title: "failure").code)
+    }
+
     func testUnacceptedFileCompletionsAreDeletedForAppsAndBuiltins() async throws {
         // Deliberately outside WellKnownCommandType to exercise a future SDK-owned built-in.
         let futureBuiltinType: Int32 = 4711
@@ -265,6 +305,17 @@ final class CommandsTargetTests: XCTestCase {
         await task.value
         XCTAssertFalse(completed.value)
         XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+    }
+}
+
+private final class CommandFileManager: FileManager, @unchecked Sendable {
+    var removals = [URL]()
+    var removalError: Error?
+
+    override func removeItem(at url: URL) throws {
+        removals.append(url)
+        if let removalError { throw removalError }
+        try super.removeItem(at: url)
     }
 }
 

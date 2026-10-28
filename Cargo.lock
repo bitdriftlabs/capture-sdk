@@ -3109,6 +3109,8 @@ dependencies = [
 name = "proto"
 version = "0.1.0"
 dependencies = [
+ "bd-proto",
+ "protobuf 4.0.0-alpha.0",
  "serde",
  "serde_json",
 ]

@@ -1,0 +1,53 @@
+package io.bitdrift.capture.commands
+
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+
+internal class ScreenshotCommand(
+    private val capture: ((ByteArray) -> Unit) -> Unit,
+) {
+    private val lock = Any()
+    private var pending: CancellableContinuation<CommandResult>? = null
+
+    suspend fun execute(): CommandResult =
+        suspendCancellableCoroutine { completion ->
+            synchronized(lock) {
+                if (pending != null) {
+                    completion.resume(CommandResult.Error("screenshot capture already in progress"))
+                    return@suspendCancellableCoroutine
+                }
+                pending = completion
+            }
+            try {
+                capture { bytes ->
+                    finish(
+                        completion,
+                        if (bytes.isNotEmpty()) {
+                            CommandResult.Success(CommandAttachment(bytes, "image/jpeg"))
+                        } else {
+                            CommandResult.Error("invalid or unavailable screenshot")
+                        },
+                    )
+                }
+            } catch (_: Exception) {
+                finish(completion, CommandResult.Error("screenshot capture failed"))
+            }
+        }
+
+    private fun finish(
+        completion: CancellableContinuation<CommandResult>,
+        result: CommandResult,
+    ) {
+        val accepted =
+            synchronized(lock) {
+                if (pending !== completion) {
+                    false
+                } else {
+                    pending = null
+                    true
+                }
+            }
+        if (accepted) completion.resume(result)
+    }
+}

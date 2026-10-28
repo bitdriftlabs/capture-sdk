@@ -11,11 +11,11 @@
 
 **Changed**
 
-- Nothing yet!
+- Screenshot commands use the shared Rust attachment limits instead of an additional native size limit.
 
 **Fixed**
 
-- Nothing yet!
+- A failed built-in command registration no longer prevents SDK initialization.
 
 ### Android
 

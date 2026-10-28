@@ -16,6 +16,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.timeout
 import com.nhaarman.mockitokotlin2.verify
+import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.commands.ICommandBridge
 import io.bitdrift.capture.commands.ICommandDispatcher
@@ -129,7 +130,24 @@ class CaptureLoggerTest {
         }
     }
 
+    @Test
+    fun `builtin registration failure does not prevent logger startup`() {
+        val bridge = RecordingCommandBridge()
+        bridge.acceptBuiltins = false
+        val registry = CommandRegistry(bridge)
+        registry.register("app") { success() }
+
+        withLogger(commandRegistry = registry) { logger ->
+            assertThat(bridge.builtinKeys).containsExactlyInAnyOrder("take_screenshot", "stack_sampling_trace")
+            assertThat(bridge.registered).containsExactly(logger.loggerId to "app")
+            assertThat(logger.getSdkStatus()).isNotNull()
+        }
+    }
+
     private class RecordingCommandBridge : ICommandBridge {
+        var acceptBuiltins = true
+        val builtinKeys = mutableListOf<String>()
+
         override fun registerBuiltinCommand(
             loggerId: Long,
             commandType: Int,
@@ -137,7 +155,10 @@ class CaptureLoggerTest {
             artifactType: String,
             timeoutMs: Long,
             dispatcher: ICommandDispatcher,
-        ): Boolean = true
+        ): Boolean {
+            builtinKeys.add(key)
+            return acceptBuiltins
+        }
 
         val registered = mutableListOf<Pair<Long, String>>()
 
@@ -159,11 +180,23 @@ class CaptureLoggerTest {
             errorCode: String?,
             errorMessage: String?,
             fields: Array<Field>,
-            attachment: ByteArray?,
-            attachmentPath: String?,
-            attachmentContentType: String?,
+            attachment: CommandAttachment?,
         ): Boolean = true
     }
+
+    @Test
+    fun `typed command completion preserves the JNI entry point`(): Unit =
+        withLogger {
+            assertThat(
+                CaptureJniLibrary.completeCommand(
+                    invocationId = Long.MAX_VALUE,
+                    errorCode = null,
+                    errorMessage = null,
+                    fields = emptyArray(),
+                    attachment = CommandAttachment(byteArrayOf(1, 2, 3), "application/octet-stream"),
+                ),
+            ).isFalse()
+        }
 
     @Test
     fun `deviceId and sessionId return correct values`(): Unit =

@@ -37,8 +37,7 @@ final class SessionReplayControllerTests: XCTestCase {
         XCTAssertEqual(1, self.logger.sessionReplayScreenLogs.count)
     }
 
-    func testCommandScreenshotValidatesJpegAndSize() async throws {
-        // JPEG SOI is FF D8 and EOI is FF D9; oversized data exceeds the 2 MiB screenshot cap.
+    func testCommandScreenshotDefersPayloadValidationToRust() async throws {
         let jpeg = Data([0xff, 0xd8, 1, 0xff, 0xd9])
         for bytes in [jpeg, nil, Data(), Data([1, 2, 3, 4]), Data(repeating: 0, count: 2 * 1024 * 1024 + 1)] {
             let started = expectation(description: "capture started")
@@ -51,9 +50,9 @@ final class SessionReplayControllerTests: XCTestCase {
             await fulfillment(of: [started])
             capture.finish(bytes)
             let result = await task.value
-            if bytes == jpeg {
+            if let bytes, !bytes.isEmpty {
                 let attachment = try XCTUnwrap(result.get().attachment)
-                XCTAssertEqual(attachment.data, jpeg)
+                XCTAssertEqual(attachment.data, bytes)
                 XCTAssertEqual(attachment.mimeType, "image/jpeg")
             } else {
                 guard case let .failure(error) = result else { return XCTFail("expected invalid screenshot") }

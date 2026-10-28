@@ -225,22 +225,13 @@ public final class Logger {
 
         let (uniqueCommands, duplicated) = commands.removingDuplicates()
         let commandBridge = CommandRegistrationBridge(logger: self.underlyingLogger)
-        let builtins = CommandRegistry.platformBuiltins(screenshot: self.sessionReplayController)
+        let builtins = BuiltinCommands.make(screenshot: self.sessionReplayController)
         self.commandRegistry = CommandRegistry(commands: uniqueCommands, builtins: builtins, bridge: commandBridge)
         self.commandsTarget = CommandsTarget(registry: self.commandRegistry)
         for command in uniqueCommands {
             commandBridge.registerCommand(key: command.key, target: self.commandsTarget)
         }
-        for builtin in builtins {
-            let target = CommandsTarget(registry: self.commandRegistry, builtinType: builtin.type)
-            guard self.underlyingLogger.registerBuiltinCommand(
-                type: builtin.type,
-                key: builtin.command.key,
-                artifactType: builtin.artifactType,
-                timeoutMilliseconds: builtin.timeoutMilliseconds,
-                target: target
-            ) else { return nil }
-        }
+        let failedBuiltins = BuiltinCommands.register(builtins, registry: self.commandRegistry, logger: self.underlyingLogger)
 
         defer {
             let duration = timeProvider.timeIntervalSince(start)
@@ -252,6 +243,9 @@ public final class Logger {
             ]
             if !duplicated.isEmpty {
                 fields["_duplicated_commands"] = duplicated.map(\.key).sorted().joined(separator: ",")
+            }
+            if !failedBuiltins.isEmpty {
+                fields["_failed_builtin_commands"] = failedBuiltins.sorted().joined(separator: ",")
             }
 
             self.underlyingLogger.logSDKStart(fields: fields, duration: duration)

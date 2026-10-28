@@ -14,27 +14,38 @@ import android.os.Build
 import android.view.PixelCopy
 import android.view.View
 import androidx.annotation.RequiresApi
+import androidx.annotation.RestrictTo
 import androidx.core.graphics.createBitmap
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.phoneWindow
-import io.bitdrift.capture.replay.IScreenshotLogger
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 
-internal class ScreenshotCaptureEngine(
+/**
+ * Captures JPEG screenshots for SDK commands independently of session replay.
+ *
+ * @param errorHandler reports unexpected capture failures.
+ * @param mainThreadHandler receives legacy PixelCopy callbacks.
+ * @param windowManager locates the window to capture.
+ * @param executor runs screenshot processing.
+ * @param logError records capture-failure diagnostics.
+ */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+class ScreenshotCaptureEngine(
     private val errorHandler: ErrorHandler,
-    private val logger: IScreenshotLogger,
     private val mainThreadHandler: MainThreadHandler,
     private val windowManager: IWindowManager,
     private val executor: ExecutorService,
+    private val logError: (String, Throwable?) -> Unit,
 ) {
-    fun captureDeviceCommandScreenshot() {
+    /** Captures a JPEG, delivering empty bytes to [completion] if capture fails. */
+    fun captureDeviceCommandScreenshot(completion: (ByteArray) -> Unit) {
         try {
             val rootView = windowManager.getBottomMostRootView()
             if (rootView == null || rootView.width <= 0 || rootView.height <= 0 || !rootView.isShown) {
-                finishOnError(expected = true, "Device command screenshot: Root view is invalid")
+                finishOnError(expected = true, "Device command screenshot: Root view is invalid", completion = completion)
                 return
             }
 
@@ -42,14 +53,15 @@ internal class ScreenshotCaptureEngine(
             //  see: https://developer.android.com/topic/performance/graphics/load-bitmap#load-bitmap
             // TODO(murki): Use BuildVersionChecker after moving it to common module
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                modernPixelCopySnapshot(rootView)
+                modernPixelCopySnapshot(rootView, completion)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                pixelCopySnapshot(rootView)
+                pixelCopySnapshot(rootView, completion)
             } else {
                 // TODO(murki): Implement on old API levels using Canvas(bitmap) approach
                 finishOnError(
                     expected = true,
                     "Device command screenshot: Unsupported Android version=${Build.VERSION.SDK_INT}",
+                    completion = completion,
                 )
             }
         } catch (e: Exception) {
@@ -57,12 +69,16 @@ internal class ScreenshotCaptureEngine(
                 expected = false,
                 "Device command screenshot: PixelCopy request failed. Exception=${e.message}",
                 e,
+                completion,
             )
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun modernPixelCopySnapshot(topView: View) {
+    private fun modernPixelCopySnapshot(
+        topView: View,
+        completion: (ByteArray) -> Unit,
+    ) {
         // TODO(murki): Reduce memory footprint by calling setDestinationBitmap() with a Bitmap.Config.RGB_565 instead
         //  of the default of Bitmap.Config.ARGB_8888
         val screenshotRequest =
@@ -76,18 +92,20 @@ internal class ScreenshotCaptureEngine(
                     finishOnError(
                         expected = false,
                         "Device command screenshot: PixelCopy failed. Result.status=${screenshotResult.status}",
+                        completion = completion,
                     )
                     return@request
                 }
                 // bitmap is only available if the status is SUCCESS
                 resultBitmap = screenshotResult.bitmap
                 val screenshotBytes = compressScreenshot(resultBitmap)
-                logger.onDeviceCommandScreenshotCaptured(screenshotBytes)
+                completion(screenshotBytes)
             } catch (e: Exception) {
                 finishOnError(
                     expected = false,
                     "Device command screenshot: PixelCopy compression failed. Exception=${e.message}",
                     e,
+                    completion,
                 )
             } finally {
                 resultBitmap?.recycle()
@@ -96,10 +114,13 @@ internal class ScreenshotCaptureEngine(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun pixelCopySnapshot(root: View) {
+    private fun pixelCopySnapshot(
+        root: View,
+        completion: (ByteArray) -> Unit,
+    ) {
         val window = root.phoneWindow
         if (window == null) {
-            finishOnError(expected = true, "Device command screenshot: Phone window invalid")
+            finishOnError(expected = true, "Device command screenshot: Phone window invalid", completion = completion)
             return
         }
 
@@ -115,6 +136,7 @@ internal class ScreenshotCaptureEngine(
                     finishOnError(
                         expected = false,
                         "Device command screenshot: PixelCopy failed. Result.status=${screenshotResultStatus.toStatusText()}",
+                        completion = completion,
                     )
                     return@request
                 }
@@ -123,12 +145,13 @@ internal class ScreenshotCaptureEngine(
                 executor.execute {
                     try {
                         val screenshotBytes = compressScreenshot(resultBitmap)
-                        logger.onDeviceCommandScreenshotCaptured(screenshotBytes)
+                        completion(screenshotBytes)
                     } catch (e: Exception) {
                         finishOnError(
                             expected = false,
                             "Device command screenshot: Compression failed. Exception=${e.message}",
                             e,
+                            completion,
                         )
                     } finally {
                         resultBitmap.recycle()
@@ -143,12 +166,13 @@ internal class ScreenshotCaptureEngine(
         expected: Boolean,
         message: String,
         e: Throwable? = null,
+        completion: (ByteArray) -> Unit,
     ) {
         if (!expected) {
             errorHandler.handleError(message, e)
         }
-        logger.logErrorInternal(message, e)
-        logger.onDeviceCommandScreenshotCaptured(ByteArray(0))
+        logError(message, e)
+        completion(ByteArray(0))
     }
 
     private fun compressScreenshot(resultBitmap: Bitmap): ByteArray {

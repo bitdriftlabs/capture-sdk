@@ -36,10 +36,10 @@ import Foundation
         self.fileURL = fileURL.isFileURL ? fileURL.standardizedFileURL : fileURL
     }
 
-    func discardOwnedFile() {
+    func discardOwnedFile(using fileManager: FileManager = .default) {
         guard let fileURL, fileURL.isFileURL,
               (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true
         else { return }
-        try? FileManager.default.removeItem(at: fileURL)
+        try? fileManager.removeItem(at: fileURL)
     }
 }

@@ -34,7 +34,7 @@ final class CoreLogger {
 
 extension CoreLogger: CoreLogging {
     func registerBuiltinCommand(
-        type: Int32, key: String, artifactType: String, timeoutMilliseconds: Int64, target: AnyObject
+        type: Int32, key: String, artifactType: String, timeoutMilliseconds: Int64?, target: AnyObject
     ) -> Bool {
         self.underlyingLogger.registerBuiltinCommand(
             type: type, key: key, artifactType: artifactType, timeoutMilliseconds: timeoutMilliseconds, target: target
