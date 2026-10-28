@@ -207,15 +207,9 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
         case let .success(result):
             let attachment = result.attachment
             let fileURL = attachment?.fileURL
-            if let fileURL {
-                guard fileURL.isFileURL,
-                      (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true,
-                      FileManager.default.isReadableFile(atPath: fileURL.path)
-                else {
-                    attachment?.discardOwnedFile()
-                    complete(requestID: requestID, result: .failure(CommandError(title: "attachment is not a readable local file")))
-                    return
-                }
+            if let fileURL, !fileURL.isFileURL {
+                complete(requestID: requestID, result: .failure(.invalidAttachment))
+                return
             }
             let accepted = capture_complete_command(
                 requestID,

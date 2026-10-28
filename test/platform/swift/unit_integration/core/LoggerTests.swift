@@ -53,6 +53,25 @@ final class LoggerTests: XCTestCase {
         bridge.startLog.load()?.0.first(where: { $0.key == "_duplicated_commands" })?.data as? String
     }
 
+    func testBuiltinRegistrationFailureDoesNotPreventLoggerStartup() async throws {
+        let bridge = MockLoggerBridging()
+        bridge.rejectedBuiltinTypes = [BuiltinCommandType.takeScreenshot.rawValue]
+        let logger = try Logger.testLogger(
+            commands: [Command(key: "app") { _ in .success(CommandResult()) }],
+            loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
+        )
+
+        XCTAssertEqual(bridge.builtinRegistrationAttempts, [BuiltinCommandType.takeScreenshot.rawValue, BuiltinCommandType.stackSamplingTrace.rawValue])
+        XCTAssertEqual(bridge.commandRegistrationEvents, ["register:app", "start"])
+        XCTAssertEqual(
+            bridge.startLog.load()?.0.first(where: { $0.key == "_failed_builtin_commands" })?.data as? String,
+            BuiltinCommandType.takeScreenshot.key
+        )
+        let result = await logger.executeCommand(key: "app", arguments: [:])
+        _ = try result.get()
+        withExtendedLifetime(logger) {}
+    }
+
     func testRegisteringCommandBeforeLoggerStartsReturnsNil() async {
         Logger.resetShared()
         defer { Logger.resetShared() }

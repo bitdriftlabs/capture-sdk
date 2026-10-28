@@ -18,10 +18,13 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.commands.BuiltinCommands
 import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
+import io.bitdrift.capture.commands.ScreenshotCommand
 import io.bitdrift.capture.common.IWindowManager
+import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.RuntimeStringConfig
@@ -67,6 +70,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
+import io.bitdrift.capture.replay.internal.ScreenshotCaptureEngine
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
@@ -328,15 +332,19 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        // Wire ID 2 is WellKnownCommandType.TAKE_SCREENSHOT in workflow_command.proto.
-        commandRegistry.registerBuiltin(2, "take_screenshot", "screenshot") {
-            if (arguments.isNotEmpty()) {
-                error("screenshot does not accept arguments", code = io.bitdrift.capture.commands.CommandErrorCode.InvalidArguments)
-            } else {
-                (sessionReplayTarget as? SessionReplayTarget)?.captureCommandScreenshot()
-                    ?: error("screenshot capture unavailable")
+        val screenshot =
+            configuration.sessionReplayConfiguration?.let {
+                val engine =
+                    ScreenshotCaptureEngine(
+                        errorHandler,
+                        MainThreadHandler(),
+                        windowManager,
+                        CaptureDispatchers.SessionReplay.executorService,
+                    ) { message, throwable ->
+                        logInternal(LogType.INTERNALSDK, LogLevel.ERROR, arrayFields = ArrayFields.EMPTY, throwable = throwable) { message }
+                    }
+                ScreenshotCommand(engine::captureDeviceCommandScreenshot)
             }
-        }
         // ProfilingManager exists from Android 15; below that the command fails with a clear reason
         // instead of being unknown to the core.
         val stackSampling: suspend CommandScope.() -> CommandResult =
@@ -350,14 +358,20 @@ internal class LoggerImpl(
             } else {
                 { error("unsupported", "stack sampling requires Android 15 or newer") }
             }
-        commandRegistry.registerBuiltin(
-            StackSamplingCommand.COMMAND_TYPE,
-            StackSamplingCommand.KEY,
-            StackSamplingCommand.KEY,
-            timeoutMs = StackSamplingCommand.TIMEOUT_MS,
-            handler = stackSampling,
+        BuiltinCommands.register(
+            commandRegistry,
+            captureScreenshot = {
+                screenshot?.execute()
+                    ?: CommandResult.Error("screenshot capture unavailable")
+            },
+            stackSamplingTrace = stackSampling,
         )
-        commandRegistry.attach(this.loggerId)
+        val failedBuiltins = commandRegistry.attach(this.loggerId)
+        if (failedBuiltins.isNotEmpty()) {
+            logInternal(LogType.INTERNALSDK, LogLevel.ERROR) {
+                "failed to register SDK built-ins: ${failedBuiltins.sorted().joinToString(",")}"
+            }
+        }
 
         CaptureJniLibrary.startLogger(this.loggerId)
 

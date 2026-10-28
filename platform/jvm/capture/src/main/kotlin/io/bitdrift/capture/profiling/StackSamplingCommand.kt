@@ -43,7 +43,7 @@ internal class StackSamplingCommand(
     private val nextRequestId = AtomicLong(1)
     private val swept = AtomicBoolean(false)
 
-    /** The handler to register under [KEY]. */
+    /** The handler to register as the `stack_sampling_trace` built-in. */
     val handler: suspend CommandScope.() -> CommandResult = { execute() }
 
     private suspend fun CommandScope.execute(): CommandResult {
@@ -163,12 +163,6 @@ internal class StackSamplingCommand(
     }
 
     companion object {
-        /** `WellKnownCommandType.STACK_SAMPLING_TRACE` in workflow_command.proto. */
-        const val COMMAND_TYPE = 3
-
-        /** The well-known command key the backend dispatches; also the artifact contract's type ID. */
-        const val KEY = "stack_sampling_trace"
-
         /**
          * The core's execution deadline for one capture: the longest allowed sampling window
          * ([MAX_DURATION_MS]) plus the platform's start and post-processing overhead.

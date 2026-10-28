@@ -23,7 +23,7 @@ final class CommandRegistryTests: XCTestCase {
     func testBuiltinCannotBeShadowedOrUnregisteredByMatchingAppName() async throws {
         let registry = CommandRegistry(
             commands: [Command(key: "stack_sampling_trace") { _ in .success(CommandResult(context: ["app": "true"])) }],
-            builtins: CommandRegistry.platformBuiltins(screenshot: nil)
+            builtins: BuiltinCommands.make(screenshot: nil)
         )
         let appResult = await registry.execute(key: "stack_sampling_trace", arguments: [:])
         XCTAssertEqual(try appResult.get().context, ["app": "true"])
@@ -39,7 +39,7 @@ final class CommandRegistryTests: XCTestCase {
     }
 
     func testScreenshotValidatesArgumentsAndUnavailableProvider() async {
-        let registry = CommandRegistry(builtins: CommandRegistry.platformBuiltins(screenshot: nil))
+        let registry = CommandRegistry(builtins: BuiltinCommands.make(screenshot: nil))
         let invalid = await registry.execute(key: "take_screenshot", arguments: ["extra": .bool(true)], builtinType: 2)
         guard case let .failure(error) = invalid else { return XCTFail("expected invalid arguments") }
         XCTAssertEqual(error.code, CommandError.invalidArguments().code)
@@ -57,7 +57,7 @@ final class CommandRegistryTests: XCTestCase {
                 await gate.wait()
                 return .success(CommandResult())
             }, ],
-            builtins: CommandRegistry.platformBuiltins(screenshot: nil),
+            builtins: BuiltinCommands.make(screenshot: nil),
             maxConcurrentExecutions: 1
         )
         async let appResult = registry.execute(key: "app", arguments: [:])

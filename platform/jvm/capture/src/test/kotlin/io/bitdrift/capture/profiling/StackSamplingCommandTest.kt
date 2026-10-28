@@ -9,6 +9,7 @@ package io.bitdrift.capture.profiling
 
 import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.CommandArgument
 import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandInvocation
@@ -64,7 +65,7 @@ class StackSamplingCommandTest {
         )
 
     private fun invocation(vararg arguments: Pair<String, CommandArgument>) =
-        CommandInvocation(StackSamplingCommand.KEY, "command", "session", arguments.toMap())
+        CommandInvocation(BuiltinCommandType.STACK_SAMPLING_TRACE.key, "command", "session", arguments.toMap())
 
     private fun int(value: Long) = CommandArgument.Int64(value)
 

@@ -24,18 +24,25 @@ on:
         default: false
 jobs:
   release-capture-ios:
-    if: ${{ !inputs.dry-run }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: Verify included shared-core config version
+        uses: ./.github/actions/verify-release-version
+        with:
+          version: ${{ inputs.version }}
+          ref: refs/tags/v${{ inputs.version }}
       - name: org-read-write-install token
+        if: ${{ !inputs.dry-run }}
         id: org-read-write
         uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0
         with:
           app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
           private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
       - name: Trigger CI Job in capture-ios Repo
+        if: ${{ !inputs.dry-run }}
         run: |
-          gh workflow run $WORKFLOW_ID \
+          gh workflow run "$WORKFLOW_ID" \
           --repo bitdriftlabs/capture-ios \
           --raw-field version=${{ inputs.version }}
         env:

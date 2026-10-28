@@ -8,6 +8,7 @@
 package io.bitdrift.capture
 
 import io.bitdrift.capture.attributes.IClientAttributes
+import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.ICommandBridge
 import io.bitdrift.capture.commands.ICommandDispatcher
 import io.bitdrift.capture.error.IErrorReporter
@@ -317,6 +318,23 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
         key: String,
     ): Boolean
 
+    override fun completeCommand(
+        invocationId: Long,
+        errorCode: String?,
+        errorMessage: String?,
+        fields: Array<Field>,
+        attachment: CommandAttachment?,
+    ): Boolean =
+        completeCommand(
+            invocationId = invocationId,
+            errorCode = errorCode,
+            errorMessage = errorMessage,
+            fields = fields,
+            attachment = attachment?.takeIf { it.file == null }?.bytes,
+            attachmentPath = attachment?.file?.path,
+            attachmentContentType = attachment?.contentType,
+        )
+
     /**
      * Completes an in-flight command invocation.
      *
@@ -330,7 +348,7 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
      * @param attachmentContentType the MIME type; null iff both attachment sources are null.
      * @return whether Rust accepted ownership of the result and any attachment file.
      */
-    external override fun completeCommand(
+    external fun completeCommand(
         invocationId: Long,
         errorCode: String?,
         errorMessage: String?,

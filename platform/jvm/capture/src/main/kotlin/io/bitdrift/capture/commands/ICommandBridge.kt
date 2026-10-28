@@ -34,8 +34,7 @@ internal interface ICommandBridge {
      * @param errorCode a [CommandErrorCode.wire] value, or null when the command succeeded.
      * @param errorMessage the failure detail; null when the command succeeded.
      * @param fields the result context on success, the error context on failure.
-     * @param attachmentPath an alternative file source; mutually exclusive with [attachment].
-     * @param attachmentContentType non-null exactly when an attachment source is present.
+     * @param attachment the optional in-memory or file-backed attachment.
      * @return whether Rust accepted ownership of the completion, including its file.
      */
     fun completeCommand(
@@ -43,8 +42,6 @@ internal interface ICommandBridge {
         errorCode: String?,
         errorMessage: String?,
         fields: Array<Field>,
-        attachment: ByteArray?,
-        attachmentPath: String?,
-        attachmentContentType: String?,
+        attachment: CommandAttachment?,
     ): Boolean
 }

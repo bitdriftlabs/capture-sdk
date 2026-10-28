@@ -10,27 +10,7 @@ actor CommandRegistry {
         let type: Int32
         let command: Command
         let artifactType: String
-        // Zero inherits the Rust command executor's runtime-configured default timeout.
-        var timeoutMilliseconds: Int64 = 0
-    }
-
-    static func platformBuiltins(screenshot: SessionReplayController?) -> [Builtin] {
-        [
-            // Wire ID 2 is WellKnownCommandType.TAKE_SCREENSHOT in workflow_command.proto.
-            Builtin(type: 2, command: Command(key: "take_screenshot") { arguments in
-                guard arguments.isEmpty else {
-                    return .failure(.invalidArguments(description: "screenshot does not accept arguments"))
-                }
-                guard let screenshot else {
-                    return .failure(CommandError(title: "screenshot capture unavailable"))
-                }
-                return await screenshot.captureCommandScreenshot()
-            }, artifactType: "screenshot"),
-            // Wire ID 3 is STACK_SAMPLING_TRACE; 15_000 ms preserves its 15-second execution budget.
-            Builtin(type: 3, command: Command(key: "stack_sampling_trace") { _ in
-                .failure(CommandError(title: "not implemented"))
-            }, artifactType: "stack_sampling_trace", timeoutMilliseconds: 15_000),
-        ]
+        var timeoutMilliseconds: Int64?
     }
 
     private enum Identity: Hashable {
