@@ -1,0 +1,14 @@
+[package]
+description  = "Mobile developer environment tooling for capture-sdk"
+edition      = "2024"
+license-file = "LICENSE"
+name         = "capture-dev"
+publish      = false
+version      = "0.1.0"
+
+[dependencies]
+anstyle.workspace    = true
+clap.workspace       = true
+env_logger.workspace = true
+serde.workspace      = true
+serde_json.workspace = true
