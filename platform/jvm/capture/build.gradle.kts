@@ -118,7 +118,7 @@ val bazelCaptureLibrary = "//platform/jvm:capture_shared"
 val generateBuiltinCommands =
     tasks.register<Exec>("generateBuiltinCommands") {
         workingDir = bazelWorkspace
-        commandLine("./bazelw", "build", "//proto:builtin_command_kt_source")
+        commandLine("./bazelw", "build", "--config=nocache", "//proto:builtin_command_kt_source")
         doLast {
             layout.buildDirectory.file("generated/commands/BuiltinCommandType.kt").get().asFile.setWritable(true)
             copy {
