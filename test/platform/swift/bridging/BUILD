@@ -1,6 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_library", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
+load("//bazel:config.bzl", "APPLE_TARGET_COMPATIBILITY")
 
 swift_library(
     name = "CaptureTestBridging",
@@ -15,6 +16,7 @@ swift_library(
         "macos_only",
         "manual",
     ],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [
         "//platform/swift/source:CapturePassable",
@@ -29,6 +31,7 @@ objc_library(
     ],
     module_name = "CaptureTestBridge",
     tags = ["macos_only"],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [
         ":CaptureTestBridging",
@@ -41,6 +44,7 @@ cc_library(
     name = "logger_test_bridge",
     testonly = True,
     tags = ["macos_only"],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     deps = [
         ":test_swift_bridge",
         "//platform/test_helpers",
@@ -52,6 +56,7 @@ bitdrift_rust_library(
     name = "test_swift_bridge",
     testonly = True,
     tags = ["macos_only"],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [
         "//platform/swift/source:swift_bridge",

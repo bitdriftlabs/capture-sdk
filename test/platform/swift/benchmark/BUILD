@@ -1,5 +1,6 @@
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:bitdrift_swift_test.bzl", "bitdrift_mobile_swift_test")
+load("//bazel:config.bzl", "APPLE_TARGET_COMPATIBILITY")
 
 swift_library(
     name = "benchmarks",
@@ -10,6 +11,7 @@ swift_library(
         "macos_only",
         "manual",
     ],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [
         "//platform/swift/source:CapturePassable",
