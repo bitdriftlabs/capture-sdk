@@ -21,7 +21,9 @@ internal class ScreenshotCommand(
         suspendCancellableCoroutine { completion ->
             synchronized(lock) {
                 if (pending != null) {
-                    completion.resume(CommandResult.Error("screenshot capture already in progress"))
+                    completion.resume(
+                        CommandResult.Error("screenshot capture already in progress", code = CommandErrorCode.CommandAlreadyExecuting),
+                    )
                     return@suspendCancellableCoroutine
                 }
                 pending = completion

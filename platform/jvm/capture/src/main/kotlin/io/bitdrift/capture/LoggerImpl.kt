@@ -19,7 +19,6 @@ import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.commands.BuiltinCommands
 import io.bitdrift.capture.commands.CommandRegistry
-import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.ScreenshotCommand
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
@@ -327,23 +326,17 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        val screenshot =
-            configuration.sessionReplayConfiguration?.let {
-                val engine =
-                    ScreenshotCaptureEngine(
-                        errorHandler,
-                        MainThreadHandler(),
-                        windowManager,
-                        CaptureDispatchers.SessionReplay.executorService,
-                    ) { message, throwable ->
-                        logInternal(LogType.INTERNALSDK, LogLevel.ERROR, arrayFields = ArrayFields.EMPTY, throwable = throwable) { message }
-                    }
-                ScreenshotCommand(engine::captureDeviceCommandScreenshot)
+        val screenshotEngine =
+            ScreenshotCaptureEngine(
+                errorHandler,
+                MainThreadHandler(),
+                windowManager,
+                CaptureDispatchers.SessionReplay.executorService,
+            ) { message, throwable ->
+                logInternal(LogType.INTERNALSDK, LogLevel.ERROR, arrayFields = ArrayFields.EMPTY, throwable = throwable) { message }
             }
-        BuiltinCommands.register(commandRegistry) {
-            screenshot?.execute()
-                ?: CommandResult.Error("screenshot capture unavailable")
-        }
+        val screenshot = ScreenshotCommand(screenshotEngine::captureDeviceCommandScreenshot)
+        BuiltinCommands.register(commandRegistry, captureScreenshot = screenshot::execute)
         val failedBuiltins = commandRegistry.attach(this.loggerId)
         if (failedBuiltins.isNotEmpty()) {
             logInternal(LogType.INTERNALSDK, LogLevel.ERROR) {

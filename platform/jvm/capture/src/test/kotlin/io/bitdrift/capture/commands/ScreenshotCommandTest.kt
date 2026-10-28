@@ -44,6 +44,7 @@ class ScreenshotCommandTest {
 
             val busy = command.execute()
             assertThat((busy as CommandResult.Error).title).isEqualTo("screenshot capture already in progress")
+            assertThat(busy.code).isEqualTo(CommandErrorCode.CommandAlreadyExecuting)
             assertThat(callbacks).hasSize(1)
 
             callbacks[0](byteArrayOf())
