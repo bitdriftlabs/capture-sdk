@@ -16,11 +16,9 @@ from pathlib import Path
 #
 # The parser splits the report into "Variant:" blocks and extracts the numeric
 # value from the selected block's "App size:" line.
-# - If the report has only one variant block, that block is used directly.
-# - If the report has multiple variant blocks and all report the same app size,
-#   that shared size is used directly.
-# - If the report has multiple variant blocks with different sizes, the requested
-#   device model is used to select the matching block.
+# - Without a device model, the largest compressed app size is used.
+# - With a device model, the matching variant block is used. A single exported
+#   variant block is used directly.
 SIZE_RE = re.compile(
     r"^App size:\s+(?P<value>Zero|[\d][\d,\s]*(?:\.\d+)?)\s+"
     r"(?P<unit>[KMG]B)\s+compressed,",
@@ -70,23 +68,20 @@ def _extract_block_size_kb(block):
 def parse_app_size_kb(report, device_model=None):
     """Return the compressed app size from the selected app thinning report block."""
     blocks = _blocks(report)
+    if not device_model:
+        sizes = [_extract_block_size_kb(block) for block in blocks]
+        valid_sizes = [size for size in sizes if size is not None]
+        if valid_sizes:
+            return max(valid_sizes)
+        raise ValueError("no compressed app size found in the app thinning report")
+
     if len(blocks) == 1:
         matching_blocks = blocks
     else:
-        block_sizes = [_extract_block_size_kb(block) for block in blocks]
-        unique_sizes = {size for size in block_sizes if size is not None}
-        if len(unique_sizes) == 1:
-            return unique_sizes.pop()
-        if device_model:
-            matching_blocks = [block for block in blocks if device_model in block]
-        else:
-            raise ValueError("multiple app thinning report variants found; pass a device model")
+        matching_blocks = [block for block in blocks if device_model in block]
 
     if device_model and len(blocks) > 1 and not matching_blocks:
         raise ValueError(f"no app thinning report variant found for {device_model}")
-
-    if device_model and len(blocks) > 1:
-        matching_blocks = [block for block in blocks if device_model in block]
 
     for block in matching_blocks:
         size_kb = _extract_block_size_kb(block)
