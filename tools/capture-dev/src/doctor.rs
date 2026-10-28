@@ -5,12 +5,12 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+use crate::command::CommandRunner;
 use anstyle::{AnsiColor, Color, Style};
 use serde::Serialize;
 use std::ffi::OsStr;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 use std::{env, fs};
 
 // DoctorTarget.
@@ -97,40 +97,6 @@ impl DoctorReport {
       if let Some(next_step) = &check.next_step {
         println!("       Next: {next_step}");
       }
-    }
-  }
-}
-
-// CommandResult.
-#[derive(Debug)]
-pub(crate) struct CommandResult {
-  success: bool,
-  stdout: String,
-}
-
-// CommandRunner.
-pub(crate) trait CommandRunner {
-  fn run(&self, program: &str, arguments: &[&str]) -> CommandResult;
-}
-
-// SystemCommandRunner.
-pub(crate) struct SystemCommandRunner;
-
-impl CommandRunner for SystemCommandRunner {
-  fn run(&self, program: &str, arguments: &[&str]) -> CommandResult {
-    match Command::new(program)
-      .args(arguments)
-      .stdin(Stdio::null())
-      .output()
-    {
-      Ok(output) => CommandResult {
-        success: output.status.success(),
-        stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
-      },
-      Err(_) => CommandResult {
-        success: false,
-        stdout: String::new(),
-      },
     }
   }
 }
