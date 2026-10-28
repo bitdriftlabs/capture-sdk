@@ -307,7 +307,6 @@ jobs:
         env:
           APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
           APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
-          IOS_APP_SIZE_DEVICE_MODEL: iPhone18,3
         run: |
           set -euo pipefail
           ./ci/ios_app_size_report.sh | tee ios_app_size_output.log
