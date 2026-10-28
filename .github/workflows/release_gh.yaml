@@ -333,14 +333,12 @@ jobs:
               commit -m "Update SDK version to $VERSION"
           fi
 
-      - name: 'Push versioned commit to main only'
+      - name: Update SDK version on current main
         if: ${{ (inputs.release-ref || github.ref_name) == 'main' }}
         env:
           GH_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
-        run: |
-          set -euo pipefail
-          gh auth setup-git
-          git push origin HEAD:refs/heads/main
+          VERSION: ${{ inputs.version }}
+        run: bash ci/update_release_version.sh "$VERSION"
 
         # Use CHANGELOG.md in root
         # Extracts the content between the second and third H2 header (the latest released version)

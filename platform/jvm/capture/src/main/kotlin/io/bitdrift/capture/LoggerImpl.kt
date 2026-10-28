@@ -332,19 +332,16 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        val screenshot =
-            configuration.sessionReplayConfiguration?.let {
-                val engine =
-                    ScreenshotCaptureEngine(
-                        errorHandler,
-                        MainThreadHandler(),
-                        windowManager,
-                        CaptureDispatchers.SessionReplay.executorService,
-                    ) { message, throwable ->
-                        logInternal(LogType.INTERNALSDK, LogLevel.ERROR, arrayFields = ArrayFields.EMPTY, throwable = throwable) { message }
-                    }
-                ScreenshotCommand(engine::captureDeviceCommandScreenshot)
+        val screenshotEngine =
+            ScreenshotCaptureEngine(
+                errorHandler,
+                MainThreadHandler(),
+                windowManager,
+                CaptureDispatchers.SessionReplay.executorService,
+            ) { message, throwable ->
+                logInternal(LogType.INTERNALSDK, LogLevel.ERROR, arrayFields = ArrayFields.EMPTY, throwable = throwable) { message }
             }
+        val screenshot = ScreenshotCommand(screenshotEngine::captureDeviceCommandScreenshot)
         // ProfilingManager exists from Android 15; below that the command fails with a clear reason
         // instead of being unknown to the core.
         val stackSampling: suspend CommandScope.() -> CommandResult =
@@ -360,10 +357,7 @@ internal class LoggerImpl(
             }
         BuiltinCommands.register(
             commandRegistry,
-            captureScreenshot = {
-                screenshot?.execute()
-                    ?: CommandResult.Error("screenshot capture unavailable")
-            },
+            captureScreenshot = screenshot::execute,
             stackSamplingTrace = stackSampling,
         )
         val failedBuiltins = commandRegistry.attach(this.loggerId)
