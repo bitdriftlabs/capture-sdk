@@ -7,12 +7,12 @@
 
 package io.bitdrift.capture.commands.screenshot
 
-import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandResult
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
@@ -20,58 +20,47 @@ class PixelCopyScreenshotCapturerTest {
     @Test
     fun screenshotDefersPayloadValidationToRust(): Unit =
         runBlocking {
-            var callback: ((ByteArray) -> Unit)? = null
-            val capturer = PixelCopyScreenshotCapturer { callback = it }
-            for (bytes in listOf(byteArrayOf(), byteArrayOf(1, 2, 3, 4), ByteArray(2 * 1024 * 1024 + 1))) {
-                val capture = async(start = CoroutineStart.UNDISPATCHED) { capturer.capture() }
-                checkNotNull(callback)(bytes)
-                val result = capture.await()
-                if (bytes.isNotEmpty()) {
-                    val attachment = (result as CommandResult.Success).attachment!!
-                    assertThat(attachment.bytes).isEqualTo(bytes)
-                    assertThat(attachment.contentType).isEqualTo("image/jpeg")
-                } else {
-                    assertThat(result).isInstanceOf(CommandResult.Error::class.java)
-                }
+            for (bytes in listOf(byteArrayOf(1, 2, 3, 4), ByteArray(2 * 1024 * 1024 + 1))) {
+                val result = PixelCopyScreenshotCapturer { bytes }.capture()
+                val attachment = (result as CommandResult.Success).attachment!!
+                assertThat(attachment.bytes).isEqualTo(bytes)
+                assertThat(attachment.contentType).isEqualTo("image/jpeg")
             }
         }
 
     @Test
-    fun cancelledScreenshotKeepsPhysicalLatchUntilItsCallback(): Unit =
+    fun cancelledScreenshotWaitsForTheInFlightCopy(): Unit =
         runBlocking {
-            val callbacks = mutableListOf<(ByteArray) -> Unit>()
-            val capturer = PixelCopyScreenshotCapturer { callbacks.add(it) }
-            val first = async(start = CoroutineStart.UNDISPATCHED) { capturer.capture() }
-            first.cancelAndJoin()
+            val platform = CompletableDeferred<ByteArray>()
+            val capturer = PixelCopyScreenshotCapturer { platform.await() }
+            val capture = async(start = CoroutineStart.UNDISPATCHED) { capturer.capture() }
 
-            val busy = capturer.capture()
-            assertThat((busy as CommandResult.Error).title).isEqualTo("screenshot capture already in progress")
-            assertThat(busy.code).isEqualTo(CommandErrorCode.CommandAlreadyExecuting)
-            assertThat(callbacks).hasSize(1)
+            capture.cancel()
+            yield()
+            assertThat(capture.isCompleted).isFalse()
 
-            callbacks[0](byteArrayOf())
-            val second = async(start = CoroutineStart.UNDISPATCHED) { capturer.capture() }
-            assertThat(second.isCompleted).isFalse()
-            assertThat(callbacks).hasSize(2)
-            callbacks[0](byteArrayOf(1))
-            assertThat(second.isCompleted).isFalse()
-            callbacks[1](byteArrayOf())
-            assertThat(second.await()).isInstanceOf(CommandResult.Error::class.java)
+            platform.complete(byteArrayOf(1))
+            yield()
+            assertThat(capture.isCompleted).isTrue()
         }
 
     @Test
-    fun synchronousCaptureFailureReleasesPhysicalLatch(): Unit =
+    fun otherFailuresPassThroughForTheRegistryToReport(): Unit =
         runBlocking {
-            var captures = 0
-            val capturer =
-                PixelCopyScreenshotCapturer {
-                    captures++
-                    error("capture failed")
-                }
-            repeat(2) {
-                val result = capturer.capture()
-                assertThat((result as CommandResult.Error).title).isEqualTo("screenshot capture failed")
-            }
-            assertThat(captures).isEqualTo(2)
+            val capturer = PixelCopyScreenshotCapturer { throw IllegalStateException("Window doesn't have a backing surface!") }
+            // Coroutine stack-trace recovery may rethrow a copy, so compare by type and message.
+            assertThat(runCatching { capturer.capture() }.exceptionOrNull())
+                .isInstanceOf(IllegalStateException::class.java)
+                .hasMessage("Window doesn't have a backing surface!")
+        }
+
+    @Test
+    fun captureFailuresCarryTheirReasonOnTheResult(): Unit =
+        runBlocking {
+            val capturer = PixelCopyScreenshotCapturer { throw ScreenshotCaptureException("No visible root view") }
+            val error = capturer.capture() as CommandResult.Error
+            assertThat(error.title).isEqualTo("screenshot capture failed")
+            assertThat(error.description).isEqualTo("No visible root view")
+            assertThat(error.context).isEmpty()
         }
 }

@@ -8,12 +8,14 @@
 package io.bitdrift.capture.commands.screenshot
 
 import io.bitdrift.capture.commands.BuiltinCommandType
-import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.IBuiltinCommand
 
-/** The built-in `take_screenshot` command: no arguments, one JPEG attachment. */
+/**
+ * The built-in `take_screenshot` command: one JPEG attachment. It takes no arguments and ignores
+ * any it is sent; the backend validates arguments against the command's definition before sending.
+ */
 internal class ScreenshotBuiltinCommand(
     private val capturer: IScreenshotCapturer,
 ) : IBuiltinCommand {
@@ -21,12 +23,7 @@ internal class ScreenshotBuiltinCommand(
     override val artifactType: String = ARTIFACT_TYPE
     override val timeoutMs: Long? = null
 
-    override suspend fun execute(scope: CommandScope): CommandResult =
-        if (scope.arguments.isNotEmpty()) {
-            scope.error("screenshot does not accept arguments", code = CommandErrorCode.InvalidArguments)
-        } else {
-            capturer.capture()
-        }
+    override suspend fun execute(scope: CommandScope): CommandResult = capturer.capture()
 
     companion object {
         const val ARTIFACT_TYPE = "screenshot"

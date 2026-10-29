@@ -120,8 +120,8 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     commandRegistry: CommandRegistry = Capture.commandRegistry,
+    screenshotCapturer: IScreenshotCapturer = PixelCopyScreenshotCapturer(windowManager),
     // Both default to implementations that need this logger, which a default argument cannot name.
-    screenshotCapturer: IScreenshotCapturer? = null,
     stackSamplingCommand: IBuiltinCommand? = null,
     builtinCommandsInstaller: BuiltinCommandsInstaller? = null,
 ) : IInternalLogger,
@@ -332,7 +332,6 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        val screenshots = screenshotCapturer ?: PixelCopyScreenshotCapturer(windowManager, errorHandler, logger = this)
         val stackSampling =
             stackSamplingCommand
                 ?: StackSamplingCommand.forDevice(
@@ -342,7 +341,7 @@ internal class LoggerImpl(
                     logger = this,
                 )
         val builtins = builtinCommandsInstaller ?: BuiltinCommandsInstaller(commandRegistry, logger = this)
-        builtins.install(BuiltinCommands.make(screenshots, stackSampling), this.loggerId)
+        builtins.install(BuiltinCommands.make(screenshotCapturer, stackSampling), this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)
 

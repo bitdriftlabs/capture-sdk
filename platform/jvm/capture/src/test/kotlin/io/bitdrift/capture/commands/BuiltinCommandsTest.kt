@@ -38,15 +38,13 @@ class BuiltinCommandsTest {
     }
 
     @Test
-    fun screenshotRejectsArgumentsBeforeCapturing(): Unit =
+    fun screenshotIgnoresAnyArguments(): Unit =
         runBlocking {
             val screenshot = ScreenshotBuiltinCommand(capturer)
-            val rejected = screenshot.execute(scope(mapOf("scale" to CommandArgument.Text("2"))))
-            assertThat((rejected as CommandResult.Error).code).isEqualTo(CommandErrorCode.InvalidArguments)
-            assertThat(capturer.captures).isZero()
-
-            assertThat(screenshot.execute(scope(emptyMap()))).isInstanceOf(CommandResult.Success::class.java)
-            assertThat(capturer.captures).isEqualTo(1)
+            for (arguments in listOf(emptyMap(), mapOf("scale" to CommandArgument.Text("2")))) {
+                assertThat(screenshot.execute(scope(arguments))).isInstanceOf(CommandResult.Success::class.java)
+            }
+            assertThat(capturer.captures).isEqualTo(2)
         }
 
     @Test
