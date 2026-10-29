@@ -17,12 +17,10 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
-import io.bitdrift.capture.commands.BuiltinCommands
 import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
-import io.bitdrift.capture.commands.IBuiltinCommand
-import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
 import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
+import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -119,10 +117,9 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    commandRegistry: CommandRegistry = Capture.commandRegistry,
-    screenshotCapturer: IScreenshotCapturer = PixelCopyScreenshotCapturer(windowManager),
-    // Both default to implementations that need this logger, which a default argument cannot name.
-    stackSamplingCommand: IBuiltinCommand? = null,
+    commandRegistry: CommandRegistry = CommandRegistry(CaptureJniLibrary),
+    // Defaults to a catalog whose stack sampling command logs through this logger, which a default
+    // argument cannot name.
     builtinCommandsInstaller: BuiltinCommandsInstaller? = null,
 ) : IInternalLogger,
     ICompletedReportsProcessor,
@@ -332,16 +329,21 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        val stackSampling =
-            stackSamplingCommand
-                ?: StackSamplingCommand.forDevice(
-                    context,
-                    eventListenerDispatcher.executorService,
-                    File(sdkDirectory, "profiling"),
-                    logger = this,
+        val builtins =
+            builtinCommandsInstaller
+                ?: BuiltinCommandsInstaller(
+                    commandRegistry,
+                    listOf(
+                        ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
+                        StackSamplingCommand.forDevice(
+                            context,
+                            eventListenerDispatcher.executorService,
+                            File(sdkDirectory, "profiling"),
+                            logger = this,
+                        ),
+                    ),
                 )
-        val builtins = builtinCommandsInstaller ?: BuiltinCommandsInstaller(commandRegistry, logger = this)
-        builtins.install(BuiltinCommands.make(screenshotCapturer, stackSampling), this.loggerId)
+        builtins.install(this.loggerId, logger = this)
 
         CaptureJniLibrary.startLogger(this.loggerId)
 

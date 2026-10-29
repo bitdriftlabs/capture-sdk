@@ -138,7 +138,10 @@ class CaptureLoggerTest {
         registry.register("app") { success() }
 
         withLogger(commandRegistry = registry) { logger ->
-            assertThat(bridge.builtinKeys).containsExactlyInAnyOrder("take_screenshot", "stack_sampling_trace")
+            assertThat(bridge.builtins).containsExactlyInAnyOrder(
+                Triple("take_screenshot", "screenshot", 0L),
+                Triple("stack_sampling_trace", "stack_sampling_trace", 15_000L),
+            )
             assertThat(bridge.registered).containsExactly(logger.loggerId to "app")
             assertThat(logger.getSdkStatus()).isNotNull()
         }
@@ -147,6 +150,9 @@ class CaptureLoggerTest {
     private class RecordingCommandBridge : ICommandBridge {
         var acceptBuiltins = true
         val builtinKeys = mutableListOf<String>()
+
+        /** The registration tuple of every built-in the logger installs: key, artifact type, timeout. */
+        val builtins = mutableListOf<Triple<String, String, Long>>()
 
         override fun registerBuiltinCommand(
             loggerId: Long,
@@ -157,6 +163,7 @@ class CaptureLoggerTest {
             dispatcher: ICommandDispatcher,
         ): Boolean {
             builtinKeys.add(key)
+            builtins.add(Triple(key, artifactType, timeoutMs))
             return acceptBuiltins
         }
 
