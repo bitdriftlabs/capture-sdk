@@ -9,81 +9,44 @@ package io.bitdrift.capture.commands.screenshot
 
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.commands.CommandAttachment
-import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
-import io.bitdrift.capture.threading.CaptureDispatchers
-import kotlinx.coroutines.CancellableContinuation
-import kotlinx.coroutines.suspendCancellableCoroutine
-import java.util.concurrent.ExecutorService
-import kotlin.coroutines.resume
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /**
- * Adapts the callback-based [ScreenshotCaptureEngine] to a suspending capture. One physical capture
- * runs at a time: a cancelled caller releases the coroutine but keeps the latch until PixelCopy
- * reports, so two captures never overlap.
+ * Takes a screenshot through [ScreenshotCaptureEngine] on the calling command's thread.
  *
- * @param capture starts one capture and delivers the JPEG bytes, or empty bytes on failure.
+ * The copy is not interruptible: a cancelled command still waits the few milliseconds for the
+ * platform to hand the bitmap back, so no capture is ever left running behind the next invocation.
+ * The registry already runs one invocation of a command at a time, so nothing else serializes here.
+ *
+ * @param captureScreenshot produces the JPEG bytes, or empty bytes when the capture failed.
  */
 internal class PixelCopyScreenshotCapturer(
-    private val capture: ((ByteArray) -> Unit) -> Unit,
+    private val captureScreenshot: suspend () -> ByteArray,
 ) : IScreenshotCapturer {
     constructor(
         windowManager: IWindowManager,
         errorHandler: ErrorHandler,
         logger: IInternalLogger,
         mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-        executor: ExecutorService = CaptureDispatchers.SessionReplay.executorService,
-    ) : this(
-        ScreenshotCaptureEngine(errorHandler, mainThreadHandler, windowManager, executor, logger)::captureDeviceCommandScreenshot,
-    )
+    ) : this(ScreenshotCaptureEngine(errorHandler, mainThreadHandler, windowManager, logger)::captureDeviceCommandScreenshot)
 
-    private val lock = Any()
-    private var pending: CancellableContinuation<CommandResult>? = null
-
-    override suspend fun capture(): CommandResult =
-        suspendCancellableCoroutine { completion ->
-            synchronized(lock) {
-                if (pending != null) {
-                    completion.resume(
-                        CommandResult.Error("screenshot capture already in progress", code = CommandErrorCode.CommandAlreadyExecuting),
-                    )
-                    return@suspendCancellableCoroutine
-                }
-                pending = completion
-            }
+    override suspend fun capture(): CommandResult {
+        val bytes =
             try {
-                capture { bytes ->
-                    finish(
-                        completion,
-                        if (bytes.isNotEmpty()) {
-                            CommandResult.Success(CommandAttachment(bytes, CONTENT_TYPE))
-                        } else {
-                            CommandResult.Error("invalid or unavailable screenshot")
-                        },
-                    )
-                }
+                withContext(NonCancellable) { captureScreenshot() }
             } catch (_: Exception) {
-                finish(completion, CommandResult.Error("screenshot capture failed"))
+                return CommandResult.Error("screenshot capture failed")
             }
+        return if (bytes.isNotEmpty()) {
+            CommandResult.Success(CommandAttachment(bytes, CONTENT_TYPE))
+        } else {
+            CommandResult.Error("invalid or unavailable screenshot")
         }
-
-    private fun finish(
-        completion: CancellableContinuation<CommandResult>,
-        result: CommandResult,
-    ) {
-        val accepted =
-            synchronized(lock) {
-                if (pending !== completion) {
-                    false
-                } else {
-                    pending = null
-                    true
-                }
-            }
-        if (accepted) completion.resume(result)
     }
 
     companion object {
