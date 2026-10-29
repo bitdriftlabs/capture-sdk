@@ -7,18 +7,24 @@
 
 package io.bitdrift.capture.profiling
 
+import android.content.Context
+import android.os.Build
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
+import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
+import io.bitdrift.capture.commands.IBuiltinCommand
 import io.bitdrift.capture.commands.InvalidCommandArgumentException
+import io.bitdrift.capture.commands.UnavailableBuiltinCommand
 import io.bitdrift.capture.commands.argument
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
@@ -39,14 +45,18 @@ internal class StackSamplingCommand(
     private val profileability: IProfileabilityChecker,
     private val traceDirectory: File,
     private val logger: IInternalLogger,
-) {
+) : IBuiltinCommand {
     private val nextRequestId = AtomicLong(1)
     private val swept = AtomicBoolean(false)
 
-    /** The handler to register as the `stack_sampling_trace` built-in. */
-    val handler: suspend CommandScope.() -> CommandResult = { execute() }
+    override val type: BuiltinCommandType = BuiltinCommandType.STACK_SAMPLING_TRACE
+    override val artifactType: String = ARTIFACT_TYPE
+    override val timeoutMs: Long = TIMEOUT_MS
 
-    private suspend fun CommandScope.execute(): CommandResult {
+    override suspend fun execute(scope: CommandScope): CommandResult = scope.sample()
+
+    /** The command body as a scope extension, so argument access and result helpers stay unqualified. */
+    private suspend fun CommandScope.sample(): CommandResult {
         val request =
             try {
                 parse()
@@ -163,11 +173,42 @@ internal class StackSamplingCommand(
     }
 
     companion object {
+        /** The artifact contract type ID of the trace attachment. */
+        const val ARTIFACT_TYPE = "stack_sampling_trace"
+
         /**
          * The core's execution deadline for one capture: the longest allowed sampling window
          * ([MAX_DURATION_MS]) plus the platform's start and post-processing overhead.
          */
         const val TIMEOUT_MS = 15_000L
+
+        /**
+         * The catalog entry for this device: the real command from Android 15, where
+         * `ProfilingManager` exists, and otherwise one that fails with a clear reason instead of
+         * leaving the command unknown to the core.
+         */
+        fun forDevice(
+            context: Context,
+            executor: ExecutorService,
+            traceDirectory: File,
+            logger: IInternalLogger,
+        ): IBuiltinCommand =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                StackSamplingCommand(
+                    profiler = ProfilingManagerProfiler(context, executor),
+                    profileability = ProfileabilityChecker(context),
+                    traceDirectory = traceDirectory,
+                    logger = logger,
+                )
+            } else {
+                UnavailableBuiltinCommand(
+                    type = BuiltinCommandType.STACK_SAMPLING_TRACE,
+                    artifactType = ARTIFACT_TYPE,
+                    timeoutMs = TIMEOUT_MS,
+                    title = "unsupported",
+                    description = "stack sampling requires Android 15 or newer",
+                )
+            }
 
         const val CONTENT_TYPE = "application/vnd.bitdrift.perfetto-trace"
 

@@ -5,8 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.commands
+package io.bitdrift.capture.commands.screenshot
 
+import io.bitdrift.capture.commands.CommandErrorCode
+import io.bitdrift.capture.commands.CommandResult
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
@@ -14,14 +16,14 @@ import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
-class ScreenshotCommandTest {
+class PixelCopyScreenshotCapturerTest {
     @Test
     fun screenshotDefersPayloadValidationToRust(): Unit =
         runBlocking {
             var callback: ((ByteArray) -> Unit)? = null
-            val command = ScreenshotCommand { callback = it }
+            val capturer = PixelCopyScreenshotCapturer { callback = it }
             for (bytes in listOf(byteArrayOf(), byteArrayOf(1, 2, 3, 4), ByteArray(2 * 1024 * 1024 + 1))) {
-                val capture = async(start = CoroutineStart.UNDISPATCHED) { command.execute() }
+                val capture = async(start = CoroutineStart.UNDISPATCHED) { capturer.capture() }
                 checkNotNull(callback)(bytes)
                 val result = capture.await()
                 if (bytes.isNotEmpty()) {
@@ -38,17 +40,17 @@ class ScreenshotCommandTest {
     fun cancelledScreenshotKeepsPhysicalLatchUntilItsCallback(): Unit =
         runBlocking {
             val callbacks = mutableListOf<(ByteArray) -> Unit>()
-            val command = ScreenshotCommand { callbacks.add(it) }
-            val first = async(start = CoroutineStart.UNDISPATCHED) { command.execute() }
+            val capturer = PixelCopyScreenshotCapturer { callbacks.add(it) }
+            val first = async(start = CoroutineStart.UNDISPATCHED) { capturer.capture() }
             first.cancelAndJoin()
 
-            val busy = command.execute()
+            val busy = capturer.capture()
             assertThat((busy as CommandResult.Error).title).isEqualTo("screenshot capture already in progress")
             assertThat(busy.code).isEqualTo(CommandErrorCode.CommandAlreadyExecuting)
             assertThat(callbacks).hasSize(1)
 
             callbacks[0](byteArrayOf())
-            val second = async(start = CoroutineStart.UNDISPATCHED) { command.execute() }
+            val second = async(start = CoroutineStart.UNDISPATCHED) { capturer.capture() }
             assertThat(second.isCompleted).isFalse()
             assertThat(callbacks).hasSize(2)
             callbacks[0](byteArrayOf(1))
@@ -61,13 +63,13 @@ class ScreenshotCommandTest {
     fun synchronousCaptureFailureReleasesPhysicalLatch(): Unit =
         runBlocking {
             var captures = 0
-            val command =
-                ScreenshotCommand {
+            val capturer =
+                PixelCopyScreenshotCapturer {
                     captures++
                     error("capture failed")
                 }
             repeat(2) {
-                val result = command.execute()
+                val result = capturer.capture()
                 assertThat((result as CommandResult.Error).title).isEqualTo("screenshot capture failed")
             }
             assertThat(captures).isEqualTo(2)

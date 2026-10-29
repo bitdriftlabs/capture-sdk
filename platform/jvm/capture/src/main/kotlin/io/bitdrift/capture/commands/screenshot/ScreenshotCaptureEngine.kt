@@ -7,38 +7,39 @@
 
 @file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 
-package io.bitdrift.capture.replay.internal
+package io.bitdrift.capture.commands.screenshot
 
 import android.graphics.Bitmap
 import android.os.Build
 import android.view.PixelCopy
 import android.view.View
 import androidx.annotation.RequiresApi
-import androidx.annotation.RestrictTo
-import androidx.core.graphics.createBitmap
+import io.bitdrift.capture.IInternalLogger
+import io.bitdrift.capture.LogLevel
+import io.bitdrift.capture.LogType
 import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.phoneWindow
+import io.bitdrift.capture.providers.ArrayFields
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 
 /**
- * Captures JPEG screenshots for SDK commands independently of session replay.
+ * Captures JPEG screenshots of the app's window through PixelCopy.
  *
  * @param errorHandler reports unexpected capture failures.
  * @param mainThreadHandler receives legacy PixelCopy callbacks.
  * @param windowManager locates the window to capture.
- * @param executor runs screenshot processing.
- * @param logError records capture-failure diagnostics.
+ * @param executor runs screenshot compression.
+ * @param logger records capture-failure diagnostics in the session.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-class ScreenshotCaptureEngine(
+internal class ScreenshotCaptureEngine(
     private val errorHandler: ErrorHandler,
     private val mainThreadHandler: MainThreadHandler,
     private val windowManager: IWindowManager,
     private val executor: ExecutorService,
-    private val logError: (String, Throwable?) -> Unit,
+    private val logger: IInternalLogger,
 ) {
     /** Captures a JPEG, delivering empty bytes to [completion] if capture fails. */
     fun captureDeviceCommandScreenshot(completion: (ByteArray) -> Unit) {
@@ -124,8 +125,8 @@ class ScreenshotCaptureEngine(
             return
         }
 
-        val resultBitmap =
-            createBitmap(root.width, root.height, Bitmap.Config.RGB_565)
+        // The platform factory, so this module needs no core-ktx dependency.
+        val resultBitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.RGB_565)
         // TODO(murki): Figure out if there's any benefit from calling this using mainThreadHandler.mainHandler.post{ }
         PixelCopy.request(
             window,
@@ -171,7 +172,7 @@ class ScreenshotCaptureEngine(
         if (!expected) {
             errorHandler.handleError(message, e)
         }
-        logError(message, e)
+        logger.logInternal(LogType.INTERNALSDK, LogLevel.ERROR, arrayFields = ArrayFields.EMPTY, throwable = e) { message }
         completion(ByteArray(0))
     }
 

@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.commands
 
+import com.nhaarman.mockitokotlin2.mock
+import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
 import io.bitdrift.capture.providers.Field
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -45,11 +47,19 @@ class CommandRegistryTest {
     @Test
     fun failedBuiltinRegistrationPreservesOtherCommands() {
         val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
-        BuiltinCommands.register(registry, captureScreenshot = { CommandResult.Success() }, stackSamplingTrace = { success() })
         registry.register("app") { success() }
         bridge.rejectedBuiltinTypes.add(BuiltinCommandType.TAKE_SCREENSHOT.wireValue)
+        val catalog =
+            BuiltinCommands.make(
+                screenshotCapturer =
+                    object : IScreenshotCapturer {
+                        override suspend fun capture() = CommandResult.Success()
+                    },
+                stackSampling = stackSamplingStandIn(),
+            )
 
-        assertThat(registry.attach(LOGGER_ID)).containsExactly(BuiltinCommandType.TAKE_SCREENSHOT.key)
+        assertThat(BuiltinCommandsInstaller(registry, mock()).install(catalog, LOGGER_ID))
+            .containsExactly(BuiltinCommandType.TAKE_SCREENSHOT.key)
         assertThat(bridge.builtinDispatchers.keys).containsExactly(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue)
         assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.TAKE_SCREENSHOT.wireValue, 0L)
         assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue, 15_000L)
@@ -1810,6 +1820,9 @@ class CommandRegistryTest {
             releasedLatch.countDown()
         }
     }
+
+    private fun stackSamplingStandIn(): IBuiltinCommand =
+        UnavailableBuiltinCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace", 15_000, "not under test")
 
     private class FakeCommandBridge : ICommandBridge {
         val builtinDispatchers = mutableMapOf<Int, ICommandDispatcher>()

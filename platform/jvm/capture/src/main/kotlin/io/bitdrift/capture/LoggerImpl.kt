@@ -10,7 +10,6 @@ package io.bitdrift.capture
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
-import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -19,12 +18,12 @@ import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.commands.BuiltinCommands
+import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
-import io.bitdrift.capture.commands.CommandResult
-import io.bitdrift.capture.commands.CommandScope
-import io.bitdrift.capture.commands.ScreenshotCommand
+import io.bitdrift.capture.commands.IBuiltinCommand
+import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
+import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
 import io.bitdrift.capture.common.IWindowManager
-import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.RuntimeStringConfig
@@ -53,8 +52,6 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
-import io.bitdrift.capture.profiling.ProfileabilityChecker
-import io.bitdrift.capture.profiling.ProfilingManagerProfiler
 import io.bitdrift.capture.profiling.StackSamplingCommand
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.CustomFieldsProvider
@@ -70,7 +67,6 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
-import io.bitdrift.capture.replay.internal.ScreenshotCaptureEngine
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
@@ -124,6 +120,10 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     commandRegistry: CommandRegistry = Capture.commandRegistry,
+    // Both default to implementations that need this logger, which a default argument cannot name.
+    screenshotCapturer: IScreenshotCapturer? = null,
+    stackSamplingCommand: IBuiltinCommand? = null,
+    builtinCommandsInstaller: BuiltinCommandsInstaller? = null,
 ) : IInternalLogger,
     ICompletedReportsProcessor,
     IRuntimeProvider {
@@ -332,40 +332,17 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        val screenshotEngine =
-            ScreenshotCaptureEngine(
-                errorHandler,
-                MainThreadHandler(),
-                windowManager,
-                CaptureDispatchers.SessionReplay.executorService,
-            ) { message, throwable ->
-                logInternal(LogType.INTERNALSDK, LogLevel.ERROR, arrayFields = ArrayFields.EMPTY, throwable = throwable) { message }
-            }
-        val screenshot = ScreenshotCommand(screenshotEngine::captureDeviceCommandScreenshot)
-        // ProfilingManager exists from Android 15; below that the command fails with a clear reason
-        // instead of being unknown to the core.
-        val stackSampling: suspend CommandScope.() -> CommandResult =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                StackSamplingCommand(
-                    profiler = ProfilingManagerProfiler(context, eventListenerDispatcher.executorService),
-                    profileability = ProfileabilityChecker(context),
-                    traceDirectory = File(sdkDirectory, "profiling"),
+        val screenshots = screenshotCapturer ?: PixelCopyScreenshotCapturer(windowManager, errorHandler, logger = this)
+        val stackSampling =
+            stackSamplingCommand
+                ?: StackSamplingCommand.forDevice(
+                    context,
+                    eventListenerDispatcher.executorService,
+                    File(sdkDirectory, "profiling"),
                     logger = this,
-                ).handler
-            } else {
-                { error("unsupported", "stack sampling requires Android 15 or newer") }
-            }
-        BuiltinCommands.register(
-            commandRegistry,
-            captureScreenshot = screenshot::execute,
-            stackSamplingTrace = stackSampling,
-        )
-        val failedBuiltins = commandRegistry.attach(this.loggerId)
-        if (failedBuiltins.isNotEmpty()) {
-            logInternal(LogType.INTERNALSDK, LogLevel.ERROR) {
-                "failed to register SDK built-ins: ${failedBuiltins.sorted().joinToString(",")}"
-            }
-        }
+                )
+        val builtins = builtinCommandsInstaller ?: BuiltinCommandsInstaller(commandRegistry, logger = this)
+        builtins.install(BuiltinCommands.make(screenshots, stackSampling), this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)
 

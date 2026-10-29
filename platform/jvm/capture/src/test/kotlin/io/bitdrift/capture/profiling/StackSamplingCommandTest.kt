@@ -77,7 +77,7 @@ class StackSamplingCommandTest {
     fun defaultsApplyAndTheTraceIsMovedAndAttachedByPath(): Unit =
         runBlocking {
             val trace = systemTrace()
-            val result = async(Dispatchers.Unconfined) { command.handler(invocation()) }
+            val result = async(Dispatchers.Unconfined) { command.execute(invocation()) }
 
             assertThat(profiler.requests).containsExactly(
                 ProfileRequest(1, ProfileType.STACK_SAMPLING, 3_000, 100, 2_048, "bitdrift"),
@@ -105,7 +105,7 @@ class StackSamplingCommandTest {
         runBlocking {
             val result =
                 async(Dispatchers.Unconfined) {
-                    command.handler(
+                    command.execute(
                         invocation(
                             "duration_ms" to int(60_000),
                             "frequency_hz" to int(1),
@@ -133,7 +133,7 @@ class StackSamplingCommandTest {
                     invocation("buffer_size_kb" to text("big")),
                 )
             for (arguments in invalid) {
-                val error = command.handler(arguments) as CommandResult.Error
+                val error = command.execute(arguments) as CommandResult.Error
                 assertThat(error.code).isEqualTo(CommandErrorCode.InvalidArguments)
                 assertThat(error.title).isEqualTo("invalid_arguments")
             }
@@ -145,7 +145,7 @@ class StackSamplingCommandTest {
         runBlocking {
             profileable = false
 
-            val error = command.handler(invocation()) as CommandResult.Error
+            val error = command.execute(invocation()) as CommandResult.Error
 
             assertThat(error.title).isEqualTo("not_profileable")
             assertThat(error.code).isEqualTo(CommandErrorCode.HandlerFailed)
@@ -155,7 +155,7 @@ class StackSamplingCommandTest {
     @Test
     fun profilerFailureIsReportedWithItsCodeAndName(): Unit =
         runBlocking {
-            val result = async(Dispatchers.Unconfined) { command.handler(invocation()) }
+            val result = async(Dispatchers.Unconfined) { command.execute(invocation()) }
             profiler.complete(ProfileOutcome.Failed(2, "FAILED_RATE_LIMIT_PROCESS", "rate limited"))
 
             val error = result.await() as CommandResult.Error
@@ -171,7 +171,7 @@ class StackSamplingCommandTest {
         runBlocking {
             profiler.failure = IllegalStateException("profiling service unavailable")
 
-            val error = command.handler(invocation()) as CommandResult.Error
+            val error = command.execute(invocation()) as CommandResult.Error
 
             assertThat(error.title).isEqualTo("request_failed")
             assertThat(error.description).contains("profiling service unavailable")
@@ -181,7 +181,7 @@ class StackSamplingCommandTest {
     fun cancellationStopsTheCaptureAndDeletesALateTrace(): Unit =
         runBlocking {
             val trace = systemTrace()
-            val job = launch(Dispatchers.Unconfined) { command.handler(invocation()) }
+            val job = launch(Dispatchers.Unconfined) { command.execute(invocation()) }
             assertThat(profiler.requests).hasSize(1)
 
             job.cancel()
@@ -201,7 +201,7 @@ class StackSamplingCommandTest {
             val queued = java.util.concurrent.ConcurrentLinkedQueue<Runnable>()
             val executor = java.util.concurrent.Executor { queued.add(it) }
             val dispatcher = executor.asCoroutineDispatcher()
-            val job = launch(dispatcher) { command.handler(invocation()) }
+            val job = launch(dispatcher) { command.execute(invocation()) }
             generateSequence { queued.poll() }.forEach { it.run() }
             assertThat(profiler.requests).hasSize(1)
 
@@ -217,7 +217,7 @@ class StackSamplingCommandTest {
     @Test
     fun savedTraceThatCannotBeMovedKeepsTheSystemPath(): Unit =
         runBlocking {
-            val result = async(Dispatchers.Unconfined) { command.handler(invocation()) }
+            val result = async(Dispatchers.Unconfined) { command.execute(invocation()) }
             val missing = File(systemDirectory, "vanished.perfetto-stack-sample")
             profiler.complete(ProfileOutcome.Saved(missing.path))
 
@@ -233,7 +233,7 @@ class StackSamplingCommandTest {
             orphan.setLastModified(System.currentTimeMillis() - 60 * 60 * 1000L)
             val recent = File(traceDirectory, "recent.perfetto-stack-sample").apply { writeText("new") }
 
-            val first = async(Dispatchers.Unconfined) { command.handler(invocation()) }
+            val first = async(Dispatchers.Unconfined) { command.execute(invocation()) }
             assertThat(orphan).doesNotExist()
             assertThat(recent).exists()
             profiler.complete(ProfileOutcome.Failed(0, "cancelled", "cancelled"))
@@ -242,7 +242,7 @@ class StackSamplingCommandTest {
             // A later orphan is not swept again in this process.
             val later = File(traceDirectory, "later.perfetto-stack-sample").apply { writeText("old") }
             later.setLastModified(System.currentTimeMillis() - 60 * 60 * 1000L)
-            val second = async(Dispatchers.Unconfined) { command.handler(invocation()) }
+            val second = async(Dispatchers.Unconfined) { command.execute(invocation()) }
             assertThat(later).exists()
             profiler.complete(ProfileOutcome.Failed(0, "cancelled", "cancelled"))
             second.await()
