@@ -57,7 +57,7 @@ class CommandRegistryTest {
                     },
             )
 
-        assertThat(BuiltinCommandsInstaller(registry, mock()).install(catalog, LOGGER_ID))
+        assertThat(BuiltinCommandsInstaller(registry).install(catalog, LOGGER_ID, logger = mock()))
             .containsExactly(BuiltinCommandType.TAKE_SCREENSHOT.key)
         assertThat(bridge.builtinDispatchers.keys).containsExactly(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue)
         assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.TAKE_SCREENSHOT.wireValue, 0L)

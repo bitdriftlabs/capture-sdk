@@ -14,15 +14,15 @@ import io.bitdrift.capture.LogType
 /** Registers the SDK's built-in commands with the core and attaches the registry to a logger. */
 internal class BuiltinCommandsInstaller(
     private val registry: CommandRegistry,
-    private val logger: IInternalLogger,
 ) {
     /**
      * Registers [commands] and attaches [registry] to the logger [loggerId]. Returns the keys the
-     * core refused, sorted; the SDK keeps starting without them and logs the refusal.
+     * core refused, sorted; the SDK keeps starting without them and logs the refusal to [logger].
      */
     fun install(
         commands: List<IBuiltinCommand>,
         loggerId: Long,
+        logger: IInternalLogger,
     ): List<String> {
         commands.forEach { command ->
             registry.registerBuiltin(command.type.wireValue, command.type.key, command.artifactType, command.timeoutMs) {
