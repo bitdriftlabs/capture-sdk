@@ -9,9 +9,6 @@ package io.bitdrift.capture.profiling
 
 import android.content.Context
 import android.os.Build
-import io.bitdrift.capture.IInternalLogger
-import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.LogType
 import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandErrorCode
@@ -44,7 +41,6 @@ internal class StackSamplingCommand(
     private val profiler: IProfiler,
     private val profileability: IProfileabilityChecker,
     private val traceDirectory: File,
-    private val logger: IInternalLogger,
 ) : IBuiltinCommand {
     private val nextRequestId = AtomicLong(1)
     private val swept = AtomicBoolean(false)
@@ -70,22 +66,15 @@ internal class StackSamplingCommand(
                 "the app is not profileable; set <profileable android:enabled=\"true\" /> or use a debuggable build",
             )
         }
-        logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG) {
-            "starting stack sample ${request.requestId}: ${request.durationMs} ms at ${request.frequencyHz} Hz"
-        }
         return when (val outcome = capture(request)) {
             is ProfileOutcome.Saved -> {
                 val trace = claim(File(outcome.path))
-                logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG) { "stack sample ${request.requestId} saved to $trace" }
                 success(
                     attachment = CommandAttachment.file(trace, CONTENT_TYPE),
                     context = request.fields(),
                 )
             }
-            is ProfileOutcome.Failed -> {
-                logger.logInternal(LogType.INTERNALSDK, LogLevel.WARNING) {
-                    "stack sample ${request.requestId} failed: ${outcome.name} (${outcome.code}) ${outcome.message}"
-                }
+            is ProfileOutcome.Failed ->
                 error(
                     outcome.name,
                     outcome.message.ifEmpty { null },
@@ -95,7 +84,6 @@ internal class StackSamplingCommand(
                             "profiling_error_name" to outcome.name,
                         ),
                 )
-            }
         }
     }
 
@@ -166,10 +154,7 @@ internal class StackSamplingCommand(
     private fun sweepOrphans() {
         val cutoff = System.currentTimeMillis() - ORPHAN_AGE_MS
         val orphans = traceDirectory.listFiles { file -> file.isFile && file.lastModified() < cutoff } ?: return
-        val deleted = orphans.count { it.delete() }
-        if (deleted > 0) {
-            logger.logInternal(LogType.INTERNALSDK, LogLevel.DEBUG) { "deleted $deleted orphaned stack sampling trace(s)" }
-        }
+        orphans.forEach { it.delete() }
     }
 
     companion object {
@@ -191,14 +176,12 @@ internal class StackSamplingCommand(
             context: Context,
             executor: ExecutorService,
             traceDirectory: File,
-            logger: IInternalLogger,
         ): IBuiltinCommand =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
                 StackSamplingCommand(
                     profiler = ProfilingManagerProfiler(context, executor),
                     profileability = ProfileabilityChecker(context),
                     traceDirectory = traceDirectory,
-                    logger = logger,
                 )
             } else {
                 UnavailableBuiltinCommand(

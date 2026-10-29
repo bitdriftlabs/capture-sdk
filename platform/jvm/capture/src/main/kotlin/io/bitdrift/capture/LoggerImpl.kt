@@ -119,9 +119,18 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     commandRegistry: CommandRegistry = CommandRegistry(CaptureJniLibrary),
-    // Defaults to a catalog whose stack sampling command logs through this logger, which a default
-    // argument cannot name.
-    builtinCommandsInstaller: BuiltinCommandsInstaller? = null,
+    builtinCommandsInstaller: BuiltinCommandsInstaller =
+        BuiltinCommandsInstaller(
+            commandRegistry,
+            listOf(
+                ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
+                StackSamplingCommand.forDevice(
+                    context,
+                    eventListenerDispatcher.executorService,
+                    File(SdkDirectory.getPath(context), "profiling"),
+                ),
+            ),
+        ),
 ) : IInternalLogger,
     ICompletedReportsProcessor,
     IRuntimeProvider {
@@ -333,21 +342,7 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        val builtins =
-            builtinCommandsInstaller
-                ?: BuiltinCommandsInstaller(
-                    commandRegistry,
-                    listOf(
-                        ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
-                        StackSamplingCommand.forDevice(
-                            context,
-                            eventListenerDispatcher.executorService,
-                            File(sdkDirectory, "profiling"),
-                            logger = this,
-                        ),
-                    ),
-                )
-        refusedBuiltinCommands = builtins.install(this.loggerId)
+        refusedBuiltinCommands = builtinCommandsInstaller.install(this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
