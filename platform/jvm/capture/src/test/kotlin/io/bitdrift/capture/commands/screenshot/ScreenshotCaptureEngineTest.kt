@@ -76,7 +76,9 @@ class ScreenshotCaptureEngineTest {
         runBlocking {
             // A looper of its own, so the delivery is observable: Robolectric's PixelCopy calls a
             // main-looper listener inline, but posts to any other handler like the platform does.
+            // Paused, so the post stays queued until the test runs it rather than racing this thread.
             val listenerThread = HandlerThread("pixelcopy-listener").apply { start() }
+            shadowOf(listenerThread.looper).pause()
             val engine = engine(windowShowing(activityDecorView()), Handler(listenerThread.looper))
             val mainLooper = shadowOf(Looper.getMainLooper()).apply { idle() }
             val capture = async(start = CoroutineStart.UNDISPATCHED) { engine.captureDeviceCommandScreenshot() }
