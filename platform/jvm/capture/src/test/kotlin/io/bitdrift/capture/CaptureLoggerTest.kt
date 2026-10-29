@@ -144,6 +144,14 @@ class CaptureLoggerTest {
             )
             assertThat(bridge.registered).containsExactly(logger.loggerId to "app")
             assertThat(logger.getSdkStatus()).isNotNull()
+
+            // The refusal is reported on the SDKConfigured event under the same key the Swift SDK uses.
+            val streamId = CaptureTestJniLibrary.awaitNextApiStream()
+            CaptureTestJniLibrary.configureAggressiveContinuousUploads(streamId)
+            val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
+            assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
+            assertThat(sdkConfigured.fields)
+                .containsEntry("_failed_builtin_commands", "stack_sampling_trace,take_screenshot".toFieldValue())
         }
     }
 
@@ -393,6 +401,7 @@ class CaptureLoggerTest {
             val sdkConfiguredLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfiguredLog.message).isEqualTo("SDKConfigured")
             assertThat(sdkConfiguredLog.fields).containsKey("foreground")
+            assertThat(sdkConfiguredLog.fields).doesNotContainKey("_failed_builtin_commands")
 
             val resourceLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(resourceLog.message).isEqualTo("")

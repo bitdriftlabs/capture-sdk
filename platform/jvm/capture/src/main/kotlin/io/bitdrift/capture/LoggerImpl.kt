@@ -62,6 +62,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.TimestampProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
@@ -142,6 +143,9 @@ internal class LoggerImpl(
     private val threadCountMonitor = ThreadCountMonitor()
     private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
+
+    /** Keys of the SDK built-ins the core refused at start; reported on the SDKConfigured event. */
+    private val refusedBuiltinCommands: List<String>
     private val runtime: JniRuntime
     private val localeAttributes = LocaleAttributes(context)
     private val networkAttributes = NetworkAttributes(context)
@@ -335,7 +339,7 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        builtinCommandsInstaller.install(this.loggerId, logger = this)
+        refusedBuiltinCommands = builtinCommandsInstaller.install(this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
@@ -757,7 +761,10 @@ internal class LoggerImpl(
                         ?: IssueReporter.getDisabledStatusFieldsMap()
                 ).toFields()
 
-            val sdkStartFields = combineFields(baseFields, fatalIssueFields)
+            val builtinFields =
+                fieldsOfOptional("_failed_builtin_commands" to refusedBuiltinCommands.takeIf { it.isNotEmpty() }?.joinToString(","))
+
+            val sdkStartFields = combineFields(baseFields, fatalIssueFields, builtinFields)
             CaptureJniLibrary.writeSDKStartLog(
                 this.loggerId,
                 sdkStartFields.toLegacyJniFields(),

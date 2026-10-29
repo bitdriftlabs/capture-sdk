@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.commands
 
-import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
 import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
 import io.bitdrift.capture.providers.Field
@@ -62,7 +61,7 @@ class CommandRegistryTest {
                 ),
             )
 
-        assertThat(installer.install(LOGGER_ID, logger = mock())).containsExactly(BuiltinCommandType.TAKE_SCREENSHOT.key)
+        assertThat(installer.install(LOGGER_ID)).containsExactly(BuiltinCommandType.TAKE_SCREENSHOT.key)
         assertThat(bridge.builtinDispatchers.keys).containsExactly(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue)
         assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.TAKE_SCREENSHOT.wireValue, 0L)
         assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue, 15_000L)
