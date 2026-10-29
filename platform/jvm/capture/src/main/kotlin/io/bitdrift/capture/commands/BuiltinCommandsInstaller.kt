@@ -11,16 +11,20 @@ import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LogType
 
-/** Registers the SDK's built-in commands with the core and attaches the registry to a logger. */
+/**
+ * Registers the SDK's built-in commands with the core and attaches the registry to a logger.
+ *
+ * @param commands the catalog: every built-in this SDK ships, decided where the SDK is composed.
+ */
 internal class BuiltinCommandsInstaller(
     private val registry: CommandRegistry,
+    private val commands: List<IBuiltinCommand>,
 ) {
     /**
-     * Registers [commands] and attaches [registry] to the logger [loggerId]. Returns the keys the
+     * Registers the catalog and attaches [registry] to the logger [loggerId]. Returns the keys the
      * core refused, sorted; the SDK keeps starting without them and logs the refusal to [logger].
      */
     fun install(
-        commands: List<IBuiltinCommand>,
         loggerId: Long,
         logger: IInternalLogger,
     ): List<String> {

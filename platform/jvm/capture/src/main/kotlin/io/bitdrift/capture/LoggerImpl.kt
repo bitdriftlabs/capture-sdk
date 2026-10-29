@@ -17,11 +17,12 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
-import io.bitdrift.capture.commands.BuiltinCommands
+import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
-import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
+import io.bitdrift.capture.commands.UnavailableBuiltinCommand
 import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
+import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -117,9 +118,15 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    commandRegistry: CommandRegistry = Capture.commandRegistry,
-    screenshotCapturer: IScreenshotCapturer = PixelCopyScreenshotCapturer(windowManager),
-    builtinCommandsInstaller: BuiltinCommandsInstaller = BuiltinCommandsInstaller(commandRegistry),
+    commandRegistry: CommandRegistry = CommandRegistry(CaptureJniLibrary),
+    builtinCommandsInstaller: BuiltinCommandsInstaller =
+        BuiltinCommandsInstaller(
+            commandRegistry,
+            listOf(
+                ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
+                UnavailableBuiltinCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace", 15_000, "not implemented"),
+            ),
+        ),
 ) : IInternalLogger,
     ICompletedReportsProcessor,
     IRuntimeProvider {
@@ -328,7 +335,7 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        builtinCommandsInstaller.install(BuiltinCommands.make(screenshotCapturer), this.loggerId, logger = this)
+        builtinCommandsInstaller.install(this.loggerId, logger = this)
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
