@@ -12,6 +12,7 @@ environment:
   flutter: ">=3.44.0"
 
 dependencies:
+  http: ^1.2.0
   flutter:
     sdk: flutter
 

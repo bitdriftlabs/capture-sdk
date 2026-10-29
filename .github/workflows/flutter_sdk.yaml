@@ -37,6 +37,10 @@ jobs:
           flutter pub get
           flutter analyze
 
+      - name: Test Flutter plugin
+        working-directory: platform/capture_flutter
+        run: flutter test
+
       - name: Build Android example
         working-directory: examples/flutter
         run: |
