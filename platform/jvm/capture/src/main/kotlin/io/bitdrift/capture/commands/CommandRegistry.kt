@@ -104,36 +104,38 @@ internal class CommandRegistry(
         return true
     }
 
-    fun registerBuiltin(
-        commandType: Int,
-        key: String,
-        artifactType: String,
-        timeoutMs: Long? = null,
-        handler: suspend CommandScope.() -> CommandResult,
-    ) {
-        val identity = Identity.Builtin(commandType)
-        handlers[identity] = Registration(handler, null)
-        val adapter =
-            object : ICommandDispatcher {
-                override fun dispatch(
-                    invocationId: Long,
-                    key: String,
-                    commandId: String?,
-                    sessionId: String,
-                    argumentNames: Array<String>,
-                    argumentTypes: IntArray,
-                    argumentValues: Array<Any?>,
-                ) = dispatch(identity, invocationId, commandId, sessionId, argumentNames, argumentTypes, argumentValues)
-
-                override fun cancel(invocationId: Long) = this@CommandRegistry.cancel(invocationId)
-            }
-        builtins[commandType] = Builtin(key, artifactType, timeoutMs, adapter)
-    }
-
-    fun attach(loggerId: Long): List<String> {
+    /**
+     * Attaches the registry to the logger [loggerId]: the SDK's [builtins] are announced to the
+     * core together with every app command registered so far. A built-in exists only through this
+     * call, so none can be registered after a logger has been attached. Returns the keys of the
+     * built-ins the core refused.
+     */
+    fun attach(
+        loggerId: Long,
+        builtins: List<IBuiltinCommand> = emptyList(),
+    ): List<String> {
         this.loggerId = loggerId
+        builtins.forEach { builtin ->
+            val identity = Identity.Builtin(builtin.type.wireValue)
+            handlers[identity] = Registration({ builtin.execute(this) }, null)
+            val adapter =
+                object : ICommandDispatcher {
+                    override fun dispatch(
+                        invocationId: Long,
+                        key: String,
+                        commandId: String?,
+                        sessionId: String,
+                        argumentNames: Array<String>,
+                        argumentTypes: IntArray,
+                        argumentValues: Array<Any?>,
+                    ) = dispatch(identity, invocationId, commandId, sessionId, argumentNames, argumentTypes, argumentValues)
+
+                    override fun cancel(invocationId: Long) = this@CommandRegistry.cancel(invocationId)
+                }
+            this.builtins[builtin.type.wireValue] = Builtin(builtin.type.key, builtin.artifactType, builtin.timeoutMs, adapter)
+        }
         handlers.keys.filterIsInstance<Identity.App>().forEach { bridge.registerCommand(loggerId, it.key, this) }
-        return builtins.mapNotNull { (commandType, definition) ->
+        return this.builtins.mapNotNull { (commandType, definition) ->
             if (
                 bridge.registerBuiltinCommand(
                     loggerId = loggerId,

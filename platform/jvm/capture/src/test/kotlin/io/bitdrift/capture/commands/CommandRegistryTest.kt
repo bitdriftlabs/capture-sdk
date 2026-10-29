@@ -7,7 +7,6 @@
 
 package io.bitdrift.capture.commands
 
-import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
 import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
 import io.bitdrift.capture.providers.Field
@@ -39,7 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger
  * Pins command execution and cancellation: no per-key queue, one invocation per key at a time,
  * bounded parallelism, and one completion per invocation unless the Rust core cancelled it.
  * Built-in IDs mirror workflow_command.proto: 2 = TAKE_SCREENSHOT, 3 = STACK_SAMPLING_TRACE.
- * ID 4711 is deliberately unknown to WellKnownCommandType and represents a future built-in.
  */
 class CommandRegistryTest {
     private val bridge = FakeCommandBridge()
@@ -63,7 +61,7 @@ class CommandRegistryTest {
                 ),
             )
 
-        assertThat(installer.install(LOGGER_ID, logger = mock())).containsExactly(BuiltinCommandType.TAKE_SCREENSHOT.key)
+        assertThat(installer.install(LOGGER_ID)).containsExactly(BuiltinCommandType.TAKE_SCREENSHOT.key)
         assertThat(bridge.builtinDispatchers.keys).containsExactly(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue)
         assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.TAKE_SCREENSHOT.wireValue, 0L)
         assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue, 15_000L)
@@ -74,9 +72,11 @@ class CommandRegistryTest {
     @Test
     fun builtinIdentityCannotBeShadowedOrUnregisteredByAnAppKey() {
         val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
-        registry.registerBuiltin(3, "stack_sampling_trace", "stack_sampling_trace") { error("not implemented") }
         val app = registry.register("stack_sampling_trace") { success(context = mapOf("app" to "true")) }
-        registry.attach(LOGGER_ID)
+        registry.attach(
+            LOGGER_ID,
+            listOf(builtin(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace") { error("not implemented") }),
+        )
 
         registry.dispatch(1, "stack_sampling_trace", null, "session")
         assertThat(bridge.awaitCompletion().field("app")).isEqualTo("true")
@@ -102,9 +102,8 @@ class CommandRegistryTest {
     fun builtinAndAppShareConcurrencyLimit() {
         val queued = QueuedDispatcher()
         val registry = CommandRegistry(bridge, queued.dispatcher, maxConcurrentInvocations = 1)
-        registry.registerBuiltin(2, "take_screenshot", "screenshot") { success() }
         registry.register("app") { awaitCancellation() }
-        registry.attach(LOGGER_ID)
+        registry.attach(LOGGER_ID, listOf(builtin(BuiltinCommandType.TAKE_SCREENSHOT, "screenshot") { success() }))
         registry.dispatch(1, "app", null, "session")
         queued.runAll()
 
@@ -143,13 +142,17 @@ class CommandRegistryTest {
                 assertThat(attachment.bytes).isEmpty()
                 val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
                 registry.register("file") { success(attachment) }
-                registry.registerBuiltin(4711, "file", "file") {
-                    success(CommandAttachment.file(builtinFile, "application/octet-stream"))
-                }
-                registry.attach(LOGGER_ID)
+                registry.attach(
+                    LOGGER_ID,
+                    listOf(
+                        builtin(BuiltinCommandType.TAKE_SCREENSHOT, "file") {
+                            success(CommandAttachment.file(builtinFile, "application/octet-stream"))
+                        },
+                    ),
+                )
 
                 registry.dispatch(1, "file", null, "session")
-                bridge.builtinDispatchers.getValue(4711).dispatch(
+                bridge.builtinDispatchers.getValue(BuiltinCommandType.TAKE_SCREENSHOT.wireValue).dispatch(
                     2,
                     "file",
                     null,
@@ -1824,6 +1827,21 @@ class CommandRegistryTest {
             releasedLatch.countDown()
         }
     }
+
+    /** A built-in with the given handler, for driving the registry directly. */
+    private fun builtin(
+        type: BuiltinCommandType,
+        artifactType: String,
+        timeoutMs: Long? = null,
+        handler: suspend CommandScope.() -> CommandResult,
+    ): IBuiltinCommand =
+        object : IBuiltinCommand {
+            override val type = type
+            override val artifactType = artifactType
+            override val timeoutMs = timeoutMs
+
+            override suspend fun execute(scope: CommandScope): CommandResult = scope.handler()
+        }
 
     private class FakeCommandBridge : ICommandBridge {
         val builtinDispatchers = mutableMapOf<Int, ICommandDispatcher>()
