@@ -17,14 +17,9 @@ import android.os.Build
 import android.view.PixelCopy
 import android.view.View
 import androidx.annotation.RequiresApi
-import io.bitdrift.capture.IInternalLogger
-import io.bitdrift.capture.LogLevel
-import io.bitdrift.capture.LogType
-import io.bitdrift.capture.common.ErrorHandler
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.phoneWindow
-import io.bitdrift.capture.providers.ArrayFields
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.resume
@@ -37,108 +32,96 @@ import kotlin.coroutines.resume
  * Below Android 14 the platform insists on delivering its callback through a [android.os.Handler],
  * so that single resume is posted to [mainThreadHandler]; no work happens there.
  *
- * @param errorHandler reports unexpected capture failures.
+ * A capture either returns the JPEG or throws; [ScreenshotCaptureException] carries the reasons
+ * the engine itself names, and the command reports either as its failure.
+ *
  * @param mainThreadHandler hosts the one-line PixelCopy listener on API levels below 34.
  * @param windowManager locates the window to capture.
- * @param logger records capture-failure diagnostics in the session.
+ * @param createBitmap allocates the destination for a root view; the engine owns and recycles it.
  */
 internal class ScreenshotCaptureEngine(
-    private val errorHandler: ErrorHandler,
     private val mainThreadHandler: MainThreadHandler,
     private val windowManager: IWindowManager,
-    private val logger: IInternalLogger,
+    private val createBitmap: (View) -> Bitmap = ::rgb565BitmapFor,
 ) {
-    /** Captures a JPEG of the top-most visible window; empty bytes mean the capture failed. */
+    /**
+     * Captures a JPEG of the top-most visible window. Conditions the platform does not throw for
+     * are thrown as [ScreenshotCaptureException]; anything the platform throws propagates as is,
+     * for the command registry to report like any other handler failure.
+     */
     suspend fun captureDeviceCommandScreenshot(): ByteArray {
-        val rootView =
-            windowManager.getTopMostVisibleRootView()
-                ?: return failure(expected = true, "Device command screenshot: No visible root view")
+        val rootView = windowManager.getTopMostVisibleRootView() ?: throw ScreenshotCaptureException("No visible root view")
+        // TODO(murki): Figure out if we can scale down the bitmap surface area to reduce memory usage
+        //  see: https://developer.android.com/topic/performance/graphics/load-bitmap#load-bitmap
+        // TODO(murki): Use BuildVersionChecker after moving it to common module
         val bitmap =
-            try {
-                // TODO(murki): Figure out if we can scale down the bitmap surface area to reduce memory usage
-                //  see: https://developer.android.com/topic/performance/graphics/load-bitmap#load-bitmap
-                // TODO(murki): Use BuildVersionChecker after moving it to common module
-                when {
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> modernPixelCopy(rootView)
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> legacyPixelCopy(rootView)
-                    // TODO(murki): Implement on old API levels using Canvas(bitmap) approach
-                    else -> return failure(
-                        expected = true,
-                        "Device command screenshot: Unsupported Android version=${Build.VERSION.SDK_INT}",
-                    )
-                }
-            } catch (e: Exception) {
-                return failure(expected = false, "Device command screenshot: PixelCopy request failed. Exception=${e.message}", e)
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> modernPixelCopy(rootView)
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> legacyPixelCopy(rootView)
+                // TODO(murki): Implement on old API levels using Canvas(bitmap) approach
+                else -> throw ScreenshotCaptureException("Unsupported Android version=${Build.VERSION.SDK_INT}")
             }
-        return try {
-            compressScreenshot(bitmap)
-        } catch (e: Exception) {
-            failure(expected = false, "Device command screenshot: Compression failed. Exception=${e.message}", e)
+        try {
+            return compressScreenshot(bitmap)
         } finally {
             bitmap.recycle()
         }
     }
 
-    /** Thrown when PixelCopy reports a status other than success. */
-    private class PixelCopyRefusedException(
-        status: String,
-    ) : Exception("PixelCopy failed. Result.status=$status")
-
-    @SuppressLint("UseKtx")
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private suspend fun modernPixelCopy(topView: View): Bitmap {
         // Our own RGB_565 destination: half the memory of the ARGB_8888 the platform would
         // otherwise allocate, and the same bitmap the legacy path uses.
-        val bitmap = Bitmap.createBitmap(topView.width, topView.height, Bitmap.Config.RGB_565)
-        // The whole window, stated explicitly: without a source rect the platform substitutes the
-        // window's surface insets, which is the same region on a device but an empty rect in tests.
-        val request =
-            PixelCopy.Request.Builder
-                .ofWindow(topView)
-                .setSourceRect(Rect(0, 0, topView.width, topView.height))
-                .setDestinationBitmap(bitmap)
-                .build()
+        val bitmap = createBitmap(topView)
         val status =
-            suspendCancellableCoroutine { continuation ->
-                // A direct executor: the callback only resumes, so it needs no thread of its own.
-                PixelCopy.request(request, Runnable::run) { continuation.resume(it.status) }
+            bitmap.orRecycle {
+                // The whole window, stated explicitly: without a source rect the platform
+                // substitutes the window's surface insets, the same region on a device but an
+                // empty rect in tests.
+                val request =
+                    PixelCopy.Request.Builder
+                        .ofWindow(topView)
+                        .setSourceRect(Rect(0, 0, topView.width, topView.height))
+                        .setDestinationBitmap(bitmap)
+                        .build()
+                suspendCancellableCoroutine { continuation ->
+                    // A direct executor: the callback only resumes, so it needs no thread of its own.
+                    PixelCopy.request(request, Runnable::run) { continuation.resume(it.status) }
+                }
             }
-        if (status != PixelCopy.SUCCESS) {
-            bitmap.recycle()
-            throw PixelCopyRefusedException(status.toString())
-        }
-        return bitmap
+        return bitmap.unlessRefused(status)
     }
 
-    @SuppressLint("UseKtx")
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun legacyPixelCopy(root: View): Bitmap {
-        val window = root.phoneWindow ?: throw IllegalStateException("Phone window invalid")
-        // The platform factory, so this module needs no core-ktx dependency.
-        val bitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.RGB_565)
+        val window = root.phoneWindow ?: throw ScreenshotCaptureException("Phone window invalid")
+        val bitmap = createBitmap(root)
         val status =
-            suspendCancellableCoroutine { continuation ->
-                // On these API levels the copy itself runs synchronously here; only the status
-                // takes the detour through the handler.
-                PixelCopy.request(window, bitmap, { continuation.resume(it) }, mainThreadHandler.mainHandler)
+            bitmap.orRecycle {
+                suspendCancellableCoroutine { continuation ->
+                    // On these API levels the copy itself runs synchronously here; only the status
+                    // takes the detour through the handler.
+                    PixelCopy.request(window, bitmap, { continuation.resume(it) }, mainThreadHandler.mainHandler)
+                }
             }
-        if (status != PixelCopy.SUCCESS) {
-            bitmap.recycle()
-            throw PixelCopyRefusedException(status.toStatusText())
-        }
-        return bitmap
+        return bitmap.unlessRefused(status)
     }
 
-    private fun failure(
-        expected: Boolean,
-        message: String,
-        e: Throwable? = null,
-    ): ByteArray {
-        if (!expected) {
-            errorHandler.handleError(message, e)
+    /** Runs [block], releasing this bitmap if it throws; the caller owns it only on success. */
+    private inline fun <T> Bitmap.orRecycle(block: () -> T): T =
+        try {
+            block()
+        } catch (e: Throwable) {
+            recycle()
+            throw e
         }
-        logger.logInternal(LogType.INTERNALSDK, LogLevel.ERROR, arrayFields = ArrayFields.EMPTY, throwable = e) { message }
-        return ByteArray(0)
+
+    private fun Bitmap.unlessRefused(status: Int): Bitmap {
+        if (status != PixelCopy.SUCCESS) {
+            recycle()
+            throw ScreenshotCaptureException("PixelCopy failed. Result.status=${status.toStatusText()}")
+        }
+        return this
     }
 
     private fun compressScreenshot(resultBitmap: Bitmap): ByteArray {
@@ -156,11 +139,15 @@ internal class ScreenshotCaptureEngine(
     private fun Int.toStatusText(): String =
         when (this) {
             PixelCopy.SUCCESS -> "SUCCESS"
-            PixelCopy.ERROR_UNKNOWN -> "ERROR_UNKNOWN"
-            PixelCopy.ERROR_TIMEOUT -> "ERROR_TIMEOUT"
-            PixelCopy.ERROR_SOURCE_NO_DATA -> "ERROR_SOURCE_NO_DATA"
-            PixelCopy.ERROR_SOURCE_INVALID -> "ERROR_SOURCE_INVALID"
-            PixelCopy.ERROR_DESTINATION_INVALID -> "ERROR_DESTINATION_INVALID"
+            PixelCopy.ERROR_UNKNOWN -> "UNKNOWN"
+            PixelCopy.ERROR_TIMEOUT -> "TIMEOUT"
+            PixelCopy.ERROR_SOURCE_NO_DATA -> "SOURCE_NO_DATA"
+            PixelCopy.ERROR_SOURCE_INVALID -> "SOURCE_INVALID"
+            PixelCopy.ERROR_DESTINATION_INVALID -> "DESTINATION_INVALID"
             else -> "Unknown error: $this"
         }
 }
+
+// The platform factory, so this module needs no core-ktx dependency.
+@SuppressLint("UseKtx")
+private fun rgb565BitmapFor(root: View): Bitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.RGB_565)

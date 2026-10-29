@@ -20,15 +20,11 @@ class PixelCopyScreenshotCapturerTest {
     @Test
     fun screenshotDefersPayloadValidationToRust(): Unit =
         runBlocking {
-            for (bytes in listOf(byteArrayOf(), byteArrayOf(1, 2, 3, 4), ByteArray(2 * 1024 * 1024 + 1))) {
+            for (bytes in listOf(byteArrayOf(1, 2, 3, 4), ByteArray(2 * 1024 * 1024 + 1))) {
                 val result = PixelCopyScreenshotCapturer { bytes }.capture()
-                if (bytes.isNotEmpty()) {
-                    val attachment = (result as CommandResult.Success).attachment!!
-                    assertThat(attachment.bytes).isEqualTo(bytes)
-                    assertThat(attachment.contentType).isEqualTo("image/jpeg")
-                } else {
-                    assertThat(result).isInstanceOf(CommandResult.Error::class.java)
-                }
+                val attachment = (result as CommandResult.Success).attachment!!
+                assertThat(attachment.bytes).isEqualTo(bytes)
+                assertThat(attachment.contentType).isEqualTo("image/jpeg")
             }
         }
 
@@ -49,18 +45,22 @@ class PixelCopyScreenshotCapturerTest {
         }
 
     @Test
-    fun captureFailureBecomesACommandError(): Unit =
+    fun otherFailuresPassThroughForTheRegistryToReport(): Unit =
         runBlocking {
-            var captures = 0
-            val capturer =
-                PixelCopyScreenshotCapturer {
-                    captures++
-                    error("capture failed")
-                }
-            repeat(2) {
-                val result = capturer.capture()
-                assertThat((result as CommandResult.Error).title).isEqualTo("screenshot capture failed")
-            }
-            assertThat(captures).isEqualTo(2)
+            val capturer = PixelCopyScreenshotCapturer { throw IllegalStateException("Window doesn't have a backing surface!") }
+            // Coroutine stack-trace recovery may rethrow a copy, so compare by type and message.
+            assertThat(runCatching { capturer.capture() }.exceptionOrNull())
+                .isInstanceOf(IllegalStateException::class.java)
+                .hasMessage("Window doesn't have a backing surface!")
+        }
+
+    @Test
+    fun captureFailuresCarryTheirReasonOnTheResult(): Unit =
+        runBlocking {
+            val capturer = PixelCopyScreenshotCapturer { throw ScreenshotCaptureException("No visible root view") }
+            val error = capturer.capture() as CommandResult.Error
+            assertThat(error.title).isEqualTo("screenshot capture failed")
+            assertThat(error.description).isEqualTo("No visible root view")
+            assertThat(error.context).isEmpty()
         }
 }
