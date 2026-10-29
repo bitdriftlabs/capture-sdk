@@ -18,10 +18,11 @@ import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.commands.BuiltinCommands
+import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
-import io.bitdrift.capture.commands.ScreenshotCommand
+import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
+import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
 import io.bitdrift.capture.common.IWindowManager
-import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.RuntimeStringConfig
@@ -64,7 +65,6 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.providers.toLegacyJniFields
-import io.bitdrift.capture.replay.internal.ScreenshotCaptureEngine
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReporter
 import io.bitdrift.capture.reports.exitinfo.ILatestAppExitInfoProvider
@@ -118,6 +118,9 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     commandRegistry: CommandRegistry = Capture.commandRegistry,
+    // Both default to implementations that need this logger, which a default argument cannot name.
+    screenshotCapturer: IScreenshotCapturer? = null,
+    builtinCommandsInstaller: BuiltinCommandsInstaller? = null,
 ) : IInternalLogger,
     ICompletedReportsProcessor,
     IRuntimeProvider {
@@ -326,23 +329,9 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        val screenshotEngine =
-            ScreenshotCaptureEngine(
-                errorHandler,
-                MainThreadHandler(),
-                windowManager,
-                CaptureDispatchers.SessionReplay.executorService,
-            ) { message, throwable ->
-                logInternal(LogType.INTERNALSDK, LogLevel.ERROR, arrayFields = ArrayFields.EMPTY, throwable = throwable) { message }
-            }
-        val screenshot = ScreenshotCommand(screenshotEngine::captureDeviceCommandScreenshot)
-        BuiltinCommands.register(commandRegistry, captureScreenshot = screenshot::execute)
-        val failedBuiltins = commandRegistry.attach(this.loggerId)
-        if (failedBuiltins.isNotEmpty()) {
-            logInternal(LogType.INTERNALSDK, LogLevel.ERROR) {
-                "failed to register SDK built-ins: ${failedBuiltins.sorted().joinToString(",")}"
-            }
-        }
+        val screenshots = screenshotCapturer ?: PixelCopyScreenshotCapturer(windowManager, errorHandler, logger = this)
+        val builtins = builtinCommandsInstaller ?: BuiltinCommandsInstaller(commandRegistry, logger = this)
+        builtins.install(BuiltinCommands.make(screenshots), this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
