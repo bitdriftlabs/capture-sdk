@@ -28,12 +28,7 @@ internal class BuiltinCommandsInstaller(
         loggerId: Long,
         logger: IInternalLogger,
     ): List<String> {
-        commands.forEach { command ->
-            registry.registerBuiltin(command.type.wireValue, command.type.key, command.artifactType, command.timeoutMs) {
-                command.execute(this)
-            }
-        }
-        val failed = registry.attach(loggerId).sorted()
+        val failed = registry.attach(loggerId, commands).sorted()
         if (failed.isNotEmpty()) {
             logger.logInternal(LogType.INTERNALSDK, LogLevel.ERROR) {
                 "failed to register SDK built-ins: ${failed.joinToString(",")}"
