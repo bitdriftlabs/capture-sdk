@@ -27,7 +27,7 @@ class WindowManager(
         Class.forName("android.view.WindowManagerGlobal")
     }
 
-    override fun getBottomMostRootView(): View? = getAllRootViews().firstOrNull()
+    override fun getTopMostVisibleRootView(): View? = getAllRootViews().lastOrNull { it.isShown && it.width > 0 && it.height > 0 }
 
     private val windowManagerGlobal: Any? by lazy(LazyThreadSafetyMode.NONE) {
         global.getDeclaredMethod("getInstance").invoke(null)

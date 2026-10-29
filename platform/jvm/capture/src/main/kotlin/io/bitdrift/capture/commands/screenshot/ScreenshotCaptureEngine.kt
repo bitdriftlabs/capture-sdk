@@ -44,9 +44,9 @@ internal class ScreenshotCaptureEngine(
     /** Captures a JPEG, delivering empty bytes to [completion] if capture fails. */
     fun captureDeviceCommandScreenshot(completion: (ByteArray) -> Unit) {
         try {
-            val rootView = windowManager.getBottomMostRootView()
-            if (rootView == null || rootView.width <= 0 || rootView.height <= 0 || !rootView.isShown) {
-                finishOnError(expected = true, "Device command screenshot: Root view is invalid", completion = completion)
+            val rootView = windowManager.getTopMostVisibleRootView()
+            if (rootView == null) {
+                finishOnError(expected = true, "Device command screenshot: No visible root view", completion = completion)
                 return
             }
 
