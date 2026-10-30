@@ -28,6 +28,10 @@ protocol CoreLogging: AnyObject {
 
     func registerCommand(key: String, target: AnyObject)
 
+    func registerBuiltinCommand(
+        type: Int32, key: String, artifactType: String, timeoutMilliseconds: Int64?, target: AnyObject
+    ) -> Bool
+
     func unregisterCommand(key: String)
 
     /// Logs messages using `normal` log type and non-blocking mode. Intended to be called from within the

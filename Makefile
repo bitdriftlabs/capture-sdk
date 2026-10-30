@@ -58,10 +58,15 @@ format-bazel:
 
 .PHONY: format
 format:
-	+@$(MAKE) $(FORMAT_MAKE_FLAGS) buildifier && \
+	+@$(MAKE) $(FORMAT_MAKE_FLAGS) check-license && \
+	$(MAKE) $(FORMAT_MAKE_FLAGS) buildifier && \
 	$(MAKE) $(FORMAT_MAKE_FLAGS) lint-yaml && \
 	$(MAKE) $(FORMAT_MAKE_FLAGS) -j4 format-bazel lint-shell fix-swiftlint && \
 	$(MAKE) $(FORMAT_MAKE_FLAGS) lint-docstrings
+
+.PHONY: check-license
+check-license:
+	./ci/check_license.sh
 
 # Use repin when you get Error: Digests do not match
 .PHONY: repin

@@ -30,7 +30,9 @@ class SessionReplayTargetTest {
     private val handler: MainThreadHandler = Mocks.sameThreadHandler
     private val windowManager: IWindowManager = mock()
 
-    private val target =
+    private val target = createTarget()
+
+    private fun createTarget() =
         SessionReplayTarget(
             SessionReplayConfiguration(),
             errorHandler,

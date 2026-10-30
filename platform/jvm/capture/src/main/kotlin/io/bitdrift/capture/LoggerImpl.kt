@@ -17,7 +17,12 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.commands.BuiltinCommandType
+import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.UnavailableBuiltinCommand
+import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
+import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -57,6 +62,7 @@ import io.bitdrift.capture.providers.SystemDateProvider
 import io.bitdrift.capture.providers.TimestampProvider
 import io.bitdrift.capture.providers.combineFields
 import io.bitdrift.capture.providers.fieldsOf
+import io.bitdrift.capture.providers.fieldsOfOptional
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
@@ -113,7 +119,15 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    commandRegistry: CommandRegistry = Capture.commandRegistry,
+    commandRegistry: CommandRegistry = CommandRegistry(CaptureJniLibrary),
+    builtinCommandsInstaller: BuiltinCommandsInstaller =
+        BuiltinCommandsInstaller(
+            commandRegistry,
+            listOf(
+                ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
+                UnavailableBuiltinCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace", 15_000, "not implemented"),
+            ),
+        ),
 ) : IInternalLogger,
     ICompletedReportsProcessor,
     IRuntimeProvider {
@@ -129,6 +143,9 @@ internal class LoggerImpl(
     private val threadCountMonitor = ThreadCountMonitor()
     private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
+
+    /** Keys of the SDK built-ins the core refused at start; reported on the SDKConfigured event. */
+    private val refusedBuiltinCommands: List<String>
     private val runtime: JniRuntime
     private val localeAttributes = LocaleAttributes(context)
     private val networkAttributes = NetworkAttributes(context)
@@ -322,7 +339,7 @@ internal class LoggerImpl(
         // Capture logger.
         appExitLogger.installAppExitLogger()
 
-        commandRegistry.attach(this.loggerId)
+        refusedBuiltinCommands = builtinCommandsInstaller.install(this.loggerId)
 
         CaptureJniLibrary.startLogger(this.loggerId)
 
@@ -744,7 +761,10 @@ internal class LoggerImpl(
                         ?: IssueReporter.getDisabledStatusFieldsMap()
                 ).toFields()
 
-            val sdkStartFields = combineFields(baseFields, fatalIssueFields)
+            val builtinFields =
+                fieldsOfOptional("_failed_builtin_commands" to refusedBuiltinCommands.takeIf { it.isNotEmpty() }?.joinToString(","))
+
+            val sdkStartFields = combineFields(baseFields, fatalIssueFields, builtinFields)
             CaptureJniLibrary.writeSDKStartLog(
                 this.loggerId,
                 sdkStartFields.toLegacyJniFields(),

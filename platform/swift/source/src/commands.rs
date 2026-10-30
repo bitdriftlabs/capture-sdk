@@ -13,6 +13,7 @@ use bd_logger::{
   CommandError,
   CommandInvocation,
   CommandResult,
+  CommandResultGuard,
   RegisteredCommandHandler,
 };
 use bd_proto::protos::logging::payload::Data;
@@ -22,13 +23,13 @@ use objc::runtime::Object;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::hash::BuildHasher;
+use std::sync::LazyLock;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, LazyLock};
 use tokio::sync::oneshot;
 
 #[cfg(test)]
 #[path = "./commands_test.rs"]
-mod commands_test;
+pub(crate) mod commands_test;
 
 const ARGUMENT_NAME_KEY: &str = "name";
 const ARGUMENT_TYPE_KEY: &str = "type";
@@ -42,7 +43,7 @@ const ARGUMENT_TYPE_INT64: usize = 4;
 const ARGUMENT_TYPE_BOOL: usize = 5;
 
 static NEXT_REQUEST_ID: AtomicU64 = AtomicU64::new(1);
-static COMPLETIONS: LazyLock<Mutex<HashMap<u64, oneshot::Sender<CommandResult>>>> =
+static COMPLETIONS: LazyLock<Mutex<HashMap<u64, oneshot::Sender<CommandResultGuard>>>> =
   LazyLock::new(Mutex::default);
 
 #[allow(clippy::non_send_fields_in_send_ty)]
@@ -140,30 +141,22 @@ impl RegisteredCommandHandler for Target {
       },
       |result| {
         pending_request.armed = false;
-        result
+        result.into_inner()
       },
     )
   }
 }
 
-pub fn register(logger: &bd_logger::LoggerHandle, key: String, target: *mut Object) {
-  logger.register_command_handler(key, Arc::new(Target::new(target)));
-}
-
-pub fn unregister(logger: &bd_logger::LoggerHandle, key: &str) {
-  let _ = logger.unregister_command_handler(key);
-}
-
-pub fn take_completion(request_id: u64) -> Option<oneshot::Sender<CommandResult>> {
+pub fn take_completion(request_id: u64) -> Option<oneshot::Sender<CommandResultGuard>> {
   COMPLETIONS.lock().remove(&request_id)
 }
 
 pub fn complete_taken(
   request_id: u64,
-  sender: oneshot::Sender<CommandResult>,
+  sender: oneshot::Sender<CommandResultGuard>,
   result: CommandResult,
 ) {
-  if sender.send(result).is_err() {
+  if sender.send(CommandResultGuard::new(result)).is_err() {
     log::debug!("command {request_id} completed after its caller stopped waiting");
   }
 }
@@ -171,7 +164,7 @@ pub fn complete_taken(
 pub fn result_from_platform_completion<S: BuildHasher>(
   succeeded: bool,
   context: &HashMap<String, String, S>,
-  attachment: Option<Vec<u8>>,
+  attachment: Option<UploadSource>,
   attachment_mime_type: Option<String>,
   error_code: Option<&str>,
   error_message: Option<String>,
@@ -179,8 +172,8 @@ pub fn result_from_platform_completion<S: BuildHasher>(
   if succeeded {
     let attachment = attachment
       .zip(attachment_mime_type)
-      .map(|(bytes, content_type)| CommandAttachment {
-        source: UploadSource::Bytes(bytes),
+      .map(|(source, content_type)| CommandAttachment {
+        source,
         content_type: Some(content_type),
       });
     CommandResult::Completed {

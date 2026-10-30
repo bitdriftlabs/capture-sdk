@@ -1,0 +1,40 @@
+name: Verify release config version
+description: Require the SDK minor to equal the config version in its pinned shared-core revision
+
+inputs:
+  version:
+    description: SDK SemVer to release
+    required: true
+  ref:
+    description: SDK branch, tag, or commit to validate
+    required: true
+
+outputs:
+  sdk-sha:
+    description: Validated SDK commit
+    value: ${{ steps.check.outputs.sdk-sha }}
+  config-version:
+    description: Included shared-core config version
+    value: ${{ steps.check.outputs.config-version }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref }}
+    - uses: ./.github/actions/setup
+      with:
+        enable-bazel-cache: "false"
+        cache-key-scope: release-${{ github.workflow }}
+    - name: Verify SDK minor against included config version
+      id: check
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        config_version="$(./bazelw run --config=nocache //tools/config_version)"
+        python3 ci/check_release_config_version.py --version "$VERSION" --config-version "$config_version"
+        echo "sdk-sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        echo "config-version=$config_version" >> "$GITHUB_OUTPUT"

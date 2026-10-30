@@ -9,6 +9,7 @@ package io.bitdrift.capture.commands
 
 import io.bitdrift.capture.providers.Field
 import io.bitdrift.capture.providers.toFieldValue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -46,10 +47,28 @@ internal class CommandRegistry(
     dispatcher: CoroutineDispatcher = defaultDispatcher(),
     private val maxConcurrentInvocations: Int = MAX_CONCURRENT_INVOCATIONS,
 ) : ICommandDispatcher {
-    private val handlers = ConcurrentHashMap<String, Registration>()
+    private sealed interface Identity {
+        data class App(
+            val key: String,
+        ) : Identity
+
+        data class Builtin(
+            val commandType: Int,
+        ) : Identity
+    }
+
+    private class Builtin(
+        val key: String,
+        val artifactType: String,
+        val timeoutMs: Long?,
+        val dispatcher: ICommandDispatcher,
+    )
+
+    private val handlers = ConcurrentHashMap<Identity, Registration>()
+    private val builtins = ConcurrentHashMap<Int, Builtin>()
 
     /** Keys with an invocation in flight; `add` is an atomic claim. (`newKeySet()` needs API 24.) */
-    private val running: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
+    private val running: MutableSet<Identity> = Collections.newSetFromMap(ConcurrentHashMap())
 
     /** One permit per invocation in flight; only ever `tryAcquire`d, so nothing waits on it. */
     private val slots = Semaphore(maxConcurrentInvocations)
@@ -66,27 +85,72 @@ internal class CommandRegistry(
         handler: suspend CommandScope.() -> CommandResult,
     ): CommandHandle {
         val registration = Registration(handler, owner?.coroutineContext?.get(Job))
-        handlers[key] = registration
+        val identity = Identity.App(key)
+        handlers[identity] = registration
         loggerId?.let { bridge.registerCommand(it, key, this) }
         // `remove(key, value)` compares by identity, so a handle only removes its own registration
         // and is a no-op once the key has been re-registered.
         val handle =
             CommandHandle(key) {
-                if (handlers.remove(key, registration)) loggerId?.let { bridge.unregisterCommand(it, key) }
+                if (handlers.remove(identity, registration)) loggerId?.let { bridge.unregisterCommand(it, key) }
             }
         registration.invokeOnOwnerEnd { handle.unregister() }
         return handle
     }
 
     fun unregister(key: String): Boolean {
-        if (handlers.remove(key) == null) return false
+        if (handlers.remove(Identity.App(key)) == null) return false
         loggerId?.let { bridge.unregisterCommand(it, key) }
         return true
     }
 
-    fun attach(loggerId: Long) {
+    /**
+     * Attaches the registry to the logger [loggerId]: the SDK's [builtins] are announced to the
+     * core together with every app command registered so far. A built-in exists only through this
+     * call, so none can be registered after a logger has been attached. Returns the keys of the
+     * built-ins the core refused.
+     */
+    fun attach(
+        loggerId: Long,
+        builtins: List<IBuiltinCommand> = emptyList(),
+    ): List<String> {
         this.loggerId = loggerId
-        handlers.keys.forEach { bridge.registerCommand(loggerId, it, this) }
+        builtins.forEach { builtin ->
+            val identity = Identity.Builtin(builtin.type.wireValue)
+            handlers[identity] = Registration({ builtin.execute(this) }, null)
+            val adapter =
+                object : ICommandDispatcher {
+                    override fun dispatch(
+                        invocationId: Long,
+                        key: String,
+                        commandId: String?,
+                        sessionId: String,
+                        argumentNames: Array<String>,
+                        argumentTypes: IntArray,
+                        argumentValues: Array<Any?>,
+                    ) = dispatch(identity, invocationId, commandId, sessionId, argumentNames, argumentTypes, argumentValues)
+
+                    override fun cancel(invocationId: Long) = this@CommandRegistry.cancel(invocationId)
+                }
+            this.builtins[builtin.type.wireValue] = Builtin(builtin.type.key, builtin.artifactType, builtin.timeoutMs, adapter)
+        }
+        handlers.keys.filterIsInstance<Identity.App>().forEach { bridge.registerCommand(loggerId, it.key, this) }
+        return this.builtins.mapNotNull { (commandType, definition) ->
+            if (
+                bridge.registerBuiltinCommand(
+                    loggerId = loggerId,
+                    commandType = commandType,
+                    key = definition.key,
+                    artifactType = definition.artifactType,
+                    timeoutMs = definition.timeoutMs ?: 0,
+                    dispatcher = definition.dispatcher,
+                )
+            ) {
+                null
+            } else {
+                definition.key
+            }
+        }
     }
 
     override fun dispatch(
@@ -98,7 +162,24 @@ internal class CommandRegistry(
         argumentTypes: IntArray,
         argumentValues: Array<Any?>,
     ) {
-        val registration = handlers[key]
+        dispatch(Identity.App(key), invocationId, commandId, sessionId, argumentNames, argumentTypes, argumentValues)
+    }
+
+    private fun dispatch(
+        identity: Identity,
+        invocationId: Long,
+        commandId: String?,
+        sessionId: String,
+        argumentNames: Array<String>,
+        argumentTypes: IntArray,
+        argumentValues: Array<Any?>,
+    ) {
+        val key =
+            when (identity) {
+                is Identity.App -> identity.key
+                is Identity.Builtin -> builtins.getValue(identity.commandType).key
+            }
+        val registration = handlers[identity]
         if (registration == null) {
             fail(invocationId, CommandErrorCode.CommandUnknown, "no handler registered for $key")
             return
@@ -116,12 +197,12 @@ internal class CommandRegistry(
             }
             arguments[argumentNames[i]] = argument
         }
-        if (!running.add(key)) {
+        if (!running.add(identity)) {
             fail(invocationId, CommandErrorCode.CommandAlreadyExecuting, "an invocation of $key is already running")
             return
         }
         if (!slots.tryAcquire()) {
-            running.remove(key)
+            running.remove(identity)
             fail(invocationId, CommandErrorCode.MaxCommandConcurrency, "$maxConcurrentInvocations commands are already running")
             return
         }
@@ -137,8 +218,12 @@ internal class CommandRegistry(
                         // completed before the invocation started would otherwise still run the handler.
                         ensureActive()
                         val result = registration.handler(invocation)
-                        // Like withContext, a result produced after cancellation is discarded.
-                        ensureActive()
+                        try {
+                            ensureActive()
+                        } catch (cancelled: CancellationException) {
+                            result.discardOwnedFile()
+                            throw cancelled
+                        }
                         Outcome.Returned(result)
                     } catch (e: InvalidCommandArgumentException) {
                         Outcome.Failed(CommandErrorCode.InvalidArguments, e.message.orEmpty())
@@ -160,8 +245,10 @@ internal class CommandRegistry(
             // Completion also runs for a Job cancelled before its body starts, but only after a
             // non-cooperative handler really exits. Release every claim exactly once, before reporting.
             slots.release()
-            running.remove(key)
-            if (!runningInvocation.cancelledByCore.get()) {
+            running.remove(identity)
+            if (runningInvocation.cancelledByCore.get()) {
+                (outcome as? Outcome.Returned)?.result?.discardOwnedFile()
+            } else {
                 when (val result = outcome) {
                     is Outcome.Returned -> complete(invocationId, result.result)
                     is Outcome.Failed -> fail(invocationId, result.code, result.message)
@@ -217,7 +304,13 @@ internal class CommandRegistry(
         message: String,
         fields: Array<Field> = emptyArray(),
     ) {
-        bridge.completeCommand(invocationId, code.wire, message, fields, null, null)
+        bridge.completeCommand(
+            invocationId = invocationId,
+            errorCode = code.wire,
+            errorMessage = message,
+            fields = fields,
+            attachment = null,
+        )
     }
 
     /** An error's title and description travel joined as the message; its context as fields. */
@@ -226,15 +319,21 @@ internal class CommandRegistry(
         result: CommandResult,
     ) {
         when (result) {
-            is CommandResult.Success ->
-                bridge.completeCommand(
-                    invocationId,
-                    null,
-                    null,
-                    result.context.toJniFields(),
-                    result.attachment?.bytes,
-                    result.attachment?.contentType,
-                )
+            is CommandResult.Success -> {
+                var transferred = false
+                try {
+                    transferred =
+                        bridge.completeCommand(
+                            invocationId = invocationId,
+                            errorCode = null,
+                            errorMessage = null,
+                            fields = result.context.toJniFields(),
+                            attachment = result.attachment,
+                        )
+                } finally {
+                    if (!transferred) result.discardOwnedFile()
+                }
+            }
             is CommandResult.Error ->
                 fail(
                     invocationId,
@@ -243,6 +342,14 @@ internal class CommandRegistry(
                     result.context.toJniFields(),
                 )
         }
+    }
+
+    private fun CommandResult.discardOwnedFile() {
+        (this as? CommandResult.Success)
+            ?.attachment
+            ?.file
+            ?.takeIf { it.isFile }
+            ?.delete()
     }
 
     private fun Map<String, String>.toJniFields(): Array<Field> = map { (key, value) -> Field(key, value.toFieldValue()) }.toTypedArray()

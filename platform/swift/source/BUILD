@@ -20,7 +20,10 @@ swift_library(
     srcs = glob(
         include = ["**/*.swift"],
         exclude = ["bridging/**/*.swift"],
-    ) + ["//proto:log_type_swift_source"],
+    ) + [
+        "//proto:builtin_command_swift_source",
+        "//proto:log_type_swift_source",
+    ],
     copts = [
         # Xcode 27 requires an explicit language mode when emitting module interfaces.
         "-language-mode",
