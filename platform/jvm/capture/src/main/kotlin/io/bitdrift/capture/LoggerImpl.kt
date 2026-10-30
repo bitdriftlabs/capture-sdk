@@ -118,7 +118,7 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    commandRegistry: CommandRegistry = CommandRegistry(CaptureJniLibrary),
+    commandRegistry: CommandRegistry,
     builtinCommandsInstaller: BuiltinCommandsInstaller =
         BuiltinCommandsInstaller(
             commandRegistry,
