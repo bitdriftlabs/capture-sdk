@@ -15,14 +15,16 @@ import android.view.View
  */
 interface IWindowManager {
     /**
-     * Returns the bottom-most root view of the current window if available.
+     * Returns the top-most root view that is shown and has a size: the window a screenshot of the
+     * app should capture.
      *
-     * When multiple windows are present (e.g., dialogs, popups), this will be the
-     * view at the bottom of the Z-order, which is usually the main application window.
+     * Root views are ordered bottom to top, so this is the last visible one. An activity stacked
+     * under another one in the same task keeps its root view, hidden, lower in that order; when a
+     * dialog or popup is open, its window is the top-most one and is what gets returned.
      *
-     * @return The bottom-most (first added) root view of the current hierarchy, or `null` if not available.
+     * @return The top-most visible root view, or `null` if no window is currently shown.
      */
-    fun getBottomMostRootView(): View?
+    fun getTopMostVisibleRootView(): View?
 
     /**
      * Returns all root views across all windows of the application.

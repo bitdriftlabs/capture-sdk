@@ -93,6 +93,7 @@ async fn dropping_execution_removes_sender_and_calls_real_jni_cancel_method() {
       JObjectArray::from(JObject::null()),
       JObject::null(),
       JString::from(JObject::null()),
+      JString::from(JObject::null()),
     );
     assert!(!env.exception_check()?);
     Ok(())
@@ -390,7 +391,7 @@ fn completed_attachment_preserves_result_context_and_payload() {
   let result = completed_result(
     context.clone(),
     Some(PlatformAttachment {
-      bytes: vec![0xFF, 0xD8],
+      source: bd_artifact_upload::UploadSource::Bytes(vec![0xFF, 0xD8]),
       content_type: "image/jpeg".to_string(),
     }),
   );
@@ -435,12 +436,62 @@ async fn conversion_failure_completes_the_pending_invocation() {
   );
 
   assert!(matches!(
-    receiver.await.unwrap(),
+    receiver.await.unwrap().into_inner(),
     CommandResult::Failed { error, fields }
       if error == CommandError::HandlerFailed(
         "failed to convert command completion: simulated allocation failure".into(),
       ) && fields.is_empty()
   ));
+}
+
+#[test]
+fn unread_file_completion_cleans_source_but_duplicate_preserves_reused_path() -> anyhow::Result<()>
+{
+  crate::test_jvm::with_env(|env| -> anyhow::Result<()> {
+    let invocation_id = NEXT_INVOCATION_ID.fetch_add(1, Ordering::Relaxed);
+    let directory = std::env::current_dir()?.join(".tmp");
+    std::fs::create_dir_all(&directory)?;
+    let path = directory.join(format!("jni-command-{invocation_id}"));
+    std::fs::write(&path, b"original")?;
+    let (sender, receiver) = oneshot::channel();
+    pending_invocations().insert(invocation_id, sender);
+    let fields = env.new_object_array(0, "java/lang/Object", JObject::null())?;
+    let file_path = env.new_string(path.to_string_lossy())?;
+    let mime = env.new_string("application/octet-stream")?;
+
+    let accepted = crate::jni::Java_io_bitdrift_capture_CaptureJniLibrary_completeCommand(
+      unsafe { env.unsafe_clone() },
+      JClass::from(JObject::null()),
+      invocation_id.cast_signed(),
+      JString::from(JObject::null()),
+      JString::from(JObject::null()),
+      fields,
+      JObject::null(),
+      file_path,
+      mime,
+    );
+    assert_eq!(accepted, jni::sys::JNI_TRUE);
+    drop(receiver);
+    assert!(!path.exists());
+
+    std::fs::write(&path, b"replacement")?;
+    let duplicate_path = env.new_string(path.to_string_lossy())?;
+    let accepted = crate::jni::Java_io_bitdrift_capture_CaptureJniLibrary_completeCommand(
+      unsafe { env.unsafe_clone() },
+      JClass::from(JObject::null()),
+      invocation_id.cast_signed(),
+      JString::from(JObject::null()),
+      JString::from(JObject::null()),
+      JObjectArray::from(JObject::null()),
+      JObject::null(),
+      duplicate_path,
+      JString::from(JObject::null()),
+    );
+    assert_eq!(accepted, jni::sys::JNI_FALSE);
+    assert_eq!(std::fs::read(&path)?, b"replacement");
+    std::fs::remove_file(path)?;
+    Ok(())
+  })
 }
 
 #[test]
@@ -459,11 +510,12 @@ fn malformed_jni_completion_completes_and_clears_exception() -> anyhow::Result<(
       JObjectArray::from(JObject::null()),
       JObject::null(),
       JString::from(JObject::null()),
+      JString::from(JObject::null()),
     );
 
     assert!(!env.exception_check()?);
     assert!(matches!(
-      receiver.try_recv()?,
+      receiver.try_recv()?.into_inner(),
       CommandResult::Failed { error, fields }
         if matches!(
           &error,

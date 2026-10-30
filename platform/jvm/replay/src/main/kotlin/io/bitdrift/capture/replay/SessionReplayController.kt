@@ -13,7 +13,6 @@ import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.replay.internal.DisplayManagers
 import io.bitdrift.capture.replay.internal.ReplayCaptureEngine
-import io.bitdrift.capture.replay.internal.ScreenshotCaptureEngine
 import java.util.concurrent.ExecutorService
 
 /**
@@ -26,7 +25,6 @@ import java.util.concurrent.ExecutorService
 class SessionReplayController(
     errorHandler: ErrorHandler,
     replayLogger: IReplayLogger,
-    screenshotLogger: IScreenshotLogger,
     sessionReplayConfiguration: SessionReplayConfiguration,
     context: Context,
     mainThreadHandler: MainThreadHandler,
@@ -34,7 +32,6 @@ class SessionReplayController(
     windowManager: IWindowManager,
 ) {
     private val replayCaptureEngine: ReplayCaptureEngine
-    private val screenshotCaptureEngine: ScreenshotCaptureEngine
 
     init {
         L.logger = replayLogger
@@ -51,14 +48,6 @@ class SessionReplayController(
                 displayManager,
                 executor,
             )
-        screenshotCaptureEngine =
-            ScreenshotCaptureEngine(
-                errorHandler,
-                screenshotLogger,
-                mainThreadHandler,
-                windowManager,
-                executor,
-            )
     }
 
     /**
@@ -67,11 +56,6 @@ class SessionReplayController(
      */
     fun captureScreen(skipReplayComposeViews: Boolean) {
         replayCaptureEngine.captureScreen(skipReplayComposeViews)
-    }
-
-    /** Captures a screenshot for a remote device command. */
-    fun captureDeviceCommandScreenshot() {
-        screenshotCaptureEngine.captureDeviceCommandScreenshot()
     }
 
     internal object L {

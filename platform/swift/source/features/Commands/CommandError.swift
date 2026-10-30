@@ -43,6 +43,7 @@
     static let notFound = CommandError(kind: .commandUnknown)
     static let alreadyExecuting = CommandError(kind: .commandAlreadyExecuting)
     static let maximumConcurrency = CommandError(kind: .maxCommandConcurrency)
+    static let invalidAttachment = CommandError(title: "attachment is not a local file")
 
     private init(kind: Kind) {
         self.kind = kind

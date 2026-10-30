@@ -7,13 +7,94 @@
 
 #![allow(clippy::unwrap_used)]
 
-use crate::bridge::{State, StreamWriter, SwiftNetworkStream};
+use crate::bridge::{State, StreamWriter, SwiftNetworkStream, capture_complete_command};
+use crate::commands::commands_test::command_target;
+use crate::commands::{self, Target as CommandTarget};
+use crate::ffi::{convert_map, make_nsstring};
 use bd_api::PlatformNetworkStream;
+use bd_artifact_upload::UploadSource;
+use bd_logger::{CommandInvocation, CommandResult, RegisteredCommandHandler};
 use bd_runtime::runtime::FeatureFlag;
 use bd_test_helpers::RecordingErrorReporter;
 use bd_test_helpers::runtime::ValueKind;
+use objc::rc::autoreleasepool;
+use std::collections::HashMap;
+use std::future::poll_fn;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::task::Poll;
+use std::{env, fs, ptr};
+use tempfile::TempDir;
+
+#[tokio::test]
+async fn native_file_completion_transfers_or_cleans_the_owned_source() -> anyhow::Result<()> {
+  let scratch = env::current_dir()?.join(".tmp");
+  fs::create_dir_all(&scratch)?;
+  for consume in [true, false] {
+    let directory = TempDir::with_prefix_in("native-command-", &scratch)?;
+    let path = directory.path().join("attachment");
+    fs::write(&path, b"native file payload")?;
+    let object = command_target();
+    let target = CommandTarget::new(*object);
+    let mut execution = Box::pin(target.execute(CommandInvocation {
+      command_id: None,
+      registered_command_id: "file".into(),
+      arguments: HashMap::new(),
+      session_id: "session".into(),
+    }));
+    poll_fn(|context| {
+      assert!(execution.as_mut().poll(context).is_pending());
+      Poll::Ready(())
+    })
+    .await;
+    let request_id = unsafe { *(**object).get_ivar::<u64>("requestID") };
+
+    autoreleasepool(|| -> anyhow::Result<()> {
+      let context = convert_map(&HashMap::from([("source", "native-file")]))?;
+      let attachment_path = make_nsstring(path.to_str().unwrap())?;
+      let mime_type = make_nsstring("application/octet-stream")?;
+      assert!(capture_complete_command(
+        request_id,
+        true,
+        *context,
+        ptr::null(),
+        *attachment_path,
+        *mime_type,
+        ptr::null(),
+        ptr::null(),
+      ));
+      Ok(())
+    })?;
+    assert!(commands::take_completion(request_id).is_none());
+    assert_eq!(fs::read(&path)?, b"native file payload");
+
+    if consume {
+      let CommandResult::Completed {
+        fields,
+        attachment: Some(attachment),
+      } = execution.await
+      else {
+        anyhow::bail!("expected file-backed command completion");
+      };
+      assert_eq!(fields.get("source"), Some(&"native-file".into()));
+      assert_eq!(
+        attachment.content_type.as_deref(),
+        Some("application/octet-stream")
+      );
+      let UploadSource::Path(source) = attachment.source else {
+        anyhow::bail!("expected file source rather than copied bytes");
+      };
+      assert_eq!(source, path);
+      assert_eq!(fs::read(&source)?, b"native file payload");
+      unsafe { assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 0) };
+    } else {
+      drop(execution);
+      assert!(!path.exists());
+      unsafe { assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 1) };
+    }
+  }
+  Ok(())
+}
 
 struct TestWriter {
   capacity: Arc<AtomicUsize>,

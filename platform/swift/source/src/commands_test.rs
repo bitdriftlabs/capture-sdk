@@ -69,7 +69,7 @@ extern "C" fn cancel_command(target: &mut Object, _: Sel, request_id: u64) {
   }
 }
 
-fn command_target() -> StrongPtr {
+pub(crate) fn command_target() -> StrongPtr {
   autoreleasepool(|| unsafe { StrongPtr::new(msg_send![*COMMAND_TARGET_CLASS, new]) })
 }
 
@@ -138,14 +138,14 @@ async fn dropping_execute_cancels_even_when_completion_sender_was_already_taken(
   drop(execution);
   assert!(
     sender
-      .send(result_from_platform_completion(
+      .send(CommandResultGuard::new(result_from_platform_completion(
         true,
         &HashMap::new(),
         None,
         None,
         None,
         None
-      ))
+      )))
       .is_err()
   );
   unsafe { assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 1) };
@@ -194,6 +194,38 @@ async fn closed_completion_channel_cancels_objective_c_request() {
     assert_eq!(*(**object).get_ivar::<u64>("cancelCount"), 1);
     assert_eq!(*(**object).get_ivar::<u64>("pendingOnCancel"), 0);
   }
+}
+
+#[test]
+fn unread_file_completion_cleans_source_and_does_not_retain_duplicate_ownership()
+-> anyhow::Result<()> {
+  let directory = std::env::current_dir()?.join(".tmp");
+  std::fs::create_dir_all(&directory)?;
+  let directory = tempfile::TempDir::with_prefix_in("swift-command-", directory)?;
+  let path = directory.path().join("attachment");
+  std::fs::write(&path, b"original")?;
+  let request_id = NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed);
+  let (sender, receiver) = oneshot::channel();
+  COMPLETIONS.lock().insert(request_id, sender);
+  complete_taken(
+    request_id,
+    take_completion(request_id).unwrap(),
+    result_from_platform_completion(
+      true,
+      &HashMap::new(),
+      Some(UploadSource::Path(path.clone())),
+      Some("application/octet-stream".into()),
+      None,
+      None,
+    ),
+  );
+  assert!(path.exists());
+  drop(receiver);
+  assert!(!path.exists());
+  std::fs::write(&path, b"replacement")?;
+  assert!(take_completion(request_id).is_none());
+  assert_eq!(std::fs::read(path)?, b"replacement");
+  Ok(())
 }
 
 #[tokio::test(start_paused = true)]
@@ -317,7 +349,7 @@ async fn completion_with_attachment_returns_completed_result() {
     result_from_platform_completion(
       true,
       &context,
-      Some(vec![1, 2, 3]),
+      Some(UploadSource::Bytes(vec![1, 2, 3])),
       Some("application/octet-stream".to_string()),
       None,
       None,
@@ -328,7 +360,7 @@ async fn completion_with_attachment_returns_completed_result() {
     assert!(false, "expected command completion");
     return;
   };
-  let CommandResult::Completed { fields, attachment } = result else {
+  let CommandResult::Completed { fields, attachment } = result.into_inner() else {
     assert!(false, "expected completed command result");
     return;
   };
@@ -377,7 +409,7 @@ async fn failed_completion_with_unknown_code_returns_other_error_and_context() {
     assert!(false, "expected command completion");
     return;
   };
-  let CommandResult::Failed { error, fields } = result else {
+  let CommandResult::Failed { error, fields } = result.into_inner() else {
     assert!(false, "expected failed command result");
     return;
   };
@@ -403,7 +435,7 @@ async fn conversion_failure_completes_the_pending_request() {
   );
 
   assert!(matches!(
-    receiver.await.unwrap(),
+    receiver.await.unwrap().into_inner(),
     CommandResult::Failed { error, fields }
       if error == CommandError::HandlerFailed(
         "failed to convert command completion: simulated allocation failure".into(),
