@@ -11,7 +11,7 @@ internal enum class ProfileType {
     STACK_SAMPLING,
 }
 
-/** One capture as the platform should run it; the core has already validated every value. */
+/** One capture as the platform should run it; the command has already validated every value. */
 internal data class ProfileRequest(
     val type: ProfileType,
     val durationMs: Long,

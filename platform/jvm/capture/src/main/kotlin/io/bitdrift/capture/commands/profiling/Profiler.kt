@@ -70,7 +70,7 @@ internal class Profiler(
         when (type) {
             ProfileType.STACK_SAMPLING ->
                 StackSamplingRequestBuilder()
-                    .setDurationMs(durationMs.coerceIn(MIN_DURATION_MS, MAX_DURATION_MS).toInt())
+                    .setDurationMs(durationMs.toInt())
                     .setSamplingFrequencyHz(frequencyHz)
                     .setBufferSizeKb(bufferSizeKb)
                     .setTag(tag)
@@ -104,12 +104,4 @@ internal class Profiler(
             ProfilingResult.ERROR_UNKNOWN -> "UNKNOWN"
             else -> "UNRECOGNIZED"
         }
-
-    private companion object {
-        // The core bounds the duration before it reaches this class (10 s by default, and never
-        // more than its execution timeout allows). These only guard against a misconfigured
-        // runtime flag, so they are deliberately wide.
-        const val MIN_DURATION_MS = 1_000L
-        const val MAX_DURATION_MS = 60_000L
-    }
 }
