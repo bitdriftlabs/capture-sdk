@@ -8,16 +8,13 @@
 package io.bitdrift.capture
 
 /**
- * Responsible for emitting session replay screen logs and command screenshots.
+ * Responsible for emitting session replay screen logs.
  */
 interface ISessionReplayTarget {
     /**
      * Called to indicate that the target is supposed to prepare and emit a session replay screen log.
      */
     fun captureScreen()
-
-    /** Requests a screenshot whose JPEG bytes are returned to the remote command executor. */
-    fun captureDeviceCommandScreenshot(requestId: Long)
 }
 
 /**
@@ -26,9 +23,5 @@ interface ISessionReplayTarget {
 internal class NoopSessionReplayTarget : ISessionReplayTarget {
     override fun captureScreen() {
         // no-op
-    }
-
-    override fun captureDeviceCommandScreenshot(requestId: Long) {
-        CaptureJniLibrary.completeDeviceCommandScreenshot(requestId, null)
     }
 }

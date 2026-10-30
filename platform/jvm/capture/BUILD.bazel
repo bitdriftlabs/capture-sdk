@@ -59,6 +59,7 @@ kt_jvm_library(
     name = "gen_sources",
     srcs = [
         "//platform/shared:version_kt_source",
+        "//proto:builtin_command_kt_source",
         "//proto:log_type_kt_source",
     ],
 )

@@ -1,7 +1,9 @@
 # Insert license headers on files, running over all of particular types in the
 # current directory if no particular files specified
+import argparse
 import os
-from sys import argv
+import subprocess
+import sys
 
 # Define the header you want to check for and insert
 header = """
@@ -34,50 +36,58 @@ exclude_files = (
 extensions_to_check = ('.rs', '.toml', '.kt', '.java', '.swift', '.js', '.ts')
 
 
-def check_file(file_path):
+def check_file(file_path, check=False):
+    file_path = './' + os.path.relpath(file_path)
     for dir in exclude_dirs:
         if file_path.startswith(dir):
-            return
+            return True
 
     if file_path in exclude_files:
-        return
+        return True
 
     _, ext = os.path.splitext(file_path)
     if not ext in extensions_to_check:
-        return
+        return True
 
     print(f'Checking {file_path}')
-    with open(file_path, 'r+') as file:
+    with open(file_path, 'r') as file:
         content = file.read()
 
-        if (file_path.endswith('Cargo.toml') and
-            not file_path == './Cargo.toml' and
-                not 'license-file = "LICENSE"' in content):
-            raise Exception(
-                f'license-file = "LICENSE" not found in {file_path}')
+    if (file_path.endswith('Cargo.toml') and
+        not file_path == './Cargo.toml' and
+            not 'license-file = "LICENSE"' in content):
+        print(f'license-file = "LICENSE" not found in {file_path}', file=sys.stderr)
+        return False
 
-        header = headers.get(ext)
-        if not header:
-            return
-        header = header.lstrip()
+    header = headers.get(ext)
+    if not header:
+        return True
+    header = header.lstrip()
 
-        if not content.startswith(header):
-            file.seek(0, 0)
+    if not content.startswith(header):
+        if check:
+            print(f'Missing license header: {file_path}', file=sys.stderr)
+            return False
+        with open(file_path, 'w') as file:
             file.write(header + '\n' + content)
+    return True
 
 
 def iterate_over_files():
-    for root, _, files in os.walk('.'):
-        for file in files:
-            file_path = os.path.join(root, file)
-            check_file(file_path)
+    files = subprocess.check_output(
+        ['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'])
+    for file_path in sorted(set(os.fsdecode(files).split('\0')) - {''}):
+        if os.path.isfile(file_path):
+            yield file_path
 
 
 # Run the script
 if __name__ == '__main__':
-    files = argv[1:]
-    if files:
-        for path in files:
-            check_file(path)
-    else:
-        iterate_over_files()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--check', action='store_true', help='Check without modifying files')
+    parser.add_argument('files', nargs='*')
+    args = parser.parse_args()
+    valid = True
+    for path in args.files or iterate_over_files():
+        valid = check_file(path, check=args.check) and valid
+    sys.exit(0 if valid else 1)

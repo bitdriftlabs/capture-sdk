@@ -6,7 +6,7 @@
 # https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 load("@flatbuffers//:build_defs.bzl", "flatbuffer_library_public")
-load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary", "bitdrift_rust_test")
 
 flatbuffer_library_public(
     name = "descriptor",
@@ -51,6 +51,11 @@ bitdrift_rust_binary(
     name = "log_enum_codegen",
 )
 
+bitdrift_rust_test(
+    name = "test",
+    crate = ":log_enum_codegen",
+)
+
 genrule(
     name = "log_type_kt_source",
     srcs = [":descriptor"],
@@ -65,6 +70,22 @@ genrule(
     srcs = [":descriptor"],
     outs = ["LogType.swift"],
     cmd = "$(location :log_enum_codegen) $(location :descriptor) swift > $(OUTS)",
+    tools = [":log_enum_codegen"],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "builtin_command_kt_source",
+    outs = ["BuiltinCommandType.kt"],
+    cmd = "$(location :log_enum_codegen) builtin kotlin > $(OUTS)",
+    tools = [":log_enum_codegen"],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "builtin_command_swift_source",
+    outs = ["BuiltinCommandType.swift"],
+    cmd = "$(location :log_enum_codegen) builtin swift > $(OUTS)",
     tools = [":log_enum_codegen"],
     visibility = ["//visibility:public"],
 )

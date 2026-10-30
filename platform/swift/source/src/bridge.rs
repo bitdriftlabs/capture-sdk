@@ -33,6 +33,7 @@ use bd_logger::{
   Block,
   CaptureSession,
   CommandError,
+  CommandRegistration,
   LogAttributesOverrides,
   LogFieldKind,
   LogFields,
@@ -800,22 +801,31 @@ extern "C" fn capture_write_session_replay_screen_log(
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn capture_complete_device_command_screenshot(
-  request_id: u64,
-  screenshot: *const Object,
-) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let screenshot = if screenshot.is_null() {
-        None
-      } else {
-        Some(unsafe { <[u8]>::from_objc(screenshot)? }.to_vec())
-      };
-      session_replay::complete_device_command_screenshot(request_id, screenshot);
-      Ok(())
+extern "C" fn capture_register_builtin_command(
+  logger_id: LoggerId<'_>,
+  command_type: i32,
+  key: *const Object,
+  artifact_type: *const Object,
+  timeout_ms: i64,
+  target: *mut Object,
+) -> bool {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<bool> {
+      anyhow::ensure!(timeout_ms >= 0, "negative command timeout");
+      anyhow::ensure!(!target.is_null(), "missing command target");
+      logger_id.register_command(CommandRegistration::Builtin {
+        command_type,
+        key: unsafe { nsstring_into_string(key) }?,
+        artifact_type_id: unsafe { nsstring_into_string(artifact_type) }?,
+        // A zero timeout inherits the command executor's runtime-configured default.
+        timeout: (timeout_ms > 0).then(|| time::Duration::milliseconds(timeout_ms)),
+        handler: Arc::new(commands::Target::new(target)),
+      })?;
+      Ok(true)
     },
-    "swift complete device command screenshot",
-  );
+    false,
+    "swift register built-in command",
+  )
 }
 
 #[unsafe(no_mangle)]
@@ -827,8 +837,10 @@ extern "C" fn capture_register_command(
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let key = unsafe { CStr::from_ptr(key) }.to_str()?.to_string();
-      commands::register(&logger_id, key, target);
-      Ok(())
+      logger_id.register_command(CommandRegistration::Registered(
+        key,
+        Arc::new(commands::Target::new(target)),
+      ))
     },
     "swift register command",
   );
@@ -839,7 +851,7 @@ extern "C" fn capture_unregister_command(logger_id: LoggerId<'_>, key: *const c_
   with_handle_unexpected(
     || -> anyhow::Result<()> {
       let key = unsafe { CStr::from_ptr(key) }.to_str()?;
-      commands::unregister(&logger_id, key);
+      let _ = logger_id.unregister_command(key);
       Ok(())
     },
     "swift unregister command",
@@ -852,22 +864,46 @@ extern "C" fn capture_complete_command(
   succeeded: bool,
   context: *const Object,
   attachment: *const Object,
+  attachment_path: *const Object,
   attachment_mime_type: *const Object,
   error_code: *const Object,
   error_message: *const Object,
-) {
+) -> bool {
   let Some(sender) = commands::take_completion(request_id) else {
     log::debug!("ignoring completion for unknown command {request_id}");
-    return;
+    return false;
   };
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<bool> {
       let converted = (|| -> anyhow::Result<_> {
         let context = unsafe { commands::string_dictionary_from_objc(context) }?;
-        let attachment = if attachment.is_null() {
+        anyhow::ensure!(
+          attachment.is_null() || attachment_path.is_null(),
+          "multiple attachment sources"
+        );
+        let has_source = !attachment.is_null() || !attachment_path.is_null();
+        anyhow::ensure!(
+          has_source != attachment_mime_type.is_null(),
+          "attachment MIME/source mismatch"
+        );
+        anyhow::ensure!(
+          succeeded || !has_source,
+          "failed command cannot return an attachment"
+        );
+        let attachment = if !attachment_path.is_null() {
+          let path = std::path::PathBuf::from(unsafe { nsstring_into_string(attachment_path) }?);
+          anyhow::ensure!(
+            path.is_absolute() && path.is_file(),
+            "attachment is not an absolute file"
+          );
+          std::fs::File::open(&path)?;
+          Some(bd_artifact_upload::UploadSource::Path(path))
+        } else if attachment.is_null() {
           None
         } else {
-          Some(unsafe { <[u8]>::from_objc(attachment)? }.to_vec())
+          Some(bd_artifact_upload::UploadSource::Bytes(
+            unsafe { <[u8]>::from_objc(attachment)? }.to_vec(),
+          ))
         };
         let attachment_mime_type = if attachment_mime_type.is_null() {
           None
@@ -892,6 +928,7 @@ extern "C" fn capture_complete_command(
           error_message,
         ))
       })();
+      let accepted = converted.is_ok();
       let result = match converted {
         Ok((context, attachment, attachment_mime_type, error_code, error_message)) => {
           commands::result_from_platform_completion(
@@ -909,10 +946,11 @@ extern "C" fn capture_complete_command(
         ),
       };
       commands::complete_taken(request_id, sender, result);
-      Ok(())
+      Ok(accepted)
     },
+    false,
     "swift complete command",
-  );
+  )
 }
 
 #[unsafe(no_mangle)]

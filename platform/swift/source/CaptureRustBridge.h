@@ -122,15 +122,13 @@ void capture_write_session_replay_screen_log(
     double duration_s
 );
 
-/*
- * Completes an in-flight remote device-command screenshot request.
- *
- * @param request_id the opaque ID supplied to SessionReplayTarget.
- * @param screenshot JPEG bytes, or null when the screenshot could not be captured.
- */
-void capture_complete_device_command_screenshot(
-    uint64_t request_id,
-    const NSData *_Nullable screenshot
+bool capture_register_builtin_command(
+    logger_id logger_id,
+    int32_t command_type,
+    const NSString *key,
+    const NSString *artifact_type,
+    int64_t timeout_ms,
+    id target
 );
 
 void capture_register_command(
@@ -144,11 +142,12 @@ void capture_unregister_command(
     const char *key
 );
 
-void capture_complete_command(
+bool capture_complete_command(
     uint64_t request_id,
     bool succeeded,
     const NSDictionary<NSString *, NSString *> *context,
     const NSData *_Nullable attachment,
+    const NSString *_Nullable attachment_path,
     const NSString *_Nullable attachment_mime_type,
     const NSString *_Nullable error_code,
     const NSString *_Nullable error_message
