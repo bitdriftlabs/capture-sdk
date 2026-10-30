@@ -39,7 +39,7 @@ class StackSamplingCommandTest {
     private class FakeProfiler : IProfiler {
         val requests = mutableListOf<ProfileRequest>()
         val callbacks = mutableListOf<(ProfileOutcome) -> Unit>()
-        val cancelled = mutableListOf<Long>()
+        val cancelled = mutableListOf<ProfileRequest>()
         var failure: RuntimeException? = null
 
         override fun request(
@@ -49,7 +49,7 @@ class StackSamplingCommandTest {
             requests += request
             failure?.let { throw it }
             callbacks += callback
-            return ICancellable { cancelled += request.requestId }
+            return ICancellable { cancelled += request }
         }
 
         fun complete(outcome: ProfileOutcome) = callbacks.removeAt(0)(outcome)
@@ -82,7 +82,7 @@ class StackSamplingCommandTest {
             val result = async(Dispatchers.Unconfined) { command.execute(invocation()) }
 
             assertThat(profiler.requests).containsExactly(
-                ProfileRequest(1, ProfileType.STACK_SAMPLING, 3_000, 100, 2_048, "bitdrift"),
+                ProfileRequest(ProfileType.STACK_SAMPLING, 3_000, 100, 2_048, "bitdrift"),
             )
             profiler.complete(ProfileOutcome.Saved(trace.path))
 
@@ -117,7 +117,7 @@ class StackSamplingCommandTest {
                 }
 
             assertThat(profiler.requests.single()).isEqualTo(
-                ProfileRequest(1, ProfileType.STACK_SAMPLING, 10_000, 10, 16_384, "bitdrift"),
+                ProfileRequest(ProfileType.STACK_SAMPLING, 10_000, 10, 16_384, "bitdrift"),
             )
             profiler.complete(ProfileOutcome.Saved(systemTrace().path))
             val success = result.await() as CommandResult.Success
@@ -187,7 +187,7 @@ class StackSamplingCommandTest {
             assertThat(profiler.requests).hasSize(1)
 
             job.cancel()
-            assertThat(profiler.cancelled).containsExactly(1L)
+            assertThat(profiler.cancelled).containsExactlyElementsOf(profiler.requests)
 
             // The platform still saves the trace; nobody will upload it, so it is removed at once.
             profiler.complete(ProfileOutcome.Saved(trace.path))

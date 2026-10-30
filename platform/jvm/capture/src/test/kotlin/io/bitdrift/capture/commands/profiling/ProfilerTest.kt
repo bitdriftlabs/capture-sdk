@@ -35,7 +35,6 @@ class ProfilerTest {
     private companion object {
         val REQUEST =
             ProfileRequest(
-                requestId = 1,
                 type = ProfileType.STACK_SAMPLING,
                 durationMs = 3_000,
                 frequencyHz = 100,

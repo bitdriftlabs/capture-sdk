@@ -13,7 +13,6 @@ internal enum class ProfileType {
 
 /** One capture as the platform should run it; the core has already validated every value. */
 internal data class ProfileRequest(
-    val requestId: Long,
     val type: ProfileType,
     val durationMs: Long,
     val frequencyHz: Int,

@@ -24,7 +24,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
 
 /**
@@ -43,7 +42,6 @@ internal class StackSamplingCommand(
     private val profileability: IProfileabilityChecker,
     private val traceDirectory: File,
 ) : IBuiltinCommand {
-    private val nextRequestId = AtomicLong(1)
     private val swept = AtomicBoolean(false)
 
     override val type: BuiltinCommandType = BuiltinCommandType.STACK_SAMPLING_TRACE
@@ -91,7 +89,6 @@ internal class StackSamplingCommand(
     /** Applies the documented defaults and clamps. A value of the wrong type throws. */
     private fun CommandScope.parse(): ProfileRequest =
         ProfileRequest(
-            requestId = nextRequestId.getAndIncrement(),
             type = ProfileType.STACK_SAMPLING,
             durationMs = clamped("duration_ms", DEFAULT_DURATION_MS, MIN_DURATION_MS, MAX_DURATION_MS),
             frequencyHz = clamped("frequency_hz", DEFAULT_FREQUENCY_HZ, MIN_FREQUENCY_HZ, MAX_FREQUENCY_HZ).toInt(),
