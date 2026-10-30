@@ -17,6 +17,7 @@ use libc::{
   vm_size_t,
 };
 
+pub const VM_PROT_READ: c_int = 0x1;
 pub const VM_PROT_WRITE: c_int = 0x2;
 
 pub const SM_COW: u8 = 1;

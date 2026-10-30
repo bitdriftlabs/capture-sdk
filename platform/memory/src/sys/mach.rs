@@ -16,6 +16,8 @@ use libc::{
 pub const KERN_SUCCESS: kern_return_t = 0;
 pub const KERN_INVALID_ADDRESS: kern_return_t = 1;
 
+const CLOCK_UPTIME_RAW: libc::clockid_t = 8;
+
 unsafe extern "C" {
   fn vm_read_overwrite(
     target_task: mach_port_t,
@@ -24,6 +26,8 @@ unsafe extern "C" {
     data: vm_address_t,
     out_size: *mut vm_size_t,
   ) -> kern_return_t;
+
+  fn clock_gettime_nsec_np(clock_id: libc::clockid_t) -> u64;
 
   static vm_kernel_page_size: vm_size_t;
   static mach_task_self_: mach_port_t;
@@ -64,9 +68,19 @@ pub fn read_memory(address: usize, destination: &mut [u8]) -> bool {
   status == KERN_SUCCESS && copied as usize == destination.len()
 }
 
+pub fn now_ns() -> u64 {
+  // SAFETY: no pointers involved.
+  unsafe { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) }
+}
+
 pub fn kernel_page_size() -> u64 {
   // SAFETY: a constant the kernel publishes before main.
   unsafe { vm_kernel_page_size as u64 }
+}
+
+pub fn page_size() -> usize {
+  // SAFETY: a constant the kernel publishes before main.
+  unsafe { libc::vm_page_size }
 }
 
 #[cfg(target_os = "ios")]
