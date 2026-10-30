@@ -223,7 +223,8 @@ public final class Logger {
 
         self.underlyingLogger = CoreLogger(logger: logger)
 
-        let (uniqueCommands, duplicated) = commands.removingDuplicates()
+        let builtInCommands = [MemoryDumpCommand(logger: self.underlyingLogger).command]
+        let (uniqueCommands, duplicated) = (builtInCommands + commands).removingDuplicates()
         let commandBridge = CommandRegistrationBridge(logger: self.underlyingLogger)
         let builtins = BuiltinCommands.make(screenshot: self.sessionReplayController)
         self.commandRegistry = CommandRegistry(commands: uniqueCommands, builtins: builtins, bridge: commandBridge)

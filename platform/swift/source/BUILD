@@ -86,6 +86,7 @@ bitdrift_rust_library(
     target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [
+        "//platform/memory:bd_memory_dump",
         "//platform/shared:platform-shared",
     ],
 )
