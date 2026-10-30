@@ -115,6 +115,23 @@ android {
 val bazelWorkspace = file("../../..")
 val bazelCaptureLibrary = "//platform/jvm:capture_shared"
 
+val generateBuiltinCommands =
+    tasks.register<Exec>("generateBuiltinCommands") {
+        workingDir = bazelWorkspace
+        commandLine("./bazelw", "build", "--config=nocache", "//proto:builtin_command_kt_source")
+        doLast {
+            layout.buildDirectory.file("generated/commands/BuiltinCommandType.kt").get().asFile.setWritable(true)
+            copy {
+                from(bazelWorkspace.resolve("bazel-bin/proto/BuiltinCommandType.kt"))
+                into(layout.buildDirectory.dir("generated/commands"))
+                filePermissions { unix("0644") }
+            }
+        }
+    }
+
+android.sourceSets.getByName("main").java.srcDir(layout.buildDirectory.dir("generated/commands"))
+tasks.named("preBuild") { dependsOn(generateBuiltinCommands) }
+
 /**
  * Selects the Bazel-built JNI library's Rust linker strip level, not AGP's debugSymbolLevel.
  *
@@ -256,6 +273,7 @@ tasks.matching { it.name == "mergeProfileableJniLibFolders" }.configureEach {
 // shared library that includes both production and test JNI functions
 tasks.register<Exec>("buildTestJni") {
     description = "Build the combined test JNI library (production + test helpers)"
+    dependsOn(generateBuiltinCommands)
 
     workingDir = bazelWorkspace
 

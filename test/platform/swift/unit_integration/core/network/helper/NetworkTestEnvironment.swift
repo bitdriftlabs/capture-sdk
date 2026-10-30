@@ -25,9 +25,11 @@ final class NetworkTestEnvironment {
 
     /// Creates a new test environment with isolated infrastructure.
     ///
-    /// - parameter testName:           The name of the test creating the environment, used to label its queue.
+    /// - parameter testName:           The name of the test creating the environment, used to label its
+    ///                                 queue.
     /// - parameter networkIdleTimeout: The timeout used for URLSessionNetworkClient. Defaults to 1 second.
-    /// - parameter pingInterval:       The ping interval to configure the logger with. Defaults to `nil` (disabled).
+    /// - parameter pingInterval:       The ping interval to configure the logger with. Defaults to `nil`
+    ///                                 (disabled).
     init(
         testName: String,
         networkIdleTimeout: TimeInterval = 1,
@@ -138,9 +140,6 @@ final class NetworkTestEnvironment {
 
     private final class MockSessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget {
         func captureScreen() {}
-        func captureDeviceCommandScreenshot(_ requestID: UInt64) {
-            capture_complete_device_command_screenshot(requestID, nil)
-        }
     }
 
     private final class RecordingNetwork: Network {

@@ -1001,6 +1001,7 @@ object Capture {
                         configuration = configuration,
                         sessionStrategy = sessionStrategy,
                         bridge = bridge,
+                        commandRegistry = commandRegistry,
                     )
                 }
 
