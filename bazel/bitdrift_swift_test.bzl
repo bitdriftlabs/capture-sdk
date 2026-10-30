@@ -1,7 +1,7 @@
 load("@rules_apple//apple:ios.bzl", "ios_unit_test")
 load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
-load("//bazel:config.bzl", "MINIMUM_IOS_VERSION_TESTS")
+load("//bazel:config.bzl", "APPLE_TARGET_COMPATIBILITY", "MINIMUM_IOS_VERSION_TESTS")
 
 # Rust, Swift, ObjC, and C++ TSan instrumentation can exceed ld's compact-unwind
 # personality limit in one XCTest bundle.
@@ -20,6 +20,7 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
     test_lib_name = name + "_lib"
     swift_library(
         name = test_lib_name,
+        target_compatible_with = APPLE_TARGET_COMPATIBILITY,
         srcs = srcs,
         data = data,
         deps = deps,
@@ -35,6 +36,7 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
 
     ios_unit_test(
         name = name,
+        target_compatible_with = APPLE_TARGET_COMPATIBILITY,
         data = data,
         deps = [test_lib_name],
         linkopts = TSAN_LINKOPTS,
@@ -53,6 +55,7 @@ def bitdrift_mobile_objc_test(name, srcs, data = [], deps = [], tags = [], visib
     test_lib_name = name + "_lib"
     objc_library(
         name = test_lib_name,
+        target_compatible_with = APPLE_TARGET_COMPATIBILITY,
         srcs = srcs,
         data = data,
         deps = deps,
@@ -61,6 +64,7 @@ def bitdrift_mobile_objc_test(name, srcs, data = [], deps = [], tags = [], visib
 
     ios_unit_test(
         name = name,
+        target_compatible_with = APPLE_TARGET_COMPATIBILITY,
         data = data,
         deps = [test_lib_name],
         linkopts = TSAN_LINKOPTS,

@@ -100,15 +100,23 @@ jobs:
   verify-version:
     name: Verify arguments
     runs-on: ubuntu-latest
+    outputs:
+      sdk-sha: ${{ steps.version.outputs.sdk-sha }}
     steps:
       - name: Print & verify entered "version"
         run: |
           echo "$VERSION"
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+(\.[0-9]+)?)?$ ]]; then exit 1; fi
           if [ -n "$CAPTURE_SUFFIX" ] && [ "$PLATFORM" != "android" ]; then
             echo "capture-suffix can only be used with platform=android" >&2
             exit 1
           fi
+      - uses: actions/checkout@v4
+      - name: Verify included shared-core config version
+        id: version
+        uses: ./.github/actions/verify-release-version
+        with:
+          version: ${{ inputs.version }}
+          ref: ${{ inputs.release-ref || github.ref_name }}
     env:
       VERSION: ${{ inputs.version }}
       CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
@@ -128,11 +136,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release-ref || github.ref_name }}
+          ref: ${{ needs.verify-version.outputs.sdk-sha }}
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
           enable-bazel-cache: "false"
           cache-key-scope: release-${{ github.workflow }}
       - name: 'Update the content of platform/shared/.sdk_version'
@@ -179,7 +186,7 @@ jobs:
       contents: write
     uses: ./.github/workflows/example_apps_ios.yaml
     with:
-      release-ref: ${{ inputs.release-ref }}
+      release-ref: ${{ needs.verify-version.outputs.sdk-sha }}
       dry-run: ${{ inputs.dry-run }}
     secrets: inherit
 
@@ -193,11 +200,10 @@ jobs:
       # Checkout repo to Github Actions runner
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release-ref || github.ref_name }}
+          ref: ${{ needs.verify-version.outputs.sdk-sha }}
       - name: Setup Android SDK
         uses: ./.github/actions/android-setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
           enable-bazel-cache: "false"
           cache-key-scope: release-${{ github.workflow }}
       - name: 'Update the content of platform/shared/.sdk_version'
@@ -244,7 +250,7 @@ jobs:
       contents: write
     uses: ./.github/workflows/example_apps_android.yaml
     with:
-      release-ref: ${{ inputs.release-ref }}
+      release-ref: ${{ needs.verify-version.outputs.sdk-sha }}
       dry-run: ${{ inputs.dry-run }}
     secrets: inherit
 
@@ -257,7 +263,7 @@ jobs:
     uses: ./.github/workflows/integrations_android.yaml
     with:
       version: ${{ inputs.version }}
-      release-ref: ${{ inputs.release-ref }}
+      release-ref: ${{ needs.verify-version.outputs.sdk-sha }}
       dry-run: ${{ inputs.dry-run }}
     secrets: inherit
 
@@ -269,8 +275,9 @@ jobs:
     # always() is needed because some dependencies may be conditionally skipped
     # (e.g. iOS jobs when platform=android, integrations when capture-only).
     # Without it, a skipped dependency would also skip this job.
-    if: ${{ always() && !failure() && !cancelled() && !inputs.dry-run }}
+    if: ${{ always() && needs.verify-version.result == 'success' && !failure() && !cancelled() && !inputs.dry-run }}
     needs: [
+      "verify-version",
       "ios-release-build",
       "build-ios-example-apps",
       "android-release-build",
@@ -280,7 +287,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release-ref || github.ref_name }}
+          ref: ${{ needs.verify-version.outputs.sdk-sha }}
+          persist-credentials: false
       # Download all artifacts to current working directory
       - name: Download All artifacts
         uses: actions/download-artifact@v4
@@ -296,8 +304,8 @@ jobs:
       - name: Prepare iOS artifacts
         if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
         run: |
-          mv Capture.ios.zip Capture-$VERSION.ios.zip
-          mv Capture.doccarchive.ios.zip Capture-$VERSION.doccarchive.ios.zip
+          mv Capture.ios.zip "Capture-$VERSION.ios.zip"
+          mv Capture.doccarchive.ios.zip "Capture-$VERSION.doccarchive.ios.zip"
           if [ -f Capture-swift-6.4.ios.zip ]; then
             mv Capture-swift-6.4.ios.zip "Capture-swift-6.4-$VERSION.ios.zip"
           fi
@@ -312,24 +320,25 @@ jobs:
           app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
           private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
 
-      - name: 'Commit & push to main only'
+      - name: Prepare versioned release commit
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$VERSION" > platform/shared/.sdk_version
+          git add platform/shared/.sdk_version
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "Update SDK version to $VERSION"
+          fi
+
+      - name: Update SDK version on current main
         if: ${{ (inputs.release-ref || github.ref_name) == 'main' }}
         env:
           GH_TOKEN: ${{ steps.org-pr-create-token.outputs.token }}
           VERSION: ${{ inputs.version }}
-        run: |
-          content=$(echo -n "$VERSION" | base64)
-          sha=$(gh api \
-            repos/${GITHUB_REPOSITORY}/contents/platform/shared/.sdk_version \
-            -q .sha || true)
-
-          gh api \
-            --method PUT \
-            repos/${GITHUB_REPOSITORY}/contents/platform/shared/.sdk_version \
-            -f message="Update SDK version to ${VERSION}" \
-            -f content="${content}" \
-            -f sha="${sha}" \
-            -f branch="main"
+        run: bash ci/update_release_version.sh "$VERSION"
 
         # Use CHANGELOG.md in root
         # Extracts the content between the second and third H2 header (the latest released version)
@@ -375,13 +384,16 @@ jobs:
         # Prefix release version with "v". If capture-suffix is set, append it to the tag.
       - name: Create release
         run: |
-          target_ref="${RELEASE_REF:-$GITHUB_REF_NAME}"
+          set -euo pipefail
           tag="v$VERSION"
           if [ -n "$CAPTURE_SUFFIX" ] && [ "$PLATFORM" = "android" ]; then
             tag="v$VERSION$CAPTURE_SUFFIX"
           fi
+          gh auth setup-git
+          git tag "$tag"
+          git push origin "refs/tags/$tag"
           gh release create "$tag" \
-            --target "$target_ref" \
+            --verify-tag \
             --notes-file tmp_notes.md \
             ${{ steps.assets.outputs.files }}
         env:
@@ -389,13 +401,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CAPTURE_SUFFIX: ${{ inputs.capture-suffix }}
           PLATFORM: ${{ inputs.platform }}
-          RELEASE_REF: ${{ inputs.release-ref }}
 
   dry-run-complete:
     name: Dry-run complete
     runs-on: ubuntu-latest
-    if: ${{ always() && !failure() && !cancelled() && inputs.dry-run }}
+    if: ${{ always() && needs.verify-version.result == 'success' && !failure() && !cancelled() && inputs.dry-run }}
     needs: [
+      "verify-version",
       "ios-release-build",
       "build-ios-example-apps",
       "android-release-build",

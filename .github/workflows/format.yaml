@@ -39,6 +39,7 @@ jobs:
         run: PATH=./formatters:$PATH make format
         env:
           LD_LIBRARY_PATH: ./formatters/swift/usr/lib
+          SWIFTLINT: docker run --rm --volume "$$PWD:/workspace" --workdir /workspace ghcr.io/realm/swiftlint:0.59.1 swiftlint
       - name: check diff
         run: git --no-pager diff && git diff --quiet
       - name: Check license headers

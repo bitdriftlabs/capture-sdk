@@ -23,6 +23,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Test release version checks
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ci -p check_release_config_version_test.py
+
       - name: Set cores to get stored in /cores
         run: |
           sudo mkdir /cores
@@ -33,6 +36,8 @@ jobs:
         uses: ./.github/actions/android-setup
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+      - name: Build config-version binary
+        run: ./bazelw build --config ci //tools/config_version
       - name: Check for Bazel build file changes
         id: bazel_check
         run: ./ci/check_bazel.sh //platform/... //test/...

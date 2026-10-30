@@ -15,7 +15,7 @@ import io.bitdrift.capture.common.IWindowManager
 internal class FakeWindowManager(
     var firstValidActivity: Activity? = null,
 ) : IWindowManager {
-    override fun getBottomMostRootView(): View? = null
+    override fun getTopMostVisibleRootView(): View? = null
 
     override fun getAllRootViews(): List<View> = emptyList()
 

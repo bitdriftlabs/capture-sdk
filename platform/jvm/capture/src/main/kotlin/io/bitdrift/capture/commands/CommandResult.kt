@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.commands
 
+import java.io.File
+
 /**
  * The outcome of a registered command.
  */
@@ -41,10 +43,25 @@ sealed class CommandResult {
 /**
  * A binary payload returned by a successful command, uploaded as an artifact.
  *
- * @param bytes the payload.
+ * @param bytes the payload; empty for file-backed attachments.
+ * @param file the file source, or null for bytes. Returning this attachment transfers ownership
+ * to the SDK, which deletes the file after consumption or failure. Do not modify or reuse its path.
  * @param contentType the MIME type of the payload, e.g. `application/json`.
  */
-class CommandAttachment(
+class CommandAttachment private constructor(
     val bytes: ByteArray,
     val contentType: String,
-)
+    val file: File?,
+) {
+    constructor(bytes: ByteArray, contentType: String) : this(bytes, contentType, null)
+
+    /** Factories for payloads held outside memory. */
+    companion object {
+        /** Creates an attachment without reading the file. Ownership transfers when returned. */
+        @JvmStatic
+        fun file(
+            file: File,
+            contentType: String,
+        ): CommandAttachment = CommandAttachment(ByteArray(0), contentType, file.absoluteFile)
+    }
+}

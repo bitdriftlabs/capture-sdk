@@ -36,7 +36,14 @@ use bd_error_reporter::reporter::{
   with_handle_unexpected,
   with_handle_unexpected_or,
 };
-use bd_logger::{Block, CaptureSession, LogAttributesOverrides, LogFieldKind, LogFields};
+use bd_logger::{
+  Block,
+  CaptureSession,
+  CommandRegistration,
+  LogAttributesOverrides,
+  LogFieldKind,
+  LogFields,
+};
 use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::MemoryPressureLevel;
 use bd_proto::protos::logging::payload::LogType;
 use bd_session::Strategy;
@@ -1324,24 +1331,36 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_writeSessionRe
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeDeviceCommandScreenshot(
+pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerBuiltinCommand(
   env: JNIEnv<'_>,
   _class: JClass<'_>,
-  request_id: jlong,
-  screenshot: JObject<'_>,
-) {
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
-      let screenshot = if screenshot.is_null() {
-        None
-      } else {
-        Some(env.convert_byte_array(JByteArray::from(screenshot))?)
-      };
-      session_replay::complete_device_command_screenshot(request_id.cast_unsigned(), screenshot);
-      Ok(())
+  logger_id: jlong,
+  command_type: jint,
+  key: JString<'_>,
+  artifact_type: JString<'_>,
+  timeout_ms: jlong,
+  dispatcher: JObject<'_>,
+) -> jboolean {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<jboolean> {
+      anyhow::ensure!(timeout_ms >= 0, "negative command timeout");
+      let key = unsafe { env.get_string_unchecked(&key) }?.into();
+      let artifact_type_id = unsafe { env.get_string_unchecked(&artifact_type) }?.into();
+      let handler = commands::JniCommandHandler::new(&env, dispatcher)?;
+      let logger = unsafe { LoggerId::from_raw(logger_id) };
+      logger.register_command(CommandRegistration::Builtin {
+        command_type,
+        key,
+        artifact_type_id,
+        // A zero timeout inherits the command executor's runtime-configured default.
+        timeout: (timeout_ms > 0).then(|| Duration::milliseconds(timeout_ms)),
+        handler: Arc::new(handler),
+      })?;
+      Ok(JNI_TRUE)
     },
-    "jni complete device command screenshot",
-  );
+    JNI_FALSE,
+    "jni register built-in command",
+  )
 }
 
 #[unsafe(no_mangle)]
@@ -1357,8 +1376,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_registerComman
       let key: String = unsafe { env.get_string_unchecked(&key) }?.into();
       let handler = commands::JniCommandHandler::new(&env, dispatcher)?;
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      logger.register_command_handler(key, Arc::new(handler));
-      Ok(())
+      logger.register_command(CommandRegistration::Registered(key, Arc::new(handler)))
     },
     "jni register command",
   );
@@ -1375,7 +1393,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_unregisterComm
     || -> anyhow::Result<jboolean> {
       let key: String = unsafe { env.get_string_unchecked(&key) }?.into();
       let logger = unsafe { LoggerId::from_raw(logger_id) };
-      Ok(logger.unregister_command_handler(&key).into())
+      Ok(logger.unregister_command(&key).into())
     },
     JNI_FALSE,
     "jni unregister command",
@@ -1391,28 +1409,33 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_completeComman
   error_message: JString<'_>,
   fields: JObjectArray<'_>,
   attachment: JObject<'_>,
+  attachment_path: JString<'_>,
   attachment_content_type: JString<'_>,
-) {
+) -> jboolean {
   let invocation_id = invocation_id.cast_unsigned();
   let Some(sender) = commands::take_invocation(invocation_id) else {
     log::debug!("ignoring completion for unknown command invocation {invocation_id}");
-    return;
+    return JNI_FALSE;
   };
-  with_handle_unexpected(
-    || -> anyhow::Result<()> {
+  with_handle_unexpected_or(
+    || -> anyhow::Result<jboolean> {
       let result = command_completion_result(
         &mut env,
         &error_code,
         &error_message,
         &fields,
         &attachment,
+        &attachment_path,
         &attachment_content_type,
       );
+      let accepted =
+        !error_code.is_null() || matches!(&result, bd_logger::CommandResult::Completed { .. });
       commands::complete_taken_invocation(invocation_id, sender, result);
-      Ok(())
+      Ok(accepted.into())
     },
+    JNI_FALSE,
     "jni complete command",
-  );
+  )
 }
 
 fn command_completion_result(
@@ -1421,20 +1444,43 @@ fn command_completion_result(
   error_message: &JString<'_>,
   fields: &JObjectArray<'_>,
   attachment: &JObject<'_>,
+  attachment_path: &JString<'_>,
   attachment_content_type: &JString<'_>,
 ) -> bd_logger::CommandResult {
   (|| -> anyhow::Result<bd_logger::CommandResult> {
     let fields = ffi::jarray_to_fields(env, fields)?;
     Ok(
       if error_code.is_null() {
-        let attachment = if attachment.is_null() {
-          None
-        } else {
-          // Kotlin guarantees content type is present whenever the bytes are.
+        anyhow::ensure!(
+          attachment.is_null() || attachment_path.is_null(),
+          "multiple attachment sources"
+        );
+        let has_source = !attachment.is_null() || !attachment_path.is_null();
+        anyhow::ensure!(
+          has_source != attachment_content_type.is_null(),
+          "attachment MIME/source mismatch"
+        );
+        let attachment = if has_source {
+          let source = if attachment_path.is_null() {
+            bd_artifact_upload::UploadSource::Bytes(
+              env.convert_byte_array(<&JByteArray<'_>>::from(attachment))?,
+            )
+          } else {
+            let path: String = unsafe { env.get_string_unchecked(attachment_path) }?.into();
+            let path = PathBuf::from(path);
+            anyhow::ensure!(
+              path.is_absolute() && path.is_file(),
+              "attachment is not an absolute file"
+            );
+            std::fs::File::open(&path)?;
+            bd_artifact_upload::UploadSource::Path(path)
+          };
           Some(commands::PlatformAttachment {
-            bytes: env.convert_byte_array(<&JByteArray<'_>>::from(attachment))?,
+            source,
             content_type: unsafe { env.get_string_unchecked(attachment_content_type) }?.into(),
           })
+        } else {
+          None
         };
         commands::completed_result(fields, attachment)
       } else {

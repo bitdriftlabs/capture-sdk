@@ -41,6 +41,8 @@ runs:
         {
           echo "build --bes_backend=grpcs://remote.buildbuddy.io"
           echo "build --bes_results_url=https://app.buildbuddy.io/invocation/"
+          # GitHub Actions already reports the job status.
+          echo "build --build_metadata=DISABLE_COMMIT_STATUS_REPORTING=true"
           echo "build --remote_cache=grpcs://remote.buildbuddy.io"
           echo "$remote_upload_option"
           echo "build --remote_cache_compression"

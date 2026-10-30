@@ -24,9 +24,6 @@ public final class Logger {
     /// A no-op implementation of SessionReplayTarget used when session replay is disabled.
     private final class NoopSessionReplayTarget: CaptureLoggerBridge.SessionReplayTarget {
         func captureScreen() {}
-        func captureDeviceCommandScreenshot(_ requestID: UInt64) {
-            capture_complete_device_command_screenshot(requestID, nil)
-        }
     }
 
     let underlyingLogger: CoreLogging
@@ -73,7 +70,8 @@ public final class Logger {
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
     ///                                            can update their values later.
-    /// - parameter commands:                      Commands to register before the SDK starts receiving remote work.
+    /// - parameter commands:                      Commands to register before the SDK starts receiving remote
+    ///                                            work.
     /// - parameter loggerBridgingFactoryProvider: A class to use for Rust bridging. Used for testing
     ///                                            purposes.
     convenience init?(
@@ -119,7 +117,8 @@ public final class Logger {
     ///                                            to attach to emitted logs.
     /// - parameter initialFields:                 Fields to seed at SDK startup. `addField(withKey:value:)`
     ///                                            can update their values later.
-    /// - parameter commands:                      Commands to register before the SDK starts receiving remote work.
+    /// - parameter commands:                      Commands to register before the SDK starts receiving remote
+    ///                                            work.
     /// - parameter enableNetwork:                 Whether logger should perform network request. If not all
     ///                                            network requests performed by the logger are no-ops.
     /// - parameter storageProvider:               The storage to use by the logger.
@@ -227,11 +226,13 @@ public final class Logger {
         let builtInCommands = [MemoryDumpCommand(logger: self.underlyingLogger).command]
         let (uniqueCommands, duplicated) = (builtInCommands + commands).removingDuplicates()
         let commandBridge = CommandRegistrationBridge(logger: self.underlyingLogger)
-        self.commandRegistry = CommandRegistry(commands: uniqueCommands, bridge: commandBridge)
+        let builtins = BuiltinCommands.make(screenshot: self.sessionReplayController)
+        self.commandRegistry = CommandRegistry(commands: uniqueCommands, builtins: builtins, bridge: commandBridge)
         self.commandsTarget = CommandsTarget(registry: self.commandRegistry)
         for command in uniqueCommands {
             commandBridge.registerCommand(key: command.key, target: self.commandsTarget)
         }
+        let failedBuiltins = BuiltinCommands.register(builtins, registry: self.commandRegistry, logger: self.underlyingLogger)
 
         defer {
             let duration = timeProvider.timeIntervalSince(start)
@@ -243,6 +244,9 @@ public final class Logger {
             ]
             if !duplicated.isEmpty {
                 fields["_duplicated_commands"] = duplicated.map(\.key).sorted().joined(separator: ",")
+            }
+            if !failedBuiltins.isEmpty {
+                fields["_failed_builtin_commands"] = failedBuiltins.sorted().joined(separator: ",")
             }
 
             self.underlyingLogger.logSDKStart(fields: fields, duration: duration)

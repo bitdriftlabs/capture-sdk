@@ -10,7 +10,8 @@ IPA, and prints the compressed app size reported by Xcode's App Thinning report.
 Environment variables:
   IOS_APP_SIZE_DEVICE_MODEL
       Optional device model identifier used for thinning/export. When omitted,
-      the report parser accepts a single shared variant block. Default: unset
+      all variants are exported and the largest compressed app size is used.
+      Default: unset
   IOS_APP_SIZE_OUTPUT_DIR
       Directory for intermediate archive/export files. Default: ios_app_size_output
   IOS_APP_SIZE_EXPORT_METHOD

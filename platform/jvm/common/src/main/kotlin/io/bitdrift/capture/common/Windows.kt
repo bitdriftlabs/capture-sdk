@@ -38,8 +38,10 @@ import kotlin.LazyThreadSafetyMode.NONE
  *
  * Note: this property is called [phoneWindow] because the only implementation of [Window] is
  * the internal class android.view.PhoneWindow.
+ *
+ * Public so the SDK's other modules can reach it; it is not part of the app-facing API.
  */
-internal val View.phoneWindow: Window?
+val View.phoneWindow: Window?
     get() {
         return WindowSpy.pullWindow(rootView)
     }
