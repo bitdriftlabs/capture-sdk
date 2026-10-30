@@ -169,14 +169,14 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun requestFailureIsReportedInsteadOfEscaping(): Unit =
+    fun aRequestFailurePropagatesAsIs(): Unit =
         runBlocking {
             profiler.failure = IllegalStateException("profiling service unavailable")
 
-            val error = command.execute(invocation()) as CommandResult.Error
+            val thrown = runCatching { command.execute(invocation()) }.exceptionOrNull()
 
-            assertThat(error.title).isEqualTo("request_failed")
-            assertThat(error.description).contains("profiling service unavailable")
+            assertThat(thrown).isInstanceOf(IllegalStateException::class.java)
+            assertThat(thrown).hasMessage("profiling service unavailable")
         }
 
     @Test

@@ -121,16 +121,10 @@ internal class StackSamplingCommand(
     private suspend fun capture(request: ProfileRequest): ProfileOutcome =
         suspendCancellableCoroutine { continuation ->
             val cancel =
-                try {
-                    profiler.request(request) { outcome ->
-                        // The outcome is delivered unless the coroutine was cancelled before, or while,
-                        // it resumes; then a saved trace, which nobody would upload, is deleted.
-                        continuation.resume(outcome) { (outcome as? ProfileOutcome.Saved)?.let { File(it.path).delete() } }
-                    }
-                } catch (e: RuntimeException) {
-                    // A Binder failure in the profiling service must not take the host app down.
-                    continuation.resume(ProfileOutcome.Failed(0, "request_failed", e.toString()))
-                    return@suspendCancellableCoroutine
+                profiler.request(request) { outcome ->
+                    // The outcome is delivered unless the coroutine was cancelled before, or while,
+                    // it resumes; then a saved trace, which nobody would upload, is deleted.
+                    continuation.resume(outcome) { (outcome as? ProfileOutcome.Saved)?.let { File(it.path).delete() } }
                 }
             continuation.invokeOnCancellation { cancel.cancel() }
         }
