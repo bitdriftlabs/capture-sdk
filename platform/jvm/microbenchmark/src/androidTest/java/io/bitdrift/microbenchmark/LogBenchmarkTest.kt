@@ -24,6 +24,7 @@ import io.bitdrift.capture.IResourceUtilizationTarget
 import io.bitdrift.capture.ISessionReplayTarget
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.RuntimeStringConfig
@@ -250,6 +251,7 @@ class LogBenchmarkTest {
                 dateProvider = null,
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
+                commandRegistry = CommandRegistry(CaptureJniLibrary),
             )
             runWithMeasurementDisabled {
                 CaptureJniLibrary.shutdown(logger.loggerId)
