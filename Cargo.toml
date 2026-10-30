@@ -6,6 +6,7 @@ members = [
   "platform/shared",
   "platform/swift/source",
   "platform/test_helpers",
+  "platform/unwind",
   "proto",
   "test/benchmark",
   "test/platform/jvm",
