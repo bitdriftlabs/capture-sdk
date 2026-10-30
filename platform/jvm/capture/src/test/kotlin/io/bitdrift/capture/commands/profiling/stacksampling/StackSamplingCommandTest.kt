@@ -5,13 +5,18 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.profiling
+package io.bitdrift.capture.commands.profiling.stacksampling
 
 import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.CommandArgument
 import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandInvocation
 import io.bitdrift.capture.commands.CommandResult
+import io.bitdrift.capture.commands.profiling.ICancellable
+import io.bitdrift.capture.commands.profiling.IProfiler
+import io.bitdrift.capture.commands.profiling.ProfileOutcome
+import io.bitdrift.capture.commands.profiling.ProfileRequest
+import io.bitdrift.capture.commands.profiling.ProfileType
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -40,11 +45,11 @@ class StackSamplingCommandTest {
         override fun request(
             request: ProfileRequest,
             callback: (ProfileOutcome) -> Unit,
-        ): IProfilingCancel {
+        ): ICancellable {
             requests += request
             failure?.let { throw it }
             callbacks += callback
-            return IProfilingCancel { cancelled += request.requestId }
+            return ICancellable { cancelled += request.requestId }
         }
 
         fun complete(outcome: ProfileOutcome) = callbacks.removeAt(0)(outcome)

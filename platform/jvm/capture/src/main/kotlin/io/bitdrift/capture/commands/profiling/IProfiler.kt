@@ -5,10 +5,10 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.profiling
+package io.bitdrift.capture.commands.profiling
 
 /** Stops a running capture early. */
-internal fun interface IProfilingCancel {
+internal fun interface ICancellable {
     fun cancel()
 }
 
@@ -18,5 +18,5 @@ internal interface IProfiler {
     fun request(
         request: ProfileRequest,
         callback: (ProfileOutcome) -> Unit,
-    ): IProfilingCancel
+    ): ICancellable
 }

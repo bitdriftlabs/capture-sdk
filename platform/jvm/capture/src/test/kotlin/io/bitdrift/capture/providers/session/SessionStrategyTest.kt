@@ -14,6 +14,7 @@ import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.ContextHolder
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.commands.CommandRegistry
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -43,6 +44,7 @@ class SessionStrategyTest {
         val logger =
             LoggerImpl(
                 apiKey = "test",
+                commandRegistry = CommandRegistry(CaptureJniLibrary),
                 apiUrl = testServerUrl(),
                 customFieldGetters = emptyList(),
                 dateProvider = mock(),
@@ -75,6 +77,7 @@ class SessionStrategyTest {
         val logger =
             LoggerImpl(
                 apiKey = "test",
+                commandRegistry = CommandRegistry(CaptureJniLibrary),
                 apiUrl = testServerUrl(),
                 customFieldGetters = emptyList(),
                 dateProvider = mock(),
@@ -106,6 +109,7 @@ class SessionStrategyTest {
         val logger =
             LoggerImpl(
                 apiKey = "test",
+                commandRegistry = CommandRegistry(CaptureJniLibrary),
                 apiUrl = testServerUrl(),
                 customFieldGetters = emptyList(),
                 dateProvider = mock(),

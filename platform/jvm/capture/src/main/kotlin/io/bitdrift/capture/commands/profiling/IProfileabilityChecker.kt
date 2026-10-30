@@ -5,10 +5,11 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.profiling
+package io.bitdrift.capture.commands.profiling
 
 import android.content.Context
 import android.os.Build
+import io.bitdrift.capture.utils.BuildVersionChecker
 
 /**
  * Whether the system lets this process be profiled. A release build with
@@ -21,6 +22,7 @@ internal fun interface IProfileabilityChecker {
 
 internal class ProfileabilityChecker(
     private val context: Context,
+    private val buildVersionChecker: BuildVersionChecker = BuildVersionChecker(),
 ) : IProfileabilityChecker {
-    override fun isProfileable(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || context.applicationInfo.isProfileable
+    override fun isProfileable(): Boolean = !buildVersionChecker.isAtLeast(Build.VERSION_CODES.S) || context.applicationInfo.isProfileable
 }

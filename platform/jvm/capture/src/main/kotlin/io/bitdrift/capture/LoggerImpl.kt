@@ -19,6 +19,9 @@ import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.profiling.ProfileabilityChecker
+import io.bitdrift.capture.commands.profiling.Profiler
+import io.bitdrift.capture.commands.profiling.stacksampling.StackSamplingCommand
 import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
 import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
 import io.bitdrift.capture.common.IWindowManager
@@ -50,7 +53,6 @@ import io.bitdrift.capture.network.HttpResponseInfo
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureStream
 import io.bitdrift.capture.network.okhttp.buildSharedOkHttpClient
-import io.bitdrift.capture.profiling.StackSamplingCommand
 import io.bitdrift.capture.providers.ArrayFields
 import io.bitdrift.capture.providers.CustomFieldsProvider
 import io.bitdrift.capture.providers.DateProvider
@@ -124,10 +126,10 @@ internal class LoggerImpl(
             commandRegistry,
             listOf(
                 ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
-                StackSamplingCommand.forDevice(
-                    context,
-                    eventListenerDispatcher.executorService,
-                    File(SdkDirectory.getPath(context), "profiling"),
+                StackSamplingCommand(
+                    profiler = Profiler(context, eventListenerDispatcher.executorService),
+                    profileability = ProfileabilityChecker(context),
+                    traceDirectory = File(SdkDirectory.getPath(context), "profiling"),
                 ),
             ),
         ),

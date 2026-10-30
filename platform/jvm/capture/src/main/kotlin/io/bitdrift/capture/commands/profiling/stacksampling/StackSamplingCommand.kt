@@ -5,10 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-package io.bitdrift.capture.profiling
+package io.bitdrift.capture.commands.profiling.stacksampling
 
-import android.content.Context
-import android.os.Build
 import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandErrorCode
@@ -16,12 +14,15 @@ import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.IBuiltinCommand
 import io.bitdrift.capture.commands.InvalidCommandArgumentException
-import io.bitdrift.capture.commands.UnavailableBuiltinCommand
 import io.bitdrift.capture.commands.argument
+import io.bitdrift.capture.commands.profiling.IProfileabilityChecker
+import io.bitdrift.capture.commands.profiling.IProfiler
+import io.bitdrift.capture.commands.profiling.ProfileOutcome
+import io.bitdrift.capture.commands.profiling.ProfileRequest
+import io.bitdrift.capture.commands.profiling.ProfileType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
@@ -166,32 +167,6 @@ internal class StackSamplingCommand(
          * ([MAX_DURATION_MS]) plus the platform's start and post-processing overhead.
          */
         const val TIMEOUT_MS = 15_000L
-
-        /**
-         * The catalog entry for this device: the real command from Android 15, where
-         * `ProfilingManager` exists, and otherwise one that fails with a clear reason instead of
-         * leaving the command unknown to the core.
-         */
-        fun forDevice(
-            context: Context,
-            executor: ExecutorService,
-            traceDirectory: File,
-        ): IBuiltinCommand =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                StackSamplingCommand(
-                    profiler = ProfilingManagerProfiler(context, executor),
-                    profileability = ProfileabilityChecker(context),
-                    traceDirectory = traceDirectory,
-                )
-            } else {
-                UnavailableBuiltinCommand(
-                    type = BuiltinCommandType.STACK_SAMPLING_TRACE,
-                    artifactType = ARTIFACT_TYPE,
-                    timeoutMs = TIMEOUT_MS,
-                    title = "unsupported",
-                    description = "stack sampling requires Android 15 or newer",
-                )
-            }
 
         const val CONTENT_TYPE = "application/vnd.bitdrift.perfetto-trace"
 

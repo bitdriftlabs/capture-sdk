@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.error.ErrorReportRequest
 import io.bitdrift.capture.error.ErrorReporterService
 import io.bitdrift.capture.network.okhttp.OkHttpCaptureApiClient
@@ -99,6 +100,7 @@ class ErrorReporterTest {
         val logger =
             LoggerImpl(
                 apiKey = "test",
+                commandRegistry = CommandRegistry(CaptureJniLibrary),
                 apiUrl = testServerUrl(),
                 customFieldGetters = emptyList(),
                 dateProvider = SystemDateProvider(),
