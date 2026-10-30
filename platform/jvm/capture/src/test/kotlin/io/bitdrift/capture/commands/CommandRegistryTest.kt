@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.commands
 
+import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
+import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
 import io.bitdrift.capture.providers.Field
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -23,6 +25,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import java.io.File
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
@@ -34,10 +37,222 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Pins command execution and cancellation: no per-key queue, one invocation per key at a time,
  * bounded parallelism, and one completion per invocation unless the Rust core cancelled it.
+ * Built-in IDs mirror workflow_command.proto: 2 = TAKE_SCREENSHOT, 3 = STACK_SAMPLING_TRACE.
  */
 class CommandRegistryTest {
     private val bridge = FakeCommandBridge()
     private val registry = CommandRegistry(bridge, Dispatchers.Default)
+
+    @Test
+    fun failedBuiltinRegistrationPreservesOtherCommands() {
+        val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
+        registry.register("app") { success() }
+        bridge.rejectedBuiltinTypes.add(BuiltinCommandType.TAKE_SCREENSHOT.wireValue)
+        val installer =
+            BuiltinCommandsInstaller(
+                registry,
+                listOf(
+                    ScreenshotBuiltinCommand(
+                        object : IScreenshotCapturer {
+                            override suspend fun capture() = CommandResult.Success()
+                        },
+                    ),
+                    UnavailableBuiltinCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace", 15_000, "not under test"),
+                ),
+            )
+
+        assertThat(installer.install(LOGGER_ID)).containsExactly(BuiltinCommandType.TAKE_SCREENSHOT.key)
+        assertThat(bridge.builtinDispatchers.keys).containsExactly(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue)
+        assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.TAKE_SCREENSHOT.wireValue, 0L)
+        assertThat(bridge.builtinTimeouts).containsEntry(BuiltinCommandType.STACK_SAMPLING_TRACE.wireValue, 15_000L)
+        registry.dispatch(1, "app", null, "session")
+        assertThat(bridge.awaitCompletion().error).isNull()
+    }
+
+    @Test
+    fun builtinIdentityCannotBeShadowedOrUnregisteredByAnAppKey() {
+        val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
+        val app = registry.register("stack_sampling_trace") { success(context = mapOf("app" to "true")) }
+        registry.attach(
+            LOGGER_ID,
+            listOf(builtin(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace") { error("not implemented") }),
+        )
+
+        registry.dispatch(1, "stack_sampling_trace", null, "session")
+        assertThat(bridge.awaitCompletion().field("app")).isEqualTo("true")
+        app.unregister()
+        assertThat(registry.unregister("stack_sampling_trace")).isFalse()
+        bridge.builtinDispatchers.getValue(3).dispatch(
+            2,
+            "stack_sampling_trace",
+            null,
+            "session",
+            emptyArray(),
+            intArrayOf(),
+            emptyArray(),
+        )
+        val completion = bridge.awaitCompletion()
+        assertThat(completion.error).isEqualTo("handler_failed")
+        assertThat(completion.message).isEqualTo("not implemented")
+        assertThat(completion.attachment).isNull()
+        assertThat(completion.attachmentPath).isNull()
+    }
+
+    @Test
+    fun builtinAndAppShareConcurrencyLimit() {
+        val queued = QueuedDispatcher()
+        val registry = CommandRegistry(bridge, queued.dispatcher, maxConcurrentInvocations = 1)
+        registry.register("app") { awaitCancellation() }
+        registry.attach(LOGGER_ID, listOf(builtin(BuiltinCommandType.TAKE_SCREENSHOT, "screenshot") { success() }))
+        registry.dispatch(1, "app", null, "session")
+        queued.runAll()
+
+        bridge.builtinDispatchers.getValue(2).dispatch(
+            2,
+            "take_screenshot",
+            null,
+            "session",
+            emptyArray(),
+            intArrayOf(),
+            emptyArray(),
+        )
+        assertThat(bridge.awaitCompletion().error).isEqualTo("max_command_concurrency")
+        registry.cancel(1)
+        queued.runAll()
+        bridge.builtinDispatchers.getValue(2).dispatch(
+            3,
+            "take_screenshot",
+            null,
+            "session",
+            emptyArray(),
+            intArrayOf(),
+            emptyArray(),
+        )
+        queued.runAll()
+        assertThat(bridge.awaitCompletion().error).isNull()
+    }
+
+    @Test
+    fun fileAttachmentsPreserveByteApiAndTransferOnlyAPathForAppsAndBuiltins() =
+        withAttachmentFile { file ->
+            withAttachmentFile { builtinFile ->
+                val bytes = byteArrayOf(1, 2, 3)
+                assertThat(CommandAttachment(bytes, "application/octet-stream").bytes).isSameAs(bytes)
+                val attachment = CommandAttachment.file(file, "application/octet-stream")
+                assertThat(attachment.bytes).isEmpty()
+                val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
+                registry.register("file") { success(attachment) }
+                registry.attach(
+                    LOGGER_ID,
+                    listOf(
+                        builtin(BuiltinCommandType.TAKE_SCREENSHOT, "file") {
+                            success(CommandAttachment.file(builtinFile, "application/octet-stream"))
+                        },
+                    ),
+                )
+
+                registry.dispatch(1, "file", null, "session")
+                bridge.builtinDispatchers.getValue(BuiltinCommandType.TAKE_SCREENSHOT.wireValue).dispatch(
+                    2,
+                    "file",
+                    null,
+                    "session",
+                    emptyArray(),
+                    intArrayOf(),
+                    emptyArray(),
+                )
+                for (source in listOf(file, builtinFile)) {
+                    val completion = bridge.awaitCompletion()
+                    assertThat(completion.attachment).isNull()
+                    assertThat(completion.attachmentPath).isEqualTo(source.absolutePath)
+                    assertThat(completion.attachmentContentType).isEqualTo("application/octet-stream")
+                }
+                assertThat(file).exists()
+                assertThat(builtinFile).exists()
+            }
+        }
+
+    @Test
+    fun fileValidationIsDeferredToRustAndRejectedDirectoriesArePreserved() =
+        withAttachmentFile { file ->
+            assertThat(file.delete()).isTrue()
+            bridge.acceptCompletion = false
+            val registry = CommandRegistry(bridge, Dispatchers.Unconfined)
+            registry.register("file") { success(CommandAttachment.file(file, "application/octet-stream")) }
+            registry.dispatch(1, "file", null, "session")
+            val missing = bridge.awaitCompletion()
+            assertThat(missing.error).isNull()
+            assertThat(missing.attachmentPath).isEqualTo(file.absolutePath)
+            assertThat(file.mkdir()).isTrue()
+            registry.dispatch(2, "file", null, "session")
+            val directory = bridge.awaitCompletion()
+            assertThat(directory.error).isNull()
+            assertThat(directory.attachmentPath).isEqualTo(file.absolutePath)
+            assertThat(file.isDirectory).isTrue()
+        }
+
+    @Test
+    fun rejectedFileCompletionDeletesTheReturnedSource() =
+        withAttachmentFile { file ->
+            val queued = QueuedDispatcher()
+            val registry = CommandRegistry(bridge, queued.dispatcher)
+            bridge.acceptCompletion = false
+            registry.register("file") { success(CommandAttachment.file(file, "application/octet-stream")) }
+
+            registry.dispatch(1, "file", null, "session")
+            queued.runAll()
+
+            assertThat(file).doesNotExist()
+            assertNoRetainedInvocations(registry)
+        }
+
+    @Test
+    fun throwingFileCompletionDeletesTheReturnedSource() =
+        withAttachmentFile { file ->
+            val queued = QueuedDispatcher()
+            val registry = CommandRegistry(bridge, queued.dispatcher)
+            bridge.failNextCompletion = true
+            registry.register("file") { success(CommandAttachment.file(file, "application/octet-stream")) }
+
+            registry.dispatch(1, "file", null, "session")
+            queued.runAll()
+
+            assertThat(file).doesNotExist()
+            assertNoRetainedInvocations(registry)
+        }
+
+    @Test
+    fun fileReturnedAfterHandlerCatchesCancellationIsDeleted() =
+        withAttachmentFile { file ->
+            val queued = QueuedDispatcher()
+            val registry = CommandRegistry(bridge, queued.dispatcher)
+            registry.register("file") {
+                try {
+                    awaitCancellation()
+                } catch (_: CancellationException) {
+                    success(CommandAttachment.file(file, "application/octet-stream"))
+                }
+            }
+            registry.dispatch(1, "file", null, "session")
+            queued.runAll()
+
+            registry.cancel(1)
+            queued.runAll()
+
+            assertThat(file).doesNotExist()
+            assertThat(bridge.pendingCompletions()).isZero()
+        }
+
+    private fun withAttachmentFile(block: (File) -> Unit) {
+        val directory = File(".tmp").apply { mkdirs() }
+        val file = File.createTempFile("command-attachment-", ".bin", directory)
+        try {
+            file.writeBytes(byteArrayOf(1, 2, 3))
+            block(file)
+        } finally {
+            file.delete()
+        }
+    }
 
     @Test
     fun jniCancellationContractHasAnUnmangledLongToVoidMethod() {
@@ -1613,7 +1828,40 @@ class CommandRegistryTest {
         }
     }
 
+    /** A built-in with the given handler, for driving the registry directly. */
+    private fun builtin(
+        type: BuiltinCommandType,
+        artifactType: String,
+        timeoutMs: Long? = null,
+        handler: suspend CommandScope.() -> CommandResult,
+    ): IBuiltinCommand =
+        object : IBuiltinCommand {
+            override val type = type
+            override val artifactType = artifactType
+            override val timeoutMs = timeoutMs
+
+            override suspend fun execute(scope: CommandScope): CommandResult = scope.handler()
+        }
+
     private class FakeCommandBridge : ICommandBridge {
+        val builtinDispatchers = mutableMapOf<Int, ICommandDispatcher>()
+        val rejectedBuiltinTypes = mutableSetOf<Int>()
+        val builtinTimeouts = mutableMapOf<Int, Long>()
+
+        override fun registerBuiltinCommand(
+            loggerId: Long,
+            commandType: Int,
+            key: String,
+            artifactType: String,
+            timeoutMs: Long,
+            dispatcher: ICommandDispatcher,
+        ): Boolean {
+            builtinTimeouts[commandType] = timeoutMs
+            if (commandType in rejectedBuiltinTypes) return false
+            builtinDispatchers[commandType] = dispatcher
+            return true
+        }
+
         val registered = mutableListOf<Pair<Long, String>>()
         var registerCalls = 0
         var unregisterCalls = 0
@@ -1621,6 +1869,7 @@ class CommandRegistryTest {
         /** Makes the next `completeCommand` throw, as a failing JNI call would. */
         @Volatile
         var failNextCompletion = false
+        var acceptCompletion = true
         private val completions = LinkedBlockingQueue<Completion>()
 
         override fun registerCommand(
@@ -1645,16 +1894,24 @@ class CommandRegistryTest {
             errorCode: String?,
             errorMessage: String?,
             fields: Array<Field>,
-            attachment: ByteArray?,
-            attachmentContentType: String?,
-        ) {
+            attachment: CommandAttachment?,
+        ): Boolean {
             if (failNextCompletion) {
                 failNextCompletion = false
                 throw IllegalStateException("completeCommand failed")
             }
             completions.add(
-                Completion(invocationId, errorCode, errorMessage, fields.toList(), attachment, attachmentContentType),
+                Completion(
+                    invocationId,
+                    errorCode,
+                    errorMessage,
+                    fields.toList(),
+                    attachment?.takeIf { it.file == null }?.bytes,
+                    attachment?.file?.path,
+                    attachment?.contentType,
+                ),
             )
+            return acceptCompletion
         }
 
         fun awaitCompletion(): Completion = checkNotNull(completions.poll(5, TimeUnit.SECONDS)) { "no completion" }
@@ -1671,6 +1928,7 @@ class CommandRegistryTest {
         val message: String?,
         val fields: List<Field>,
         val attachment: ByteArray?,
+        val attachmentPath: String?,
         val attachmentContentType: String?,
     ) {
         fun field(key: String): String? = fields.firstOrNull { it.key == key }?.stringValue

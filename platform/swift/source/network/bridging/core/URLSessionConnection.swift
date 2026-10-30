@@ -11,16 +11,12 @@ import Foundation
 final class URLSessionConnection: Connection {
     private let task: URLSessionUploadTask
     private weak var logger: CoreLogging?
-    private var streams: (input: InputStream, output: OutputStream) = {
+    private var streams: (input: InputStream?, output: OutputStream?) = {
         var readStream: InputStream?
         var writeStream: OutputStream?
 
         Stream.getBoundStreams(withBufferSize: kMaxBufferSize, inputStream: &readStream,
                                outputStream: &writeStream)
-        guard let readStream, let writeStream else {
-            fatalError("[Network] Can't create the streams, did we run out of memory?")
-        }
-
         return (readStream, writeStream)
     }()
 
@@ -49,17 +45,28 @@ final class URLSessionConnection: Connection {
     }
 
     func openAndProvideStream(_ closure: (InputStream?) -> Void) {
+        guard let input = self.streams.input, let output = self.streams.output else {
+            self.logger?.log(
+                level: .error,
+                message: "[Network] Unable to open uninitialized streams",
+                type: .internalsdk
+            )
+            self.end()
+            closure(nil)
+            return
+        }
+
         self.logger?.log(
             level: .debug,
             message: "[Network] Opening stream for task \(self.task.taskIdentifier)",
             type: .internalsdk
         )
 
-        if self.streams.input.streamStatus == .notOpen, self.streams.output.streamStatus == .notOpen {
-            self.streams.output.schedule(in: .main, forMode: .default)
-            self.streams.output.open()
+        if input.streamStatus == .notOpen, output.streamStatus == .notOpen {
+            output.schedule(in: .main, forMode: .default)
+            output.open()
 
-            closure(self.streams.input)
+            closure(input)
         } else {
             self.logger?.log(
                 level: .warning,
@@ -73,13 +80,22 @@ final class URLSessionConnection: Connection {
 
     /// Ends the connection and closes their associated streams. This can be called multiple times.
     func end() {
-        self.logger?.log(
-            level: .debug,
-            message: "[Network] Ending connection for task \(self.task.taskIdentifier)",
-            type: .internalsdk
-        )
-        self.task.cancel()
-        self.streams.output.close()
+        if let output = self.streams.output {
+            self.logger?.log(
+                level: .debug,
+                message: "[Network] Ending connection for task \(self.task.taskIdentifier)",
+                type: .internalsdk
+            )
+            self.task.cancel()
+            output.close()
+        } else {
+            self.logger?.log(
+                level: .error,
+                message: "[Network] Unable to close uninitialized output stream",
+                type: .internalsdk
+            )
+            self.task.cancel()
+        }
     }
 }
 
@@ -93,7 +109,10 @@ extension URLSessionConnection: NetworkStream {
     ///
     /// - returns: The number of bytes that were sent.
     func sendData(_ baseAddress: UnsafePointer<UInt8>, count: Int) -> Int {
-        return self.streams.output.write(baseAddress, maxLength: count)
+        if let output = self.streams.output {
+            return output.write(baseAddress, maxLength: count)
+        }
+        return 0
     }
 
     public func shutdown() {

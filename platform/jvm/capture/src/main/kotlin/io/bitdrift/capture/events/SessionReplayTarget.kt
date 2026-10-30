@@ -8,7 +8,6 @@
 package io.bitdrift.capture.events
 
 import android.content.Context
-import io.bitdrift.capture.CaptureJniLibrary
 import io.bitdrift.capture.IInternalLogger
 import io.bitdrift.capture.ISessionReplayTarget
 import io.bitdrift.capture.LogLevel
@@ -25,7 +24,6 @@ import io.bitdrift.capture.providers.jniFieldsOf
 import io.bitdrift.capture.providers.toFieldValue
 import io.bitdrift.capture.providers.toFields
 import io.bitdrift.capture.replay.IReplayLogger
-import io.bitdrift.capture.replay.IScreenshotLogger
 import io.bitdrift.capture.replay.ReplayCaptureMetrics
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.replay.SessionReplayController
@@ -41,19 +39,14 @@ internal class SessionReplayTarget(
     mainThreadHandler: MainThreadHandler = MainThreadHandler(),
     windowManager: IWindowManager,
 ) : ISessionReplayTarget,
-    IReplayLogger,
-    IScreenshotLogger {
+    IReplayLogger {
     // TODO(Augustyniak): Make non nullable and pass at initialization time after
     //  `sessionReplayTarget` argument is moved from logger creation time to logger start time.
     //  Refer to TODO in `LoggerImpl` for more details.
     internal var runtime: Runtime? = null
-    private val screenshotCaptureLock = Any()
-    private var screenshotCaptureInProgress = false
-    private var deviceCommandScreenshotRequestId: Long? = null
     private val sessionReplayController: SessionReplayController =
         SessionReplayController(
             errorHandler,
-            this,
             this,
             configuration,
             context,
@@ -80,33 +73,6 @@ internal class SessionReplayTarget(
             buildScreenCapturedFields(encodedScreen, metrics),
             metrics.parseDuration,
         )
-    }
-
-    override fun captureDeviceCommandScreenshot(requestId: Long) {
-        synchronized(screenshotCaptureLock) {
-            if (screenshotCaptureInProgress) {
-                CaptureJniLibrary.completeDeviceCommandScreenshot(requestId, null)
-                return
-            }
-            screenshotCaptureInProgress = true
-            deviceCommandScreenshotRequestId = requestId
-        }
-        sessionReplayController.captureDeviceCommandScreenshot()
-    }
-
-    override fun onDeviceCommandScreenshotCaptured(compressedScreen: ByteArray) {
-        val requestId =
-            synchronized(screenshotCaptureLock) {
-                screenshotCaptureInProgress = false
-                deviceCommandScreenshotRequestId.also { deviceCommandScreenshotRequestId = null }
-            }
-        if (requestId != null) {
-            CaptureJniLibrary.completeDeviceCommandScreenshot(requestId, compressedScreen.takeIf { it.isNotEmpty() })
-            return
-        }
-        logger.logInternal(LogType.INTERNALSDK, LogLevel.ERROR) {
-            "received an uncorrelated device command screenshot"
-        }
     }
 
     override fun logVerboseInternal(message: String) {

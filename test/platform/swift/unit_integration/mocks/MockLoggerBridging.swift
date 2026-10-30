@@ -51,6 +51,8 @@ public final class MockLoggerBridging {
     public private(set) var ootbFieldUpdates = [OotbFieldUpdate]()
 
     public private(set) var commandRegistrationEvents = [String]()
+    public private(set) var builtinRegistrationAttempts = [Int32]()
+    public var rejectedBuiltinTypes = Set<Int32>()
 
     public var shouldLogAppUpdateEvent = false
 
@@ -74,6 +76,13 @@ extension MockLoggerBridging: LoggerBridging {
     }
 
     public func unregisterCommand(key _: String) {}
+
+    public func registerBuiltinCommand(
+        type: Int32, key _: String, artifactType _: String, timeoutMilliseconds _: Int64?, target _: AnyObject
+    ) -> Bool {
+        builtinRegistrationAttempts.append(type)
+        return !rejectedBuiltinTypes.contains(type)
+    }
 
     public func start() {
         self.commandRegistrationEvents.append("start")

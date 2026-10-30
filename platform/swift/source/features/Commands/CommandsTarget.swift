@@ -64,17 +64,20 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
     }
 
     private let registry: CommandRegistry
+    private let builtinType: Int32?
     private let lock = Lock()
     private var executions = [UInt64: Execution]()
     private let completion: @Sendable (UInt64, Result<CommandResult, CommandError>) -> Void
 
     init(
         registry: CommandRegistry,
+        builtinType: Int32? = nil,
         completion: @escaping @Sendable (UInt64, Result<CommandResult, CommandError>) -> Void = {
             CommandsTarget.complete(requestID: $0, result: $1)
         }
     ) {
         self.registry = registry
+        self.builtinType = builtinType
         self.completion = completion
     }
 
@@ -102,7 +105,9 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
                     finish(requestID: requestID, result: nil)
                     return
                 }
-                let result = await registry.execute(key: key as String, arguments: parsedArguments)
+                let result = await registry.execute(
+                    key: key as String, arguments: parsedArguments, builtinType: builtinType
+                )
                 finish(requestID: requestID, result: result)
             }
             executions[requestID] = Execution(task: task)
@@ -132,6 +137,9 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
     private func finish(requestID: UInt64, result: Result<CommandResult, CommandError>?) {
         let execution = lock.withLock { executions.removeValue(forKey: requestID) }
         guard let execution, !execution.cancelled, !Task.isCancelled, let result else {
+            if case let .success(result) = result {
+                result.attachment?.discardOwnedFile()
+            }
             return
         }
         completion(requestID, result)
@@ -197,21 +205,32 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
     private static func complete(requestID: UInt64, result: Result<CommandResult, CommandError>) {
         switch result {
         case let .success(result):
-            capture_complete_command(
+            let attachment = result.attachment
+            let fileURL = attachment?.fileURL
+            if let fileURL, !fileURL.isFileURL {
+                complete(requestID: requestID, result: .failure(.invalidAttachment))
+                return
+            }
+            let accepted = capture_complete_command(
                 requestID,
                 true,
                 result.context,
-                result.attachment?.data,
-                result.attachment?.mimeType,
+                fileURL == nil ? attachment?.data : nil,
+                fileURL?.path,
+                attachment?.mimeType,
                 nil,
                 nil
             )
+            if !accepted {
+                attachment?.discardOwnedFile()
+            }
         case let .failure(error):
             let message = [error.title, error.description].compactMap { $0 }.joined(separator: ": ")
             capture_complete_command(
                 requestID,
                 false,
                 error.context,
+                nil,
                 nil,
                 nil,
                 error.code,

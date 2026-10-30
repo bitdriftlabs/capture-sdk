@@ -17,6 +17,7 @@ use bd_logger::{
   CommandError,
   CommandInvocation,
   CommandResult,
+  CommandResultGuard,
   LogFields,
   RegisteredCommandHandler,
 };
@@ -34,10 +35,10 @@ use tokio::sync::oneshot;
 static COMMAND_DISPATCHER_DISPATCH: OnceLock<CachedMethod> = OnceLock::new();
 static COMMAND_DISPATCHER_CANCEL: OnceLock<CachedMethod> = OnceLock::new();
 static NEXT_INVOCATION_ID: AtomicU64 = AtomicU64::new(1);
-static PENDING_INVOCATIONS: LazyLock<Mutex<HashMap<u64, oneshot::Sender<CommandResult>>>> =
+static PENDING_INVOCATIONS: LazyLock<Mutex<HashMap<u64, oneshot::Sender<CommandResultGuard>>>> =
   LazyLock::new(Mutex::default);
 
-fn pending_invocations() -> MutexGuard<'static, HashMap<u64, oneshot::Sender<CommandResult>>> {
+fn pending_invocations() -> MutexGuard<'static, HashMap<u64, oneshot::Sender<CommandResultGuard>>> {
   PENDING_INVOCATIONS
     .lock()
     .unwrap_or_else(PoisonError::into_inner)
@@ -81,23 +82,23 @@ impl Drop for PendingInvocation<'_> {
   }
 }
 
-pub(crate) fn take_invocation(invocation_id: u64) -> Option<oneshot::Sender<CommandResult>> {
+pub(crate) fn take_invocation(invocation_id: u64) -> Option<oneshot::Sender<CommandResultGuard>> {
   pending_invocations().remove(&invocation_id)
 }
 
 pub(crate) fn complete_taken_invocation(
   invocation_id: u64,
-  sender: oneshot::Sender<CommandResult>,
+  sender: oneshot::Sender<CommandResultGuard>,
   result: CommandResult,
 ) {
-  if sender.send(result).is_err() {
+  if sender.send(CommandResultGuard::new(result)).is_err() {
     log::debug!("command invocation {invocation_id} completed after its caller stopped waiting");
   }
 }
 
 /// A successful result's attachment as reported by Kotlin.
 pub(crate) struct PlatformAttachment {
-  pub bytes: Vec<u8>,
+  pub source: bd_artifact_upload::UploadSource,
   pub content_type: String,
 }
 
@@ -108,7 +109,7 @@ pub(crate) fn completed_result(
   CommandResult::Completed {
     fields,
     attachment: attachment.map(|attachment| CommandAttachment {
-      source: bd_artifact_upload::UploadSource::Bytes(attachment.bytes),
+      source: attachment.source,
       content_type: Some(attachment.content_type),
     }),
   }
@@ -336,7 +337,7 @@ impl RegisteredCommandHandler for JniCommandHandler {
       },
       |result| {
         pending.armed = false;
-        result
+        result.into_inner()
       },
     )
   }

@@ -16,6 +16,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.timeout
 import com.nhaarman.mockitokotlin2.verify
+import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.commands.ICommandBridge
 import io.bitdrift.capture.commands.ICommandDispatcher
@@ -129,7 +130,51 @@ class CaptureLoggerTest {
         }
     }
 
+    @Test
+    fun `builtin registration failure does not prevent logger startup`() {
+        val bridge = RecordingCommandBridge()
+        bridge.acceptBuiltins = false
+        val registry = CommandRegistry(bridge)
+        registry.register("app") { success() }
+
+        withLogger(commandRegistry = registry) { logger ->
+            assertThat(bridge.builtins).containsExactlyInAnyOrder(
+                Triple("take_screenshot", "screenshot", 0L),
+                Triple("stack_sampling_trace", "stack_sampling_trace", 15_000L),
+            )
+            assertThat(bridge.registered).containsExactly(logger.loggerId to "app")
+            assertThat(logger.getSdkStatus()).isNotNull()
+
+            // The refusal is reported on the SDKConfigured event under the same key the Swift SDK uses.
+            val streamId = CaptureTestJniLibrary.awaitNextApiStream()
+            CaptureTestJniLibrary.configureAggressiveContinuousUploads(streamId)
+            val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
+            assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
+            assertThat(sdkConfigured.fields)
+                .containsEntry("_failed_builtin_commands", "stack_sampling_trace,take_screenshot".toFieldValue())
+        }
+    }
+
     private class RecordingCommandBridge : ICommandBridge {
+        var acceptBuiltins = true
+        val builtinKeys = mutableListOf<String>()
+
+        /** The registration tuple of every built-in the logger installs: key, artifact type, timeout. */
+        val builtins = mutableListOf<Triple<String, String, Long>>()
+
+        override fun registerBuiltinCommand(
+            loggerId: Long,
+            commandType: Int,
+            key: String,
+            artifactType: String,
+            timeoutMs: Long,
+            dispatcher: ICommandDispatcher,
+        ): Boolean {
+            builtinKeys.add(key)
+            builtins.add(Triple(key, artifactType, timeoutMs))
+            return acceptBuiltins
+        }
+
         val registered = mutableListOf<Pair<Long, String>>()
 
         override fun registerCommand(
@@ -150,10 +195,23 @@ class CaptureLoggerTest {
             errorCode: String?,
             errorMessage: String?,
             fields: Array<Field>,
-            attachment: ByteArray?,
-            attachmentContentType: String?,
-        ) = Unit
+            attachment: CommandAttachment?,
+        ): Boolean = true
     }
+
+    @Test
+    fun `typed command completion preserves the JNI entry point`(): Unit =
+        withLogger {
+            assertThat(
+                CaptureJniLibrary.completeCommand(
+                    invocationId = Long.MAX_VALUE,
+                    errorCode = null,
+                    errorMessage = null,
+                    fields = emptyArray(),
+                    attachment = CommandAttachment(byteArrayOf(1, 2, 3), "application/octet-stream"),
+                ),
+            ).isFalse()
+        }
 
     @Test
     fun `deviceId and sessionId return correct values`(): Unit =
@@ -343,6 +401,7 @@ class CaptureLoggerTest {
             val sdkConfiguredLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfiguredLog.message).isEqualTo("SDKConfigured")
             assertThat(sdkConfiguredLog.fields).containsKey("foreground")
+            assertThat(sdkConfiguredLog.fields).doesNotContainKey("_failed_builtin_commands")
 
             val resourceLog = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(resourceLog.message).isEqualTo("")

@@ -10,16 +10,21 @@ internal import CapturePassable
 import Foundation
 import UIKit
 
-final class SessionReplayController {
+final class SessionReplayController: @unchecked Sendable {
     private let queue = DispatchQueue.serial(withLabelSuffix: "ReplayController", target: .default)
     private let replay: Replay = Replay()
     private let screenshotCaptureLock = Lock()
     private var screenshotCaptureInProgress = false
-    private var deviceCommandScreenshotRequestID: UInt64?
+    private var screenshotCompletion: ((Data?) -> Void)?
+    private let captureScreenshot: ((@escaping @Sendable (Data?) -> Void) -> Void)?
 
     weak var logger: CoreLogging?
 
-    init(configuration: SessionReplayConfiguration) {
+    init(
+        configuration: SessionReplayConfiguration,
+        captureScreenshot: ((@escaping @Sendable (Data?) -> Void) -> Void)? = nil
+    ) {
+        self.captureScreenshot = captureScreenshot
         for (className, annotatedView) in configuration.categorizers {
             self.replay.add(knownClass: className, type: annotatedView)
         }
@@ -45,21 +50,35 @@ extension SessionReplayController: CapturePassable.SessionReplayTarget {
         }
     }
 
-    func captureDeviceCommandScreenshot(_ requestID: UInt64) {
-        guard startDeviceCommandScreenshotCapture(requestID: requestID) else {
-            capture_complete_device_command_screenshot(requestID, nil)
-            return
+    func captureCommandScreenshot() async -> Result<CommandResult, CommandError> {
+        await withCheckedContinuation { continuation in
+            guard startScreenshotCapture(completion: { jpeg in
+                guard let jpeg, !jpeg.isEmpty else {
+                    continuation.resume(returning: .failure(CommandError(title: "invalid or unavailable screenshot")))
+                    return
+                }
+                continuation.resume(returning: .success(CommandResult(
+                    attachment: CommandAttachment(data: jpeg, mimeType: "image/jpeg")
+                )))
+            }) else {
+                continuation.resume(returning: .failure(CommandError(title: "screenshot capture already in progress")))
+                return
+            }
+            if let captureScreenshot {
+                captureScreenshot { [self] in completeDeviceCommandScreenshotCapture(jpeg: $0) }
+            } else {
+                captureDeviceCommandScreenshotJPEG()
+            }
         }
-        captureDeviceCommandScreenshotJPEG()
     }
 
-    private func startDeviceCommandScreenshotCapture(requestID: UInt64) -> Bool {
+    private func startScreenshotCapture(completion: @escaping (Data?) -> Void) -> Bool {
         return self.screenshotCaptureLock.withLock {
             guard !self.screenshotCaptureInProgress else {
                 return false
             }
             self.screenshotCaptureInProgress = true
-            self.deviceCommandScreenshotRequestID = requestID
+            self.screenshotCompletion = completion
             return true
         }
     }
@@ -87,16 +106,13 @@ extension SessionReplayController: CapturePassable.SessionReplayTarget {
     }
 
     private func completeDeviceCommandScreenshotCapture(jpeg: Data?) {
-        let requestID = self.screenshotCaptureLock.withLock {
+        let completion = self.screenshotCaptureLock.withLock {
             self.screenshotCaptureInProgress = false
-            let requestID = self.deviceCommandScreenshotRequestID
-            self.deviceCommandScreenshotRequestID = nil
-            return requestID
+            let completion = self.screenshotCompletion
+            self.screenshotCompletion = nil
+            return completion
         }
 
-        guard let requestID else {
-            return
-        }
-        capture_complete_device_command_screenshot(requestID, jpeg)
+        completion?(jpeg)
     }
 }

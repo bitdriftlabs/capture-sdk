@@ -36,11 +36,12 @@ fix-yaml:
 	taplo fmt
 
 .PHONY: fix-swiftlint
+SWIFTLINT ?= swiftlint
 fix-swiftlint:
 # tools/lint:fix doesn't warn about all docstring violations.
 # WebViewBridgeScript.swift is auto-generated; swiftlint's --format flag reindents it via
 # SourceKit regardless of `excluded` in .swiftlint.yml, so it's passed an explicit file list here.
-	swiftlint --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
+	$(SWIFTLINT) --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
 
 .PHONY: lint-docstrings
 lint-docstrings:
@@ -57,10 +58,15 @@ format-bazel:
 
 .PHONY: format
 format:
-	+@$(MAKE) $(FORMAT_MAKE_FLAGS) buildifier && \
+	+@$(MAKE) $(FORMAT_MAKE_FLAGS) check-license && \
+	$(MAKE) $(FORMAT_MAKE_FLAGS) buildifier && \
 	$(MAKE) $(FORMAT_MAKE_FLAGS) lint-yaml && \
 	$(MAKE) $(FORMAT_MAKE_FLAGS) -j4 format-bazel lint-shell fix-swiftlint && \
 	$(MAKE) $(FORMAT_MAKE_FLAGS) lint-docstrings
+
+.PHONY: check-license
+check-license:
+	./ci/check_license.sh
 
 # Use repin when you get Error: Digests do not match
 .PHONY: repin
