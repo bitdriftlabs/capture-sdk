@@ -21,8 +21,7 @@ const ASYNC_FRAME_BIT: u64 = 1 << 60;
 
 /// ARM64 registers captured by the caller from a Mach thread, signal context or exception state.
 ///
-/// PC, SP and FP must already be decoded using the platform's thread-state accessors. Keeping the
-/// complete integer register bank also allows later unwind rules to recover callee-saved registers.
+/// PC, SP and FP must already be decoded using the platform's thread-state accessors.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Registers {
   /// x0 through x28. x29 and x30 are represented by FP and LR below.
@@ -65,8 +64,7 @@ pub enum StopReason {
   OutOfStackBounds,
   UnreadableMemory,
   NonIncreasingFramePointer,
-  /// Do not follow an async-tagged FP as an ordinary stack address. Async walking is a separate
-  /// extension of the same capture primitives.
+  /// The walk stopped at an async-tagged FP instead of following it as an ordinary stack address.
   AsyncBoundary,
 }
 
@@ -168,6 +166,11 @@ pub fn walk_frame_pointers(
 
 /// Strips PAC using the hint-space instruction, which is a no-op on ARM64 CPUs without PAC. Do not
 /// substitute a fixed virtual-address mask: its width depends on the running platform.
+///
+/// `HINT #7` encodes XPACLRI, which strips instruction-pointer authentication bits from LR (x30).
+/// Unlike a `ptrauth_strip` macro compiled for plain ARM64, this still executes the stripping
+/// instruction on PAC-capable hardware when this crate is not built for arm64e. It neither
+/// authenticates the pointer nor verifies that the resulting address is executable.
 #[must_use]
 pub fn strip_instruction_pointer(address: u64) -> u64 {
   #[cfg(target_arch = "aarch64")]

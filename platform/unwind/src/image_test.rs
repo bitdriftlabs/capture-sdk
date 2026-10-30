@@ -102,13 +102,48 @@ fn rejects_bad_magic_and_wrong_architecture() {
 }
 
 #[test]
-fn bounds_work_for_corrupt_load_command_counts_and_sizes() {
+fn rejects_command_counts_that_cannot_fit_in_the_declared_table() {
   let mut bytes = fixture();
   put_u32(&mut bytes, 16, u32::MAX);
-  assert_eq!(parse(&bytes), Err(ImageError::LimitExceeded));
-  put_u32(&mut bytes, 16, 2);
-  put_u32(&mut bytes, 20, u32::MAX);
-  assert_eq!(parse(&bytes), Err(ImageError::LimitExceeded));
+  assert_eq!(parse(&bytes), Err(ImageError::InvalidLoadCommand));
+}
+
+#[test]
+fn accepts_more_than_4096_structurally_valid_commands() {
+  let mut bytes = fixture().to_vec();
+  for _ in 0 .. 4095 {
+    bytes.extend_from_slice(&0xffff_u32.to_le_bytes());
+    bytes.extend_from_slice(&8_u32.to_le_bytes());
+  }
+  let table_size = u32::try_from(bytes.len() - 32).unwrap();
+  put_u32(&mut bytes, 16, 4097);
+  put_u32(&mut bytes, 20, table_size);
+  put_u64(&mut bytes, 64, u64::from(table_size) + 32);
+  put_u64(&mut bytes, 80, u64::from(table_size) + 32);
+  assert!(parse(&bytes).is_ok());
+}
+
+#[test]
+fn accepts_structurally_valid_command_tables_larger_than_one_mib() {
+  let mut bytes = fixture().to_vec();
+  let command_size: u32 = 1024 * 1024;
+  bytes.extend_from_slice(&0xffff_u32.to_le_bytes());
+  bytes.extend_from_slice(&command_size.to_le_bytes());
+  bytes.resize(288 + command_size as usize, 0);
+  put_u32(&mut bytes, 16, 3);
+  put_u32(&mut bytes, 20, 256 + command_size);
+  put_u64(&mut bytes, 64, u64::from(command_size) + 288);
+  put_u64(&mut bytes, 80, u64::from(command_size) + 288);
+  assert!(parse(&bytes).is_ok());
+}
+
+#[test]
+fn validates_remaining_space_on_each_iteration_and_consumes_the_entire_table() {
+  for table_size in [232, 240, 264, u32::MAX] {
+    let mut bytes = fixture();
+    put_u32(&mut bytes, 20, table_size);
+    assert_eq!(parse(&bytes), Err(ImageError::InvalidLoadCommand));
+  }
 }
 
 #[test]
