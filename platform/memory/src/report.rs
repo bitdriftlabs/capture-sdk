@@ -19,6 +19,8 @@ pub struct Report {
   pub schema_version: u32,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub counters: Option<CountersReport>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub regions: Option<RegionsReport>,
 }
 
 //
@@ -58,4 +60,41 @@ pub struct Ledgers {
   pub neural: u64,
   pub purgeable_volatile: u64,
   pub purgeable_nonvolatile: u64,
+}
+
+//
+// RegionsReport
+//
+
+#[derive(Serialize)]
+pub struct RegionsReport {
+  pub regions: u32,
+  /// The map changed while it was being read, so the totals are approximate.
+  pub truncated: bool,
+  pub private_dirty: u64,
+  pub shared_dirty: u64,
+  pub compressed: u64,
+  /// What weighs on the footprint: private dirty plus compressed bytes.
+  pub charged: u64,
+  pub virtual_size: u64,
+  pub by_tag: Vec<TagRow>,
+  pub by_image: Vec<ImageChargeRow>,
+}
+
+#[derive(Serialize)]
+pub struct TagRow {
+  pub name: String,
+  pub tag: u32,
+  pub regions: u32,
+  pub private_dirty: u64,
+  pub shared_dirty: u64,
+  pub compressed: u64,
+  pub virtual_size: u64,
+  pub charged: u64,
+}
+
+#[derive(Serialize)]
+pub struct ImageChargeRow {
+  pub name: String,
+  pub charged: u64,
 }
