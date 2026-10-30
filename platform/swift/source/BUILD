@@ -7,7 +7,7 @@ load("@rules_rs//rs:rust_static_library.bzl", "rust_static_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("@sdk_version//:sdk_version.bzl", "SDK_VERSION")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library", "bitdrift_rust_test")
-load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
+load("//bazel:config.bzl", "APPLE_TARGET_COMPATIBILITY", "MINIMUM_IOS_VERSION")
 load("//bazel:swift_header_collector.bzl", "swift_header_collector")
 
 swift_library(
@@ -54,6 +54,7 @@ swift_library(
         "macos_only",
         "manual",
     ],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
 )
 
@@ -73,6 +74,7 @@ swift_library(
         "macos_only",
         "manual",
     ],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
 )
 
@@ -81,6 +83,7 @@ bitdrift_rust_library(
     tags = [
         "macos_only",
     ],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [
         "//platform/shared:platform-shared",
@@ -91,6 +94,7 @@ bitdrift_rust_test(
     name = "commands_rust_test",
     crate = ":swift_bridge",
     tags = ["macos_only"],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
 )
 
 rust_static_library(
@@ -99,6 +103,7 @@ rust_static_library(
     crate_root = "capture_rust.rs",
     edition = "2024",
     tags = ["macos_only"],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     deps = [
         ":swift_bridge",
         "//platform/crash:bd_crash_reporter",
@@ -134,6 +139,7 @@ objc_library(
     ],
     module_name = "CaptureLoggerBridge",
     tags = ["macos_only"],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [
         ":CapturePassable",
@@ -156,6 +162,7 @@ objc_library(
     ],
     module_name = "BitdriftEnhancedCrashData",
     tags = ["macos_only"],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [
         ":CapturePassable",
@@ -183,6 +190,7 @@ apple_static_xcframework(
         "no-cache",
         "no-remote",
     ],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [
         ":ios_lib",
@@ -193,6 +201,7 @@ swift_header_collector(
     name = "capture_ios_lib_headers",
     library = ":ios_lib",
     tags = ["manual"],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
 )
 
 ios_static_framework(
@@ -203,6 +212,7 @@ ios_static_framework(
     tags = [
         "manual",
     ],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],
     deps = [":ios_lib"],
 )
@@ -219,6 +229,7 @@ docc_archive(
     tags = [
         "macos_only",
     ],
+    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     transform_for_static_hosting = True,
     visibility = ["//visibility:public"],
 )
