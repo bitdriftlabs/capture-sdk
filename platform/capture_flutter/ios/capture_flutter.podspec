@@ -4,7 +4,7 @@ Pod::Spec.new do |s|
   s.summary          = 'Flutter plugin for the Bitdrift Capture SDK'
   s.description      = 'Official Flutter plugin for the Bitdrift Capture SDK, providing logging, session management, and session replay.'
   s.homepage         = 'https://bitdrift.io'
-  s.license          = { :type => 'MIT' }
+  s.license          = { :type => 'PolyForm Strict License 1.0.0', :file => '../../../LICENSE' }
   s.author           = { 'Bitdrift' => 'support@bitdrift.io' }
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'

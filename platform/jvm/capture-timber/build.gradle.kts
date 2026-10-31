@@ -98,8 +98,8 @@ mavenPublishing {
         url.set("https://bitdrift.io")
         licenses {
             license {
-                name.set("BITDRIFT SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT")
-                url.set("https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture-timber/${findProperty("VERSION_NAME")}/LICENSE")
+                name.set("PolyForm Strict License 1.0.0")
+                url.set("https://polyformproject.org/licenses/strict/1.0.0")
                 distribution.set("repo")
             }
         }

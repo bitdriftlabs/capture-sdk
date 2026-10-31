@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+// https://polyformproject.org/licenses/strict/1.0.0
 
 /*
  * Adapted from https://github.com/apache/commons-lang/blob/ebcb39a62fc1e47251eceaf63a4b3d731c5227a0/src/main/java/org/apache/commons/lang3/reflect/FieldUtils.java

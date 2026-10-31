@@ -6,6 +6,17 @@ See [here](https://docs.bitdrift.io/product/overview) for more information.
 
 For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sdk/wiki)
 
+## Licensing
+
+First-party code is licensed under [PolyForm Strict License 1.0.0](LICENSE), a source-available
+license, not an open-source license. Previously published versions retain their original
+licenses. Third-party components retain their own licenses and notices.
+
+The root `LICENSE` is the canonical text for source and release artifacts. Check license
+metadata and headers with `ci/check_license.sh`; add missing headers or normalize canonical
+header formatting with `python3 ci/license_header.py`. Noncanonical first-party headers are
+rejected, not migrated.
+
 ## Local formatting
 
 `make format` uses Bazel-managed Kotlin and Rust formatters plus local `buildifier`, `taplo`,
