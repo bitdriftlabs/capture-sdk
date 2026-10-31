@@ -17,10 +17,11 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
-import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
-import io.bitdrift.capture.commands.UnavailableBuiltinCommand
+import io.bitdrift.capture.commands.profiling.ProfileabilityChecker
+import io.bitdrift.capture.commands.profiling.Profiler
+import io.bitdrift.capture.commands.profiling.stacksampling.StackSamplingCommand
 import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
 import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
 import io.bitdrift.capture.common.IWindowManager
@@ -119,13 +120,17 @@ internal class LoggerImpl(
     bridge: IBridge = CaptureJniLibrary,
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
-    commandRegistry: CommandRegistry = CommandRegistry(CaptureJniLibrary),
+    commandRegistry: CommandRegistry,
     builtinCommandsInstaller: BuiltinCommandsInstaller =
         BuiltinCommandsInstaller(
             commandRegistry,
             listOf(
                 ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
-                UnavailableBuiltinCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace", 15_000, "not implemented"),
+                StackSamplingCommand(
+                    profiler = Profiler(context, eventListenerDispatcher.executorService),
+                    profileability = ProfileabilityChecker(context),
+                    traceDirectory = File(SdkDirectory.getPath(context), "profiling"),
+                ),
             ),
         ),
 ) : IInternalLogger,

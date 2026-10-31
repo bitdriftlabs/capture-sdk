@@ -11,6 +11,7 @@ import android.annotation.TargetApi
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
+import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
@@ -74,6 +75,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
         val logger =
             LoggerImpl(
                 apiKey = "test",
+                commandRegistry = CommandRegistry(CaptureJniLibrary),
                 apiUrl = testServer.url,
                 customFieldGetters = emptyList(),
                 dateProvider = systemDateProvider,

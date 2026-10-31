@@ -24,6 +24,7 @@ import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.attributes.ClientAttributes
+import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.providers.DateProvider
 import io.bitdrift.capture.providers.FieldValue
 import io.bitdrift.capture.providers.session.SessionConfiguration
@@ -117,6 +118,7 @@ class CaptureLoggerSessionOverrideTest {
         logger =
             LoggerImpl(
                 apiKey = "test",
+                commandRegistry = CommandRegistry(CaptureJniLibrary),
                 apiUrl = testServerUrl(),
                 customFieldGetters = emptyList(),
                 dateProvider = systemDateProvider,
@@ -162,6 +164,7 @@ class CaptureLoggerSessionOverrideTest {
         logger =
             LoggerImpl(
                 apiKey = "test",
+                commandRegistry = CommandRegistry(CaptureJniLibrary),
                 apiUrl = testServerUrl(),
                 customFieldGetters = emptyList(),
                 dateProvider = systemDateProvider,
