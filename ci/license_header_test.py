@@ -47,6 +47,33 @@ class LicenseHeaderTest(unittest.TestCase):
         (self.root / 'build' / 'generated.kt').write_text('generated\n')
         self.assertEqual(self.run_checker('--check').returncode, 0)
 
+    def test_linux_formatter_toolchains_are_ignored_by_repository_rules(self):
+        (self.root / '.gitignore').write_bytes((SCRIPT.parent.parent / '.gitignore').read_bytes())
+        toolchain_files = (
+            'formatters/swift/usr/include/SourceKit/sourcekitd.h',
+            'formatters/swift/usr/include/llvm-c/lto.h',
+            'formatters/swift/usr/lib/clang/17/include/__clang_cuda_builtin_vars.h',
+        )
+        upstream = b'// Copyright upstream. Apache License 2.0.\nvoid entry();\n'
+        for name in toolchain_files:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(upstream)
+        result = self.run_checker('--check')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('formatters/', result.stdout)
+        self.assertEqual(self.run_checker().returncode, 0)
+        for name in toolchain_files:
+            self.assertEqual((self.root / name).read_bytes(), upstream)
+
+        source = self.root / 'formatters_extension/source.swift'
+        source.parent.mkdir()
+        source.write_text('body\n')
+        result = self.run_checker('--check')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('formatters_extension/source.swift', result.stderr)
+        self.assertNotIn('formatters/swift/', result.stderr)
+
     def test_cargo_license_metadata_is_required(self):
         (self.root / 'crate').mkdir()
         manifest = self.root / 'crate' / 'Cargo.toml'
