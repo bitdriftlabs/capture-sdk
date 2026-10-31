@@ -77,6 +77,17 @@ pkg_zip(
     visibility = ["//visibility:public"],
 )
 
+sh_test(
+    name = "ios_distribution_license_test",
+    srcs = ["ci/check_ios_distribution_license.sh"],
+    data = [
+        "LICENSE",
+        ":ios_dist",
+    ],
+    tags = ["macos_only"],
+    target_compatible_with = ["@platforms//os:macos"],
+)
+
 # Ideally it should live inside of platform/swift/source directory
 # but its implementation depends on it being located in a root directory.
 apple_static_framework_import(
@@ -102,7 +113,7 @@ framework_imports_extractor(
 filegroup(
     name = "license",
     srcs = [
-        "ci/LICENSE",
+        "LICENSE",
     ],
 )
 

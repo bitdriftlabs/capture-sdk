@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+// https://polyformproject.org/licenses/strict/1.0.0
 
 #[cfg(test)]
 mod test {
@@ -41,6 +41,13 @@ mod test {
     ];
 
     let root = simple_xml::from_file(runfiles_path("capture_aar_pom_xml.xml")).unwrap();
+
+    let license = &root["licenses"][0]["license"][0];
+    assert_eq!(license["name"][0].content, "PolyForm Strict License 1.0.0");
+    assert_eq!(
+      license["url"][0].content,
+      "https://polyformproject.org/licenses/strict/1.0.0"
+    );
 
     let deps = &root["dependencies"][0]["dependency"];
 

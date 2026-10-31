@@ -1,6 +1,6 @@
 [package]
 edition      = "2024"
-license-file = "LICENSE"
+license-file = "../../../LICENSE"
 name         = "pom_checker"
 publish      = false
 version      = "0.1.0"

@@ -2,6 +2,7 @@
   "name": "@bitdrift/webview-sdk",
   "version": "1.0.0",
   "private": true,
+  "license": "SEE LICENSE IN ../../LICENSE",
   "description": "Bitdrift WebView JavaScript SDK for capturing performance metrics and network events",
   "main": "dist/bitdrift-webview.js",
   "scripts": {
