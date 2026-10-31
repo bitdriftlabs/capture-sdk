@@ -234,7 +234,7 @@ function release_capture_sdk() {
   local -r name="$capture_artifact_name-$version"
 
   files=(
-    "$sdk_repo/ci/LICENSE"
+    "$sdk_repo/LICENSE"
     "$name.pom"
     "$name-javadoc.jar"
     "$name-sources.jar"
@@ -276,7 +276,7 @@ function release_gradle_library() {
   unzip -o "$sdk_repo/$archive"
 
   # Update the per-version files
-  aws s3 cp "$sdk_repo/ci/LICENSE" "$remote_location_prefix/$version/LICENSE" --region us-east-1
+  aws s3 cp "$sdk_repo/LICENSE" "$remote_location_prefix/$version/LICENSE" --region us-east-1
 
   # Upload all the files in the zip
   aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
@@ -333,7 +333,7 @@ function release_gradle_plugin() {
   pushd "$(mktemp -d)"
   unzip -o "$sdk_repo/$archive"
 
-  aws s3 cp "$sdk_repo/ci/LICENSE" "$remote_location_prefix/$version/LICENSE" --region us-east-1
+  aws s3 cp "$sdk_repo/LICENSE" "$remote_location_prefix/$version/LICENSE" --region us-east-1
 
   aws s3 cp . "$remote_location_prefix/$version/" --recursive --region us-east-1
 

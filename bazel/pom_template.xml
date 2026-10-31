@@ -15,8 +15,8 @@
     </dependencies>
     <licenses>
         <license>
-            <name>BITDRIFT SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT</name>
-            <url>https://dl.bitdrift.io/sdk/android-maven/io/bitdrift/capture/{version}/LICENSE</url>
+            <name>PolyForm Strict License 1.0.0</name>
+            <url>https://polyformproject.org/licenses/strict/1.0.0</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
