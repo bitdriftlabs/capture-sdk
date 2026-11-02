@@ -23,7 +23,6 @@ import io.bitdrift.capture.commands.profiling.ProfileType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 /**
@@ -34,16 +33,12 @@ import kotlin.coroutines.resume
  *
  * Every argument is optional and validated here: `duration_ms`, `frequency_hz` and `buffer_size_kb`.
  * Each capture carries the profiler tag [TAG], which marks it as the SDK's rather than one the app
- * requested itself. A finished trace is moved into [traceDirectory], the SDK's own storage, before
- * it is returned: the system writes every profile the app ever requests into one shared directory.
+ * requested itself; the platform also puts the tag in the trace's file name.
  */
 internal class StackSamplingCommand(
     private val profiler: IProfiler,
     private val profileability: IProfileabilityChecker,
-    private val traceDirectory: File,
 ) : IBuiltinCommand {
-    private val swept = AtomicBoolean(false)
-
     override val type: BuiltinCommandType = BuiltinCommandType.STACK_SAMPLING_TRACE
     override val artifactType: String = ARTIFACT_TYPE
     override val timeoutMs: Long = TIMEOUT_MS
@@ -58,7 +53,6 @@ internal class StackSamplingCommand(
             } catch (e: InvalidCommandArgumentException) {
                 return error("invalid_arguments", e.message, code = CommandErrorCode.InvalidArguments)
             }
-        if (swept.compareAndSet(false, true)) sweepOrphans()
         if (!profileability.isProfileable()) {
             return error(
                 "not_profileable",
@@ -67,9 +61,8 @@ internal class StackSamplingCommand(
         }
         return when (val outcome = capture(request)) {
             is ProfileOutcome.Saved -> {
-                val trace = claim(File(outcome.path))
                 success(
-                    attachment = CommandAttachment.file(trace, CONTENT_TYPE),
+                    attachment = CommandAttachment.file(File(outcome.path), CONTENT_TYPE),
                     context = request.fields(),
                 )
             }
@@ -129,26 +122,6 @@ internal class StackSamplingCommand(
             continuation.invokeOnCancellation { cancel.cancel() }
         }
 
-    /** Moves the trace into [traceDirectory]; a trace that cannot be moved stays where the system wrote it. */
-    private fun claim(source: File): File {
-        val target = File(traceDirectory, source.name)
-        val moved = (traceDirectory.isDirectory || traceDirectory.mkdirs()) && source.renameTo(target)
-        return if (moved) target else source
-    }
-
-    /**
-     * Deletes traces an earlier process left behind: a trace stays in [traceDirectory] only between
-     * its move and the uploader persisting its copy, so one that is still there minutes later belongs
-     * to a process that died in between. Runs once per process, on the first capture, so the SDK
-     * does no disk work at startup. Recent files are left alone: a capture that finished moments ago
-     * may still be read by the uploader.
-     */
-    private fun sweepOrphans() {
-        val cutoff = System.currentTimeMillis() - ORPHAN_AGE_MS
-        val orphans = traceDirectory.listFiles { file -> file.isFile && file.lastModified() < cutoff } ?: return
-        orphans.forEach { it.delete() }
-    }
-
     companion object {
         /** The artifact contract type ID of the trace attachment. */
         const val ARTIFACT_TYPE = "stack_sampling_trace"
@@ -176,6 +149,5 @@ internal class StackSamplingCommand(
         const val DEFAULT_BUFFER_KB = 2_048L
         const val MIN_BUFFER_KB = 256L
         const val MAX_BUFFER_KB = 16_384L
-        const val ORPHAN_AGE_MS = 10 * 60 * 1000L
     }
 }

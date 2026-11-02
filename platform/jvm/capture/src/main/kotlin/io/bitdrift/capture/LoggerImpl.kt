@@ -129,7 +129,6 @@ internal class LoggerImpl(
                 StackSamplingCommand(
                     profiler = Profiler(context, eventListenerDispatcher.executorService),
                     profileability = ProfileabilityChecker(context),
-                    traceDirectory = File(SdkDirectory.getPath(context), "profiling"),
                 ),
             ),
         ),
