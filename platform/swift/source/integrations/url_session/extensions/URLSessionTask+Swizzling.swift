@@ -23,7 +23,9 @@ extension URLSessionTask {
 
         URLSessionTaskTracker.shared.taskWillStart(self)
         try? ObjCWrapper.doTry {
-            self.delegate = ProxyURLSessionTaskDelegate(target: self.delegate)
+            // Catch a rejected assignment entirely in Objective-C. An exception crossing this
+            // Swift closure bypasses ARC cleanup and leaks both the task and its proxy delegate.
+            _ = ObjCWrapper.setTaskDelegate(ProxyURLSessionTaskDelegate(target: self.delegate), for: self)
         }
     }
 

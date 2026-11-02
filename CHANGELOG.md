@@ -43,7 +43,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed background URLSession upload tasks and proxy delegates leaking when automatic network instrumentation is enabled.
 
 ## [0.26.0]
 [0.26.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.26.0
