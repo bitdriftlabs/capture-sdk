@@ -14,4 +14,24 @@ import Foundation
     case double(Double)
     case int64(Int64)
     case bool(Bool)
+
+    /// Unbox the inner value, whatever it might be!!
+    ///
+    /// - returns: the value within
+    func value() -> Any {
+        switch self {
+        case .binary(let value):
+            return value
+        case .bool(let value):
+            return value
+        case .string(let value):
+            return value
+        case .double(let value):
+            return value
+        case .int64(let value):
+            return value
+        case .uint64(let value):
+            return value
+        }
+    }
 }
