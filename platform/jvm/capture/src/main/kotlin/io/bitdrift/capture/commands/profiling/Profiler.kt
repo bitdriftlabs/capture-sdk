@@ -17,7 +17,6 @@ import androidx.core.os.ProfilingRequest
 import androidx.core.os.StackSamplingRequestBuilder
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.util.concurrent.Executor
-import java.util.function.Consumer
 
 /**
  * Runs captures through android.os.ProfilingManager, building each request with androidx.core's
@@ -25,6 +24,9 @@ import java.util.function.Consumer
  * documented. The request tag marks the capture as the SDK's, so an app can recognise it among
  * its own profiling results. Below Android 15, where `ProfilingManager` does not exist, every
  * request fails as `unsupported`.
+ *
+ * @param executor receives the platform's result. The listener only converts it and resumes the
+ * waiting coroutine; on Android 17 the platform may also run its cleanup of old profiles there.
  */
 internal class Profiler(
     private val context: Context,
@@ -60,8 +62,7 @@ internal class Profiler(
             platformRequest.tag,
             platformRequest.cancellationSignal,
             executor,
-            Consumer<ProfilingResult> { result -> callback(result.toOutcome()) },
-        )
+        ) { result -> callback(result.toOutcome()) }
         return ICancellable { signal.cancel() }
     }
 

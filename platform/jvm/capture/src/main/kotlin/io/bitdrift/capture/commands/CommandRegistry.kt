@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 internal class CommandRegistry(
     private val bridge: ICommandBridge,
-    dispatcher: CoroutineDispatcher = defaultDispatcher(),
+    internal val dispatcher: CoroutineDispatcher = defaultDispatcher(),
     private val maxConcurrentInvocations: Int = MAX_CONCURRENT_INVOCATIONS,
 ) : ICommandDispatcher {
     private sealed interface Identity {

@@ -82,6 +82,7 @@ import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
+import kotlinx.coroutines.asExecutor
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import java.io.File
@@ -127,7 +128,7 @@ internal class LoggerImpl(
             listOf(
                 ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
                 StackSamplingCommand(
-                    profiler = Profiler(context, eventListenerDispatcher.executorService),
+                    profiler = Profiler(context, commandRegistry.dispatcher.asExecutor()),
                     profileability = ProfileabilityChecker(context),
                 ),
             ),
