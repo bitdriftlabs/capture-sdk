@@ -31,7 +31,8 @@ import kotlin.coroutines.resume
  * stack sampling trace of this process through the platform profiler and returns the trace file as
  * the command attachment.
  *
- * Every argument is optional and validated here: `duration_ms`, `frequency_hz` and `buffer_size_kb`.
+ * Every argument is optional: `duration_ms`, `frequency_hz` and `buffer_size_kb` fall back to the
+ * defaults below, and the platform clamps them to its own bounds.
  * Each capture carries the profiler tag [TAG], which marks it as the SDK's rather than one the app
  * requested itself; the platform also puts the tag in the trace's file name.
  */
@@ -41,7 +42,9 @@ internal class StackSamplingCommand(
 ) : IBuiltinCommand {
     override val type: BuiltinCommandType = BuiltinCommandType.STACK_SAMPLING_TRACE
     override val artifactType: String = ARTIFACT_TYPE
-    override val timeoutMs: Long = TIMEOUT_MS
+
+    // No timeout of its own: the core applies its runtime-configured `device_command.execution_timeout_ms`.
+    override val timeoutMs: Long? = null
 
     override suspend fun execute(scope: CommandScope): CommandResult = scope.sample()
 
@@ -61,10 +64,7 @@ internal class StackSamplingCommand(
         }
         return when (val outcome = capture(request)) {
             is ProfileOutcome.Saved -> {
-                success(
-                    attachment = CommandAttachment.file(File(outcome.path), CONTENT_TYPE),
-                    context = request.fields(),
-                )
+                success(attachment = CommandAttachment.file(File(outcome.path), CONTENT_TYPE))
             }
             is ProfileOutcome.Failed ->
                 error(
@@ -79,30 +79,23 @@ internal class StackSamplingCommand(
         }
     }
 
-    /** Applies the documented defaults and clamps. A value of the wrong type throws. */
+    /**
+     * Fills in the defaults. A value of the wrong type throws; one beyond an Int saturates, and the
+     * platform clamps it like any other.
+     */
     private fun CommandScope.parse(): ProfileRequest =
         ProfileRequest(
             type = ProfileType.STACK_SAMPLING,
-            durationMs = clamped("duration_ms", DEFAULT_DURATION_MS, MIN_DURATION_MS, MAX_DURATION_MS),
-            frequencyHz = clamped("frequency_hz", DEFAULT_FREQUENCY_HZ, MIN_FREQUENCY_HZ, MAX_FREQUENCY_HZ).toInt(),
-            bufferSizeKb = clamped("buffer_size_kb", DEFAULT_BUFFER_KB, MIN_BUFFER_KB, MAX_BUFFER_KB).toInt(),
+            durationMs = intArgument("duration_ms", DEFAULT_DURATION_MS),
+            frequencyHz = intArgument("frequency_hz", DEFAULT_FREQUENCY_HZ),
+            bufferSizeKb = intArgument("buffer_size_kb", DEFAULT_BUFFER_KB),
             tag = TAG,
         )
 
-    private fun CommandScope.clamped(
+    private fun CommandScope.intArgument(
         name: String,
-        default: Long,
-        min: Long,
-        max: Long,
-    ): Long = if (name in arguments) argument<Long>(name).coerceIn(min, max) else default
-
-    private fun ProfileRequest.fields(): Map<String, String> =
-        mapOf(
-            "profiling_type" to type.name,
-            "duration_ms" to durationMs.toString(),
-            "frequency_hz" to frequencyHz.toString(),
-            "buffer_size_kb" to bufferSizeKb.toString(),
-        )
+        default: Int,
+    ): Int = if (name in arguments) argument<Long>(name).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt() else default
 
     /**
      * Runs the capture and suspends until the profiler reports. Cancelling the coroutine stops the
@@ -126,12 +119,6 @@ internal class StackSamplingCommand(
         /** The artifact contract type ID of the trace attachment. */
         const val ARTIFACT_TYPE = "stack_sampling_trace"
 
-        /**
-         * The core's execution deadline for one capture: the longest allowed sampling window
-         * ([MAX_DURATION_MS]) plus the platform's start and post-processing overhead.
-         */
-        const val TIMEOUT_MS = 15_000L
-
         const val CONTENT_TYPE = "application/vnd.bitdrift.perfetto-trace"
 
         /**
@@ -140,14 +127,9 @@ internal class StackSamplingCommand(
          * tell the SDK's captures from its own.
          */
         const val TAG = "bitdrift"
-        const val DEFAULT_DURATION_MS = 3_000L
-        const val MIN_DURATION_MS = 1_000L
-        const val MAX_DURATION_MS = 10_000L
-        const val DEFAULT_FREQUENCY_HZ = 100L
-        const val MIN_FREQUENCY_HZ = 10L
-        const val MAX_FREQUENCY_HZ = 250L
-        const val DEFAULT_BUFFER_KB = 2_048L
-        const val MIN_BUFFER_KB = 256L
-        const val MAX_BUFFER_KB = 16_384L
+
+        const val DEFAULT_DURATION_MS = 3_000
+        const val DEFAULT_FREQUENCY_HZ = 100
+        const val DEFAULT_BUFFER_KB = 2_048
     }
 }

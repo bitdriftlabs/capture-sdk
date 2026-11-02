@@ -29,9 +29,10 @@ import java.io.File
 import java.nio.file.Files
 
 /**
- * Pins the built-in stack sampling handler: argument defaults and clamps, fail-fast when the process
- * is not profileable, the trace attached by path, and cleanup after a cancelled capture. Handlers run on [Dispatchers.Unconfined] so they reach the profiler before the
- * test continues and resume inline when the fake profiler reports.
+ * Pins the built-in stack sampling handler: argument defaults and validation, fail-fast when the
+ * process is not profileable, the trace attached by path, and cleanup after a cancelled capture.
+ * Handlers run on [Dispatchers.Unconfined] so they reach the profiler before the test continues and
+ * resume inline when the fake profiler reports.
  */
 @OptIn(ExperimentalBitdriftApi::class)
 class StackSamplingCommandTest {
@@ -89,37 +90,28 @@ class StackSamplingCommandTest {
             assertThat(success.attachment?.file).isEqualTo(trace.absoluteFile)
             assertThat(success.attachment?.contentType).isEqualTo("application/vnd.bitdrift.perfetto-trace")
             assertThat(trace).hasContent("trace")
-            assertThat(success.context).isEqualTo(
-                mapOf(
-                    "profiling_type" to "STACK_SAMPLING",
-                    "duration_ms" to "3000",
-                    "frequency_hz" to "100",
-                    "buffer_size_kb" to "2048",
-                ),
-            )
+            assertThat(success.context).isEmpty()
         }
 
     @Test
-    fun argumentsAreClamped(): Unit =
+    fun argumentsPassThroughForThePlatformToClamp(): Unit =
         runBlocking {
             val result =
                 async(Dispatchers.Unconfined) {
                     command.execute(
                         invocation(
-                            "duration_ms" to int(60_000),
-                            "frequency_hz" to int(1),
+                            "duration_ms" to int(Int.MAX_VALUE + 1L),
+                            "frequency_hz" to int(0),
                             "buffer_size_kb" to int(100_000),
                         ),
                     )
                 }
 
             assertThat(profiler.requests.single()).isEqualTo(
-                ProfileRequest(ProfileType.STACK_SAMPLING, 10_000, 10, 16_384, "bitdrift"),
+                ProfileRequest(ProfileType.STACK_SAMPLING, Int.MAX_VALUE, 0, 100_000, "bitdrift"),
             )
             profiler.complete(ProfileOutcome.Saved(systemTrace().path))
-            val success = result.await() as CommandResult.Success
-            assertThat(success.context["duration_ms"]).isEqualTo("10000")
-            assertThat(success.context).doesNotContainKey("tag")
+            result.await()
         }
 
     @Test

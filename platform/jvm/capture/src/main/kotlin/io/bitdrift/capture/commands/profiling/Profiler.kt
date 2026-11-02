@@ -70,7 +70,7 @@ internal class Profiler(
         when (type) {
             ProfileType.STACK_SAMPLING ->
                 StackSamplingRequestBuilder()
-                    .setDurationMs(durationMs.toInt())
+                    .setDurationMs(durationMs)
                     .setSamplingFrequencyHz(frequencyHz)
                     .setBufferSizeKb(bufferSizeKb)
                     .setTag(tag)
