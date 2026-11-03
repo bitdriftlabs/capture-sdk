@@ -35,7 +35,6 @@ import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.init.SampleCommands
-import kotlin.time.Duration.Companion.milliseconds
 import io.bitdrift.gradletestapp.data.model.ProfileExportState
 import io.bitdrift.gradletestapp.data.model.ProfilingState
 import io.bitdrift.gradletestapp.init.AppProfiler
@@ -346,8 +345,9 @@ class MainViewModel(
         _uiState.update { it.copy(profiling = ProfilingState.Running(type)) }
         viewModelScope.launch {
             Log.i(PROFILER_TAG, "starting ${type.name} (${durationMs}ms)")
+            val request = type.request(durationMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
             val state =
-                when (val result = AppProfiler.capture(application, type, durationMs.milliseconds)) {
+                when (val result = AppProfiler.capture(application, request)) {
                     is AppProfiler.Result.Saved -> {
                         Log.i(PROFILER_TAG, "${type.name} saved to ${result.path}")
                         ProfilingState.Saved(type, result.path, profileExporter.adbCommand(File(result.path)))

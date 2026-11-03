@@ -17,6 +17,7 @@ import io.bitdrift.capture.commands.CommandArgument
 import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandHandle
+import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.argument
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
@@ -129,48 +130,73 @@ object SampleCommands {
                     if (arguments["symbolication_workload"].isTruthy()) PerfettoWorkload.start(profilingType, durationMs) else null
                 val result =
                     try {
-                        AppProfiler.capture(context, profilingType, durationMs.milliseconds)
+                        AppProfiler.capture(context, profilingType.request(durationMs.toInt()))
                     } finally {
                         withContext(NonCancellable + Dispatchers.IO) { workload?.close() }
                     }
-                when (result) {
-                    is AppProfiler.Result.Saved -> {
-                        val file = File(result.path)
-                        Log.i(LOG_TAG, "Profiling result type=${profilingType.name} bytes=${file.length()}")
-                        val bytes =
-                            withContext(Dispatchers.IO) {
-                                file.takeIf(File::exists)?.readBytes()
-                            } ?: return@registerCommand error("profiling_failed", "trace file missing")
-                        success(
-                            attachment = CommandAttachment(bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
-                            context =
-                                mapOf(
-                                    "profiling_type" to profilingType.name,
-                                    "duration_ms" to durationMs.toString(),
-                                    "trace_bytes" to bytes.size.toString(),
-                                ),
-                        )
-                    }
-                    is AppProfiler.Result.Failure -> {
-                        Log.w(
-                            LOG_TAG,
-                            "Profiling failed type=${profilingType.name} errorName=${result.errorName} " +
-                                "errorCode=${result.errorCode} message=${result.message}",
-                        )
-                        error(
-                            "profiling_failed",
-                            listOfNotNull(result.errorName, result.message.ifEmpty { null }).joinToString(": "),
-                            context =
-                                buildMap {
-                                    put("profiling_type", profilingType.name)
-                                    result.errorCode?.let { put("error_code", it.toString()) }
-                                    result.errorName?.let { put("error_name", it) }
-                                },
-                        )
-                    }
-                }
+                profileResult(profilingType, durationMs, result)
+            },
+            Capture.Logger.registerCommand("heap_profile_demo") {
+                announce()
+                // Every argument is required; the platform clamps each value to its own bounds.
+                val request =
+                    AppProfiler.Request.HeapProfile(
+                        durationMs = argument<Long>("duration_ms").toIntSaturated(),
+                        bufferSizeKb = argument<Long>("buffer_size_kb").toIntSaturated(),
+                        samplingIntervalBytes = argument<Long>("sampling_interval_bytes"),
+                        trackJavaAllocations = argument<Boolean>("track_java_allocations"),
+                    )
+                val context = appContext ?: return@registerCommand error("no_context")
+                profileResult(request.type, request.durationMs.toLong(), AppProfiler.capture(context, request))
             },
         )
+
+    /** Attaches a saved trace, or reports the platform's error. */
+    private suspend fun CommandScope.profileResult(
+        profilingType: AppProfiler.ProfilingType,
+        durationMs: Long,
+        result: AppProfiler.Result,
+    ): CommandResult =
+        when (result) {
+            is AppProfiler.Result.Saved -> {
+                val file = File(result.path)
+                Log.i(LOG_TAG, "Profiling result type=${profilingType.name} bytes=${file.length()}")
+                val bytes = withContext(Dispatchers.IO) { file.takeIf(File::exists)?.readBytes() }
+                if (bytes == null) {
+                    error("profiling_failed", "trace file missing")
+                } else {
+                    success(
+                        attachment = CommandAttachment(bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
+                        context =
+                            mapOf(
+                                "profiling_type" to profilingType.name,
+                                "duration_ms" to durationMs.toString(),
+                                "trace_bytes" to bytes.size.toString(),
+                            ),
+                    )
+                }
+            }
+            is AppProfiler.Result.Failure -> {
+                Log.w(
+                    LOG_TAG,
+                    "Profiling failed type=${profilingType.name} errorName=${result.errorName} " +
+                        "errorCode=${result.errorCode} message=${result.message}",
+                )
+                error(
+                    "profiling_failed",
+                    listOfNotNull(result.errorName, result.message.ifEmpty { null }).joinToString(": "),
+                    context =
+                        buildMap {
+                            put("profiling_type", profilingType.name)
+                            result.errorCode?.let { put("error_code", it.toString()) }
+                            result.errorName?.let { put("error_name", it) }
+                        },
+                )
+            }
+        }
+
+    /** Narrows to an Int without wrapping; the platform clamps the value to its own bounds. */
+    private fun Long.toIntSaturated(): Int = coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
 
     private fun CommandScope.announce() {
         val message = "Command $key invoked with ${arguments.ifEmpty { "no arguments" }}"
