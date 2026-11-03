@@ -39,7 +39,7 @@ internal class PixelCopyScreenshotCapturer(
             CommandResult.Error("screenshot capture failed", description = e.message)
         }
 
-    companion object {
+    private companion object {
         const val CONTENT_TYPE = "image/jpeg"
     }
 }

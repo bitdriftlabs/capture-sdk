@@ -25,7 +25,7 @@ internal class ScreenshotBuiltinCommand(
 
     override suspend fun execute(scope: CommandScope): CommandResult = capturer.capture()
 
-    companion object {
+    private companion object {
         const val ARTIFACT_TYPE = "screenshot"
     }
 }
