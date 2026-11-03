@@ -35,6 +35,18 @@ enum BuiltinCommands {
             makeBuiltin(.userSettingsSet, artifactType: "settings") {
                 UserSettingsCommands.defaultsSet($0)
             },
+            makeBuiltin(.fileClear, artifactType: "file") {
+                FileCommands.clear($0)
+            },
+            makeBuiltin(.fileDelete, artifactType: "file") {
+                FileCommands.delete($0)
+            },
+            makeBuiltin(.fileList, artifactType: "file") {
+                FileCommands.list($0)
+            },
+            makeBuiltin(.fileSize, artifactType: "file") {
+                FileCommands.sizeKb($0)
+            },
         ]
     }
 

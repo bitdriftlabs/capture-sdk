@@ -72,6 +72,10 @@ final class LoggerTests: XCTestCase {
             BuiltinCommandType.userSettingsGet.rawValue,
             BuiltinCommandType.userSettingsRemove.rawValue,
             BuiltinCommandType.userSettingsSet.rawValue,
+            BuiltinCommandType.fileClear.rawValue,
+            BuiltinCommandType.fileDelete.rawValue,
+            BuiltinCommandType.fileList.rawValue,
+            BuiltinCommandType.fileSize.rawValue,
         ])
         XCTAssertEqual(bridge.commandRegistrationEvents, ["register:app", "start"])
         XCTAssertEqual(
