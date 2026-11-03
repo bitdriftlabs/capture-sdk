@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Built-in `stack_sampling_trace` remote command: records a Perfetto stack sampling trace of the app's process through `ProfilingManager` (Android 15+) and uploads it as the command attachment. Enabled per account from the backend; no app code is required. Arguments `duration_ms`, `frequency_hz` and `buffer_size_kb` are required, and the backend supplies their defaults; the SDK's captures carry the profiler tag `bitdrift`.
 
 **Changed**
 

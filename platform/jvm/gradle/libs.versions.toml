@@ -2,7 +2,7 @@
 androidBenchmark     = "1.4.1"
 androidGradlePlugin  = "8.13.2"
 androidxCollection   = "1.4.5"
-androidxCore         = "1.13.1"
+androidxCore         = "1.15.0"
 androidxTestCore     = "1.6.1"
 androidxWebkit       = "1.14.0"
 apollo               = "4.1.0"

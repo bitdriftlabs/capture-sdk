@@ -17,6 +17,7 @@ import androidx.annotation.RequiresApi
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.phoneWindow
+import io.bitdrift.capture.utils.BuildVersionChecker
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.resume
@@ -35,11 +36,13 @@ import kotlin.coroutines.resume
  * @param mainThreadHandler hosts the one-line PixelCopy listener on API levels below 34.
  * @param windowManager locates the window to capture.
  * @param createBitmap allocates the destination for a root view; the engine owns and recycles it.
+ * @param buildVersionChecker selects the PixelCopy API the device supports.
  */
 internal class ScreenshotCaptureEngine(
     private val mainThreadHandler: MainThreadHandler,
     private val windowManager: IWindowManager,
     private val createBitmap: (View) -> Bitmap = ::rgb565BitmapFor,
+    private val buildVersionChecker: BuildVersionChecker = BuildVersionChecker(),
 ) {
     /**
      * Captures a JPEG of the top-most visible window. Conditions the platform does not throw for
@@ -50,11 +53,10 @@ internal class ScreenshotCaptureEngine(
         val rootView = windowManager.getTopMostVisibleRootView() ?: throw ScreenshotCaptureException("No visible root view")
         // TODO(murki): Figure out if we can scale down the bitmap surface area to reduce memory usage
         //  see: https://developer.android.com/topic/performance/graphics/load-bitmap#load-bitmap
-        // TODO(murki): Use BuildVersionChecker after moving it to common module
         val bitmap =
             when {
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> modernPixelCopy(rootView)
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> legacyPixelCopy(rootView)
+                buildVersionChecker.isAtLeast(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) -> modernPixelCopy(rootView)
+                buildVersionChecker.isAtLeast(Build.VERSION_CODES.O) -> legacyPixelCopy(rootView)
                 // TODO(murki): Implement on old API levels using Canvas(bitmap) approach
                 else -> throw ScreenshotCaptureException("Unsupported Android version=${Build.VERSION.SDK_INT}")
             }

@@ -140,7 +140,7 @@ class CaptureLoggerTest {
         withLogger(commandRegistry = registry) { logger ->
             assertThat(bridge.builtins).containsExactlyInAnyOrder(
                 Triple("take_screenshot", "screenshot", 0L),
-                Triple("stack_sampling_trace", "stack_sampling_trace", 15_000L),
+                Triple("stack_sampling_trace", "stack_sampling_trace", 0L),
             )
             assertThat(bridge.registered).containsExactly(logger.loggerId to "app")
             assertThat(logger.getSdkStatus()).isNotNull()
@@ -613,6 +613,7 @@ class CaptureLoggerTest {
                 configuration = Configuration(),
                 windowManager = windowManager,
                 commandRegistry = commandRegistry,
+                commandDispatcher = CommandRegistry.defaultDispatcher(),
             )
         val sdkConfiguredDuration =
             LoggerImpl.SdkConfiguredDuration(
