@@ -3117,6 +3117,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "profiler"
+version = "1.0.0"
+dependencies = [
+ "bd-unwind",
+ "log",
+ "serde_json",
+]
+
+[[package]]
 name = "prometheus"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3853,6 +3862,7 @@ dependencies = [
  "objc",
  "parking_lot 0.12.5",
  "platform-shared",
+ "profiler",
  "protobuf 4.0.0-alpha.0",
  "tempfile",
  "time",

@@ -25,6 +25,10 @@ NS_ASSUME_NONNULL_BEGIN
  */
 void capture_report_error(const char *message);
 
+/* Writes a new snapshot file. Returns 0 on success, 1 for invalid arguments, 2 when busy,
+ * 3 for unsupported architecture, 4 for capture failure, or 5 for file I/O failure. */
+int32_t capture_stack_snapshot(uint32_t buffer_size_kb, const char *path);
+
 /*
  * Creates a new logger.
  *

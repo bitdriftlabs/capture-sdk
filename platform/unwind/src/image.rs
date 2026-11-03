@@ -57,7 +57,7 @@ impl ImageInfo {
   /// size come from `mach_header_64`; each command supplies its own size. Work scales with those
   /// declared tables, validated structurally without a separate command-count or byte-size cap.
   ///
-  /// Mach-O definitions: https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h
+  /// <https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h>
   pub fn read(memory: &impl MemoryReader, header_address: u64) -> Result<Self, ImageError> {
     let header = read::<32>(memory, header_address)?;
     if u32_at(&header, 0) != Some(MH_MAGIC_64) {

@@ -33,6 +33,7 @@ log.workspace                = true
 objc.workspace               = true
 parking_lot.workspace        = true
 platform-shared.workspace    = true
+profiler.workspace           = true
 protobuf.workspace           = true
 time.workspace               = true
 tokio.workspace              = true

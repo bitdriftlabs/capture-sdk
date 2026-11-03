@@ -3,6 +3,7 @@ members = [
   "platform/crash",
   "platform/jvm",
   "platform/jvm/core",
+  "platform/profiler",
   "platform/shared",
   "platform/swift/source",
   "platform/test_helpers",
@@ -70,6 +71,7 @@ parameterized = "2.1.0"
 parking_lot = "0.12.5"
 platform-shared = { path = "platform/shared" }
 pretty_assertions = "1.4.1"
+profiler = { path = "platform/profiler" }
 protobuf = { git = "https://github.com/bitdriftlabs/rust-protobuf.git", branch = "patch-stack", features = [
   "bytes",
   "with-bytes",
