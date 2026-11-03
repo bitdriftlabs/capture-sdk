@@ -1,0 +1,64 @@
+# BuildBuddy Workflows. These actions run the Linux slice of CI (ci/run_bazel_tests.sh and
+# ci/run_clippy.sh with linux_runner) on BuildBuddy remote execution. The runner only drives Bazel:
+# compilation and tests run on the remote executors in //bazel/platforms, with outputs left remote,
+# so the default runner memory and disk suffice. Every run covers the full slice; unchanged targets
+# are remote cache hits.
+#
+# Steps call `bazel` rather than ./bazelw because BuildBuddy adds its cache and results flags to
+# `bazel` invocations; the bazel on the runner is Bazelisk, so it still honors .bazelversion.
+
+actions:
+  - name: Test
+    triggers:
+      push:
+        branches:
+          - main
+      pull_request:
+        branches:
+          - "*"
+    container_image: ubuntu-24.04
+    steps:
+      - run: >-
+          bazel test
+          --config=workflows
+          --config=rbe
+          --config=libunwind
+          --lockfile_mode=error
+          --test_output=errors
+          --test_env=RUST_LOG=debug
+          --test_tag_filters=-macos_only
+          --build_tag_filters=-macos_only
+          -- //platform/... //test/...
+      # Release builds compile out anyhow backtraces.
+      - run: >-
+          bazel test
+          --config=workflows
+          --config=rbe
+          --config=release-common
+          --config=libunwind
+          --test_output=errors
+          --test_env=ANYHOW_EXPECT_DISABLED_BACKTRACE=1
+          --test_env=RUST_BACKTRACE=1
+          --test_arg=anyhow_preserves_error_api
+          //platform/shared:platform-shared_test
+
+  # Uses `bazel build` rather than `bazel test`: the repository-wide --build_tests_only would omit
+  # production rust_library targets.
+  - name: Clippy
+    triggers:
+      push:
+        branches:
+          - main
+      pull_request:
+        branches:
+          - "*"
+    container_image: ubuntu-24.04
+    steps:
+      - run: >-
+          bazel build
+          --config=workflows
+          --config=rbe
+          --config=clippy
+          --lockfile_mode=error
+          --build_tag_filters=clippy,-macos_only
+          -- //... //platform/shared:build_script_
