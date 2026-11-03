@@ -9,9 +9,11 @@ package io.bitdrift.capture.commands.profiling.stacksampling
 
 import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.CommandArgument
+import io.bitdrift.capture.commands.CommandArgumentTypeException
 import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandInvocation
 import io.bitdrift.capture.commands.CommandResult
+import io.bitdrift.capture.commands.MissingCommandArgumentException
 import io.bitdrift.capture.commands.profiling.ICancellable
 import io.bitdrift.capture.commands.profiling.IProfiler
 import io.bitdrift.capture.commands.profiling.ProfileOutcome
@@ -29,7 +31,7 @@ import java.io.File
 import java.nio.file.Files
 
 /**
- * Pins the built-in stack sampling handler: argument defaults and validation, fail-fast when the
+ * Pins the built-in stack sampling handler: required arguments and validation, fail-fast when the
  * process is not profileable, the trace attached by path, and cleanup after a cancelled capture.
  * Handlers run on [Dispatchers.Unconfined] so they reach the profiler before the test continues and
  * resume inline when the fake profiler reports.
@@ -64,8 +66,11 @@ class StackSamplingCommandTest {
             profileability = { profileable },
         )
 
-    private fun invocation(vararg arguments: Pair<String, CommandArgument>) =
-        CommandInvocation(BuiltinCommandType.STACK_SAMPLING_TRACE.key, "command", "session", arguments.toMap())
+    /** An invocation with every argument the backend sends, overridden by [arguments]. */
+    private fun invocation(vararg arguments: Pair<String, CommandArgument>) = invocationOf(REQUIRED_ARGUMENTS + arguments)
+
+    private fun invocationOf(arguments: Map<String, CommandArgument>) =
+        CommandInvocation(BuiltinCommandType.STACK_SAMPLING_TRACE.key, "command", "session", arguments)
 
     private fun int(value: Long) = CommandArgument.Int64(value)
 
@@ -76,7 +81,7 @@ class StackSamplingCommandTest {
         File(systemDirectory, name).apply { writeText("trace") }
 
     @Test
-    fun defaultsApplyAndTheTraceIsAttachedByPath(): Unit =
+    fun argumentsAreRequestedAndTheTraceIsAttachedByPath(): Unit =
         runBlocking {
             val result = async(Dispatchers.Unconfined) { command.execute(invocation()) }
 
@@ -115,18 +120,25 @@ class StackSamplingCommandTest {
         }
 
     @Test
-    fun invalidArgumentsFailBeforeTheProfilerIsAsked(): Unit =
+    fun aMissingArgumentFailsBeforeTheProfilerIsAsked(): Unit =
         runBlocking {
-            val invalid =
-                listOf(
-                    invocation("duration_ms" to text("fast")),
-                    invocation("frequency_hz" to text("often")),
-                    invocation("buffer_size_kb" to text("big")),
-                )
-            for (arguments in invalid) {
-                val error = command.execute(arguments) as CommandResult.Error
-                assertThat(error.code).isEqualTo(CommandErrorCode.InvalidArguments)
-                assertThat(error.title).isEqualTo("invalid_arguments")
+            for (name in REQUIRED_ARGUMENTS.keys) {
+                val thrown = runCatching { command.execute(invocationOf(REQUIRED_ARGUMENTS - name)) }.exceptionOrNull()
+
+                assertThat(thrown).isInstanceOf(MissingCommandArgumentException::class.java)
+                assertThat((thrown as MissingCommandArgumentException).name).isEqualTo(name)
+            }
+            assertThat(profiler.requests).isEmpty()
+        }
+
+    @Test
+    fun aMistypedArgumentFailsBeforeTheProfilerIsAsked(): Unit =
+        runBlocking {
+            for (name in REQUIRED_ARGUMENTS.keys) {
+                val thrown = runCatching { command.execute(invocation(name to text("fast"))) }.exceptionOrNull()
+
+                assertThat(thrown).isInstanceOf(CommandArgumentTypeException::class.java)
+                assertThat(thrown).hasMessageContaining(name)
             }
             assertThat(profiler.requests).isEmpty()
         }
@@ -202,4 +214,13 @@ class StackSamplingCommandTest {
 
             assertThat(trace).doesNotExist()
         }
+
+    private companion object {
+        val REQUIRED_ARGUMENTS: Map<String, CommandArgument> =
+            mapOf(
+                "duration_ms" to CommandArgument.Int64(3_000),
+                "frequency_hz" to CommandArgument.Int64(100),
+                "buffer_size_kb" to CommandArgument.Int64(2_048),
+            )
+    }
 }

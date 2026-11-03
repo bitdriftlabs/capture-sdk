@@ -9,11 +9,9 @@ package io.bitdrift.capture.commands.profiling.stacksampling
 
 import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.CommandAttachment
-import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.IBuiltinCommand
-import io.bitdrift.capture.commands.InvalidCommandArgumentException
 import io.bitdrift.capture.commands.argument
 import io.bitdrift.capture.commands.profiling.IProfileabilityChecker
 import io.bitdrift.capture.commands.profiling.IProfiler
@@ -31,10 +29,9 @@ import kotlin.coroutines.resume
  * stack sampling trace of this process through the platform profiler and returns the trace file as
  * the command attachment.
  *
- * Every argument is optional: `duration_ms`, `frequency_hz` and `buffer_size_kb` fall back to the
- * defaults below, and the platform clamps them to its own bounds.
- * Each capture carries the profiler tag [TAG], which marks it as the SDK's rather than one the app
- * requested itself; the platform also puts the tag in the trace's file name.
+ * The backend always sends `duration_ms`, `frequency_hz` and `buffer_size_kb`, filling in their
+ * defaults; a missing or mistyped one fails the invocation with `invalid_arguments`. The platform
+ * clamps each value to its own bounds.
  */
 internal class StackSamplingCommand(
     private val profiler: IProfiler,
@@ -50,12 +47,7 @@ internal class StackSamplingCommand(
 
     /** The command body as a scope extension, so argument access and result helpers stay unqualified. */
     private suspend fun CommandScope.sample(): CommandResult {
-        val request =
-            try {
-                parse()
-            } catch (e: InvalidCommandArgumentException) {
-                return error("invalid_arguments", e.message, code = CommandErrorCode.InvalidArguments)
-            }
+        val request = parse()
         if (!profileability.isProfileable()) {
             return error(
                 "not_profileable",
@@ -80,22 +72,21 @@ internal class StackSamplingCommand(
     }
 
     /**
-     * Fills in the defaults. A value of the wrong type throws; one beyond an Int saturates, and the
-     * platform clamps it like any other.
+     * Reads the arguments, throwing when one is missing or not an integer; the registry turns that
+     * into `invalid_arguments`. A value beyond an Int saturates, and the platform clamps it like any
+     * other.
      */
     private fun CommandScope.parse(): ProfileRequest =
         ProfileRequest(
             type = ProfileType.STACK_SAMPLING,
-            durationMs = intArgument("duration_ms", DEFAULT_DURATION_MS),
-            frequencyHz = intArgument("frequency_hz", DEFAULT_FREQUENCY_HZ),
-            bufferSizeKb = intArgument("buffer_size_kb", DEFAULT_BUFFER_KB),
+            durationMs = intArgument("duration_ms"),
+            frequencyHz = intArgument("frequency_hz"),
+            bufferSizeKb = intArgument("buffer_size_kb"),
             tag = TAG,
         )
 
-    private fun CommandScope.intArgument(
-        name: String,
-        default: Int,
-    ): Int = if (name in arguments) argument<Long>(name).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt() else default
+    private fun CommandScope.intArgument(name: String): Int =
+        argument<Long>(name).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
 
     /**
      * Runs the capture and suspends until the profiler reports. Cancelling the coroutine stops the
@@ -115,7 +106,7 @@ internal class StackSamplingCommand(
             continuation.invokeOnCancellation { cancel.cancel() }
         }
 
-    companion object {
+    private companion object {
         /** The artifact contract type ID of the trace attachment. */
         const val ARTIFACT_TYPE = "stack_sampling_trace"
 
@@ -127,9 +118,5 @@ internal class StackSamplingCommand(
          * tell the SDK's captures from its own.
          */
         const val TAG = "bitdrift"
-
-        const val DEFAULT_DURATION_MS = 3_000
-        const val DEFAULT_FREQUENCY_HZ = 100
-        const val DEFAULT_BUFFER_KB = 2_048
     }
 }
