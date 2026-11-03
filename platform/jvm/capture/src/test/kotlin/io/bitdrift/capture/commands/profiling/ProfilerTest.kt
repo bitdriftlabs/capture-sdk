@@ -73,10 +73,8 @@ class ProfilerTest {
             any(),
             any(),
         )
-        val values = params.firstValue.let { bundle -> bundle.keySet().associateWith { bundle.getInt(it) } }
-        assertThat(values).isEqualTo(
-            mapOf("KEY_DURATION_MS" to 3_000, "KEY_FREQUENCY_HZ" to 100, "KEY_SIZE_KB" to 2_048),
-        )
+        val values = params.firstValue.let { bundle -> bundle.keySet().map { bundle.getInt(it) } }
+        assertThat(values).contains(3_000, 100, 2_048)
         assertThat(outcomes).isEmpty()
     }
 

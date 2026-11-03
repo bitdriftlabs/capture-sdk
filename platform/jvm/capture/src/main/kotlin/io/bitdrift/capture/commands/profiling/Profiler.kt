@@ -9,19 +9,19 @@ package io.bitdrift.capture.commands.profiling
 
 import android.content.Context
 import android.os.Build
-import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.ProfilingManager
 import android.os.ProfilingResult
 import androidx.annotation.RequiresApi
+import androidx.core.os.ProfilingRequest
+import androidx.core.os.StackSamplingRequestBuilder
 import io.bitdrift.capture.utils.BuildVersionChecker
 import java.util.concurrent.Executor
 
 /**
- * Runs captures through android.os.ProfilingManager, passing each request's parameters under the
- * keys ProfilingManager documents. It does not use androidx.core's request builders, which need
- * androidx.core 1.15 and with it compileSdk 35 in every app. Every sampling parameter is always
- * set: the platform's own defaults are not documented. The request tag marks the capture as the SDK's, so an app can recognise it among
+ * Runs captures through android.os.ProfilingManager, building each request with androidx.core's
+ * request builders. Every sampling parameter is always set: the platform's own defaults are not
+ * documented. The request tag marks the capture as the SDK's, so an app can recognise it among
  * its own profiling results. Below Android 15, where `ProfilingManager` does not exist, every
  * request fails as `unsupported`.
  *
@@ -55,30 +55,28 @@ internal class Profiler(
             return ICancellable {}
         }
         val signal = CancellationSignal()
+        val platformRequest = request.toPlatformRequest(signal)
         manager.requestProfiling(
-            request.profilingType(),
-            request.params(),
-            request.tag,
-            signal,
+            platformRequest.profilingType,
+            platformRequest.params,
+            platformRequest.tag,
+            platformRequest.cancellationSignal,
             executor,
         ) { result -> callback(result.toOutcome()) }
         return ICancellable { signal.cancel() }
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    private fun ProfileRequest.profilingType(): Int =
-        when (type) {
-            ProfileType.STACK_SAMPLING -> ProfilingManager.PROFILING_TYPE_STACK_SAMPLING
-        }
-
-    private fun ProfileRequest.params(): Bundle =
+    private fun ProfileRequest.toPlatformRequest(signal: CancellationSignal): ProfilingRequest =
         when (type) {
             ProfileType.STACK_SAMPLING ->
-                Bundle().apply {
-                    putInt(KEY_DURATION_MS, durationMs)
-                    putInt(KEY_FREQUENCY_HZ, frequencyHz)
-                    putInt(KEY_SIZE_KB, bufferSizeKb)
-                }
+                StackSamplingRequestBuilder()
+                    .setDurationMs(durationMs)
+                    .setSamplingFrequencyHz(frequencyHz)
+                    .setBufferSizeKb(bufferSizeKb)
+                    .setTag(tag)
+                    .setCancellationSignal(signal)
+                    .build()
         }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
@@ -107,11 +105,4 @@ internal class Profiler(
             ProfilingResult.ERROR_UNKNOWN -> "UNKNOWN"
             else -> "UNRECOGNIZED"
         }
-
-    private companion object {
-        // Parameter keys from the ProfilingManager documentation.
-        const val KEY_DURATION_MS = "KEY_DURATION_MS"
-        const val KEY_FREQUENCY_HZ = "KEY_FREQUENCY_HZ"
-        const val KEY_SIZE_KB = "KEY_SIZE_KB"
-    }
 }
