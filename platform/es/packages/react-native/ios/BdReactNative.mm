@@ -1,6 +1,10 @@
 #import "BdReactNative.h"
 #import "Capture/Capture.h"
+#if __has_include(<BdReactNative/BdReactNative-Swift.h>)
+#import <BdReactNative/BdReactNative-Swift.h>
+#else
 #import "BdReactNative-Swift.h"
+#endif
 
 @implementation BdReactNative
 RCT_EXPORT_MODULE()

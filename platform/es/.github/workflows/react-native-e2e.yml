@@ -7,6 +7,56 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-ios-hermes:
+    strategy:
+      fail-fast: false
+      matrix:
+        linkage: [library, static]
+    name: ios Hermes [linkage = ${{ matrix.linkage }}]
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.0'
+
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+
+      - name: Prepare React Native package
+        run: npm exec nx run @bitdrift/react-native:prepare-release
+
+      - name: Install Hermes sample dependencies
+        working-directory: examples/HermesSample
+        run: npm install --no-package-lock
+
+      - name: Install CocoaPods
+        working-directory: examples/HermesSample/ios
+        run: |
+          if [ "${{ matrix.linkage }}" = static ]; then
+            USE_FRAMEWORKS=static pod install
+          else
+            pod install
+          fi
+
+      - name: Build Hermes sample
+        working-directory: examples/HermesSample/ios
+        run: |
+          xcodebuild \
+            -workspace HermesSample.xcworkspace \
+            -scheme HermesSample \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
   test-ios:
     strategy:
       fail-fast: false
