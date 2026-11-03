@@ -62,8 +62,11 @@ object AppProfiler {
             val durationMs: Int,
             val bufferSizeKb: Int = HEAP_PROFILE_BUFFER_SIZE_KB,
             val samplingIntervalBytes: Long = HEAP_PROFILE_SAMPLING_INTERVAL_BYTES,
-            /** Records Java heap allocations instead of native ones; a profile cannot record both. */
-            val trackJavaAllocations: Boolean = true,
+            /**
+             * Records Java heap allocations instead of native ones; a profile cannot record both. Native
+             * by default, which the `system_trace` symbolication workload relies on.
+             */
+            val trackJavaAllocations: Boolean = false,
         ) : Request {
             override val type = ProfilingType.HEAP_PROFILE
         }
