@@ -88,6 +88,28 @@ build:release-android --linkopt=-fuse-ld=lld
 # Use the hermetic LLVM toolchain for Linux CI's LLD linker.
 build:linux-hermetic-llvm --extra_toolchains=@llvm//toolchain:all
 
+# BuildBuddy Workflows runners keep their disk between runs, so a local repository cache only grows
+# the runner snapshot. Fetch external archives through BuildBuddy's remote asset cache instead.
+common:workflows --config=ci
+common:workflows --repository_cache=
+common:workflows --experimental_remote_downloader=grpcs://remote.buildbuddy.io
+
+# Build and test on BuildBuddy's amd64 remote executors (//bazel/platforms). Every action, including
+# tests, runs remotely; the client only drives Bazel. Outputs stay remote, which keeps the client
+# disk small. The executor image has no autodetected C/C++ toolchain, so use the hermetic LLVM one.
+# This config is for `build` and `test` only.
+build:rbe --remote_executor=grpcs://remote.buildbuddy.io
+build:rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_linux_x86_64
+build:rbe --host_platform=//bazel/platforms:buildbuddy_linux_x86_64
+build:rbe --platforms=//bazel/platforms:buildbuddy_linux_x86_64
+build:rbe --config=linux-hermetic-llvm
+build:rbe --jobs=200
+build:rbe --remote_download_minimal
+build:rbe --remote_timeout=600
+# The repository-wide --modify_execution_info below keeps C++ link/archive actions off remote
+# execution for macOS builds. Values accumulate, so remove the tag again for the Linux executors.
+build:rbe --modify_execution_info=^(CppArchive|CppLink)$=-no-remote
+
 # Custom iOS release configuration
 build --ios_simulator_device="iPhone 17"
 build:force-xcode-version --ios_simulator_version=26.2
