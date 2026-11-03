@@ -101,6 +101,7 @@ class ErrorReporterTest {
             LoggerImpl(
                 apiKey = "test",
                 commandRegistry = CommandRegistry(CaptureJniLibrary),
+                commandDispatcher = CommandRegistry.defaultDispatcher(),
                 apiUrl = testServerUrl(),
                 customFieldGetters = emptyList(),
                 dateProvider = SystemDateProvider(),

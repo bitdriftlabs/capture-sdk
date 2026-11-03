@@ -613,6 +613,7 @@ class CaptureLoggerTest {
                 configuration = Configuration(),
                 windowManager = windowManager,
                 commandRegistry = commandRegistry,
+                commandDispatcher = CommandRegistry.defaultDispatcher(),
             )
         val sdkConfiguredDuration =
             LoggerImpl.SdkConfiguredDuration(

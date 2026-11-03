@@ -76,6 +76,7 @@ class CaptureLoggerFeatureFlagsCrashReportTest {
             LoggerImpl(
                 apiKey = "test",
                 commandRegistry = CommandRegistry(CaptureJniLibrary),
+                commandDispatcher = CommandRegistry.defaultDispatcher(),
                 apiUrl = testServer.url,
                 customFieldGetters = emptyList(),
                 dateProvider = systemDateProvider,

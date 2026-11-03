@@ -252,6 +252,7 @@ class LogBenchmarkTest {
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
                 commandRegistry = CommandRegistry(CaptureJniLibrary),
+                commandDispatcher = CommandRegistry.defaultDispatcher(),
             )
             runWithMeasurementDisabled {
                 CaptureJniLibrary.shutdown(logger.loggerId)

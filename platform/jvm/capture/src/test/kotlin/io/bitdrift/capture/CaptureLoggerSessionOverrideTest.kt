@@ -119,6 +119,7 @@ class CaptureLoggerSessionOverrideTest {
             LoggerImpl(
                 apiKey = "test",
                 commandRegistry = CommandRegistry(CaptureJniLibrary),
+                commandDispatcher = CommandRegistry.defaultDispatcher(),
                 apiUrl = testServerUrl(),
                 customFieldGetters = emptyList(),
                 dateProvider = systemDateProvider,
@@ -165,6 +166,7 @@ class CaptureLoggerSessionOverrideTest {
             LoggerImpl(
                 apiKey = "test",
                 commandRegistry = CommandRegistry(CaptureJniLibrary),
+                commandDispatcher = CommandRegistry.defaultDispatcher(),
                 apiUrl = testServerUrl(),
                 customFieldGetters = emptyList(),
                 dateProvider = systemDateProvider,

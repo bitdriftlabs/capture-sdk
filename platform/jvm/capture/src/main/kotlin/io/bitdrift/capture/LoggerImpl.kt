@@ -82,6 +82,7 @@ import io.bitdrift.capture.reports.processor.ReportProcessingSession
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.asExecutor
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -122,13 +123,14 @@ internal class LoggerImpl(
     private val eventListenerDispatcher: CaptureDispatchers.CommonBackground = CaptureDispatchers.CommonBackground,
     windowManager: IWindowManager = WindowManager(errorHandler),
     commandRegistry: CommandRegistry,
+    commandDispatcher: CoroutineDispatcher,
     builtinCommandsInstaller: BuiltinCommandsInstaller =
         BuiltinCommandsInstaller(
             commandRegistry,
             listOf(
                 ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
                 StackSamplingCommand(
-                    profiler = Profiler(context, commandRegistry.dispatcher.asExecutor()),
+                    profiler = Profiler(context, commandDispatcher.asExecutor()),
                     profileability = ProfileabilityChecker(context),
                 ),
             ),
