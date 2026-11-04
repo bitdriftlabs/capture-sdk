@@ -28,6 +28,33 @@ jobs:
         run: |
           CAPTURE_SDK_VERSION=$(node -p "require('./packages/react-native/package.json').captureSdkVersion")
           echo "version=$CAPTURE_SDK_VERSION" >> $GITHUB_OUTPUT
+      - name: Validate React Native version against Capture SDK, repository and npm
+        run: |
+          node <<'NODE'
+          const { execFileSync } = require('node:child_process');
+          const { version: currentVersion, captureSdkVersion: sdkVersion } = require('./packages/react-native/package.json');
+          const version = process.env.VERSION;
+          if (!/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(version)) {
+            throw new Error(`Expected a stable major.minor.patch version: ${version}`);
+          }
+          const [major, minor, patch] = version.split('.').map(Number);
+          const [sdkMajor, sdkMinor, sdkPatch] = sdkVersion.split('.').map(Number);
+          if (major !== sdkMajor || minor !== sdkMinor || patch < sdkPatch) {
+            throw new Error(`React Native ${version} must use Capture SDK ${sdkVersion}'s major/minor. Only the patch may increase.`);
+          }
+          const published = JSON.parse(execFileSync('npm', [
+            'view', '@bitdrift/react-native', 'versions', '--json', '--prefer-online'
+          ], { encoding: 'utf8' }));
+          for (const existing of [currentVersion, ...published.filter(v => !v.includes('-') && !v.includes('+'))]) {
+            const [existingMajor, existingMinor, existingPatch] = existing.split('.').map(Number);
+            const newer = major > existingMajor ||
+              (major === existingMajor && minor > existingMinor) ||
+              (major === existingMajor && minor === existingMinor && patch > existingPatch);
+            if (!newer) {
+              throw new Error(`React Native ${version} must be newer than ${existing}, already recorded in the repository or published to npm. Choose a higher patch.`);
+            }
+          }
+          NODE
       - name: Prepare release
         run: |
           npm version --workspace @bitdrift/react-native $VERSION
