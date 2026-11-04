@@ -42,7 +42,7 @@ object AppProfiler {
         /** A request of this type with the app's default settings; a heap dump ignores [durationMs]. */
         fun request(durationMs: Int): Request =
             when (this) {
-                JAVA_HEAP_DUMP -> Request.JavaHeapDump
+                JAVA_HEAP_DUMP -> Request.JavaHeapDump()
                 HEAP_PROFILE -> Request.HeapProfile(durationMs)
                 STACK_SAMPLING -> Request.StackSampling(durationMs)
                 SYSTEM_TRACE -> Request.SystemTrace(durationMs)
@@ -54,7 +54,10 @@ object AppProfiler {
         val type: ProfilingType
 
         /** A single snapshot of the Java heap. */
-        data object JavaHeapDump : Request {
+        data class JavaHeapDump(
+            /** The trace buffer; a dump larger than it is truncated. Null keeps the platform default. */
+            val bufferSizeKb: Int? = null,
+        ) : Request {
             override val type = ProfilingType.JAVA_HEAP_DUMP
         }
 
@@ -152,8 +155,9 @@ object AppProfiler {
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     private fun Request.toPlatformRequest(cancellationSignal: CancellationSignal): ProfilingRequest =
         when (this) {
-            Request.JavaHeapDump ->
+            is Request.JavaHeapDump ->
                 JavaHeapDumpRequestBuilder()
+                    .apply { bufferSizeKb?.let { setBufferSizeKb(it) } }
                     .setCancellationSignal(cancellationSignal)
                     .build()
             is Request.HeapProfile ->
