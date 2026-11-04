@@ -104,7 +104,7 @@ jobs:
         run: |
           # Package both the emulator ABI and the production ABI in one build.
           # The size targets extract each library from the resulting AAR.
-          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_arm64_v8a :capture_aar_so_size_x86_64
+          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --remote_download_toplevel --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_arm64_v8a :capture_aar_so_size_x86_64
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4

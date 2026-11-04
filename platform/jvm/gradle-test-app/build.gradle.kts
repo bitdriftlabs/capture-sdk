@@ -230,6 +230,8 @@ listOf("debug", "release", "profileable").forEach { buildType ->
             commandLine(
                 "./bazelw",
                 "build",
+                // Linux CI builds remotely; download the outputs copied from bazel-bin below.
+                "--remote_download_toplevel",
                 if (packaged) {
                     "//$bazelNativePackage:gradletestapp_native.debug_info"
                 } else {
@@ -237,7 +239,7 @@ listOf("debug", "release", "profileable").forEach { buildType ->
                 },
             )
             if (buildType != "debug") {
-                args("--config=release-android", "--config=nocache")
+                args("--config=release-android")
             }
             if (packaged) {
                 // The default output is stripped; objcopy produces the matching full-symbol DIF.

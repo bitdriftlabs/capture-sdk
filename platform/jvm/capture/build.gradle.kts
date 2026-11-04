@@ -118,7 +118,13 @@ val bazelCaptureLibrary = "//platform/jvm:capture_shared"
 val generateBuiltinCommands =
     tasks.register<Exec>("generateBuiltinCommands") {
         workingDir = bazelWorkspace
-        commandLine("./bazelw", "build", "--config=nocache", "//proto:builtin_command_kt_source")
+        // Linux CI builds remotely; download the generated source copied from bazel-bin below.
+        commandLine(
+            "./bazelw",
+            "build",
+            "--remote_download_toplevel",
+            "//proto:builtin_command_kt_source",
+        )
         doLast {
             layout.buildDirectory.file("generated/commands/BuiltinCommandType.kt").get().asFile.setWritable(true)
             copy {
@@ -182,10 +188,12 @@ fun registerBazelRustBuild(
         commandLine(
             "./bazelw",
             "build",
+            // Linux CI builds remotely; download the outputs copied from bazel-bin below.
+            "--remote_download_toplevel",
             if (packaged) "//:capture.debug_info" else bazelCaptureLibrary,
         )
         if (release) {
-            args("--config=release-android", "--config=nocache")
+            args("--config=release-android")
         }
         if (packaged) {
             args("--android_platforms=${bazelAndroidTarget.platform}", "--output_groups=+objcopy")
@@ -281,6 +289,8 @@ tasks.register<Exec>("buildTestJni") {
     commandLine(
         "./bazelw",
         "build",
+        // Linux CI builds remotely; the unit tests load this library from bazel-bin.
+        "--remote_download_toplevel",
         "//test/platform/jvm:capture",
     )
 }
