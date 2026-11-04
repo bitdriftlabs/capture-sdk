@@ -177,7 +177,7 @@ object SampleCommands {
                         context =
                             buildMap {
                                 put("profiling_type", profilingType.name)
-                                durationMs?.let { put("duration_ms", it.toString()) }
+                                durationMs?.takeIf { profilingType.usesDuration }?.let { put("duration_ms", it.toString()) }
                                 put("trace_bytes", bytes.size.toString())
                             },
                     )
