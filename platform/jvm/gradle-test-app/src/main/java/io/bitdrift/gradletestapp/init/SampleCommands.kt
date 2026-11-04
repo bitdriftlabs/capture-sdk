@@ -125,12 +125,21 @@ object SampleCommands {
                 val profilingType =
                     AppProfiler.ProfilingType.entries.firstOrNull { it.name.equals(requestedType, ignoreCase = true) }
                         ?: return@registerCommand error("invalid_profiling_type", requestedType, code = CommandErrorCode.InvalidArguments)
+                val request =
+                    when (profilingType) {
+                        // A heap dump has no duration; its buffer size is required instead.
+                        AppProfiler.ProfilingType.JAVA_HEAP_DUMP ->
+                            AppProfiler.Request.JavaHeapDump(argument<Long>("buffer_size_kb").toIntSaturated())
+                        AppProfiler.ProfilingType.HEAP_PROFILE -> AppProfiler.Request.HeapProfile(durationMs.toInt())
+                        AppProfiler.ProfilingType.STACK_SAMPLING -> AppProfiler.Request.StackSampling(durationMs.toInt())
+                        AppProfiler.ProfilingType.SYSTEM_TRACE -> AppProfiler.Request.SystemTrace(durationMs.toInt())
+                    }
                 val context = appContext ?: return@registerCommand error("no_context")
                 val workload =
                     if (arguments["symbolication_workload"].isTruthy()) PerfettoWorkload.start(profilingType, durationMs) else null
                 val result =
                     try {
-                        AppProfiler.capture(context, profilingType.request(durationMs.toInt()))
+                        AppProfiler.capture(context, request)
                     } finally {
                         withContext(NonCancellable + Dispatchers.IO) { workload?.close() }
                     }

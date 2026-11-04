@@ -304,7 +304,7 @@ class MainViewModel(
             is StressTestAction.FillDiskSpace -> fillDiskSpace()
             is StressTestAction.ClearDiskSpace -> clearDiskSpace()
             is StressTestAction.RefreshDiskSpace -> refreshDiskSpace()
-            is StressTestAction.StartProfiling -> startProfiling(action.type, action.durationMs)
+            is StressTestAction.StartProfiling -> startProfiling(action.request)
             is StressTestAction.ExportProfile -> exportProfile(action.path)
             is StressTestAction.ExportAllProfiles -> exportAllProfiles()
             is StressTestAction.ClearExportedProfiles -> clearExportedProfiles()
@@ -337,15 +337,12 @@ class MainViewModel(
         }
     }
 
-    private fun startProfiling(
-        type: AppProfiler.ProfilingType,
-        durationMs: Long,
-    ) {
+    private fun startProfiling(request: AppProfiler.Request) {
         if (_uiState.value.profiling is ProfilingState.Running) return
+        val type = request.type
         _uiState.update { it.copy(profiling = ProfilingState.Running(type)) }
         viewModelScope.launch {
-            Log.i(PROFILER_TAG, "starting ${type.name} (${durationMs}ms)")
-            val request = type.request(durationMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+            Log.i(PROFILER_TAG, "starting $request")
             val state =
                 when (val result = AppProfiler.capture(application, request)) {
                     is AppProfiler.Result.Saved -> {

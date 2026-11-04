@@ -37,16 +37,6 @@ object AppProfiler {
         HEAP_PROFILE("Heap profile", usesDuration = true),
         STACK_SAMPLING("Stack sampling", usesDuration = true),
         SYSTEM_TRACE("System trace", usesDuration = true),
-        ;
-
-        /** A request of this type with the app's default settings; a heap dump ignores [durationMs]. */
-        fun request(durationMs: Int): Request =
-            when (this) {
-                JAVA_HEAP_DUMP -> Request.JavaHeapDump(JAVA_HEAP_DUMP_BUFFER_SIZE_KB)
-                HEAP_PROFILE -> Request.HeapProfile(durationMs)
-                STACK_SAMPLING -> Request.StackSampling(durationMs)
-                SYSTEM_TRACE -> Request.SystemTrace(durationMs)
-            }
     }
 
     /** One capture with the settings its type supports. The platform clamps each value to its own bounds. */
@@ -182,8 +172,6 @@ object AppProfiler {
                     .build()
         }
 
-    // The platform's own default on a stock device, so the Stress tab and system_trace dumps are unchanged.
-    private const val JAVA_HEAP_DUMP_BUFFER_SIZE_KB = 256_000
     private const val HEAP_PROFILE_BUFFER_SIZE_KB = 8192
     private const val HEAP_PROFILE_SAMPLING_INTERVAL_BYTES = 128L * 1024L
     private const val STACK_SAMPLING_BUFFER_SIZE_KB = 4096
