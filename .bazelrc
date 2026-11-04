@@ -138,6 +138,10 @@ build:nocache --noremote_upload_local_results
 build:nocache --bes_results_url=
 build:nocache --bes_backend=
 build:nocache --remote_cache=
+# Linux CI enables --config=rbe through .buildrc.bb. Keep nocache builds local as well, with a
+# local job count.
+build:nocache --remote_executor=
+build:nocache --jobs=auto
 
 # We run this with release-common to be as indicative of production as possible, and add in as much debug information we
 # can to allow using perf to generate flamegraphs.
