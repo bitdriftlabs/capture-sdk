@@ -125,12 +125,21 @@ object SampleCommands {
                 val profilingType =
                     AppProfiler.ProfilingType.entries.firstOrNull { it.name.equals(requestedType, ignoreCase = true) }
                         ?: return@registerCommand error("invalid_profiling_type", requestedType, code = CommandErrorCode.InvalidArguments)
+                val request =
+                    when (profilingType) {
+                        // A heap dump has no duration; its buffer size is required instead.
+                        AppProfiler.ProfilingType.JAVA_HEAP_DUMP ->
+                            AppProfiler.Request.JavaHeapDump(argument<Long>("buffer_size_kb").toIntSaturated())
+                        AppProfiler.ProfilingType.HEAP_PROFILE -> AppProfiler.Request.HeapProfile(durationMs.toInt())
+                        AppProfiler.ProfilingType.STACK_SAMPLING -> AppProfiler.Request.StackSampling(durationMs.toInt())
+                        AppProfiler.ProfilingType.SYSTEM_TRACE -> AppProfiler.Request.SystemTrace(durationMs.toInt())
+                    }
                 val context = appContext ?: return@registerCommand error("no_context")
                 val workload =
                     if (arguments["symbolication_workload"].isTruthy()) PerfettoWorkload.start(profilingType, durationMs) else null
                 val result =
                     try {
-                        AppProfiler.capture(context, profilingType.request(durationMs.toInt()))
+                        AppProfiler.capture(context, request)
                     } finally {
                         withContext(NonCancellable + Dispatchers.IO) { workload?.close() }
                     }
@@ -149,12 +158,19 @@ object SampleCommands {
                 val context = appContext ?: return@registerCommand error("no_context")
                 profileResult(request.type, request.durationMs.toLong(), AppProfiler.capture(context, request))
             },
+            Capture.Logger.registerCommand("java_heap_dump_demo") {
+                announce()
+                // The only argument is required; the platform clamps it to its own bounds.
+                val request = AppProfiler.Request.JavaHeapDump(bufferSizeKb = argument<Long>("buffer_size_kb").toIntSaturated())
+                val context = appContext ?: return@registerCommand error("no_context")
+                profileResult(request.type, durationMs = null, AppProfiler.capture(context, request))
+            },
         )
 
     /** Attaches a saved trace, or reports the platform's error. */
     private suspend fun CommandScope.profileResult(
         profilingType: AppProfiler.ProfilingType,
-        durationMs: Long,
+        durationMs: Long?,
         result: AppProfiler.Result,
     ): CommandResult =
         when (result) {
@@ -168,11 +184,11 @@ object SampleCommands {
                     success(
                         attachment = CommandAttachment(bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
                         context =
-                            mapOf(
-                                "profiling_type" to profilingType.name,
-                                "duration_ms" to durationMs.toString(),
-                                "trace_bytes" to bytes.size.toString(),
-                            ),
+                            buildMap {
+                                put("profiling_type", profilingType.name)
+                                durationMs?.takeIf { profilingType.usesDuration }?.let { put("duration_ms", it.toString()) }
+                                put("trace_bytes", bytes.size.toString())
+                            },
                     )
                 }
             }
