@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.26.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.50.0...HEAD
 
 ### Both
 
@@ -21,7 +21,7 @@
 
 **Added**
 
-- Built-in `stack_sampling_trace` remote command: records a Perfetto stack sampling trace of the app's process through `ProfilingManager` (Android 15+) and uploads it as the command attachment. Enabled per account from the backend; no app code is required. Arguments `duration_ms`, `frequency_hz` and `buffer_size_kb` are required, and the backend supplies their defaults; the SDK's captures carry the profiler tag `bitdrift`.
+- Nothing yet!
 
 **Changed**
 
@@ -43,7 +43,54 @@
 
 **Fixed**
 
+- Nothing yet!
+
+## [0.50.0]
+[0.50.0]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.50.0...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Changed the SDK license to PolyForm Strict 1.0.0.
+
+**Fixed**
+
+- Nothing yet!
+
+### Android
+
+**Added**
+
+- Built-in `stack_sampling_trace` remote command: records a Perfetto stack sampling trace of the app's process through `ProfilingManager` (Android 15+) and uploads it as the command attachment.
+
+**Changed**
+
+- Updated OkHttp to 4.12.1 to block compromised CA certificates and mitigate CVE-2026-111943.
+
+**Fixed**
+
+- Fixed screenshot capture failing when another activity or dialog is displayed.
+- Fixed screenshot bitmap cleanup when capture fails.
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
 - Fixed background URLSession upload tasks and proxy delegates leaking when automatic network instrumentation is enabled.
+- Fixed a potential crash when the SDK cannot create network streams.
 
 ## [0.26.0]
 [0.26.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.26.0
