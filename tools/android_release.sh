@@ -62,7 +62,7 @@ pushd "$(mktemp -d)"
   mv "$sdk_repo/bazel-bin/capture-sources.jar" "$artifact_name-$version-sources.jar"
   mv "$sdk_repo/bazel-bin/capture-javadoc.jar" "$artifact_name-$version-javadoc.jar"
   mv "$sdk_repo/bazel-bin/symbols.tar" "$artifact_name-$version-symbols.tar"
-  cp "$sdk_repo/ci/LICENSE" "LICENSE"
+  cp "$sdk_repo/LICENSE" "LICENSE"
 
   # If using a custom artifact name, update artifact-specific fields in the POM
   if [ "$artifact_name" != "capture" ]; then
