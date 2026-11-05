@@ -50,6 +50,12 @@ test --build_tests_only
 test --test_env=RUST_BACKTRACE=full
 common --java_runtime_version=remotejdk_17
 
+# Device-backed instrumentation tests (tags = ["requires-device"]). Unshrunk multidex APKs build
+# rules_android's DexFileSplitter, which uses Java records, so tools need a Java 17 toolchain.
+common:instrumentation --tool_java_language_version=17
+common:instrumentation --tool_java_runtime_version=remotejdk_17
+test:instrumentation --test_output=streamed
+
 # Shared configuration for all CI tasks. Clippy runs in its dedicated workflow so
 # artifact builds do not pay for lint-aspect analysis.
 build:ci --config=force-xcode-version
