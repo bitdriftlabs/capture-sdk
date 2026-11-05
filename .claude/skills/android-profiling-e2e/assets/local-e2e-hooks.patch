@@ -1,0 +1,33 @@
+diff --git a/platform/jvm/gradle-test-app/build.gradle.kts b/platform/jvm/gradle-test-app/build.gradle.kts
+index ca53333e..bcefa008 100644
+--- a/platform/jvm/gradle-test-app/build.gradle.kts
++++ b/platform/jvm/gradle-test-app/build.gradle.kts
+@@ -125,7 +125,7 @@ android {
+         applicationId = "io.bitdrift.gradletestapp"
+         minSdk = 23
+         targetSdk = 37
+-        versionCode = 68
++        versionCode = providers.gradleProperty("e2eVersionCode").map(String::toInt).orElse(68).get() // LOCAL E2E HOOK (do not commit)
+         versionName = "3.0"
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+         buildConfigField(
+diff --git a/platform/jvm/gradle-test-app/src/main/java/io/bitdrift/gradletestapp/init/SampleCommands.kt b/platform/jvm/gradle-test-app/src/main/java/io/bitdrift/gradletestapp/init/SampleCommands.kt
+index b468e477..c2c0b61c 100644
+--- a/platform/jvm/gradle-test-app/src/main/java/io/bitdrift/gradletestapp/init/SampleCommands.kt
++++ b/platform/jvm/gradle-test-app/src/main/java/io/bitdrift/gradletestapp/init/SampleCommands.kt
+@@ -181,6 +181,15 @@ object SampleCommands {
+                 if (bytes == null) {
+                     error("profiling_failed", "trace file missing")
+                 } else {
++                    // LOCAL E2E HOOK (do not commit): keep an adb-pullable copy of the exact uploaded bytes.
++                    withContext(Dispatchers.IO) {
++                        runCatching {
++                            val dir = appContext?.getExternalFilesDir("e2e-traces") ?: return@runCatching
++                            val out = File(dir, "${sessionId}_${commandId}.perfetto-trace")
++                            out.writeBytes(bytes)
++                            Log.i(LOG_TAG, "E2E trace copy path=${out.absolutePath} bytes=${bytes.size} sessionId=$sessionId commandId=$commandId")
++                        }.onFailure { Log.w(LOG_TAG, "E2E trace copy failed", it) }
++                    }
+                     success(
+                         attachment = CommandAttachment(bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
+                         context =
