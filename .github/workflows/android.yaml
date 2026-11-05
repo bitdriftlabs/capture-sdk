@@ -417,8 +417,8 @@ jobs:
       - name: Build microbenchmark APK
         run: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:assembleReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED --build-cache --parallel --stacktrace
 
-      # The Bazel Exec tasks declare no outputs and would rerun (and re-analyze) here, so skip them;
-      # their outputs from the build step are already in bazel-bin.
+      # The Bazel Rust Exec task declares no outputs and would rerun (and re-analyze) here, so skip
+      # it; its output from the build step is already in bazel-bin.
       - name: Run Microbenchmarks
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         timeout-minutes: 30
@@ -433,7 +433,7 @@ jobs:
           profile: Nexus 6
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:connectedReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED -x capture:generateBuiltinCommands -x capture:buildBazelReleaseRust --build-cache --parallel --stacktrace
+          script: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:connectedReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED -x capture:buildBazelReleaseRust --build-cache --parallel --stacktrace
 
       - name: Find benchmark JSON
         id: find_benchmark

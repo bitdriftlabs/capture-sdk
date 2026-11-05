@@ -97,6 +97,18 @@ fn builtin_commands() -> Vec<(String, i32, String)> {
 
 fn generate_builtin_commands(language: &str) {
   let commands = builtin_commands();
+  // The Kotlin output is checked in for Gradle, so it carries the repository license header.
+  for line in [
+    "// capture-sdk - bitdrift's client SDK",
+    "// Copyright Bitdrift, Inc. All rights reserved.",
+    "//",
+    "// Use of this source code is governed by a source available license that can be found in the",
+    "// LICENSE file or at:",
+    "// https://polyformproject.org/licenses/strict/1.0.0",
+    "",
+  ] {
+    println!("{line}");
+  }
   println!("// Generated from workflow_command.proto; do not edit.");
   match language {
     "kotlin" => {
