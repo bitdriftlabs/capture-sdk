@@ -7,6 +7,7 @@
 use libc::{c_char, intptr_t};
 use std::ffi::CStr;
 
+// From `<mach-o/dyld.h>`.
 unsafe extern "C" {
   fn _dyld_image_count() -> u32;
   fn _dyld_get_image_header(image_index: u32) -> *const libc::c_void;

@@ -13,12 +13,14 @@ use libc::{
   vm_size_t,
 };
 
+/// From `<mach/kern_return.h>`.
 pub const KERN_SUCCESS: kern_return_t = 0;
 pub const KERN_INVALID_ADDRESS: kern_return_t = 1;
 
 const CLOCK_UPTIME_RAW: libc::clockid_t = 8;
 
 unsafe extern "C" {
+  /// From `<mach/vm_map.h>`.
   fn vm_read_overwrite(
     target_task: mach_port_t,
     address: vm_address_t,
@@ -29,9 +31,12 @@ unsafe extern "C" {
 
   fn clock_gettime_nsec_np(clock_id: libc::clockid_t) -> u64;
 
+  /// From `<mach/vm_page_size.h>`.
   static vm_kernel_page_size: vm_size_t;
+  /// From `<mach/mach_init.h>`.
   static mach_task_self_: mach_port_t;
 
+  /// From `<os/proc.h>`.
   #[cfg(target_os = "ios")]
   fn os_proc_available_memory() -> usize;
 }

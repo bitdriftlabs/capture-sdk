@@ -17,15 +17,18 @@ use libc::{
   vm_size_t,
 };
 
+/// From `<mach/vm_prot.h>`.
 pub const VM_PROT_READ: c_int = 0x1;
 pub const VM_PROT_WRITE: c_int = 0x2;
 
+/// Share modes from `<mach/vm_region.h>`.
 pub const SM_COW: u8 = 1;
 pub const SM_SHARED: u8 = 3;
 pub const SM_TRUESHARED: u8 = 5;
 pub const SM_SHARED_ALIASED: u8 = 7;
 
 unsafe extern "C" {
+  /// From `<mach/vm_map.h>`.
   fn vm_region_recurse_64(
     target_task: mach_port_t,
     address: *mut vm_address_t,
@@ -40,7 +43,7 @@ unsafe extern "C" {
 // RegionShortInfo
 //
 
-/// `struct vm_region_submap_short_info_64`, packed to 4 bytes.
+/// `struct vm_region_submap_short_info_64` from `<mach/vm_region.h>`, packed to 4 bytes.
 #[repr(C, packed(4))]
 #[derive(Clone, Copy, Default)]
 pub struct RegionShortInfo {
@@ -64,7 +67,7 @@ pub struct RegionShortInfo {
 // RegionInfo
 //
 
-/// `struct vm_region_submap_info_64`, packed to 4 bytes.
+/// `struct vm_region_submap_info_64` from `<mach/vm_region.h>`, packed to 4 bytes.
 #[repr(C, packed(4))]
 #[derive(Clone, Copy, Default)]
 pub struct RegionInfo {

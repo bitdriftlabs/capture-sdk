@@ -9,13 +9,14 @@
 use super::mach::{KERN_SUCCESS, count_of, task_self};
 use libc::{integer_t, natural_t};
 
+/// From `<mach/task_info.h>`.
 const TASK_VM_INFO: natural_t = 22;
 
 //
 // TaskVmInfo
 //
 
-/// `struct task_vm_info` from `mach/task_info.h`, which packs to 4 bytes.
+/// `struct task_vm_info` from `<mach/task_info.h>`, which packs to 4 bytes.
 #[repr(C, packed(4))]
 #[derive(Clone, Copy, Default)]
 pub struct TaskVmInfo {
