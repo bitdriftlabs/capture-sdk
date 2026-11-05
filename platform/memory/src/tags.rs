@@ -40,7 +40,7 @@ pub const fn tag_name(tag: u32) -> Option<&'static str> {
     45 => "CoreData",
     46 => "CoreData object IDs",
     50 => "ATS (fonts)",
-    51 => "CoreAnimation",
+    51 => "LayerKit",
     52 => "CGImage",
     53 => "TCMalloc",
     54 => "CoreGraphics data",
