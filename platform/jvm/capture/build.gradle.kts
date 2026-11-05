@@ -258,7 +258,6 @@ tasks.matching { it.name == "mergeProfileableJniLibFolders" }.configureEach {
 // shared library that includes both production and test JNI functions
 tasks.register<Exec>("buildTestJni") {
     description = "Build the combined test JNI library (production + test helpers)"
-    dependsOn(generateBuiltinCommands)
 
     workingDir = bazelWorkspace
 
