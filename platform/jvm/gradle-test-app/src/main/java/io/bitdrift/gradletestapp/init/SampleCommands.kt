@@ -21,6 +21,7 @@ import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.argument
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.gradletestapp.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
@@ -181,6 +182,9 @@ object SampleCommands {
                 if (bytes == null) {
                     error("profiling_failed", "trace file missing")
                 } else {
+                    if (BuildConfig.E2E_TRACE_COPY) {
+                        saveE2eTraceCopy(bytes)
+                    }
                     success(
                         attachment = CommandAttachment(bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
                         context =
@@ -210,6 +214,24 @@ object SampleCommands {
                 )
             }
         }
+
+    /**
+     * Keeps an adb-pullable copy of an uploaded trace for the android-profiling-e2e skill, which
+     * compares it byte for byte with what the backend serves. Only built with `-Pe2eTraceCopy=true`.
+     */
+    private suspend fun CommandScope.saveE2eTraceCopy(bytes: ByteArray) {
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val dir = appContext?.getExternalFilesDir("e2e-traces") ?: return@runCatching
+                val out = File(dir, "${sessionId}_$commandId.perfetto-trace")
+                out.writeBytes(bytes)
+                Log.i(
+                    LOG_TAG,
+                    "E2E trace copy path=${out.absolutePath} bytes=${bytes.size} sessionId=$sessionId commandId=$commandId",
+                )
+            }.onFailure { Log.w(LOG_TAG, "E2E trace copy failed", it) }
+        }
+    }
 
     /** Narrows to an Int without wrapping; the platform clamps the value to its own bounds. */
     private fun Long.toIntSaturated(): Int = coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()

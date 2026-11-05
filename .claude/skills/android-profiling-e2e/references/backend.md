@@ -6,7 +6,7 @@ A workflow-triggered command shows up in the session timeline as a `Command comp
 a `command_attachment` (`artifact_id`, `content_type`, `size_bytes`, `source: WORKFLOW`).
 `commandId` is `null` for workflow-triggered commands, so look the session up instead:
 
-- `run_cell.py` parses `sessionId=` from the hook's logcat line when there is an on-device copy.
+- `run_cell.py` parses `sessionId=` from the trace-copy logcat line when there is an on-device copy.
 - Otherwise `post_cell.py --workflow <id>` reads `bd workflow captured-sessions <id> --last 2h`
   and takes the newest session.
 - `bd timeline logs <session> -ojson` returns the logs. Retry for up to ~4 minutes, because ingestion lags.

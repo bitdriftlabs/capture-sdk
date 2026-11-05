@@ -43,27 +43,20 @@ the release APK on top. Or enter the key and URL in the app's settings screen.
 
 Every build that gets debug files uploaded needs a version code that hasn't been used for this app.
 The mapping is keyed by (app ID, version name, version code), and a reused code mixes mappings. The
-hooks patch makes the code overridable:
+gradle-test-app takes the code from an opt-in Gradle property (default 68):
 
 ```bash
-git apply .claude/skills/android-profiling-e2e/assets/local-e2e-hooks.patch
-./platform/jvm/gradlew -p platform/jvm :gradle-test-app:assembleRelease -Pe2eVersionCode=7102
-./platform/jvm/gradlew -p platform/jvm :gradle-test-app:assembleDebug   -Pe2eVersionCode=7101
-git apply -R .claude/skills/android-profiling-e2e/assets/local-e2e-hooks.patch
-git status --short   # must not show the two patched files
+./platform/jvm/gradlew -p platform/jvm :gradle-test-app:assembleRelease -Pe2eVersionCode=7102 -Pe2eTraceCopy=true
+./platform/jvm/gradlew -p platform/jvm :gradle-test-app:assembleDebug   -Pe2eVersionCode=7101 -Pe2eTraceCopy=true
 ```
 
 `bd debug-files list -ojson` shows which version codes already have a mapping
 (`app_scopes[].app_build_id`).
 
-The patch also makes `SampleCommands.profileResult` write each uploaded trace to
+`-Pe2eTraceCopy=true` sets `BuildConfig.E2E_TRACE_COPY`, which makes `SampleCommands.profileResult` write each uploaded trace to
 `/sdcard/Android/data/io.bitdrift.gradletestapp/files/e2e-traces/` and log
 `E2E trace copy path=... bytes=...`. `run_cell.py` pulls that copy for the integrity check. Built-in
 SDK commands don't go through `SampleCommands`, so they have no copy.
-
-If the patch no longer applies, re-create the same two hunks by hand: a `-Pe2eVersionCode` gradle
-property for `versionCode`, and the copy block before `success(attachment = ...)`. Keep the
-`LOCAL E2E HOOK (do not commit)` comments.
 
 ## Build outputs to keep
 

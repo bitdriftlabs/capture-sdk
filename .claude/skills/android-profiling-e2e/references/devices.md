@@ -65,7 +65,7 @@ Root is possible but off by default. `adb root` restarts adbd as root. Ask befor
 - **Prefs on release builds.** `adb shell cat /data/data/io.bitdrift.gradletestapp/shared_prefs/io.bitdrift.gradletestapp_preferences.xml`
   works regardless of debuggable. Still never print the key: grep for the key names only.
 - **App-private files.** You can pull a profiler's output from the app's data directory, if it is
-  still there, for an extra device-side integrity check on built-in commands, which have no hook
+  still there, for an extra device-side integrity check on built-in commands, which have no trace
   copy.
 - **Fewer surprises from device_config.** `put` and `set_sync_disabled_for_tests persistent` behave
   predictably.

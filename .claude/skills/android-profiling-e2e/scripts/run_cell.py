@@ -3,7 +3,7 @@
 
 Launch the gradle-test-app, wait for workflow config, open the SDK APIs tab, tap the cell's trigger
 button, scroll the UI while the capture records, wait for the upload, then pull the on-device copy
-of the uploaded trace (written by the local e2e hook). Writes <out>/<cell>/cell.json and logcat.txt.
+of the uploaded trace (written when the app is built with -Pe2eTraceCopy=true). Writes <out>/<cell>/cell.json and logcat.txt.
 
     run_cell.py --cell R-HPJ --type heap_profile_java --out .tmp/.../runs [--settle 30] [--wait 45]
 """
@@ -122,7 +122,7 @@ def main():
               "post_cell.py --workflow <id> finds the session")
     if cell["device_copy"] and not info["traces"]:
         sys.exit("no on-device trace copy: check the workflow is LIVE, SDK key/URL prefs, trigger match, "
-                 "and that the hooks patch was applied to this build")
+                 "and that this build was made with -Pe2eTraceCopy=true")
 
 
 if __name__ == "__main__":

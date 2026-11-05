@@ -21,6 +21,22 @@ val autoCaptureOkHttpInstrumentationType =
         .orElse("PROXY")
         .get()
 
+// Used by the android-profiling-e2e skill: each test build needs its own version code so its R8
+// mapping can be uploaded without colliding with another build's.
+val e2eVersionCode =
+    providers.gradleProperty("e2eVersionCode")
+        .map(String::toInt)
+        .orElse(68)
+        .get()
+
+// Used by the android-profiling-e2e skill: keep an adb-pullable copy of every profiling trace the
+// demo commands upload, so the test can compare it byte for byte with what the backend serves.
+val e2eTraceCopy =
+    providers.gradleProperty("e2eTraceCopy")
+        .map(String::toBoolean)
+        .orElse(false)
+        .get()
+
 require(autoCaptureOkHttpInstrumentationType in setOf("PROXY", "OVERWRITE")) {
     "autoCaptureOkHttpInstrumentationType must be PROXY or OVERWRITE"
 }
@@ -125,9 +141,10 @@ android {
         applicationId = "io.bitdrift.gradletestapp"
         minSdk = 23
         targetSdk = 37
-        versionCode = 68
+        versionCode = e2eVersionCode
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("boolean", "E2E_TRACE_COPY", e2eTraceCopy.toString())
         buildConfigField(
             "boolean",
             "ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION",

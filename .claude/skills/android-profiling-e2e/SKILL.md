@@ -59,9 +59,9 @@ step comes up, not upfront.
   cell only when it failed, looks anomalous, or the user asks.
 - **Scratch goes in** `.tmp/android-profiling-e2e/<YYYYMMDD-HHMM>/` at the repo root (gitignored). Each cell
   gets `runs/<cell>/`.
-- **The test hooks are local only.** `assets/local-e2e-hooks.patch` adds a version-code override and
-  an on-device copy of each uploaded trace. Apply it for the build, revert it right after, and never
-  commit it.
+- **Test builds use two opt-in Gradle properties** of the gradle-test-app. Normal builds don't set
+  them and behave as before. `-Pe2eVersionCode=<code>` sets the version code;
+  `-Pe2eTraceCopy=true` makes the demo commands keep an adb-pullable copy of each uploaded trace.
 - **Prefer the bd CLI** (the `bd-cli` skill) over MCP tools for bitdrift operations.
 
 ## 1. Plan the matrix with the user
@@ -152,8 +152,8 @@ Follow `references/device.md`. In short:
 1. Pick a unique version code per build (e.g. debug `7101`, release `7102`). Check
    `bd debug-files list --limit 100 -ojson` (`app_scopes[].app_build_id`) so you don't collide with
    an earlier upload.
-2. `git apply $SK/assets/local-e2e-hooks.patch`, then build with
-   `./platform/jvm/gradlew -p platform/jvm :gradle-test-app:assemble<Variant> -Pe2eVersionCode=<code>`.
+2. Build with
+   `./platform/jvm/gradlew -p platform/jvm :gradle-test-app:assemble<Variant> -Pe2eVersionCode=<code> -Pe2eTraceCopy=true`.
    Expect about 2 minutes when mostly up to date, and 10 minutes or more from cold.
 3. Right after the build, copy the APK, `mapping.txt` (release) and native debug files (release) into
    `.tmp/.../build/<variant>/`. Bazel's `bazel-bin` symlink moves with the next build config.
@@ -161,10 +161,9 @@ Follow `references/device.md`. In short:
    `python3 $SK/scripts/apk_build_ids.py <apk> --dif build/<variant>/dif --out build/<variant>/build_ids.json`.
    Old timestamps on the debug files are normal when Bazel was up to date. The build-ID match is
    what counts.
-4. `git apply -R` the patch and confirm `git status` is clean apart from your own work.
-5. `adb install -r` (debug and release share a signing key, so prefs survive). Don't uninstall:
+4. `adb install -r` (debug and release share a signing key, so prefs survive). Don't uninstall:
    that wipes the SDK key and URL.
-6. Release only: upload the mapping (`bd debug-files upload-proguard`) and native debug files
+5. Release only: upload the mapping (`bd debug-files upload-proguard`) and native debug files
    (`bd debug-files upload`), keeping their console output in `build/<variant>/upload_*.log`.
    - `bd debug-files list` shows no build IDs. The upload log's "Code ID" lines are where you
      confirm the uploaded files match `build_ids.json`.
@@ -241,7 +240,6 @@ or **environment** (device class, see `references/devices.md`), using the baseli
 
 - Stop every temp workflow you created (keep them; don't delete).
 - Redeploy any workflow you paused, then diff its `flows` and `actions` against the snapshot.
-- Make sure the hooks patch is reverted and the working tree is clean.
 - Restore the rate limiter: if `rate_limiter.orig` was `null`, run
   `adb shell device_config delete profiling_testing rate_limiter.disabled`; otherwise `put` the saved
   value back. Then read it again to confirm.
