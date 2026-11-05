@@ -2,15 +2,25 @@ load("@rules_android//android:rules.bzl", "android_binary")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
 load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
+load("@rules_kotlin//kotlin:core.bzl", "kt_kotlinc_options")
 
 # Bazel build of the Gradle microbenchmark module's instrumentation tests. CI builds this
 # self-instrumenting APK remotely and runs it with ci/run_android_benchmarks.sh.
+
+# The repository's options without warnings as errors: the benchmarks deliberately exercise
+# deprecated SDK APIs, which Gradle reports as warnings.
+kt_kotlinc_options(
+    name = "kotlinc_options",
+    warn = "report",
+    x_suppress_version_warnings = True,
+)
 
 kt_android_library(
     name = "benchmarks",
     testonly = True,
     srcs = glob(["src/androidTest/java/**/*.kt"]),
     custom_package = "io.bitdrift.microbenchmark",
+    kotlinc_opts = ":kotlinc_options",
     plugins = ["//:jetpack_compose_compiler_plugin"],
     deps = [
         "//platform/jvm/capture:capture_logger_lib",
