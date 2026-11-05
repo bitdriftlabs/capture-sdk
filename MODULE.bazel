@@ -365,6 +365,14 @@ maven.artifact(
     version = "1.2.0",
 )
 
+# benchmark-common asks for kotlinx-coroutines-android 1.8.1; keep it on the SDK's coroutines
+# release (kotlinx-coroutines-core-jvm above) so production builds are unchanged.
+maven.artifact(
+    artifact = "kotlinx-coroutines-android",
+    group = "org.jetbrains.kotlinx",
+    version = "1.7.3",
+)
+
 # Not testonly: production Compose artifacts such as material-ripple depend on foundation.
 maven.artifact(
     artifact = "foundation",
