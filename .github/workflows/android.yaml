@@ -400,11 +400,25 @@ jobs:
         uses: ./.github/actions/setup-android-emulator
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-          setup-gradle-cache: "true"
           api-level: '31'
           target: default
           arch: x86_64
 
+      # Replaces setup-java's dependency-only cache so compiled task outputs are reused between
+      # runs. Entries are written from main and read elsewhere.
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # pin@v6.4.0
+        with:
+          cache-provider: basic
+          add-job-summary: never
+
+      # Build before the emulator boots: the software-rendered emulator otherwise competes with
+      # Gradle, Kotlin and Bazel for the runner's CPU.
+      - name: Build microbenchmark APK
+        run: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:assembleReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED --build-cache --parallel --stacktrace
+
+      # The Bazel Exec tasks declare no outputs and would rerun (and re-analyze) here, so skip them;
+      # their outputs from the build step are already in bazel-bin.
       - name: Run Microbenchmarks
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         timeout-minutes: 30
@@ -419,7 +433,7 @@ jobs:
           profile: Nexus 6
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:connectedReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED --stacktrace
+          script: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:connectedReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED -x capture:generateBuiltinCommands -x capture:buildBazelReleaseRust --build-cache --parallel --stacktrace
 
       - name: Find benchmark JSON
         id: find_benchmark
