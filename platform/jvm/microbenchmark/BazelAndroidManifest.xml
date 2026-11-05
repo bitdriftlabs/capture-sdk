@@ -8,6 +8,19 @@
         android:minSdkVersion="23"
         android:targetSdkVersion="37" />
 
+    <!--
+      Bazel never merges uses-permission entries from libraries, so declare the ones the Gradle
+      test APK receives from its dependencies' manifests.
+    -->
+    <!-- Capture SDK (platform/jvm/capture/src/main/AndroidManifest.xml). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- androidx.benchmark:benchmark-common; BenchmarkRule grants it at runtime. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- androidx.test:core, for ActivityScenario. -->
+    <uses-permission android:name="android.permission.REORDER_TASKS" />
+
     <!-- Disable debugging for accurate performance results. -->
     <application
         android:debuggable="false"
@@ -17,6 +30,20 @@
         <activity
             android:name="androidx.activity.ComponentActivity"
             android:exported="false" />
+
+        <!--
+          The Capture SDK's startup entry, which Bazel's capture_logger_lib does not carry
+          because it has no manifest.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="io.bitdrift.capture.ContextHolder"
+                android:value="androidx.startup" />
+        </provider>
     </application>
 
     <instrumentation
