@@ -33,7 +33,7 @@ class ScreenshotBuiltinCommandTest {
     fun registersAsTheTakeScreenshotBuiltin() {
         assertThat(screenshot.type).isEqualTo(BuiltinCommandType.TAKE_SCREENSHOT)
         assertThat(screenshot.artifactType).isEqualTo("screenshot")
-        assertThat(screenshot.timeoutMs).isNull()
+        assertThat(screenshot.timeoutMs).isNotNull()
     }
 
     @Test
