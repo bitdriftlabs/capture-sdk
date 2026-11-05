@@ -25,7 +25,7 @@ import io.bitdrift.capture.commands.profiling.Profiler
 import io.bitdrift.capture.commands.profiling.heapprofile.HeapProfileCommand
 import io.bitdrift.capture.commands.profiling.stacksampling.StackSamplingCommand
 import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
-import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
+import io.bitdrift.capture.commands.screenshot.ScreenshotCommand
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -134,7 +134,7 @@ internal class LoggerImpl(
                 profileability = ProfileabilityChecker(context),
             ).let { profiling ->
                 listOf(
-                    ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
+                    ScreenshotCommand(PixelCopyScreenshotCapturer(windowManager)),
                     StackSamplingCommand(profiling),
                     HeapProfileCommand(profiling),
                 )

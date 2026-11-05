@@ -16,7 +16,7 @@ import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
-class ScreenshotBuiltinCommandTest {
+class ScreenshotCommandTest {
     private val capturer =
         object : IScreenshotCapturer {
             var captures = 0
@@ -26,7 +26,7 @@ class ScreenshotBuiltinCommandTest {
                 return CommandResult.Success()
             }
         }
-    private val screenshot = ScreenshotBuiltinCommand(capturer)
+    private val screenshot = ScreenshotCommand(capturer)
 
     /** The registration tuple is the contract the backend relies on. */
     @Test

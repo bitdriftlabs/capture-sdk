@@ -8,7 +8,7 @@
 package io.bitdrift.capture.commands
 
 import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
-import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
+import io.bitdrift.capture.commands.screenshot.ScreenshotCommand
 import io.bitdrift.capture.providers.Field
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -52,7 +52,7 @@ class CommandRegistryTest {
             BuiltinCommandsInstaller(
                 registry,
                 listOf(
-                    ScreenshotBuiltinCommand(
+                    ScreenshotCommand(
                         object : IScreenshotCapturer {
                             override suspend fun capture() = CommandResult.Success()
                         },
