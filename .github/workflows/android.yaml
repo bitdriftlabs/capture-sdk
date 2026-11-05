@@ -400,18 +400,16 @@ jobs:
         uses: ./.github/actions/setup-android-emulator
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-          setup-gradle-cache: "true"
           api-level: '31'
           target: default
           arch: x86_64
 
-      # Build before the emulator boots: the software-rendered emulator otherwise competes with
-      # Gradle, Kotlin and Bazel for the runner's CPU.
+      # Bazel builds the instrumentation APK with remote execution, using the same release
+      # configuration as the size jobs so the native library comes from the shared cache.
       - name: Build microbenchmark APK
-        run: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:assembleReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED --parallel --stacktrace
+        timeout-minutes: 30
+        run: ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --remote_download_toplevel --android_platforms=@rules_android//:x86_64 //platform/jvm/microbenchmark:microbenchmark_test_apk
 
-      # The Bazel Rust Exec task declares no outputs and would rerun (and re-analyze) here, so skip
-      # it; its output from the build step is already in bazel-bin.
       - name: Run Microbenchmarks
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
         timeout-minutes: 30
@@ -426,12 +424,12 @@ jobs:
           profile: Nexus 6
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:connectedReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED -x capture:buildBazelReleaseRust --parallel --stacktrace
+          script: ./ci/run_android_benchmarks.sh bazel-bin/platform/jvm/microbenchmark/microbenchmark_test_apk.apk benchmark-output
 
       - name: Find benchmark JSON
         id: find_benchmark
         run: |
-          BENCHMARK_JSON=$(find platform/jvm/microbenchmark/build/outputs -name "*benchmarkData.json" -type f | head -n 1)
+          BENCHMARK_JSON=$(find benchmark-output -name "*benchmarkData.json" -type f | head -n 1)
           if [ -z "$BENCHMARK_JSON" ]; then
             echo "No benchmark JSON file found!"
             echo "found=false" >> $GITHUB_OUTPUT
@@ -529,7 +527,7 @@ jobs:
         with:
           name: benchmark-results
           path: |
-            platform/jvm/microbenchmark/build/outputs/connected_android_test_additional_output/
+            benchmark-output/
             benchmark_report.md
         if: always()
 

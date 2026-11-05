@@ -1,0 +1,59 @@
+load("@rules_android//android:rules.bzl", "android_binary")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_jvm_external//:defs.bzl", "artifact")
+load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
+
+# Bazel build of the Gradle microbenchmark module's instrumentation tests. CI builds this
+# self-instrumenting APK remotely and runs it with ci/run_android_benchmarks.sh.
+
+kt_android_library(
+    name = "benchmarks",
+    testonly = True,
+    srcs = glob(["src/androidTest/java/**/*.kt"]),
+    custom_package = "io.bitdrift.microbenchmark",
+    plugins = ["//:jetpack_compose_compiler_plugin"],
+    deps = [
+        "//platform/jvm/capture:capture_logger_lib",
+        "//platform/jvm/capture:tombstone_proto_java_lite",
+        "//platform/jvm/common:lib",
+        "//platform/jvm/replay:lib",
+        artifact("androidx.activity:activity"),
+        artifact("androidx.benchmark:benchmark-common"),
+        artifact("androidx.benchmark:benchmark-junit4"),
+        artifact("androidx.compose.foundation:foundation-layout-android"),
+        artifact("androidx.compose.material3:material3-android"),
+        artifact("androidx.compose.runtime:runtime-android"),
+        artifact("androidx.compose.ui:ui-android"),
+        artifact("androidx.test:core"),
+        artifact("androidx.test:monitor"),
+        artifact("androidx.test.ext:junit"),
+        artifact("com.google.flatbuffers:flatbuffers-java"),
+        artifact("com.google.protobuf:protobuf-javalite"),
+        artifact("com.squareup.okhttp3:okhttp"),
+        artifact("junit:junit"),
+        artifact("androidx.webkit:webkit"),
+    ],
+)
+
+# android_binary packages native libraries from cc_library dependencies into lib/<abi>/.
+cc_library(
+    name = "capture_jni",
+    testonly = True,
+    srcs = ["//platform/jvm:capture_shared"],
+    linkstatic = True,
+)
+
+android_binary(
+    name = "microbenchmark_test_apk",
+    testonly = True,
+    custom_package = "io.bitdrift.microbenchmark.test",
+    manifest = "BazelAndroidManifest.xml",
+    manifest_values = {
+        "applicationId": "io.bitdrift.microbenchmark.test",
+    },
+    deps = [
+        ":benchmarks",
+        ":capture_jni",
+        artifact("androidx.test:runner"),
+    ],
+)

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Self-instrumenting test APK for the Bazel benchmark build; see BUILD.bazel. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="io.bitdrift.microbenchmark.test">
+
+    <uses-sdk
+        android:minSdkVersion="23"
+        android:targetSdkVersion="37" />
+
+    <!-- Disable debugging for accurate performance results. -->
+    <application
+        android:debuggable="false"
+        tools:ignore="HardcodedDebugMode"
+        tools:replace="android:debuggable">
+        <!-- ComposeTreeParserBenchmarkTest hosts its composition in a ComponentActivity. -->
+        <activity
+            android:name="androidx.activity.ComponentActivity"
+            android:exported="false" />
+    </application>
+
+    <instrumentation
+        android:name="androidx.benchmark.junit4.AndroidBenchmarkRunner"
+        android:targetPackage="io.bitdrift.microbenchmark.test" />
+</manifest>
