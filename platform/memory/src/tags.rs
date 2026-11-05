@@ -24,6 +24,7 @@ pub const fn tag_name(tag: u32) -> Option<&'static str> {
     13 => "MALLOC_PROB_GUARD",
     20 => "Mach message",
     21 => "IOKit",
+    22 => "VM_RECLAIM",
     30 => "Stack",
     31 => "Guard",
     32 => "Shared pmap",
