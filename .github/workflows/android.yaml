@@ -356,6 +356,9 @@ jobs:
         api-level: '23'
         target: default
         arch: x86_64
+    - name: Gradle capture unit tests
+      working-directory: ./platform/jvm
+      run: ./gradlew capture:testReleaseUnitTest --info
     - name: Gradle capture-timber unit tests
       working-directory: ./platform/jvm
       run: ./gradlew capture-timber:testReleaseUnitTest --info
