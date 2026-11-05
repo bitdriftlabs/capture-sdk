@@ -330,7 +330,14 @@ maven.artifact(
     version = "1.6.0",
 )
 
-# Microbenchmark instrumentation APK (//platform/jvm/microbenchmark).
+# Microbenchmark instrumentation APK (//platform/jvm/microbenchmark). Only test-only artifacts may
+# depend on testonly ones, so androidx.test:rules, which depends on the runner, is declared too.
+maven.artifact(
+    testonly = True,
+    artifact = "rules",
+    group = "androidx.test",
+    version = "1.6.1",
+)
 maven.artifact(
     testonly = True,
     artifact = "runner",
@@ -357,8 +364,9 @@ maven.artifact(
     group = "androidx.tracing",
     version = "1.2.0",
 )
+
+# Not testonly: production Compose artifacts such as material-ripple depend on foundation.
 maven.artifact(
-    testonly = True,
     artifact = "foundation",
     group = "androidx.compose.foundation",
     version = COMPOSE_VERSION,
