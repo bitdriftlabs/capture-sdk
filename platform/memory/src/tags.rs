@@ -5,7 +5,8 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-/// Readable name for a Mach `user_tag`, or None when the tag is unknown.
+/// Readable name for a Mach `user_tag`, the `VM_MEMORY_*` values from `<mach/vm_statistics.h>`, or
+/// None when the tag is unknown.
 pub const fn tag_name(tag: u32) -> Option<&'static str> {
   Some(match tag {
     0 => "Untagged",
