@@ -19,7 +19,7 @@ import io.bitdrift.capture.commands.profiling.intArgument
 /**
  * The built-in `heap_profile_trace` command: records a Perfetto heap profile of this process through
  * the platform profiler and returns the trace file as the command attachment. A profile records
- * either native allocations (the default) or Java heap allocations, never both.
+ * either Java heap allocations (the default) or native ones, never both.
  *
  * The backend always sends `duration_ms`, `buffer_size_kb`, `sampling_interval_bytes` and
  * `track_java_allocations`, filling in their defaults; a missing or mistyped one fails the

@@ -78,7 +78,7 @@ class HeapProfileCommandTest {
                     durationMs = 5_000,
                     bufferSizeKb = 8_192,
                     samplingIntervalBytes = 65_536L,
-                    trackJavaAllocations = false,
+                    trackJavaAllocations = true,
                     tag = "bitdrift",
                 ),
             )
@@ -104,7 +104,7 @@ class HeapProfileCommandTest {
                             "duration_ms" to CommandArgument.Int64(Int.MAX_VALUE + 1L),
                             "buffer_size_kb" to CommandArgument.Int64(0),
                             "sampling_interval_bytes" to CommandArgument.Int64(Long.MAX_VALUE),
-                            "track_java_allocations" to CommandArgument.Bool(true),
+                            "track_java_allocations" to CommandArgument.Bool(false),
                         ),
                     )
                 }
@@ -114,7 +114,7 @@ class HeapProfileCommandTest {
                     durationMs = Int.MAX_VALUE,
                     bufferSizeKb = 0,
                     samplingIntervalBytes = Long.MAX_VALUE,
-                    trackJavaAllocations = true,
+                    trackJavaAllocations = false,
                     tag = "bitdrift",
                 ),
             )
@@ -164,7 +164,7 @@ class HeapProfileCommandTest {
                 "duration_ms" to CommandArgument.Int64(5_000),
                 "buffer_size_kb" to CommandArgument.Int64(8_192),
                 "sampling_interval_bytes" to CommandArgument.Int64(65_536),
-                "track_java_allocations" to CommandArgument.Bool(false),
+                "track_java_allocations" to CommandArgument.Bool(true),
             )
     }
 }
