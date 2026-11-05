@@ -12,6 +12,7 @@ mod tests;
 use crate::memory::{AddressRange, MemoryReader};
 
 const MH_MAGIC_64: u32 = 0xfeed_facf;
+const MH_DYLIB_IN_CACHE: u32 = 0x8000_0000;
 const CPU_TYPE_ARM64: u32 = 0x0100_000c;
 const LC_SEGMENT_64: u32 = 0x19;
 const LC_UUID: u32 = 0x1b;
@@ -37,12 +38,13 @@ pub struct ImageInfo {
   pub eh_frame: Option<AddressRange>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ImageError {
   UnreadableMemory,
   InvalidHeader,
   UnsupportedArchitecture,
   InvalidLoadCommand,
+  NonzeroTextFileOffset { in_shared_cache: bool },
   InvalidSection,
   MissingTextSegment,
   AddressOverflow,
@@ -112,9 +114,18 @@ impl ImageInfo {
           let address = u64_at(&segment, 24).ok_or(ImageError::InvalidLoadCommand)?;
           let length = u64_at(&segment, 32).ok_or(ImageError::InvalidLoadCommand)?;
           if name.starts_with(b"__TEXT\0") {
-            if text.is_some() || u64_at(&segment, 40) != Some(0) || u64_at(&segment, 48) == Some(0)
-            {
+            if text.is_some() || u64_at(&segment, 48) == Some(0) {
               return Err(ImageError::InvalidLoadCommand);
+            }
+            if u64_at(&segment, 40) != Some(0) {
+              // Shared-cache file offsets refer to the cache, not a standalone Mach-O file.
+              // Runtime relocation below depends only on virtual addresses.
+              let flags = u32_at(&header, 24).ok_or(ImageError::InvalidHeader)?;
+              if flags & MH_DYLIB_IN_CACHE == 0 {
+                return Err(ImageError::NonzeroTextFileOffset {
+                  in_shared_cache: false,
+                });
+              }
             }
             text = Some(AddressRange::new(address, length).ok_or(ImageError::InvalidLoadCommand)?);
           }

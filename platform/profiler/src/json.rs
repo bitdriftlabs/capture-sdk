@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 use crate::{Snapshot, ThreadStatus};
 use bd_unwind::aarch64::{FrameKind, StopReason};
+use bd_unwind::image::ImageError;
 use std::io::{self, Write};
 
 // Legacy Firefox Profiler tables are imported as stack samples by Perfetto:
@@ -89,7 +90,16 @@ pub(super) fn write(snapshot: &Snapshot, output: &mut impl Write) -> io::Result<
     }
     output.write_all(b"]}}")?;
   }
-  output.write_all(br#"],"bitdrift":{"version":1,"capture":"snapshot","images":["#)?;
+  let summary = snapshot.summary();
+  write!(
+    output,
+    r#"],"bitdrift":{{"version":1,"capture":"snapshot","capturedThreads":{},
+    "failedThreads":{},"truncatedThreads":{},"skippedThreads":{},"images":["#,
+    summary.captured_threads,
+    summary.failed_threads,
+    summary.truncated_threads,
+    summary.skipped_threads
+  )?;
   for (index, image) in snapshot.images.iter().enumerate() {
     if index != 0 {
       output.write_all(b",")?;
@@ -111,7 +121,39 @@ pub(super) fn write(snapshot: &Snapshot, output: &mut impl Write) -> io::Result<
     }
     output.write_all(b"}")?;
   }
-  output.write_all(b"]}}")
+  let rejected: usize = snapshot.image_errors.values().sum();
+  write!(
+    output,
+    r#"],"imageSurvey":{{"enumerated":{},"accepted":{},"rejected":{},"errors":{{"#,
+    snapshot.images.len() + rejected,
+    snapshot.images.len(),
+    rejected
+  )?;
+  for (index, (error, count)) in snapshot.image_errors.iter().enumerate() {
+    if index != 0 {
+      output.write_all(b",")?;
+    }
+    write!(output, r#""{}":{count}"#, image_error(*error))?;
+  }
+  output.write_all(b"}}}}")
+}
+
+const fn image_error(error: ImageError) -> &'static str {
+  match error {
+    ImageError::UnreadableMemory => "unreadable_memory",
+    ImageError::InvalidHeader => "invalid_header",
+    ImageError::UnsupportedArchitecture => "unsupported_architecture",
+    ImageError::InvalidLoadCommand => "invalid_load_command",
+    ImageError::NonzeroTextFileOffset {
+      in_shared_cache: true,
+    } => "nonzero_text_file_offset_in_shared_cache",
+    ImageError::NonzeroTextFileOffset {
+      in_shared_cache: false,
+    } => "nonzero_text_file_offset",
+    ImageError::InvalidSection => "invalid_section",
+    ImageError::MissingTextSegment => "missing_text_segment",
+    ImageError::AddressOverflow => "address_overflow",
+  }
 }
 
 fn string(output: &mut impl Write, value: &str) -> io::Result<()> {

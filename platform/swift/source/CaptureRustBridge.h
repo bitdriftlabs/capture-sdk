@@ -25,9 +25,29 @@ NS_ASSUME_NONNULL_BEGIN
  */
 void capture_report_error(const char *message);
 
-/* Writes a new snapshot file. Returns 0 on success, 1 for invalid arguments, 2 when busy,
- * 3 for unsupported architecture, 4 for capture failure, or 5 for file I/O failure. */
-int32_t capture_stack_snapshot(uint32_t buffer_size_kb, const char *path);
+/* The owner retains this handle until capture and all cancellation calls finish. Cancellation
+ * only sets an atomic flag; it does not wait, take locks, or resume any thread. */
+void *capture_stack_snapshot_bridge_create(void);
+void capture_stack_snapshot_bridge_cancel(const void *bridge);
+void capture_stack_snapshot_bridge_release(void *bridge);
+
+typedef struct {
+    size_t captured_threads;
+    size_t failed_threads;
+    size_t truncated_threads;
+    size_t skipped_threads;
+} capture_stack_snapshot_summary;
+
+/* Writes a new snapshot file, capped at 5 MiB of encoded JSON. Returns 0 on success,
+ * 1 for invalid arguments, 2 when busy, 3 for unsupported architecture, 4 for capture failure,
+ * 5 for file I/O failure, 6 for an oversized attachment, 7 for cancellation, or 8 when no useful
+ * stacks were captured. Failed exports remove their owned partial files. */
+int32_t capture_stack_snapshot(
+    uint32_t buffer_size_kb,
+    const char *path,
+    const void *bridge,
+    capture_stack_snapshot_summary *summary
+);
 
 /*
  * Creates a new logger.

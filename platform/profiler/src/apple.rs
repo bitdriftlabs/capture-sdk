@@ -18,14 +18,19 @@ use crate::mach::{
   stack_region,
   thread_resume,
 };
-use crate::{CaptureError, Snapshot, ThreadSnapshot, ThreadStatus};
+use crate::{CancellationToken, CaptureError, Snapshot, ThreadSnapshot, ThreadStatus};
 use bd_unwind::aarch64::{Frame, FrameKind, strip_instruction_pointer, walk_frame_pointers};
 use bd_unwind::apple::TaskMemory;
 use bd_unwind::image::ImageInfo;
 use bd_unwind::memory::{MemoryReader, StackMemory};
+use std::collections::BTreeMap;
 use std::mem::size_of;
 
-pub(super) fn capture(budget: usize) -> Result<Snapshot, CaptureError> {
+pub(super) fn capture(
+  budget: usize,
+  cancellation: &CancellationToken,
+) -> Result<Snapshot, CaptureError> {
+  cancellation.check()?;
   let threads = Threads::new()?;
   let count = threads.ports().len();
   let frame_capacity = budget / 2 / size_of::<Frame>() / count.max(1);
@@ -35,6 +40,7 @@ pub(super) fn capture(budget: usize) -> Result<Snapshot, CaptureError> {
   let mut scratch = vec![0; budget / 2];
   let mut snapshots = Vec::with_capacity(count);
   for port in threads.ports() {
+    cancellation.check()?;
     let (native_id, name) = metadata(*port);
     snapshots.push(ThreadSnapshot {
       native_id,
@@ -68,6 +74,7 @@ pub(super) fn capture(budget: usize) -> Result<Snapshot, CaptureError> {
   }
   let origin = unsafe { mach_absolute_time() };
   for (port, snapshot) in threads.ports().iter().zip(&mut snapshots) {
+    cancellation.check()?;
     if *port == threads.current {
       snapshot.frames.clear();
       continue;
@@ -95,6 +102,8 @@ pub(super) fn capture(budget: usize) -> Result<Snapshot, CaptureError> {
       0
     };
     suspended.resume()?;
+    // Cancellation cannot bypass resume or run inside the suspended-thread section above.
+    cancellation.check()?;
     let end = unsafe { mach_absolute_time() };
     snapshot.timestamp_ns = timebase.nanos(start - origin);
     snapshot.suspension_ns = timebase.nanos(end - start);
@@ -130,15 +139,23 @@ pub(super) fn capture(budget: usize) -> Result<Snapshot, CaptureError> {
   }
   // Read image metadata after all threads have resumed. Fault-tolerant reads handle images that
   // disappear during enumeration; no borrowed dyld strings or image pointers enter the snapshot.
-  let images = (0 .. unsafe { _dyld_image_count() })
-    .filter_map(|index| {
-      let address = unsafe { _dyld_get_image_header(index) } as u64;
-      ImageInfo::read(&TaskMemory, address).ok()
-    })
-    .collect();
-  Ok(Snapshot {
+  let mut snapshot = Snapshot {
     pid: unsafe { getpid() }.unsigned_abs(),
     threads: snapshots,
-    images,
-  })
+    images: Vec::new(),
+    image_errors: BTreeMap::new(),
+  };
+  for index in 0 .. unsafe { _dyld_image_count() } {
+    cancellation.check()?;
+    let address = unsafe { _dyld_get_image_header(index) } as u64;
+    snapshot.record_image(ImageInfo::read(&TaskMemory, address));
+  }
+  cancellation.check()?;
+  log::debug!(
+    "stack snapshot image survey: {} accepted, rejected by reason: {:?}",
+    snapshot.images.len(),
+    snapshot.image_errors
+  );
+  snapshot.ensure_useful()?;
+  Ok(snapshot)
 }

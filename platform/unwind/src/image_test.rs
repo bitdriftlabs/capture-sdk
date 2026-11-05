@@ -193,7 +193,31 @@ fn requires_a_file_backed_text_segment_for_slide_calculation() {
   assert_eq!(parse(&bytes), Err(ImageError::MissingTextSegment));
   bytes[40 .. 46].copy_from_slice(b"__TEXT");
   put_u64(&mut bytes, 72, 4096);
-  assert_eq!(parse(&bytes), Err(ImageError::InvalidLoadCommand));
+  assert_eq!(
+    parse(&bytes),
+    Err(ImageError::NonzeroTextFileOffset {
+      in_shared_cache: false
+    })
+  );
+}
+
+#[test]
+fn shared_cache_file_offsets_do_not_change_runtime_segment_or_section_addresses() {
+  let mut bytes = fixture();
+  put_u32(&mut bytes, 12, 6); // MH_DYLIB
+  put_u32(&mut bytes, 24, 0x8000_0000); // MH_DYLIB_IN_CACHE
+  for file_offset in [0, 4096, 0x1234_5678, 0x7fff_ffff_0000] {
+    put_u64(&mut bytes, 72, file_offset);
+    let info = parse(&bytes).unwrap();
+    assert_eq!(info.header_address, HEADER);
+    assert_eq!(info.uuid, Some([7; 16]));
+    assert_eq!(info.text, AddressRange::new(HEADER, 0x1000).unwrap());
+    assert_eq!(info.unwind_info, AddressRange::new(HEADER + 0x400, 32));
+    assert_eq!(info.eh_frame, AddressRange::new(HEADER + 0x500, 64));
+  }
+  // Being in the cache does not bypass structural or memory-range checks.
+  put_u64(&mut bytes, 136, PREFERRED - 1);
+  assert_eq!(parse(&bytes), Err(ImageError::InvalidSection));
 }
 
 #[test]
