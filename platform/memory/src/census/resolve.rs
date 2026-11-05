@@ -18,9 +18,11 @@ const CXX_NAME_CAPACITY: usize = 256;
 /// Hops from a class to the root metaclass, which points at itself.
 const ISA_CHAIN_HOPS: usize = 3;
 const SUPERCLASS_CHAIN_HOPS: usize = 16;
-/// First words below this are Swift metadata kinds rather than pointers.
+/// First words below this are Swift metadata kinds rather than pointers. From the Swift ABI,
+/// `LastEnumerated` in `include/swift/ABI/MetadataKind.def`.
 const METADATA_KIND_MAX: usize = 0x800;
 /// Swift metadata kinds of heap objects that have no class: closure boxes, existentials, errors.
+/// From the Swift ABI, `include/swift/ABI/MetadataKind.def`.
 const SWIFT_BOX_KINDS: [usize; 3] = [0x400, 0x500, 0x501];
 
 //

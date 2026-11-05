@@ -19,6 +19,7 @@ use std::ffi::CStr;
 use std::marker::PhantomData;
 use std::slice;
 
+/// From `<malloc/malloc.h>`, as are the callback types and structures below.
 pub const MALLOC_PTR_IN_USE_RANGE_TYPE: c_uint = 1;
 
 type MemoryReader = unsafe extern "C" fn(
@@ -51,7 +52,7 @@ type ZoneFunction = unsafe extern "C" fn(zone: *mut MallocZone);
 // MallocZone
 //
 
-/// The prefix of `malloc_zone_t` up to the introspection table.
+/// The prefix of `malloc_zone_t` from `<malloc/malloc.h>`, up to the introspection table.
 #[repr(C)]
 struct MallocZone {
   reserved: [*mut c_void; 2],
@@ -65,7 +66,7 @@ struct MallocZone {
 // MallocIntrospection
 //
 
-/// The prefix of `malloc_introspection_t` up to `force_unlock`.
+/// The prefix of `malloc_introspection_t` from `<malloc/malloc.h>`, up to `force_unlock`.
 #[repr(C)]
 struct MallocIntrospection {
   enumerator: Option<Enumerator>,
@@ -78,6 +79,7 @@ struct MallocIntrospection {
 // MallocStatistics
 //
 
+/// `malloc_statistics_t` from `<malloc/malloc.h>`.
 #[repr(C)]
 #[derive(Default)]
 struct MallocStatistics {
@@ -87,6 +89,7 @@ struct MallocStatistics {
   size_allocated: usize,
 }
 
+// From `<malloc/malloc.h>`.
 unsafe extern "C" {
   fn malloc_get_all_zones(
     task: mach_port_t,

@@ -15,11 +15,26 @@ mod tests;
 use crate::safe_read;
 use crate::sys::dyld;
 
+/// From `<mach-o/loader.h>`.
 const MH_MAGIC_64: u32 = 0xfeed_facf;
 const LC_SEGMENT_64: u32 = 0x19;
 const LC_UUID: u32 = 0x1b;
+
+/// `struct mach_header_64` from `<mach-o/loader.h>`: its size and the offsets of `ncmds` and
+/// `sizeofcmds`.
 const HEADER_SIZE: usize = 32;
+const HEADER_NCMDS: usize = 16;
+const HEADER_SIZEOFCMDS: usize = 20;
+
+/// `struct load_command` from `<mach-o/loader.h>`: the offset of `cmdsize`.
+const COMMAND_CMDSIZE: usize = 4;
+
+/// `struct segment_command_64` from `<mach-o/loader.h>`: its size and the offsets of `vmaddr`,
+/// `vmsize` and `filesize`.
 const SEGMENT_COMMAND_SIZE: usize = 72;
+const SEGMENT_VMADDR: usize = 24;
+const SEGMENT_VMSIZE: usize = 32;
+const SEGMENT_FILESIZE: usize = 48;
 const UUID_COMMAND_SIZE: usize = 24;
 const UUID_SIZE: usize = 16;
 
@@ -157,8 +172,8 @@ fn load_commands(header: usize) -> LoadCommands {
   if !safe_read::read(header, &mut header_bytes) || read_u32(&header_bytes, 0) != MH_MAGIC_64 {
     return LoadCommands::default();
   }
-  let command_count = read_u32(&header_bytes, 16);
-  let commands_size = read_u32(&header_bytes, 20) as usize;
+  let command_count = read_u32(&header_bytes, HEADER_NCMDS);
+  let commands_size = read_u32(&header_bytes, HEADER_SIZEOFCMDS) as usize;
   let mut commands = vec![0u8; commands_size];
   if !safe_read::read(header + HEADER_SIZE, &mut commands) {
     return LoadCommands::default();
@@ -168,14 +183,14 @@ fn load_commands(header: usize) -> LoadCommands {
   let mut offset = 0;
   for _ in 0 .. command_count {
     let command = read_u32(&commands, offset);
-    let command_size = read_u32(&commands, offset + 4) as usize;
+    let command_size = read_u32(&commands, offset + COMMAND_CMDSIZE) as usize;
     if command_size == 0 || offset + command_size > commands.len() {
       break;
     }
     if command == LC_SEGMENT_64 && command_size >= SEGMENT_COMMAND_SIZE {
-      let address = read_u64(&commands, offset + 24);
-      let size = read_u64(&commands, offset + 32);
-      let file_size = read_u64(&commands, offset + 48);
+      let address = read_u64(&commands, offset + SEGMENT_VMADDR);
+      let size = read_u64(&commands, offset + SEGMENT_VMSIZE);
+      let file_size = read_u64(&commands, offset + SEGMENT_FILESIZE);
       if let (Ok(address), Ok(size)) = (usize::try_from(address), usize::try_from(size))
         && size > 0
         && file_size > 0
