@@ -37,8 +37,6 @@ def main():
                          "stop reacts to the default one. Pass the same value to make_workflow.py and run_cell.py")
     ap.add_argument("--app-id", default=PKG)
     ap.add_argument("--arg", action="append", default=[], help="override a command argument, key=value")
-    ap.add_argument("--drop-arg", action="append", default=[],
-                    help="leave an argument out (e.g. one the account's command registration doesn't define)")
     a = ap.parse_args()
 
     cell = CELLS[a.type]
@@ -46,8 +44,6 @@ def main():
     for o in a.arg:
         k, v = parse_override(o, args)
         args[k] = v
-    for k in a.drop_arg:
-        args.pop(k, None)
     cmd = cell["command"]
     selector = ({"builtin_command": {"type": cmd}} if isinstance(cmd, int)
                 else {"registered_command": {"registered_command_id": cmd}})
@@ -87,8 +83,6 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     (out / f"{a.cell}.workflow.json").write_text(json.dumps(workflow, indent=2))
     (out / f"{a.cell}.metadata.json").write_text(json.dumps(metadata, indent=2))
-    if a.drop_arg:
-        print(f"dropped arguments: {a.drop_arg} (say so in the report)")
     print(out / f"{a.cell}.workflow.json")
     print(out / f"{a.cell}.metadata.json")
 

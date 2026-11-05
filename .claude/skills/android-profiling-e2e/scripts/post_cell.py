@@ -8,6 +8,7 @@
 newest one the temp workflow captured.
 """
 import argparse
+import datetime
 import hashlib
 import json
 import pathlib
@@ -33,31 +34,54 @@ def bd_json(*args):
         return {}
 
 
-def find_session(info, workflow):
+def epoch(ts):
+    """'2026-11-05T17:24:24.975Z' (UTC) or '2026-11-05T12:20:01-0500' (run_cell's local time) -> seconds."""
+    if not ts:
+        return 0.0
+    if ts.endswith("Z"):
+        return datetime.datetime.strptime(ts[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=datetime.timezone.utc).timestamp()
+    return datetime.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S%z").timestamp()
+
+
+def find_session(info, workflow, since, attempts=12):
     for t in reversed(info.get("traces", [])):
         if t.get("session_id") not in (None, "null"):
             return t["session_id"]
     for inv in reversed(info.get("invocations", [])):
         if inv.get("session_id") not in (None, "null"):
             return inv["session_id"]
-    if workflow:
+    if not workflow:
+        sys.exit("no session id: pass --workflow <temp workflow id>")
+    # Only a session the temp workflow captured during this run counts; keep polling for ingestion lag
+    # instead of falling back to an older session.
+    for _ in range(attempts):
         sessions = bd_json("workflow", "captured-sessions", workflow, "--last", "2h").get("captured_sessions", [])
-        sessions.sort(key=lambda s: s.get("last_seen") or "", reverse=True)
-        if sessions:
-            return sessions[0]["session_id"]
-    sys.exit("no session id: pass --workflow <temp workflow id>")
+        recent = [s for s in sessions if epoch(s.get("last_seen")) >= since]
+        if recent:
+            return max(recent, key=lambda s: epoch(s.get("last_seen")))["session_id"]
+        time.sleep(20)
+    sys.exit(f"workflow {workflow} captured no session after the run started")
 
 
-def find_completion(d, sid, name, attempts=12):
+def command_key(log):
+    details = ((log.get("fields") or {}).get("fields", {}).get("_command_details") or {}).get("string_data") or "{}"
+    try:
+        return json.loads(details).get("key")
+    except json.JSONDecodeError:
+        return None
+
+
+def find_completion(d, sid, name, since, attempts=12):
+    """The newest attachment-bearing completion of exactly this command, logged after the run started."""
     for _ in range(attempts):
         logs = bd_json("timeline", "logs", sid).get("logs", [])
         (d / "timeline.json").write_text(json.dumps({"logs": logs}))
-        done = [l for l in logs if l.get("message") == "Command completed" and l.get("command_attachment")]
-        named = [l for l in done if name in json.dumps(l)]
-        if named or done:
-            return (named or done)[-1]
+        done = [l for l in logs if l.get("message") == "Command completed" and l.get("command_attachment")
+                and command_key(l) == name and epoch(l.get("timestamp")) >= since]
+        if done:
+            return max(done, key=lambda l: epoch(l.get("timestamp")))
         time.sleep(20)
-    sys.exit(f"no 'Command completed' log with an attachment in session {sid}")
+    sys.exit(f"no completed {name} with an attachment in session {sid} since the run started")
 
 
 def main():
@@ -69,8 +93,9 @@ def main():
     a = ap.parse_args()
     d = pathlib.Path(a.runs) / a.cell
     info = json.loads((d / "cell.json").read_text())
-    sid = find_session(info, a.workflow)
-    done = find_completion(d, sid, command_name(a.type))
+    since = epoch(info["started"]) - 60  # small allowance for clock skew between host and backend
+    sid = find_session(info, a.workflow, since)
+    done = find_completion(d, sid, command_name(a.type), since)
     att = done["command_attachment"]
     fields = (done.get("fields") or {}).get("fields", {})
     pick = lambda k: (fields.get(k) or {}).get("string_data")

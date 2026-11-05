@@ -25,7 +25,8 @@ definitions, and checks that each command is enabled.
 
 - The demo commands (`heap_profile_demo`, `java_heap_dump_demo`) are registered per account. If an
   argument is missing from the definition, re-registering is the user's call; the script prints the
-  command. `--drop-arg` is the fallback.
+  command. Without it, skip the cell: these commands require every argument, so they fail
+  with `invalid_arguments` if one is left out.
 - The stack sampler is a built-in (well-known type 3, key `stack_sampling_trace`). Its definition is
   fixed and it only needs to be enabled; it was enabled on staging in November 2026.
 

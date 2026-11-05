@@ -118,7 +118,8 @@ adb shell device_config get profiling_testing rate_limiter.disabled
     first.
   - Registered demo commands must define every argument the cell sends. On a mismatch the script
     prints the `bd command register` fix (a shared account change that needs the user's OK).
-    Otherwise use `--drop-arg` and say in the report what coverage was lost.
+    Without that OK, skip the cell and say so in the report: the demo commands require every
+    argument, so leaving one out makes them fail.
 - **Interfering workflows.** `list_overlaps.py` scans the whole account (`bd workflow list` returns at
   most 100 per call) for LIVE workflows on this app. Those under `interfering` run a device command,
   so they compete for the profiler or fire on your trigger: propose stopping them, and snapshot each
@@ -149,9 +150,11 @@ adb shell device_config get profiling_testing rate_limiter.disabled
 
 Follow `references/device.md`. In short:
 
-1. Pick a unique version code per build (e.g. debug `7101`, release `7102`). Check
-   `bd debug-files list --limit 100 -ojson` (`app_scopes[].app_build_id`) so you don't collide with
-   an earlier upload.
+1. Pick a unique version code per build, higher than the one installed on the device and rising
+   in the order you will install the builds (e.g. debug `7101`, then release `7102`). Android
+   refuses `install -r` of a lower version code, and uninstalling instead would wipe the SDK
+   prefs. Check `bd debug-files list --limit 100 -ojson` (`app_scopes[].app_build_id`) so you
+   don't collide with an earlier upload.
 2. Build with
    `./platform/jvm/gradlew -p platform/jvm :gradle-test-app:assemble<Variant> -Pe2eVersionCode=<code> -Pe2eTraceCopy=true`.
    Expect about 2 minutes when mostly up to date, and 10 minutes or more from cold.
@@ -178,9 +181,7 @@ python3 $SK/scripts/make_workflow.py --cell R-HPJ --type heap_profile_java --out
 bd workflow create .tmp/.../wf/R-HPJ.workflow.json --metadata-file .tmp/.../wf/R-HPJ.metadata.json --deploy -ojson
 ```
 
-The new workflow's ID is at `.create.id` in the output. Record it in `wf/created.json`. If
-`check_commands.py` flagged arguments and the user didn't approve re-registering, add
-`--drop-arg <name>` for each. One workflow per cell keeps arguments and results unambiguous. When the cell is done, **stop** it (`bd workflow stop <id>`); the user wants
+The new workflow's ID is at `.create.id` in the output. Record it in `wf/created.json`. One workflow per cell keeps arguments and results unambiguous. When the cell is done, **stop** it (`bd workflow stop <id>`); the user wants
 temp workflows kept for auditing, not deleted.
 
 ## 5. Run each cell

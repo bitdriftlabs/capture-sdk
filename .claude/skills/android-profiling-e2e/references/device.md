@@ -108,7 +108,9 @@ adb shell dumpsys package io.bitdrift.gradletestapp | grep -E 'versionCode|versi
 ```
 
 Debug and release are signed with the same key, so `install -r` switches between them and keeps
-prefs. Don't `adb uninstall`.
+prefs, as long as each install has a higher version code than the installed one. Otherwise it fails
+with `INSTALL_FAILED_VERSION_DOWNGRADE`. Plan version codes to rise in install order
+(`device_info.py` prints the installed `app_version`). Don't `adb uninstall`: that wipes the prefs.
 
 ## Device state worth knowing
 

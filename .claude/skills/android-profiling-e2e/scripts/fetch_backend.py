@@ -82,6 +82,11 @@ def main():
         time.sleep(5)
     (out / "backend_status.json").write_text(json.dumps(status, indent=2))
 
+    # A rerun reuses this directory: remove the previous artifact's files so a failed download can't
+    # leave an old TAR or trace behind for post_cell.py to analyze.
+    for old in ("backend_raw.perfetto-trace", "backend_raw.tar", "backend_processed.tar", "backend_processed.perfetto-trace",
+                "backend_default.tar", "backend_default.perfetto-trace"):
+        (out / old).unlink(missing_ok=True)
     result = {"artifact_id": a.artifact_id, "base": a.base, "status": status, "downloads": {}}
     for variant in ("raw", "processed", "default"):
         code, h, body = get(url + ("" if variant == "default" else f"?variant={variant}"), token)

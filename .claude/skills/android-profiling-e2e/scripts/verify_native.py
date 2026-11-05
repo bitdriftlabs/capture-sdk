@@ -51,13 +51,23 @@ def main():
                         "--output-style=JSON"], input="\n".join(hex(int(r["rel_pc"])) for r in rows),
                        capture_output=True, text=True)
     local = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
+    if p.returncode != 0 or len(local) != len(rows):
+        sys.exit(f"llvm-symbolizer failed (exit {p.returncode}, {len(local)} results for {len(rows)} addresses): "
+                 f"{p.stderr.strip()[:300]}")
     res = {"frames": len(rows), "trace_named": 0, "local_named": 0, "innermost_match": 0, "format_only": 0,
-           "mismatch": 0, "mismatch_examples": [], "format_only_examples": []}
+           "mismatch": 0, "full_inline_chain_match": 0, "mismatch_examples": [], "format_only_examples": [],
+           "chain_mismatch_examples": []}
     for r, l in zip(rows, local):
         names = [s.get("FunctionName", "") for s in l.get("Symbol", []) if s.get("FunctionName") not in ("", "??")]
         trace_names = [x.strip() for x in (r["backend"] or r["raw"] or "").split(" <- ") if x.strip()]
         res["trace_named"] += bool(trace_names)
         res["local_named"] += bool(names)
+        # Both lists are innermost (inlined) frame first. The innermost name decides pass/fail; the full
+        # chain, including its length, is reported separately because it also checks the inline frames.
+        if [suffix_norm(x) for x in trace_names] == [suffix_norm(x) for x in names] and names:
+            res["full_inline_chain_match"] += 1
+        elif names and len(res["chain_mismatch_examples"]) < 4:
+            res["chain_mismatch_examples"].append({"rel_pc": r["rel_pc"], "trace": trace_names[:4], "llvm_symbolizer": names[:4]})
         if trace_names and names and norm(trace_names[0]) == norm(names[0]):
             res["innermost_match"] += 1
         elif trace_names and names and suffix_norm(trace_names[0]) == suffix_norm(names[0]):

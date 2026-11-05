@@ -3,9 +3,11 @@
 separate tally for JIT-cache frames, and measure method ambiguity.
 
 Per frame (stack_profile_frame row whose class appears in the mapping):
-  correct   every backend candidate (split on '|') is a mapping entry for that obfuscated method
-  wrong     some candidate is not
-  missing   no deobfuscated_name although the class is in the mapping
+  correct             every backend candidate (split on '|') is a mapping entry for that obfuscated method
+  wrong               some candidate is not
+  missing             no deobfuscated_name, although the mapping renames the class or the method
+  identity_unchanged  no deobfuscated_name, and the mapping keeps both class and method name: already readable
+  unverifiable        the mapping has no entry for this method, so the backend's name can't be checked
 Frames whose class is not in the mapping (framework, boot classpath) must stay undeobfuscated.
 
 Ambiguity: R8 lists every method inlined into an obfuscated method under the same name. Lines that
@@ -67,7 +69,7 @@ def main():
         return defaultdict(int)
     t = {"all": tally(), "jit": tally()}
     amb = {"all": {"backend": [], "outer": []}, "jit": {"backend": [], "outer": []}}
-    examples = {"wrong": [], "missing": [], "deobf_but_not_in_mapping": [], "ambiguous": []}
+    examples = {"wrong": [], "missing": [], "unverifiable": [], "deobf_but_not_in_mapping": [], "ambiguous": []}
     for r in rows:
         raw, deobf = r["raw"], r["deobf"]
         oc, om = raw.rsplit(".", 1)
@@ -75,21 +77,25 @@ def main():
         orig_cls = cls.get(oc)
         if orig_cls is None:
             verdict = "deobf_but_not_in_mapping" if deobf else "not_in_mapping"
-        elif not deobf:
-            verdict = "missing"
         else:
-            cands = {c.strip() for c in deobf.split("|")}
             g = groups.get((oc, om), {})
             expected = {q for v in g.values() for q in v}
-            ok = cands <= expected if expected else all(c.rsplit(".", 1)[0] == orig_cls for c in cands)
-            verdict = "correct" if ok else "wrong"
-            outer = {v[-1] for v in g.values()}
-            for s in scopes:
-                amb[s]["backend"].append(len(cands))
-                amb[s]["outer"].append(len(outer) if outer else len(cands))
-            if ok and len(cands) > 1 and len(outer) == 1 and len(examples["ambiguous"]) < 6:
-                examples["ambiguous"].append({"raw": raw, "candidates": len(cands),
-                                              "first_shown": sorted(cands)[0], "outer": next(iter(outer))})
+            if not deobf:
+                # R8 kept both names: the frame is already readable, and the backend rightly leaves it alone
+                verdict = "identity_unchanged" if f"{oc}.{om}" in expected and orig_cls == oc else "missing"
+            elif not expected:
+                verdict = "unverifiable"  # no mapping evidence for this method
+            else:
+                cands = {c.strip() for c in deobf.split("|")}
+                ok = cands <= expected
+                verdict = "correct" if ok else "wrong"
+                outer = {v[-1] for v in g.values()}
+                for sc in scopes:
+                    amb[sc]["backend"].append(len(cands))
+                    amb[sc]["outer"].append(len(outer))
+                if ok and len(cands) > 1 and len(outer) == 1 and len(examples["ambiguous"]) < 6:
+                    examples["ambiguous"].append({"raw": raw, "candidates": len(cands),
+                                                  "first_shown": sorted(cands)[0], "outer": next(iter(outer))})
         for s in scopes:
             t[s]["frames"] += 1
             t[s][verdict] += 1
@@ -114,7 +120,7 @@ def main():
     print("frames    ", json.dumps(res["frames"]))
     print("jit frames", json.dumps(res["jit_frames"]) if res["jit_frames"] else "0 (cell did not exercise JIT)")
     print("ambiguity ", json.dumps(res["ambiguity"]["all"]))
-    for k in ("wrong", "missing", "deobf_but_not_in_mapping"):
+    for k in ("wrong", "missing", "unverifiable", "deobf_but_not_in_mapping"):
         for e in examples[k][:3]:
             print(k.upper(), e)
 

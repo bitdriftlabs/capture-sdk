@@ -9,7 +9,8 @@ for command Y"), and a required one that is missing.
 - Registered commands (the gradle-test-app's demo commands) are defined per account with
   `bd command register`. On a mismatch this prints the register call that would fix it, keeping
   existing definitions. Registering changes a shared account definition: run it only with the
-  user's OK, or drop the argument with `make_workflow.py --drop-arg` and note the lost coverage.
+  user's OK. Otherwise skip the cell: the demo commands read every argument as required, so
+  leaving one out makes the command fail with `invalid_arguments`.
 - Built-in commands (well-known types, e.g. 3 = STACK_SAMPLING_TRACE) have fixed definitions; they
   can only be enabled or disabled (`bd command enable/disable`, also an account change).
 
@@ -69,7 +70,15 @@ def main():
         have = {d["name"] for d in defs}
         unknown = [k for k in cell["args"] if k not in have]
         required_unsent = [d["name"] for d in defs if not d.get("optional") and d["name"] not in cell["args"]]
+        sent_type = {k: TYPE_OF[next(iter(v))] for k, v in cell["args"].items()}
+        wrong_type = [f"{d['name']} (sent {sent_type[d['name']]}, defined {d.get('type')})" for d in defs
+                      if d["name"] in sent_type and d.get("type") != sent_type[d["name"]]]
+        if wrong_type:
+            problems += 1
+            print(f"{t}: argument types differ from the definition: {wrong_type}")
         if not unknown and not required_unsent:
+            if wrong_type:
+                continue
             if entry["enabled"] is not False:
                 print(f"{t}: {label} OK, enabled, arguments {sorted(have)}")
             continue
@@ -87,7 +96,7 @@ def main():
                                     "optional": True} for k in unknown]:
                 parts += ["--argument-definition", json.dumps({k: d[k] for k in ("name", "type", "description", "optional") if k in d})]
             print("  fix (shared account change, needs the user's OK):\n   ", " ".join(shlex.quote(p) for p in parts))
-            print("  or run without them: make_workflow.py ... " + " ".join(f"--drop-arg {k}" for k in unknown))
+            print("  without that OK, skip this cell: the command requires every argument it is sent")
     sys.exit(1 if problems else 0)
 
 
