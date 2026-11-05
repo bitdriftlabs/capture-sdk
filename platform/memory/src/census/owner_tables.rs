@@ -16,8 +16,9 @@ const INTERIOR_MAX_SIZE: u64 = 16 * 1024;
 
 const MIN_CAPACITY: usize = 1 << 18;
 
-/// Clears only the top byte, which the hardware ignores and memory tagging uses. Masking a word
-/// down to the isa bits turns string bytes and byte counts into heap addresses.
+/// Clears only the top byte, which the hardware ignores (arm64 Top Byte Ignore) and memory
+/// tagging uses. Masking a word down to the isa bits turns string bytes and byte counts into heap
+/// addresses.
 const TOP_BYTE_MASK: usize = 0x00ff_ffff_ffff_ffff;
 
 //

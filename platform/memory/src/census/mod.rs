@@ -26,6 +26,7 @@ use enumerate::ZoneState;
 use owner_tables::OwnerTables;
 use tables::{CandidateTable, ClassTable, ReadableRanges};
 
+/// `ISA_MASK` from the Objective-C runtime's `runtime/isa.h` (objc4), not in the SDK.
 #[cfg(all(target_arch = "aarch64", target_os = "ios", not(target_abi = "sim")))]
 const ISA_MASK: usize = 0x0000_000f_ffff_fff8;
 /// The simulator shares the macOS address space, where Swift generic metadata lives above the 36

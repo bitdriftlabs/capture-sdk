@@ -17,6 +17,7 @@ use libc::{
 pub const KERN_SUCCESS: kern_return_t = 0;
 pub const KERN_INVALID_ADDRESS: kern_return_t = 1;
 
+/// From `<time.h>`.
 const CLOCK_UPTIME_RAW: libc::clockid_t = 8;
 
 unsafe extern "C" {
@@ -29,6 +30,7 @@ unsafe extern "C" {
     out_size: *mut vm_size_t,
   ) -> kern_return_t;
 
+  /// From `<time.h>`.
   fn clock_gettime_nsec_np(clock_id: libc::clockid_t) -> u64;
 
   /// From `<mach/vm_page_size.h>`.

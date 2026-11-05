@@ -16,6 +16,7 @@ use crate::sys::malloc::{MALLOC_PTR_IN_USE_RANGE_TYPE, RangeSink, Zone};
 use libc::vm_range_t;
 
 /// Swift metadata kinds of heap objects that have no class: closure boxes, existentials, errors.
+/// From the Swift ABI, `include/swift/ABI/MetadataKind.def`.
 const SWIFT_BOX_KINDS: [usize; 3] = [0x400, 0x500, 0x501];
 
 /// The dump's own tables are all at least this large; smaller blocks skip the comparison.
