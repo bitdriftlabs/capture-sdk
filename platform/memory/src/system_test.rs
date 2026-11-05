@@ -8,7 +8,7 @@
 
 use super::*;
 
-/// Offset of the UUID in a dyld cache header.
+/// Offset of `uuid` in `dyld_cache_header`, from dyld's open source `dyld_cache_format.h`.
 const CACHE_UUID_OFFSET: usize = 0x58;
 
 #[test]

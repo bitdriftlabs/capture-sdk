@@ -15,7 +15,8 @@ use crate::report::SystemIdentity;
 use crate::safe_read;
 use crate::sys::system::{shared_cache_start, shared_cache_uuid, sysctl_string};
 
-/// A cache header starts with `dyld_v1`, padded with spaces up to the architecture name.
+/// A cache header starts with `dyld_v1`, padded with spaces up to the architecture name. From
+/// `dyld_cache_header.magic` in dyld's open source `dyld_cache_format.h`, not in the SDK.
 const CACHE_MAGIC_PREFIX: &[u8] = b"dyld_v1";
 const CACHE_MAGIC_SIZE: usize = 16;
 
