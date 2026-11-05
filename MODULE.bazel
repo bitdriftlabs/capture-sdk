@@ -292,9 +292,13 @@ maven.install(
         "grpc-java",
         "protobuf",
     ],
+    lock_file = "//:maven_install.json",
     repositories = [
         "https://maven.google.com",
         "https://repo1.maven.org/maven2",
+        # Google's mirror of Maven Central. Pinned artifacts list a URL per repository, so
+        # downloads fall back to it when Maven Central rate-limits CI runners.
+        "https://maven-central.storage-download.googleapis.com/maven2",
     ],
     use_starlark_android_rules = True,
     version_conflict_policy = "pinned",
