@@ -24,7 +24,7 @@ inputs:
   java-version:
     description: JDK version to install
     required: false
-    default: "17"
+    default: "21"
   setup-emulator:
     description: Whether to set up emulator prerequisites (KVM, licenses)
     required: false
