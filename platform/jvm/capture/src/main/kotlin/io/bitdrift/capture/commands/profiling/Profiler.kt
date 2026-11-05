@@ -13,6 +13,7 @@ import android.os.CancellationSignal
 import android.os.ProfilingManager
 import android.os.ProfilingResult
 import androidx.annotation.RequiresApi
+import androidx.core.os.HeapProfileRequestBuilder
 import androidx.core.os.ProfilingRequest
 import androidx.core.os.StackSamplingRequestBuilder
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -68,12 +69,21 @@ internal class Profiler(
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     private fun ProfileRequest.toPlatformRequest(signal: CancellationSignal): ProfilingRequest =
-        when (type) {
-            ProfileType.STACK_SAMPLING ->
+        when (this) {
+            is ProfileRequest.StackSampling ->
                 StackSamplingRequestBuilder()
                     .setDurationMs(durationMs)
                     .setSamplingFrequencyHz(frequencyHz)
                     .setBufferSizeKb(bufferSizeKb)
+                    .setTag(tag)
+                    .setCancellationSignal(signal)
+                    .build()
+            is ProfileRequest.HeapProfile ->
+                HeapProfileRequestBuilder()
+                    .setDurationMs(durationMs)
+                    .setBufferSizeKb(bufferSizeKb)
+                    .setSamplingIntervalBytes(samplingIntervalBytes)
+                    .setTrackJavaAllocations(trackJavaAllocations)
                     .setTag(tag)
                     .setCancellationSignal(signal)
                     .build()

@@ -19,8 +19,10 @@ import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.profiling.ProfileCommandRunner
 import io.bitdrift.capture.commands.profiling.ProfileabilityChecker
 import io.bitdrift.capture.commands.profiling.Profiler
+import io.bitdrift.capture.commands.profiling.heapprofile.HeapProfileCommand
 import io.bitdrift.capture.commands.profiling.stacksampling.StackSamplingCommand
 import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
 import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
@@ -127,13 +129,16 @@ internal class LoggerImpl(
     builtinCommandsInstaller: BuiltinCommandsInstaller =
         BuiltinCommandsInstaller(
             commandRegistry,
-            listOf(
-                ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
-                StackSamplingCommand(
-                    profiler = Profiler(context, commandDispatcher.asExecutor()),
-                    profileability = ProfileabilityChecker(context),
-                ),
-            ),
+            ProfileCommandRunner(
+                profiler = Profiler(context, commandDispatcher.asExecutor()),
+                profileability = ProfileabilityChecker(context),
+            ).let { profiling ->
+                listOf(
+                    ScreenshotBuiltinCommand(PixelCopyScreenshotCapturer(windowManager)),
+                    StackSamplingCommand(profiling),
+                    HeapProfileCommand(profiling),
+                )
+            },
         ),
 ) : IInternalLogger,
     ICompletedReportsProcessor,

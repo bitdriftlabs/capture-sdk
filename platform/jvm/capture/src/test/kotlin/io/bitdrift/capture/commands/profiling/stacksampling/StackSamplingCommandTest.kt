@@ -16,9 +16,9 @@ import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.MissingCommandArgumentException
 import io.bitdrift.capture.commands.profiling.ICancellable
 import io.bitdrift.capture.commands.profiling.IProfiler
+import io.bitdrift.capture.commands.profiling.ProfileCommandRunner
 import io.bitdrift.capture.commands.profiling.ProfileOutcome
 import io.bitdrift.capture.commands.profiling.ProfileRequest
-import io.bitdrift.capture.commands.profiling.ProfileType
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -62,8 +62,10 @@ class StackSamplingCommandTest {
     private val systemDirectory: File = Files.createTempDirectory("profiling").toFile()
     private val command =
         StackSamplingCommand(
-            profiler = profiler,
-            profileability = { profileable },
+            ProfileCommandRunner(
+                profiler = profiler,
+                profileability = { profileable },
+            ),
         )
 
     /** An invocation with every argument the backend sends, overridden by [arguments]. */
@@ -86,7 +88,7 @@ class StackSamplingCommandTest {
             val result = async(Dispatchers.Unconfined) { command.execute(invocation()) }
 
             assertThat(profiler.requests).containsExactly(
-                ProfileRequest(ProfileType.STACK_SAMPLING, 3_000, 100, 2_048, "bitdrift"),
+                ProfileRequest.StackSampling(3_000, 100, 2_048, "bitdrift"),
             )
             val trace = systemTrace()
             profiler.complete(ProfileOutcome.Saved(trace.path))
@@ -113,7 +115,7 @@ class StackSamplingCommandTest {
                 }
 
             assertThat(profiler.requests.single()).isEqualTo(
-                ProfileRequest(ProfileType.STACK_SAMPLING, Int.MAX_VALUE, 0, 100_000, "bitdrift"),
+                ProfileRequest.StackSampling(Int.MAX_VALUE, 0, 100_000, "bitdrift"),
             )
             profiler.complete(ProfileOutcome.Saved(systemTrace().path))
             result.await()

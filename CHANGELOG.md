@@ -21,7 +21,7 @@
 
 **Added**
 
-- Nothing yet!
+- Added the built-in `heap_profile_trace` remote command, which records a Perfetto heap profile of the app process through `ProfilingManager` on Android 15 and later and uploads it as the command attachment.
 
 **Changed**
 

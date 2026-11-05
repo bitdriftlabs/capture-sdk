@@ -79,6 +79,36 @@ class ProfilerTest {
     }
 
     @Test
+    fun requestsAHeapProfileWithEveryParameterAndTheTag() {
+        val request =
+            ProfileRequest.HeapProfile(
+                durationMs = 5_000,
+                bufferSizeKb = 8_192,
+                samplingIntervalBytes = 65_536L,
+                trackJavaAllocations = true,
+                tag = "bitdrift",
+            )
+
+        profiler.request(request) { outcomes += it }
+
+        val params = argumentCaptor<Bundle>()
+        verify(manager).requestProfiling(
+            eq(ProfilingManager.PROFILING_TYPE_HEAP_PROFILE),
+            params.capture(),
+            eq("bitdrift"),
+            any(),
+            any(),
+            any(),
+        )
+        // The sampling interval is a long and the Java allocation switch a boolean, so compare the
+        // values with their types.
+        @Suppress("DEPRECATION")
+        val values = params.firstValue.let { bundle -> bundle.keySet().map { bundle.get(it) } }
+        assertThat(values).contains(5_000, 8_192, 65_536L, true)
+        assertThat(outcomes).isEmpty()
+    }
+
+    @Test
     fun aSavedTraceBecomesItsPath() {
         profiler.request(REQUEST) { outcomes += it }
 
@@ -139,8 +169,7 @@ class ProfilerTest {
 
     private companion object {
         val REQUEST =
-            ProfileRequest(
-                type = ProfileType.STACK_SAMPLING,
+            ProfileRequest.StackSampling(
                 durationMs = 3_000,
                 frequencyHz = 100,
                 bufferSizeKb = 2_048,

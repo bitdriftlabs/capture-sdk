@@ -27,6 +27,10 @@ fn builtin_metadata_preserves_wire_ids_and_keys() {
     commands["STACK_SAMPLING_TRACE"],
     (3, "stack_sampling_trace".to_owned())
   );
+  assert_eq!(
+    commands["HEAP_PROFILE_TRACE"],
+    (4, "heap_profile_trace".to_owned())
+  );
 }
 
 #[test]
@@ -35,6 +39,7 @@ fn swift_command_cases_use_camel_case() {
     ("DUMP_DEVICE_BUFFER", "dumpDeviceBuffer"),
     ("TAKE_SCREENSHOT", "takeScreenshot"),
     ("STACK_SAMPLING_TRACE", "stackSamplingTrace"),
+    ("HEAP_PROFILE_TRACE", "heapProfileTrace"),
     ("INT64_DATA", "int64Data"),
     ("TAKE__SCREENSHOT", "takeScreenshot"),
   ] {
