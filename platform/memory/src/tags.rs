@@ -93,6 +93,10 @@ pub const fn tag_name(tag: u32) -> Option<&'static str> {
     103 => "CoreUI cached image data",
     104 => "ColorSync",
     105 => "Backtrace info",
+    106 => "CoreMedia HLS",
+    107 => "Compositor Services",
+    108 => "Debug",
+    109 => "Neural",
     230 => "Rosetta",
     _ => return None,
   })
