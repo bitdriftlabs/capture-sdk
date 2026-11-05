@@ -17,13 +17,14 @@ import io.bitdrift.capture.attributes.ClientAttributes
 import io.bitdrift.capture.attributes.IOotbFieldProvider
 import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
+import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
-import io.bitdrift.capture.commands.profiling.ProfileCommandRunner
+import io.bitdrift.capture.commands.profiling.IProfileabilityChecker
+import io.bitdrift.capture.commands.profiling.IProfiler
 import io.bitdrift.capture.commands.profiling.ProfileabilityChecker
 import io.bitdrift.capture.commands.profiling.Profiler
-import io.bitdrift.capture.commands.profiling.heapprofile.HeapProfileCommand
-import io.bitdrift.capture.commands.profiling.stacksampling.StackSamplingCommand
+import io.bitdrift.capture.commands.profiling.ProfilingCommand
 import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
 import io.bitdrift.capture.commands.screenshot.ScreenshotCommand
 import io.bitdrift.capture.common.IWindowManager
@@ -126,19 +127,16 @@ internal class LoggerImpl(
     windowManager: IWindowManager = WindowManager(errorHandler),
     commandRegistry: CommandRegistry,
     commandDispatcher: CoroutineDispatcher,
+    profiler: IProfiler = Profiler(context, commandDispatcher.asExecutor()),
+    profileability: IProfileabilityChecker = ProfileabilityChecker(context),
     builtinCommandsInstaller: BuiltinCommandsInstaller =
         BuiltinCommandsInstaller(
             commandRegistry,
-            ProfileCommandRunner(
-                profiler = Profiler(context, commandDispatcher.asExecutor()),
-                profileability = ProfileabilityChecker(context),
-            ).let { profiling ->
-                listOf(
-                    ScreenshotCommand(PixelCopyScreenshotCapturer(windowManager)),
-                    StackSamplingCommand(profiling),
-                    HeapProfileCommand(profiling),
-                )
-            },
+            listOf(
+                ScreenshotCommand(PixelCopyScreenshotCapturer(windowManager)),
+                ProfilingCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, profiler, profileability),
+                ProfilingCommand(BuiltinCommandType.HEAP_PROFILE_TRACE, profiler, profileability),
+            ),
         ),
 ) : IInternalLogger,
     ICompletedReportsProcessor,

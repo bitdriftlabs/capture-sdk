@@ -16,14 +16,18 @@ import androidx.annotation.RequiresApi
 import androidx.core.os.HeapProfileRequestBuilder
 import androidx.core.os.ProfilingRequest
 import androidx.core.os.StackSamplingRequestBuilder
+import io.bitdrift.capture.commands.BuiltinCommandArguments
+import io.bitdrift.capture.commands.HeapProfileTraceArguments
+import io.bitdrift.capture.commands.StackSamplingTraceArguments
 import io.bitdrift.capture.utils.BuildVersionChecker
+import io.bitdrift.capture.utils.toIntSaturated
 import java.util.concurrent.Executor
 
 /**
  * Runs captures through android.os.ProfilingManager, building each request with androidx.core's
  * request builders. Every sampling parameter is always set: the platform's own defaults are not
- * documented. The request tag marks the capture as the SDK's, so an app can recognise it among
- * its own profiling results. Below Android 15, where `ProfilingManager` does not exist, every
+ * documented. Every capture carries the SDK's [TAG], so an app can recognise it among its own
+ * profiling results. Below Android 15, where `ProfilingManager` does not exist, every
  * request fails as `unsupported`.
  *
  * @param executor receives the platform's result. The listener only converts it and resumes the
@@ -35,19 +39,19 @@ internal class Profiler(
     private val buildVersionChecker: BuildVersionChecker = BuildVersionChecker(),
 ) : IProfiler {
     override fun request(
-        request: ProfileRequest,
+        arguments: BuiltinCommandArguments,
         callback: (ProfileOutcome) -> Unit,
     ): ICancellable {
         if (!buildVersionChecker.isAtLeast(Build.VERSION_CODES.VANILLA_ICE_CREAM)) {
             callback(ProfileOutcome.Failed(0, "unsupported", "ProfilingManager requires Android 15 or newer"))
             return ICancellable {}
         }
-        return requestProfiling(request, callback)
+        return requestProfiling(arguments, callback)
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     private fun requestProfiling(
-        request: ProfileRequest,
+        arguments: BuiltinCommandArguments,
         callback: (ProfileOutcome) -> Unit,
     ): ICancellable {
         val manager = context.getSystemService(ProfilingManager::class.java)
@@ -56,7 +60,11 @@ internal class Profiler(
             return ICancellable {}
         }
         val signal = CancellationSignal()
-        val platformRequest = request.toPlatformRequest(signal)
+        val platformRequest =
+            arguments.toPlatformRequest(signal) ?: run {
+                callback(ProfileOutcome.Failed(0, "unsupported", "${arguments::class.simpleName} does not describe a profile"))
+                return ICancellable {}
+            }
         manager.requestProfiling(
             platformRequest.profilingType,
             platformRequest.params,
@@ -68,25 +76,27 @@ internal class Profiler(
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    private fun ProfileRequest.toPlatformRequest(signal: CancellationSignal): ProfilingRequest =
+    /** The platform request these arguments describe, or null when they are not a profile's. */
+    private fun BuiltinCommandArguments.toPlatformRequest(signal: CancellationSignal): ProfilingRequest? =
         when (this) {
-            is ProfileRequest.StackSampling ->
+            is StackSamplingTraceArguments ->
                 StackSamplingRequestBuilder()
-                    .setDurationMs(durationMs)
-                    .setSamplingFrequencyHz(frequencyHz)
-                    .setBufferSizeKb(bufferSizeKb)
-                    .setTag(tag)
+                    .setDurationMs(durationMs.toIntSaturated())
+                    .setSamplingFrequencyHz(frequencyHz.toIntSaturated())
+                    .setBufferSizeKb(bufferSizeKb.toIntSaturated())
+                    .setTag(TAG)
                     .setCancellationSignal(signal)
                     .build()
-            is ProfileRequest.HeapProfile ->
+            is HeapProfileTraceArguments ->
                 HeapProfileRequestBuilder()
-                    .setDurationMs(durationMs)
-                    .setBufferSizeKb(bufferSizeKb)
+                    .setDurationMs(durationMs.toIntSaturated())
+                    .setBufferSizeKb(bufferSizeKb.toIntSaturated())
                     .setSamplingIntervalBytes(samplingIntervalBytes)
                     .setTrackJavaAllocations(trackJavaAllocations)
-                    .setTag(tag)
+                    .setTag(TAG)
                     .setCancellationSignal(signal)
                     .build()
+            else -> null
         }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
@@ -115,4 +125,13 @@ internal class Profiler(
             ProfilingResult.ERROR_UNKNOWN -> "UNKNOWN"
             else -> "UNRECOGNIZED"
         }
+
+    private companion object {
+        /**
+         * The profiler tag on every SDK capture. The system records it in the trace file name and
+         * reports it through `ProfilingResult.getTag()`, so an app that also uses the profiler can
+         * tell the SDK's captures from its own.
+         */
+        const val TAG = "bitdrift"
+    }
 }

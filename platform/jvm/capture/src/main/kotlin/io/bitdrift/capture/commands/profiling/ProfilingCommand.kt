@@ -7,35 +7,46 @@
 
 package io.bitdrift.capture.commands.profiling
 
+import io.bitdrift.capture.commands.BuiltinCommandArguments
+import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
-import io.bitdrift.capture.commands.argument
+import io.bitdrift.capture.commands.IBuiltinCommand
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import kotlin.coroutines.resume
 
 /**
- * What every profiling built-in command does once it has read its arguments: fail fast when the
- * process is not profileable, run the capture through the platform profiler, and attach the saved
- * trace or report the profiler's error.
+ * A built-in that records a Perfetto trace of this process through the platform profiler and
+ * returns the file as the command attachment. Only [type] differs between capture kinds: it parses
+ * the arguments that [IProfiler] turns into a platform request.
+ *
+ * The backend always sends every argument, filling in the proto's defaults; a missing or mistyped
+ * one fails the invocation with `invalid_arguments` before the profiler is asked. The platform
+ * clamps each value to its own bounds.
  */
-internal class ProfileCommandRunner(
+internal class ProfilingCommand(
+    override val type: BuiltinCommandType,
     private val profiler: IProfiler,
     private val profileability: IProfileabilityChecker,
-) {
-    suspend fun run(
-        scope: CommandScope,
-        request: ProfileRequest,
-    ): CommandResult {
+) : IBuiltinCommand {
+    /** Each profiling command's artifact contract type ID is its key. */
+    override val artifactType: String = type.key
+
+    // No timeout of its own: the core applies its runtime-configured `device_command.execution_timeout_ms`.
+    override val timeoutMs: Long? = null
+
+    override suspend fun execute(scope: CommandScope): CommandResult {
+        val arguments = checkNotNull(type.parse(scope)) { "${type.key} declares no arguments to profile with" }
         if (!profileability.isProfileable()) {
             return scope.error(
                 "not_profileable",
                 "the app is not profileable; set <profileable android:enabled=\"true\" /> or use a debuggable build",
             )
         }
-        return when (val outcome = capture(request)) {
+        return when (val outcome = capture(arguments)) {
             is ProfileOutcome.Saved -> {
                 scope.success(attachment = CommandAttachment.file(File(outcome.path), CONTENT_TYPE))
             }
@@ -59,10 +70,10 @@ internal class ProfileCommandRunner(
      * is lost to cancellation; it is still marked experimental in kotlinx-coroutines 1.7.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    private suspend fun capture(request: ProfileRequest): ProfileOutcome =
+    private suspend fun capture(arguments: BuiltinCommandArguments): ProfileOutcome =
         suspendCancellableCoroutine { continuation ->
             val cancel =
-                profiler.request(request) { outcome ->
+                profiler.request(arguments) { outcome ->
                     // The outcome is delivered unless the coroutine was cancelled before, or while,
                     // it resumes; then a saved trace, which nobody would upload, is deleted.
                     continuation.resume(outcome) { (outcome as? ProfileOutcome.Saved)?.let { File(it.path).delete() } }
@@ -70,22 +81,7 @@ internal class ProfileCommandRunner(
             continuation.invokeOnCancellation { cancel.cancel() }
         }
 
-    internal companion object {
-        /**
-         * The profiler tag on every SDK capture. The system records it in the trace file name and
-         * reports it through `ProfilingResult.getTag()`, so an app that also uses the profiler can
-         * tell the SDK's captures from its own.
-         */
-        const val TAG = "bitdrift"
-
-        private const val CONTENT_TYPE = "application/vnd.bitdrift.perfetto-trace"
+    private companion object {
+        const val CONTENT_TYPE = "application/vnd.bitdrift.perfetto-trace"
     }
 }
-
-/**
- * Reads a required integer argument, throwing when it is missing or not an integer; the registry
- * turns that into `invalid_arguments`. A value beyond an Int saturates, and the platform clamps it
- * like any other.
- */
-internal fun CommandScope.intArgument(name: String): Int =
-    argument<Long>(name).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()

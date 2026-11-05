@@ -5,14 +5,14 @@
 // LICENSE file or at:
 // https://polyformproject.org/licenses/strict/1.0.0
 
-use super::{builtin_commands, swift_command_name};
+use super::{builtin_commands, camel_case};
 use std::collections::BTreeMap;
 
 #[test]
 fn builtin_metadata_preserves_wire_ids_and_keys() {
   let commands = builtin_commands()
     .into_iter()
-    .map(|(name, value, key)| (name, (value, key)))
+    .map(|(name, value, key, _)| (name, (value, key)))
     .collect::<BTreeMap<_, _>>();
   assert_eq!(commands.get("TYPE_UNSPECIFIED"), None);
   assert_eq!(
@@ -34,7 +34,7 @@ fn builtin_metadata_preserves_wire_ids_and_keys() {
 }
 
 #[test]
-fn swift_command_cases_use_camel_case() {
+fn command_names_use_camel_case() {
   for (name, expected) in [
     ("DUMP_DEVICE_BUFFER", "dumpDeviceBuffer"),
     ("TAKE_SCREENSHOT", "takeScreenshot"),
@@ -43,6 +43,38 @@ fn swift_command_cases_use_camel_case() {
     ("INT64_DATA", "int64Data"),
     ("TAKE__SCREENSHOT", "takeScreenshot"),
   ] {
-    assert_eq!(swift_command_name(name), expected);
+    assert_eq!(camel_case(name), expected);
   }
+}
+
+#[test]
+fn builtin_arguments_carry_their_proto_names_and_kotlin_types() {
+  let arguments = builtin_commands()
+    .into_iter()
+    .map(|(name, _, _, arguments)| (name, arguments))
+    .collect::<BTreeMap<_, _>>();
+  let owned = |arguments: &[(&str, &'static str)]| {
+    arguments
+      .iter()
+      .map(|(name, kotlin_type)| ((*name).to_owned(), *kotlin_type))
+      .collect::<Vec<_>>()
+  };
+  assert!(arguments["TAKE_SCREENSHOT"].is_empty());
+  assert_eq!(
+    arguments["STACK_SAMPLING_TRACE"],
+    owned(&[
+      ("duration_ms", "Long"),
+      ("frequency_hz", "Long"),
+      ("buffer_size_kb", "Long"),
+    ])
+  );
+  assert_eq!(
+    arguments["HEAP_PROFILE_TRACE"],
+    owned(&[
+      ("duration_ms", "Long"),
+      ("buffer_size_kb", "Long"),
+      ("sampling_interval_bytes", "Long"),
+      ("track_java_allocations", "Boolean"),
+    ])
+  );
 }
