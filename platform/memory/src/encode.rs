@@ -21,6 +21,7 @@ use crate::report::{
   Owners,
   RegionsReport,
   Report,
+  SystemIdentity,
   TagRow,
   TypeKind,
   TypeRow,
@@ -67,6 +68,7 @@ pub fn memory_dump(report: &Report, images: Option<&ImageTable>) -> anyhow::Resu
       .as_ref()
       .map(|report| heap(report, &mut numbers))
       .into(),
+    system_identity: report.system.as_ref().map(system_identity).into(),
     ..Default::default()
   };
   dump.images = numbers
@@ -85,6 +87,16 @@ pub fn memory_dump(report: &Report, images: Option<&ImageTable>) -> anyhow::Resu
     })
     .collect();
   Ok(dump.write_to_bytes()?)
+}
+
+fn system_identity(identity: &SystemIdentity) -> proto::SystemIdentity {
+  proto::SystemIdentity {
+    product_type: identity.product_type.clone(),
+    os_build: identity.os_build.clone(),
+    cache_architecture: identity.cache_architecture.clone(),
+    shared_cache_uuid: identity.shared_cache_uuid.to_vec(),
+    ..Default::default()
+  }
 }
 
 fn counters(report: &CountersReport) -> proto::Counters {

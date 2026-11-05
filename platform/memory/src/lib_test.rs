@@ -55,6 +55,7 @@ fn every_stage_runs_in_order() {
     heap: true,
   });
   assert!(dump.counters.phys_footprint > 0);
+  assert_eq!(dump.system_identity.shared_cache_uuid.len(), 16);
   assert!(!dump.heap.by_type.is_empty());
   assert!(dump.heap.owners.is_some());
   assert_eq!(

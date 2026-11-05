@@ -7,7 +7,7 @@
 #![allow(clippy::unwrap_used)]
 
 use super::*;
-use crate::report::{ImageChargeRow, Ledgers, Owners, TagRow, Unclassified};
+use crate::report::{ImageChargeRow, Ledgers, Owners, SystemIdentity, TagRow, Unclassified};
 use bd_proto::protos::memory::memory_dump::type_row::Kind;
 use bd_proto::protos::memory::memory_dump::{self as proto, MemoryDump};
 use protobuf::Message;
@@ -129,6 +129,7 @@ fn every_counter_round_trips() {
       counters: Some(counters()),
       regions: None,
       heap: None,
+      system: None,
     },
     &ImageTable::survey(),
   );
@@ -167,6 +168,7 @@ fn every_region_field_round_trips() {
       counters: None,
       regions: Some(regions(3)),
       heap: None,
+      system: None,
     },
     &images,
   );
@@ -210,6 +212,7 @@ fn every_heap_field_round_trips() {
       counters: None,
       regions: None,
       heap: Some(heap(2, true)),
+      system: None,
     },
     &ImageTable::survey(),
   );
@@ -255,6 +258,7 @@ fn type_rows_carry_a_name_and_kind_or_an_address() {
       counters: None,
       regions: None,
       heap: Some(heap(2, false)),
+      system: None,
     },
     &ImageTable::survey(),
   );
@@ -281,6 +285,7 @@ fn images_are_listed_once_in_order_of_first_reference() {
       counters: None,
       regions: Some(regions(5)),
       heap: Some(heap(2, false)),
+      system: None,
     },
     &images,
   );
@@ -292,4 +297,31 @@ fn images_are_listed_once_in_order_of_first_reference() {
     .map(|image| image.name.as_str())
     .collect();
   assert_eq!(names, [images.name(5).unwrap(), images.name(2).unwrap()]);
+}
+
+#[test]
+fn system_identity_round_trips() {
+  let report = |system| Report {
+    counters: None,
+    regions: None,
+    heap: None,
+    system,
+  };
+  let images = ImageTable::survey();
+  let dump = decode(
+    &report(Some(SystemIdentity {
+      product_type: "iPhone17,2".to_string(),
+      os_build: "24B115".to_string(),
+      cache_architecture: "arm64e".to_string(),
+      shared_cache_uuid: [7; 16],
+    })),
+    &images,
+  );
+  let identity = dump.system_identity.unwrap();
+  assert_eq!(identity.product_type, "iPhone17,2");
+  assert_eq!(identity.os_build, "24B115");
+  assert_eq!(identity.cache_architecture, "arm64e");
+  assert_eq!(identity.shared_cache_uuid, vec![7; 16]);
+
+  assert!(decode(&report(None), &images).system_identity.is_none());
 }

@@ -15,6 +15,18 @@ pub struct Report {
   pub counters: Option<CountersReport>,
   pub regions: Option<RegionsReport>,
   pub heap: Option<HeapReport>,
+  pub system: Option<SystemIdentity>,
+}
+
+//
+// SystemIdentity
+//
+
+pub struct SystemIdentity {
+  pub product_type: String,
+  pub os_build: String,
+  pub cache_architecture: String,
+  pub shared_cache_uuid: [u8; 16],
 }
 
 //

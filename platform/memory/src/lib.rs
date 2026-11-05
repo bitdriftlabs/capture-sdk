@@ -28,6 +28,7 @@ mod regions;
 mod report;
 mod safe_read;
 mod sys;
+mod system;
 mod tags;
 #[cfg(test)]
 mod test_support;
@@ -88,6 +89,7 @@ pub fn capture(request: &Request) -> anyhow::Result<Dump> {
     counters: None,
     regions: None,
     heap: None,
+    system: system::identity(),
   };
 
   if let Some(footprint) = counters::phys_footprint() {
