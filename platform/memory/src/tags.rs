@@ -73,6 +73,7 @@ pub const fn tag_name(tag: u32) -> Option<&'static str> {
     82 => "Swift runtime",
     83 => "Swift metadata",
     84 => "DHMM",
+    85 => "DFR",
     86 => "SceneKit",
     87 => "Skywalk",
     88 => "IOSurface",
