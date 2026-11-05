@@ -31,6 +31,7 @@ pub const fn tag_name(tag: u32) -> Option<&'static str> {
     33 => "dylib",
     34 => "ObjC dispatchers",
     35 => "Shared cache (privatized)",
+    36 => "libchannel",
     40 => "AppKit",
     41 => "Foundation",
     42 => "CoreGraphics",
