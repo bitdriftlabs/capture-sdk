@@ -83,8 +83,10 @@ fn camel_case(name: &str) -> String {
     .collect()
 }
 
-/// Each built-in's enum name, wire value, key, and arguments as (name, Kotlin type).
-fn builtin_commands() -> Vec<(String, i32, String, Vec<(String, &'static str)>)> {
+/// A built-in's enum name, wire value, key, and arguments as (name, Kotlin type).
+type BuiltinCommand = (String, i32, String, Vec<(String, &'static str)>);
+
+fn builtin_commands() -> Vec<BuiltinCommand> {
   WellKnownCommandType::enum_descriptor()
     .values()
     .filter(|value| value.value() != 0)
