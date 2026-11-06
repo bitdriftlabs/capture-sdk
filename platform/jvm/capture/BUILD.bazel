@@ -1,3 +1,4 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_file")
 load("@rules_java//java:defs.bzl", "java_library", "java_lite_proto_library")
 load("@rules_jvm_external//:defs.bzl", "artifact")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
@@ -64,12 +65,24 @@ kt_jvm_library(
     ],
 )
 
+# Gradle compiles the checked-in copy so it does not invoke Bazel for codegen. The generated
+# :builtin_command_kt_test fails when the copy is stale; update it with
+# `./bazelw run //platform/jvm/capture:builtin_command_kt`.
+write_source_file(
+    name = "builtin_command_kt",
+    in_file = "//proto:builtin_command_kt_source",
+    out_file = "src/main/kotlin/io/bitdrift/capture/commands/BuiltinCommandType.kt",
+)
+
 bitdrift_kt_android_library(
     name = "capture_logger_lib",
     srcs = glob(
         include = ["src/main/**/*.kt"],
-        # Exclude BuildConstants stub file
-        exclude = ["src/main/**/BuildConstants.kt"],
+        # Exclude files that :gen_sources provides from Bazel genrules.
+        exclude = [
+            "src/main/**/BuildConstants.kt",
+            "src/main/**/BuiltinCommandType.kt",
+        ],
     ),
     custom_package = "io.bitdrift.capture",
     tags = ["maven_coordinates=io.bitdrift:capture:$(pom_version)"],
