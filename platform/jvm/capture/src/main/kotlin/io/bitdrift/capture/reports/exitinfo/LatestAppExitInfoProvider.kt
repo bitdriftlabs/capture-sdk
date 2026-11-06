@@ -12,12 +12,14 @@ import android.app.Application
 import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
+import io.bitdrift.capture.IPreferences
 
 /**
  * Concrete impl of [ILatestAppExitInfoProvider]
  */
 internal class LatestAppExitInfoProvider(
     private val activityManager: ActivityManager,
+    private val preferences: IPreferences,
 ) : ILatestAppExitInfoProvider {
     /**
      * Caching after initial fetch to avoid unnecessary IPC binder calls once value is retrieved
@@ -48,7 +50,7 @@ internal class LatestAppExitInfoProvider(
                     it.processName == Application.getProcessName()
                 }
 
-            if (matchingProcessReason == null) {
+            if (matchingProcessReason == null || !markAsReported(matchingProcessReason)) {
                 LatestAppExitReasonResult.None
             } else {
                 LatestAppExitReasonResult.Valid(matchingProcessReason)
@@ -60,9 +62,24 @@ internal class LatestAppExitInfoProvider(
             )
         }
 
+    /**
+     * Records [exitInfo] as reported. Returns false when an earlier process start already reported it:
+     * a device reboot kills the app without adding a newer exit record, so Android keeps returning it.
+     */
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun markAsReported(exitInfo: ApplicationExitInfo): Boolean {
+        val exitId = "${exitInfo.timestamp}:${exitInfo.pid}"
+        if (preferences.getString(LAST_REPORTED_EXIT_KEY) == exitId) {
+            return false
+        }
+        preferences.setString(LAST_REPORTED_EXIT_KEY, exitId, blocking = false)
+        return true
+    }
+
     internal companion object {
         internal const val EXIT_REASON_EXCEPTION_MESSAGE =
             "LatestAppExitInfoProvider: Failed to retrieve LatestAppExitReasonResult"
+        private const val LAST_REPORTED_EXIT_KEY = "io.bitdrift.capture.app_exit_info.last_reported"
     }
 }
 
@@ -71,7 +88,7 @@ internal class LatestAppExitInfoProvider(
  */
 interface ILatestAppExitInfoProvider {
     /**
-     * Returns the latest [ApplicationExitInfo] when present.
+     * Returns the latest [ApplicationExitInfo] when present and not already reported by an earlier process start.
      */
     @RequiresApi(Build.VERSION_CODES.R)
     fun get(): LatestAppExitReasonResult

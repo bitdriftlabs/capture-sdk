@@ -177,7 +177,7 @@ internal class LoggerImpl(
     private val sessionReplayTarget: ISessionReplayTarget
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler()
 
-    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager, preferences)
     private val previousRunInfoResolver =
         PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler)
     private val isSdkDirectoryFirstCreated: Boolean
