@@ -29,7 +29,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed app exit events being attributed to the wrong sessions after a device reboot.
 
 ### iOS
 
