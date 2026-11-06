@@ -1,19 +1,13 @@
 ---
 name: android-profiling-e2e
 description: >-
-  Android only. Run end-to-end tests of the capture-sdk Android profiling pipeline (ProfilingManager,
-  API 35+) on a real Android device or emulator:
-  Java heap dumps, heap profiles (native-only or with Java allocations) and stack sampling traces,
-  from the gradle-test-app through a temporary bitdrift workflow, the command attachment upload and
-  backend processing (native symbolication, R8 deobfuscation including JIT frames) to the raw and
-  processed downloads. It checks byte integrity, verifies every restored name against the exact
-  mapping.txt and native debug files, compares the backend with Perfetto's own trace_processor as a baseline,
-  and writes a findings report with a suggestion per gap. Use this whenever someone wants to test,
-  validate, verify, smoke-test or reproduce heap dump / heap profile / stack sampling / perfetto trace
-  capture, symbolication or deobfuscation end to end, check a backend or SDK profiling fix on staging,
-  or produce a profiling e2e briefing, even if they only say "run the profiling tests", "try the heap
-  dump on my phone" or "does deobfuscation work on release now". Not for iOS: there is no iOS
-  equivalent of this pipeline in this skill.
+  Test Android ProfilingManager on devices/emulators: Java heap dumps, native/Java allocation
+  profiles and stack sampling through workflow uploads, backend enrichment and raw/processed
+  downloads. Verify bytes, release mapping/native symbols, R8/JIT deobfuscation and Perfetto
+  trace_processor parity. Also use for system-triggered TRIGGER_TYPE_ANR / TRIGGER_TYPE_OOM,
+  delayed callbacks and crash-profile evidence. Select the existing trigger reference or
+  command/workflow matrix. Use for profiling smoke tests, SDK/backend regressions and findings
+  reports, including staging checks. Android only; not for iOS.
 ---
 
 # Android profiling e2e
@@ -28,7 +22,14 @@ needs.
 Paths below are relative to the repo root. `SK=.claude/skills/android-profiling-e2e`, so the
 scripts are `$SK/scripts/*.py`.
 
-This skill tests one path end to end:
+## Choose the profiling path
+
+| Requirement | Procedure |
+|---|---|
+| System-triggered ANR/OOM capture, delayed delivery, or crash correlation evidence | [Trigger experiments](./references/triggers.md). Developer-only native evidence; do not create a workflow or claim backend acceptance. |
+| Direct/workflow capture and backend enrichment | Continue below and use the existing cell matrix. |
+
+For command-driven capture, this skill tests one path end to end:
 
 ```
 gradle-test-app button ─► temp workflow ─► SDK command (ProfilingManager) ─► attachment upload
@@ -59,7 +60,7 @@ step comes up, not upfront.
   cell only when it failed, looks anomalous, or the user asks.
 - **Scratch goes in** `.tmp/android-profiling-e2e/<YYYYMMDD-HHMM>/` at the repo root (gitignored). Each cell
   gets `runs/<cell>/`.
-- **Test builds use two opt-in Gradle properties** of the gradle-test-app. Normal builds don't set
+- **Command-path test builds use two opt-in Gradle properties** of the gradle-test-app. Normal builds don't set
   them and behave as before. `-Pe2eVersionCode=<code>` sets the version code;
   `-Pe2eTraceCopy=true` makes the demo commands keep an adb-pullable copy of each uploaded trace.
 - **Prefer the bd CLI** (the `bd-cli` skill) over MCP tools for bitdrift operations.

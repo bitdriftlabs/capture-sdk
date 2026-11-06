@@ -37,6 +37,13 @@ val e2eTraceCopy =
         .orElse(false)
         .get()
 
+val e2eTriggerProfiling =
+    providers
+        .gradleProperty("e2eTriggerProfiling")
+        .map(String::toBoolean)
+        .orElse(false)
+        .get()
+
 require(autoCaptureOkHttpInstrumentationType in setOf("PROXY", "OVERWRITE")) {
     "autoCaptureOkHttpInstrumentationType must be PROXY or OVERWRITE"
 }
@@ -145,6 +152,8 @@ android {
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("boolean", "E2E_TRACE_COPY", e2eTraceCopy.toString())
+        buildConfigField("boolean", "E2E_TRIGGER_PROFILING", e2eTriggerProfiling.toString())
+        manifestPlaceholders["e2eTriggerProfiling"] = e2eTriggerProfiling.toString()
         buildConfigField(
             "boolean",
             "ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION",

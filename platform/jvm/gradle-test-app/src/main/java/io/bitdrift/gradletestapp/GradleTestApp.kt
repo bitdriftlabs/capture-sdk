@@ -14,6 +14,7 @@ import io.bitdrift.gradletestapp.diagnostics.fatalissues.ThirdPartyCrashReporter
 import io.bitdrift.gradletestapp.diagnostics.lifecycle.ActivitySpanCallbacks
 import io.bitdrift.gradletestapp.diagnostics.lifecycle.LifecycleEventLogger
 import io.bitdrift.gradletestapp.diagnostics.papa.PapaTelemetry
+import io.bitdrift.gradletestapp.diagnostics.profiling.TriggerProfilingExperiment
 import io.bitdrift.gradletestapp.diagnostics.startup.AppStartInfoLogger
 import io.bitdrift.gradletestapp.diagnostics.strictmode.StrictModeConfigurator
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
@@ -46,6 +47,9 @@ class GradleTestApp : Application() {
         }
 
         SampleCommands.register(this)
+        if (BuildConfig.E2E_TRIGGER_PROFILING) {
+            TriggerProfilingExperiment.onLaunch(this)
+        }
     }
 
     private fun areAdditionalDiagnosticToolsEnabled(sharedPreferences: SharedPreferences): Boolean =

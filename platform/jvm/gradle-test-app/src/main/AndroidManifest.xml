@@ -36,6 +36,11 @@
                 />
         </provider>
 
+        <activity
+            android:name=".diagnostics.profiling.TriggerProfilingActivity"
+            android:enabled="${e2eTriggerProfiling}"
+            android:exported="true" />
+
         <!-- Exercises window-focus-loss cases; exported so tests can start it via adb. -->
         <activity
             android:name=".ui.activities.FocusMatrixActivity"
