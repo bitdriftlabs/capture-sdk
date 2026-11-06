@@ -85,7 +85,6 @@ fn heap(image: usize, owners: bool) -> HeapReport {
     named: count(3),
     swift_boxes: count(4),
     images: count(5),
-    reporter: count(6),
     unclassified: Unclassified {
       blocks: 7,
       bytes: 8,
@@ -224,7 +223,6 @@ fn every_heap_field_round_trips() {
   assert_eq!(count(&heap.named), (3, 48));
   assert_eq!(count(&heap.swift_boxes), (4, 64));
   assert_eq!(count(&heap.images), (5, 80));
-  assert_eq!(count(&heap.reporter), (6, 96));
   assert_eq!((heap.unclassified.blocks, heap.unclassified.bytes), (7, 8));
   assert_eq!(heap.unclassified.histogram, vec![0, 9, 0, 10]);
 

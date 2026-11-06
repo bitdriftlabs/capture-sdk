@@ -109,8 +109,6 @@ pub struct HeapReport {
   pub named: BlockCount,
   pub swift_boxes: BlockCount,
   pub images: BlockCount,
-  /// The tables of the dump itself, counted in the totals but in no other category.
-  pub reporter: BlockCount,
   pub unclassified: Unclassified,
   pub owners: Option<Owners>,
   pub by_type: Vec<TypeRow>,

@@ -15,10 +15,6 @@ use crate::sys::mach::now_ns;
 use crate::sys::malloc::{MALLOC_PTR_IN_USE_RANGE_TYPE, RangeSink, Zone};
 use libc::vm_range_t;
 
-/// The dump's own tables are all at least this large; smaller blocks skip the comparison.
-const REPORTER_BLOCK_MIN_SIZE: u64 = 16 * 1024;
-const REPORTER_BLOCK_CAPACITY: usize = 8;
-
 //
 // ZoneSummary
 //
@@ -74,8 +70,6 @@ struct Recorder<'t> {
   owners: Option<&'t mut OwnerTables>,
   summary: &'t mut Summary,
   zone: &'t mut ZoneSummary,
-  /// Start addresses of the dump's own tables.
-  reporter_blocks: [usize; REPORTER_BLOCK_CAPACITY],
   deadline_ns: u64,
   over_budget: bool,
 }
@@ -118,11 +112,6 @@ impl Recorder<'_> {
     if size < size_of::<usize>() as u64 || address == 0 {
       summary.unclassified(size);
       summary.unclassified_histogram[size_bucket(size)] += 1;
-      return;
-    }
-    if size >= REPORTER_BLOCK_MIN_SIZE && self.reporter_blocks.contains(&address) {
-      summary.reporter_blocks += 1;
-      summary.reporter_bytes += size;
       return;
     }
 
@@ -169,26 +158,8 @@ impl Recorder<'_> {
 }
 
 impl Census<'_> {
-  fn reporter_blocks(&self) -> [usize; REPORTER_BLOCK_CAPACITY] {
-    let mut blocks = [0; REPORTER_BLOCK_CAPACITY];
-    let mut addresses = vec![
-      self.classes.entries.as_ptr() as usize,
-      self.classes.tallies.as_ptr() as usize,
-      self.candidates.slots.as_ptr() as usize,
-      self.ranges.as_ptr(),
-    ];
-    if let Some(owners) = &self.owners {
-      addresses.extend(owners.table_addresses());
-    }
-    for (slot, address) in blocks.iter_mut().zip(addresses) {
-      *slot = address;
-    }
-    blocks
-  }
-
   /// Locks each zone in turn and records its live blocks.
   pub(super) fn enumerate(&mut self) {
-    let reporter_blocks = self.reporter_blocks();
     let mut zones_left = self.zones.iter().filter(|zone| zone.will_lock()).count() as u64;
     let mut budget_left_ns = self.options.budget_ms.saturating_mul(1_000_000);
 
@@ -225,7 +196,6 @@ impl Census<'_> {
         owners: self.owners.as_mut(),
         summary: &mut self.summary,
         zone: &mut *zone_summary,
-        reporter_blocks,
         deadline_ns: held_from + share_ns,
         over_budget: false,
       };

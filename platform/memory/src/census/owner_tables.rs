@@ -9,6 +9,7 @@
 use super::Summary;
 use super::enumerate::ZoneState;
 use super::tables::{CandidateTable, ClassTable};
+use crate::mapped::MappedVec;
 
 /// Above this size an unnamed block is credited only to an object pointing at its start. A large
 /// block spans so much of the address space that any number in a named object lands inside one.
@@ -56,28 +57,24 @@ pub struct NamedBlock {
 //
 
 pub struct OwnerTables {
-  pub unnamed: Vec<UnnamedBlock>,
-  pub named: Vec<NamedBlock>,
+  pub unnamed: MappedVec<UnnamedBlock>,
+  pub named: MappedVec<NamedBlock>,
 }
 
 impl OwnerTables {
   /// Sized from the zones' own block counts, with room for the heap to grow before the locks. Some
   /// zones report no statistics, hence the floor. Only the entries written are committed.
-  pub fn new(zones: &[ZoneState]) -> Self {
+  pub fn new(zones: &[ZoneState]) -> Option<Self> {
     let blocks: usize = zones
       .iter()
       .filter(|zone| zone.will_lock())
       .map(|zone| zone.zone.blocks_in_use())
       .sum();
     let capacity = (blocks + blocks / 4).max(MIN_CAPACITY);
-    Self {
-      unnamed: Vec::with_capacity(capacity),
-      named: Vec::with_capacity(capacity),
-    }
-  }
-
-  pub fn table_addresses(&self) -> [usize; 2] {
-    [self.unnamed.as_ptr() as usize, self.named.as_ptr() as usize]
+    Some(Self {
+      unnamed: MappedVec::with_capacity(capacity)?,
+      named: MappedVec::with_capacity(capacity)?,
+    })
   }
 
   /// Remembers a named block as a source. Never grows the table.
@@ -85,15 +82,14 @@ impl OwnerTables {
     let Ok(class) = u32::try_from(class) else {
       return;
     };
-    if self.named.len() == self.named.capacity() {
-      summary.owner_table_overflow += 1;
-      return;
-    }
-    self.named.push(NamedBlock {
+    let block = NamedBlock {
       address,
       size: u32::try_from(size).unwrap_or(u32::MAX),
       class,
-    });
+    };
+    if self.named.push(block).is_err() {
+      summary.owner_table_overflow += 1;
+    }
   }
 
   /// Remembers an unnamed block as a target. Never grows the table.
@@ -103,11 +99,7 @@ impl OwnerTables {
     size: u64,
     summary: &mut Summary,
   ) -> Option<&mut UnnamedBlock> {
-    if self.unnamed.len() == self.unnamed.capacity() {
-      summary.owner_table_overflow += 1;
-      return None;
-    }
-    self.unnamed.push(UnnamedBlock {
+    let block = UnnamedBlock {
       address,
       size,
       candidate: 0,
@@ -115,7 +107,11 @@ impl OwnerTables {
       owner: None,
       referrers: 0,
       owner_points_at_start: false,
-    });
+    };
+    if self.unnamed.push(block).is_err() {
+      summary.owner_table_overflow += 1;
+      return None;
+    }
     self.unnamed.last_mut()
   }
 

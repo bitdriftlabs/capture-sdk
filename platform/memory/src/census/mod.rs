@@ -22,6 +22,7 @@ mod tables;
 use crate::images::ImageTable;
 use crate::report::HeapReport;
 use crate::sys::malloc::Zone;
+use anyhow::Context;
 use enumerate::ZoneState;
 use owner_tables::OwnerTables;
 use tables::{CandidateTable, ClassTable, ReadableRanges};
@@ -72,8 +73,6 @@ struct Summary {
   swift_box_bytes: u64,
   image_blocks: u64,
   image_bytes: u64,
-  reporter_blocks: u64,
-  reporter_bytes: u64,
   unclassified_blocks: u64,
   unclassified_bytes: u64,
   unclassified_histogram: [u64; SIZE_BUCKETS],
@@ -135,27 +134,31 @@ struct Census<'a> {
   before_resolve: Option<Box<dyn FnOnce()>>,
 }
 
-pub fn capture(options: HeapOptions, images: Option<&ImageTable>) -> HeapReport {
-  Census::new(options, images).run()
+pub fn capture(options: HeapOptions, images: Option<&ImageTable>) -> anyhow::Result<HeapReport> {
+  Ok(Census::new(options, images)?.run())
 }
 
 impl<'a> Census<'a> {
-  fn new(options: HeapOptions, images: Option<&'a ImageTable>) -> Self {
+  fn new(options: HeapOptions, images: Option<&'a ImageTable>) -> anyhow::Result<Self> {
     let zones: Vec<ZoneState> = Zone::all().into_iter().map(ZoneState::new).collect();
-    let owners = options.owners.then(|| OwnerTables::new(&zones));
-    Self {
+    let owners = if options.owners {
+      Some(OwnerTables::new(&zones).context("mapping the owner tables")?)
+    } else {
+      None
+    };
+    Ok(Self {
       options,
       images,
-      classes: ClassTable::new(),
-      candidates: CandidateTable::new(),
-      ranges: ReadableRanges::new(),
+      classes: ClassTable::new().context("mapping the class table")?,
+      candidates: CandidateTable::new().context("mapping the candidate table")?,
+      ranges: ReadableRanges::new().context("mapping the readable ranges")?,
       zones,
       owners,
       names: Vec::new(),
       summary: Summary::default(),
       #[cfg(test)]
       before_resolve: None,
-    }
+    })
   }
 
   fn run(mut self) -> HeapReport {

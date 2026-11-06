@@ -4,6 +4,7 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+use crate::mapped::MappedVec;
 use objc::runtime::{Class, class_getName};
 use std::ffi::CStr;
 
@@ -19,16 +20,19 @@ pub struct RuntimeClass {
   pub name: &'static CStr,
 }
 
-/// Every class the runtime has registered. Realizes them all, which allocates.
-pub fn registered_classes() -> Vec<RuntimeClass> {
-  Class::classes()
-    .iter()
-    .map(|class| RuntimeClass {
+/// Every class the runtime has registered. Realizes them all, which allocates. None if the table
+/// cannot be mapped.
+pub fn registered_classes() -> Option<MappedVec<RuntimeClass>> {
+  let classes = Class::classes();
+  let mut registered = MappedVec::with_capacity(classes.len())?;
+  for class in classes.iter() {
+    let _ = registered.push(RuntimeClass {
       pointer: std::ptr::from_ref::<Class>(class) as usize,
       instance_size: class.instance_size(),
       name: class_name(class),
-    })
-    .collect()
+    });
+  }
+  Some(registered)
 }
 
 fn class_name(class: &Class) -> &'static CStr {

@@ -173,7 +173,6 @@ fn heap(report: &HeapReport, numbers: &mut ImageNumbers) -> proto::Heap {
     named: Some(block_count(&report.named)).into(),
     swift_boxes: Some(block_count(&report.swift_boxes)).into(),
     images: Some(block_count(&report.images)).into(),
-    reporter: Some(block_count(&report.reporter)).into(),
     unclassified: Some(unclassified(&report.unclassified)).into(),
     owners: report
       .owners

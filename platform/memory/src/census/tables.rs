@@ -7,9 +7,9 @@
 // Tables the census fills while zones are locked. Each one is allocated in full before the first
 // lock and written without allocating afterwards.
 
-use crate::sys::objc::registered_classes;
+use crate::mapped::MappedVec;
+use crate::sys::objc::{RuntimeClass, registered_classes};
 use crate::sys::vm_region::{VM_PROT_READ, region_short_info};
-use std::ffi::CStr;
 
 const CANDIDATE_CAPACITY_BITS: u32 = 17;
 const CANDIDATE_CAPACITY: usize = 1 << CANDIDATE_CAPACITY_BITS;
@@ -18,15 +18,7 @@ const CANDIDATE_CAPACITY: usize = 1 << CANDIDATE_CAPACITY_BITS;
 const CANDIDATE_PROBE_LIMIT: usize = 32;
 const RANGE_CAPACITY: usize = 8192;
 
-//
-// ClassEntry
-//
-
-pub struct ClassEntry {
-  pub pointer: usize,
-  pub instance_size: usize,
-  pub name: &'static CStr,
-}
+pub type ClassEntry = RuntimeClass;
 
 //
 // Tally
@@ -48,23 +40,17 @@ pub struct Tally {
 
 /// The registered classes sorted by address, searched by bisection.
 pub struct ClassTable {
-  pub entries: Vec<ClassEntry>,
-  pub tallies: Vec<Tally>,
+  pub entries: MappedVec<ClassEntry>,
+  pub tallies: MappedVec<Tally>,
 }
 
 impl ClassTable {
-  pub fn new() -> Self {
-    let mut entries: Vec<ClassEntry> = registered_classes()
-      .into_iter()
-      .map(|class| ClassEntry {
-        pointer: class.pointer,
-        instance_size: class.instance_size,
-        name: class.name,
-      })
-      .collect();
+  pub fn new() -> Option<Self> {
+    let mut entries = registered_classes()?;
     entries.sort_unstable_by_key(|entry| entry.pointer);
-    let tallies = vec![Tally::default(); entries.len()];
-    Self { entries, tallies }
+    // SAFETY: a zeroed `Tally` is the default one.
+    let tallies = unsafe { MappedVec::zeroed(entries.len()) }?;
+    Some(Self { entries, tallies })
   }
 
   /// Index of the class at `pointer`. No allocations.
@@ -116,15 +102,14 @@ pub struct Candidate {
 /// Open-addressed table of candidates, sized for the tens of thousands of distinct first words a
 /// large app produces. Zero-filled on allocation, so only the pages touched are committed.
 pub struct CandidateTable {
-  pub slots: Box<[Candidate]>,
+  pub slots: MappedVec<Candidate>,
 }
 
 impl CandidateTable {
-  pub fn new() -> Self {
-    let slots = Box::<[Candidate]>::new_zeroed_slice(CANDIDATE_CAPACITY);
+  pub fn new() -> Option<Self> {
     // SAFETY: every field of `Candidate` is valid when zeroed: integers, and `Unresolved = 0`.
-    let slots = unsafe { slots.assume_init() };
-    Self { slots }
+    let slots = unsafe { MappedVec::zeroed(CANDIDATE_CAPACITY) }?;
+    Some(Self { slots })
   }
 
   const fn slot(metadata: usize) -> usize {
@@ -182,18 +167,14 @@ impl CandidateTable {
 
 /// The readable ranges of the address space, sorted and merged.
 pub struct ReadableRanges {
-  ranges: Vec<(usize, usize)>,
+  ranges: MappedVec<(usize, usize)>,
 }
 
 impl ReadableRanges {
-  pub fn new() -> Self {
-    Self {
-      ranges: Vec::with_capacity(RANGE_CAPACITY),
-    }
-  }
-
-  pub fn as_ptr(&self) -> usize {
-    self.ranges.as_ptr() as usize
+  pub fn new() -> Option<Self> {
+    Some(Self {
+      ranges: MappedVec::with_capacity(RANGE_CAPACITY)?,
+    })
   }
 
   /// Surveys the address space. Makes syscalls, so never call it with a zone locked.
@@ -218,7 +199,9 @@ impl ReadableRanges {
         let end = address + region.size;
         match self.ranges.last_mut() {
           Some(last) if last.1 == address => last.1 = end,
-          _ => self.ranges.push((address, end)),
+          _ => {
+            let _ = self.ranges.push((address, end));
+          },
         }
       }
       address += region.size;

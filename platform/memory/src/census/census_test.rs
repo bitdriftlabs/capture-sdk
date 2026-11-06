@@ -110,6 +110,7 @@ fn census_with_budget(budget_ms: u64, owners: bool) -> HeapReport {
     HeapOptions { budget_ms, owners },
     Some(&ImageTable::survey()),
   )
+  .unwrap()
 }
 
 fn is_named(row: &TypeRow, class: &str) -> bool {
@@ -270,11 +271,10 @@ fn blocks_pointing_at_box_metadata_are_swift_boxes() {
 }
 
 #[test]
-fn the_dump_tables_are_reported_apart() {
+fn the_dump_tables_are_not_in_the_heap() {
   let _lock = memory_lock();
   let report = census(true);
-  assert!(report.reporter.blocks >= 3);
-  assert!(report.reporter.bytes > 0);
+  assert!(report.largest_block_bytes < 1 << 20);
 }
 
 fn zone_named(name: &str, blocks: usize) -> *mut c_void {
@@ -392,7 +392,8 @@ fn candidate_unmapped_before_resolution_stays_unresolved() {
       owners: false,
     },
     None,
-  );
+  )
+  .unwrap();
   census.before_resolve = Some(Box::new(move || {
     // SAFETY: the mapping created above.
     assert_eq!(unsafe { munmap(region as *mut c_void, size) }, 0);

@@ -16,6 +16,7 @@
 // - only blocks of classes in the runtime's class list are sources.
 
 use super::Census;
+use crate::mapped::MappedVec;
 use crate::safe_read;
 use crate::sys::mach::now_ns;
 
@@ -46,7 +47,10 @@ impl Census<'_> {
 
     let started = now_ns();
     let named = std::mem::take(&mut tables.named);
-    let mut scratch = vec![0u8; SCRATCH_SIZE];
+    // SAFETY: zero is a valid byte.
+    let Some(mut scratch) = (unsafe { MappedVec::<u8>::zeroed(SCRATCH_SIZE) }) else {
+      return;
+    };
     let mut index = 0;
     while index < named.len() {
       let window_start = named[index].address;

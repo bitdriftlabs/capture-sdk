@@ -117,10 +117,6 @@ impl Census<'_> {
         blocks: summary.image_blocks,
         bytes: summary.image_bytes,
       },
-      reporter: BlockCount {
-        blocks: summary.reporter_blocks,
-        bytes: summary.reporter_bytes,
-      },
       unclassified: Unclassified {
         blocks: summary.unclassified_blocks,
         bytes: summary.unclassified_bytes,
