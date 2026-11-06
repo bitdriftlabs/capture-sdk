@@ -109,6 +109,52 @@ class LatestAppExitInfoProviderTest {
         verify(activityManager, times(1)).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
 
+    /**
+     * BIT-10458: a normal reboot kills the app without adding an exit record, so on the next process
+     * start getHistoricalProcessExitReasons() still returns the native crash that was already reported.
+     * Each provider instance stands for one process start.
+     */
+    @Test
+    fun get_whenSameExitRecordOnNextProcessStart_shouldNotReportItAgain() {
+        val nativeCrash = mockExitInfo(pid = 3544, timestamp = 1_793_974_836_144L, reason = ApplicationExitInfo.REASON_CRASH_NATIVE)
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(nativeCrash))
+
+        // Start right after the crash: the crash is reported.
+        val startAfterCrash = LatestAppExitInfoProvider(activityManager).get()
+        // Start after a reboot: Android still returns the same record, as nothing newer was recorded.
+        val startAfterReboot = LatestAppExitInfoProvider(activityManager).get()
+
+        assertResult<LatestAppExitReasonResult.Valid>(startAfterCrash, expectedApplicationExitInfo = nativeCrash)
+        assertResult<LatestAppExitReasonResult.None>(startAfterReboot)
+    }
+
+    @Test
+    fun get_whenNewerExitRecordOnNextProcessStart_shouldReportTheNewerRecord() {
+        val nativeCrash = mockExitInfo(pid = 3544, timestamp = 1_793_974_836_144L, reason = ApplicationExitInfo.REASON_CRASH_NATIVE)
+        val laterExit = mockExitInfo(pid = 3717, timestamp = 1_793_976_000_000L, reason = ApplicationExitInfo.REASON_USER_REQUESTED)
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any()))
+            .thenReturn(listOf(nativeCrash))
+            .thenReturn(listOf(laterExit, nativeCrash))
+
+        val startAfterCrash = LatestAppExitInfoProvider(activityManager).get()
+        val nextStart = LatestAppExitInfoProvider(activityManager).get()
+
+        assertResult<LatestAppExitReasonResult.Valid>(startAfterCrash, expectedApplicationExitInfo = nativeCrash)
+        assertResult<LatestAppExitReasonResult.Valid>(nextStart, expectedApplicationExitInfo = laterExit)
+    }
+
+    private fun mockExitInfo(
+        pid: Int,
+        timestamp: Long,
+        reason: Int,
+    ): ApplicationExitInfo =
+        mock<ApplicationExitInfo>().also {
+            whenever(it.processName).thenReturn(Application.getProcessName())
+            whenever(it.pid).thenReturn(pid)
+            whenever(it.timestamp).thenReturn(timestamp)
+            whenever(it.reason).thenReturn(reason)
+        }
+
     private inline fun <reified T : LatestAppExitReasonResult> assertResult(
         exitReason: LatestAppExitReasonResult,
         expectedMessage: String? = null,
