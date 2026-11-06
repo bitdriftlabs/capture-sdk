@@ -27,6 +27,8 @@ internal class JniStreamingReportProcessor(
             report.appExitDescription,
             report.memoryPressureLevel,
             report.isFileSizeOptimizationEnabled,
+            report.processId,
+            report.crashProfileSource,
         )
     }
 

@@ -10,6 +10,7 @@ package io.bitdrift.capture.reports.processor
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
 import android.os.Build
+import android.os.Process
 import android.os.strictmode.Violation
 import androidx.annotation.RequiresApi
 import com.google.flatbuffers.FlatBufferBuilder
@@ -32,6 +33,7 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.SDKInfo
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Timestamp
 import io.bitdrift.capture.reports.persistence.IIssueReporterStore
+import io.bitdrift.capture.reports.profiling.CrashProfileSource
 import java.io.InputStream
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -130,6 +132,9 @@ internal class IssueReporterProcessor(
                         applicationExit.description,
                         internalLogger.getPreviousRunMemoryPressureLevel().nativeValue,
                         isFileSizeOptimizationEnabled,
+                        applicationExit.pid,
+                        // Native code keeps it only if it holds SDK facts for this exited process.
+                        applicationExit.processStateSummary,
                     ),
                 )
             } else if (fatalIssueType == ReportType.NativeCrash) {
@@ -209,8 +214,18 @@ internal class IssueReporterProcessor(
             val timestamp = dateProvider.invoke().time
             val builder = FlatBufferBuilder(FBS_BUILDER_DEFAULT_SIZE)
             val sdk = createSDKInfo(builder)
-            val appMetrics = createAppMetrics(builder, memoryMetricsProvider.getCurrentJvmMemoryPressureLevel())
+            val appMetrics =
+                createAppMetrics(
+                    builder,
+                    memoryMetricsProvider.getCurrentJvmMemoryPressureLevel(),
+                    processId = Process.myPid(),
+                )
             val deviceMetrics = createDeviceMetrics(builder, timestamp)
+            // Facts were prepared at startup: the crashing thread only copies a string.
+            val crashProfileSource =
+                CrashProfileSource.oomSource.takeIf {
+                    reportType == ReportType.JVMCrash && throwable is OutOfMemoryError
+                }
             val report =
                 JvmProcessor.getJvmReport(
                     builder,
@@ -222,6 +237,7 @@ internal class IssueReporterProcessor(
                     allThreads,
                     reportType,
                     isFileSizeOptimizationEnabled,
+                    crashProfileSource,
                 )
             builder.finish(report)
 
@@ -256,6 +272,7 @@ internal class IssueReporterProcessor(
         builder: FlatBufferBuilder,
         memoryPressureLevel: io.bitdrift.capture.events.performance.MemoryPressureLevel,
         runningState: String? = null,
+        processId: Int? = null,
     ): Int {
         val buildNumber =
             AppBuildNumber.createAppBuildNumber(builder, clientAttributes.appVersionCode, 0)
@@ -280,6 +297,10 @@ internal class IssueReporterProcessor(
         if (runningStateOffset != null) {
             io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
                 .addRunningState(builder, runningStateOffset)
+        }
+        if (processId != null) {
+            io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
+                .addProcessId(builder, processId.toUInt())
         }
         return io.bitdrift.capture.reports.binformat.v1.issue_reporting.AppMetrics
             .endAppMetrics(builder)

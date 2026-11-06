@@ -126,6 +126,17 @@ sealed class RuntimeFeature(
         "client_feature.android.optimize_fatal_issue_report_size",
         defaultValue = true,
     )
+
+    /**
+     * Whether system-triggered ANR profiles (API 36+) are captured and attached to ANR reports.
+     */
+    data object CRASH_PROFILES_ANR : RuntimeFeature("client_feature.android.crash_profiles.anr", defaultValue = true)
+
+    /**
+     * Whether system-triggered Java OutOfMemoryError profiles (API 37+) are captured and attached
+     * to JVM OutOfMemoryError reports.
+     */
+    data object CRASH_PROFILES_OOM : RuntimeFeature("client_feature.android.crash_profiles.oom", defaultValue = true)
 }
 
 /**

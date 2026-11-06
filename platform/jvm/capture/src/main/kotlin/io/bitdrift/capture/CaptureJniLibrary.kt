@@ -517,6 +517,9 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
      * @param destinationPath Target file path to write the report
      * @param tempDirectoryPath Writable directory used to buffer the ANR trace while parsing
      * @param attributes Client attributes used for dynamic report metadata
+     * @param processId The exited process, used as the report's process ID
+     * @param crashProfileSource The exit record's process-state summary; stored as the report's
+     * crash-profile source only if it encodes SDK facts for [processId]
      */
     @Throws(IOException::class, IllegalArgumentException::class)
     external fun processAndPersistANR(
@@ -530,6 +533,37 @@ internal object CaptureJniLibrary : IBridge, ICommandBridge {
         appExitDescription: String?,
         memoryPressureLevel: Int,
         isFileSizeOptimizationEnabled: Boolean,
+        processId: Int,
+        crashProfileSource: ByteArray?,
+    )
+
+    /**
+     * Encodes this process's facts, with a fresh run identity, as an opaque crash-profile source
+     * stored in the process-state summary and JVM OutOfMemoryError reports.
+     *
+     * @return the encoded `CrashProfileSource`, or null if encoding failed
+     */
+    external fun encodeCrashProfileSource(
+        pid: Int,
+        bootCount: Int,
+        processStartElapsedNs: Long,
+        wallNs: Long,
+        elapsedNs: Long,
+    ): ByteArray?
+
+    /**
+     * Hands a successful system-triggered profile to native crash-profile attribution, which
+     * uploads it with its matching reports or otherwise deletes it.
+     *
+     * @param path the platform result file
+     * @param kind `anr` or `oom`
+     * @param retainUnmatched keep a live result that matches no report yet, so the next process
+     * can resubmit it once after its startup report pass
+     */
+    external fun submitCrashProfile(
+        path: String,
+        kind: String,
+        retainUnmatched: Boolean,
     )
 
     /**

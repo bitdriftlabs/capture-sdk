@@ -166,6 +166,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     ) {
         val category = newCategory(context, screen, "capture_category", "Configuration Options")
         category.addPreference(buildSwitchPreference(context))
+        category.addPreference(buildCrashProfilingSwitch(context))
         category.addPreference(buildSessionReplaySwitch(context))
         category.addPreference(buildDiagnosticsSwitch(context))
     }
@@ -242,6 +243,9 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     private fun buildSwitchPreference(context: Context): SwitchPreference =
         buildSwitchPreference(context, FATAL_ISSUE_ENABLED_PREFS_KEY, FATAL_ISSUE_TITLE, true)
 
+    private fun buildCrashProfilingSwitch(context: Context): SwitchPreference =
+        buildSwitchPreference(context, CRASH_PROFILING_ENABLED_PREFS_KEY, "ANR / OOM Crash Profiles", false)
+
     private fun buildDeferredStartSwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, DEFERRED_START_PREFS_KEY, DEFERRED_START_TITLE, false)
 
@@ -307,6 +311,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val BITDRIFT_URL_KEY = "apiUrl"
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
+        const val CRASH_PROFILING_ENABLED_PREFS_KEY = "crashProfilingEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
         const val START_ON_BACKGROUND_THREAD_PREFS_KEY = "startOnBackgroundThread"
         const val SIMULATED_START_DELAY_PREFS_KEY = "simulatedStartDelay"

@@ -21,6 +21,7 @@ import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.ExitReason
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
+import io.bitdrift.capture.reports.profiling.CrashProfileKind
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.assertPreviousRunInfo
 import io.bitdrift.capture.utils.setIsDebuggable
@@ -34,6 +35,8 @@ import org.junit.runners.MethodSorters
 import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLooper
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
@@ -115,6 +118,17 @@ class CaptureTest {
     fun bGetPreviousRunInfoNoopWhenLoggerNotConfigured() {
         assertThat(Capture.logger()).isNull()
         assertThat(Logger.getPreviousRunInfo()).isNull()
+    }
+
+    @Test
+    @OptIn(ExperimentalBitdriftApi::class)
+    fun bImportCrashProfileFailsExplicitlyWhenLoggerNotConfigured() {
+        var result: CaptureResult<Unit>? = null
+
+        Logger.importCrashProfile(File("/caller-owned/profile"), CrashProfileKind.ANR) { result = it }
+        ShadowLooper.runUiThreadTasksIncludingDelayedTasks()
+
+        assertThat(result).isEqualTo(CaptureResult.Failure(SdkNotStartedError))
     }
 
     @Test

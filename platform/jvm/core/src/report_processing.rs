@@ -20,6 +20,7 @@ use bd_proto::flatbuffers::report::bitdrift_public::fbs::issue_reporting::v_1::{
   Platform,
   Timestamp,
 };
+use bd_proto::protos::client::artifact::CrashProfileSource;
 use flatbuffers::FlatBufferBuilder;
 use jni::JNIEnv;
 use jni::objects::{JObject, JString};
@@ -31,6 +32,7 @@ use platform_shared::javascript_error::{
   persist_javascript_error_report,
 };
 use platform_shared::metadata::Mobile;
+use protobuf::Message as _;
 use std::io::{Seek, Write};
 use std::sync::OnceLock;
 
@@ -65,6 +67,9 @@ pub(crate) struct AnrReport<'a, 'local> {
   pub app_exit_description: Option<&'a str>,
   pub memory_pressure_level: jint,
   pub is_file_size_optimization_enabled: bool,
+  pub process_id: u32,
+  /// The exit record's process-state summary, possibly the SDK's encoded `CrashProfileSource`.
+  pub crash_profile_source: Option<&'a [u8]>,
 }
 
 //
@@ -148,12 +153,17 @@ pub(crate) fn persist_anr(
   );
   let mut device_info = build_device_metrics(context, &mut builder, &timestamp)?;
   let mut app_info = build_app_metrics(context, &mut builder, report)?;
+  let crash_profile_source = report
+    .crash_profile_source
+    .filter(|source| is_source_for(source, report.process_id))
+    .map(|source| builder.create_vector(source));
   let report_offset = bd_report_parsers::android::build_anr_from_app_exit(
     &mut builder,
     &mut app_info,
     &mut device_info,
     source_view,
     report.app_exit_description,
+    crash_profile_source,
     report.is_file_size_optimization_enabled,
   );
 
@@ -161,6 +171,12 @@ pub(crate) fn persist_anr(
   std::fs::write(report.destination, builder.finished_data())?;
   log::trace!("persisted report from {}", report.timestamp_millis);
   Ok(())
+}
+
+/// Whether a process-state summary holds SDK crash-profile facts for the exited process. A host app
+/// may also use the summary, so anything else is ignored rather than attached to the report.
+fn is_source_for(summary: &[u8], pid: u32) -> bool {
+  CrashProfileSource::parse_from_bytes(summary).is_ok_and(|source| source.pid == pid)
 }
 
 pub(crate) fn persist_javascript_error(
@@ -309,6 +325,7 @@ fn build_app_metrics<'fbb>(
     build_number,
     region_format: region_format.map(|s| builder.create_string(&s)),
     running_state: report.running_state.map(|s| builder.create_string(s)),
+    process_id: report.process_id,
     memory_pressure_level: MemoryPressureLevel(
       i8::try_from(report.memory_pressure_level).unwrap_or(0),
     ),

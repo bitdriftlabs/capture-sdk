@@ -1,0 +1,127 @@
+# Android crash profiling
+
+Capture attaches Android system-triggered ANR traces (Android 16+) and Java
+`OutOfMemoryError` heap dumps (Android 17+) to matching fatal issue reports.
+Fatal issue reporting and the corresponding `client_feature.android.crash_profiles.anr` or
+`client_feature.android.crash_profiles.oom` runtime flag must be enabled.
+
+## Runtime configuration
+
+`Configuration.crashProfilingMode` is startup configuration: `null` disables profiling by default;
+`AUTOMATIC` and `MANUAL` opt in to their respective collection modes. ANR/OOM runtime flags are sampled
+when the platform-event listener starts, normally once per process after runtime configuration
+loads. Changing only these flags does **not** immediately update Android trigger registrations,
+the result listener, the process-state summary, or the cached OOM source. The next process start
+(or a stop/start caused by the generic `platform_events.enabled` flag) reconciles them. Repeated
+listener starts while already running are no-ops.
+
+Native attribution independently checks the live per-kind flags before admitting profiles;
+unchanged OS registrations do not imply continued upload admission after a flag is disabled.
+Already admitted uploads follow the normal upload lifecycle. Manual imports
+also check the live flags and reject a disabled kind before reading the caller's file. Previously
+claimed persistent triggers are removed at the next listener start if the kind or local opt-in is
+disabled. Disabling generic platform events unregisters the listener, but leaves persistent triggers
+for that later reconciliation. Stale callbacks and queued imports cannot reactivate a stopped
+collector.
+
+## Automatic collection
+
+Opt in at SDK startup:
+
+```kotlin
+Configuration(crashProfilingMode = CrashProfilingMode.AUTOMATIC)
+```
+
+`CrashProfilingMode.AUTOMATIC` manages Android triggers and a result listener. Capture
+exclusively owns the enabled trigger types and their original result files. Other consumers must
+not depend on those originals remaining available. Unrelated trigger types and on-demand profiling
+results are left alone.
+
+Capture adopts completed results by renaming them into its private pending directory. Both
+directories normally reside on the same filesystem, so this does not copy the payload. A
+cross-filesystem source requires a copy followed by deletion. Once attributed, the existing
+uploader compresses the profile into its upload store and consumes the pending original. No hard
+links are used.
+
+## Caller-managed collection
+
+Use manual mode when the application coordinates Android profiling with other consumers:
+
+```kotlin
+Configuration(crashProfilingMode = CrashProfilingMode.MANUAL)
+```
+
+Capture does not add triggers or register a result listener in this mode. When transitioning from
+automatic mode, it removes only trigger types previously recorded as SDK-owned.
+
+Pass completed results to the experimental import API:
+
+```kotlin
+val kind = when (result.triggerType) {
+    ProfilingTrigger.TRIGGER_TYPE_ANR -> CrashProfileKind.ANR
+    ProfilingTrigger.TRIGGER_TYPE_OOM -> CrashProfileKind.OOM
+    else -> null
+}
+if (result.errorCode == ProfilingResult.ERROR_NONE && kind != null) {
+    result.resultFilePath?.let { path ->
+        Capture.Logger.importCrashProfile(File(path), kind) { imported ->
+            when (imported) {
+                is CaptureResult.Success -> coordinator.captureFinishedReading(path)
+                is CaptureResult.Failure -> coordinator.captureImportFailed(path, imported.error)
+            }
+        }
+    }
+}
+```
+
+The example assumes the appropriate Android API-level checks and an application-owned coordinator.
+Opt into `ExperimentalBitdriftApi` at the call site.
+
+The importer never modifies, renames, or deletes the caller's original, even on failure. Keep the
+original readable and unchanged until completion, which is delivered on the main thread. There is
+no cancellation handle. A successful result means Capture has persisted an independent raw copy;
+it does not promise that the profile matched a report or was uploaded. Parsing, attribution,
+compression, and upload occur afterward and can reject an unusable profile. An import rejected
+because profiling is disabled does not read the source.
+Queued imports are rejected if their collector stops before they begin. An import already copying
+may finish persisting after stop; its private copy is recovered on the next SDK startup rather than
+being submitted through the stopped collector.
+
+The owner may release the original once all consumers finish reading, not merely when Capture
+finishes. Capture's private snapshot needs one raw copy; automatic collection avoids that copy by
+transferring ownership. This API takes uncompressed profiles, not previously compressed uploads.
+Each successful invocation is a separate import; the application should avoid submitting the same
+result repeatedly.
+
+### Coordination still required
+
+Android supports multiple result listeners, but only one configuration per trigger type.
+Applications must coordinate trigger configuration, listener registration, and original-file
+cleanup. Register listeners after Capture starts and obtain paths and trigger types from
+`ProfilingResult`, not by parsing platform filenames.
+
+Both modes prepare source facts required by Capture's attribution. In particular, Capture owns
+`ActivityManager.setProcessStateSummary` while ANR profiling is enabled; another component must not
+overwrite it. Java OOM reports also carry SDK source facts. Manual mode changes collection and
+file ownership, not the attribution requirements.
+
+## Pending storage and restart recovery
+
+Pending raw profiles live under `files/bitdrift_capture/crash_profiles/`, outside Android's
+`files/profiling/` cleanup. Profile kind is encoded in SDK-owned filenames, so no separate sidecar
+must survive a move. Borrowed copies are written to a temporary file, synced, and atomically
+published before success is reported. Adoption syncs the renamed file and directories.
+
+A fatal ANR or Java OOM profile can arrive before its report exists. Native attribution retains
+the SDK-owned file with a retained suffix. On the next startup it waits for previous-run report
+discovery and retries attribution once. An unmatched retry or an unreadable profile is deleted.
+Newly imported files that were persisted before process death but not yet handed to native
+attribution are also recovered. Matching and uploading require the corresponding runtime flag.
+The SDK migrates legacy files carrying its retained suffix from the platform directory; it does
+not sweep unrelated platform results.
+
+The private pending store has a 64 MiB admission budget, including incomplete copies. Imports
+that exceed the available budget fail explicitly; existing files are not evicted to make room.
+Pending files older than seven days are removed when the store is scanned at startup or import,
+including while collection is disabled. This is opportunistic cleanup, not a background timer.
+Upload-store limits and cleanup apply separately after attribution.
