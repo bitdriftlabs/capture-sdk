@@ -7,20 +7,6 @@
 
 package io.bitdrift.capture.commands.profiling
 
-internal enum class ProfileType {
-    STACK_SAMPLING,
-}
-
-/** One capture as requested; the platform clamps each value to its own bounds. */
-internal data class ProfileRequest(
-    val type: ProfileType,
-    val durationMs: Int,
-    val frequencyHz: Int,
-    val bufferSizeKb: Int,
-    /** Marks the capture as the SDK's; the platform puts it in the file name and in the result. */
-    val tag: String,
-)
-
 internal sealed interface ProfileOutcome {
     data class Saved(
         val path: String,

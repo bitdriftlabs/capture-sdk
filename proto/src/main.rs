@@ -10,6 +10,7 @@
 mod tests;
 
 use bd_proto::protos::workflow::workflow_command::WellKnownCommandType;
+use bd_proto::protos::workflow::workflow_command::device_command_argument_definition::Type;
 use bd_proto::protos::workflow::workflow_command::exts::well_known_command_options;
 use protobuf::EnumFull;
 use serde::Deserialize;
@@ -65,7 +66,7 @@ enum class LogType(val value: Int) {{
   );
 }
 
-fn swift_command_name(name: &str) -> String {
+fn camel_case(name: &str) -> String {
   name
     .split('_')
     .filter(|word| !word.is_empty())
@@ -82,7 +83,10 @@ fn swift_command_name(name: &str) -> String {
     .collect()
 }
 
-fn builtin_commands() -> Vec<(String, i32, String)> {
+/// A built-in's enum name, wire value, key, and arguments as (name, Kotlin type).
+type BuiltinCommand = (String, i32, String, Vec<(String, &'static str)>);
+
+fn builtin_commands() -> Vec<BuiltinCommand> {
   WellKnownCommandType::enum_descriptor()
     .values()
     .filter(|value| value.value() != 0)
@@ -90,9 +94,76 @@ fn builtin_commands() -> Vec<(String, i32, String)> {
       let metadata = well_known_command_options
         .get(value.proto().options.as_ref().expect("command options"))
         .expect("well-known command metadata");
-      (value.name().to_string(), value.value(), metadata.key)
+      let arguments = metadata
+        .argument_definitions
+        .iter()
+        .map(|argument| {
+          // The server fills every default, so an argument is absent only when it is optional
+          // without one; the generated classes have no nullable fields for that yet.
+          assert!(
+            !argument.optional || argument.default_value.is_some(),
+            "optional argument {} without a default is not supported",
+            argument.name
+          );
+          let kotlin_type = match argument.type_.enum_value() {
+            Ok(Type::STRING) => "String",
+            Ok(Type::BINARY) => "ByteArray",
+            Ok(Type::UINT64) => "ULong",
+            Ok(Type::DOUBLE) => "Double",
+            Ok(Type::INT64) => "Long",
+            Ok(Type::BOOL) => "Boolean",
+            other => panic!("unsupported type {other:?} for argument {}", argument.name),
+          };
+          (argument.name.clone(), kotlin_type)
+        })
+        .collect();
+      (
+        value.name().to_string(),
+        value.value(),
+        metadata.key,
+        arguments,
+      )
     })
     .collect()
+}
+
+/// An enum entry; one with arguments parses them into its generated class, so handlers never spell
+/// argument names.
+fn generate_kotlin_entry(name: &str, value: i32, key: &str, arguments: &[(String, &str)]) {
+  if arguments.is_empty() {
+    println!("    {name}({value}, {key:?}),");
+    return;
+  }
+  println!(
+    "    {name}({value}, {key:?}) {{
+        override fun parse(scope: CommandScope) =
+            {}Arguments(",
+    pascal_case(name)
+  );
+  for (argument, kotlin_type) in arguments {
+    println!(
+      "                {} = scope.argument<{kotlin_type}>({argument:?}),",
+      camel_case(argument)
+    );
+  }
+  println!("            )\n    }},");
+}
+
+fn generate_kotlin_arguments(name: &str, arguments: &[(String, &str)]) {
+  println!("\ninternal data class {}Arguments(", pascal_case(name));
+  for (argument, kotlin_type) in arguments {
+    println!("    val {}: {kotlin_type},", camel_case(argument));
+  }
+  println!(") : BuiltinCommandArguments");
+}
+
+fn pascal_case(name: &str) -> String {
+  let camel = camel_case(name);
+  let mut chars = camel.chars();
+  chars
+    .next()
+    .map(|first| first.to_ascii_uppercase().to_string() + chars.as_str())
+    .unwrap_or_default()
 }
 
 fn generate_builtin_commands(language: &str) {
@@ -114,19 +185,37 @@ fn generate_builtin_commands(language: &str) {
     "kotlin" => {
       println!("package io.bitdrift.capture.commands\n");
       println!("enum class BuiltinCommandType(val wireValue: Int, val key: String) {{");
-      for (name, value, key) in commands {
-        println!("    {name}({value}, {key:?}),");
+      for (name, value, key, arguments) in &commands {
+        generate_kotlin_entry(name, *value, key, arguments);
       }
-      println!("}}");
+      println!(
+        "    ;
+
+    /** This command's arguments as its proto definition declares them, or null when it has none. \
+         */
+    internal open fun parse(scope: CommandScope): BuiltinCommandArguments? = null
+}}
+
+/**
+ * The arguments of a built-in that declares any, generated from its proto definition. Open, so a
+ * consumer handles only the arguments it serves and a new command never breaks an unrelated one.
+ */
+internal interface BuiltinCommandArguments"
+      );
+      for (name, _, _, arguments) in &commands {
+        if !arguments.is_empty() {
+          generate_kotlin_arguments(name, arguments);
+        }
+      }
     },
     "swift" => {
       println!("enum BuiltinCommandType: Int32 {{");
-      for (name, value, _) in &commands {
-        println!("    case {} = {value}", swift_command_name(name));
+      for (name, value, ..) in &commands {
+        println!("    case {} = {value}", camel_case(name));
       }
       println!("\n    var key: String {{\n        switch self {{");
-      for (name, _, key) in &commands {
-        println!("        case .{}: {key:?}", swift_command_name(name));
+      for (name, _, key, _) in &commands {
+        println!("        case .{}: {key:?}", camel_case(name));
       }
       println!("        }}\n    }}\n}}");
     },

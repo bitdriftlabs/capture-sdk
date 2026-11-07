@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.commands.profiling
 
+import io.bitdrift.capture.commands.BuiltinCommandArguments
+
 /** Stops a running capture early. */
 internal fun interface ICancellable {
     fun cancel()
@@ -14,9 +16,9 @@ internal fun interface ICancellable {
 
 /** The platform profiler. Only its implementation touches android.os.ProfilingManager. */
 internal interface IProfiler {
-    /** Starts [request] and reports its outcome exactly once through [callback]. */
+    /** Starts the capture [arguments] describe and reports its outcome exactly once through [callback]. */
     fun request(
-        request: ProfileRequest,
+        arguments: BuiltinCommandArguments,
         callback: (ProfileOutcome) -> Unit,
     ): ICancellable
 }

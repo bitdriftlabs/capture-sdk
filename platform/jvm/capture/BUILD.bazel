@@ -60,7 +60,6 @@ kt_jvm_library(
     name = "gen_sources",
     srcs = [
         "//platform/shared:version_kt_source",
-        "//proto:builtin_command_kt_source",
         "//proto:log_type_kt_source",
     ],
 )
@@ -85,6 +84,9 @@ bitdrift_kt_android_library(
         ],
     ),
     custom_package = "io.bitdrift.capture",
+    # Compiled here rather than in :gen_sources: it uses CommandScope and declares internal classes
+    # this library uses, which a separate Kotlin module could neither see nor expose.
+    generated_srcs = ["//proto:builtin_command_kt_source"],
     tags = ["maven_coordinates=io.bitdrift:capture:$(pom_version)"],
     visibility = ["//visibility:public"],
     # Exported dependencies will appear as dependencies in the generated .pom xml.

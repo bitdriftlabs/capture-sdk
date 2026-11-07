@@ -19,6 +19,9 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.commands.BuiltinCommandArguments
+import io.bitdrift.capture.commands.HeapProfileTraceArguments
+import io.bitdrift.capture.commands.StackSamplingTraceArguments
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
@@ -61,6 +64,15 @@ class ProfilerTest {
     }
 
     @Test
+    fun argumentsThatDescribeNoProfileAreUnsupportedWithoutAPlatformRequest() {
+        profiler.request(object : BuiltinCommandArguments {}) { outcomes += it }
+
+        assertThat(outcomes.single()).isInstanceOf(ProfileOutcome.Failed::class.java)
+        assertThat((outcomes.single() as ProfileOutcome.Failed).name).isEqualTo("unsupported")
+        verifyNoInteractions(manager)
+    }
+
+    @Test
     fun requestsAStackSampleWithEveryParameterAndTheTag() {
         profiler.request(REQUEST) { outcomes += it }
 
@@ -75,6 +87,37 @@ class ProfilerTest {
         )
         val values = params.firstValue.let { bundle -> bundle.keySet().map { bundle.getInt(it) } }
         assertThat(values).contains(3_000, 100, 2_048)
+        assertThat(outcomes).isEmpty()
+    }
+
+    @Test
+    fun anIntParameterBeyondIntSaturatesForThePlatformToClamp() {
+        profiler.request(StackSamplingTraceArguments(Int.MAX_VALUE + 1L, Long.MIN_VALUE, 2_048)) { outcomes += it }
+
+        val params = argumentCaptor<Bundle>()
+        verify(manager).requestProfiling(any(), params.capture(), any(), any(), any(), any())
+        val values = params.firstValue.let { bundle -> bundle.keySet().map { bundle.getInt(it) } }
+        assertThat(values).contains(Int.MAX_VALUE, Int.MIN_VALUE, 2_048)
+    }
+
+    @Test
+    fun requestsAHeapProfileWithEveryParameterAndTheTag() {
+        profiler.request(HeapProfileTraceArguments(5_000, 8_192, 65_536, true)) { outcomes += it }
+
+        val params = argumentCaptor<Bundle>()
+        verify(manager).requestProfiling(
+            eq(ProfilingManager.PROFILING_TYPE_HEAP_PROFILE),
+            params.capture(),
+            eq("bitdrift"),
+            any(),
+            any(),
+            any(),
+        )
+        // The sampling interval is a long and the Java allocation switch a boolean, so compare the
+        // values with their types.
+        @Suppress("DEPRECATION")
+        val values = params.firstValue.let { bundle -> bundle.keySet().map { bundle.get(it) } }
+        assertThat(values).contains(5_000, 8_192, 65_536L, true)
         assertThat(outcomes).isEmpty()
     }
 
@@ -138,13 +181,6 @@ class ProfilerTest {
         }
 
     private companion object {
-        val REQUEST =
-            ProfileRequest(
-                type = ProfileType.STACK_SAMPLING,
-                durationMs = 3_000,
-                frequencyHz = 100,
-                bufferSizeKb = 2_048,
-                tag = "bitdrift",
-            )
+        val REQUEST = StackSamplingTraceArguments(3_000, 100, 2_048)
     }
 }
