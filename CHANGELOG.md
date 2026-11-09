@@ -15,7 +15,7 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed a race condition that can cause a panic in metrics handling during concurrent updates.
 
 ### Android
 
