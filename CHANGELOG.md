@@ -11,7 +11,7 @@
 
 **Changed**
 
-- Nothing yet!
+- Restored the SDK license to PolyForm Shield 1.0.0.
 
 **Fixed**
 
