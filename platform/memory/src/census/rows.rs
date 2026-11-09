@@ -19,6 +19,7 @@ use crate::report::{
   Unclassified,
   ZoneRow,
 };
+use crate::sys::objc::validated_class_name;
 use std::collections::HashMap;
 
 //
@@ -48,13 +49,16 @@ impl Census<'_> {
     let mut types: HashMap<Identity, Totals> = HashMap::new();
     let mut owners: HashMap<Identity, Totals> = HashMap::new();
 
-    for (entry, tally) in self.classes.entries.iter().zip(&self.classes.tallies) {
+    for (pointer, tally) in self.classes.pointers.iter().zip(&self.classes.tallies) {
       if tally.blocks == 0 && tally.owned_blocks == 0 {
         continue;
       }
+      // SAFETY: an image's class list holds only classes. Realizing one with instances costs
+      // nothing: it was realized when they were allocated.
+      let name = unsafe { validated_class_name(*pointer) }.unwrap_or_default();
       let key = Identity::Named {
         kind: TypeKind::Class,
-        name: entry.name.to_string_lossy().into_owned(),
+        name,
       };
       if tally.blocks > 0 {
         types

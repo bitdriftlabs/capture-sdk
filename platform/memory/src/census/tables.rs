@@ -8,7 +8,7 @@
 // lock and written without allocating afterwards.
 
 use crate::mapped::MappedVec;
-use crate::sys::objc::{RuntimeClass, registered_classes};
+use crate::sys::objc::known_classes;
 use crate::sys::vm_region::{VM_PROT_READ, region_short_info};
 
 const CANDIDATE_CAPACITY_BITS: u32 = 17;
@@ -17,8 +17,6 @@ const CANDIDATE_CAPACITY: usize = 1 << CANDIDATE_CAPACITY_BITS;
 /// zone is locked.
 const CANDIDATE_PROBE_LIMIT: usize = 32;
 const RANGE_CAPACITY: usize = 8192;
-
-pub type ClassEntry = RuntimeClass;
 
 //
 // Tally
@@ -38,27 +36,24 @@ pub struct Tally {
 // ClassTable
 //
 
-/// The registered classes sorted by address, searched by bisection.
+/// The classes the loaded images define, sorted by address and searched by bisection.
 pub struct ClassTable {
-  pub entries: MappedVec<ClassEntry>,
+  pub pointers: MappedVec<usize>,
   pub tallies: MappedVec<Tally>,
 }
 
 impl ClassTable {
   pub fn new() -> Option<Self> {
-    let mut entries = registered_classes()?;
-    entries.sort_unstable_by_key(|entry| entry.pointer);
+    let mut pointers = known_classes()?;
+    pointers.sort_unstable();
     // SAFETY: a zeroed `Tally` is the default one.
-    let tallies = unsafe { MappedVec::zeroed(entries.len()) }?;
-    Some(Self { entries, tallies })
+    let tallies = unsafe { MappedVec::zeroed(pointers.len()) }?;
+    Some(Self { pointers, tallies })
   }
 
   /// Index of the class at `pointer`. No allocations.
   pub fn find(&self, pointer: usize) -> Option<usize> {
-    self
-      .entries
-      .binary_search_by_key(&pointer, |entry| entry.pointer)
-      .ok()
+    self.pointers.binary_search(&pointer).ok()
   }
 }
 
@@ -70,7 +65,7 @@ impl ClassTable {
 #[repr(u8)]
 pub enum Resolution {
   Unresolved = 0,
-  /// An `ObjC` or Swift class the runtime does not list. `name` indexes the census names.
+  /// An `ObjC` or Swift class no image lists. `name` indexes the census names.
   Class,
   /// A polymorphic C++ type named through RTTI. `name` indexes the census names.
   Cxx,

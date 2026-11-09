@@ -119,10 +119,7 @@ impl Recorder<'_> {
     let first_word = unsafe { (address as *const usize).read() };
     let candidate = first_word & ISA_MASK;
 
-    // A block smaller than its class cannot be an instance of it.
-    if let Some(class) = self.classes.find(candidate)
-      && self.classes.entries[class].instance_size as u64 <= size
-    {
+    if let Some(class) = self.classes.find(candidate) {
       let tally = &mut self.classes.tallies[class];
       tally.blocks += 1;
       tally.bytes += size;

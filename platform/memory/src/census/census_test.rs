@@ -8,6 +8,7 @@
 
 use super::*;
 use crate::report::{Identity, TypeRow};
+use crate::sys::objc::TEST_CLASSES;
 use crate::test_support::memory_lock;
 use libc::{
   MAP_ANON,
@@ -44,7 +45,12 @@ fn holder_class(name: &'static str, cell: &'static OnceLock<&'static Class>) -> 
   cell.get_or_init(|| {
     let mut declaration = ClassDecl::new(name, class!(NSObject)).unwrap();
     declaration.add_ivar::<usize>(BUFFER_IVAR);
-    declaration.register()
+    let class = declaration.register();
+    TEST_CLASSES
+      .lock()
+      .unwrap()
+      .push(std::ptr::from_ref::<Class>(class) as usize);
+    class
   })
 }
 

@@ -65,8 +65,9 @@ impl Resolver<'_> {
     false
   }
 
-  /// Every real class, including Swift generic instantiations the runtime does not list, inherits
-  /// from a registered class. The superclass is the second word of `objc_class`.
+  /// Every real class, including the Swift generic instantiations and runtime-created classes no
+  /// image lists, inherits from a class some image lists. The superclass is the second word of
+  /// `objc_class`.
   fn superclass_chain_reaches_known(&self, candidate: usize) -> bool {
     let mut current = candidate;
     for _ in 0 .. SUPERCLASS_CHAIN_HOPS {
