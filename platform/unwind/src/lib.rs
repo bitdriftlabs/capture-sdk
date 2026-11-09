@@ -16,10 +16,11 @@
 //! stop reason distinguishes a completed chain from an incomplete capture. Frame addresses retain
 //! the distinction between a sampled PC and a return address.
 //!
-//! The implementation walks ARM64 frame pointers and stops explicitly at async boundaries.
-//! Inlining, tail calls and interrupted prologues or epilogues can make an FP-only trace
-//! incomplete. Compiling on `x86_64` preserves SDK build compatibility; it does not provide an
-//! `x86_64` unwinder.
+//! The implementation supports ARM64 frame pointers and compact-unwind frame-based/frameless
+//! rules. It stops explicitly at async boundaries, DWARF rules and unsupported encodings. Missing
+//! compact metadata falls back to frame pointers. Inlining, tail calls and interrupted prologues
+//! or epilogues can make a trace incomplete. Compiling on `x86_64` preserves SDK build
+//! compatibility; it does not provide an `x86_64` unwinder.
 //!
 //! Read image metadata with [`image::ImageInfo::read`] during normal execution. The caller must
 //! keep the image mapped and consistent throughout the read.
@@ -39,6 +40,8 @@
 pub mod aarch64;
 #[cfg(target_vendor = "apple")]
 pub mod apple;
+pub mod compact;
+pub mod cursor;
 pub mod image;
 pub mod memory;
 

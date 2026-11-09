@@ -5,9 +5,13 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+#![allow(clippy::unwrap_used)]
+
 use super::TaskMemory;
 #[cfg(target_arch = "aarch64")]
 use crate::aarch64::{Frame, FrameKind, Registers, StopReason, Trace, walk_frame_pointers};
+#[cfg(target_arch = "aarch64")]
+use crate::compact::CompactUnwind;
 #[cfg(target_arch = "aarch64")]
 use crate::image::ImageInfo;
 #[cfg(target_arch = "aarch64")]
@@ -52,6 +56,31 @@ fn reads_metadata_of_the_running_executable() {
     assert_eq!(info.text.start(), header);
     assert!(info.uuid.is_some());
   }
+}
+
+#[cfg(target_arch = "aarch64")]
+#[test]
+#[inline(never)]
+fn looks_up_compact_unwind_in_the_running_executable() {
+  unsafe extern "C" {
+    fn _dyld_get_image_header(index: u32) -> *const core::ffi::c_void;
+  }
+  // SAFETY: image zero is the executable, which stays mapped during this test.
+  let header = unsafe { _dyld_get_image_header(0) } as u64;
+  let image = ImageInfo::read(&TaskMemory, header).unwrap();
+  let section = image.unwind_info.unwrap();
+  let (encoding, allocations) = count_allocations(|| {
+    CompactUnwind {
+      section,
+      image_base: header,
+    }
+    .lookup(
+      &TaskMemory,
+      looks_up_compact_unwind_in_the_running_executable as *const () as u64,
+    )
+  });
+  assert!(matches!(encoding, Ok(Some(value)) if value != 0));
+  assert_eq!(allocations, 0);
 }
 
 //

@@ -1,6 +1,6 @@
 # bd-unwind
 
-ARM64 frame-pointer unwinding and Mach-O metadata reading. Keep API contracts in rustdoc.
+ARM64 frame-pointer and compact-unwind walking, with Mach-O metadata reading. Keep API contracts in rustdoc.
 
 - Keep this crate `no_std` and dependency-free. Useful reference code may be copied or adapted;
   include only what the supported functionality needs and preserve required license notices.

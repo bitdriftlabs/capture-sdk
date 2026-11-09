@@ -118,7 +118,7 @@ pub struct Snapshot {
   pub pid: u32,
   pub threads: Vec<ThreadSnapshot>,
   pub images: Vec<ImageInfo>,
-  /// Counts rejected images by parser error, surveyed after all target threads are resumed.
+  /// Counts rejected images by parser error, surveyed before target threads are suspended.
   pub image_errors: BTreeMap<ImageError, usize>,
 }
 

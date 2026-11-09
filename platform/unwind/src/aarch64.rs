@@ -66,6 +66,10 @@ pub enum StopReason {
   NonIncreasingFramePointer,
   /// The walk stopped at an async-tagged FP instead of following it as an ordinary stack address.
   AsyncBoundary,
+  InvalidUnwindInfo,
+  UnsupportedUnwindEncoding,
+  DwarfRequired,
+  ReturnAddressUnavailable,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -103,34 +107,17 @@ pub fn walk_frame_pointers(
 
   let mut fp = registers.fp;
   let reason = loop {
-    if fp == 0 {
-      break StopReason::FramePointerUnavailable;
-    }
-    let frame_address = fp & !ASYNC_FRAME_BIT;
-    if !frame_address.is_multiple_of(FRAME_POINTER_ALIGNMENT) {
-      break StopReason::InvalidFramePointer;
-    }
-    if frame_address < registers.sp || !stack.contains(frame_address, FRAME_RECORD_SIZE) {
-      break StopReason::OutOfStackBounds;
-    }
-    if fp & ASYNC_FRAME_BIT != 0 {
-      break StopReason::AsyncBoundary;
+    if let Err(reason) = validate_frame_pointer(fp, registers.sp, stack) {
+      break reason;
     }
     if frames.len() == 0 {
       break StopReason::OutputFull;
     }
 
-    let mut record = [0; 16];
-    if !memory.read(fp, &mut record) {
-      break StopReason::UnreadableMemory;
-    }
-    let (next_bytes, return_bytes) = record.split_at(8);
-    let (Ok(next_bytes), Ok(return_bytes)) = (next_bytes.try_into(), return_bytes.try_into())
-    else {
-      break StopReason::UnreadableMemory;
+    let (next, address) = match read_frame_record(memory, fp) {
+      Ok(record) => record,
+      Err(reason) => break reason,
     };
-    let next = u64::from_le_bytes(next_bytes);
-    let address = strip_instruction_pointer(u64::from_le_bytes(return_bytes));
     if next & ASYNC_FRAME_BIT != 0 {
       break StopReason::AsyncBoundary;
     }
@@ -162,6 +149,42 @@ pub fn walk_frame_pointers(
     frame_count: count,
     stop_reason: reason,
   }
+}
+
+pub(crate) const fn validate_frame_pointer(
+  fp: u64,
+  sp: u64,
+  stack: AddressRange,
+) -> Result<(), StopReason> {
+  if fp == 0 {
+    return Err(StopReason::FramePointerUnavailable);
+  }
+  let address = fp & !ASYNC_FRAME_BIT;
+  if !address.is_multiple_of(FRAME_POINTER_ALIGNMENT) {
+    return Err(StopReason::InvalidFramePointer);
+  }
+  if address < sp || !stack.contains(address, FRAME_RECORD_SIZE) {
+    return Err(StopReason::OutOfStackBounds);
+  }
+  if fp & ASYNC_FRAME_BIT != 0 {
+    return Err(StopReason::AsyncBoundary);
+  }
+  Ok(())
+}
+
+pub(crate) fn read_frame_record(
+  memory: &impl MemoryReader,
+  fp: u64,
+) -> Result<(u64, u64), StopReason> {
+  let mut record = [0; 16];
+  if !memory.read(fp, &mut record) {
+    return Err(StopReason::UnreadableMemory);
+  }
+  let mut word = [0; 8];
+  word.copy_from_slice(&record[.. 8]);
+  let next = u64::from_le_bytes(word);
+  word.copy_from_slice(&record[8 ..]);
+  Ok((next, strip_instruction_pointer(u64::from_le_bytes(word))))
 }
 
 /// Strips PAC using the hint-space instruction, which is a no-op on ARM64 CPUs without PAC. Do not

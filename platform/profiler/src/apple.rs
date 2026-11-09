@@ -19,8 +19,9 @@ use crate::mach::{
   thread_resume,
 };
 use crate::{CancellationToken, CaptureError, Snapshot, ThreadSnapshot, ThreadStatus};
-use bd_unwind::aarch64::{Frame, FrameKind, strip_instruction_pointer, walk_frame_pointers};
+use bd_unwind::aarch64::{Frame, FrameKind, strip_instruction_pointer};
 use bd_unwind::apple::TaskMemory;
+use bd_unwind::cursor;
 use bd_unwind::image::ImageInfo;
 use bd_unwind::memory::{MemoryReader, StackMemory};
 use std::collections::BTreeMap;
@@ -72,16 +73,29 @@ pub(super) fn capture(
   if timebase.denominator == 0 {
     return Err(CaptureError::ThreadEnumerationFailed);
   }
+  // Survey owned image metadata during normal execution, before suspending any target. Table
+  // lookups also run after resume and use fault-tolerant Mach reads, never raw mapped pointers.
+  let mut snapshot = Snapshot {
+    pid: unsafe { getpid() }.unsigned_abs(),
+    threads: Vec::new(),
+    images: Vec::new(),
+    image_errors: BTreeMap::new(),
+  };
+  for index in 0 .. unsafe { _dyld_image_count() } {
+    cancellation.check()?;
+    let address = unsafe { _dyld_get_image_header(index) } as u64;
+    snapshot.record_image(ImageInfo::read(&TaskMemory, address));
+  }
   let origin = unsafe { mach_absolute_time() };
-  for (port, snapshot) in threads.ports().iter().zip(&mut snapshots) {
+  for (port, thread) in threads.ports().iter().zip(&mut snapshots) {
     cancellation.check()?;
     if *port == threads.current {
-      snapshot.frames.clear();
+      thread.frames.clear();
       continue;
     }
     let Some(suspended) = Suspended::new(*port) else {
-      snapshot.status = ThreadStatus::SuspendFailed;
-      snapshot.frames.clear();
+      thread.status = ThreadStatus::SuspendFailed;
+      thread.frames.clear();
       continue;
     };
     let start = unsafe { mach_absolute_time() };
@@ -105,51 +119,41 @@ pub(super) fn capture(
     // Cancellation cannot bypass resume or run inside the suspended-thread section above.
     cancellation.check()?;
     let end = unsafe { mach_absolute_time() };
-    snapshot.timestamp_ns = timebase.nanos(start - origin);
-    snapshot.suspension_ns = timebase.nanos(end - start);
-    snapshot.copied_stack_bytes = copied;
+    thread.timestamp_ns = timebase.nanos(start - origin);
+    thread.suspension_ns = timebase.nanos(end - start);
+    thread.copied_stack_bytes = copied;
     match (state, region) {
       (Some(state), Some(region)) if copied != 0 => {
-        snapshot.stack_truncated = (copied as u64) < region.start() + region.size() - state.sp;
-        let trace = walk_frame_pointers(
+        thread.stack_truncated = (copied as u64) < region.start() + region.size() - state.sp;
+        let trace = cursor::walk(
           &StackMemory {
             address: state.sp,
             bytes: &scratch[.. copied],
           },
+          &TaskMemory,
+          &snapshot.images,
           &state,
           region,
-          &mut snapshot.frames,
+          &mut thread.frames,
         );
-        snapshot.frames.truncate(trace.frame_count);
-        snapshot.status = ThreadStatus::Captured(trace.stop_reason);
+        thread.frames.truncate(trace.frame_count);
+        thread.status = ThreadStatus::Captured(trace.stop_reason);
       },
       (None, _) => {
-        snapshot.status = ThreadStatus::RegistersUnavailable;
-        snapshot.frames.clear();
+        thread.status = ThreadStatus::RegistersUnavailable;
+        thread.frames.clear();
       },
       (Some(state), _) => {
-        snapshot.status = ThreadStatus::StackUnavailable;
-        snapshot.frames[0] = Frame {
+        thread.status = ThreadStatus::StackUnavailable;
+        thread.frames[0] = Frame {
           address: strip_instruction_pointer(state.pc),
           kind: FrameKind::ProgramCounter,
         };
-        snapshot.frames.truncate(1);
+        thread.frames.truncate(1);
       },
     }
   }
-  // Read image metadata after all threads have resumed. Fault-tolerant reads handle images that
-  // disappear during enumeration; no borrowed dyld strings or image pointers enter the snapshot.
-  let mut snapshot = Snapshot {
-    pid: unsafe { getpid() }.unsigned_abs(),
-    threads: snapshots,
-    images: Vec::new(),
-    image_errors: BTreeMap::new(),
-  };
-  for index in 0 .. unsafe { _dyld_image_count() } {
-    cancellation.check()?;
-    let address = unsafe { _dyld_get_image_header(index) } as u64;
-    snapshot.record_image(ImageInfo::read(&TaskMemory, address));
-  }
+  snapshot.threads = snapshots;
   cancellation.check()?;
   log::debug!(
     "stack snapshot image survey: {} accepted, rejected by reason: {:?}",

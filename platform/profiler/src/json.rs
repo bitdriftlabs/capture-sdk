@@ -187,6 +187,10 @@ const fn status(status: ThreadStatus) -> &'static str {
       StopReason::UnreadableMemory => "unreadable_memory",
       StopReason::NonIncreasingFramePointer => "non_increasing_frame_pointer",
       StopReason::AsyncBoundary => "async_boundary",
+      StopReason::InvalidUnwindInfo => "invalid_unwind_info",
+      StopReason::UnsupportedUnwindEncoding => "unsupported_unwind_encoding",
+      StopReason::DwarfRequired => "dwarf_required",
+      StopReason::ReturnAddressUnavailable => "return_address_unavailable",
     },
   }
 }
