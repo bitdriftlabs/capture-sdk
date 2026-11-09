@@ -1,0 +1,86 @@
+load("@rules_android//android:rules.bzl", "aar_import")
+load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
+load("@rules_kotlin//kotlin:core.bzl", "kt_kotlinc_options")
+load("//bazel/android:instrumentation_test.bzl", "bitdrift_android_instrumentation_test")
+
+# Like gradle-test-app, run the SDK bytecode built against its own compile-time Compose
+# (COMPOSE_VERSION in @maven) on the newer Compose runtime from @maven_android_test. Importing the
+# AARs keeps @maven's runtime jars out of the test APK, so the two resolutions never collide.
+aar_import(
+    name = "common",
+    testonly = True,
+    aar = "//platform/jvm/common:lib.aar",
+    deps = [
+        "@maven_android_test//:org_jetbrains_annotations",
+        "@maven_android_test//:org_jetbrains_kotlin_kotlin_stdlib",
+    ],
+)
+
+aar_import(
+    name = "replay",
+    testonly = True,
+    aar = "//platform/jvm/replay:lib.aar",
+    deps = [
+        ":common",
+        "@maven_android_test//:androidx_appcompat_appcompat",
+        "@maven_android_test//:androidx_collection_collection_jvm",
+        # Compile-only in the SDK; the host app supplies Compose, as it does here.
+        "@maven_android_test//:androidx_compose_runtime_runtime",
+        "@maven_android_test//:androidx_compose_ui_ui",
+        "@maven_android_test//:com_squareup_okhttp3_okhttp",
+        "@maven_android_test//:com_squareup_okio_okio_jvm",
+    ],
+)
+
+# The tests deliberately exercise deprecated Compose APIs, as Gradle compiles them without -Werror.
+kt_kotlinc_options(
+    name = "kotlinc_options",
+    warn = "report",
+    x_suppress_version_warnings = True,
+)
+
+# Replay instrumentation tests that need only the replay library, not gradle-test-app.
+# AppLaunchTest and AndroidViewReplayTest exercise app code and stay on Gradle's connectedCheck.
+kt_android_library(
+    name = "replay_test_lib",
+    testonly = True,
+    srcs = [
+        "java/io/bitdrift/gradletestapp/ComposeReplayTest.kt",
+        "java/io/bitdrift/gradletestapp/ReplayDeviceProfile.kt",
+        "java/io/bitdrift/gradletestapp/ReplayModalOverlayReproTest.kt",
+        "java/io/bitdrift/gradletestapp/ReplayPlatformOverlayTest.kt",
+        "java/io/bitdrift/gradletestapp/TestUtils.kt",
+    ],
+    custom_package = "io.bitdrift.gradletestapp.replaytest",
+    kotlinc_opts = ":kotlinc_options",
+    manifest = "bazel/AndroidManifest.xml",
+    plugins = ["//:jetpack_compose_compiler_plugin"],
+    deps = [
+        ":common",
+        ":replay",
+        "@maven_android_test//:androidx_activity_activity_compose",
+        "@maven_android_test//:androidx_compose_foundation_foundation",
+        "@maven_android_test//:androidx_compose_material3_material3",
+        "@maven_android_test//:androidx_compose_material_material",
+        "@maven_android_test//:androidx_compose_material_material_icons_core",
+        "@maven_android_test//:androidx_compose_runtime_runtime",
+        "@maven_android_test//:androidx_compose_ui_ui",
+        "@maven_android_test//:androidx_compose_ui_ui_test_junit4",
+        "@maven_android_test//:androidx_compose_ui_ui_test_manifest",
+        "@maven_android_test//:androidx_test_ext_junit",
+        "@maven_android_test//:androidx_test_monitor",
+        "@maven_android_test//:androidx_test_runner",
+        "@maven_android_test//:com_google_truth_truth",
+        "@maven_android_test//:junit_junit",
+    ],
+)
+
+# Run with an emulator or device attached:
+#   ./bazelw test --config=instrumentation \
+#     //platform/jvm/gradle-test-app/src/androidTest:replay_instrumentation_test
+bitdrift_android_instrumentation_test(
+    name = "replay_instrumentation_test",
+    manifest = "bazel/AndroidManifest.xml",
+    package = "io.bitdrift.gradletestapp.replaytest",
+    deps = [":replay_test_lib"],
+)
