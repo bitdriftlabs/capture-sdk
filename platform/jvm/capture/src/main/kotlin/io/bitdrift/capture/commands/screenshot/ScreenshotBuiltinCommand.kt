@@ -13,7 +13,7 @@ import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.IBuiltinCommand
 
 /**
- * The built-in `take_screenshot` command: one JPEG attachment. It takes no arguments and ignores
+ * The built-in `take_screenshot` command: one WebP attachment. It takes no arguments and ignores
  * any it is sent; the backend validates arguments against the command's definition before sending.
  */
 internal class ScreenshotBuiltinCommand(

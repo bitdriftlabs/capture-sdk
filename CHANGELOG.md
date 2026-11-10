@@ -25,7 +25,7 @@
 
 **Changed**
 
-- Nothing yet!
+- The built-in `take_screenshot` command now sends a lossy WebP (`image/webp`) at quality 80 instead of a JPEG at quality 10.
 
 **Fixed**
 

@@ -28,14 +28,18 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Exercises [ScreenshotCaptureEngine] against Robolectric's PixelCopy on both API paths. The
  * contract under test: the capture completes on the caller's coroutine, the injected handler is
  * only ever the delivery point of the legacy listener, and a capture that produces nothing throws:
  * the engine's own reasons as [ScreenshotCaptureException], the platform's exceptions untouched.
+ *
+ * Native graphics, so that the screenshots really are encoded.
  */
 @RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ScreenshotCaptureEngineTest {
     @Test
     @Config(sdk = [24])
@@ -105,6 +109,22 @@ class ScreenshotCaptureEngineTest {
             // needs no looper to be driven: nothing was posted anywhere.
             assertThat(capture.await()).isNotEmpty()
             assertThat(mainLooper.isIdle).isTrue()
+        }
+
+    @Test
+    @Config(sdk = [29])
+    fun theScreenshotIsALossyWebPBelowApi30() = assertTheScreenshotIsAWebP()
+
+    @Test
+    @Config(sdk = [34])
+    fun theScreenshotIsALossyWebP() = assertTheScreenshotIsAWebP()
+
+    private fun assertTheScreenshotIsAWebP(): Unit =
+        runBlocking {
+            val bytes = engine(windowShowing(activityDecorView())).captureDeviceCommandScreenshot()
+            // A RIFF container whose form type is WEBP.
+            assertThat(String(bytes, 0, 4, Charsets.US_ASCII)).isEqualTo("RIFF")
+            assertThat(String(bytes, 8, 4, Charsets.US_ASCII)).isEqualTo("WEBP")
         }
 
     @Test

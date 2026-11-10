@@ -23,14 +23,14 @@ import java.io.ByteArrayOutputStream
 import kotlin.coroutines.resume
 
 /**
- * Captures JPEG screenshots of the app's window through PixelCopy.
+ * Captures WebP screenshots of the app's window through PixelCopy.
  *
  * Every step runs on the caller's thread, the command's own: the window lookup, the bitmap, the
  * compression and the error reporting. PixelCopy's callbacks only resume the suspended capture.
  * Below Android 14 the platform insists on delivering its callback through a [android.os.Handler],
  * so that single resume is posted to [mainThreadHandler]; no work happens there.
  *
- * A capture either returns the JPEG or throws; [ScreenshotCaptureException] carries the reasons
+ * A capture either returns the WebP or throws; [ScreenshotCaptureException] carries the reasons
  * the engine itself names, and the command reports either as its failure.
  *
  * @param mainThreadHandler hosts the one-line PixelCopy listener on API levels below 34.
@@ -45,7 +45,7 @@ internal class ScreenshotCaptureEngine(
     private val buildVersionChecker: BuildVersionChecker = BuildVersionChecker(),
 ) {
     /**
-     * Captures a JPEG of the top-most visible window. Conditions the platform does not throw for
+     * Captures a WebP of the top-most visible window. Conditions the platform does not throw for
      * are thrown as [ScreenshotCaptureException]; anything the platform throws propagates as is,
      * for the command registry to report like any other handler failure.
      */
@@ -126,7 +126,7 @@ internal class ScreenshotCaptureEngine(
     private fun compressScreenshot(resultBitmap: Bitmap): ByteArray {
         // TODO(murki): Consider also resizing the bitmap screenshot to a smaller size
         return ByteArrayOutputStream().use { outStream ->
-            resultBitmap.compress(Bitmap.CompressFormat.JPEG, 10, outStream)
+            resultBitmap.compress(lossyWebp(), WEBP_QUALITY, outStream)
             // TODO(murki): Figure out if there's a more memory efficient way to do this
             //  see https://stackoverflow.com/questions/4989182/converting-java-bitmap-to-byte-array#comment36547795_4989543 and
             //  and https://gaumala.com/posts/2020-01-27-working-with-streams-kotlin.html
@@ -145,7 +145,20 @@ internal class ScreenshotCaptureEngine(
             PixelCopy.ERROR_DESTINATION_INVALID -> "DESTINATION_INVALID"
             else -> "Unknown error: $this"
         }
+
+    internal companion object {
+        /** WebP quality: flat colours and sharp text stay legible while the file stays small. */
+        const val WEBP_QUALITY = 80
+    }
 }
+
+/**
+ * [Bitmap.CompressFormat.WEBP_LOSSY] only exists from API 30. Below that the deprecated
+ * [Bitmap.CompressFormat.WEBP] is the same lossy encoder for any quality under 100.
+ */
+@Suppress("DEPRECATION")
+private fun lossyWebp(): Bitmap.CompressFormat =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Bitmap.CompressFormat.WEBP_LOSSY else Bitmap.CompressFormat.WEBP
 
 // The platform factory, so this module needs no core-ktx dependency.
 @SuppressLint("UseKtx")
