@@ -5,6 +5,9 @@ dumps (Android 17+) to matching fatal issue reports. Fatal issue reporting and t
 `client_feature.android.crash_profiles.anr` or `client_feature.android.crash_profiles.oom` runtime
 flag must be enabled.
 
+For emulator and physical-device procedures, see the [Gradle test app manual-testing
+guide](../platform/jvm/gradle-test-app/docs/crash-profiling.md).
+
 ## Runtime configuration
 
 `Configuration.crashProfilingMode` is startup configuration: `null` disables profiling by default;
