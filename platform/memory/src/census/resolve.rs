@@ -14,6 +14,10 @@ use crate::safe_read;
 use crate::sys::mach::now_ns;
 use crate::sys::objc::validated_class_name;
 
+#[cfg(test)]
+#[path = "./resolve_test.rs"]
+mod tests;
+
 const CXX_NAME_CAPACITY: usize = 256;
 /// Hops from a class to the root metaclass, which points at itself.
 const ISA_CHAIN_HOPS: usize = 3;
@@ -101,13 +105,20 @@ impl Resolver<'_> {
     let name = self.read_word(type_info + size_of::<usize>())? & ADDRESS_MASK;
     self.ranges.readable_end(name)?;
     let name = safe_read::read_string(name, CXX_NAME_CAPACITY)?;
-    // A mangled name starts with a length, a nested-name marker or a pointer modifier.
-    let first = *name.first()?;
-    if name.len() < 2 || !(first.is_ascii_alphanumeric() || first == b'_' || first == b'*') {
+    if !is_cxx_type_name(&name) {
       return None;
     }
     String::from_utf8(name).ok()
   }
+}
+
+/// An Itanium `type_info` name is a mangled type: it starts with a length, a nested-name marker, a
+/// qualifier or a builtin type, never with `_` or `$`, which leaves out Swift's mangled names.
+const fn is_cxx_type_name(name: &[u8]) -> bool {
+  let Some(&first) = name.first() else {
+    return false;
+  };
+  name.len() >= 2 && (first.is_ascii_alphanumeric() || first == b'*')
 }
 
 impl Census<'_> {
