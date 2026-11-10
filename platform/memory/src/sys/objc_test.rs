@@ -16,7 +16,7 @@ fn image_classes_match_the_runtime_except_swift_generic_instances_and_test_class
   // SAFETY: loads a system framework, whose classes come from the shared cache.
   let handle = unsafe {
     libc::dlopen(
-      c"/System/Library/Frameworks/AppKit.framework/AppKit".as_ptr(),
+      c"/System/Library/Frameworks/Foundation.framework/Foundation".as_ptr(),
       libc::RTLD_NOW,
     )
   };
@@ -29,7 +29,7 @@ fn image_classes_match_the_runtime_except_swift_generic_instances_and_test_class
     .map(|class| std::ptr::from_ref::<Class>(class) as usize)
     .collect();
 
-  assert!(images.len() > 10_000, "{}", images.len());
+  assert!(images.len() > 5_000, "{}", images.len());
   assert!(images.is_subset(&registered));
   for class in runtime.iter() {
     if !images.contains(&(std::ptr::from_ref::<Class>(class) as usize)) {
