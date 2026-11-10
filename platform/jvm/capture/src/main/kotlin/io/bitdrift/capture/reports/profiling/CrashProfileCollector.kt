@@ -73,6 +73,7 @@ internal class CrashProfileCollector(
 
     // Only accessed on [executor].
     private val resubmittedKinds = mutableSetOf<String>()
+    private val pendingOwnershipClears = mutableSetOf<String>()
 
     override fun start() {
         stopped = false
@@ -194,14 +195,21 @@ internal class CrashProfileCollector(
         }
         val owned = if (configuration.crashProfilingMode == CrashProfilingMode.AUTOMATIC) available else emptySet()
         val previouslyOwned = setOf(ANR, OOM).filter { preferences.getString(ownershipKey(it)) != null }.toSet()
-        val removed = previouslyOwned - owned
+        val removed = previouslyOwned - owned - pendingOwnershipClears
         if (removed.isNotEmpty()) {
+            // TODO: Establish a manual-mode handoff boundary. Capture startup success does not
+            // await this cleanup, which can remove application triggers registered meanwhile.
             profiler.removeTriggers(removed)
-            removed.forEach {
-                check(preferences.setStringBlocking(ownershipKey(it), null)) {
-                    "Failed to clear crash profile trigger ownership: $it"
-                }
+            pendingOwnershipClears += removed
+        }
+        pendingOwnershipClears -= owned
+        // Failed commits can erase the in-memory marker. Retry the disk clear independently,
+        // without removing a trigger again after the application may have reclaimed it.
+        pendingOwnershipClears.toList().forEach {
+            check(preferences.setStringBlocking(ownershipKey(it), null)) {
+                "Failed to clear crash profile trigger ownership: $it"
             }
+            pendingOwnershipClears -= it
         }
         if (owned.isNotEmpty()) {
             // Retry every marker: a failed disk commit can still update in-memory preferences.

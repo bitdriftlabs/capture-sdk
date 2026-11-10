@@ -98,6 +98,32 @@ class CrashProfileJniTest {
     }
 
     @Test
+    fun nativeReportPersistenceIgnoresMatchingPidSummariesWithInvalidIdentityOrClocks() {
+        checkNotNull(CrashProfileSource.current(context, ::encode))
+        val facts = checkNotNull(captured)
+        // Protobuf field 2 contains PID 12345, but no SDK identity or clocks.
+        val pidOnly = byteArrayOf(0x10, 0xb9.toByte(), 0x60)
+        val invalidSources =
+            listOf(
+                pidOnly to facts.pid,
+                (byteArrayOf(0x0a, 0x10) + ByteArray(16) + pidOnly) to facts.pid,
+                (byteArrayOf(0x0a, 0x01, 0x01) + pidOnly) to facts.pid,
+                checkNotNull(encode(facts.copy(processStartElapsedNs = facts.elapsedNs + 1))) to facts.pid,
+                checkNotNull(encode(facts.copy(pid = 0))) to 0,
+            )
+
+        listOf(35, 36, 37).forEach { api ->
+            withNativeLogger(api) { processor ->
+                invalidSources.forEach { (summary, pid) ->
+                    val report = persist(processor, summary, pid)
+                    assertThat(report.source()).isEmpty()
+                    assertThat(report.appMetrics!!.processId).isEqualTo(pid.toUInt())
+                }
+            }
+        }
+    }
+
+    @Test
     fun nativeEncodedFactsSurviveTheRealKotlinOomWriterAndNativePidValidation() {
         val source = checkNotNull(CrashProfileSource.current(context, ::encode))
         CrashProfileSource.oomSource = source

@@ -74,6 +74,8 @@ internal object CrashProfileSource {
         return CrashProfileFacts(
             pid = Process.myPid(),
             bootCount = bootCount,
+            // TODO: Read kernel /proc/self/stat starttime using _SC_CLK_TCK, not framework bind
+            // time. A difference over the matcher's 10 ms tolerance rejects valid profiles.
             processStartElapsedNs = Process.getStartElapsedRealtime() * NANOS_PER_MILLI,
             wallNs = wallNs,
             elapsedNs = elapsedNs,

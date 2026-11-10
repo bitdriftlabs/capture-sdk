@@ -289,6 +289,86 @@ class CrashProfileCollectorTest {
     }
 
     @Test
+    fun failedOwnershipClearsAreRetriedWithoutRemovingHandedOffTriggersAgain() {
+        val durable = mutableMapOf("crash_profiles.owned.anr" to ANR, "crash_profiles.owned.oom" to OOM)
+        durable.forEach { (key, value) -> preferences.setStringBlocking(key, value) }
+        profiler.triggerKinds += setOf(ANR, OOM)
+        var committed = false
+        var attempts = 0
+        val storage =
+            object : IPreferences by preferences {
+                override fun setStringBlocking(
+                    key: String,
+                    value: String?,
+                ): Boolean {
+                    preferences.setStringBlocking(key, value)
+                    attempts++
+                    if (!committed) return false
+                    if (value == null) durable.remove(key) else durable[key] = value
+                    return true
+                }
+            }
+        val listener = SafeEventListenerLogger(collector(configuration = manualConfiguration(), profilePreferences = storage))
+        listener.start()
+        assertThat(preferences.getString("crash_profiles.owned.anr")).isNull()
+        assertThat(durable).hasSize(2)
+        assertThat(profiler.triggerKinds).isEmpty()
+
+        // The application registers after the first removal. Retrying disk cleanup must not
+        // remove either type again, including the marker not reached before the first failure.
+        profiler.triggerKinds += setOf(ANR, OOM)
+        listener.stop()
+        listener.start()
+        assertThat(attempts).isEqualTo(2)
+        assertThat(profiler.triggerKinds).containsExactlyInAnyOrder(ANR, OOM)
+
+        committed = true
+        listener.stop()
+        listener.start()
+
+        assertThat(attempts).isEqualTo(4)
+        assertThat(durable).isEmpty()
+        assertThat(preferences.getString("crash_profiles.owned.anr")).isNull()
+        assertThat(preferences.getString("crash_profiles.owned.oom")).isNull()
+        assertThat(profiler.events.filter { it.startsWith("remove=") }).containsExactly("remove=[anr, oom]")
+        val restartedPreferences = MockPreferences()
+        durable.forEach { (key, value) -> restartedPreferences.setStringBlocking(key, value) }
+        collector(configuration = manualConfiguration(), profilePreferences = restartedPreferences).start()
+        assertThat(profiler.triggerKinds).containsExactlyInAnyOrder(ANR, OOM)
+    }
+
+    @Test
+    fun reclaimingATriggerCancelsItsFailedOwnershipClear() {
+        preferences.setStringBlocking("crash_profiles.owned.anr", ANR)
+        profiler.triggerKinds += ANR
+        var committed = false
+        val writes = mutableListOf<String?>()
+        val storage =
+            object : IPreferences by preferences {
+                override fun setStringBlocking(
+                    key: String,
+                    value: String?,
+                ): Boolean {
+                    writes += value
+                    preferences.setStringBlocking(key, value)
+                    return committed
+                }
+            }
+        val listener = SafeEventListenerLogger(collector(profilePreferences = storage))
+        listener.start()
+        assertThat(profiler.triggerKinds).isEmpty()
+
+        listener.stop()
+        committed = true
+        enable(anr = true, oom = false)
+        listener.start()
+
+        assertThat(writes).containsExactly(null, ANR)
+        assertThat(preferences.getString("crash_profiles.owned.anr")).isEqualTo(ANR)
+        assertThat(profiler.triggerKinds).containsExactly(ANR)
+    }
+
+    @Test
     fun failedOwnershipCommitsAreRetriedEvenAfterInMemoryPreferencesChange() {
         enable(anr = true, oom = false)
         var committed = false

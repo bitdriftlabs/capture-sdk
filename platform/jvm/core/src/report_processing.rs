@@ -35,6 +35,7 @@ use platform_shared::metadata::Mobile;
 use protobuf::Message as _;
 use std::io::{Seek, Write};
 use std::sync::OnceLock;
+use uuid::Uuid;
 
 const BUFFER_SIZE: i32 = 8192;
 static INPUT_STREAM_READ: OnceLock<CachedMethod> = OnceLock::new();
@@ -176,7 +177,16 @@ pub(crate) fn persist_anr(
 /// Whether a process-state summary holds SDK crash-profile facts for the exited process. A host app
 /// may also use the summary, so anything else is ignored rather than attached to the report.
 fn is_source_for(summary: &[u8], pid: u32) -> bool {
-  CrashProfileSource::parse_from_bytes(summary).is_ok_and(|source| source.pid == pid)
+  let valid = CrashProfileSource::parse_from_bytes(summary).is_ok_and(|source| {
+    source.pid > 0
+      && source.pid == pid
+      && Uuid::from_slice(&source.run_id).is_ok_and(|run_id| !run_id.is_nil())
+      && source.process_start_elapsed_ns <= source.elapsed_ns
+  });
+  if !valid {
+    log::debug!("Ignoring foreign or invalid ANR process-state summary");
+  }
+  valid
 }
 
 pub(crate) fn persist_javascript_error(
