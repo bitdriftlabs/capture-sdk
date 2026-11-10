@@ -38,11 +38,20 @@ internal interface IPreferences {
      *
      * @param key key to set a given value for.
      * @param value value to be set, pass null to erase a value for a given key.
-     * @param blocking whether the operation should return only after the changes are persisted to disk.
+     * @param blocking whether to wait for the disk write. Use [setStringBlocking] to check its result.
      */
     fun setString(
         key: String,
         value: String?,
         blocking: Boolean,
     )
+
+    /**
+     * Synchronously stores or removes a string, returning whether it was persisted to disk.
+     * A failed commit may still update subsequent in-memory reads.
+     */
+    fun setStringBlocking(
+        key: String,
+        value: String?,
+    ): Boolean
 }

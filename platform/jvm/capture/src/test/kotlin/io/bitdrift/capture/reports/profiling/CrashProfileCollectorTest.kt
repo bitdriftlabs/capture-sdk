@@ -18,6 +18,7 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
+import io.bitdrift.capture.IPreferences
 import io.bitdrift.capture.MockPreferences
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
@@ -285,6 +286,84 @@ class CrashProfileCollectorTest {
         collector(configuration = Configuration()).start()
 
         assertThat(profiler.events).containsExactly("remove=[oom]", "unregister")
+    }
+
+    @Test
+    fun failedOwnershipCommitsAreRetriedEvenAfterInMemoryPreferencesChange() {
+        enable(anr = true, oom = false)
+        var committed = false
+        var attempts = 0
+        val storage =
+            object : IPreferences by preferences {
+                override fun setStringBlocking(
+                    key: String,
+                    value: String?,
+                ): Boolean {
+                    preferences.setStringBlocking(key, value)
+                    attempts++
+                    return committed
+                }
+            }
+        val listener = SafeEventListenerLogger(collector(profilePreferences = storage))
+        repeat(2) {
+            listener.start()
+            assertThat(preferences.getString("crash_profiles.owned.anr")).isEqualTo(ANR)
+            assertThat(profiler.triggerKinds).isEmpty()
+            assertThat(profiler.events).doesNotContain("register")
+            listener.stop()
+        }
+        assertThat(attempts).isEqualTo(2)
+
+        committed = true
+        listener.start()
+        profiler.deliver(ANR, "/live")
+
+        assertThat(attempts).isEqualTo(3)
+        assertThat(profiler.triggerKinds).containsExactly(ANR)
+        assertThat(submitted).containsExactly(Triple("/live", ANR, true))
+    }
+
+    @Test
+    fun legacyEnumerationFailureDoesNotPreventListenerRegistration() {
+        enable(anr = true, oom = false)
+        profiler.pendingFailure = IllegalStateException("profiling service unavailable")
+
+        SafeEventListenerLogger(collector()).start()
+        profiler.deliver(ANR, "/live")
+
+        assertThat(profiler.events).contains("register")
+        assertThat(submitted).containsExactly(Triple("/live", ANR, true))
+    }
+
+    @Test
+    fun pendingScanFailureDoesNotPreventListenerRegistration() {
+        enable(anr = true, oom = false)
+        whenever(store.pendingResults()).thenAnswer { throw IOException("retention rename during scan") }
+
+        SafeEventListenerLogger(collector()).start()
+        profiler.deliver(ANR, "/live")
+
+        assertThat(profiler.events).contains("register")
+        assertThat(submitted).containsExactly(Triple("/live", ANR, true))
+    }
+
+    @Test
+    fun pendingSubmissionFailureDoesNotPreventListenerRegistration() {
+        enable(anr = true, oom = false)
+        pending += ANR to "/pending"
+        val listener =
+            collector(
+                submit = { path, kind, retain ->
+                    if (path == "/pending") throw IllegalStateException("native attribution unavailable")
+                    submitted += Triple(path, kind, retain)
+                },
+            )
+
+        SafeEventListenerLogger(listener).start()
+        profiler.deliver(ANR, "/live")
+
+        assertThat(profiler.events).contains("register")
+        assertThat(submitted).containsExactly(Triple("/live", ANR, true))
     }
 
     @Test
@@ -721,6 +800,7 @@ class CrashProfileCollectorTest {
         configuration: Configuration = Configuration(crashProfilingMode = CrashProfilingMode.AUTOMATIC),
         executor: Executor = Executor(Runnable::run),
         profileStore: CrashProfileStore = store,
+        profilePreferences: IPreferences = preferences,
         submit: (String, String, Boolean) -> Unit = { path, kind, retain -> submitted += Triple(path, kind, retain) },
     ) = CrashProfileCollector(
         context,
@@ -734,7 +814,7 @@ class CrashProfileCollectorTest {
         executor,
         supportsOom,
         configuration,
-        preferences,
+        profilePreferences,
         profileStore,
     )
 
@@ -755,6 +835,7 @@ class CrashProfileCollectorTest {
         val pending = mutableListOf<Pair<String, String>>()
         val triggerKinds = mutableSetOf<String>()
         var pendingReads = 0
+        var pendingFailure: RuntimeException? = null
         private var onResult: ((String?, String?) -> Unit)? = null
 
         override fun addTriggers(kinds: Set<String>) {
@@ -789,6 +870,7 @@ class CrashProfileCollectorTest {
 
         override fun pendingResults(): List<Pair<String, String>> {
             pendingReads++
+            pendingFailure?.let { throw it }
             return pending
         }
 

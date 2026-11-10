@@ -197,18 +197,26 @@ internal class CrashProfileCollector(
         val removed = previouslyOwned - owned
         if (removed.isNotEmpty()) {
             profiler.removeTriggers(removed)
-            removed.forEach { preferences.setString(ownershipKey(it), null, blocking = true) }
+            removed.forEach {
+                check(preferences.setStringBlocking(ownershipKey(it), null)) {
+                    "Failed to clear crash profile trigger ownership: $it"
+                }
+            }
         }
         if (owned.isNotEmpty()) {
-            // Persist before registration so a crash cannot leave an untracked persistent trigger.
-            (owned - previouslyOwned).forEach { preferences.setString(ownershipKey(it), it, blocking = true) }
+            // Retry every marker: a failed disk commit can still update in-memory preferences.
+            owned.forEach {
+                check(preferences.setStringBlocking(ownershipKey(it), it)) {
+                    "Failed to persist crash profile trigger ownership: $it"
+                }
+            }
             profiler.addTriggers(owned)
         }
         if (owned.isNotEmpty() || removed.isNotEmpty()) {
             Log.d(LOG_TAG, "Crash profile triggers: enabled=$owned, removed=$removed")
         }
-        migrateLegacy(available)
-        resubmitPending(available)
+        guarded("migrate retained profiles") { migrateLegacy(available) }
+        guarded("resubmit pending profiles") { resubmitPending(available) }
         if (owned.isEmpty()) {
             profiler.unregister()
             return

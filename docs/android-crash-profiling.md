@@ -37,6 +37,10 @@ exclusively owns the enabled trigger types and their original result files. Othe
 not depend on those originals remaining available. Unrelated trigger types and on-demand profiling
 results are left alone.
 
+Ownership markers are synchronously persisted before triggers are added. A failed write is logged
+and stops reconciliation; the next listener start retries every desired marker, even if a failed
+commit already updated the process's in-memory preferences. There is no background retry loop.
+
 Capture adopts completed results by renaming them into its private pending directory. Both
 directories normally reside on the same filesystem, so this does not copy the payload. A
 cross-filesystem source requires a copy followed by deletion. Once attributed, the existing
@@ -119,6 +123,10 @@ Newly imported files that were persisted before process death but not yet handed
 attribution are also recovered. Matching and uploading require the corresponding runtime flag.
 The SDK migrates legacy files carrying its retained suffix from the platform directory; it does
 not sweep unrelated platform results.
+
+Startup migration and pending replay failures are logged independently and do not prevent
+registration for new automatic results. Pending files remain available for recovery on a later
+listener start or process restart.
 
 Each raw profile is bounded by the native uploader's `attachment.max_bytes` runtime limit
 (5 MiB by default, before compression). The private pending store has a separate aggregate
