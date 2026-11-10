@@ -7,6 +7,8 @@
 
 package io.bitdrift.capture.reports.profiling
 
+import io.bitdrift.capture.common.RuntimeConfig
+import io.bitdrift.capture.fakes.FakeRuntime
 import io.bitdrift.capture.reports.profiling.CrashProfileStore.CrashProfileFileOperations
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -21,6 +23,8 @@ import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
+import java.nio.file.attribute.BasicFileAttributes
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -30,8 +34,9 @@ class CrashProfileStoreTest {
 
     private val now = System.currentTimeMillis()
     private val directory get() = File(temporary.root, "profiles")
+    private val runtime = FakeRuntime()
 
-    private fun store() = CrashProfileStore(directory) { now }
+    private fun store() = CrashProfileStore(directory, runtime) { now }
 
     @Test
     fun importingBorrowsTheOriginalAndPersistsAnIndependentCopy() {
@@ -104,7 +109,7 @@ class CrashProfileStoreTest {
                 }
             }
 
-        val adopted = CrashProfileStore(directory, operations).adopt(source, CrashProfileKind.ANR)
+        val adopted = CrashProfileStore(directory, runtime, operations).adopt(source, CrashProfileKind.ANR)
 
         assertThat(events).containsExactly("cross-device", "copy", "sync", "publish", "directory")
         assertThat(source).doesNotExist()
@@ -152,7 +157,7 @@ class CrashProfileStoreTest {
                     }
                 }
 
-            assertThatThrownBy { CrashProfileStore(directory, operations).importProfile(source, CrashProfileKind.ANR) }
+            assertThatThrownBy { CrashProfileStore(directory, runtime, operations).importProfile(source, CrashProfileKind.ANR) }
                 .isInstanceOf(IOException::class.java)
                 .hasMessage("$failing failed")
             assertThat(source.readText()).isEqualTo("profile")
@@ -175,7 +180,7 @@ class CrashProfileStoreTest {
                 override fun syncFile(file: File): Unit = throw IOException("disk failure")
             }
 
-        assertThatThrownBy { CrashProfileStore(directory, operations).adopt(source, CrashProfileKind.OOM) }
+        assertThatThrownBy { CrashProfileStore(directory, runtime, operations).adopt(source, CrashProfileKind.OOM) }
             .isInstanceOf(IOException::class.java)
             .hasMessage("disk failure")
         assertThat(source.readText()).isEqualTo("profile")
@@ -224,8 +229,9 @@ class CrashProfileStoreTest {
     @Test
     fun pendingStorageBudgetAllowsTheBoundaryAndRejectsAnOverflowWithoutTouchingTheSource() {
         directory.mkdirs()
+        val budget = RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES.defaultValue.toLong()
         RandomAccessFile(File(directory, "existing.oom"), "rw").use {
-            it.setLength(CrashProfileStore.MAX_PENDING_BYTES - 10)
+            it.setLength(budget - 10)
         }
         val boundary = temporary.newFile("boundary").apply { writeBytes(ByteArray(10)) }
         store().importProfile(boundary, CrashProfileKind.ANR)
@@ -236,7 +242,154 @@ class CrashProfileStoreTest {
             .hasMessageContaining("budget")
         assertThat(overflow.readText()).isEqualTo("x")
         assertThat(boundary.length()).isEqualTo(10)
-        assertThat(directory.listFiles()!!.sumOf { it.length() }).isEqualTo(CrashProfileStore.MAX_PENDING_BYTES)
+        assertThat(directory.listFiles()!!.sumOf { it.length() }).isEqualTo(budget)
+    }
+
+    @Test
+    fun perFileAdmissionUsesTheLiveAttachmentLimitForImportsAndAdoption() {
+        for (owned in listOf(false, true)) {
+            val store = store()
+            val source = temporary.newFile().apply { writeText("four") }
+            runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 3)
+
+            assertThatThrownBy {
+                if (owned) store.adopt(source, CrashProfileKind.ANR) else store.importProfile(source, CrashProfileKind.ANR)
+            }.isInstanceOf(IOException::class.java).hasMessageContaining("attachment size limit")
+            assertThat(source.readText()).isEqualTo("four")
+
+            runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 4)
+            val stored = if (owned) store.adopt(source, CrashProfileKind.ANR) else store.importProfile(source, CrashProfileKind.ANR)
+            assertThat(stored.readText()).isEqualTo("four")
+            assertThat(source.exists()).isEqualTo(!owned)
+
+            runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 3)
+            val next = temporary.newFile().apply { writeText("four") }
+            assertThatThrownBy {
+                if (owned) store.adopt(next, CrashProfileKind.ANR) else store.importProfile(next, CrashProfileKind.ANR)
+            }.isInstanceOf(IOException::class.java).hasMessageContaining("attachment size limit")
+            assertThat(next.readText()).isEqualTo("four")
+        }
+    }
+
+    @Test
+    fun aggregateBudgetChangesApplyToTheNextAdmissionWithoutEvictingExistingFiles() {
+        val store = store()
+        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 6)
+        val first = store.importProfile(temporary.newFile().apply { writeText("one") }, CrashProfileKind.ANR)
+        val source = temporary.newFile().apply { writeText("four") }
+
+        assertThatThrownBy { store.importProfile(source, CrashProfileKind.OOM) }
+            .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("budget")
+
+        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 7)
+        val second = store.importProfile(source, CrashProfileKind.OOM)
+        assertThat(directory.listFiles()!!.sumOf { it.length() }).isEqualTo(7)
+
+        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 6)
+        assertThatThrownBy { store.adopt(temporary.newFile().apply { writeText("x") }, CrashProfileKind.ANR) }
+            .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("budget")
+        assertThat(first.readText()).isEqualTo("one")
+        assertThat(second.readText()).isEqualTo("four")
+        assertThat(source.readText()).isEqualTo("four")
+    }
+
+    @Test
+    fun aSourceGrowingDuringCopyCannotExceedThePerFileLimit() {
+        runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 3)
+        val source = temporary.newFile().apply { writeText("one") }
+        val operations =
+            object : CrashProfileFileOperations() {
+                override fun copy(
+                    source: File,
+                    target: File,
+                    available: Long,
+                ) {
+                    source.appendText("!")
+                    super.copy(source, target, available)
+                }
+            }
+
+        assertThatThrownBy { CrashProfileStore(directory, runtime, operations).importProfile(source, CrashProfileKind.ANR) }
+            .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("budget")
+        assertThat(source.readText()).isEqualTo("one!")
+        assertThat(directory.listFiles()).isEmpty()
+    }
+
+    @Test
+    fun anInvalidStoreDirectoryRejectsAdmissionWithoutModifyingTheSource() {
+        val store = CrashProfileStore(File(temporary.newFile("invalid-parent"), "profiles"), runtime)
+        for (owned in listOf(false, true)) {
+            val source = temporary.newFile().apply { writeText("profile") }
+            assertThatThrownBy {
+                if (owned) store.adopt(source, CrashProfileKind.ANR) else store.importProfile(source, CrashProfileKind.ANR)
+            }.isInstanceOf(IOException::class.java)
+            assertThat(source.readText()).isEqualTo("profile")
+        }
+    }
+
+    @Test
+    fun retentionBeforeMetadataReadsFailsAdmissionInsteadOfCountingZeroBytes() {
+        for (owned in listOf(false, true)) {
+            assertRetentionRaceRejectsAdmission(owned, renameBeforeRead = true, expired = false)
+        }
+    }
+
+    @Test
+    fun retentionAfterMetadataReadsKeepsTheRetainedBytesInTheBudget() {
+        for (owned in listOf(false, true)) {
+            assertRetentionRaceRejectsAdmission(owned, renameBeforeRead = false, expired = false)
+        }
+    }
+
+    @Test
+    fun retentionDuringExpiryFailsAdmissionInsteadOfPretendingTheBytesWereDeleted() {
+        for (owned in listOf(false, true)) {
+            assertRetentionRaceRejectsAdmission(owned, renameBeforeRead = false, expired = true)
+        }
+    }
+
+    private fun assertRetentionRaceRejectsAdmission(
+        owned: Boolean,
+        renameBeforeRead: Boolean,
+        expired: Boolean,
+    ) {
+        val profileDirectory = temporary.newFolder()
+        val existing =
+            File(profileDirectory, "existing.anr").apply {
+                writeBytes(ByteArray(48))
+                setLastModified(if (expired) now - CrashProfileStore.MAX_AGE_MS - 1 else now)
+            }
+        val retained = File(profileDirectory, existing.name + CrashProfileStore.RETAINED_SUFFIX + "anr")
+        val source = temporary.newFile().apply { writeBytes(ByteArray(32)) }
+        runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 48)
+        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 64)
+        val operations =
+            object : CrashProfileFileOperations() {
+                override fun readAttributes(file: File): BasicFileAttributes {
+                    if (renameBeforeRead) Files.move(file.toPath(), retained.toPath())
+                    val attributes = super.readAttributes(file)
+                    if (!renameBeforeRead) Files.move(file.toPath(), retained.toPath())
+                    return attributes
+                }
+            }
+        val store = CrashProfileStore(profileDirectory, runtime, operations) { now }
+
+        val failure =
+            assertThatThrownBy {
+                if (owned) store.adopt(source, CrashProfileKind.ANR) else store.importProfile(source, CrashProfileKind.ANR)
+            }
+        if (renameBeforeRead || expired) {
+            failure.isInstanceOf(NoSuchFileException::class.java)
+        } else {
+            failure.isInstanceOf(IOException::class.java).hasMessageContaining("budget")
+        }
+        assertThat(existing).doesNotExist()
+        assertThat(retained.length()).isEqualTo(48)
+        assertThat(source.length()).isEqualTo(32)
+        assertThat(profileDirectory.listFiles()!!.sumOf { it.length() }).isEqualTo(48)
     }
 
     @Test

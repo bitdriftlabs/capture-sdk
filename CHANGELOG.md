@@ -21,7 +21,19 @@
 
 **Added**
 
-- Nothing yet!
+- Added system-triggered ANR (Android 16+) and Java OutOfMemoryError (Android 17+) profiles attached
+  to the matching fatal issue reports. While enabled, the SDK owns these `ProfilingManager` trigger
+  types and, for ANR, the process-state summary. Opt in at SDK start with
+  `Configuration(crashProfilingMode = CrashProfilingMode.AUTOMATIC)` (`null` disables profiling by
+  default); fatal issue reporting must also be enabled. The `client_feature.android.crash_profiles.anr`
+  and `client_feature.android.crash_profiles.oom` runtime flags, both enabled by default, control
+  collection within that opt-in at each platform-event listener start (normally the next process).
+  Native attribution separately checks the live flags. On-demand profiling is unaffected.
+- Added non-destructive `Capture.Logger.importCrashProfile` and `CrashProfilingMode.MANUAL` for
+  apps that coordinate their own profiling listeners and file lifecycle. Automatic collection
+  adopts files by rename into SDK-private storage, avoiding an extra payload copy. Pending profiles
+  have a runtime-configurable aggregate budget (64 MiB by default), share the native uploader's
+  per-file limit, and expire after seven days.
 
 **Changed**
 
@@ -66,18 +78,7 @@
 
 **Added**
 
-- Added system-triggered ANR (Android 16+) and Java OutOfMemoryError (Android 17+) profiles attached
-  to the matching fatal issue reports. While enabled, the SDK owns these `ProfilingManager` trigger
-  types and, for ANR, the process-state summary. Opt in at SDK start with
-  `Configuration(crashProfilingMode = CrashProfilingMode.AUTOMATIC)` (`null` disables profiling by
-  default); fatal issue reporting must also be enabled. The `client_feature.android.crash_profiles.anr`
-  and `client_feature.android.crash_profiles.oom` runtime flags, both enabled by default, control
-  collection within that opt-in at each platform-event listener start (normally the next process).
-  Native attribution separately checks the live flags. On-demand profiling is unaffected.
-- Added non-destructive `Capture.Logger.importCrashProfile` and `CrashProfilingMode.MANUAL` for
-  apps that coordinate their own profiling listeners and file lifecycle. Automatic collection
-  adopts files by rename into SDK-private storage, avoiding an extra payload copy. Pending profiles
-  are bounded to 64 MiB and expire after seven days.
+- Nothing yet!
 
 **Changed**
 
@@ -86,7 +87,6 @@
 **Fixed**
 
 - Fixed app exit events being attributed to the wrong sessions after a device reboot.
-- Ignored stale crash-profile callbacks and rejected queued imports after their collector stops.
 
 ### iOS
 

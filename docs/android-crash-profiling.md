@@ -120,8 +120,13 @@ attribution are also recovered. Matching and uploading require the corresponding
 The SDK migrates legacy files carrying its retained suffix from the platform directory; it does
 not sweep unrelated platform results.
 
-The private pending store has a 64 MiB admission budget, including incomplete copies. Imports
-that exceed the available budget fail explicitly; existing files are not evicted to make room.
+Each raw profile is bounded by the native uploader's `attachment.max_bytes` runtime limit
+(5 MiB by default, before compression). The private pending store has a separate aggregate
+admission budget, including incomplete copies, controlled by
+`client_feature.android.crash_profiles.max_pending_bytes` (64 MiB by default). Both limits are
+read on each admission. Imports that exceed either limit fail explicitly; existing files are
+not evicted when the aggregate budget is reduced. If a native retention rename makes an entry
+disappear during a scan or expiry removal, admission fails rather than undercounting its bytes.
 Pending files older than seven days are removed when the store is scanned at startup or import,
 including while collection is disabled. This is opportunistic cleanup, not a background timer.
 Upload-store limits and cleanup apply separately after attribution.

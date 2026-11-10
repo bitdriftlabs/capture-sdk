@@ -10,6 +10,8 @@ package io.bitdrift.capture.reports.profiling
 import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.LOG_TAG
+import io.bitdrift.capture.common.Runtime
+import io.bitdrift.capture.common.RuntimeConfig
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -20,12 +22,14 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.BasicFileAttributes
 import java.util.UUID
 
 /** Stores SDK-owned raw profiles until native attribution consumes or retains them. */
 @RequiresApi(API_ANR)
 internal class CrashProfileStore(
     private val directory: File,
+    private val runtime: Runtime,
     private val fileOperations: CrashProfileFileOperations = CrashProfileFileOperations(),
     private val now: () -> Long = System::currentTimeMillis,
 ) {
@@ -43,7 +47,7 @@ internal class CrashProfileStore(
 
     fun pendingResults(): List<Pair<String, String>> =
         files()
-            .mapNotNull { file ->
+            .mapNotNull { (file, _) ->
                 CrashProfileKind.entries
                     .firstOrNull { file.name.endsWith(".${it.value}") || file.name.endsWith(RETAINED_SUFFIX + it.value) }
                     ?.takeIf { file.isFile }
@@ -65,14 +69,16 @@ internal class CrashProfileStore(
         owned: Boolean,
     ): File {
         validateSource(source)
+        val maxProfileBytes = runtime.getConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES).toLong()
+        val sourceBytes = Files.size(source.toPath())
         val existing = files()
-        val available = MAX_PENDING_BYTES - existing.sumOf { it.length() }
-        if (source.length() > available) {
-            throw IOException("Crash profile exceeds the pending profile storage budget")
+        val maxPendingBytes = runtime.getConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES).toLong()
+        val available = minOf(maxProfileBytes, maxPendingBytes - existing.sumOf { it.second })
+        if (sourceBytes > available) {
+            val limit = if (sourceBytes > maxProfileBytes) "attachment size limit" else "pending profile storage budget"
+            throw IOException("Crash profile exceeds the $limit")
         }
-        if (!directory.isDirectory && !directory.mkdirs()) {
-            throw IOException("Cannot create crash profile directory")
-        }
+        Files.createDirectories(directory.toPath())
         directory.parentFile?.let(fileOperations::syncDirectory)
         val target = File(directory, "${UUID.randomUUID()}.${kind.value}")
         if (owned) {
@@ -115,24 +121,26 @@ internal class CrashProfileStore(
         return target
     }
 
-    private fun files(): List<File> {
+    private fun files(): List<Pair<File, Long>> {
         if (!directory.exists()) return emptyList()
         val files = directory.listFiles() ?: throw IOException("Cannot list crash profile directory")
         val cutoff = now() - MAX_AGE_MS
-        return files.filter { file ->
-            if (file.lastModified() >= cutoff) {
-                true
+        return files.mapNotNull { file ->
+            // Native retention can rename entries independently. Missing paths must fail the scan,
+            // not look like zero-byte files or successfully removed expired files.
+            val attributes = fileOperations.readAttributes(file)
+            if (attributes.lastModifiedTime().toMillis() >= cutoff) {
+                file to attributes.size()
             } else {
-                if (!file.delete() && file.exists()) throw IOException("Cannot remove expired crash profile: ${file.name}")
+                Files.delete(file.toPath())
                 Log.d(LOG_TAG, "Removed expired crash profile: ${file.name}")
-                false
+                null
             }
         }
     }
 
     internal companion object {
         const val DIRECTORY = "crash_profiles"
-        const val MAX_PENDING_BYTES = 64L * 1024 * 1024
         const val MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
 
         // Native attribution appends this suffix when the source process's report does not exist yet.
@@ -142,6 +150,8 @@ internal class CrashProfileStore(
     /** Filesystem boundaries kept injectable so durability failures can be exercised without a mount. */
     @RequiresApi(API_ANR)
     internal open class CrashProfileFileOperations {
+        open fun readAttributes(file: File): BasicFileAttributes = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java)
+
         open fun move(
             source: File,
             target: File,

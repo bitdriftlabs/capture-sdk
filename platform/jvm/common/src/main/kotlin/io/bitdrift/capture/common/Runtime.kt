@@ -149,6 +149,17 @@ sealed class RuntimeConfig(
     val defaultValue: Int,
 ) {
     /**
+     * Maximum uncompressed bytes per attachment, shared with the native uploader.
+     */
+    data object ATTACHMENT_MAX_BYTES : RuntimeConfig("attachment.max_bytes", 5 * 1024 * 1024)
+
+    /**
+     * Maximum raw bytes retained in Android's private pending crash-profile store.
+     */
+    data object CRASH_PROFILES_MAX_PENDING_BYTES :
+        RuntimeConfig("client_feature.android.crash_profiles.max_pending_bytes", 64 * 1024 * 1024)
+
+    /**
      * The configured value for [jankHeuristicMultiplier] from [JankStatsMonitoring]. More info at https://developer.android.com/topic/performance/jankstats#jank-heuristics
      */
     data object JANK_FRAME_HEURISTICS_MULTIPLIER : RuntimeConfig("client_feature.android.jank_frame_heuristics_multiplier", 2)

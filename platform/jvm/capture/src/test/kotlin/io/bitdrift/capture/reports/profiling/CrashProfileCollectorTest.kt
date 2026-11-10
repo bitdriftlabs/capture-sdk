@@ -20,6 +20,7 @@ import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.MockPreferences
 import io.bitdrift.capture.common.Runtime
+import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.events.SafeEventListenerLogger
 import io.bitdrift.capture.reports.profiling.CrashProfileCollector.Companion.ANR
@@ -58,6 +59,9 @@ class CrashProfileCollectorTest {
     fun setUp() {
         CrashProfileSource.resetForTest()
         Settings.Global.putInt(context.contentResolver, Settings.Global.BOOT_COUNT, 3)
+        whenever(runtime.getConfigValue(any<RuntimeConfig>())).thenAnswer { invocation ->
+            invocation.getArgument<RuntimeConfig>(0).defaultValue
+        }
         whenever(store.pendingResults()).thenAnswer { pending.toList() }
         whenever(store.adopt(any(), any())).thenAnswer { invocation ->
             val file = invocation.getArgument<File>(0)
@@ -399,7 +403,7 @@ class CrashProfileCollectorTest {
             }
         val executor = QueuedExecutor()
         var result: CaptureResult<Unit>? = null
-        val collector = collector(executor = executor, profileStore = CrashProfileStore(directory, operations))
+        val collector = collector(executor = executor, profileStore = CrashProfileStore(directory, runtime, operations))
 
         collector.importProfile(source, CrashProfileKind.ANR) { result = it }
         assertThat(result).isNull()
@@ -478,7 +482,7 @@ class CrashProfileCollectorTest {
         val executor = QueuedExecutor()
         val directory = File(temporary.root, "profiles")
         val source = temporary.newFile("late").apply { writeText("profile") }
-        val listener = SafeEventListenerLogger(collector(executor = executor, profileStore = CrashProfileStore(directory)))
+        val listener = SafeEventListenerLogger(collector(executor = executor, profileStore = CrashProfileStore(directory, runtime)))
         listener.start()
         executor.drain()
         val stale = profiler.captureResult(ANR, source.path)
@@ -509,14 +513,14 @@ class CrashProfileCollectorTest {
         val executor = QueuedExecutor()
         val directory = File(temporary.root, "profiles")
         val source = temporary.newFile("borrowed-queued").apply { writeText("profile") }
-        val first = collector(executor = executor, profileStore = CrashProfileStore(directory))
+        val first = collector(executor = executor, profileStore = CrashProfileStore(directory, runtime))
         val listener = SafeEventListenerLogger(first)
         listener.start()
         executor.drain()
         val results = mutableListOf<CaptureResult<Unit>>()
         first.importProfile(source, CrashProfileKind.ANR, results::add)
         listener.stop()
-        val replacement = SafeEventListenerLogger(collector(executor = executor, profileStore = CrashProfileStore(directory)))
+        val replacement = SafeEventListenerLogger(collector(executor = executor, profileStore = CrashProfileStore(directory, runtime)))
         replacement.start()
         executor.drain()
 
@@ -559,7 +563,7 @@ class CrashProfileCollectorTest {
                     listener.stop()
                 }
             }
-        val first = collector(executor = executor, profileStore = CrashProfileStore(directory, operations))
+        val first = collector(executor = executor, profileStore = CrashProfileStore(directory, runtime, operations))
         listener = SafeEventListenerLogger(first)
         listener.start()
         executor.drain()
@@ -574,7 +578,7 @@ class CrashProfileCollectorTest {
         assertThat(imported.readText()).isEqualTo("profile")
         assertThat(submitted).isEmpty()
 
-        SafeEventListenerLogger(collector(executor = executor, profileStore = CrashProfileStore(directory))).start()
+        SafeEventListenerLogger(collector(executor = executor, profileStore = CrashProfileStore(directory, runtime))).start()
         executor.drain()
         assertThat(submitted).containsExactly(Triple(imported.path, ANR, false))
     }
@@ -622,7 +626,7 @@ class CrashProfileCollectorTest {
     fun persistedImportSurvivesNativeSubmissionFailureAndOriginalDeletionUntilNextStartup() {
         enable(anr = true, oom = false)
         val directory = File(temporary.root, "profiles")
-        val profileStore = CrashProfileStore(directory)
+        val profileStore = CrashProfileStore(directory, runtime)
         val source = temporary.newFile("borrowed").apply { writeText("profile") }
         var result: CaptureResult<Unit>? = null
         val first =
@@ -640,7 +644,7 @@ class CrashProfileCollectorTest {
         val imported = directory.listFiles()!!.single()
         assertThat(imported.readText()).isEqualTo("profile")
 
-        collector(configuration = manualConfiguration(), profileStore = CrashProfileStore(directory)).start()
+        collector(configuration = manualConfiguration(), profileStore = CrashProfileStore(directory, runtime)).start()
 
         assertThat(submitted).containsExactly(Triple(imported.path, ANR, false))
     }
@@ -651,7 +655,7 @@ class CrashProfileCollectorTest {
         val directory = File(temporary.root, "profiles")
         val source = temporary.newFile("owned").apply { writeText("profile") }
         val unrelated = temporary.newFile("host").apply { writeText("host") }
-        collector(profileStore = CrashProfileStore(directory)).start()
+        collector(profileStore = CrashProfileStore(directory, runtime)).start()
 
         profiler.deliver(ANR, source.path)
         profiler.deliver(null, unrelated.path)
@@ -685,7 +689,7 @@ class CrashProfileCollectorTest {
                 setLastModified(System.currentTimeMillis() - CrashProfileStore.MAX_AGE_MS - 1000)
             }
 
-        collector(profileStore = CrashProfileStore(directory)).start()
+        collector(profileStore = CrashProfileStore(directory, runtime)).start()
 
         assertThat(expired).doesNotExist()
         assertThat(submitted).isEmpty()
@@ -703,7 +707,7 @@ class CrashProfileCollectorTest {
             }
         var result: CaptureResult<Unit>? = null
 
-        collector(profileStore = CrashProfileStore(directory)).importProfile(source, CrashProfileKind.ANR) { result = it }
+        collector(profileStore = CrashProfileStore(directory, runtime)).importProfile(source, CrashProfileKind.ANR) { result = it }
 
         assertThat(result).isInstanceOf(CaptureResult.Failure::class.java)
         assertThat(source.readText()).isEqualTo("original")
