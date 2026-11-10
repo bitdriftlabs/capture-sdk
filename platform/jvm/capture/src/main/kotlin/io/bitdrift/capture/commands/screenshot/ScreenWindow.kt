@@ -39,6 +39,10 @@ internal class ScreenWindow(
     val isOpaque: Boolean
         get() = params?.format?.let { !PixelFormat.formatHasAlpha(it) } == true || root.isOpaque
 
+    /** Whether the window is marked [WindowManager.LayoutParams.FLAG_SECURE], so must never be copied. */
+    val isSecure: Boolean
+        get() = (params?.flags ?: 0) and WindowManager.LayoutParams.FLAG_SECURE != 0
+
     /** Whether the window covers exactly [bounds], in screen coordinates. */
     fun fills(bounds: Rect): Boolean = left == bounds.left && top == bounds.top && width == bounds.width() && height == bounds.height()
 }

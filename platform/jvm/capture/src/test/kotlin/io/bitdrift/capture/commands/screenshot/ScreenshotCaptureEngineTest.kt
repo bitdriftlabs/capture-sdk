@@ -204,6 +204,30 @@ class ScreenshotCaptureEngineTest {
         }
 
     @Test
+    @Config(sdk = [34])
+    fun aSecureWindowIsBlackAndNeverCopied(): Unit =
+        runBlocking {
+            val bitmaps = RecordingBitmaps()
+            val activity = windows.activityWindow(Color.RED)
+            val secureDialog = windows.dialogWindow(Color.BLUE, secure = true)
+            val screenshot = engine(windows.showing(activity, secureDialog), createBitmap = bitmaps).captureDecoded()
+
+            assertColor(screenshot.getPixel(100, 200), Color.BLACK)
+            assertColor(screenshot.getPixel(20, 20), Color.rgb(127, 0, 0))
+            // Only the screenshot, which the activity was copied straight into: nothing for the secure window.
+            assertThat(bitmaps.created).hasSize(1)
+        }
+
+    @Test
+    @Config(sdk = [34])
+    fun aScreenWithOnlyASecureWindowIsAllBlack(): Unit =
+        runBlocking {
+            val secureDialog = windows.dialogWindow(Color.BLUE, left = 0, top = 0, right = 200, bottom = 400, secure = true)
+            val screenshot = engine(windows.showing(secureDialog)).captureDecoded()
+            assertColor(screenshot.getPixel(100, 200), Color.BLACK)
+        }
+
+    @Test
     @Config(sdk = [33])
     fun aPopupIsStackedAboveItsParentAndUnderLaterDialogsOnApi33() = assertAPopupIsStackedRightAboveItsParent()
 

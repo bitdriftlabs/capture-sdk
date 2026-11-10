@@ -81,11 +81,13 @@ internal class ScreenshotTestWindows(
         right: Int = 150,
         bottom: Int = 300,
         dimAmount: Float = 0.5f,
+        secure: Boolean = false,
     ): View {
         val dialog =
             Dialog(activity).apply {
                 window!!.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                 window!!.setDimAmount(dimAmount)
+                if (secure) window!!.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 show()
             }
         return dialog.window!!.decorView.placed(color, left, top, right, bottom)

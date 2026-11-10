@@ -11,6 +11,7 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.Rect
 import android.os.Build
 import android.view.PixelCopy
@@ -103,7 +104,7 @@ internal class ScreenshotCaptureEngine(
         try {
             var drawn = 0
             for (window in windows) {
-                if (drawn == 0 && window.fills(bounds)) {
+                if (drawn == 0 && window.fills(bounds) && !window.isSecure) {
                     val target = screen ?: newScreen()
                     // The copy's until it reports, so that a failure below cannot recycle it under the copy.
                     screen = null
@@ -131,7 +132,8 @@ internal class ScreenshotCaptureEngine(
 
     /**
      * Draws [window] onto this canvas at its place, over the windows already drawn when
-     * [overOtherWindows]. Returns false, drawing nothing, when the window could not be copied.
+     * [overOtherWindows], or a black box when it is marked secure. Returns false, drawing nothing,
+     * when the window could not be copied.
      */
     private suspend fun Canvas.drawWindow(
         window: ScreenWindow,
@@ -142,14 +144,21 @@ internal class ScreenshotCaptureEngine(
         // channel, and only to blend them over the windows under it. Over the black of an empty
         // screenshot, the opaque copy's colours are already the blended ones.
         val config = if (overOtherWindows && !window.isOpaque) Bitmap.Config.ARGB_8888 else Bitmap.Config.RGB_565
-        val pixels = copyWindow(window.root, config) ?: return false
+        // A secure window (a PIN pad, card details) is never copied.
+        val pixels = if (window.isSecure) null else copyWindow(window.root, config) ?: return false
         val params = window.params
         // The dim behind a dialog is drawn by the system compositor, not by any window of the app.
         if (params != null && params.flags and WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0) {
             drawColor(Color.argb((params.dimAmount * MAX_ALPHA).roundToInt(), 0, 0, 0))
         }
-        drawBitmap(pixels, (window.left - bounds.left).toFloat(), (window.top - bounds.top).toFloat(), null)
-        pixels.recycle()
+        val x = (window.left - bounds.left).toFloat()
+        val y = (window.top - bounds.top).toFloat()
+        if (pixels != null) {
+            drawBitmap(pixels, x, y, null)
+            pixels.recycle()
+        } else {
+            drawRect(x, y, x + window.width, y + window.height, Paint().apply { color = Color.BLACK })
+        }
         return true
     }
 
