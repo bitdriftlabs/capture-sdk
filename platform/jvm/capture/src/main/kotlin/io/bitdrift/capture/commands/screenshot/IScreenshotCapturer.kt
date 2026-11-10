@@ -9,7 +9,7 @@ package io.bitdrift.capture.commands.screenshot
 
 import io.bitdrift.capture.commands.CommandResult
 
-/** Takes one WebP screenshot of the app's window on behalf of a command. */
+/** Takes one WebP screenshot of the app's windows on behalf of a command. */
 internal interface IScreenshotCapturer {
     suspend fun capture(): CommandResult
 }
