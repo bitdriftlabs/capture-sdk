@@ -24,7 +24,6 @@ mod test {
       "androidx.core:core",
       "androidx.lifecycle:lifecycle-common",
       "androidx.lifecycle:lifecycle-process",
-      "androidx.metrics:metrics-performance",
       "androidx.startup:startup-runtime",
       "com.google.code.gson:gson",
       "com.google.flatbuffers:flatbuffers-java",

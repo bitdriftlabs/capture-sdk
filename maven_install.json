@@ -18,7 +18,6 @@
     "androidx.lifecycle:lifecycle-common": -1319395940,
     "androidx.lifecycle:lifecycle-process": -1184601292,
     "androidx.lifecycle:lifecycle-runtime": -2079850837,
-    "androidx.metrics:metrics-performance": -40749277,
     "androidx.startup:startup-runtime": -1094522563,
     "androidx.test.ext:junit": 1389218291,
     "androidx.test:core": -333044758,
@@ -172,7 +171,6 @@
     "androidx.lifecycle:lifecycle-viewmodel-savedstate:aar": 1841726390,
     "androidx.lifecycle:lifecycle-viewmodel:aar": 1936715864,
     "androidx.loader:loader:aar": -742474352,
-    "androidx.metrics:metrics-performance:aar": -364343201,
     "androidx.profileinstaller:profileinstaller:aar": 464254474,
     "androidx.resourceinspection:resourceinspection-annotation": 2141977308,
     "androidx.savedstate:savedstate-ktx:aar": 1948161347,
@@ -827,12 +825,6 @@
     "androidx.loader:loader:aar": {
       "shasums": {
         "jar": "11f735cb3b55c458d470bed9e25254375b518b4b1bad6926783a7026db0f5025"
-      },
-      "version": "1.0.0"
-    },
-    "androidx.metrics:metrics-performance:aar": {
-      "shasums": {
-        "jar": "efe2e0d92c7cb2f40c77d337052623fdb631d684ba145881e5a52a664d5614a0"
       },
       "version": "1.0.0"
     },
@@ -2295,11 +2287,6 @@
       "androidx.core:core:aar",
       "androidx.lifecycle:lifecycle-livedata:aar",
       "androidx.lifecycle:lifecycle-viewmodel:aar"
-    ],
-    "androidx.metrics:metrics-performance:aar": [
-      "androidx.collection:collection",
-      "androidx.core:core:aar",
-      "org.jetbrains.kotlin:kotlin-stdlib"
     ],
     "androidx.profileinstaller:profileinstaller:aar": [
       "androidx.annotation:annotation",
@@ -7455,7 +7442,6 @@
       "androidx.lifecycle:lifecycle-viewmodel-savedstate:aar",
       "androidx.lifecycle:lifecycle-viewmodel:aar",
       "androidx.loader:loader:aar",
-      "androidx.metrics:metrics-performance:aar",
       "androidx.profileinstaller:profileinstaller:aar",
       "androidx.resourceinspection:resourceinspection-annotation",
       "androidx.savedstate:savedstate-ktx:aar",
@@ -7690,7 +7676,6 @@
       "androidx.lifecycle:lifecycle-viewmodel-savedstate:aar",
       "androidx.lifecycle:lifecycle-viewmodel:aar",
       "androidx.loader:loader:aar",
-      "androidx.metrics:metrics-performance:aar",
       "androidx.profileinstaller:profileinstaller:aar",
       "androidx.resourceinspection:resourceinspection-annotation",
       "androidx.savedstate:savedstate-ktx:aar",
@@ -7925,7 +7910,6 @@
       "androidx.lifecycle:lifecycle-viewmodel-savedstate:aar",
       "androidx.lifecycle:lifecycle-viewmodel:aar",
       "androidx.loader:loader:aar",
-      "androidx.metrics:metrics-performance:aar",
       "androidx.profileinstaller:profileinstaller:aar",
       "androidx.resourceinspection:resourceinspection-annotation",
       "androidx.savedstate:savedstate-ktx:aar",
