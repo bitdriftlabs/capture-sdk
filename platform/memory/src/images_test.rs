@@ -60,3 +60,23 @@ fn binary_name_drops_the_directories() {
   assert_eq!(binary_name("/usr/lib/libobjc.A.dylib"), "libobjc.A.dylib");
   assert_eq!(binary_name("Capture"), "Capture");
 }
+
+#[test]
+fn segments_do_not_overlap() {
+  let images = ImageTable::survey();
+  for pair in images.segments.windows(2) {
+    assert!(
+      pair[0].end <= pair[1].start,
+      "{:?} overlaps {:?}",
+      images.name(pair[0].image),
+      images.name(pair[1].image)
+    );
+  }
+}
+
+#[test]
+fn linkedit_is_matched_by_its_whole_name() {
+  assert!(is_linkedit(b"__LINKEDIT\0\0\0\0\0\0"));
+  assert!(!is_linkedit(b"__LINKEDIT_X\0\0\0\0"));
+  assert!(!is_linkedit(b"__DATA\0\0\0\0\0\0\0\0\0\0"));
+}

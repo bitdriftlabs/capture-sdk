@@ -29,12 +29,17 @@ const HEADER_SIZEOFCMDS: usize = 20;
 /// `struct load_command` from `<mach-o/loader.h>`: the offset of `cmdsize`.
 const COMMAND_CMDSIZE: usize = 4;
 
-/// `struct segment_command_64` from `<mach-o/loader.h>`: its size and the offsets of `vmaddr`,
-/// `vmsize` and `filesize`.
+/// `struct segment_command_64` from `<mach-o/loader.h>`: its size and the offsets of `segname`,
+/// `vmaddr`, `vmsize` and `filesize`.
 const SEGMENT_COMMAND_SIZE: usize = 72;
+const SEGMENT_SEGNAME: usize = 8;
+const SEGMENT_NAME_SIZE: usize = 16;
 const SEGMENT_VMADDR: usize = 24;
 const SEGMENT_VMSIZE: usize = 32;
 const SEGMENT_FILESIZE: usize = 48;
+/// `SEG_LINKEDIT` from `<mach-o/loader.h>`. In the shared cache every image's `__LINKEDIT` is the
+/// same range, so it is left out to keep segments from overlapping.
+const LINKEDIT: &[u8] = b"__LINKEDIT";
 const UUID_COMMAND_SIZE: usize = 24;
 const UUID_SIZE: usize = 16;
 
@@ -163,6 +168,10 @@ impl ImageTable {
   }
 }
 
+fn is_linkedit(name: &[u8]) -> bool {
+  name.split(|byte| *byte == 0).next() == Some(LINKEDIT)
+}
+
 pub fn binary_name(path: &str) -> &str {
   path.rsplit('/').next().unwrap_or(path)
 }
@@ -194,6 +203,9 @@ fn load_commands(header: usize) -> LoadCommands {
       if let (Ok(address), Ok(size)) = (usize::try_from(address), usize::try_from(size))
         && size > 0
         && file_size > 0
+        && !is_linkedit(
+          &commands[offset + SEGMENT_SEGNAME .. offset + SEGMENT_SEGNAME + SEGMENT_NAME_SIZE],
+        )
       {
         parsed.segments.push((address, size));
       }
