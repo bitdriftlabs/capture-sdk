@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Installs the Bazel-built microbenchmark APK on a running emulator, runs its instrumentation
-# tests, and pulls the androidx.benchmark JSON results into the output directory.
+# tests, and saves logcat and the androidx.benchmark results in the output directory.
 #
 # Usage: ci/run_android_benchmarks.sh <test.apk> <output-dir>
 
@@ -33,6 +33,7 @@ adb -s "$emulator_serial" shell rm -rf "$device_output_dir"
 adb -s "$emulator_serial" shell mkdir -p "$device_output_dir"
 
 readonly instrumentation_log="${output_dir}/instrumentation.txt"
+adb -s "$emulator_serial" logcat -b all -c
 # Mirror the Gradle module's runner arguments: profiling off for real-world timings, and the
 # emulator and unlocked-device checks suppressed because CI only has an emulator.
 adb -s "$emulator_serial" shell am instrument -w -r \
@@ -40,6 +41,8 @@ adb -s "$emulator_serial" shell am instrument -w -r \
   -e androidx.benchmark.suppressErrors EMULATOR,UNLOCKED \
   -e additionalTestOutputDir "$device_output_dir" \
   "${package}/${runner}" | tr -d '\r' | tee "$instrumentation_log"
+
+adb -s "$emulator_serial" logcat -b all -d -v threadtime > "${output_dir}/logcat.txt"
 
 # Pull whatever was written even if a test failed, so the check below reports the failure.
 adb -s "$emulator_serial" pull "${device_output_dir}/." "$output_dir/" ||
