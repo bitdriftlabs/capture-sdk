@@ -14,12 +14,13 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import android.view.PixelCopy
 import android.view.View
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.common.IWindowManager
-import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.common.phoneWindow
 import io.bitdrift.capture.utils.BuildVersionChecker
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -34,27 +35,33 @@ import kotlin.math.roundToInt
  *
  * Every step runs on the caller's thread, the command's own: the window lookup, the bitmaps, the
  * compression and the error reporting. PixelCopy's callbacks only resume the suspended capture.
- * Below Android 14 the platform insists on delivering its callback through a [android.os.Handler],
- * so that single resume is posted to [mainThreadHandler]; no work happens there.
+ * Below Android 14 the platform insists on delivering its callback through a [Handler]. That single
+ * resume is posted to a thread of the capture's own, started on the first such copy and quit when
+ * the capture is over, so a busy or stuck main thread does not hold the screenshot up.
+ * The engine runs one capture at a time, as the command registry runs one invocation at a time.
  *
  * A capture either returns the WebP or throws; [ScreenshotCaptureException] carries the reasons
  * the engine itself names, and the command reports either as its failure. A window that cannot be
  * copied is left out of the screenshot, which fails only when no window could be captured.
  *
- * @param mainThreadHandler hosts the one-line PixelCopy listener on API levels below 34.
  * @param windowManager locates the windows to capture.
  * @param createBitmap allocates a bitmap of the given width, height and config; the engine owns and
  * recycles it.
  * @param buildVersionChecker selects the PixelCopy API the device supports.
  * @param copyTimeoutMillis how long a window's copy may take before the window is left out.
+ * @param startListenerThread starts the thread that hosts the one-line PixelCopy listener on API
+ * levels below 34; the engine quits it.
  */
 internal class ScreenshotCaptureEngine(
-    private val mainThreadHandler: MainThreadHandler,
     private val windowManager: IWindowManager,
     private val createBitmap: (width: Int, height: Int, config: Bitmap.Config) -> Bitmap = ::platformBitmap,
     private val buildVersionChecker: BuildVersionChecker = BuildVersionChecker(),
     private val copyTimeoutMillis: Long = COPY_TIMEOUT_MILLIS,
+    private val startListenerThread: () -> HandlerThread = { HandlerThread(LISTENER_THREAD_NAME).apply { start() } },
 ) {
+    /** Hosts the legacy PixelCopy listener for the capture in progress, once one needed it. */
+    private var listenerHandler: Handler? = null
+
     /**
      * Captures a WebP of all visible windows. Conditions the platform does not throw for are
      * thrown as [ScreenshotCaptureException]; anything the platform throws outside of a window's
@@ -64,7 +71,14 @@ internal class ScreenshotCaptureEngine(
         requireSupportedApiLevel()
         val windows = windowManager.visibleWindowsInStackingOrder()
         if (windows.isEmpty()) throw ScreenshotCaptureException(NO_VISIBLE_ROOT_VIEW)
-        val screen = composite(windows)
+        val screen =
+            try {
+                composite(windows)
+            } finally {
+                // A listener still queued is for a copy that timed out: nothing waits for it any more.
+                listenerHandler?.looper?.quit()
+                listenerHandler = null
+            }
         try {
             return compressScreenshot(screen)
         } finally {
@@ -236,7 +250,7 @@ internal class ScreenshotCaptureEngine(
     ) {
         // On these API levels the copy itself runs synchronously here; only the status takes the
         // detour through the handler.
-        val handler = mainThreadHandler.mainHandler
+        val handler = listenerHandler ?: Handler(startListenerThread().looper).also { listenerHandler = it }
         val window = root.phoneWindow
         if (window != null) {
             PixelCopy.request(window, destination, onResult, handler)
@@ -273,6 +287,8 @@ internal class ScreenshotCaptureEngine(
         const val COPY_TIMEOUT_MILLIS = 1_000L
 
         const val NO_VISIBLE_ROOT_VIEW = "No visible root view"
+
+        private const val LISTENER_THREAD_NAME = "io.bitdrift.capture.screenshot"
 
         private const val MAX_ALPHA = 255
     }

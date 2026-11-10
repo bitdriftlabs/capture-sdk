@@ -11,14 +11,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Binder
-import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.view.View
-import com.nhaarman.mockitokotlin2.doReturn
-import com.nhaarman.mockitokotlin2.mock
 import io.bitdrift.capture.common.IWindowManager
-import io.bitdrift.capture.common.MainThreadHandler
 import io.bitdrift.capture.fakes.FakeWindowManager
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -34,8 +30,8 @@ import kotlin.math.abs
 
 /**
  * Exercises [ScreenshotCaptureEngine] against Robolectric's PixelCopy on both API paths. The
- * contract under test: the capture completes on the caller's coroutine, the injected handler is
- * only ever the delivery point of the legacy listener, every visible window ends up in one WebP in
+ * contract under test: the capture completes on the caller's coroutine, the capture's own listener
+ * thread is only ever the delivery point of the legacy listener, every visible window ends up in one WebP in
  * the order the system stacks them in, and a capture that produces nothing throws: the engine's own
  * reasons as [ScreenshotCaptureException], the platform's exceptions untouched.
  *
@@ -87,14 +83,11 @@ class ScreenshotCaptureEngineTest {
 
     @Test
     @Config(sdk = [33])
-    fun legacyPathOnlyUsesTheHandlerToDeliverTheListener(): Unit =
+    fun legacyPathDeliversTheListenerOnAThreadOfItsOwn(): Unit =
         runBlocking {
-            // A looper of its own, so the delivery is observable: Robolectric's PixelCopy calls a
-            // main-looper listener inline, but posts to any other handler like the platform does.
             // Paused, so the post stays queued until the test runs it rather than racing this thread.
-            val listenerThread = HandlerThread("pixelcopy-listener").apply { start() }
-            shadowOf(listenerThread.looper).pause()
-            val engine = engine(windows.showing(windows.activityWindow()), Handler(listenerThread.looper))
+            val listenerThread = pausedListenerThread()
+            val engine = engine(windows.showing(windows.activityWindow()), startListenerThread = { listenerThread })
             val mainLooper = shadowOf(Looper.getMainLooper()).apply { idle() }
             val capture = async(start = CoroutineStart.UNDISPATCHED) { engine.captureDeviceCommandScreenshot() }
 
@@ -104,20 +97,26 @@ class ScreenshotCaptureEngineTest {
             shadowOf(listenerThread.looper).idle()
 
             assertThat(capture.await()).isNotEmpty()
+            // Nothing went through the main thread, and the listener's thread is gone with the capture.
             assertThat(mainLooper.isIdle).isTrue()
-            listenerThread.quit()
+            listenerThread.join(THREAD_EXIT_TIMEOUT_MILLIS)
+            assertThat(listenerThread.isAlive).isFalse()
         }
 
     @Test
     @Config(sdk = [34])
     fun modernPathCompletesWithoutAnyLooper(): Unit =
         runBlocking {
-            val engine = engine(windows.showing(windows.activityWindow()))
+            val engine =
+                engine(
+                    windows.showing(windows.activityWindow()),
+                    startListenerThread = { throw AssertionError("no listener thread on API 34") },
+                )
             val mainLooper = shadowOf(Looper.getMainLooper()).apply { idle() }
             val capture = async(start = CoroutineStart.UNDISPATCHED) { engine.captureDeviceCommandScreenshot() }
 
             // The callback runs on a direct executor and only resumes, so awaiting the capture
-            // needs no looper to be driven: nothing was posted anywhere.
+            // needs no looper to be driven, nor any thread started: nothing was posted anywhere.
             assertThat(capture.await()).isNotEmpty()
             assertThat(mainLooper.isIdle).isTrue()
         }
@@ -320,10 +319,10 @@ class ScreenshotCaptureEngineTest {
     fun aCopyThatNeverReportsLeavesItsWindowOutAndItsBitmapAlone(): Unit =
         runBlocking {
             // The listener's looper never runs, so the copy never reports back.
-            val listenerThread = HandlerThread("pixelcopy-listener").apply { start() }
-            shadowOf(listenerThread.looper).pause()
+            val listenerThread = pausedListenerThread()
             val bitmaps = RecordingBitmaps()
-            val engine = engine(windows.showing(windows.activityWindow()), Handler(listenerThread.looper), bitmaps, copyTimeoutMillis = 50)
+            val engine =
+                engine(windows.showing(windows.activityWindow()), bitmaps, copyTimeoutMillis = 50, startListenerThread = { listenerThread })
 
             assertThat(engine.captureFailure().message).isEqualTo("No visible root view")
 
@@ -331,7 +330,6 @@ class ScreenshotCaptureEngineTest {
             // copied straight into, so it must not be recycled.
             assertThat(bitmaps.created).hasSize(1)
             assertThat(bitmaps.created.single().isRecycled).isFalse()
-            listenerThread.quit()
         }
 
     private suspend fun ScreenshotCaptureEngine.captureFailure(): ScreenshotCaptureException =
@@ -342,13 +340,27 @@ class ScreenshotCaptureEngineTest {
 
     private fun engine(
         windowManager: IWindowManager,
-        listenerHandler: Handler = Handler(Looper.getMainLooper()),
         createBitmap: (Int, Int, Bitmap.Config) -> Bitmap = RecordingBitmaps(),
         copyTimeoutMillis: Long = ScreenshotCaptureEngine.COPY_TIMEOUT_MILLIS,
-    ): ScreenshotCaptureEngine {
-        val mainThreadHandler: MainThreadHandler = mock { on { mainHandler } doReturn listenerHandler }
-        return ScreenshotCaptureEngine(mainThreadHandler, windowManager, createBitmap, copyTimeoutMillis = copyTimeoutMillis)
-    }
+        // Like the engine's own: a running thread, for Robolectric to post the listener to.
+        startListenerThread: () -> HandlerThread = { HandlerThread("pixelcopy-listener").apply { start() } },
+    ): ScreenshotCaptureEngine =
+        ScreenshotCaptureEngine(
+            windowManager,
+            createBitmap,
+            copyTimeoutMillis = copyTimeoutMillis,
+            startListenerThread = startListenerThread,
+        )
+
+    /**
+     * A started listener thread whose looper is paused, so that what the platform posts to it stays
+     * queued until the test idles it, as on a busy thread.
+     */
+    private fun pausedListenerThread(): HandlerThread =
+        HandlerThread("pixelcopy-listener").apply {
+            start()
+            shadowOf(looper).pause()
+        }
 
     /**
      * Hands out bitmaps like the engine's default and remembers them, so a test can check they were
@@ -388,5 +400,6 @@ class ScreenshotCaptureEngineTest {
 
     private companion object {
         const val COLOR_TOLERANCE = 24
+        const val THREAD_EXIT_TIMEOUT_MILLIS = 5_000L
     }
 }

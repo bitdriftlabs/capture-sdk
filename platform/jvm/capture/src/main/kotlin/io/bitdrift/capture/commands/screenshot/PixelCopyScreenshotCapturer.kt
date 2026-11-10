@@ -10,7 +10,6 @@ package io.bitdrift.capture.commands.screenshot
 import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.common.IWindowManager
-import io.bitdrift.capture.common.MainThreadHandler
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
@@ -28,8 +27,7 @@ internal class PixelCopyScreenshotCapturer(
 ) : IScreenshotCapturer {
     constructor(
         windowManager: IWindowManager,
-        mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-    ) : this(ScreenshotCaptureEngine(mainThreadHandler, windowManager)::captureDeviceCommandScreenshot)
+    ) : this(ScreenshotCaptureEngine(windowManager)::captureDeviceCommandScreenshot)
 
     override suspend fun capture(): CommandResult =
         try {

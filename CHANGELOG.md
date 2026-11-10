@@ -31,6 +31,7 @@
 **Fixed**
 
 - Fixed app exit events being attributed to the wrong sessions after a device reboot.
+- Fixed the built-in `take_screenshot` command failing on Android 13 and below while the main thread is busy: it no longer waits on the main thread.
 
 ### iOS
 
