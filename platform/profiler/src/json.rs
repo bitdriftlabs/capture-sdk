@@ -150,7 +150,6 @@ const fn image_error(error: ImageError) -> &'static str {
     ImageError::NonzeroTextFileOffset {
       in_shared_cache: false,
     } => "nonzero_text_file_offset",
-    ImageError::InvalidSection => "invalid_section",
     ImageError::MissingTextSegment => "missing_text_segment",
     ImageError::AddressOverflow => "address_overflow",
   }

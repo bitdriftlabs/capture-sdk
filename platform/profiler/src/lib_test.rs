@@ -256,11 +256,8 @@ fn capture(
 fn image_survey_preserves_valid_images_and_groups_rejection_reasons() {
   let mut snapshot = sample_snapshot();
   let image = ImageInfo {
-    header_address: 0x1000,
     uuid: Some([7; 16]),
     text: AddressRange::new(0x1000, 0x1000).unwrap(),
-    unwind_info: None,
-    eh_frame: None,
   };
   snapshot.record_image(Ok(image));
   let errors = [
@@ -277,7 +274,6 @@ fn image_survey_preserves_valid_images_and_groups_rejection_reasons() {
     ImageError::NonzeroTextFileOffset {
       in_shared_cache: true,
     },
-    ImageError::InvalidSection,
     ImageError::MissingTextSegment,
     ImageError::AddressOverflow,
   ];
@@ -298,11 +294,11 @@ fn image_survey_preserves_valid_images_and_groups_rejection_reasons() {
   assert_eq!(
     survey,
     &serde_json::json!({
-      "enumerated": 11, "accepted": 1, "rejected": 10,
+      "enumerated": 10, "accepted": 1, "rejected": 9,
       "errors": {
         "unreadable_memory": 1, "invalid_header": 1, "unsupported_architecture": 1,
         "invalid_load_command": 1, "nonzero_text_file_offset": 1,
-        "nonzero_text_file_offset_in_shared_cache": 2, "invalid_section": 1,
+        "nonzero_text_file_offset_in_shared_cache": 2,
         "missing_text_segment": 1, "address_overflow": 1
       }
     })

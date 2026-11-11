@@ -8,7 +8,7 @@
 #![allow(clippy::unwrap_used)]
 
 use super::{ImageError, ImageInfo};
-use crate::memory::{AddressRange, StackMemory};
+use crate::memory::{AddressRange, MemoryReader, StackMemory};
 use crate::test_support::count_allocations;
 
 const HEADER: u64 = 0x2_0000_0000;
@@ -37,10 +37,10 @@ fn fixture() -> [u8; 288] {
   put_u64(&mut bytes, 80, 0x1000);
   put_u32(&mut bytes, 96, 2);
 
-  bytes[104 .. 117].copy_from_slice(b"__unwind_info");
+  bytes[104 .. 110].copy_from_slice(b"__text");
   put_u64(&mut bytes, 136, PREFERRED + 0x400);
   put_u64(&mut bytes, 144, 32);
-  bytes[184 .. 194].copy_from_slice(b"__eh_frame");
+  bytes[184 .. 193].copy_from_slice(b"__cstring");
   put_u64(&mut bytes, 216, PREFERRED + 0x500);
   put_u64(&mut bytes, 224, 64);
 
@@ -61,13 +61,10 @@ fn parse(bytes: &[u8]) -> Result<ImageInfo, ImageError> {
 }
 
 #[test]
-fn prepares_uuid_and_relocated_unwind_section_ranges() {
+fn reads_uuid_and_runtime_text_range() {
   let info = parse(&fixture()).unwrap();
-  assert_eq!(info.header_address, HEADER);
   assert_eq!(info.uuid, Some([7; 16]));
   assert_eq!(info.text, AddressRange::new(HEADER, 0x1000).unwrap());
-  assert_eq!(info.unwind_info, AddressRange::new(HEADER + 0x400, 32));
-  assert_eq!(info.eh_frame, AddressRange::new(HEADER + 0x500, 64));
 }
 
 #[test]
@@ -79,7 +76,7 @@ fn image_survey_does_not_allocate() {
 }
 
 #[test]
-fn missing_uuid_and_unwind_sections_are_not_fabricated() {
+fn accepts_a_text_segment_without_sections_or_uuid() {
   let mut bytes = fixture();
   put_u32(&mut bytes, 16, 1);
   put_u32(&mut bytes, 20, 72);
@@ -87,8 +84,7 @@ fn missing_uuid_and_unwind_sections_are_not_fabricated() {
   put_u32(&mut bytes, 96, 0);
   let info = parse(&bytes).unwrap();
   assert_eq!(info.uuid, None);
-  assert_eq!(info.unwind_info, None);
-  assert_eq!(info.eh_frame, None);
+  assert_eq!(info.text, AddressRange::new(HEADER, 0x1000).unwrap());
 }
 
 #[test]
@@ -165,25 +161,27 @@ fn validates_section_count_against_its_own_segment_command() {
 }
 
 #[test]
-fn rejects_sections_outside_their_declared_segment() {
-  for (address, size) in [
-    (PREFERRED - 1, 32),
-    (PREFERRED + 0xff0, 32),
-    (u64::MAX - 15, 32),
-  ] {
-    let mut bytes = fixture();
-    put_u64(&mut bytes, 136, address);
-    put_u64(&mut bytes, 144, size);
-    assert_eq!(parse(&bytes), Err(ImageError::InvalidSection));
-  }
-}
+fn image_identity_does_not_require_readable_section_records() {
+  struct UnreadableSections<'a>(StackMemory<'a>);
 
-#[test]
-fn rejects_duplicate_unwind_sections() {
-  let mut bytes = fixture();
-  bytes[184 .. 200].fill(0);
-  bytes[184 .. 197].copy_from_slice(b"__unwind_info");
-  assert_eq!(parse(&bytes), Err(ImageError::InvalidSection));
+  impl MemoryReader for UnreadableSections<'_> {
+    fn read(&self, address: u64, destination: &mut [u8]) -> bool {
+      // Leave the Mach header, segment command and UUID readable, but not the section records.
+      if (HEADER + 104 .. HEADER + 264).contains(&address) {
+        return false;
+      }
+      self.0.read(address, destination)
+    }
+  }
+
+  let bytes = fixture();
+  let memory = UnreadableSections(StackMemory {
+    address: HEADER,
+    bytes: &bytes,
+  });
+  let info = ImageInfo::read(&memory, HEADER).unwrap();
+  assert_eq!(info.uuid, Some([7; 16]));
+  assert_eq!(info.text, AddressRange::new(HEADER, 0x1000).unwrap());
 }
 
 #[test]
@@ -202,22 +200,19 @@ fn requires_a_file_backed_text_segment_for_slide_calculation() {
 }
 
 #[test]
-fn shared_cache_file_offsets_do_not_change_runtime_segment_or_section_addresses() {
+fn shared_cache_file_offsets_do_not_change_runtime_text_addresses() {
   let mut bytes = fixture();
   put_u32(&mut bytes, 12, 6); // MH_DYLIB
   put_u32(&mut bytes, 24, 0x8000_0000); // MH_DYLIB_IN_CACHE
   for file_offset in [0, 4096, 0x1234_5678, 0x7fff_ffff_0000] {
     put_u64(&mut bytes, 72, file_offset);
     let info = parse(&bytes).unwrap();
-    assert_eq!(info.header_address, HEADER);
     assert_eq!(info.uuid, Some([7; 16]));
     assert_eq!(info.text, AddressRange::new(HEADER, 0x1000).unwrap());
-    assert_eq!(info.unwind_info, AddressRange::new(HEADER + 0x400, 32));
-    assert_eq!(info.eh_frame, AddressRange::new(HEADER + 0x500, 64));
   }
-  // Being in the cache does not bypass structural or memory-range checks.
-  put_u64(&mut bytes, 136, PREFERRED - 1);
-  assert_eq!(parse(&bytes), Err(ImageError::InvalidSection));
+  // Being in the cache does not bypass structural checks.
+  put_u32(&mut bytes, 96, 3);
+  assert_eq!(parse(&bytes), Err(ImageError::InvalidLoadCommand));
 }
 
 #[test]
@@ -229,7 +224,7 @@ fn every_truncated_fixture_is_rejected_without_panicking() {
 }
 
 #[test]
-fn detects_runtime_section_address_overflow() {
+fn detects_runtime_text_address_overflow() {
   let bytes = fixture();
   let header_address = u64::MAX - 0x800;
   let memory = StackMemory {
