@@ -416,7 +416,7 @@ fn candidate_unmapped_before_resolution_stays_unresolved() {
 
 #[test]
 fn owner_tables_map_the_scan_scratch_before_the_census() {
-  let tables = super::owner_tables::OwnerTables::new(&[]).unwrap();
+  let tables = super::owner_tables::OwnerTables::new(0).unwrap();
   assert_eq!(tables.scratch.len(), super::owner_tables::SCRATCH_SIZE);
 }
 
@@ -446,4 +446,26 @@ fn a_protected_block_is_left_unclassified() {
       .iter()
       .any(|row| is_named(row, "BdMemoryDumpStartHolder"))
   );
+}
+
+#[test]
+fn candidate_table_holds_half_the_heap_within_bounds() {
+  use super::tables::CandidateTable;
+  let slots = |blocks| CandidateTable::new(blocks).unwrap().slots.len();
+  assert_eq!(slots(0), 1 << 14);
+  assert_eq!(slots(64_053), 1 << 15);
+  assert_eq!(slots(10_000_000), 1 << 17);
+}
+
+#[test]
+fn a_full_candidate_table_refuses_new_candidates() {
+  use super::tables::CandidateTable;
+  let mut table = CandidateTable::new(0).unwrap();
+  let capacity = table.slots.len();
+  let recorded = (1 ..= 2 * capacity)
+    .filter(|index| table.record(index * 8, 16))
+    .count();
+  assert!(recorded <= capacity, "{recorded}");
+  assert!(table.record(8, 16));
+  assert_eq!(table.find(8).unwrap().blocks, 2);
 }

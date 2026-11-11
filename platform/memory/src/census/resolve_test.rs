@@ -69,7 +69,7 @@ fn an_array_of_class_pointers_is_not_a_class() {
 }
 
 #[test]
-fn a_system_vtable_is_named() {
+fn a_system_vtable_is_left_to_its_image() {
   let _lock = memory_lock();
   // SAFETY: libc++abi is in the shared cache and stays loaded.
   let vtable = unsafe {
@@ -78,47 +78,26 @@ fn a_system_vtable_is_named() {
   } as usize;
   assert_ne!(vtable, 0);
   // Objects point past the offset to top and the `type_info` slot.
-  let address_point = vtable + 2 * size_of::<usize>();
+  let mut candidate = Candidate {
+    metadata: vtable + 2 * size_of::<usize>(),
+    blocks: 1,
+    bytes: 16,
+    resolution: Resolution::Unresolved,
+    name: 0,
+  };
+  let mut names = Vec::new();
+  let mut summary = super::super::Summary {
+    unclassified_blocks: 1,
+    unclassified_bytes: 16,
+    ..Default::default()
+  };
   with_resolver(|resolver| {
-    assert_eq!(
-      resolver.cxx_name(address_point).as_deref(),
-      Some("St9bad_alloc")
-    );
+    resolve_candidate(resolver, &mut candidate, &mut names, &mut summary);
+    let image = resolver.images.unwrap().owner(candidate.metadata);
+    assert!(image.is_some());
+    assert_eq!(candidate.resolution, Resolution::Image);
+    assert_eq!(Some(candidate.name), image);
   });
-}
-
-#[test]
-fn rtti_built_from_heap_data_is_not_named() {
-  let _lock = memory_lock();
-  let name = Box::new(*b"9SecretKey\0");
-  let type_info = Box::new([0, name.as_ptr() as usize]);
-  let vtable = Box::new([type_info.as_ptr() as usize, 0]);
-  let address_point = vtable.as_ptr() as usize + size_of::<usize>();
-  with_resolver(|resolver| {
-    assert_eq!(resolver.cxx_name(address_point), None);
-  });
-}
-
-#[test]
-fn itanium_names_are_cxx_type_names() {
-  assert!(is_cxx_type_name(b"N7WebCore4NodeE"));
-  assert!(is_cxx_type_name(b"9MyWidget"));
-  assert!(is_cxx_type_name(b"St9exception"));
-  assert!(is_cxx_type_name(b"*N3foo3BarE"));
-}
-
-#[test]
-fn swift_names_are_not_cxx_type_names() {
-  assert!(!is_cxx_type_name(b"_TtP7SwiftUI4View_"));
-  assert!(!is_cxx_type_name(b"_TtC8MyModule6MyType"));
-  assert!(!is_cxx_type_name(b"_T0So8NSObjectC"));
-  assert!(!is_cxx_type_name(b"_$s8MyModule6MyTypeC"));
-  assert!(!is_cxx_type_name(b"$s8MyModule6MyTypeC"));
-}
-
-#[test]
-fn short_or_odd_names_are_not_cxx_type_names() {
-  assert!(!is_cxx_type_name(b""));
-  assert!(!is_cxx_type_name(b"N"));
-  assert!(!is_cxx_type_name(b"-foo"));
+  assert!(names.is_empty());
+  assert_eq!((summary.image_blocks, summary.unclassified_blocks), (1, 0));
 }

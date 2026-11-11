@@ -7,7 +7,6 @@
 // The tables owner attribution fills: unnamed blocks are targets, named blocks are sources.
 
 use super::Summary;
-use super::enumerate::ZoneState;
 use super::tables::{CandidateTable, ClassTable};
 use crate::mapped::MappedVec;
 
@@ -69,12 +68,7 @@ pub struct OwnerTables {
 impl OwnerTables {
   /// Sized from the zones' own block counts, with room for the heap to grow before the locks. Some
   /// zones report no statistics, hence the floor. Only the entries written are committed.
-  pub fn new(zones: &[ZoneState]) -> Option<Self> {
-    let blocks: usize = zones
-      .iter()
-      .filter(|zone| zone.will_lock())
-      .map(|zone| zone.zone.blocks_in_use())
-      .sum();
+  pub fn new(blocks: usize) -> Option<Self> {
     let capacity = (blocks + blocks / 4).max(MIN_CAPACITY);
     Some(Self {
       unnamed: MappedVec::with_capacity(capacity)?,
@@ -159,7 +153,7 @@ impl OwnerTables {
       if !points_at_start && target.size > INTERIOR_MAX_SIZE {
         continue;
       }
-      // Resolution already moved this block to a C++ type or an image.
+      // Resolution already classified this block.
       if target.candidate != 0 && candidates.was_resolved(target.candidate) {
         continue;
       }

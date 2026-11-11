@@ -35,10 +35,6 @@ const ISA_MASK: usize = 0x0000_000f_ffff_fff8;
 #[cfg(not(all(target_arch = "aarch64", target_os = "ios", not(target_abi = "sim"))))]
 const ISA_MASK: usize = 0x0000_7fff_ffff_fff8;
 
-/// Clears pointer authentication bits without touching alignment: a string pointer can land on any
-/// byte.
-const ADDRESS_MASK: usize = ISA_MASK | 0x7;
-
 /// Power-of-two size buckets for the blocks that could not be named.
 pub const SIZE_BUCKETS: usize = 32;
 
@@ -86,6 +82,7 @@ struct Summary {
   owned_bytes: u64,
   shared_owned_blocks: u64,
   owner_table_overflow: u64,
+  candidate_table_overflow: u64,
   owners_ns: u64,
 }
 
@@ -115,6 +112,15 @@ const fn size_bucket(size: u64) -> usize {
   }
 }
 
+/// Blocks in use in the zones the census locks, before the locks. Some zones report no statistics.
+fn blocks_in_use(zones: &[ZoneState]) -> usize {
+  zones
+    .iter()
+    .filter(|zone| zone.will_lock())
+    .map(|zone| zone.zone.blocks_in_use())
+    .sum()
+}
+
 //
 // Census
 //
@@ -127,7 +133,7 @@ struct Census<'a> {
   ranges: ReadableRanges,
   zones: Vec<ZoneState>,
   owners: Option<OwnerTables>,
-  /// C++ and unlisted class names found by resolution.
+  /// Names of the classes no image lists, found by resolution.
   names: Vec<String>,
   summary: Summary,
   #[cfg(test)]
@@ -141,8 +147,9 @@ pub fn capture(options: HeapOptions, images: Option<&ImageTable>) -> anyhow::Res
 impl<'a> Census<'a> {
   fn new(options: HeapOptions, images: Option<&'a ImageTable>) -> anyhow::Result<Self> {
     let zones: Vec<ZoneState> = Zone::all().into_iter().map(ZoneState::new).collect();
+    let blocks = blocks_in_use(&zones);
     let owners = if options.owners {
-      Some(OwnerTables::new(&zones).context("mapping the owner tables")?)
+      Some(OwnerTables::new(blocks).context("mapping the owner tables")?)
     } else {
       None
     };
@@ -150,7 +157,7 @@ impl<'a> Census<'a> {
       options,
       images,
       classes: ClassTable::new().context("mapping the class table")?,
-      candidates: CandidateTable::new().context("mapping the candidate table")?,
+      candidates: CandidateTable::new(blocks).context("mapping the candidate table")?,
       ranges: ReadableRanges::new().context("mapping the readable ranges")?,
       zones,
       owners,
@@ -178,14 +185,15 @@ impl<'a> Census<'a> {
     let summary = &self.summary;
     log::debug!(
       "heap census: {} blocks, {} bytes, truncated: {}, locks held {} ms, waited {} ms, resolve \
-       {} ms, owners {} ms",
+       {} ms, owners {} ms, candidate table overflow {}",
       summary.total_blocks,
       summary.total_bytes,
       summary.truncated,
       summary.lock_held_ns / 1_000_000,
       summary.lock_wait_ns / 1_000_000,
       summary.resolve_ns / 1_000_000,
-      summary.owners_ns / 1_000_000
+      summary.owners_ns / 1_000_000,
+      summary.candidate_table_overflow
     );
     self.report()
   }

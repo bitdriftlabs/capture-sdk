@@ -144,7 +144,6 @@ pub struct Owners {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum TypeKind {
   Class,
-  Cxx,
 }
 
 /// What the first word of a row's blocks points to.

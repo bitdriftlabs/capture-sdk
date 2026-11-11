@@ -8,7 +8,7 @@
 // may have been freed since it was recorded, so every read goes through a safe read.
 
 use super::tables::{Candidate, ClassTable, ReadableRanges, Resolution};
-use super::{ADDRESS_MASK, Census, ISA_MASK, size_bucket};
+use super::{Census, ISA_MASK, size_bucket};
 use crate::images::ImageTable;
 use crate::safe_read;
 use crate::sys::mach::now_ns;
@@ -18,7 +18,6 @@ use crate::sys::objc::validated_class_name;
 #[path = "./resolve_test.rs"]
 mod tests;
 
-const CXX_NAME_CAPACITY: usize = 256;
 /// Hops from a class to the root metaclass, which points at itself.
 const ISA_CHAIN_HOPS: usize = 3;
 const SUPERCLASS_CHAIN_HOPS: usize = 16;
@@ -119,44 +118,6 @@ impl Resolver<'_> {
     // SAFETY: validated as a class by the chains and the metaclass above.
     unsafe { validated_class_name(candidate) }
   }
-
-  /// RTTI is compiled into images, so a vtable, `type_info` or name outside them is app data.
-  fn in_image(&self, address: usize) -> bool {
-    self
-      .images
-      .is_some_and(|images| images.owner(address).is_some())
-  }
-
-  /// Itanium ABI: a polymorphic object's first word points into its vtable, whose previous slot
-  /// is the `type_info` pointer; the `type_info`'s second word is the mangled name.
-  fn cxx_name(&self, vtable: usize) -> Option<String> {
-    if !self.in_image(vtable) {
-      return None;
-    }
-    let type_info = self.read_word(vtable.checked_sub(size_of::<usize>())?)? & ADDRESS_MASK;
-    if !self.in_image(type_info) {
-      return None;
-    }
-    let name = self.read_word(type_info + size_of::<usize>())? & ADDRESS_MASK;
-    if !self.in_image(name) {
-      return None;
-    }
-    self.ranges.readable_end(name)?;
-    let name = safe_read::read_string(name, CXX_NAME_CAPACITY)?;
-    if !is_cxx_type_name(&name) {
-      return None;
-    }
-    String::from_utf8(name).ok()
-  }
-}
-
-/// An Itanium `type_info` name is a mangled type: it starts with a length, a nested-name marker, a
-/// qualifier or a builtin type, never with `_` or `$`, which leaves out Swift's mangled names.
-const fn is_cxx_type_name(name: &[u8]) -> bool {
-  let Some(&first) = name.first() else {
-    return false;
-  };
-  name.len() >= 2 && (first.is_ascii_alphanumeric() || first == b'*')
 }
 
 impl Census<'_> {
@@ -206,16 +167,8 @@ fn resolve_candidate(
     return;
   }
 
-  let named = resolver
-    .class_name(candidate.metadata)
-    .map(|name| (Resolution::Class, name))
-    .or_else(|| {
-      resolver
-        .cxx_name(candidate.metadata)
-        .map(|name| (Resolution::Cxx, name))
-    });
-  if let Some((resolution, name)) = named {
-    candidate.resolution = resolution;
+  if let Some(name) = resolver.class_name(candidate.metadata) {
+    candidate.resolution = Resolution::Class;
     candidate.name = names.len();
     names.push(name);
     summary.named_blocks += candidate.blocks;
@@ -224,6 +177,7 @@ fn resolve_candidate(
     return;
   }
 
+  // A C++ vtable lands here too: the backend names it from the image offset.
   if let Some(image) = resolver
     .images
     .and_then(|images| images.owner(candidate.metadata))

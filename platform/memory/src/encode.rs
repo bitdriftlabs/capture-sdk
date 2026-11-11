@@ -227,7 +227,6 @@ fn type_row(row: &TypeRow, numbers: &mut ImageNumbers) -> proto::TypeRow {
       ProtoIdentity::Name(name.clone()),
       match kind {
         TypeKind::Class => Kind::CLASS,
-        TypeKind::Cxx => Kind::CXX,
       },
     ),
     Identity::Address { image, offset } => (

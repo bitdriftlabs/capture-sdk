@@ -90,7 +90,6 @@ impl Census<'_> {
             offset,
           }),
         Resolution::Class => self.named(TypeKind::Class, candidate.name),
-        Resolution::Cxx => self.named(TypeKind::Cxx, candidate.name),
       };
       if let Some(identity) = identity {
         types

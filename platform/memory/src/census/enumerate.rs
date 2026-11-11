@@ -152,13 +152,15 @@ impl Recorder<'_> {
     if candidate > 0x1000
       && candidate.trailing_zeros() >= 3
       && self.ranges.readable_end(candidate).is_some()
-      && self.candidates.record(candidate, size)
     {
-      if let Some(unnamed) = unnamed {
-        unnamed.candidate = candidate;
+      if self.candidates.record(candidate, size) {
+        if let Some(unnamed) = unnamed {
+          unnamed.candidate = candidate;
+        }
+        // The histogram is completed after resolution, from the candidates left unnamed.
+        return;
       }
-      // The histogram is completed after resolution, from the candidates left unnamed.
-      return;
+      summary.candidate_table_overflow += 1;
     }
     summary.unclassified_histogram[size_bucket(size)] += 1;
   }
