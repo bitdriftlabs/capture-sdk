@@ -16,9 +16,22 @@ use std::ffi::CStr;
 /// Class list entries copied per read.
 const CLASS_LIST_CHUNK: usize = 512;
 
-/// Classes the census tests declare at runtime, which no image lists.
+/// Classes the census tests declare at runtime, which no image lists. Kept out of the heap: a block
+/// starting with a class pointer is counted as an instance of that class.
 #[cfg(test)]
-pub static TEST_CLASSES: std::sync::Mutex<Vec<usize>> = std::sync::Mutex::new(Vec::new());
+static TEST_CLASSES: std::sync::Mutex<[usize; 8]> = std::sync::Mutex::new([0; 8]);
+
+#[cfg(test)]
+pub fn register_test_class(class: usize) {
+  let mut classes = TEST_CLASSES
+    .lock()
+    .unwrap_or_else(std::sync::PoisonError::into_inner);
+  let free = classes.iter().position(|slot| *slot == 0);
+  assert!(free.is_some(), "no room for another test class");
+  if let Some(index) = free {
+    classes[index] = class;
+  }
+}
 
 fn image_classes() -> Option<MappedVec<usize>> {
   let lists = images::class_lists();
@@ -27,7 +40,7 @@ fn image_classes() -> Option<MappedVec<usize>> {
     .lock()
     .unwrap_or_else(std::sync::PoisonError::into_inner);
   #[cfg(test)]
-  let extra = test_classes.len();
+  let extra = test_classes.iter().filter(|class| **class != 0).count();
   #[cfg(not(test))]
   let extra = 0;
   let capacity = lists
@@ -40,7 +53,7 @@ fn image_classes() -> Option<MappedVec<usize>> {
     copy_class_list(address, size, &mut classes);
   }
   #[cfg(test)]
-  for class in test_classes.iter() {
+  for class in test_classes.iter().filter(|class| **class != 0) {
     let _ = classes.push(*class);
   }
   Some(classes)

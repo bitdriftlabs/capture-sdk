@@ -76,10 +76,54 @@ fn segments_do_not_overlap() {
 }
 
 #[test]
-fn linkedit_is_matched_by_its_whole_name() {
-  assert!(is_linkedit(b"__LINKEDIT\0\0\0\0\0\0"));
-  assert!(!is_linkedit(b"__LINKEDIT_X\0\0\0\0"));
-  assert!(!is_linkedit(b"__DATA\0\0\0\0\0\0\0\0\0\0"));
+fn linkedit_and_pagezero_are_matched_by_their_whole_names() {
+  assert!(is_left_out(b"__LINKEDIT\0\0\0\0\0\0"));
+  assert!(is_left_out(b"__PAGEZERO\0\0\0\0\0\0"));
+  assert!(!is_left_out(b"__LINKEDIT_X\0\0\0\0"));
+  assert!(!is_left_out(b"__DATA\0\0\0\0\0\0\0\0\0\0"));
+}
+
+/// The offset of `filesize` in `struct segment_command_64`, which the image table ignores.
+const SEGMENT_FILESIZE: usize = 48;
+
+/// A `segment_command_64` with no sections.
+fn segment_command(name: &[u8], address: u64, size: u64, file_size: u64) -> Vec<u8> {
+  let mut command = vec![0u8; SEGMENT_COMMAND_SIZE];
+  command[.. 4].copy_from_slice(&LC_SEGMENT_64.to_ne_bytes());
+  command[4 .. 8].copy_from_slice(&u32::try_from(SEGMENT_COMMAND_SIZE).unwrap().to_ne_bytes());
+  command[SEGMENT_SEGNAME .. SEGMENT_SEGNAME + name.len()].copy_from_slice(name);
+  command[SEGMENT_VMADDR .. SEGMENT_VMADDR + 8].copy_from_slice(&address.to_ne_bytes());
+  command[SEGMENT_VMSIZE .. SEGMENT_VMSIZE + 8].copy_from_slice(&size.to_ne_bytes());
+  command[SEGMENT_FILESIZE .. SEGMENT_FILESIZE + 8].copy_from_slice(&file_size.to_ne_bytes());
+  command
+}
+
+#[test]
+fn zero_fill_segments_are_kept_and_pagezero_is_left_out() {
+  let commands = [
+    segment_command(PAGEZERO, 0, 0x1_0000_0000, 0),
+    segment_command(b"__TEXT", 0x1_0000_0000, 0x4000, 0x4000),
+    segment_command(b"__BSS_ONLY", 0x1_0000_4000, 0x8000, 0),
+    segment_command(LINKEDIT, 0x1_0000_c000, 0x4000, 0x4000),
+  ]
+  .concat();
+  let mut image = vec![0u8; HEADER_SIZE];
+  image[.. 4].copy_from_slice(&MH_MAGIC_64.to_ne_bytes());
+  image[HEADER_NCMDS .. HEADER_NCMDS + 4].copy_from_slice(&4u32.to_ne_bytes());
+  image[HEADER_SIZEOFCMDS .. HEADER_SIZEOFCMDS + 4]
+    .copy_from_slice(&u32::try_from(commands.len()).unwrap().to_ne_bytes());
+  image.extend_from_slice(&commands);
+
+  let parsed = load_commands(image.as_ptr() as usize);
+  assert_eq!(
+    parsed.segments,
+    vec![(0x1_0000_0000, 0x4000), (0x1_0000_4000, 0x8000)]
+  );
+}
+
+#[test]
+fn the_executable_pagezero_belongs_to_no_image() {
+  assert_eq!(ImageTable::survey().owner(0x1000), None);
 }
 
 #[test]

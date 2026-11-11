@@ -30,13 +30,12 @@ const HEADER_SIZEOFCMDS: usize = 20;
 const COMMAND_CMDSIZE: usize = 4;
 
 /// `struct segment_command_64` from `<mach-o/loader.h>`: its size and the offsets of `segname`,
-/// `vmaddr`, `vmsize`, `filesize` and `nsects`.
+/// `vmaddr`, `vmsize` and `nsects`.
 const SEGMENT_COMMAND_SIZE: usize = 72;
 const SEGMENT_SEGNAME: usize = 8;
 const SEGMENT_NAME_SIZE: usize = 16;
 const SEGMENT_VMADDR: usize = 24;
 const SEGMENT_VMSIZE: usize = 32;
-const SEGMENT_FILESIZE: usize = 48;
 const SEGMENT_NSECTS: usize = 64;
 /// `struct section_64` from `<mach-o/loader.h>`: its size and the offsets of `addr` and `size`.
 /// `sectname` is its first field.
@@ -48,6 +47,9 @@ const CLASS_LIST: &[u8] = b"__objc_classlist";
 /// `SEG_LINKEDIT` from `<mach-o/loader.h>`. In the shared cache every image's `__LINKEDIT` is the
 /// same range, so it is left out to keep segments from overlapping.
 const LINKEDIT: &[u8] = b"__LINKEDIT";
+/// `SEG_PAGEZERO` from `<mach-o/loader.h>`: the unmapped range below the executable, which no
+/// address of the image falls in.
+const PAGEZERO: &[u8] = b"__PAGEZERO";
 const UUID_COMMAND_SIZE: usize = 24;
 const UUID_SIZE: usize = 16;
 
@@ -77,7 +79,7 @@ struct LoadedImage {
 
 #[derive(Default)]
 struct LoadCommands {
-  /// The (vmaddr, vmsize) of each segment with file content.
+  /// The (vmaddr, vmsize) of each mapped segment, zero-fill ones included.
   segments: Vec<(usize, usize)>,
   /// The (addr, size) of each `__objc_classlist` section.
   class_lists: Vec<(usize, usize)>,
@@ -197,8 +199,8 @@ fn name_is(field: &[u8], name: &[u8]) -> bool {
   field.split(|byte| *byte == 0).next() == Some(name)
 }
 
-fn is_linkedit(name: &[u8]) -> bool {
-  name_is(name, LINKEDIT)
+fn is_left_out(name: &[u8]) -> bool {
+  name_is(name, LINKEDIT) || name_is(name, PAGEZERO)
 }
 
 pub fn binary_name(path: &str) -> &str {
@@ -228,11 +230,9 @@ fn load_commands(header: usize) -> LoadCommands {
     if command == LC_SEGMENT_64 && command_size >= SEGMENT_COMMAND_SIZE {
       let address = read_u64(&commands, offset + SEGMENT_VMADDR);
       let size = read_u64(&commands, offset + SEGMENT_VMSIZE);
-      let file_size = read_u64(&commands, offset + SEGMENT_FILESIZE);
       if let (Ok(address), Ok(size)) = (usize::try_from(address), usize::try_from(size))
         && size > 0
-        && file_size > 0
-        && !is_linkedit(
+        && !is_left_out(
           &commands[offset + SEGMENT_SEGNAME .. offset + SEGMENT_SEGNAME + SEGMENT_NAME_SIZE],
         )
       {

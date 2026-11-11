@@ -23,7 +23,7 @@ pub const VM_PROT_WRITE: c_int = 0x2;
 
 /// Share modes from `<mach/vm_region.h>`.
 pub const SM_COW: u8 = 1;
-pub const SM_SHARED: u8 = 3;
+pub const SM_SHARED: u8 = 4;
 pub const SM_TRUESHARED: u8 = 5;
 pub const SM_SHARED_ALIASED: u8 = 7;
 

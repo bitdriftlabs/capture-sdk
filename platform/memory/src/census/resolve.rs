@@ -90,19 +90,57 @@ impl Resolver<'_> {
     false
   }
 
+  /// A class's metaclass inherits from its superclass's metaclass. A buffer that only mimics the
+  /// two chains, such as an array of class pointers, breaks this.
+  fn metaclass_matches_superclass(&self, candidate: usize) -> bool {
+    let pointer_at = |address: usize| self.read_word(address).map(|word| word & ISA_MASK);
+    let (Some(metaclass), Some(superclass)) = (
+      pointer_at(candidate),
+      pointer_at(candidate + size_of::<usize>()),
+    ) else {
+      return false;
+    };
+    let (Some(superclass_metaclass), Some(metaclass_superclass)) = (
+      pointer_at(superclass),
+      pointer_at(metaclass + size_of::<usize>()),
+    ) else {
+      return false;
+    };
+    superclass_metaclass != 0 && superclass_metaclass == metaclass_superclass
+  }
+
   fn class_name(&self, candidate: usize) -> Option<String> {
-    if !self.isa_chain_is_consistent(candidate) || !self.superclass_chain_reaches_known(candidate) {
+    if !self.isa_chain_is_consistent(candidate)
+      || !self.superclass_chain_reaches_known(candidate)
+      || !self.metaclass_matches_superclass(candidate)
+    {
       return None;
     }
-    // SAFETY: validated as a class by both chains above.
+    // SAFETY: validated as a class by the chains and the metaclass above.
     unsafe { validated_class_name(candidate) }
+  }
+
+  /// RTTI is compiled into images, so a vtable, `type_info` or name outside them is app data.
+  fn in_image(&self, address: usize) -> bool {
+    self
+      .images
+      .is_some_and(|images| images.owner(address).is_some())
   }
 
   /// Itanium ABI: a polymorphic object's first word points into its vtable, whose previous slot
   /// is the `type_info` pointer; the `type_info`'s second word is the mangled name.
   fn cxx_name(&self, vtable: usize) -> Option<String> {
+    if !self.in_image(vtable) {
+      return None;
+    }
     let type_info = self.read_word(vtable.checked_sub(size_of::<usize>())?)? & ADDRESS_MASK;
+    if !self.in_image(type_info) {
+      return None;
+    }
     let name = self.read_word(type_info + size_of::<usize>())? & ADDRESS_MASK;
+    if !self.in_image(name) {
+      return None;
+    }
     self.ranges.readable_end(name)?;
     let name = safe_read::read_string(name, CXX_NAME_CAPACITY)?;
     if !is_cxx_type_name(&name) {

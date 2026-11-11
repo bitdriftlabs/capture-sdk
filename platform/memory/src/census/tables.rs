@@ -205,11 +205,29 @@ impl ReadableRanges {
 
   /// End of the readable range containing `address`. No syscalls, no allocations.
   pub fn readable_end(&self, address: usize) -> Option<usize> {
+    self.readable_range(address).map(|range| range.1)
+  }
+
+  /// Whether `address` is readable, checking `last_range` before searching and keeping the range
+  /// found there. No syscalls, no allocations.
+  pub fn is_readable(&self, address: usize, last_range: &mut (usize, usize)) -> bool {
+    if (last_range.0 .. last_range.1).contains(&address) {
+      return true;
+    }
+    let Some(range) = self.readable_range(address) else {
+      return false;
+    };
+    *last_range = range;
+    true
+  }
+
+  /// The readable range containing `address`, as [start, end). No syscalls, no allocations.
+  fn readable_range(&self, address: usize) -> Option<(usize, usize)> {
     let index = self.ranges.partition_point(|range| range.1 <= address);
     self
       .ranges
       .get(index)
       .filter(|range| range.0 <= address)
-      .map(|range| range.1)
+      .copied()
   }
 }

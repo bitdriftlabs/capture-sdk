@@ -72,6 +72,9 @@ struct Recorder<'t> {
   zone: &'t mut ZoneSummary,
   deadline_ns: u64,
   over_budget: bool,
+  /// The readable range the last block fell in. Blocks arrive region by region, so most blocks
+  /// skip the search.
+  last_readable: (usize, usize),
 }
 
 impl RangeSink for Recorder<'_> {
@@ -115,8 +118,15 @@ impl Recorder<'_> {
       return;
     }
 
-    // SAFETY: the zone is locked, so the block is live, word-aligned and at least a word long.
-    let first_word = unsafe { (address as *const usize).read() };
+    // An app can protect a live block, so only blocks the survey found readable are read. One
+    // protected after the survey still faults: a safe read is a syscall, too slow for every block.
+    let first_word = if self.ranges.is_readable(address, &mut self.last_readable) {
+      // SAFETY: the zone is locked, so the block is live, word-aligned and at least a word long,
+      // and its page was readable when surveyed.
+      unsafe { (address as *const usize).read() }
+    } else {
+      0
+    };
     let candidate = first_word & ISA_MASK;
 
     if let Some(class) = self.classes.find(candidate) {
@@ -181,6 +191,9 @@ impl Census<'_> {
         zone,
         summary: zone_summary,
       } = state;
+      // Surveyed per zone: the heap regions created while the zones before it were locked must be
+      // readable to the recorder.
+      self.ranges.survey();
       let wait_started = now_ns();
       let Some(lock) = zone.lock() else {
         continue;
@@ -195,6 +208,7 @@ impl Census<'_> {
         zone: &mut *zone_summary,
         deadline_ns: held_from + share_ns,
         over_budget: false,
+        last_readable: (0, 0),
       };
       lock.enumerate(&mut recorder);
       drop(lock);

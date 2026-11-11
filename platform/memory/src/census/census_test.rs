@@ -8,7 +8,7 @@
 
 use super::*;
 use crate::report::{Identity, TypeRow};
-use crate::sys::objc::TEST_CLASSES;
+use crate::sys::objc::register_test_class;
 use crate::test_support::memory_lock;
 use libc::{
   MAP_ANON,
@@ -46,10 +46,7 @@ fn holder_class(name: &'static str, cell: &'static OnceLock<&'static Class>) -> 
     let mut declaration = ClassDecl::new(name, class!(NSObject)).unwrap();
     declaration.add_ivar::<usize>(BUFFER_IVAR);
     let class = declaration.register();
-    TEST_CLASSES
-      .lock()
-      .unwrap()
-      .push(std::ptr::from_ref::<Class>(class) as usize);
+    register_test_class(std::ptr::from_ref::<Class>(class) as usize);
     class
   })
 }
@@ -421,4 +418,32 @@ fn candidate_unmapped_before_resolution_stays_unresolved() {
 fn owner_tables_map_the_scan_scratch_before_the_census() {
   let tables = super::owner_tables::OwnerTables::new(&[]).unwrap();
   assert_eq!(tables.scratch.len(), super::owner_tables::SCRATCH_SIZE);
+}
+
+#[test]
+fn a_protected_block_is_left_unclassified() {
+  let _lock = memory_lock();
+  let page = crate::sys::mach::page_size();
+  let mut block = std::ptr::null_mut();
+  // SAFETY: a page-aligned block of whole pages, so protecting it touches no other block.
+  unsafe {
+    assert_eq!(libc::posix_memalign(&raw mut block, page, 4 * page), 0);
+    block
+      .cast::<usize>()
+      .write(std::ptr::from_ref::<Class>(start_holder()) as usize);
+    assert_eq!(libc::mprotect(block, 4 * page, libc::PROT_NONE), 0);
+  }
+  let report = census(true);
+  // SAFETY: the block allocated and protected above.
+  unsafe {
+    assert_eq!(libc::mprotect(block, 4 * page, PROT_READ | PROT_WRITE), 0);
+    free(block);
+  }
+  assert!(report.total.blocks > 0);
+  assert!(
+    !report
+      .by_type
+      .iter()
+      .any(|row| is_named(row, "BdMemoryDumpStartHolder"))
+  );
 }

@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 // Stage 3: the malloc heap's live blocks, grouped by type, by owning image and by the named object
 // holding them. Zones are locked one at a time for a bounded budget; everything that allocates or
-// makes syscalls happens before the first lock or after the last one.
+// makes syscalls happens while no zone is locked.
 
 #[cfg(test)]
 #[path = "./census_test.rs"]
@@ -162,9 +162,9 @@ impl<'a> Census<'a> {
   }
 
   fn run(mut self) -> HeapReport {
-    // Every syscall and allocation happen here, before any zone is locked: the recorder filters
-    // candidates against this survey and writes into the tables without allocating.
-    self.ranges.survey();
+    // Every syscall and allocation happen outside the zone locks: the recorder reads blocks and
+    // filters candidates against the survey taken before each lock and writes into the tables
+    // without allocating.
     self.enumerate();
 
     // Regions may have been unmapped since the pre-lock survey.
