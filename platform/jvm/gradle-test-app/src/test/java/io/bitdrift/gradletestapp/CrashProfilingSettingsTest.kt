@@ -7,6 +7,7 @@
 
 package io.bitdrift.gradletestapp
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.os.Build
 import androidx.fragment.app.FragmentActivity
@@ -42,7 +43,7 @@ class CrashProfilingSettingsTest {
     fun rejectsEnablingBelowApi36WithoutPersistingOptIn() {
         val preference = preference(35)
 
-        preference.performClick()
+        preference.click()
 
         assertFalse(preference.isChecked)
         assertFalse(persistedEnabled())
@@ -54,7 +55,7 @@ class CrashProfilingSettingsTest {
     fun api36EnablesOnlyAnrAndKeepsTheLimitationVisible() {
         val preference = preference(36)
 
-        preference.performClick()
+        preference.click()
 
         assertTrue(preference.isChecked)
         assertTrue(persistedEnabled())
@@ -62,7 +63,7 @@ class CrashProfilingSettingsTest {
         assertEquals(notice, ShadowToast.getTextOfLatestToast())
         assertEquals(notice, preference.summary)
 
-        preference.performClick()
+        preference.click()
         assertFalse(persistedEnabled())
         assertEquals("Disabled", preference.summary)
     }
@@ -71,15 +72,21 @@ class CrashProfilingSettingsTest {
     fun api37EnablesBothKindsWithoutAWarning() {
         val preference = preference(37)
 
-        preference.performClick()
+        preference.click()
 
         assertTrue(preference.isChecked)
         assertTrue(persistedEnabled())
         assertEquals("Enabled", preference.summary)
         assertEquals(0, ShadowToast.shownToastCount())
 
-        preference.performClick()
+        preference.click()
         assertFalse(persistedEnabled())
+    }
+
+    // Exercise AndroidX's real toggle, listener, and persistence path together.
+    @SuppressLint("RestrictedApi")
+    private fun SwitchPreference.click() {
+        performClick()
     }
 
     private fun preference(apiLevel: Int): SwitchPreference {
