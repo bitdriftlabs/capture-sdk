@@ -151,10 +151,17 @@ internal class CrashProfileCollector(
     private fun resubmitPending(enabled: Set<String>) {
         val pendingKinds = enabled - resubmittedKinds
         val pending = store.pendingResults()
+        Log.d(
+            LOG_TAG,
+            "Crash profile recovery: pendingCount=${pending.size}, enabled=$enabled, kindsToResubmit=$pendingKinds",
+        )
         if (pendingKinds.isEmpty()) return
         pending
             .filter { (kind, _) -> kind in pendingKinds }
-            .forEach { (kind, path) -> submit(path, kind, false) }
+            .forEach { (kind, path) ->
+                Log.d(LOG_TAG, "Resubmitting persisted crash profile: kind=$kind, path=$path, retainUnmatched=false")
+                submit(path, kind, false)
+            }
         resubmittedKinds += pendingKinds
     }
 
@@ -174,6 +181,7 @@ internal class CrashProfileCollector(
         kind: String,
     ): File {
         val source = File(path)
+        Log.d(LOG_TAG, "Adopting system-triggered crash profile: kind=$kind, path=$path")
         try {
             return store.adopt(source, CrashProfileKind.entries.first { it.value == kind })
         } finally {
@@ -188,6 +196,12 @@ internal class CrashProfileCollector(
         val enabled = enabledKinds()
         val source = if (enabled.isEmpty()) null else CrashProfileSource.current(context, encodeSource)
         val available = if (source == null) emptySet() else enabled
+        Log.d(
+            LOG_TAG,
+            "Crash profile reconciliation: generation=$started, mode=${configuration.crashProfilingMode}, " +
+                "fatalReporting=${configuration.enableFatalIssueReporting}, supportsOom=$supportsOom, " +
+                "enabled=$enabled, sourceAvailable=${source != null}, available=$available",
+        )
         kinds = available
         CrashProfileSource.oomSource = if (OOM in available) source else null
         if (source != null && ANR in available) {
@@ -226,16 +240,24 @@ internal class CrashProfileCollector(
         guarded("migrate retained profiles") { migrateLegacy(available) }
         guarded("resubmit pending profiles") { resubmitPending(available) }
         if (owned.isEmpty()) {
+            Log.d(LOG_TAG, "Crash profile listener not registered: no automatically owned triggers")
             profiler.unregister()
             return
         }
+        Log.d(LOG_TAG, "Registering crash profile listener: generation=$started, owned=$owned")
         profiler.register { kind, path ->
+            Log.d(LOG_TAG, "Crash profile callback received: generation=$started, kind=$kind, path=$path")
             // Direct requests, host-owned types and kinds not selected at start are left alone.
             if (!isCurrent(started)) {
-                Log.d(LOG_TAG, "Ignoring stale crash profile callback")
+                Log.d(
+                    LOG_TAG,
+                    "Ignoring stale crash profile callback: callbackGeneration=$started, " +
+                        "currentGeneration=${generation.get()}, stopped=$stopped",
+                )
                 return@register
             }
             if (kind == null || kind !in kinds) {
+                Log.d(LOG_TAG, "Ignoring crash profile callback: kind=$kind, enabled=$kinds")
                 return@register
             }
             if (path == null) {
@@ -243,10 +265,16 @@ internal class CrashProfileCollector(
             } else {
                 guarded("adopt result") {
                     val adopted = adopt(path, kind)
-                    if (isCurrent(started)) submit(adopted.path, kind, true)
+                    if (isCurrent(started)) {
+                        Log.d(LOG_TAG, "Submitting crash profile to native attribution: kind=$kind, path=${adopted.path}")
+                        submit(adopted.path, kind, true)
+                    } else {
+                        Log.d(LOG_TAG, "Deferring adopted crash profile after collector stop: kind=$kind, path=${adopted.path}")
+                    }
                 }
             }
         }
+        Log.d(LOG_TAG, "Crash profile listener registration completed: generation=$started")
     }
 
     private fun isCurrent(started: Long): Boolean = !stopped && generation.get() == started

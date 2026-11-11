@@ -8,6 +8,7 @@
 package io.bitdrift.capture
 
 import android.app.ApplicationExitInfo
+import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.Capture.Logger
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
@@ -22,6 +23,7 @@ import io.bitdrift.capture.reports.exitinfo.ExitReason
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfoResolver
 import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.profiling.CrashProfileKind
+import io.bitdrift.capture.reports.profiling.CrashProfilingMode
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.assertPreviousRunInfo
 import io.bitdrift.capture.utils.setIsDebuggable
@@ -35,6 +37,7 @@ import org.junit.runners.MethodSorters
 import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLog
 import org.robolectric.shadows.ShadowLooper
 import java.io.File
 
@@ -132,6 +135,22 @@ class CaptureTest {
     }
 
     @Test
+    fun cCrashProfilingWarnsOnUnsupportedApiWithoutPreventingStartup() {
+        ContextHolder().create(ApplicationProvider.getApplicationContext())
+        ShadowLog.clear()
+
+        Logger.start(
+            apiKey = "test1",
+            sessionConfiguration = SessionConfiguration(),
+            configuration = Configuration(crashProfilingMode = CrashProfilingMode.AUTOMATIC),
+        )
+
+        assertThat(Capture.logger()).isNotNull()
+        assertThat(ShadowLog.getLogsForTag(Capture.LOG_TAG))
+            .anyMatch { it.type == Log.WARN && it.msg.contains("Crash profiling is disabled") }
+    }
+
+    @Test
     fun cIdempotentConfigure() {
         val initializer = ContextHolder()
         initializer.create(ApplicationProvider.getApplicationContext())
@@ -162,6 +181,8 @@ class CaptureTest {
         assertThat(success.value.sessionId).isNotEmpty()
         assertThat(success.value.sessionUrl).isNotEmpty()
         assertThat(success.value.deviceId).isNotEmpty()
+        assertThat(ShadowLog.getLogsForTag(Capture.LOG_TAG))
+            .noneMatch { it.msg.startsWith("Crash profiling requested") }
 
         Logger.start(
             apiKey = "test2",

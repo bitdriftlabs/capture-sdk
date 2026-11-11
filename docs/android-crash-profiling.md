@@ -5,6 +5,10 @@ dumps (Android 17+) to matching fatal issue reports. Fatal issue reporting and t
 `client_feature.android.crash_profiles.anr` or `client_feature.android.crash_profiles.oom` runtime
 flag must be enabled.
 
+Opting in below API 36 logs a warning and leaves crash profiling disabled. On API 36, the SDK
+warns that only ANR profiles are supported; OOM profiles require API 37+. Neither warning prevents
+SDK startup or changes ordinary fatal issue reporting.
+
 For emulator and physical-device procedures, see the [Gradle test app manual-testing
 guide](../platform/jvm/gradle-test-app/docs/crash-profiling.md).
 

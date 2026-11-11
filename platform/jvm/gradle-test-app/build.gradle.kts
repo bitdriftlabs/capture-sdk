@@ -112,6 +112,7 @@ dependencies {
     releaseImplementation("com.github.chuckerteam.chucker:library-no-op:4.2.0")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.robolectric)
 
     androidTestImplementation(project(":common"))
     androidTestImplementation("com.google.truth:truth:1.1.4")
@@ -130,6 +131,10 @@ android {
     namespace = "io.bitdrift.gradletestapp"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 
     buildFeatures {
         compose = true

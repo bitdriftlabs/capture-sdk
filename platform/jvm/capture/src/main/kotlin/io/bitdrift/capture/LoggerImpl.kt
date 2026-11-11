@@ -337,6 +337,7 @@ internal class LoggerImpl(
 
         addJankStatsMonitorTarget(windowManager, context)
 
+        configuration.crashProfilingMode?.warnIfUnsupportedApi(Build.VERSION.SDK_INT)
         if (Build.VERSION.SDK_INT >= API_ANR) {
             val executor = eventListenerDispatcher.executorService
             val supportsOom = Build.VERSION.SDK_INT >= API_OOM

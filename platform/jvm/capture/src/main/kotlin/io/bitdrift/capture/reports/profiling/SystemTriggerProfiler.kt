@@ -13,7 +13,9 @@ import android.content.Context
 import android.os.ProfilingManager
 import android.os.ProfilingResult
 import android.os.ProfilingTrigger
+import android.util.Log
 import androidx.annotation.RequiresApi
+import io.bitdrift.capture.Capture.LOG_TAG
 import java.io.File
 import java.util.concurrent.Executor
 import java.util.function.Consumer
@@ -86,23 +88,36 @@ internal class SystemTriggerProfiler(
     }
 
     override fun register(onResult: (kind: String?, path: String?) -> Unit) {
-        val manager = manager ?: return
+        val manager =
+            manager ?: run {
+                Log.d(LOG_TAG, "Cannot register system profiling listener: ProfilingManager is unavailable")
+                return
+            }
         if (callback != null) {
+            Log.d(LOG_TAG, "System profiling listener is already registered")
             return
         }
         // Results produced after their source process died are delivered to this registration.
         val consumer =
             Consumer<ProfilingResult> { result ->
                 val kind = triggers.entries.firstOrNull { it.value == result.triggerType }?.key
+                Log.d(
+                    LOG_TAG,
+                    "System profiling result: triggerType=${result.triggerType}, kind=$kind, " +
+                        "errorCode=${result.errorCode}, errorMessage=${result.errorMessage?.take(256)}, " +
+                        "path=${result.resultFilePath}",
+                )
                 val path = result.resultFilePath.takeIf { result.errorCode == ProfilingResult.ERROR_NONE }
                 onResult(kind, path?.takeIf { it.isNotEmpty() })
             }
         manager.registerForAllProfilingResults(executor, consumer)
         callback = consumer
+        Log.d(LOG_TAG, "System profiling listener registered")
     }
 
     override fun unregister() {
         callback?.let { manager?.unregisterForAllProfilingResults(it) }
+        Log.d(LOG_TAG, "System profiling listener unregistered: wasRegistered=${callback != null}")
         callback = null
     }
 

@@ -52,6 +52,9 @@ Open the app's **Settings**:
 - Set the SDK **API key** and **API URL** for the test backend. Prefer its normal HTTPS endpoint
   for a physical device. Do not leave an unintended production URL selected.
 - Turn on **Fatal Issue Reporter** and **ANR / OOM Crash Profiles**.
+  Below API 36, the profiling switch rejects enablement with an error. On API 36, it shows
+  **ANR profiles only**; OOM profiles require API 37+. The SDK also logs a warning when its
+  startup configuration requests crash profiling on an unsupported Android version.
 - Turn off **Deferred SDK Start**, simulated startup delay, and preferably session replay.
 - Tap **Restart the App to apply changes**.
 
@@ -191,6 +194,27 @@ still catching up; an ordinary crash report or an empty profile section alone is
 If a profile download is available, open the processed bundle locally in Perfetto and check
 actual timeline/heap data and recovered app names. Processing success alone does not prove
 symbol recovery. Do not upload private recordings to a public web service.
+
+### Diagnosing missing profiles
+
+Keep both `BitdriftCapture` and `bd_artifact_upload` messages in Logcat. `RUST_LOG=bd=debug`
+enables Rust diagnostics; it does not select the Kotlin `BitdriftCapture` messages.
+
+Follow these stages:
+
+1. **Collector reconciliation and listener registration:** check the local mode, fatal-reporting
+   setting, enabled kinds, and whether source facts are available.
+2. **System profiling result:** check the trigger type, error code/message, and path. A file in
+   Android's profiling directory alone does not prove that the SDK received a successful callback.
+3. **Admission and submission:** check raw size, attachment/pending budgets, ignored callback
+   reasons, and the handoff to native attribution. Startup also logs pending-file resubmission.
+4. **Matching:** each candidate logs its report/run ID, PID, boot count, and source timing.
+   Rejections identify installation, kind, boot-epoch, process-start, lifetime, or missing-PID
+   mismatches. PID-reuse ambiguity is an error. Observation summaries are limited to the first
+   16 entries, but matching still checks all entries.
+5. **Disposition and upload:** look for retention for the next process, deletion of an unmatched
+   resubmission, or `queued crash profile PROFILE_ID for reports [...]`. Follow that **profile**
+   UUID through upload intent, file upload, and success ACK; a report or state upload is separate.
 
 For a quick negative control, turn crash profiling off, restart, and trigger
 **APP_CRASH_REGULAR_JVM_EXCEPTION**. Ordinary crash reporting should still work without a profile.

@@ -16,6 +16,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.CaptureResult
 import io.bitdrift.capture.Configuration
 import io.bitdrift.capture.IPreferences
@@ -36,6 +37,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLog
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.Executor
@@ -144,6 +146,24 @@ class CrashProfileCollectorTest {
         profiler.deliver(null, "/direct")
         profiler.deliver(ANR, null)
         assertThat(submitted).containsExactly(Triple("/anr", ANR, true), Triple("/oom", OOM, true))
+    }
+
+    @Test
+    fun diagnosticsDistinguishIgnoredFailedAndSubmittedResults() {
+        enable(anr = false, oom = true)
+        collector().start()
+
+        profiler.deliver(null, "/direct")
+        profiler.deliver(ANR, "/host-anr")
+        profiler.deliver(OOM, null)
+        profiler.deliver(OOM, "/oom")
+
+        assertThat(submitted).containsExactly(Triple("/oom", OOM, true))
+        val messages = ShadowLog.getLogsForTag(LOG_TAG).map { it.msg }
+        assertThat(messages).anyMatch { it.contains("Ignoring crash profile callback: kind=null") }
+        assertThat(messages).anyMatch { it.contains("Ignoring crash profile callback: kind=anr, enabled=[oom]") }
+        assertThat(messages).anyMatch { it.contains("System-triggered oom profile failed") }
+        assertThat(messages).anyMatch { it.contains("Submitting crash profile to native attribution: kind=oom, path=/oom") }
     }
 
     @Test
