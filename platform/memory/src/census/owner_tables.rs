@@ -16,6 +16,9 @@ use crate::mapped::MappedVec;
 const INTERIOR_MAX_SIZE: u64 = 16 * 1024;
 
 const MIN_CAPACITY: usize = 1 << 18;
+/// Named blocks are copied in windows of adjacent blocks, so a heap of small objects costs one
+/// read per window instead of one per object.
+pub const SCRATCH_SIZE: usize = 256 * 1024;
 
 /// Clears only the top byte, which the hardware ignores (arm64 Top Byte Ignore) and memory
 /// tagging uses. Masking a word down to the isa bits turns string bytes and byte counts into heap
@@ -59,6 +62,8 @@ pub struct NamedBlock {
 pub struct OwnerTables {
   pub unnamed: MappedVec<UnnamedBlock>,
   pub named: MappedVec<NamedBlock>,
+  /// Mapped with the tables, so a failed mapping fails the census instead of skipping the scan.
+  pub scratch: MappedVec<u8>,
 }
 
 impl OwnerTables {
@@ -74,6 +79,8 @@ impl OwnerTables {
     Some(Self {
       unnamed: MappedVec::with_capacity(capacity)?,
       named: MappedVec::with_capacity(capacity)?,
+      // SAFETY: zero is a valid byte.
+      scratch: unsafe { MappedVec::zeroed(SCRATCH_SIZE) }?,
     })
   }
 

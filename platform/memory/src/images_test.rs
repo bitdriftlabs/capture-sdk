@@ -7,6 +7,7 @@
 #![allow(clippy::unwrap_used)]
 
 use super::*;
+use crate::test_support::memory_lock;
 
 #[test]
 fn a_function_belongs_to_the_test_binary() {
@@ -79,4 +80,17 @@ fn linkedit_is_matched_by_its_whole_name() {
   assert!(is_linkedit(b"__LINKEDIT\0\0\0\0\0\0"));
   assert!(!is_linkedit(b"__LINKEDIT_X\0\0\0\0"));
   assert!(!is_linkedit(b"__DATA\0\0\0\0\0\0\0\0\0\0"));
+}
+
+#[test]
+fn class_lists_lie_in_loaded_images() {
+  // The list starts with a class list's address, which the census tests would take for a class.
+  let _lock = memory_lock();
+  let images = ImageTable::survey();
+  let lists = class_lists();
+  assert!(!lists.is_empty());
+  for (address, size) in lists {
+    assert!(images.owner(address).is_some(), "{address:#x}");
+    assert_eq!(size % size_of::<usize>(), 0);
+  }
 }

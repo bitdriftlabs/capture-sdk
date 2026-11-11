@@ -416,3 +416,9 @@ fn candidate_unmapped_before_resolution_stays_unresolved() {
     report.unclassified.blocks
   );
 }
+
+#[test]
+fn owner_tables_map_the_scan_scratch_before_the_census() {
+  let tables = super::owner_tables::OwnerTables::new(&[]).unwrap();
+  assert_eq!(tables.scratch.len(), super::owner_tables::SCRATCH_SIZE);
+}

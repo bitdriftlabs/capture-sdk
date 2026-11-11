@@ -13,16 +13,12 @@
 // copied through a safe read and the copy is scanned. Known limits:
 // - an integer that equals a block address counts as a pointer;
 // - a buffer several objects point at equally well goes to the first one scanned;
-// - only blocks of classes in the runtime's class list are sources.
+// - only blocks of classes the images list are sources.
 
 use super::Census;
-use crate::mapped::MappedVec;
+use super::owner_tables::SCRATCH_SIZE;
 use crate::safe_read;
 use crate::sys::mach::now_ns;
-
-/// Named blocks are copied in windows of adjacent blocks, so a heap of small objects costs one
-/// read per window instead of one per object.
-const SCRATCH_SIZE: usize = 256 * 1024;
 
 impl Census<'_> {
   /// Credits unnamed blocks to the named blocks pointing at them, then releases the tables. Must
@@ -47,10 +43,7 @@ impl Census<'_> {
 
     let started = now_ns();
     let named = std::mem::take(&mut tables.named);
-    // SAFETY: zero is a valid byte.
-    let Some(mut scratch) = (unsafe { MappedVec::<u8>::zeroed(SCRATCH_SIZE) }) else {
-      return;
-    };
+    let mut scratch = std::mem::take(&mut tables.scratch);
     let mut index = 0;
     while index < named.len() {
       let window_start = named[index].address;

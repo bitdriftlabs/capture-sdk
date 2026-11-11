@@ -55,3 +55,25 @@ fn runtime_classes_include_the_root_class_an_empty_list_misses() {
   assert!(!includes_root_class(&[]));
   assert!(includes_root_class(&runtime_classes().unwrap()));
 }
+
+#[test]
+fn class_lists_leave_out_null_entries() {
+  let list: Vec<usize> = (0 .. 1_500)
+    .map(|index| if index % 3 == 0 { 0 } else { index })
+    .collect();
+  let mut classes = MappedVec::with_capacity(list.len()).unwrap();
+  copy_class_list(
+    list.as_ptr() as usize,
+    list.len() * size_of::<usize>(),
+    &mut classes,
+  );
+  let expected: Vec<usize> = list.iter().copied().filter(|class| *class != 0).collect();
+  assert_eq!(&*classes, expected.as_slice());
+}
+
+#[test]
+fn an_unreadable_class_list_adds_nothing() {
+  let mut classes = MappedVec::with_capacity(8).unwrap();
+  copy_class_list(0, size_of::<[usize; 8]>(), &mut classes);
+  assert!(classes.is_empty());
+}
