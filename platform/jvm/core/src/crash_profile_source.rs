@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-//! The source codec is platform-neutral so host JVM tests exercise the production JNI encoder.
+//! Platform-neutral profile source encoding, also exercised by host JVM tests.
 
 #[cfg(test)]
 #[path = "./crash_profile_source_test.rs"]

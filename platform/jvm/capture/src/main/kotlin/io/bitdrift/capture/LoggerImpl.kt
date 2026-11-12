@@ -360,7 +360,10 @@ internal class LoggerImpl(
                     supportsOom,
                     configuration,
                     preferences,
-                    CrashProfileStore(File(sdkDirectory, CrashProfileStore.DIRECTORY), runtime),
+                    CrashProfileStore(
+                        File(sdkDirectory, CrashProfileStore.DIRECTORY),
+                        runtime,
+                    ),
                 )
             eventsListenerTarget.add(crashProfileCollector)
         } else {

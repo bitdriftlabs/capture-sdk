@@ -18,6 +18,9 @@ sealed class RuntimeFeature(
     val featureName: String,
     val defaultValue: Boolean,
 ) {
+    /** Enables the shared large-file tier; ordinary attachment limits are unchanged. */
+    data object CHUNKED_ARTIFACT_UPLOAD : RuntimeFeature("artifact_upload.chunked.enabled", defaultValue = false)
+
     /**
      * Whether the session replay feature is enabled for Compose views.
      */
@@ -152,6 +155,9 @@ sealed class RuntimeConfig(
      * Maximum uncompressed bytes per attachment, shared with the native uploader.
      */
     data object ATTACHMENT_MAX_BYTES : RuntimeConfig("attachment.max_bytes", 5 * 1024 * 1024)
+
+    /** Large-file policy, additionally bounded by the native hard protocol ceiling. */
+    data object CHUNKED_ARTIFACT_MAX_BYTES : RuntimeConfig("artifact_upload.chunked.max_logical_bytes", 256 * 1024 * 1024)
 
     /**
      * Maximum raw bytes retained in Android's private pending crash-profile store.

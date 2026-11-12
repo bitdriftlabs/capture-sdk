@@ -12,6 +12,7 @@ import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.LOG_TAG
 import io.bitdrift.capture.common.Runtime
 import io.bitdrift.capture.common.RuntimeConfig
+import io.bitdrift.capture.common.RuntimeFeature
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -69,8 +70,14 @@ internal class CrashProfileStore(
         owned: Boolean,
     ): File {
         validateSource(source)
-        val maxProfileBytes = runtime.getConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES).toLong()
         val sourceBytes = Files.size(source.toPath())
+        val chunked = runtime.isEnabled(RuntimeFeature.CHUNKED_ARTIFACT_UPLOAD)
+        val maxProfileBytes =
+            if (chunked) {
+                minOf(runtime.getConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES).toLong(), MAX_CHUNKED_BYTES)
+            } else {
+                runtime.getConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES).toLong()
+            }
         val existing = files()
         val maxPendingBytes = runtime.getConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES).toLong()
         val pendingBytes = existing.sumOf { it.second }
@@ -81,7 +88,7 @@ internal class CrashProfileStore(
                 "attachmentMaxBytes=$maxProfileBytes, pendingBytes=$pendingBytes, " +
                 "maxPendingBytes=$maxPendingBytes, availableBytes=$available",
         )
-        if (sourceBytes > available) {
+        if (sourceBytes > available || (chunked && sourceBytes == 0L)) {
             val limit = if (sourceBytes > maxProfileBytes) "attachment size limit" else "pending profile storage budget"
             throw IOException("Crash profile exceeds the $limit")
         }
@@ -91,6 +98,7 @@ internal class CrashProfileStore(
         if (owned) {
             try {
                 fileOperations.move(source, target)
+                if (chunked && target.length() != sourceBytes) throw IOException("Crash profile changed during adoption")
                 if (!target.setLastModified(now())) throw IOException("Cannot timestamp adopted crash profile")
                 fileOperations.syncFile(target)
                 fileOperations.syncDirectory(directory)
@@ -106,6 +114,9 @@ internal class CrashProfileStore(
         var committed = false
         try {
             fileOperations.copy(source, temporary, available)
+            if (chunked && (temporary.length() != sourceBytes || Files.size(source.toPath()) != sourceBytes)) {
+                throw IOException("Crash profile changed during import")
+            }
             fileOperations.syncFile(temporary)
             fileOperations.move(temporary, target)
             fileOperations.syncDirectory(directory)
@@ -149,6 +160,7 @@ internal class CrashProfileStore(
     internal companion object {
         const val DIRECTORY = "crash_profiles"
         const val MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
+        const val MAX_CHUNKED_BYTES = 256L * 1024 * 1024
 
         // Native attribution appends this suffix when the source process's report does not exist yet.
         const val RETAINED_SUFFIX = ".bitdrift-retained-"

@@ -37,7 +37,10 @@
 
 **Changed**
 
-- Nothing yet!
+- File-backed ANR/OOM profiles support the runtime-gated large-file upload tier without raising
+  ordinary attachment limits. Pending private profiles keep their separate storage budget; files
+  enter shared upload admission after attribution. Durably staged profiles retain their identity
+  and report links across restart and policy changes.
 
 **Fixed**
 

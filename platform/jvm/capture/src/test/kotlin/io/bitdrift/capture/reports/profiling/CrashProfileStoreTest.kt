@@ -8,6 +8,7 @@
 package io.bitdrift.capture.reports.profiling
 
 import io.bitdrift.capture.common.RuntimeConfig
+import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.fakes.FakeRuntime
 import io.bitdrift.capture.reports.profiling.CrashProfileStore.CrashProfileFileOperations
 import org.assertj.core.api.Assertions.assertThat
@@ -37,6 +38,46 @@ class CrashProfileStoreTest {
     private val runtime = FakeRuntime()
 
     private fun store() = CrashProfileStore(directory, runtime) { now }
+
+    @Test
+    fun chunkedImportsUseTheLogicalLimitAndPrivatePendingBudget() {
+        runtime.setEnabled(RuntimeFeature.CHUNKED_ARTIFACT_UPLOAD, true)
+        runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 4)
+        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 64)
+        val store = store()
+        val source = temporary.newFile().apply { writeBytes(ByteArray(32)) }
+        val imported = store.importProfile(source, CrashProfileKind.ANR)
+        assertThat(imported.length()).isEqualTo(32)
+        val retained = File(directory, imported.name + CrashProfileStore.RETAINED_SUFFIX + "anr")
+        Files.move(imported.toPath(), retained.toPath())
+        assertThat(store.pendingResults()).containsExactly("anr" to retained.path)
+        assertThat(store.importProfile(source, CrashProfileKind.OOM).length()).isEqualTo(32)
+        assertThatThrownBy { store.importProfile(temporary.newFile().apply { writeText("x") }, CrashProfileKind.OOM) }
+            .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("pending profile storage budget")
+        assertThat(source.length()).isEqualTo(32)
+    }
+
+    @Test
+    fun chunkedAdoptionUsesTheInclusiveLogicalLimitAndHardCeiling() {
+        runtime.setEnabled(RuntimeFeature.CHUNKED_ARTIFACT_UPLOAD, true)
+        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, Int.MAX_VALUE)
+        val store = store()
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 32)
+        val exact = temporary.newFile().apply { writeBytes(ByteArray(32)) }
+        assertThat(store.adopt(exact, CrashProfileKind.OOM).length()).isEqualTo(32)
+        assertThat(exact).doesNotExist()
+        val tooLarge = temporary.newFile().apply { writeBytes(ByteArray(33)) }
+        assertThatThrownBy { store.importProfile(tooLarge, CrashProfileKind.ANR) }
+            .isInstanceOf(IOException::class.java)
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, Int.MAX_VALUE)
+        val sparse = temporary.newFile()
+        RandomAccessFile(sparse, "rw").use { it.setLength(CrashProfileStore.MAX_CHUNKED_BYTES) }
+        assertThat(store.adopt(sparse, CrashProfileKind.OOM).length()).isEqualTo(CrashProfileStore.MAX_CHUNKED_BYTES)
+        RandomAccessFile(tooLarge, "rw").use { it.setLength(CrashProfileStore.MAX_CHUNKED_BYTES + 1) }
+        assertThatThrownBy { store.importProfile(tooLarge, CrashProfileKind.ANR) }
+            .isInstanceOf(IOException::class.java)
+    }
 
     @Test
     fun importingBorrowsTheOriginalAndPersistsAnIndependentCopy() {
