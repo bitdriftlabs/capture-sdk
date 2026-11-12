@@ -25,6 +25,7 @@ import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
 import io.bitdrift.capture.reports.IssueReportCallback
 import io.bitdrift.capture.reports.Report
+import io.bitdrift.capture.reports.profiling.CrashProfilingMode
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.data.repository.AppExitRepository
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
@@ -216,6 +217,17 @@ object CaptureSdkInitializer {
                 sessionReplayConfiguration = if (sessionReplayEnabled) SessionReplayConfiguration() else null,
                 enableFatalIssueReporting = fatalIssueReporterEnabled,
                 issueCallbackConfiguration = issueCallbackConfiguration,
+                crashProfilingMode =
+                    if (
+                        sharedPreferences.getBoolean(
+                            ConfigurationSettingsFragment.CRASH_PROFILING_ENABLED_PREFS_KEY,
+                            false,
+                        )
+                    ) {
+                        CrashProfilingMode.AUTOMATIC
+                    } else {
+                        null
+                    },
             )
         val initialFields = mapOf("user_id" to userUuid)
 

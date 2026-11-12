@@ -34,6 +34,7 @@ internal object JvmProcessor {
         allThreads: Map<Thread, Array<StackTraceElement>>?,
         reportType: Byte,
         isFileSizeOptimizationEnabled: Boolean,
+        crashProfileSource: ByteArray? = null,
     ): Int {
         val stackTraceOffsetsByFrames = mutableMapOf<List<StackTraceElement>, Int>()
         val errors = buildErrors(builder, throwable, isFileSizeOptimizationEnabled)
@@ -82,6 +83,7 @@ internal object JvmProcessor {
             0,
             stateOffset = 0,
             featureFlagsOffset = 0,
+            crashProfileSourceOffset = crashProfileSource?.let { builder.createByteVector(it) } ?: 0,
         )
     }
 

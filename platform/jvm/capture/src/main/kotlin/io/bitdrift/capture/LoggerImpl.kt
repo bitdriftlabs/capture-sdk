@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -79,6 +80,12 @@ import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
+import io.bitdrift.capture.reports.profiling.API_ANR
+import io.bitdrift.capture.reports.profiling.API_OOM
+import io.bitdrift.capture.reports.profiling.CrashProfileCollector
+import io.bitdrift.capture.reports.profiling.CrashProfileKind
+import io.bitdrift.capture.reports.profiling.CrashProfileStore
+import io.bitdrift.capture.reports.profiling.SystemTriggerProfiler
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
@@ -150,6 +157,7 @@ internal class LoggerImpl(
     private val threadCountMonitor = ThreadCountMonitor()
     private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
+    private val crashProfileCollector: CrashProfileCollector?
 
     /** Keys of the SDK built-ins the core refused at start; reported on the SDKConfigured event. */
     private val refusedBuiltinCommands: List<String>
@@ -329,6 +337,36 @@ internal class LoggerImpl(
 
         addJankStatsMonitorTarget(windowManager, context)
 
+        configuration.crashProfilingMode?.warnIfUnsupportedApi(Build.VERSION.SDK_INT)
+        if (Build.VERSION.SDK_INT >= API_ANR) {
+            val executor = eventListenerDispatcher.executorService
+            val supportsOom = Build.VERSION.SDK_INT >= API_OOM
+            crashProfileCollector =
+                CrashProfileCollector(
+                    context,
+                    SystemTriggerProfiler(context, executor, supportsOom),
+                    runtime,
+                    { facts ->
+                        CaptureJniLibrary.encodeCrashProfileSource(
+                            facts.pid,
+                            facts.bootCount,
+                            facts.processStartElapsedNs,
+                            facts.wallNs,
+                            facts.elapsedNs,
+                        )
+                    },
+                    CaptureJniLibrary::submitCrashProfile,
+                    executor,
+                    supportsOom,
+                    configuration,
+                    preferences,
+                    CrashProfileStore(File(sdkDirectory, CrashProfileStore.DIRECTORY), runtime),
+                )
+            eventsListenerTarget.add(crashProfileCollector)
+        } else {
+            crashProfileCollector = null
+        }
+
         addWindowFocusFlushTarget(context, windowManager)
 
         appExitLogger =
@@ -355,6 +393,19 @@ internal class LoggerImpl(
 
     override fun processIssueReports(reportProcessingSession: ReportProcessingSession) {
         CaptureJniLibrary.processIssueReports(this.loggerId, reportProcessingSession)
+    }
+
+    internal fun importCrashProfile(
+        file: File,
+        kind: CrashProfileKind,
+        completion: (CaptureResult<Unit>) -> Unit,
+    ) {
+        val collector = crashProfileCollector
+        if (Build.VERSION.SDK_INT < API_ANR || collector == null) {
+            completion(CaptureResult.Failure(CrashProfileImportFailure("Crash profiles require Android 16 or newer")))
+        } else {
+            collector.importProfile(file, kind, completion)
+        }
     }
 
     override fun onReportProcessingError(

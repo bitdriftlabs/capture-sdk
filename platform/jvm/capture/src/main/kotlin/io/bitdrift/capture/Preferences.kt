@@ -35,23 +35,30 @@ internal class Preferences(
 
     override fun getString(key: String): String? = underlyingPreferences.getString(key, null)
 
-    @SuppressLint("ApplySharedPref")
     override fun setString(
         key: String,
         value: String?,
         blocking: Boolean,
     ) {
-        val edit =
-            if (value == null) {
-                underlyingPreferences.edit().remove(key)
-            } else {
-                underlyingPreferences.edit().putString(key, value)
-            }
-
         if (blocking) {
-            edit.commit()
+            setStringBlocking(key, value)
         } else {
-            edit.apply()
+            editString(key, value).apply()
         }
+    }
+
+    @SuppressLint("ApplySharedPref")
+    override fun setStringBlocking(
+        key: String,
+        value: String?,
+    ): Boolean = editString(key, value).commit()
+
+    private fun editString(
+        key: String,
+        value: String?,
+    ) = if (value == null) {
+        underlyingPreferences.edit().remove(key)
+    } else {
+        underlyingPreferences.edit().putString(key, value)
     }
 }

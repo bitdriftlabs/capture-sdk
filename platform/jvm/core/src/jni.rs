@@ -893,6 +893,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
         )?))
       };
 
+      #[cfg(target_os = "android")]
+      let report_attribution = crate::crash_profiles::new_attribution(&device.id(), os_api_level);
+      #[cfg(not(target_os = "android"))]
+      let report_attribution = None;
+
       let executor = jni::Executor::new(Arc::new(env.get_java_vm()?));
       let logger = bd_logger::LoggerBuilder::new(bd_logger::InitParams {
         sdk_directory,
@@ -913,6 +918,7 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_createLogger(
       })
       .with_internal_logger(true)
       .with_crash_report_hook(crash_report_hook)
+      .with_report_attribution(report_attribution)
       .build()
       .map(|(logger, _, future, _)| {
         LoggerHolder::new_with_static_metadata(
@@ -1853,6 +1859,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   app_exit_description: JString<'_>,
   memory_pressure_level: jint,
   is_file_size_optimization_enabled: jboolean,
+  process_id: jint,
+  crash_profile_source: JByteArray<'_>,
 ) {
   let destination = match unsafe { env.get_string_unchecked(&destination) } {
     Ok(destination) => destination.to_string_lossy().to_string(),
@@ -1884,6 +1892,11 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
   } else {
     Some(&stream)
   };
+  let crash_profile_source = if crash_profile_source.is_null() {
+    None
+  } else {
+    env.convert_byte_array(&crash_profile_source).ok()
+  };
 
   let result = logger_id
     .static_metadata()
@@ -1903,6 +1916,8 @@ pub extern "system" fn Java_io_bitdrift_capture_CaptureJniLibrary_processAndPers
         app_exit_description: app_exit_description_str.as_deref(),
         memory_pressure_level,
         is_file_size_optimization_enabled: is_file_size_optimization_enabled == JNI_TRUE,
+        process_id: u32::try_from(process_id).unwrap_or_default(),
+        crash_profile_source: crash_profile_source.as_deref(),
       };
       report_processing::persist_anr(&mut context, &report)
     });

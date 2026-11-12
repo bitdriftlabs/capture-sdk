@@ -6,6 +6,8 @@
     <string name="second_fragment_label">Segundo Fragment</string>
     <string name="web_view_fragment_label">WebView Fragment</string>
     <string name="config_fragment_label">Ajustes</string>
+    <string name="crash_profiling_unsupported">Los perfiles de fallos requieren Android 16 (API 36) o posterior. Los perfiles ANR y OOM no están disponibles en este dispositivo.</string>
+    <string name="crash_profiling_anr_only">Solo perfiles ANR. Los perfiles OOM requieren Android 17 (API 37) o posterior.</string>
     <string name="navigate_config">Navegar a Configuración</string>
     <string name="okhttp">OkHttp Request</string>
     <string name="graphql">Apollo GraphQL Request</string>

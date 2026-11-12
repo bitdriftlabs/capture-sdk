@@ -126,6 +126,17 @@ sealed class RuntimeFeature(
         "client_feature.android.optimize_fatal_issue_report_size",
         defaultValue = true,
     )
+
+    /**
+     * Whether system-triggered ANR profiles (API 36+) are captured and attached to ANR reports.
+     */
+    data object CRASH_PROFILES_ANR : RuntimeFeature("client_feature.android.crash_profiles.anr", defaultValue = true)
+
+    /**
+     * Whether system-triggered Java OutOfMemoryError profiles (API 37+) are captured and attached
+     * to JVM OutOfMemoryError reports.
+     */
+    data object CRASH_PROFILES_OOM : RuntimeFeature("client_feature.android.crash_profiles.oom", defaultValue = true)
 }
 
 /**
@@ -137,6 +148,17 @@ sealed class RuntimeConfig(
     val configName: String,
     val defaultValue: Int,
 ) {
+    /**
+     * Maximum uncompressed bytes per attachment, shared with the native uploader.
+     */
+    data object ATTACHMENT_MAX_BYTES : RuntimeConfig("attachment.max_bytes", 5 * 1024 * 1024)
+
+    /**
+     * Maximum raw bytes retained in Android's private pending crash-profile store.
+     */
+    data object CRASH_PROFILES_MAX_PENDING_BYTES :
+        RuntimeConfig("client_feature.android.crash_profiles.max_pending_bytes", 64 * 1024 * 1024)
+
     /**
      * The configured value for [jankHeuristicMultiplier] from [JankStatsMonitoring]. More info at https://developer.android.com/topic/performance/jankstats#jank-heuristics
      */

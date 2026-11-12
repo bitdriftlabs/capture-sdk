@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
@@ -166,6 +167,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     ) {
         val category = newCategory(context, screen, "capture_category", "Configuration Options")
         category.addPreference(buildSwitchPreference(context))
+        category.addPreference(buildCrashProfilingSwitch(context))
         category.addPreference(buildSessionReplaySwitch(context))
         category.addPreference(buildDiagnosticsSwitch(context))
     }
@@ -242,6 +244,32 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     private fun buildSwitchPreference(context: Context): SwitchPreference =
         buildSwitchPreference(context, FATAL_ISSUE_ENABLED_PREFS_KEY, FATAL_ISSUE_TITLE, true)
 
+    private fun buildCrashProfilingSwitch(context: Context): SwitchPreference =
+        buildSwitchPreference(context, CRASH_PROFILING_ENABLED_PREFS_KEY, "ANR / OOM Crash Profiles", false).apply {
+            summaryProvider =
+                Preference.SummaryProvider<SwitchPreference> { preference ->
+                    when {
+                        Build.VERSION.SDK_INT < 36 -> context.getString(R.string.crash_profiling_unsupported)
+                        !preference.isChecked -> enabledSummary(false)
+                        Build.VERSION.SDK_INT < 37 -> context.getString(R.string.crash_profiling_anr_only)
+                        else -> enabledSummary(true)
+                    }
+                }
+            setOnPreferenceChangeListener { _, newValue ->
+                when {
+                    newValue == true && Build.VERSION.SDK_INT < 36 -> {
+                        Toast.makeText(context, R.string.crash_profiling_unsupported, Toast.LENGTH_LONG).show()
+                        false
+                    }
+                    newValue == true && Build.VERSION.SDK_INT < 37 -> {
+                        Toast.makeText(context, R.string.crash_profiling_anr_only, Toast.LENGTH_LONG).show()
+                        true
+                    }
+                    else -> true
+                }
+            }
+        }
+
     private fun buildDeferredStartSwitch(context: Context): SwitchPreference =
         buildSwitchPreference(context, DEFERRED_START_PREFS_KEY, DEFERRED_START_TITLE, false)
 
@@ -307,6 +335,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
         const val BITDRIFT_URL_KEY = "apiUrl"
         const val SESSION_STRATEGY_PREFS_KEY = "sessionStrategy"
         const val FATAL_ISSUE_ENABLED_PREFS_KEY = "fatalIssueEnabled"
+        const val CRASH_PROFILING_ENABLED_PREFS_KEY = "crashProfilingEnabled"
         const val DEFERRED_START_PREFS_KEY = "deferredStart"
         const val START_ON_BACKGROUND_THREAD_PREFS_KEY = "startOnBackgroundThread"
         const val SIMULATED_START_DELAY_PREFS_KEY = "simulatedStartDelay"
