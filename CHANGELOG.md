@@ -29,7 +29,9 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed capture-plugin debug-file uploads by updating the bundled bd CLI to 0.2.48
+  and passing custom base domains to the upload command.
+- Fixed excessive JVM heap usage when capture-plugin downloads the bundled bd CLI.
 
 ### iOS
 
