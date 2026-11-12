@@ -63,7 +63,7 @@ class CLITaskTest {
         // Use a local candidate before release; otherwise test the actual pinned download.
         val localCli = System.getenv("BD_CLI_TEST_BINARY")?.let(::File)
         BDCLIDownloader(bd) { uri ->
-            if (localCli != null) localCli.readBytes() else uri.toURL().readBytes()
+            localCli?.inputStream() ?: uri.toURL().openStream()
         }.downloadIfNeeded()
 
         val result = runGradle(

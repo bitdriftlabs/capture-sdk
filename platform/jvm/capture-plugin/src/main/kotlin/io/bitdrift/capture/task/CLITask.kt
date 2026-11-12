@@ -16,6 +16,7 @@ import org.gradle.api.tasks.TaskAction
 import org.w3c.dom.Document
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 import java.net.URI
 import java.nio.channels.FileChannel
 import java.nio.file.AtomicMoveNotSupportedException
@@ -162,7 +163,7 @@ abstract class CLITask : DefaultTask() {
 
 class BDCLIDownloader(
     val executableFilePath: File,
-    private val download: (URI) -> ByteArray = { it.toURL().readBytes() },
+    private val download: (URI) -> InputStream = { it.toURL().openStream() },
 ) {
     val bdcliVersion = "0.2.48"
     val bdcliDownloadLoc: URI = URI.create("https://dl.bitdrift.io/bd-cli/$bdcliVersion/${downloadFilename()}/bd")
@@ -216,7 +217,9 @@ class BDCLIDownloader(
 
                     val tempPath = parentDir.toPath().resolve("bd.${UUID.randomUUID()}.tmp")
                     try {
-                        Files.write(tempPath, download(bdcliDownloadLoc))
+                        download(bdcliDownloadLoc).use { input ->
+                            Files.copy(input, tempPath)
+                        }
                         tempPath.markAsExecutable()
                         tempPath.moveSafelyTo(executableFilePath.toPath())
                         cliVersionFile().writeText(bdcliVersion)
