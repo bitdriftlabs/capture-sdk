@@ -23,6 +23,27 @@ TODO: Before publishing, update the native SDK dependencies in `android/build.gr
 
 - Add customer-facing changes here.
 
+## [Unreleased]
+### Both
+
+**Added**
+
+- Uncaught Dart errors are logged as `DartError` error logs. Opt out with `enableDartErrorReporting: false`; report caught errors with `Capture.reportError`.
+
+**Fixed**
+
+- Session replay now captures the final frame of an animation or navigation transition.
+
+### iOS
+
+**Added**
+
+- Session replay support.
+
+**Fixed**
+
+- `setEntityId` and `clearEntityId` are available when the plugin is resolved through Swift Package Manager.
+
 ## [0.0.4]
 [0.0.4]: https://github.com/bitdriftlabs/capture-sdk/tree/flutter-prototype-0.0.4
 
