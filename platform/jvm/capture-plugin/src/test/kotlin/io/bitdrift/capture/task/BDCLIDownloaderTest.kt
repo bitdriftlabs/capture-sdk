@@ -56,7 +56,7 @@ class BDCLIDownloaderTest {
         assertEquals(0, errorCounter.get())
         assertTrue(bdFile.exists())
         assertTrue(bdFile.isFile)
-        assertEquals("0.2.23", File(binDir, "bd.version").readText())
+        assertEquals(BDCLIDownloader(bdFile).bdcliVersion, File(binDir, "bd.version").readText())
         val tempFiles = binDir.listFiles()?.filter { it.name.endsWith(".tmp") } ?: emptyList()
         assertTrue(tempFiles.isEmpty())
     }
@@ -66,7 +66,7 @@ class BDCLIDownloaderTest {
         val binDir = tempDir.newFolder("bin")
         val bdFile = File(binDir, "bd")
         bdFile.writeText("old-bd")
-        File(binDir, "bd.version").writeText("0.1.37")
+        File(binDir, "bd.version").writeText("0.2.23")
         val downloadCount = AtomicInteger(0)
 
         BDCLIDownloader(bdFile) {
@@ -76,6 +76,6 @@ class BDCLIDownloaderTest {
 
         assertEquals(1, downloadCount.get())
         assertEquals("new-bd", bdFile.readText())
-        assertEquals("0.2.23", File(binDir, "bd.version").readText())
+        assertEquals(BDCLIDownloader(bdFile).bdcliVersion, File(binDir, "bd.version").readText())
     }
 }

@@ -21,7 +21,7 @@ class CLITaskTest {
     val tempDir = TemporaryFolder()
 
     @Test
-    fun `adds base domain to cli invocation`() {
+    fun `places base domain after every upload command`() {
         val projectDir = tempDir.root
         val buildDir = File(projectDir, "build")
         val binDir = File(buildDir, "bin")
@@ -30,12 +30,55 @@ class CLITaskTest {
         writeSettingsFile(projectDir)
         writeBuildFile(projectDir)
         writeManifestAndMappingFiles(buildDir)
+        writeNativeLibraries(buildDir)
+        writeSourceMapFiles(buildDir)
         writeFakeBdExecutable(binDir, recordedArgs)
 
-        val result = runGradle(projectDir, "bdUploadMapping")
-        assertTrue(result.output.contains("BUILD SUCCESSFUL"))
-        assertTrue(recordedArgs.readText().contains("--base-domain api.bitdrift.dev"))
-        assertTrue(recordedArgs.readText().contains("--api-key test-api-key"))
+        for ((task, subcommand) in listOf(
+            "bdUploadMapping" to "upload-proguard",
+            "bdUploadSymbols" to "upload",
+            "bdUploadSourceMap" to "upload-source-map",
+        )) {
+            val result = runGradle(projectDir, task)
+            assertTrue(result.output.contains("BUILD SUCCESSFUL"))
+            val arguments = recordedArgs.readText().trim()
+            assertTrue(arguments.startsWith("--api-key test-api-key debug-files $subcommand "))
+            assertTrue(arguments.endsWith("--base-domain bitdrift.dev"))
+        }
+    }
+
+    @Test
+    fun `mapping upload passes real CLI parsing with global key and upload base domain`() {
+        val projectDir = tempDir.root
+        val buildDir = File(projectDir, "build")
+        val bd = File(buildDir, "bin/bd")
+        val homeDir = File(projectDir, "cli-home")
+        assertTrue(homeDir.mkdirs())
+
+        writeSettingsFile(projectDir)
+        writeBuildFile(projectDir, baseDomain = "example.invalid")
+        writeManifestAndMappingFiles(buildDir)
+        File(buildDir, "outputs/mapping/release/mapping.txt").writeText("not a ProGuard mapping\n")
+
+        // Use a local candidate before release; otherwise test the actual pinned download.
+        val localCli = System.getenv("BD_CLI_TEST_BINARY")?.let(::File)
+        BDCLIDownloader(bd) { uri ->
+            if (localCli != null) localCli.readBytes() else uri.toURL().readBytes()
+        }.downloadIfNeeded()
+
+        val result = runGradle(
+            projectDir,
+            "bdUploadMapping",
+            environment = mapOf(
+                "BITDRIFT_API_KEY" to "test-api-key",
+                "HOME" to homeDir.absolutePath,
+                "CI" to "1",
+                "BD_DISABLE_UPDATE_CHECK" to "1",
+            ),
+            shouldFail = true,
+        )
+        assertTrue(result.output.contains("is not a valid proguard mapping file"))
+        assertFalse(result.output.contains("test-api-key"))
     }
 
     @Test
@@ -119,7 +162,8 @@ class CLITaskTest {
         writeFakeBdExecutable(binDir, recordedArgs, exitCode = 1)
 
         val result = runGradle(projectDir, "bdUploadMapping", environment = mapOf("BITDRIFT_API_KEY" to apiKey), shouldFail = true)
-        assertTrue(result.output.contains("--base-domain, api.bitdrift.dev, --api-key, *****, debug-files, upload-proguard"))
+        assertTrue(result.output.contains("--api-key, *****, debug-files, upload-proguard"))
+        assertTrue(result.output.contains("--base-domain, bitdrift.dev"))
         assertFalse(result.output.contains(apiKey))
     }
 
@@ -146,7 +190,7 @@ class CLITaskTest {
         )
     }
 
-    private fun writeBuildFile(projectDir: File) {
+    private fun writeBuildFile(projectDir: File, baseDomain: String = "bitdrift.dev") {
         File(projectDir, "build.gradle.kts").writeText(
             """
             plugins {
@@ -177,7 +221,7 @@ class CLITaskTest {
             }
 
             bitdrift {
-                baseDomain = "api.bitdrift.dev"
+                baseDomain = "$baseDomain"
             }
             """.trimIndent() + "\n",
         )
@@ -228,7 +272,7 @@ class CLITaskTest {
             """.trimIndent() + "\n",
         )
         bd.setExecutable(true)
-        File(binDir, "bd.version").writeText("0.2.23")
+        File(binDir, "bd.version").writeText(BDCLIDownloader(bd).bdcliVersion)
     }
 
     private fun runGradle(

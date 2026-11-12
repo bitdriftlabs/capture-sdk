@@ -106,8 +106,8 @@ abstract class CLITask : DefaultTask() {
         get() = BDCLIDownloader(bdcliFile)
 
     /**
-     * Runs the bd CLI with the given command arguments. Global flags (`--base-domain` and
-     * `--api-key`) are added here, so callers must not include them.
+     * Runs the bd CLI with the given upload command arguments. Global `--api-key` and
+     * upload-specific `--base-domain` flags are added here, so callers must not include them.
      *
      * The API key is resolved and validated before anything is downloaded, so a misconfigured
      * build fails immediately instead of after fetching the binary.
@@ -121,7 +121,7 @@ abstract class CLITask : DefaultTask() {
 
         downloader.downloadIfNeeded()
 
-        runCommand(listOf(bdcliFile.absolutePath) + globalArguments(apiKey) + subcommand)
+        runCommand(listOf(bdcliFile.absolutePath, API_KEY_FLAG, apiKey) + subcommand + baseDomainArguments())
     }
 
     fun runCommand(command: List<String>) {
@@ -138,14 +138,12 @@ abstract class CLITask : DefaultTask() {
     private fun envOrNull(name: String): String? =
         System.getenv(name)?.takeIf { it.isNotBlank() }
 
-    private fun globalArguments(apiKey: String): List<String> {
-        val apiKeyArguments = listOf(API_KEY_FLAG, apiKey)
-
+    private fun baseDomainArguments(): List<String> {
         val baseDomain = baseDomain.orNull?.trim().orEmpty()
         return if (baseDomain.isNotEmpty()) {
-            listOf(BASE_DOMAIN_FLAG, baseDomain) + apiKeyArguments
+            listOf(BASE_DOMAIN_FLAG, baseDomain)
         } else {
-            apiKeyArguments
+            emptyList()
         }
     }
 
@@ -166,7 +164,7 @@ class BDCLIDownloader(
     val executableFilePath: File,
     private val download: (URI) -> ByteArray = { it.toURL().readBytes() },
 ) {
-    val bdcliVersion = "0.2.23"
+    val bdcliVersion = "0.2.48"
     val bdcliDownloadLoc: URI = URI.create("https://dl.bitdrift.io/bd-cli/$bdcliVersion/${downloadFilename()}/bd")
 
     private enum class OSType {
