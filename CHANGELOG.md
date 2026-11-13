@@ -72,11 +72,13 @@
 
 **Changed**
 
-- Nothing yet!
+- The built-in `take_screenshot` command now captures every visible window of the app, dialogs and popups over the activity included, instead of only the top-most one. Windows marked `FLAG_SECURE` appear as black boxes.
+- The built-in `take_screenshot` command now sends a lossy WebP (`image/webp`) at quality 80 instead of a JPEG at quality 10.
 
 **Fixed**
 
 - Fixed app exit events being attributed to the wrong sessions after a device reboot.
+- Fixed the built-in `take_screenshot` command failing on Android 13 and below while the main thread is busy: it no longer waits on the main thread.
 
 ### iOS
 
