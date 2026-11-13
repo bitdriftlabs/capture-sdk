@@ -148,11 +148,6 @@ sealed class RuntimeConfig(
     val configName: String,
     val defaultValue: Int,
 ) {
-    /**
-     * Maximum uncompressed bytes per attachment, shared with the native uploader.
-     */
-    data object ATTACHMENT_MAX_BYTES : RuntimeConfig("attachment.max_bytes", 5 * 1024 * 1024)
-
     /** Maximum logical file bytes and aggregate private profile bytes, capped at 256 MiB. */
     data object CHUNKED_ARTIFACT_MAX_BYTES : RuntimeConfig("artifact_upload.chunked.max_logical_bytes", 256 * 1024 * 1024)
 

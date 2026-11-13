@@ -41,7 +41,6 @@ class CrashProfileStoreTest {
     @Test
     fun privateImportsUseTheFileBudgetAndPreserveBorrowedSources() {
         val runtime = FakeRuntime()
-        runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 4)
         val store = CrashProfileStore(directory, runtime) { now }
         val source = temporary.newFile().apply { writeBytes(ByteArray(32)) }
         val imported = store.importProfile(source, CrashProfileKind.ANR)

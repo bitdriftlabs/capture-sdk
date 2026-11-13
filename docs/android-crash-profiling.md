@@ -5,9 +5,9 @@ dumps (Android 17+) to matching fatal issue reports. Fatal issue reporting and t
 `client_feature.android.crash_profiles.anr` or `client_feature.android.crash_profiles.oom` runtime
 flag must be enabled.
 
-Opting in below API 36 logs a warning and leaves crash profiling disabled. On API 36, the SDK
-warns that only ANR profiles are supported; OOM profiles require API 37+. Neither warning prevents
-SDK startup or changes ordinary fatal issue reporting.
+Opting in below API 36 logs a warning and leaves crash profiling disabled. On API 36, the SDK warns
+that only ANR profiles are supported; OOM profiles require API 37+. Neither warning prevents SDK
+startup or changes ordinary fatal issue reporting.
 
 For emulator and physical-device procedures, see the [Gradle test app manual-testing
 guide](../platform/jvm/gradle-test-app/docs/crash-profiling.md).
@@ -155,21 +155,21 @@ registration for new automatic results. Pending files remain available for recov
 listener start or process restart.
 
 File-backed profiles use whole-file upload through **1 MiB logical size**, and chunked upload above
-that boundary. `artifact_upload.chunked.max_logical_bytes`
-controls both the per-file logical limit and aggregate private pending-store allowance, including
-incomplete copies. It defaults to **256 MiB** and cannot raise either limit above that inclusive
-ceiling. The native command/workflow uploader uses the same setting for new per-file admission.
-Existing pending profiles reduce available private capacity; lowering the setting blocks new
-imports when over budget without evicting retained files.
+that boundary. `artifact_upload.chunked.max_logical_bytes` controls both the per-file logical limit
+and aggregate private pending-store allowance, including incomplete copies. It defaults to **256
+MiB** and cannot raise either limit above that inclusive ceiling. The native command/workflow
+uploader uses the same setting for new per-file admission. Existing pending profiles reduce
+available private capacity; lowering the setting blocks new imports when over budget without
+evicting retained files.
 
-Whole-file upload also retains its ordinary attachment limits. Admission failures are explicit.
-Private profiles still face the current per-file limit at native uploader handoff;
-already-admitted workflow files and durably staged uploads drain after reductions. If a native
-retention rename makes an entry disappear during a scan or expiry removal, admission fails rather
-than undercounting its bytes. Pending files older than seven days are removed when the store is
-scanned at startup or import, including while collection is disabled. This is opportunistic cleanup,
-not a background timer. After attribution, large profiles share the native uploader's 64-artifact /
-640 MiB chunk source-and-staging budget with command and workflow files. The count is a sanity
-bound; the byte budget can reject earlier. Small profiles use ordinary uploader queue guards.
-This is not a device-wide disk ceiling. Platform originals and exports
-are outside these SDK-owned budgets.
+Both upload representations use the same native artifact capacity. Admission failures are explicit.
+Private profiles still face the current per-file limit at native uploader handoff; already-admitted
+workflow files and durably staged uploads drain after reductions. If a native retention rename makes
+an entry disappear during a scan or expiry removal, admission fails rather than undercounting its
+bytes. Pending files older than seven days are removed when the store is scanned at startup or
+import, including while collection is disabled. This is opportunistic cleanup, not a background
+timer. After attribution, all profiles share the native artifact store's 64-artifact / 640 MiB
+physical storage and staging budget with whole/chunked command and workflow files, reports and
+snapshots. The count is a sanity bound; the byte budget can reject earlier. Pressure rejects new
+work rather than evicting accepted uploads. This is not a device-wide disk ceiling. Platform
+originals and exports are outside these SDK-owned budgets.
