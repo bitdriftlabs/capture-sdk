@@ -10,13 +10,15 @@ plugins {
 }
 
 val enableAutoCaptureOkHttpInstrumentation =
-    providers.gradleProperty("enableAutoCaptureOkHttpInstrumentation")
+    providers
+        .gradleProperty("enableAutoCaptureOkHttpInstrumentation")
         .map(String::toBoolean)
         .orElse(true)
         .get()
 
 val autoCaptureOkHttpInstrumentationType =
-    providers.gradleProperty("autoCaptureOkHttpInstrumentationType")
+    providers
+        .gradleProperty("autoCaptureOkHttpInstrumentationType")
         .map(String::uppercase)
         .orElse("PROXY")
         .get()
@@ -24,7 +26,8 @@ val autoCaptureOkHttpInstrumentationType =
 // Used by the android-profiling-e2e skill: each test build needs its own version code so its R8
 // mapping can be uploaded without colliding with another build's.
 val e2eVersionCode =
-    providers.gradleProperty("e2eVersionCode")
+    providers
+        .gradleProperty("e2eVersionCode")
         .map(String::toInt)
         .orElse(68)
         .get()
@@ -32,7 +35,8 @@ val e2eVersionCode =
 // Used by the android-profiling-e2e skill: keep an adb-pullable copy of every profiling trace the
 // demo commands upload, so the test can compare it byte for byte with what the backend serves.
 val e2eTraceCopy =
-    providers.gradleProperty("e2eTraceCopy")
+    providers
+        .gradleProperty("e2eTraceCopy")
         .map(String::toBoolean)
         .orElse(false)
         .get()
@@ -113,6 +117,9 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation(libs.robolectric)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     androidTestImplementation(project(":common"))
     androidTestImplementation("com.google.truth:truth:1.1.4")
@@ -284,7 +291,10 @@ listOf("debug", "release", "profileable").forEach { buildType ->
             }
             filePermissions { unix("rwxr-xr-x") }
         }
-    android.sourceSets.getByName(buildType).jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/$buildType"))
+    android.sourceSets
+        .getByName(buildType)
+        .jniLibs
+        .srcDir(layout.buildDirectory.dir("generated/jniLibs/$buildType"))
     tasks.matching { it.name == "merge${variantName}JniLibFolders" }.configureEach {
         dependsOn(copyNative)
     }
