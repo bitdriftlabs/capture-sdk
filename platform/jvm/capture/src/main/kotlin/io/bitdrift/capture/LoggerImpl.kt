@@ -190,6 +190,7 @@ internal class LoggerImpl(
                 latestAppExitInfoProvider = latestAppExitInfoProvider,
                 captureUncaughtExceptionHandler = captureUncaughtExceptionHandler,
                 memoryMetricsProvider = memoryMetricsProvider,
+                // Resolved once at startup; see the storage note in `init`.
                 tempDirectoryPath = context.cacheDir.path,
             )
         } else {
@@ -206,6 +207,12 @@ internal class LoggerImpl(
                 okHttpClient = sharedOkHttpClient,
             )
 
+        // Storage locations (this directory, the temp directory used by `issueReporter` and the
+        // `SharedPreferences` behind `preferences`) are resolved from the Context exactly once,
+        // synchronously on the thread calling `Capture.Logger.start()`. Some apps override
+        // Context storage getters (e.g. per-feature path namespacing) and rely on this to point
+        // the SDK at a stable root during startup. Do not re-read them from the Context later or
+        // on another thread. Enforced by `StorageLocationResolutionTest`.
         sdkDirectory = SdkDirectory.getPath(context)
 
         isSdkDirectoryFirstCreated = !File(sdkDirectory).exists()
