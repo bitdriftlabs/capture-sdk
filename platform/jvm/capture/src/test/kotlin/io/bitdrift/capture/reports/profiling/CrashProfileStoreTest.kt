@@ -8,7 +8,6 @@
 package io.bitdrift.capture.reports.profiling
 
 import io.bitdrift.capture.common.RuntimeConfig
-import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.fakes.FakeRuntime
 import io.bitdrift.capture.reports.profiling.CrashProfileStore.CrashProfileFileOperations
 import org.assertj.core.api.Assertions.assertThat
@@ -40,11 +39,10 @@ class CrashProfileStoreTest {
     private fun store() = CrashProfileStore(directory, runtime) { now }
 
     @Test
-    fun chunkedImportsUseTheLogicalLimitAndPrivatePendingBudget() {
-        runtime.setEnabled(RuntimeFeature.CHUNKED_ARTIFACT_UPLOAD, true)
+    fun privateImportsUseTheFileBudgetAndPreserveBorrowedSources() {
+        val runtime = FakeRuntime()
         runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 4)
-        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 64)
-        val store = store()
+        val store = CrashProfileStore(directory, runtime) { now }
         val source = temporary.newFile().apply { writeBytes(ByteArray(32)) }
         val imported = store.importProfile(source, CrashProfileKind.ANR)
         assertThat(imported.length()).isEqualTo(32)
@@ -52,31 +50,65 @@ class CrashProfileStoreTest {
         Files.move(imported.toPath(), retained.toPath())
         assertThat(store.pendingResults()).containsExactly("anr" to retained.path)
         assertThat(store.importProfile(source, CrashProfileKind.OOM).length()).isEqualTo(32)
-        assertThatThrownBy { store.importProfile(temporary.newFile().apply { writeText("x") }, CrashProfileKind.OOM) }
-            .isInstanceOf(IOException::class.java)
-            .hasMessageContaining("pending profile storage budget")
         assertThat(source.length()).isEqualTo(32)
     }
 
     @Test
-    fun chunkedAdoptionUsesTheInclusiveLogicalLimitAndHardCeiling() {
-        runtime.setEnabled(RuntimeFeature.CHUNKED_ARTIFACT_UPLOAD, true)
-        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, Int.MAX_VALUE)
-        val store = store()
-        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 32)
-        val exact = temporary.newFile().apply { writeBytes(ByteArray(32)) }
-        assertThat(store.adopt(exact, CrashProfileKind.OOM).length()).isEqualTo(32)
-        assertThat(exact).doesNotExist()
-        val tooLarge = temporary.newFile().apply { writeBytes(ByteArray(33)) }
-        assertThatThrownBy { store.importProfile(tooLarge, CrashProfileKind.ANR) }
+    fun chunkedFileAndAggregateAdmissionShareTheLiveLimitWithoutEviction() {
+        val runtime = FakeRuntime()
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 8)
+        val store = CrashProfileStore(directory, runtime) { now }
+        val source = temporary.newFile().apply { writeBytes(ByteArray(8)) }
+        val imported = store.importProfile(source, CrashProfileKind.ANR)
+        assertThat(imported.length()).isEqualTo(8)
+        val tooLarge = temporary.newFile().apply { writeBytes(ByteArray(9)) }
+        assertThatThrownBy { store.importProfile(tooLarge, CrashProfileKind.OOM) }
             .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("attachment size limit")
+        val another = temporary.newFile().apply { writeText("x") }
+        assertThatThrownBy { store.importProfile(another, CrashProfileKind.OOM) }
+            .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("pending profile storage budget")
+
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 4)
+        assertThat(store.pendingResults()).containsExactly("anr" to imported.path)
+        assertThatThrownBy { store.importProfile(another, CrashProfileKind.OOM) }
+            .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("pending profile storage budget")
+        assertThat(imported.length()).isEqualTo(8)
+        Files.delete(imported.toPath())
+        val smaller = temporary.newFile().apply { writeBytes(ByteArray(4)) }
+        val second = store.importProfile(smaller, CrashProfileKind.OOM)
+        assertThat(second.length()).isEqualTo(4)
+        assertThatThrownBy { store.importProfile(another, CrashProfileKind.ANR) }
+            .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("pending profile storage budget")
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 5)
+        assertThat(store.importProfile(another, CrashProfileKind.ANR).length()).isEqualTo(1)
+        assertThat(store.pendingResults()).hasSize(2)
+    }
+
+    @Test
+    fun chunkedAdoptionUsesTheInclusiveLogicalLimitAndHardCeiling() {
         runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, Int.MAX_VALUE)
-        val sparse = temporary.newFile()
-        RandomAccessFile(sparse, "rw").use { it.setLength(CrashProfileStore.MAX_CHUNKED_BYTES) }
-        assertThat(store.adopt(sparse, CrashProfileKind.OOM).length()).isEqualTo(CrashProfileStore.MAX_CHUNKED_BYTES)
+        val store = store()
+        assertThatThrownBy { store.importProfile(temporary.newFile(), CrashProfileKind.ANR) }
+            .isInstanceOf(IOException::class.java)
+        val exact = temporary.newFile()
+        RandomAccessFile(exact, "rw").use { it.setLength(CrashProfileStore.MAX_CHUNKED_BYTES) }
+        val adopted = store.adopt(exact, CrashProfileKind.OOM)
+        assertThat(adopted.length()).isEqualTo(CrashProfileStore.MAX_CHUNKED_BYTES)
+        assertThat(exact).doesNotExist()
+        val overflow = temporary.newFile().apply { writeText("x") }
+        assertThatThrownBy { store.importProfile(overflow, CrashProfileKind.ANR) }
+            .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("pending profile storage budget")
+        Files.delete(adopted.toPath())
+        val tooLarge = temporary.newFile()
         RandomAccessFile(tooLarge, "rw").use { it.setLength(CrashProfileStore.MAX_CHUNKED_BYTES + 1) }
         assertThatThrownBy { store.importProfile(tooLarge, CrashProfileKind.ANR) }
             .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("attachment size limit")
     }
 
     @Test
@@ -230,7 +262,7 @@ class CrashProfileStoreTest {
 
     @Test
     fun nativeRetentionIsRediscoveredAfterRestart() {
-        val imported = store().importProfile(temporary.newFile(), CrashProfileKind.ANR)
+        val imported = store().importProfile(temporary.newFile().apply { writeText("profile") }, CrashProfileKind.ANR)
         val retained = File(directory, imported.name + CrashProfileStore.RETAINED_SUFFIX + "anr")
         Files.move(imported.toPath(), retained.toPath())
 
@@ -270,7 +302,7 @@ class CrashProfileStoreTest {
     @Test
     fun pendingStorageBudgetAllowsTheBoundaryAndRejectsAnOverflowWithoutTouchingTheSource() {
         directory.mkdirs()
-        val budget = RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES.defaultValue.toLong()
+        val budget = RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES.defaultValue.toLong()
         RandomAccessFile(File(directory, "existing.oom"), "rw").use {
             it.setLength(budget - 10)
         }
@@ -291,31 +323,32 @@ class CrashProfileStoreTest {
         for (owned in listOf(false, true)) {
             val store = store()
             val source = temporary.newFile().apply { writeText("four") }
-            runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 3)
+            runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 3)
 
             assertThatThrownBy {
                 if (owned) store.adopt(source, CrashProfileKind.ANR) else store.importProfile(source, CrashProfileKind.ANR)
             }.isInstanceOf(IOException::class.java).hasMessageContaining("attachment size limit")
             assertThat(source.readText()).isEqualTo("four")
 
-            runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 4)
+            runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 4)
             val stored = if (owned) store.adopt(source, CrashProfileKind.ANR) else store.importProfile(source, CrashProfileKind.ANR)
             assertThat(stored.readText()).isEqualTo("four")
             assertThat(source.exists()).isEqualTo(!owned)
 
-            runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 3)
+            runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 3)
             val next = temporary.newFile().apply { writeText("four") }
             assertThatThrownBy {
                 if (owned) store.adopt(next, CrashProfileKind.ANR) else store.importProfile(next, CrashProfileKind.ANR)
             }.isInstanceOf(IOException::class.java).hasMessageContaining("attachment size limit")
             assertThat(next.readText()).isEqualTo("four")
+            Files.delete(stored.toPath())
         }
     }
 
     @Test
     fun aggregateBudgetChangesApplyToTheNextAdmissionWithoutEvictingExistingFiles() {
         val store = store()
-        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 6)
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 6)
         val first = store.importProfile(temporary.newFile().apply { writeText("one") }, CrashProfileKind.ANR)
         val source = temporary.newFile().apply { writeText("four") }
 
@@ -323,11 +356,11 @@ class CrashProfileStoreTest {
             .isInstanceOf(IOException::class.java)
             .hasMessageContaining("budget")
 
-        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 7)
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 7)
         val second = store.importProfile(source, CrashProfileKind.OOM)
         assertThat(directory.listFiles()!!.sumOf { it.length() }).isEqualTo(7)
 
-        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 6)
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 6)
         assertThatThrownBy { store.adopt(temporary.newFile().apply { writeText("x") }, CrashProfileKind.ANR) }
             .isInstanceOf(IOException::class.java)
             .hasMessageContaining("budget")
@@ -338,7 +371,7 @@ class CrashProfileStoreTest {
 
     @Test
     fun aSourceGrowingDuringCopyCannotExceedThePerFileLimit() {
-        runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 3)
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 3)
         val source = temporary.newFile().apply { writeText("one") }
         val operations =
             object : CrashProfileFileOperations() {
@@ -405,8 +438,7 @@ class CrashProfileStoreTest {
             }
         val retained = File(profileDirectory, existing.name + CrashProfileStore.RETAINED_SUFFIX + "anr")
         val source = temporary.newFile().apply { writeBytes(ByteArray(32)) }
-        runtime.setConfigValue(RuntimeConfig.ATTACHMENT_MAX_BYTES, 48)
-        runtime.setConfigValue(RuntimeConfig.CRASH_PROFILES_MAX_PENDING_BYTES, 64)
+        runtime.setConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES, 64)
         val operations =
             object : CrashProfileFileOperations() {
                 override fun readAttributes(file: File): BasicFileAttributes {

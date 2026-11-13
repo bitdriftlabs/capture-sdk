@@ -11,7 +11,10 @@
 
 **Changed**
 
-- Nothing yet!
+- File-backed command results and workflow attachments use whole-file upload through 1 MiB logical
+  size and chunked upload above it, with a 256 MiB inclusive ceiling, a runtime-configurable lower
+  admission limit and bounded shared staging storage. Up to 64 chunked artifacts may be retained,
+  subject to the shared byte budget.
 
 **Fixed**
 
@@ -32,15 +35,16 @@
 - Added non-destructive `Capture.Logger.importCrashProfile` and `CrashProfilingMode.MANUAL` for
   apps that coordinate their own profiling listeners and file lifecycle. Automatic collection
   adopts files by rename into SDK-private storage, avoiding an extra payload copy. Pending profiles
-  have a runtime-configurable aggregate budget (64 MiB by default), share the native uploader's
-  per-file limit, and expire after seven days.
+  have a separately bounded private store and expire after seven days.
 
 **Changed**
 
-- File-backed ANR/OOM profiles support the runtime-gated large-file upload tier without raising
-  ordinary attachment limits. Pending private profiles keep their separate storage budget; files
-  enter shared upload admission after attribution. Durably staged profiles retain their identity
-  and report links across restart and policy changes.
+- File-backed ANR/OOM profiles use whole-file upload through 1 MiB and chunked upload above it,
+  supporting up to 256 MiB per file
+  without raising ordinary attachment limits. The same runtime setting controls per-file admission
+  and aggregate private pending storage, defaulting to 256 MiB and capped at that ceiling.
+  Files enter shared upload admission after attribution. Durably staged profiles retain
+  their identity and report links across restart and policy changes.
 
 **Fixed**
 

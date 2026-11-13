@@ -18,9 +18,6 @@ sealed class RuntimeFeature(
     val featureName: String,
     val defaultValue: Boolean,
 ) {
-    /** Enables the shared large-file tier; ordinary attachment limits are unchanged. */
-    data object CHUNKED_ARTIFACT_UPLOAD : RuntimeFeature("artifact_upload.chunked.enabled", defaultValue = false)
-
     /**
      * Whether the session replay feature is enabled for Compose views.
      */
@@ -156,14 +153,8 @@ sealed class RuntimeConfig(
      */
     data object ATTACHMENT_MAX_BYTES : RuntimeConfig("attachment.max_bytes", 5 * 1024 * 1024)
 
-    /** Large-file policy, additionally bounded by the native hard protocol ceiling. */
+    /** Maximum logical file bytes and aggregate private profile bytes, capped at 256 MiB. */
     data object CHUNKED_ARTIFACT_MAX_BYTES : RuntimeConfig("artifact_upload.chunked.max_logical_bytes", 256 * 1024 * 1024)
-
-    /**
-     * Maximum raw bytes retained in Android's private pending crash-profile store.
-     */
-    data object CRASH_PROFILES_MAX_PENDING_BYTES :
-        RuntimeConfig("client_feature.android.crash_profiles.max_pending_bytes", 64 * 1024 * 1024)
 
     /**
      * The configured value for [jankHeuristicMultiplier] from [JankStatsMonitoring]. More info at https://developer.android.com/topic/performance/jankstats#jank-heuristics

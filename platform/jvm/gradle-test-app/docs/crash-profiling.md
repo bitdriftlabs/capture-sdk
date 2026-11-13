@@ -67,17 +67,17 @@ It must enable `platform_events.enabled` and the relevant
 `client_feature.android.crash_profiles.anr` / `.oom` flag. The profile flags default on within
 the app's opt-in. Restart after changing runtime configuration.
 
-For OOM tests, arrange sufficient temporary test budgets before restarting:
+File-backed profiles use whole-file upload through 1 MiB logical size and chunked upload above it,
+up to the 256 MiB inclusive ceiling.
+`artifact_upload.chunked.max_logical_bytes` can lower both the per-file cap and aggregate private
+pending-store allowance together. Ensure no app/build override lowers it below the capture size,
+and verify that the backend includes compatible chunk
+handlers, manifest readers and large-tier processing. SDK enablement does not prove deployment
+readiness.
 
-| Runtime setting | Example test value |
-|---|---|
-| `attachment.max_bytes` | 33554432 (32 MiB; the default is only 5 MiB) |
-| `artifact_upload.buffer_byte_limit` | 67108864 (64 MiB; sampled at SDK startup) |
-| `client_feature.android.crash_profiles.max_pending_bytes` | 67108864 (64 MiB) |
-
-The backend's attachment ingress limit must agree. Its current Perfetto processing envelope is
-32 MiB / eight million references, so larger captures may still be rejected. Do not assume the
-separate chunked-upload work is deployed.
+Do not raise ordinary attachment ingress or the in-memory submission queue to enable large
+path-backed profiles. Android's own capture buffers and rate
+limits remain independent.
 
 ## 3. Enable Android's test background tracing
 

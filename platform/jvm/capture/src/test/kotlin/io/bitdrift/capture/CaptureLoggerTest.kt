@@ -583,7 +583,6 @@ class CaptureLoggerTest {
         withLogger { logger ->
             val streamId = CaptureTestJniLibrary.awaitNextApiStream()
             assertThat(CaptureTestJniLibrary.awaitApiServerReceivedHandshake(streamId)).isTrue()
-            CaptureTestJniLibrary.setRuntimeFeatureEnabled(streamId, RuntimeFeature.CHUNKED_ARTIFACT_UPLOAD.featureName, true)
             val sdkDirectory = SdkDirectory.getPath(ContextHolder.APP_CONTEXT)
             val size = 6L * 1024 * 1024 + 17
             val source =

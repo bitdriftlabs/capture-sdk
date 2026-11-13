@@ -154,12 +154,22 @@ Startup migration and pending replay failures are logged independently and do no
 registration for new automatic results. Pending files remain available for recovery on a later
 listener start or process restart.
 
-Each raw profile is bounded by the native uploader's `attachment.max_bytes` runtime limit (5 MiB by
-default, before compression). The private pending store has a separate aggregate admission budget,
-including incomplete copies, controlled by `client_feature.android.crash_profiles.max_pending_bytes`
-(64 MiB by default). Both limits are read on each admission. Imports that exceed either limit fail
-explicitly; existing files are not evicted when the aggregate budget is reduced. If a native
+File-backed profiles use whole-file upload through **1 MiB logical size**, and chunked upload above
+that boundary. `artifact_upload.chunked.max_logical_bytes`
+controls both the per-file logical limit and aggregate private pending-store allowance, including
+incomplete copies. It defaults to **256 MiB** and cannot raise either limit above that inclusive
+ceiling. The native command/workflow uploader uses the same setting for new per-file admission.
+Existing pending profiles reduce available private capacity; lowering the setting blocks new
+imports when over budget without evicting retained files.
+
+Whole-file upload also retains its ordinary attachment limits. Admission failures are explicit.
+Private profiles still face the current per-file limit at native uploader handoff;
+already-admitted workflow files and durably staged uploads drain after reductions. If a native
 retention rename makes an entry disappear during a scan or expiry removal, admission fails rather
 than undercounting its bytes. Pending files older than seven days are removed when the store is
 scanned at startup or import, including while collection is disabled. This is opportunistic cleanup,
-not a background timer. Upload-store limits and cleanup apply separately after attribution.
+not a background timer. After attribution, large profiles share the native uploader's 64-artifact /
+640 MiB chunk source-and-staging budget with command and workflow files. The count is a sanity
+bound; the byte budget can reject earlier. Small profiles use ordinary uploader queue guards.
+This is not a device-wide disk ceiling. Platform originals and exports
+are outside these SDK-owned budgets.
