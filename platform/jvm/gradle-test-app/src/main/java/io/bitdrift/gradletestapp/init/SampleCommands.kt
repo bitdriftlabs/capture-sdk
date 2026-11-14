@@ -170,7 +170,7 @@ object SampleCommands {
                 val context = appContext ?: return@registerCommand error("no_context")
                 captureProfile(context, request, durationMs = null)
             },
-        )
+        ) + if (BuildConfig.E2E_TRACE_COPY) E2eCommands.register(checkNotNull(appContext)) else emptyList()
 
     private suspend fun CommandScope.captureProfile(
         context: Context,

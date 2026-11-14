@@ -22,6 +22,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.io.File
 import java.io.IOException
@@ -136,6 +137,45 @@ class SampleCommandsTest {
             assertEquals("profiling_failed", result.title)
             assertEquals("trace file missing", result.description)
             assertTrue(filesDir.listFiles()!!.isEmpty())
+        }
+
+    @Test
+    fun fixtureReplayTransfersOnlyADedicatedCopy() =
+        runTest {
+            val context = RuntimeEnvironment.getApplication()
+            val input = File(checkNotNull(context.getExternalFilesDir("e2e-inputs")), "fixture.bin")
+            source.copyTo(input)
+            val attachment = E2eCommands.replayFile(context, input.name, "application/octet-stream")
+            val owned = checkNotNull(attachment.file)
+
+            assertTrue(attachment.bytes.isEmpty())
+            assertEquals(source.digest().toList(), owned.digest().toList())
+            assertEquals(context.filesDir, owned.parentFile)
+            assertTrue(owned.delete())
+            assertEquals(source.digest().toList(), input.digest().toList())
+        }
+
+    @Test
+    fun fixtureReplayRejectsFilesOutsideTheFixtureDirectory() =
+        runTest {
+            val context = RuntimeEnvironment.getApplication()
+            val inputs = checkNotNull(context.getExternalFilesDir("e2e-inputs"))
+            val outside = File(checkNotNull(inputs.parentFile), "outside.bin")
+            source.copyTo(outside)
+
+            try {
+                E2eCommands.replayFile(context, "../outside.bin", "application/octet-stream")
+                org.junit.Assert.fail("expected fixture confinement failure")
+            } catch (e: IOException) {
+                assertTrue(checkNotNull(e.message).contains("directly under e2e-inputs"))
+            }
+            assertTrue(outside.isFile)
+            assertTrue(
+                context.filesDir
+                    .listFiles()
+                    .orEmpty()
+                    .none { it.name.startsWith("e2e-attachment-") },
+            )
         }
 
     private fun File.digest(): ByteArray {
