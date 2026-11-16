@@ -56,8 +56,8 @@ fn every_stage_runs_in_order() {
     heap: true,
   });
   assert!(json["counters"]["phys_footprint"].as_u64().unwrap() > 0);
-  assert!(!json["heap"]["by_type"].as_array().unwrap().is_empty());
-  assert!(!json["heap"]["by_image"].as_array().unwrap().is_empty());
+  assert_ne!(json["heap"]["by_type"].as_array().unwrap().len(), 0);
+  assert_ne!(json["heap"]["by_image"].as_array().unwrap().len(), 0);
   assert_eq!(
     context_value(&context, "stages"),
     Some("counters,regions,heap")

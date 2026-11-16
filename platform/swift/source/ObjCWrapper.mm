@@ -10,6 +10,16 @@
 
 @implementation ObjCWrapper
 
++ (BOOL)setTaskDelegate:(id<NSURLSessionTaskDelegate>)delegate forTask:(NSURLSessionTask *)task {
+    @try {
+        task.delegate = delegate;
+        return YES;
+    }
+    @catch (NSException *exception) {
+        return NO;
+    }
+}
+
 + (BOOL)doTry:(void(^)())block error:(NSError **)err {
     @try {
         block();

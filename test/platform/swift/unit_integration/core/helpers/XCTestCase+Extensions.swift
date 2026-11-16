@@ -207,3 +207,25 @@ public func XCTAssertEqual<T: Equatable>(
         XCTFail("Caught error while testing: \(error)", file: file, line: line)
     }
 }
+
+/// Assert two values are equal by first verifying their Equatable-ness and types.
+/// Why didn't they just make this _work by default in `XCTAssertEqual()`?_
+///
+/// - parameter lhs:  A value
+/// - parameter rhs:  Another value
+/// - parameter file: the source file path (for assertion failure attribution)
+/// - parameter line: the source line number
+public func AssertAnyEqual(_ lhs: Any, _ rhs: Any?, file: StaticString = #filePath, line: UInt = #line) {
+    func eq<LHSType: Equatable>(_ lhs: LHSType, _ rhs: Any?) {
+        guard let typedRhs = rhs as? LHSType else {
+            XCTFail("\(rhs ?? "(nil)") is not an instance of \(LHSType.self)", file: file, line: line)
+            return
+        }
+        XCTAssertEqual(lhs, typedRhs, file: file, line: line)
+    }
+    guard let lhs = lhs as? any Equatable else {
+        XCTFail("\(lhs) is not Equatable, not checking equality to \(rhs ?? "(nil)")", file: file, line: line)
+        return
+    }
+    eq(lhs, rhs)
+}

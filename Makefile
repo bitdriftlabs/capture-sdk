@@ -68,11 +68,14 @@ format:
 check-license:
 	./ci/check_license.sh
 
-# Use repin when you get Error: Digests do not match
+# Use repin when you get Error: Digests do not match, or after changing Maven artifacts in
+# MODULE.bazel (Bazel then reports that maven_install.json must be regenerated).
 .PHONY: repin
 repin:
 	# rules_rs resolves crates from Cargo.lock and records its facts in MODULE.bazel.lock.
 	./bazelw mod tidy
+	# Re-resolve @maven and rewrite maven_install.json with the resolved versions and checksums.
+	./bazelw run --repo_env=REPIN=1 @maven//:pin
 
 .PHONY: push-additional-images
 push-additional-images:

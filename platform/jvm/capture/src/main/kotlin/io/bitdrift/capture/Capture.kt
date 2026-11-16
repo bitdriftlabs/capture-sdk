@@ -78,7 +78,11 @@ object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
 
-    internal val commandRegistry = CommandRegistry(CaptureJniLibrary)
+    // Shared by the registry, which runs command handlers on it, and the profiler, which reports
+    // results on it so they resume where the command runs.
+    private val commandDispatcher = CommandRegistry.defaultDispatcher()
+
+    internal val commandRegistry = CommandRegistry(CaptureJniLibrary, commandDispatcher)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -1002,6 +1006,7 @@ object Capture {
                         sessionStrategy = sessionStrategy,
                         bridge = bridge,
                         commandRegistry = commandRegistry,
+                        commandDispatcher = commandDispatcher,
                     )
                 }
 
