@@ -5,7 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-/// The parsed arguments of an `ios_memory_dump` invocation.
+/// The parsed arguments of a `memory_dump` invocation.
 struct MemoryDumpRequest: Equatable {
     /// The stages a memory dump can run, declared in execution order.
     enum Stage: String, CaseIterable {

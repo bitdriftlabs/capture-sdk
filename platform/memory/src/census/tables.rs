@@ -90,6 +90,8 @@ pub enum Resolution {
   Cxx,
   /// No type, only the image owning the first word. `name` is the image index.
   Image,
+  /// A Swift heap object with no class, counted without a name.
+  SwiftBox,
 }
 
 //

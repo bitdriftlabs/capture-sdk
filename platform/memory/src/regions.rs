@@ -25,7 +25,6 @@ use crate::sys::vm_region::{
   region_short_info,
 };
 use crate::tags::tag_name;
-use std::collections::HashMap;
 
 const MAX_REGIONS: u32 = 200_000;
 const MAX_SUBMAP_DEPTH: u32 = 8;
@@ -143,14 +142,13 @@ pub fn walk(images: Option<&ImageTable>) -> RegionsReport {
     truncated = true;
   }
   log::debug!("walked {region_count} regions, truncated: {truncated}");
-  report(&by_tag, region_count, truncated, images, &charged_by_image)
+  report(&by_tag, region_count, truncated, &charged_by_image)
 }
 
 fn report(
   by_tag: &[TagTotals],
   region_count: u32,
   truncated: bool,
-  images: Option<&ImageTable>,
   charged_by_image: &[u64],
 ) -> RegionsReport {
   let mut tag_rows: Vec<TagRow> = by_tag
@@ -184,31 +182,25 @@ fn report(
     charged: tag_rows.iter().map(|row| row.charged).sum(),
     virtual_size: tag_rows.iter().map(|row| row.virtual_size).sum(),
     by_tag: tag_rows,
-    by_image: images.map_or_else(Vec::new, |images| image_rows(images, charged_by_image)),
+    by_image: image_rows(charged_by_image),
   }
 }
 
-fn image_rows(images: &ImageTable, charged_by_image: &[u64]) -> Vec<ImageChargeRow> {
-  let mut by_name: HashMap<&str, u64> = HashMap::new();
-  for (image, charged) in charged_by_image.iter().enumerate() {
-    if let Some(name) = images.name(image)
-      && *charged > 0
-    {
-      *by_name.entry(name).or_default() += charged;
-    }
-  }
-  let mut rows: Vec<ImageChargeRow> = by_name
-    .into_iter()
-    .map(|(name, charged)| ImageChargeRow {
-      name: name.to_string(),
-      charged,
+fn image_rows(charged_by_image: &[u64]) -> Vec<ImageChargeRow> {
+  let mut rows: Vec<ImageChargeRow> = charged_by_image
+    .iter()
+    .enumerate()
+    .filter(|(_, charged)| **charged > 0)
+    .map(|(image, charged)| ImageChargeRow {
+      image,
+      charged: *charged,
     })
     .collect();
   rows.sort_by(|left, right| {
     right
       .charged
       .cmp(&left.charged)
-      .then(left.name.cmp(&right.name))
+      .then(left.image.cmp(&right.image))
   });
   rows
 }

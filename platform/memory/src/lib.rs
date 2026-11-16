@@ -4,7 +4,7 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-//! Memory diagnostics for the `ios_memory_dump` command: kernel counters, the VM map and a census
+//! Memory diagnostics for the `memory_dump` command: kernel counters, the VM map and a census
 //! of the malloc heap, captured from inside the process.
 
 #![deny(
@@ -22,18 +22,20 @@ mod tests;
 
 mod census;
 mod counters;
+mod encode;
 mod images;
 mod regions;
 mod report;
 mod safe_read;
 mod sys;
+mod system;
 mod tags;
 #[cfg(test)]
 mod test_support;
 
 pub use census::HeapOptions;
 use images::ImageTable;
-use report::{HeapReport, Report, SCHEMA_VERSION};
+use report::{HeapReport, Report};
 use std::time::Instant;
 
 //
@@ -75,7 +77,7 @@ pub struct Request {
 //
 
 pub struct Dump {
-  /// The JSON report.
+  /// A `bitdrift_public.protobuf.memory.v1.MemoryDump`.
   pub attachment: Vec<u8>,
   /// Fields for the command result: timings and the flags worth searching on.
   pub context: Vec<(String, String)>,
@@ -84,10 +86,10 @@ pub struct Dump {
 pub fn capture(request: &Request) -> anyhow::Result<Dump> {
   let mut context = Vec::new();
   let mut report = Report {
-    schema_version: SCHEMA_VERSION,
     counters: None,
     regions: None,
     heap: None,
+    system: system::identity(),
   };
 
   if let Some(footprint) = counters::phys_footprint() {
@@ -122,7 +124,7 @@ pub fn capture(request: &Request) -> anyhow::Result<Dump> {
   context.push(("stages".to_string(), request.stages.names().join(",")));
 
   Ok(Dump {
-    attachment: serde_json::to_vec(&report)?,
+    attachment: encode::memory_dump(&report, images.as_ref())?,
     context,
   })
 }

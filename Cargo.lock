@@ -918,11 +918,11 @@ name = "bd-memory-dump"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "bd-proto",
  "libc",
  "log",
  "objc",
- "serde",
- "serde_json",
+ "protobuf 4.0.0-alpha.0",
 ]
 
 [[package]]

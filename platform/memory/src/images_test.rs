@@ -18,6 +18,26 @@ fn a_function_belongs_to_the_test_binary() {
 }
 
 #[test]
+fn offsets_are_relative_to_the_image_header() {
+  let images = ImageTable::survey();
+  let address = binary_name as *const () as usize;
+  let image = images.owner(address).unwrap();
+  let offset = images.offset(image, address).unwrap();
+  assert!(offset > 0);
+  assert!(offset < 1 << 32);
+  assert_eq!(images.offset(image, 0), None);
+}
+
+#[test]
+fn every_image_has_a_uuid() {
+  let images = ImageTable::survey();
+  for image in 0 .. images.len() {
+    let uuid = images.uuid(image).unwrap();
+    assert_ne!(uuid, &[0; 16], "{:?}", images.name(image));
+  }
+}
+
+#[test]
 fn null_belongs_to_no_image() {
   assert_eq!(ImageTable::survey().owner(0), None);
 }

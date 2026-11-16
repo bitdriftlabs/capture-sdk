@@ -9,7 +9,7 @@ internal import CaptureLoggerBridge
 import Foundation
 
 final class MemoryDumpCommand: @unchecked Sendable {
-    static let key = "ios_memory_dump"
+    static let key = "memory_dump"
 
     /// A lower priority queue increases the time the heap census holds the malloc zone locks,
     /// so dont change this without performing benchmarks.
@@ -74,7 +74,7 @@ final class MemoryDumpCommand: @unchecked Sendable {
 
         context.merge(output["context"] as? [String: String] ?? [:]) { current, _ in current }
         return .success(CommandResult(
-            attachment: CommandAttachment(data: attachment, mimeType: "application/json"),
+            attachment: CommandAttachment(data: attachment, mimeType: "application/vnd.bitdrift.ios-memory-dump"),
             context: context
         ))
     }
