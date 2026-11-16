@@ -101,6 +101,9 @@ Primary: **Bazel** (`./bazelw`). Secondary: Gradle for Android (`platform/jvm/gr
 
 Key Bazel configs: `--config android`, `--config release-ios`, `--config release-android`, `--config ci`
 
+Maven dependencies are pinned in `maven_install.json`. After changing a `maven.install` or
+`maven.artifact` entry in `MODULE.bazel`, run `make repin` and commit the regenerated lock file.
+
 ## SDK Size Comparisons
 
 Load [sdk-size-analysis](.claude/skills/sdk-size-analysis/SKILL.md) for Android/iOS size work.

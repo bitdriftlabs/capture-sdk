@@ -54,7 +54,7 @@ fn every_stage_runs_in_order() {
     ..Stages::default()
   });
   assert!(json["counters"]["phys_footprint"].as_u64().unwrap() > 0);
-  assert!(!json["regions"]["by_tag"].as_array().unwrap().is_empty());
+  assert_ne!(json["regions"]["by_tag"].as_array().unwrap().len(), 0);
   assert_eq!(context_value(&context, "stages"), Some("counters,regions"));
   assert!(context_value(&context, "phys_footprint_before").is_some());
   assert!(context_value(&context, "phys_footprint_after").is_some());
