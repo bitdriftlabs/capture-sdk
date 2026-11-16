@@ -3,6 +3,7 @@ members = [
   "platform/crash",
   "platform/jvm",
   "platform/jvm/core",
+  "platform/memory",
   "platform/shared",
   "platform/swift/source",
   "platform/test_helpers",
@@ -40,6 +41,7 @@ bd-log = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "36239
 bd-log-metadata = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "3623912777ddb8885370deb58bf7677438bc155d" }
 bd-log-primitives = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "3623912777ddb8885370deb58bf7677438bc155d" }
 bd-logger = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "3623912777ddb8885370deb58bf7677438bc155d" }
+bd-memory-dump = { path = "platform/memory" }
 bd-metadata = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "3623912777ddb8885370deb58bf7677438bc155d" }
 bd-noop-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "3623912777ddb8885370deb58bf7677438bc155d" }
 bd-proto = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "3623912777ddb8885370deb58bf7677438bc155d" }
@@ -61,6 +63,7 @@ env_logger = { version = "0.11.11", default-features = false }
 flatbuffers = "=25.9.23" # https://github.com/google/flatbuffers/issues/8876
 futures-util = "0.3.34"
 jni = "0.21.1"
+libc = "0.2.190"
 log = { version = "0.4.34", features = ["max_level_trace", "release_max_level_info"] }
 memmap2 = "0.9.11"
 objc = "0.2.7"

@@ -1,0 +1,475 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+#![allow(clippy::unwrap_used)]
+
+use super::*;
+use crate::report::{Identity, TypeRow};
+use crate::sys::objc::register_test_class;
+use crate::test_support::memory_lock;
+use libc::{
+  MAP_ANON,
+  MAP_FAILED,
+  MAP_PRIVATE,
+  PROT_READ,
+  PROT_WRITE,
+  c_char,
+  c_void,
+  calloc,
+  free,
+  malloc,
+  mmap,
+  munmap,
+};
+use objc::declare::ClassDecl;
+use objc::runtime::{Class, Object};
+use objc::{class, msg_send, sel, sel_impl};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, OnceLock};
+use std::thread;
+
+unsafe extern "C" {
+  fn malloc_create_zone(start_size: usize, flags: u32) -> *mut c_void;
+  fn malloc_set_zone_name(zone: *mut c_void, name: *const c_char);
+  fn malloc_zone_malloc(zone: *mut c_void, size: usize) -> *mut c_void;
+  fn malloc_destroy_zone(zone: *mut c_void);
+}
+
+const BUFFER_IVAR: &str = "buffer";
+
+/// A class whose instances hold one word, declared once per process.
+fn holder_class(name: &'static str, cell: &'static OnceLock<&'static Class>) -> &'static Class {
+  cell.get_or_init(|| {
+    let mut declaration = ClassDecl::new(name, class!(NSObject)).unwrap();
+    declaration.add_ivar::<usize>(BUFFER_IVAR);
+    let class = declaration.register();
+    register_test_class(std::ptr::from_ref::<Class>(class) as usize);
+    class
+  })
+}
+
+fn start_holder() -> &'static Class {
+  static CLASS: OnceLock<&'static Class> = OnceLock::new();
+  holder_class("BdMemoryDumpStartHolder", &CLASS)
+}
+
+fn interior_holder() -> &'static Class {
+  static CLASS: OnceLock<&'static Class> = OnceLock::new();
+  holder_class("BdMemoryDumpInteriorHolder", &CLASS)
+}
+
+//
+// Fixture
+//
+
+/// Objects and blocks kept alive while a census runs, released on drop.
+#[derive(Default)]
+struct Fixture {
+  objects: Vec<usize>,
+  blocks: Vec<usize>,
+}
+
+impl Fixture {
+  fn block(&mut self, size: usize) -> usize {
+    // SAFETY: freed on drop.
+    let block = unsafe { calloc(1, size) } as usize;
+    assert_ne!(block, 0);
+    self.blocks.push(block);
+    block
+  }
+
+  fn holder(&mut self, class: &Class, word: usize) {
+    // SAFETY: `class` declares the ivar; the object is released on drop.
+    unsafe {
+      let object: *mut Object = msg_send![class, new];
+      (*object).set_ivar::<usize>(BUFFER_IVAR, word);
+      self.objects.push(object as usize);
+    }
+  }
+}
+
+impl Drop for Fixture {
+  fn drop(&mut self) {
+    for object in &self.objects {
+      // SAFETY: created with +new in `holder`.
+      let (): () = unsafe { msg_send![*object as *mut Object, release] };
+    }
+    for block in &self.blocks {
+      // SAFETY: allocated in `block`.
+      unsafe { free(*block as *mut c_void) };
+    }
+  }
+}
+
+fn census(owners: bool) -> HeapReport {
+  census_with_budget(1_000, owners)
+}
+
+fn census_with_budget(budget_ms: u64, owners: bool) -> HeapReport {
+  capture(
+    HeapOptions { budget_ms, owners },
+    Some(&ImageTable::survey()),
+  )
+  .unwrap()
+}
+
+fn is_named(row: &TypeRow, class: &str) -> bool {
+  matches!(&row.identity, Identity::Named { name, .. } if name == class)
+}
+
+fn owned_by<'a>(report: &'a HeapReport, class: &str) -> Option<&'a TypeRow> {
+  report
+    .owners
+    .as_ref()?
+    .by_type
+    .iter()
+    .find(|row| is_named(row, class))
+}
+
+#[test]
+fn large_block_is_enumerated() {
+  let _lock = memory_lock();
+  let mut fixture = Fixture::default();
+  fixture.block(8 << 20);
+  let report = census(false);
+  assert!(!report.truncated);
+  assert!(report.largest_block_bytes >= 8 << 20);
+}
+
+#[test]
+fn instances_of_a_known_class_are_counted_exactly() {
+  let _lock = memory_lock();
+  let blocks_of_holder = |report: &HeapReport| {
+    report
+      .by_type
+      .iter()
+      .find(|row| is_named(row, "BdMemoryDumpStartHolder"))
+      .map_or(0, |row| row.blocks)
+  };
+  // The runtime keeps a few blocks of its own that start with the class pointer, so the instances
+  // are measured as a difference.
+  start_holder();
+  let before = blocks_of_holder(&census(false));
+  let mut fixture = Fixture::default();
+  for _ in 0 .. 4_000 {
+    fixture.holder(start_holder(), 0);
+  }
+  let report = census(false);
+  assert_eq!(blocks_of_holder(&report) - before, 4_000);
+}
+
+#[test]
+fn zero_budget_is_reported_as_truncated() {
+  let _lock = memory_lock();
+  let report = census_with_budget(0, false);
+  assert!(report.truncated);
+  assert!(!report.zones.is_empty());
+  assert!(report.zones.iter().all(|zone| !zone.enumerated));
+  assert_eq!(report.total.blocks, 0);
+}
+
+#[test]
+fn buffer_is_attributed_to_the_object_holding_it() {
+  let _lock = memory_lock();
+  let mut fixture = Fixture::default();
+  for _ in 0 .. 200 {
+    let buffer = fixture.block(4_096);
+    fixture.holder(start_holder(), buffer);
+  }
+  let report = census(true);
+  let row = owned_by(&report, "BdMemoryDumpStartHolder").unwrap();
+  assert!(row.blocks >= 200);
+  assert!(row.bytes >= 200 * 4_096);
+  let owners = report.owners.as_ref().unwrap();
+  assert!(owners.bytes <= report.unclassified.bytes);
+  assert!(owners.blocks <= report.unclassified.blocks);
+  assert_eq!(owners.table_overflow, 0);
+}
+
+#[test]
+fn large_buffer_is_attributed_to_the_object_holding_its_start() {
+  let _lock = memory_lock();
+  let mut fixture = Fixture::default();
+  let buffer = fixture.block(8 << 20);
+  fixture.holder(start_holder(), buffer);
+  let report = census(true);
+  assert!(owned_by(&report, "BdMemoryDumpStartHolder").unwrap().bytes >= 8 << 20);
+}
+
+#[test]
+fn pointer_inside_a_large_block_does_not_own_it() {
+  let _lock = memory_lock();
+  let mut fixture = Fixture::default();
+  let buffer = fixture.block(4 << 20);
+  fixture.holder(start_holder(), buffer + 4_096);
+  assert!(owned_by(&census(true), "BdMemoryDumpStartHolder").is_none());
+}
+
+#[test]
+fn word_with_bits_above_the_address_does_not_own_a_block() {
+  let _lock = memory_lock();
+  let mut fixture = Fixture::default();
+  let buffer = fixture.block(256);
+  fixture.holder(start_holder(), buffer | (0x5a << 48));
+  assert!(owned_by(&census(true), "BdMemoryDumpStartHolder").is_none());
+}
+
+#[test]
+fn pointer_to_the_start_beats_pointer_inside() {
+  let _lock = memory_lock();
+  let mut fixture = Fixture::default();
+  let buffer = fixture.block(1_024);
+  fixture.holder(interior_holder(), buffer + 64);
+  fixture.holder(start_holder(), buffer);
+  let report = census(true);
+  assert!(owned_by(&report, "BdMemoryDumpStartHolder").unwrap().bytes >= 1_024);
+  assert!(owned_by(&report, "BdMemoryDumpInteriorHolder").is_none());
+}
+
+#[test]
+fn owners_are_not_attributed_when_disabled() {
+  let _lock = memory_lock();
+  let mut fixture = Fixture::default();
+  let buffer = fixture.block(4_096);
+  fixture.holder(start_holder(), buffer);
+  let report = census(false);
+  assert!(report.owners.is_none());
+}
+
+#[test]
+fn type_rows_add_up_to_the_named_and_image_blocks() {
+  let _lock = memory_lock();
+  let report = census(false);
+  let sum = |named: bool| {
+    report
+      .by_type
+      .iter()
+      .filter(|row| matches!(row.identity, Identity::Named { .. }) == named)
+      .fold((0, 0), |(blocks, bytes), row| {
+        (blocks + row.blocks, bytes + row.bytes)
+      })
+  };
+  assert_eq!(sum(true), (report.named.blocks, report.named.bytes));
+  assert_eq!(sum(false), (report.images.blocks, report.images.bytes));
+}
+
+#[test]
+fn blocks_pointing_at_box_metadata_are_swift_boxes() {
+  // A Swift box starts with a pointer to metadata whose first word is its kind.
+  static BOX_METADATA: [usize; 2] = [0x400, 0];
+  let _lock = memory_lock();
+  let before = census(false).swift_boxes.blocks;
+  let mut fixture = Fixture::default();
+  for _ in 0 .. 1_000 {
+    let block = fixture.block(32);
+    // SAFETY: a live block of 32 bytes.
+    unsafe { (block as *mut usize).write(BOX_METADATA.as_ptr() as usize) };
+  }
+  let report = census(false);
+  assert!(report.swift_boxes.blocks >= before + 1_000);
+  assert!(report.swift_boxes.bytes >= 32_000);
+}
+
+#[test]
+fn the_dump_tables_are_not_in_the_heap() {
+  let _lock = memory_lock();
+  let report = census(true);
+  assert!(report.largest_block_bytes < 1 << 20);
+}
+
+fn zone_named(name: &str, blocks: usize) -> *mut c_void {
+  let name = std::ffi::CString::new(name).unwrap();
+  // SAFETY: a new zone, destroyed by the caller.
+  unsafe {
+    let zone = malloc_create_zone(0, 0);
+    malloc_set_zone_name(zone, name.as_ptr());
+    for _ in 0 .. blocks {
+      malloc_zone_malloc(zone, 128);
+    }
+    zone
+  }
+}
+
+#[test]
+fn webkit_zone_is_never_locked() {
+  let _lock = memory_lock();
+  let zone = zone_named("WebKit Malloc", 100);
+  let report = census(false);
+  // SAFETY: created above.
+  unsafe { malloc_destroy_zone(zone) };
+  let row = report
+    .zones
+    .iter()
+    .find(|zone| zone.name == "WebKit Malloc")
+    .unwrap();
+  assert!(row.skipped);
+  assert!(!row.enumerated);
+  assert_eq!(row.blocks, 0);
+}
+
+#[test]
+fn other_zones_are_enumerated() {
+  let _lock = memory_lock();
+  let zone = zone_named("BdMemoryDumpTests", 100);
+  let report = census(false);
+  // SAFETY: created above.
+  unsafe { malloc_destroy_zone(zone) };
+  let row = report
+    .zones
+    .iter()
+    .find(|zone| zone.name == "BdMemoryDumpTests")
+    .unwrap();
+  assert!(!row.skipped);
+  assert!(row.enumerated);
+  assert!(row.blocks >= 100);
+}
+
+#[test]
+fn captures_survive_regions_being_mapped_and_unmapped() {
+  let _lock = memory_lock();
+  let running = Arc::new(AtomicBool::new(true));
+  let mapper = {
+    let running = running.clone();
+    thread::spawn(move || {
+      while running.load(Ordering::Relaxed) {
+        let size = 48 << 20;
+        // SAFETY: an anonymous mapping, dirtied and unmapped right away.
+        unsafe {
+          let region = mmap(
+            std::ptr::null_mut(),
+            size,
+            PROT_READ | PROT_WRITE,
+            MAP_ANON | MAP_PRIVATE,
+            -1,
+            0,
+          );
+          if region != MAP_FAILED {
+            std::ptr::write_bytes(region.cast::<u8>(), 0x5a, size);
+            munmap(region, size);
+          }
+        }
+      }
+    })
+  };
+  for _ in 0 .. 5 {
+    assert!(census(true).total.blocks > 0);
+  }
+  running.store(false, Ordering::Relaxed);
+  mapper.join().unwrap();
+}
+
+#[test]
+fn candidate_unmapped_before_resolution_stays_unresolved() {
+  let _lock = memory_lock();
+  let size = crate::sys::mach::page_size();
+  // SAFETY: an anonymous mapping, unmapped by the seam below.
+  let region = unsafe {
+    mmap(
+      std::ptr::null_mut(),
+      size,
+      PROT_READ | PROT_WRITE,
+      MAP_ANON | MAP_PRIVATE,
+      -1,
+      0,
+    )
+  };
+  assert_ne!(region, MAP_FAILED);
+  let region = region as usize;
+
+  let mut blocks = Vec::new();
+  for _ in 0 .. 200 {
+    // SAFETY: freed below; the first word points at the region.
+    unsafe {
+      let block = malloc(64).cast::<usize>();
+      block.write(region);
+      blocks.push(block);
+    }
+  }
+
+  let mut census = Census::new(
+    HeapOptions {
+      budget_ms: 1_000,
+      owners: false,
+    },
+    None,
+  )
+  .unwrap();
+  census.before_resolve = Some(Box::new(move || {
+    // SAFETY: the mapping created above.
+    assert_eq!(unsafe { munmap(region as *mut c_void, size) }, 0);
+  }));
+  let report = census.run();
+
+  for block in blocks {
+    // SAFETY: allocated above.
+    unsafe { free(block.cast()) };
+  }
+  assert!(report.unclassified.blocks >= 200);
+  assert_eq!(
+    report.unclassified.histogram.iter().sum::<u64>(),
+    report.unclassified.blocks
+  );
+  assert_eq!(
+    report.unclassified.histogram_bytes.iter().sum::<u64>(),
+    report.unclassified.bytes
+  );
+}
+
+#[test]
+fn owner_tables_map_the_scan_scratch_before_the_census() {
+  let tables = super::owner_tables::OwnerTables::new(0).unwrap();
+  assert_eq!(tables.scratch.len(), super::owner_tables::SCRATCH_SIZE);
+}
+
+#[test]
+fn a_protected_block_is_left_unclassified() {
+  let _lock = memory_lock();
+  let page = crate::sys::mach::page_size();
+  let mut block = std::ptr::null_mut();
+  // SAFETY: a page-aligned block of whole pages, so protecting it touches no other block.
+  unsafe {
+    assert_eq!(libc::posix_memalign(&raw mut block, page, 4 * page), 0);
+    block
+      .cast::<usize>()
+      .write(std::ptr::from_ref::<Class>(start_holder()) as usize);
+    assert_eq!(libc::mprotect(block, 4 * page, libc::PROT_NONE), 0);
+  }
+  let report = census(true);
+  // SAFETY: the block allocated and protected above.
+  unsafe {
+    assert_eq!(libc::mprotect(block, 4 * page, PROT_READ | PROT_WRITE), 0);
+    free(block);
+  }
+  assert!(report.total.blocks > 0);
+  assert!(
+    !report
+      .by_type
+      .iter()
+      .any(|row| is_named(row, "BdMemoryDumpStartHolder"))
+  );
+}
+
+#[test]
+fn candidate_table_holds_half_the_heap_within_bounds() {
+  use super::tables::CandidateTable;
+  let slots = |blocks| CandidateTable::new(blocks).unwrap().slots.len();
+  assert_eq!(slots(0), 1 << 14);
+  assert_eq!(slots(64_053), 1 << 15);
+  assert_eq!(slots(10_000_000), 1 << 17);
+}
+
+#[test]
+fn a_full_candidate_table_refuses_new_candidates() {
+  use super::tables::CandidateTable;
+  let mut table = CandidateTable::new(0).unwrap();
+  let capacity = table.slots.len();
+  let recorded = (1 ..= 2 * capacity)
+    .filter(|index| table.record(index * 8, 16))
+    .count();
+  assert!(recorded <= capacity, "{recorded}");
+  assert!(table.record(8, 16));
+  assert_eq!(table.find(8).unwrap().blocks, 2);
+}

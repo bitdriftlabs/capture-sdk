@@ -12,4 +12,5 @@ enum class BuiltinCommandType(val wireValue: Int, val key: String) {
     DUMP_DEVICE_BUFFER(1, "dump_device_buffer"),
     TAKE_SCREENSHOT(2, "take_screenshot"),
     STACK_SAMPLING_TRACE(3, "stack_sampling_trace"),
+    MEMORY_DUMP(12, "memory_dump"),
 }

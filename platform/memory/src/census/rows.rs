@@ -1,0 +1,161 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+// Turns the census tables into the report: types whose names collide are reported together, and
+// every list is sorted by bytes, largest first.
+
+use super::Census;
+use super::tables::Resolution;
+use crate::report::{BlockCount, HeapReport, Identity, Owners, TypeRow, Unclassified, ZoneRow};
+use crate::sys::objc::validated_class_name;
+use std::collections::HashMap;
+
+//
+// Totals
+//
+
+#[derive(Default)]
+struct Totals {
+  blocks: u64,
+  bytes: u64,
+}
+
+impl Totals {
+  const fn add(&mut self, blocks: u64, bytes: u64) {
+    self.blocks += blocks;
+    self.bytes += bytes;
+  }
+}
+
+impl Census<'_> {
+  fn named(&self, name: usize) -> Option<Identity> {
+    let name = self.names.get(name)?.clone();
+    Some(Identity::Named { name })
+  }
+
+  pub(super) fn report(self) -> HeapReport {
+    let mut types: HashMap<Identity, Totals> = HashMap::new();
+    let mut owners: HashMap<Identity, Totals> = HashMap::new();
+
+    for (pointer, tally) in self.classes.pointers.iter().zip(&self.classes.tallies) {
+      if tally.blocks == 0 && tally.owned_blocks == 0 {
+        continue;
+      }
+      // SAFETY: an image's class list holds only classes. Realizing one with instances costs
+      // nothing: it was realized when they were allocated.
+      let name = unsafe { validated_class_name(*pointer) }.unwrap_or_default();
+      let key = Identity::Named { name };
+      if tally.blocks > 0 {
+        types
+          .entry(key.clone())
+          .or_default()
+          .add(tally.blocks, tally.bytes);
+      }
+      if tally.owned_blocks > 0 {
+        owners
+          .entry(key)
+          .or_default()
+          .add(tally.owned_blocks, tally.owned_bytes);
+      }
+    }
+
+    for candidate in self
+      .candidates
+      .slots
+      .iter()
+      .filter(|slot| slot.metadata != 0)
+    {
+      let identity = match candidate.resolution {
+        Resolution::Unresolved | Resolution::SwiftBox => continue,
+        Resolution::Image => self
+          .images
+          .and_then(|table| table.offset(candidate.name, candidate.metadata))
+          .map(|offset| Identity::Address {
+            image: candidate.name,
+            offset,
+          }),
+        Resolution::Class => self.named(candidate.name),
+      };
+      if let Some(identity) = identity {
+        types
+          .entry(identity)
+          .or_default()
+          .add(candidate.blocks, candidate.bytes);
+      }
+    }
+
+    let summary = self.summary;
+    HeapReport {
+      truncated: summary.truncated,
+      skipped_blocks: summary.skipped_blocks,
+      total: BlockCount {
+        blocks: summary.total_blocks,
+        bytes: summary.total_bytes,
+      },
+      largest_block_bytes: summary.largest_block_bytes,
+      named: BlockCount {
+        blocks: summary.named_blocks,
+        bytes: summary.named_bytes,
+      },
+      swift_boxes: BlockCount {
+        blocks: summary.swift_box_blocks,
+        bytes: summary.swift_box_bytes,
+      },
+      images: BlockCount {
+        blocks: summary.image_blocks,
+        bytes: summary.image_bytes,
+      },
+      unclassified: Unclassified {
+        blocks: summary.unclassified_blocks,
+        bytes: summary.unclassified_bytes,
+        histogram: summary.unclassified_histogram.to_vec(),
+        histogram_bytes: summary.unclassified_histogram_bytes.to_vec(),
+      },
+      owners: self.options.owners.then(|| Owners {
+        blocks: summary.owned_blocks,
+        bytes: summary.owned_bytes,
+        shared_blocks: summary.shared_owned_blocks,
+        table_overflow: summary.owner_table_overflow,
+        by_type: type_rows(owners),
+      }),
+      by_type: type_rows(types),
+      zones: self
+        .zones
+        .into_iter()
+        .map(|state| {
+          let zone = state.summary;
+          ZoneRow {
+            name: zone.name,
+            blocks: zone.blocks,
+            bytes: zone.bytes,
+            enumerated: zone.enumerated,
+            seen: zone.seen,
+            skipped: zone.skipped,
+            truncated: zone.truncated,
+          }
+        })
+        .collect(),
+    }
+  }
+}
+
+fn type_rows(totals: HashMap<Identity, Totals>) -> Vec<TypeRow> {
+  let mut rows: Vec<TypeRow> = totals
+    .into_iter()
+    .map(|(identity, totals)| TypeRow {
+      identity,
+      blocks: totals.blocks,
+      bytes: totals.bytes,
+    })
+    .collect();
+  rows.sort_by(|left, right| {
+    right
+      .bytes
+      .cmp(&left.bytes)
+      .then(left.identity.cmp(&right.identity))
+  });
+  rows
+}

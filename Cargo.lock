@@ -943,6 +943,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bd-memory-dump"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "bd-proto",
+ "libc",
+ "log",
+ "objc",
+ "protobuf 4.0.0-alpha.0",
+]
+
+[[package]]
 name = "bd-metadata"
 version = "1.0.0"
 source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=3623912777ddb8885370deb58bf7677438bc155d#3623912777ddb8885370deb58bf7677438bc155d"
@@ -1470,9 +1482,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.11.1"
+version = "1.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ff2a8126fff0f8c839080d619675a585e61720bb12d2baceae45769fd66f155"
+checksum = "33ef9e3e8154a45c7a95cff4c1299702106ad94062d7bb85fdc5d3a5afd91d45"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -3858,6 +3870,7 @@ dependencies = [
  "bd-key-value",
  "bd-log-primitives",
  "bd-logger",
+ "bd-memory-dump",
  "bd-noop-network",
  "bd-proto",
  "bd-report-parsers",

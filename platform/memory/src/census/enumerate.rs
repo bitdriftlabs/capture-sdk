@@ -1,0 +1,225 @@
+// capture-sdk - bitdrift's client SDK
+// Copyright Bitdrift, Inc. All rights reserved.
+//
+// Use of this source code is governed by a source available license that can be found in the
+// LICENSE file or at:
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+// The only census code that runs with a malloc zone locked. Nothing the recorder does may
+// allocate, take a lock, call into the ObjC runtime, make a syscall or panic: an allocation from
+// the locked zone deadlocks the process.
+
+use super::owner_tables::OwnerTables;
+use super::tables::{CandidateTable, ClassTable, ReadableRanges};
+use super::{Census, ISA_MASK, SKIPPED_ZONES, Summary};
+use crate::sys::mach::now_ns;
+use crate::sys::malloc::{MALLOC_PTR_IN_USE_RANGE_TYPE, RangeSink, Zone};
+use libc::vm_range_t;
+
+//
+// ZoneSummary
+//
+
+#[derive(Default)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct ZoneSummary {
+  pub name: String,
+  pub blocks: u64,
+  pub bytes: u64,
+  pub enumerated: bool,
+  pub seen: bool,
+  pub skipped: bool,
+  pub truncated: bool,
+}
+
+//
+// ZoneState
+//
+
+pub struct ZoneState {
+  pub zone: Zone,
+  pub summary: ZoneSummary,
+}
+
+impl ZoneState {
+  pub fn new(zone: Zone) -> Self {
+    let name = zone.name();
+    let skipped = SKIPPED_ZONES.contains(&name.as_str());
+    Self {
+      zone,
+      summary: ZoneSummary {
+        name,
+        skipped,
+        ..ZoneSummary::default()
+      },
+    }
+  }
+
+  pub fn will_lock(&self) -> bool {
+    !self.summary.skipped && self.zone.is_enumerable()
+  }
+}
+
+//
+// Recorder
+//
+
+struct Recorder<'t> {
+  classes: &'t mut ClassTable,
+  candidates: &'t mut CandidateTable,
+  ranges: &'t ReadableRanges,
+  owners: Option<&'t mut OwnerTables>,
+  summary: &'t mut Summary,
+  zone: &'t mut ZoneSummary,
+  deadline_ns: u64,
+  over_budget: bool,
+  /// The readable range the last block fell in. Blocks arrive region by region, so most blocks
+  /// skip the search.
+  last_readable: (usize, usize),
+}
+
+impl RangeSink for Recorder<'_> {
+  fn record(&mut self, type_mask: u32, ranges: &[vm_range_t]) {
+    self.zone.seen = true;
+
+    // Checked per batch: batches carry hundreds of blocks.
+    if !self.over_budget && now_ns() >= self.deadline_ns {
+      self.over_budget = true;
+      self.summary.truncated = true;
+      self.zone.truncated = true;
+    }
+    if self.over_budget {
+      self.summary.skipped_blocks += ranges.len() as u64;
+      return;
+    }
+
+    // Bitwise: large allocations report MALLOC_PTR_IN_USE_RANGE_TYPE |
+    // MALLOC_PTR_REGION_RANGE_TYPE, and comparing for equality drops every block above ~16 KB.
+    if type_mask & MALLOC_PTR_IN_USE_RANGE_TYPE == 0 {
+      return;
+    }
+    for range in ranges {
+      self.record_block(range.address, range.size as u64);
+    }
+  }
+}
+
+impl Recorder<'_> {
+  fn record_block(&mut self, address: usize, size: u64) {
+    let summary = &mut *self.summary;
+    summary.total_blocks += 1;
+    summary.total_bytes += size;
+    summary.largest_block_bytes = summary.largest_block_bytes.max(size);
+    self.zone.blocks += 1;
+    self.zone.bytes += size;
+
+    if size < size_of::<usize>() as u64 || address == 0 {
+      summary.unclassified(size);
+      summary.place_unclassified(size, 1, size);
+      return;
+    }
+
+    // An app can protect a live block, so only blocks the survey found readable are read. One
+    // protected after the survey still faults: a safe read is a syscall, too slow for every block.
+    let first_word = if self.ranges.is_readable(address, &mut self.last_readable) {
+      // SAFETY: the zone is locked, so the block is live, word-aligned and at least a word long,
+      // and its page was readable when surveyed.
+      unsafe { (address as *const usize).read() }
+    } else {
+      0
+    };
+    let candidate = first_word & ISA_MASK;
+
+    if let Some(class) = self.classes.find(candidate) {
+      let tally = &mut self.classes.tallies[class];
+      tally.blocks += 1;
+      tally.bytes += size;
+      summary.named_blocks += 1;
+      summary.named_bytes += size;
+      if let Some(owners) = self.owners.as_deref_mut() {
+        owners.record_named(address, size, class, summary);
+      }
+      return;
+    }
+
+    summary.unclassified(size);
+    let unnamed = self
+      .owners
+      .as_deref_mut()
+      .and_then(|owners| owners.record_unnamed(address, size, summary));
+
+    // Only first words pointing into readable memory are worth resolving; anything else would
+    // saturate the table with buffer contents.
+    if candidate > 0x1000
+      && candidate.trailing_zeros() >= 3
+      && self.ranges.readable_end(candidate).is_some()
+    {
+      if self.candidates.record(candidate, size) {
+        if let Some(unnamed) = unnamed {
+          unnamed.candidate = candidate;
+        }
+        // The histogram is completed after resolution, from the candidates left unnamed.
+        return;
+      }
+      summary.candidate_table_overflow += 1;
+    }
+    summary.place_unclassified(size, 1, size);
+  }
+}
+
+impl Census<'_> {
+  /// Locks each zone in turn and records its live blocks.
+  pub(super) fn enumerate(&mut self) {
+    let mut zones_left = self.zones.iter().filter(|zone| zone.will_lock()).count() as u64;
+    let mut budget_left_ns = self.options.budget_ms.saturating_mul(1_000_000);
+
+    // One zone locked at a time. A zone's enumerator may allocate from another zone (the nano zone
+    // does), and with that zone locked too the process aborts on a recursive lock. Blocks
+    // allocated while another zone is enumerated may be missed.
+    for state in &mut self.zones {
+      if !state.will_lock() {
+        continue;
+      }
+      // Each zone gets an equal share of what is left. A zone that overruns its share cannot be
+      // interrupted, but the overrun is not taken from the zones after it.
+      let share_ns = budget_left_ns / zones_left;
+      zones_left -= 1;
+      if share_ns == 0 {
+        state.summary.truncated = true;
+        self.summary.truncated = true;
+        continue;
+      }
+
+      let ZoneState {
+        zone,
+        summary: zone_summary,
+      } = state;
+      // Surveyed per zone: the heap regions created while the zones before it were locked must be
+      // readable to the recorder.
+      self.ranges.survey();
+      let wait_started = now_ns();
+      let Some(lock) = zone.lock() else {
+        continue;
+      };
+      let held_from = now_ns();
+      let mut recorder = Recorder {
+        classes: &mut self.classes,
+        candidates: &mut self.candidates,
+        ranges: &self.ranges,
+        owners: self.owners.as_mut(),
+        summary: &mut self.summary,
+        zone: &mut *zone_summary,
+        deadline_ns: held_from + share_ns,
+        over_budget: false,
+        last_readable: (0, 0),
+      };
+      lock.enumerate(&mut recorder);
+      drop(lock);
+      let held_ns = now_ns() - held_from;
+
+      budget_left_ns -= held_ns.min(share_ns);
+      self.summary.lock_wait_ns += held_from - wait_started;
+      self.summary.lock_held_ns += held_ns;
+      zone_summary.enumerated = true;
+    }
+  }
+}
