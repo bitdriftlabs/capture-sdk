@@ -32,12 +32,22 @@ fn context_value<'a>(context: &'a [(String, String)], key: &str) -> Option<&'a s
 }
 
 #[test]
-fn requested_stages_are_named_in_execution_order() {
+fn only_requested_stages_are_reported() {
   let (json, context) = capture_json(Stages {
     counters: true,
-    heap: true,
     ..Stages::default()
   });
   assert_eq!(json["schema_version"], 1);
-  assert_eq!(context_value(&context, "stages"), Some("counters,heap"));
+  assert!(json["counters"]["phys_footprint"].as_u64().unwrap() > 0);
+  assert!(json.get("regions").is_none());
+  assert!(json.get("heap").is_none());
+  assert_eq!(context_value(&context, "stages"), Some("counters"));
+  assert!(context_value(&context, "counters_ms").is_some());
+}
+
+#[test]
+fn footprint_is_reported_around_the_stages() {
+  let (_, context) = capture_json(Stages::default());
+  assert!(context_value(&context, "phys_footprint_before").is_some());
+  assert!(context_value(&context, "phys_footprint_after").is_some());
 }

@@ -26,6 +26,14 @@ final class MemoryDumpCommandTests: XCTestCase {
         thenFailsWithCode("invalid_arguments")
     }
 
+    func testCountersReportFootprint() async throws {
+        givenMemoryDumpCommand()
+        await whenExecuting(["stages": .string("counters")])
+        let counters = try thenAttachmentSection("counters")
+        XCTAssertGreaterThan(try XCTUnwrap(counters["phys_footprint"] as? UInt64), 0)
+        XCTAssertGreaterThan(try XCTUnwrap(counters["resident_size"] as? UInt64), 0)
+    }
+
     func testAttachmentIsJSONWithSchemaVersion() async throws {
         givenMemoryDumpCommand()
         await whenExecuting(["stages": .string("counters")])
@@ -35,10 +43,14 @@ final class MemoryDumpCommandTests: XCTestCase {
         XCTAssertEqual(json["schema_version"] as? Int, 1)
     }
 
-    func testContextReportsRequestedStages() async throws {
+    func testContextReportsStagesTimingAndFootprint() async throws {
         givenMemoryDumpCommand()
-        await whenExecuting(["stages": .string("heap,counters")])
-        XCTAssertEqual(try thenContext()["stages"], "counters,heap")
+        await whenExecuting(["stages": .string("counters")])
+        let context = try thenContext()
+        XCTAssertEqual(context["stages"], "counters")
+        XCTAssertNotNil(context["counters_ms"])
+        XCTAssertGreaterThan(UInt64(try XCTUnwrap(context["phys_footprint_before"])) ?? 0, 0)
+        XCTAssertGreaterThan(UInt64(try XCTUnwrap(context["phys_footprint_after"])) ?? 0, 0)
     }
 
     func testDisabledHeapIsSkippedAndReported() async throws {
