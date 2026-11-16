@@ -56,7 +56,7 @@ fn every_stage_runs_in_order() {
   });
   assert!(dump.counters.phys_footprint > 0);
   assert_eq!(dump.system_identity.shared_cache_uuid.len(), 16);
-  assert!(!dump.heap.by_type.is_empty());
+  assert_ne!(dump.heap.by_type.len(), 0);
   assert!(dump.heap.owners.is_some());
   assert_eq!(
     context_value(&context, "stages"),
@@ -74,9 +74,9 @@ fn image_references_resolve_to_named_images() {
     heap: true,
     ..Stages::default()
   });
-  assert!(!dump.images.is_empty());
+  assert_ne!(dump.images.len(), 0);
   for image in &dump.images {
-    assert!(!image.name.is_empty());
+    assert_ne!(image.name.len(), 0);
     assert!(!image.name.contains('/'));
     assert_eq!(image.uuid.len(), 16);
   }
