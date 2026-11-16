@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.26.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.51.0...HEAD
 
 ### Both
 
@@ -29,7 +29,9 @@
 
 **Fixed**
 
-- Nothing yet!
+- Fixed capture-plugin debug-file uploads by updating the bundled bd CLI to 0.2.48
+  and passing custom base domains to the upload command.
+- Fixed excessive JVM heap usage when capture-plugin downloads the bundled bd CLI.
 
 ### iOS
 
@@ -44,6 +46,98 @@
 **Fixed**
 
 - Nothing yet!
+
+## [0.51.0]
+[0.51.0]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.51.0...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Restored the SDK license to PolyForm Shield 1.0.0.
+
+**Fixed**
+
+- Fixed a race condition that can cause a panic in metrics handling during concurrent updates.
+
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Fixed app exit events being attributed to the wrong sessions after a device reboot.
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.50.0]
+[0.50.0]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.50.0...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Changed the SDK license to PolyForm Strict 1.0.0.
+
+**Fixed**
+
+- Nothing yet!
+
+### Android
+
+**Added**
+
+- Built-in `stack_sampling_trace` remote command: records a Perfetto stack sampling trace of the app's process through `ProfilingManager` (Android 15+) and uploads it as the command attachment.
+
+**Changed**
+
+- Updated OkHttp to 4.12.1 to block compromised CA certificates and mitigate CVE-2026-111943.
+
+**Fixed**
+
+- Fixed screenshot capture failing when another activity or dialog is displayed.
+- Fixed screenshot bitmap cleanup when capture fails.
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Fixed background URLSession upload tasks and proxy delegates leaking when automatic network instrumentation is enabled.
+- Fixed a potential crash when the SDK cannot create network streams.
 
 ## [0.26.0]
 [0.26.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.26.0

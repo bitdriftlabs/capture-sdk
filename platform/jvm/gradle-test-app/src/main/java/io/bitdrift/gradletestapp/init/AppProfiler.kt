@@ -23,7 +23,6 @@ import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.function.Consumer
 import kotlin.coroutines.resume
-import kotlin.time.Duration
 
 /**
  * Captures a profile of this process through the platform ProfilingManager (API 35+). The system
@@ -38,6 +37,46 @@ object AppProfiler {
         HEAP_PROFILE("Heap profile", usesDuration = true),
         STACK_SAMPLING("Stack sampling", usesDuration = true),
         SYSTEM_TRACE("System trace", usesDuration = true),
+    }
+
+    /** One capture with the settings its type supports. The platform clamps each value to its own bounds. */
+    sealed interface Request {
+        val type: ProfilingType
+
+        /** A single snapshot of the Java heap. */
+        data class JavaHeapDump(
+            /** The trace buffer; a dump larger than it is truncated. */
+            val bufferSizeKb: Int,
+        ) : Request {
+            override val type = ProfilingType.JAVA_HEAP_DUMP
+        }
+
+        data class HeapProfile(
+            val durationMs: Int,
+            val bufferSizeKb: Int = HEAP_PROFILE_BUFFER_SIZE_KB,
+            val samplingIntervalBytes: Long = HEAP_PROFILE_SAMPLING_INTERVAL_BYTES,
+            /**
+             * Records Java heap allocations instead of native ones; a profile cannot record both. Native
+             * by default, which the `system_trace` symbolication workload relies on.
+             */
+            val trackJavaAllocations: Boolean = false,
+        ) : Request {
+            override val type = ProfilingType.HEAP_PROFILE
+        }
+
+        data class StackSampling(
+            val durationMs: Int,
+            val bufferSizeKb: Int = STACK_SAMPLING_BUFFER_SIZE_KB,
+            val frequencyHz: Int = STACK_SAMPLING_FREQUENCY_HZ,
+        ) : Request {
+            override val type = ProfilingType.STACK_SAMPLING
+        }
+
+        data class SystemTrace(
+            val durationMs: Int,
+        ) : Request {
+            override val type = ProfilingType.SYSTEM_TRACE
+        }
     }
 
     sealed interface Result {
@@ -56,23 +95,20 @@ object AppProfiler {
         ) : Result
     }
 
-    /** [duration] is ignored for [ProfilingType.JAVA_HEAP_DUMP], which is a single snapshot. */
     suspend fun capture(
         context: Context,
-        type: ProfilingType,
-        duration: Duration,
+        request: Request,
     ): Result {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             return Result.Failure("requires API 35, device is API ${Build.VERSION.SDK_INT}")
         }
-        return request(context, type, duration)
+        return requestProfile(context, request)
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    private suspend fun request(
+    private suspend fun requestProfile(
         context: Context,
-        type: ProfilingType,
-        duration: Duration,
+        request: Request,
     ): Result {
         val profilingResult =
             suspendCancellableCoroutine { continuation ->
@@ -80,7 +116,7 @@ object AppProfiler {
                 continuation.invokeOnCancellation { cancellationSignal.cancel() }
                 requestProfiling(
                     context,
-                    buildRequest(type, duration.inWholeMilliseconds.toInt(), cancellationSignal),
+                    request.toPlatformRequest(cancellationSignal),
                     Dispatchers.IO.asExecutor(),
                     Consumer<ProfilingResult> { continuation.resume(it) },
                 )
@@ -107,35 +143,37 @@ object AppProfiler {
         }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    private fun buildRequest(
-        type: ProfilingType,
-        durationMs: Int,
-        cancellationSignal: CancellationSignal,
-    ): ProfilingRequest =
-        when (type) {
-            ProfilingType.JAVA_HEAP_DUMP ->
+    private fun Request.toPlatformRequest(cancellationSignal: CancellationSignal): ProfilingRequest =
+        when (this) {
+            is Request.JavaHeapDump ->
                 JavaHeapDumpRequestBuilder()
+                    .setBufferSizeKb(bufferSizeKb)
                     .setCancellationSignal(cancellationSignal)
                     .build()
-            ProfilingType.HEAP_PROFILE ->
+            is Request.HeapProfile ->
                 HeapProfileRequestBuilder()
+                    .setBufferSizeKb(bufferSizeKb)
+                    .setSamplingIntervalBytes(samplingIntervalBytes)
+                    .setTrackJavaAllocations(trackJavaAllocations)
                     .setDurationMs(durationMs)
                     .setCancellationSignal(cancellationSignal)
                     .build()
-            ProfilingType.STACK_SAMPLING ->
+            is Request.StackSampling ->
                 StackSamplingRequestBuilder()
-                    .setBufferSizeKb(STACK_SAMPLING_BUFFER_SIZE_KB)
+                    .setBufferSizeKb(bufferSizeKb)
                     .setDurationMs(durationMs)
-                    .setSamplingFrequencyHz(STACK_SAMPLING_FREQUENCY_HZ)
+                    .setSamplingFrequencyHz(frequencyHz)
                     .setCancellationSignal(cancellationSignal)
                     .build()
-            ProfilingType.SYSTEM_TRACE ->
+            is Request.SystemTrace ->
                 SystemTraceRequestBuilder()
                     .setDurationMs(durationMs)
                     .setCancellationSignal(cancellationSignal)
                     .build()
         }
 
+    private const val HEAP_PROFILE_BUFFER_SIZE_KB = 8192
+    private const val HEAP_PROFILE_SAMPLING_INTERVAL_BYTES = 128L * 1024L
     private const val STACK_SAMPLING_BUFFER_SIZE_KB = 4096
     private const val STACK_SAMPLING_FREQUENCY_HZ = 100
 }

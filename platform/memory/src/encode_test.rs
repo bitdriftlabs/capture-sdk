@@ -155,7 +155,7 @@ fn every_counter_round_trips() {
   );
   assert!(dump.regions.is_none());
   assert!(dump.heap.is_none());
-  assert!(dump.images.is_empty());
+  assert_eq!(dump.images.len(), 0);
 }
 
 #[test]

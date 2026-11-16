@@ -98,6 +98,6 @@ fn a_system_vtable_is_left_to_its_image() {
     assert_eq!(candidate.resolution, Resolution::Image);
     assert_eq!(Some(candidate.name), image);
   });
-  assert!(names.is_empty());
+  assert_eq!(names.len(), 0);
   assert_eq!((summary.image_blocks, summary.unclassified_blocks), (1, 0));
 }
