@@ -57,7 +57,7 @@ class CommandRegistryTest {
                             override suspend fun capture() = CommandResult.Success()
                         },
                     ),
-                    UnavailableBuiltinCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace", 15_000, "not under test"),
+                    builtin(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace", 15_000) { error("not under test") },
                 ),
             )
 
