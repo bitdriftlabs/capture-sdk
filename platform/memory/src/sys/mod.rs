@@ -8,5 +8,7 @@
 // The only declarations of foreign functions and layouts. Each one is wrapped in a safe function
 // next to it, so the rest of the crate makes no foreign calls of its own.
 
+pub mod dyld;
 pub mod mach;
 pub mod task_info;
+pub mod vm_region;

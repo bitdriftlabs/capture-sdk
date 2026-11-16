@@ -4,8 +4,8 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-//! Memory diagnostics for the `ios_memory_dump` command: kernel counters, captured from inside the
-//! process.
+//! Memory diagnostics for the `ios_memory_dump` command: kernel counters and the VM map, captured
+//! from inside the process.
 
 #![deny(
   clippy::expect_used,
@@ -21,9 +21,16 @@
 mod tests;
 
 mod counters;
+mod images;
+mod regions;
 mod report;
+mod safe_read;
 mod sys;
+mod tags;
+#[cfg(test)]
+mod test_support;
 
+use images::ImageTable;
 use report::{Report, SCHEMA_VERSION};
 use std::time::Instant;
 
@@ -90,16 +97,25 @@ pub fn capture(request: &Request) -> anyhow::Result<Dump> {
   let mut report = Report {
     schema_version: SCHEMA_VERSION,
     counters: None,
+    regions: None,
   };
 
   if let Some(footprint) = counters::phys_footprint() {
     context.push(("phys_footprint_before".to_string(), footprint.to_string()));
   }
 
+  // TODO(ademarco): worth moving to a shared cache once we use this in bd_crash_reporter
+  let images = request.stages.regions.then(ImageTable::survey);
+
   if request.stages.counters {
     let started = Instant::now();
     report.counters = Some(counters::capture()?);
     context.push(timing("counters", started));
+  }
+  if request.stages.regions {
+    let started = Instant::now();
+    report.regions = Some(regions::walk(images.as_ref()));
+    context.push(timing("regions", started));
   }
 
   if let Some(footprint) = counters::phys_footprint() {
