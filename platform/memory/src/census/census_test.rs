@@ -412,6 +412,10 @@ fn candidate_unmapped_before_resolution_stays_unresolved() {
     report.unclassified.histogram.iter().sum::<u64>(),
     report.unclassified.blocks
   );
+  assert_eq!(
+    report.unclassified.histogram_bytes.iter().sum::<u64>(),
+    report.unclassified.bytes
+  );
 }
 
 #[test]

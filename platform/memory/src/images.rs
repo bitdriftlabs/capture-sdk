@@ -130,6 +130,7 @@ impl ImageTable {
     Self { segments, images }
   }
 
+  #[cfg(test)]
   pub const fn len(&self) -> usize {
     self.images.len()
   }

@@ -9,28 +9,42 @@ internal import CaptureLoggerBridge
 import Foundation
 
 final class MemoryDumpCommand: @unchecked Sendable {
-    static let key = "memory_dump"
+    static let type = BuiltinCommandType.memoryDump
+    static let artifactType = "memory_dump"
+    static let timeoutMilliseconds: Int64 = 15_000
+    /// Time the heap census may hold the malloc zone locks.
+    static let heapBudgetMs: UInt64 = 250
+    /// Credit unnamed heap blocks to the named object pointing at them.
+    static let heapOwners = true
 
     /// A lower priority queue increases the time the heap census holds the malloc zone locks,
     /// so dont change this without performing benchmarks.
     private let queue = DispatchQueue(label: "io.bitdrift.capture.memory-dump", qos: .userInitiated)
     private weak var logger: CoreLogging?
+    private let heapBudgetMs: UInt64
 
-    init(logger: CoreLogging) {
+    init(logger: CoreLogging, heapBudgetMs: UInt64 = MemoryDumpCommand.heapBudgetMs) {
         self.logger = logger
+        self.heapBudgetMs = heapBudgetMs
     }
 
-    var command: Command {
-        Command(key: Self.key) { [self] arguments in
+    var builtin: CommandRegistry.Builtin {
+        let command = Command(key: Self.type.key) { [self] arguments in
             await self.execute(arguments)
         }
+        return .init(
+            type: Self.type.rawValue,
+            command: command,
+            artifactType: Self.artifactType,
+            timeoutMilliseconds: Self.timeoutMilliseconds
+        )
     }
 
     func execute(_ arguments: CommandArguments) async -> Result<CommandResult, CommandError> {
         guard self.runtimeValue(.memoryDumpEnabled) else {
             return .failure(CommandError(
                 title: "Memory dump is disabled",
-                description: "Enable \(RuntimeVariable<Bool>.memoryDumpEnabled.name) to run \(Self.key)."
+                description: "Enable \(RuntimeVariable<Bool>.memoryDumpEnabled.name) to run \(Self.type.key)."
             ))
         }
 
@@ -42,14 +56,20 @@ final class MemoryDumpCommand: @unchecked Sendable {
         }
 
         let heapEnabled = self.runtimeValue(.memoryDumpHeapEnabled)
+        let heapBudgetMs = self.heapBudgetMs
         return await withCheckedContinuation { continuation in
             self.queue.async {
-                continuation.resume(returning: Self.run(request, heapEnabled: heapEnabled))
+                let result = Self.run(request, heapEnabled: heapEnabled, heapBudgetMs: heapBudgetMs)
+                continuation.resume(returning: result)
             }
         }
     }
 
-    private static func run(_ request: MemoryDumpRequest, heapEnabled: Bool) -> Result<CommandResult, CommandError> {
+    private static func run(
+        _ request: MemoryDumpRequest,
+        heapEnabled: Bool,
+        heapBudgetMs: UInt64
+    ) -> Result<CommandResult, CommandError> {
         var stages = request.stages
         var context: [String: String] = [:]
         if !heapEnabled, stages.contains(.heap) {
@@ -59,8 +79,8 @@ final class MemoryDumpCommand: @unchecked Sendable {
 
         let output = capture_memory_dump(
             stages.reduce(0) { $0 | $1.mask },
-            request.heap.budgetMs,
-            request.heap.owners
+            heapBudgetMs,
+            Self.heapOwners
         ) as? [String: Any]
         guard let output else {
             return .failure(CommandError(title: "Unable to capture memory dump"))

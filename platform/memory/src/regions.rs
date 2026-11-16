@@ -24,7 +24,7 @@ use crate::sys::vm_region::{
   region_info,
   region_short_info,
 };
-use crate::tags::tag_name;
+use std::collections::HashMap;
 
 const MAX_REGIONS: u32 = 200_000;
 const MAX_SUBMAP_DEPTH: u32 = 8;
@@ -74,7 +74,7 @@ const fn may_hold_dirty_pages(info: &RegionShortInfo, depth: u32) -> bool {
 pub fn walk(images: Option<&ImageTable>) -> RegionsReport {
   let page_size = kernel_page_size();
   let mut by_tag = [TagTotals::default(); TAG_COUNT];
-  let mut charged_by_image = vec![0u64; images.map_or(0, ImageTable::len)];
+  let mut charged_by_image: HashMap<(usize, u32), u64> = HashMap::new();
   let mut region_count = 0;
   let mut truncated = false;
 
@@ -144,9 +144,8 @@ pub fn walk(images: Option<&ImageTable>) -> RegionsReport {
     {
       let size = region.size as u128;
       images.for_each_overlap(address, address + region.size, |image, bytes| {
-        if let Some(total) = charged_by_image.get_mut(image) {
-          *total += u64::try_from(u128::from(charged) * u128::from(bytes) / size).unwrap_or(0);
-        }
+        *charged_by_image.entry((image, info.user_tag)).or_default() +=
+          u64::try_from(u128::from(charged) * u128::from(bytes) / size).unwrap_or(0);
       });
     }
 
@@ -165,7 +164,7 @@ fn report(
   by_tag: &[TagTotals],
   region_count: u32,
   truncated: bool,
-  charged_by_image: &[u64],
+  charged_by_image: &HashMap<(usize, u32), u64>,
 ) -> RegionsReport {
   let mut tag_rows: Vec<TagRow> = by_tag
     .iter()
@@ -174,7 +173,6 @@ fn report(
     .map(|(tag, totals)| {
       let tag = u32::try_from(tag).unwrap_or_default();
       TagRow {
-        name: tag_name(tag).map_or_else(|| format!("VM_TAG_{tag}"), str::to_string),
         tag,
         regions: totals.regions,
         private_dirty: totals.private_dirty,
@@ -202,14 +200,14 @@ fn report(
   }
 }
 
-fn image_rows(charged_by_image: &[u64]) -> Vec<ImageChargeRow> {
+fn image_rows(charged_by_image: &HashMap<(usize, u32), u64>) -> Vec<ImageChargeRow> {
   let mut rows: Vec<ImageChargeRow> = charged_by_image
     .iter()
-    .enumerate()
     .filter(|(_, charged)| **charged > 0)
-    .map(|(image, charged)| ImageChargeRow {
+    .map(|(&(image, tag), &charged)| ImageChargeRow {
       image,
-      charged: *charged,
+      tag,
+      charged,
     })
     .collect();
   rows.sort_by(|left, right| {
@@ -217,6 +215,7 @@ fn image_rows(charged_by_image: &[u64]) -> Vec<ImageChargeRow> {
       .charged
       .cmp(&left.charged)
       .then(left.image.cmp(&right.image))
+      .then(left.tag.cmp(&right.tag))
   });
   rows
 }

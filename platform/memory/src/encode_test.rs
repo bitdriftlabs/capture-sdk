@@ -8,7 +8,6 @@
 
 use super::*;
 use crate::report::{ImageChargeRow, Ledgers, Owners, SystemIdentity, TagRow, Unclassified};
-use bd_proto::protos::memory::memory_dump::type_row::Kind;
 use bd_proto::protos::memory::memory_dump::{self as proto, MemoryDump};
 use protobuf::Message;
 
@@ -48,7 +47,6 @@ fn regions(image: usize) -> RegionsReport {
     charged: 5,
     virtual_size: 6,
     by_tag: vec![TagRow {
-      name: "MALLOC_SMALL".to_string(),
       tag: 7,
       regions: 8,
       private_dirty: 9,
@@ -57,14 +55,17 @@ fn regions(image: usize) -> RegionsReport {
       virtual_size: 12,
       charged: 13,
     }],
-    by_image: vec![ImageChargeRow { image, charged: 14 }],
+    by_image: vec![ImageChargeRow {
+      image,
+      tag: 7,
+      charged: 14,
+    }],
   }
 }
 
-fn named(kind: TypeKind, name: &str, blocks: u64) -> TypeRow {
+fn named(name: &str, blocks: u64) -> TypeRow {
   TypeRow {
     identity: Identity::Named {
-      kind,
       name: name.to_string(),
     },
     blocks,
@@ -89,16 +90,17 @@ fn heap(image: usize, owners: bool) -> HeapReport {
       blocks: 7,
       bytes: 8,
       histogram: vec![0, 9, 0, 10],
+      histogram_bytes: vec![0, 27, 0, 80],
     },
     owners: owners.then(|| Owners {
       blocks: 11,
       bytes: 12,
       shared_blocks: 13,
       table_overflow: 14,
-      by_type: vec![named(TypeKind::Class, "UIView", 15)],
+      by_type: vec![named("UIView", 15)],
     }),
     by_type: vec![
-      named(TypeKind::Class, "_TtC7Example4Feed", 19),
+      named("_TtC7Example4Feed", 19),
       TypeRow {
         identity: Identity::Address {
           image,
@@ -184,7 +186,7 @@ fn every_region_field_round_trips() {
     [2, 3, 4, 5, 6]
   );
   let tag = &regions.by_tag[0];
-  assert_eq!(tag.name, "MALLOC_SMALL");
+  assert_eq!(tag.name.len(), 0);
   assert_eq!([tag.tag, tag.regions], [7, 8]);
   assert_eq!(
     [
@@ -198,6 +200,7 @@ fn every_region_field_round_trips() {
   );
   assert_eq!(regions.by_image[0].image, 0);
   assert_eq!(regions.by_image[0].charged, 14);
+  assert_eq!(regions.by_image[0].tag, 7);
   assert_eq!(dump.images.len(), 1);
   assert_eq!(dump.images[0].name, images.name(3).unwrap());
   assert_eq!(dump.images[0].uuid, images.uuid(3).unwrap());
@@ -224,6 +227,7 @@ fn every_heap_field_round_trips() {
   assert_eq!(count(&heap.images), (5, 80));
   assert_eq!((heap.unclassified.blocks, heap.unclassified.bytes), (7, 8));
   assert_eq!(heap.unclassified.histogram, vec![0, 9, 0, 10]);
+  assert_eq!(heap.unclassified.histogram_bytes, vec![0, 27, 0, 80]);
 
   let owners = heap.owners.as_ref().unwrap();
   assert_eq!(
@@ -249,7 +253,7 @@ fn every_heap_field_round_trips() {
 }
 
 #[test]
-fn type_rows_carry_a_name_and_kind_or_an_address() {
+fn type_rows_carry_a_name_or_an_address() {
   let dump = decode(
     &Report {
       counters: None,
@@ -261,11 +265,9 @@ fn type_rows_carry_a_name_and_kind_or_an_address() {
   );
   let rows = &dump.heap.by_type;
   assert_eq!(rows[0].name(), "_TtC7Example4Feed");
-  assert_eq!(rows[0].kind.enum_value(), Ok(Kind::CLASS));
   assert_eq!((rows[0].blocks, rows[0].bytes), (19, 304));
 
   assert!(!rows[1].has_name());
-  assert_eq!(rows[1].kind.enum_value(), Ok(Kind::UNSPECIFIED));
   assert_eq!(rows[1].address().image, 0);
   assert_eq!(rows[1].address().offset, 0x4010);
   assert_eq!((rows[1].blocks, rows[1].bytes), (21, 22));

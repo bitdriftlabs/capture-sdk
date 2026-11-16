@@ -10,7 +10,7 @@
 
 use super::owner_tables::OwnerTables;
 use super::tables::{CandidateTable, ClassTable, ReadableRanges};
-use super::{Census, ISA_MASK, SKIPPED_ZONES, Summary, size_bucket};
+use super::{Census, ISA_MASK, SKIPPED_ZONES, Summary};
 use crate::sys::mach::now_ns;
 use crate::sys::malloc::{MALLOC_PTR_IN_USE_RANGE_TYPE, RangeSink, Zone};
 use libc::vm_range_t;
@@ -114,7 +114,7 @@ impl Recorder<'_> {
 
     if size < size_of::<usize>() as u64 || address == 0 {
       summary.unclassified(size);
-      summary.unclassified_histogram[size_bucket(size)] += 1;
+      summary.place_unclassified(size, 1, size);
       return;
     }
 
@@ -162,7 +162,7 @@ impl Recorder<'_> {
       }
       summary.candidate_table_overflow += 1;
     }
-    summary.unclassified_histogram[size_bucket(size)] += 1;
+    summary.place_unclassified(size, 1, size);
   }
 }
 
