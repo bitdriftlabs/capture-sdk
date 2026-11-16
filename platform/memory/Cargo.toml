@@ -1,0 +1,15 @@
+[package]
+edition      = "2024"
+license-file = "LICENSE"
+name         = "bd-memory-dump"
+publish      = false
+version      = "1.0.0"
+
+[dependencies]
+anyhow.workspace     = true
+serde.workspace      = true
+serde_json.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+name       = "bd_memory_dump"

@@ -3,6 +3,7 @@ members = [
   "platform/crash",
   "platform/jvm",
   "platform/jvm/core",
+  "platform/memory",
   "platform/shared",
   "platform/swift/source",
   "platform/test_helpers",
@@ -40,6 +41,7 @@ bd-log = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "e405f
 bd-log-metadata = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "e405fc528b58f14b099a45f1ebcfa439c92d0222" }
 bd-log-primitives = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "e405fc528b58f14b099a45f1ebcfa439c92d0222" }
 bd-logger = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "e405fc528b58f14b099a45f1ebcfa439c92d0222" }
+bd-memory-dump = { path = "platform/memory" }
 bd-metadata = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "e405fc528b58f14b099a45f1ebcfa439c92d0222" }
 bd-noop-network = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "e405fc528b58f14b099a45f1ebcfa439c92d0222" }
 bd-proto = { git = "https://github.com/bitdriftlabs/shared-core.git", rev = "e405fc528b58f14b099a45f1ebcfa439c92d0222" }
