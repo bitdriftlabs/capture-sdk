@@ -80,8 +80,7 @@ pub fn memory_dump(report: &Report, images: Option<&ImageTable>) -> anyhow::Resu
         .to_string(),
       uuid: images
         .and_then(|images| images.uuid(image))
-        .map(|uuid| uuid.to_vec())
-        .unwrap_or_default(),
+        .map_or_default(|uuid| uuid.to_vec()),
       ..Default::default()
     })
     .collect();

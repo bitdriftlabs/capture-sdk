@@ -132,7 +132,7 @@ fn class_lists_lie_in_loaded_images() {
   let _lock = memory_lock();
   let images = ImageTable::survey();
   let lists = class_lists();
-  assert!(!lists.is_empty());
+  assert_ne!(lists.len(), 0);
   for (address, size) in lists {
     assert!(images.owner(address).is_some(), "{address:#x}");
     assert_eq!(size % size_of::<usize>(), 0);

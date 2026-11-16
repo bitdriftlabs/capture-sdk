@@ -154,6 +154,8 @@ pub(crate) fn persist_anr(
     &mut device_info,
     source_view,
     report.app_exit_description,
+    // TODO: pass the encoded crash profile source once Android collects ANR profiles.
+    None,
     report.is_file_size_optimization_enabled,
   );
 

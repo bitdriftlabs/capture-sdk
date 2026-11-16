@@ -157,7 +157,7 @@ fn every_counter_round_trips() {
   );
   assert!(dump.regions.is_none());
   assert!(dump.heap.is_none());
-  assert!(dump.images.is_empty());
+  assert_eq!(dump.images.len(), 0);
 }
 
 #[test]
@@ -186,7 +186,7 @@ fn every_region_field_round_trips() {
     [2, 3, 4, 5, 6]
   );
   let tag = &regions.by_tag[0];
-  assert!(tag.name.is_empty());
+  assert_eq!(tag.name.len(), 0);
   assert_eq!([tag.tag, tag.regions], [7, 8]);
   assert_eq!(
     [

@@ -14,7 +14,7 @@ const CACHE_UUID_OFFSET: usize = 0x58;
 #[test]
 fn identity_describes_the_running_system() {
   let identity = identity().unwrap();
-  assert!(!identity.product_type.is_empty());
+  assert_ne!(identity.product_type.len(), 0);
   assert!(!identity.product_type.contains(' '));
   assert!(
     identity.os_build.chars().all(char::is_alphanumeric),
