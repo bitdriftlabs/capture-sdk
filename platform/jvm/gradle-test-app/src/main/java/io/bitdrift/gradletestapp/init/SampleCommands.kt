@@ -17,9 +17,11 @@ import io.bitdrift.capture.commands.CommandArgument
 import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandHandle
+import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.argument
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
+import io.bitdrift.gradletestapp.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
@@ -124,53 +126,115 @@ object SampleCommands {
                 val profilingType =
                     AppProfiler.ProfilingType.entries.firstOrNull { it.name.equals(requestedType, ignoreCase = true) }
                         ?: return@registerCommand error("invalid_profiling_type", requestedType, code = CommandErrorCode.InvalidArguments)
+                val request =
+                    when (profilingType) {
+                        // A heap dump has no duration; its buffer size is required instead.
+                        AppProfiler.ProfilingType.JAVA_HEAP_DUMP ->
+                            AppProfiler.Request.JavaHeapDump(argument<Long>("buffer_size_kb").toIntSaturated())
+                        AppProfiler.ProfilingType.HEAP_PROFILE -> AppProfiler.Request.HeapProfile(durationMs.toInt())
+                        AppProfiler.ProfilingType.STACK_SAMPLING -> AppProfiler.Request.StackSampling(durationMs.toInt())
+                        AppProfiler.ProfilingType.SYSTEM_TRACE -> AppProfiler.Request.SystemTrace(durationMs.toInt())
+                    }
                 val context = appContext ?: return@registerCommand error("no_context")
                 val workload =
                     if (arguments["symbolication_workload"].isTruthy()) PerfettoWorkload.start(profilingType, durationMs) else null
                 val result =
                     try {
-                        AppProfiler.capture(context, profilingType, durationMs.milliseconds)
+                        AppProfiler.capture(context, request)
                     } finally {
                         withContext(NonCancellable + Dispatchers.IO) { workload?.close() }
                     }
-                when (result) {
-                    is AppProfiler.Result.Saved -> {
-                        val file = File(result.path)
-                        Log.i(LOG_TAG, "Profiling result type=${profilingType.name} bytes=${file.length()}")
-                        val bytes =
-                            withContext(Dispatchers.IO) {
-                                file.takeIf(File::exists)?.readBytes()
-                            } ?: return@registerCommand error("profiling_failed", "trace file missing")
-                        success(
-                            attachment = CommandAttachment(bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
-                            context =
-                                mapOf(
-                                    "profiling_type" to profilingType.name,
-                                    "duration_ms" to durationMs.toString(),
-                                    "trace_bytes" to bytes.size.toString(),
-                                ),
-                        )
-                    }
-                    is AppProfiler.Result.Failure -> {
-                        Log.w(
-                            LOG_TAG,
-                            "Profiling failed type=${profilingType.name} errorName=${result.errorName} " +
-                                "errorCode=${result.errorCode} message=${result.message}",
-                        )
-                        error(
-                            "profiling_failed",
-                            listOfNotNull(result.errorName, result.message.ifEmpty { null }).joinToString(": "),
-                            context =
-                                buildMap {
-                                    put("profiling_type", profilingType.name)
-                                    result.errorCode?.let { put("error_code", it.toString()) }
-                                    result.errorName?.let { put("error_name", it) }
-                                },
-                        )
-                    }
-                }
+                profileResult(profilingType, durationMs, result)
+            },
+            Capture.Logger.registerCommand("heap_profile_demo") {
+                announce()
+                // Every argument is required; the platform clamps each value to its own bounds.
+                val request =
+                    AppProfiler.Request.HeapProfile(
+                        durationMs = argument<Long>("duration_ms").toIntSaturated(),
+                        bufferSizeKb = argument<Long>("buffer_size_kb").toIntSaturated(),
+                        samplingIntervalBytes = argument<Long>("sampling_interval_bytes"),
+                        trackJavaAllocations = argument<Boolean>("track_java_allocations"),
+                    )
+                val context = appContext ?: return@registerCommand error("no_context")
+                profileResult(request.type, request.durationMs.toLong(), AppProfiler.capture(context, request))
+            },
+            Capture.Logger.registerCommand("java_heap_dump_demo") {
+                announce()
+                // The only argument is required; the platform clamps it to its own bounds.
+                val request = AppProfiler.Request.JavaHeapDump(bufferSizeKb = argument<Long>("buffer_size_kb").toIntSaturated())
+                val context = appContext ?: return@registerCommand error("no_context")
+                profileResult(request.type, durationMs = null, AppProfiler.capture(context, request))
             },
         )
+
+    /** Attaches a saved trace, or reports the platform's error. */
+    private suspend fun CommandScope.profileResult(
+        profilingType: AppProfiler.ProfilingType,
+        durationMs: Long?,
+        result: AppProfiler.Result,
+    ): CommandResult =
+        when (result) {
+            is AppProfiler.Result.Saved -> {
+                val file = File(result.path)
+                Log.i(LOG_TAG, "Profiling result type=${profilingType.name} bytes=${file.length()}")
+                val bytes = withContext(Dispatchers.IO) { file.takeIf(File::exists)?.readBytes() }
+                if (bytes == null) {
+                    error("profiling_failed", "trace file missing")
+                } else {
+                    if (BuildConfig.E2E_TRACE_COPY) {
+                        saveE2eTraceCopy(bytes)
+                    }
+                    success(
+                        attachment = CommandAttachment(bytes, contentType = "application/vnd.bitdrift.perfetto-trace"),
+                        context =
+                            buildMap {
+                                put("profiling_type", profilingType.name)
+                                durationMs?.takeIf { profilingType.usesDuration }?.let { put("duration_ms", it.toString()) }
+                                put("trace_bytes", bytes.size.toString())
+                            },
+                    )
+                }
+            }
+            is AppProfiler.Result.Failure -> {
+                Log.w(
+                    LOG_TAG,
+                    "Profiling failed type=${profilingType.name} errorName=${result.errorName} " +
+                        "errorCode=${result.errorCode} message=${result.message}",
+                )
+                error(
+                    "profiling_failed",
+                    listOfNotNull(result.errorName, result.message.ifEmpty { null }).joinToString(": "),
+                    context =
+                        buildMap {
+                            put("profiling_type", profilingType.name)
+                            result.errorCode?.let { put("error_code", it.toString()) }
+                            result.errorName?.let { put("error_name", it) }
+                        },
+                )
+            }
+        }
+
+    /**
+     * Keeps an adb-pullable copy of an uploaded trace for the android-profiling-e2e skill, which
+     * compares it byte for byte with what the backend serves. Only built with `-Pe2eTraceCopy=true`.
+     */
+    private suspend fun CommandScope.saveE2eTraceCopy(bytes: ByteArray) {
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val dir = appContext?.getExternalFilesDir("e2e-traces") ?: return@runCatching
+                val out = File(dir, "${sessionId}_$commandId.perfetto-trace")
+                out.writeBytes(bytes)
+                Log.i(
+                    LOG_TAG,
+                    "E2E trace copy path=${out.absolutePath} bytes=${bytes.size} sessionId=$sessionId commandId=$commandId",
+                )
+            }.onFailure { Log.w(LOG_TAG, "E2E trace copy failed", it) }
+        }
+    }
+
+    /** Narrows to an Int without wrapping; the platform clamps the value to its own bounds. */
+    private fun Long.toIntSaturated(): Int = coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
 
     private fun CommandScope.announce() {
         val message = "Command $key invoked with ${arguments.ifEmpty { "no arguments" }}"

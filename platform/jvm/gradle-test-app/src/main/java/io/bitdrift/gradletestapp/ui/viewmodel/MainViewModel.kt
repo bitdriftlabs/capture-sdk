@@ -35,7 +35,6 @@ import io.bitdrift.gradletestapp.data.repository.SdkRepository
 import io.bitdrift.gradletestapp.data.repository.StressTestRepository
 import io.bitdrift.gradletestapp.init.CaptureSdkInitializer
 import io.bitdrift.gradletestapp.init.SampleCommands
-import kotlin.time.Duration.Companion.milliseconds
 import io.bitdrift.gradletestapp.data.model.ProfileExportState
 import io.bitdrift.gradletestapp.data.model.ProfilingState
 import io.bitdrift.gradletestapp.init.AppProfiler
@@ -305,7 +304,7 @@ class MainViewModel(
             is StressTestAction.FillDiskSpace -> fillDiskSpace()
             is StressTestAction.ClearDiskSpace -> clearDiskSpace()
             is StressTestAction.RefreshDiskSpace -> refreshDiskSpace()
-            is StressTestAction.StartProfiling -> startProfiling(action.type, action.durationMs)
+            is StressTestAction.StartProfiling -> startProfiling(action.request)
             is StressTestAction.ExportProfile -> exportProfile(action.path)
             is StressTestAction.ExportAllProfiles -> exportAllProfiles()
             is StressTestAction.ClearExportedProfiles -> clearExportedProfiles()
@@ -338,16 +337,14 @@ class MainViewModel(
         }
     }
 
-    private fun startProfiling(
-        type: AppProfiler.ProfilingType,
-        durationMs: Long,
-    ) {
+    private fun startProfiling(request: AppProfiler.Request) {
         if (_uiState.value.profiling is ProfilingState.Running) return
+        val type = request.type
         _uiState.update { it.copy(profiling = ProfilingState.Running(type)) }
         viewModelScope.launch {
-            Log.i(PROFILER_TAG, "starting ${type.name} (${durationMs}ms)")
+            Log.i(PROFILER_TAG, "starting $request")
             val state =
-                when (val result = AppProfiler.capture(application, type, durationMs.milliseconds)) {
+                when (val result = AppProfiler.capture(application, request)) {
                     is AppProfiler.Result.Saved -> {
                         Log.i(PROFILER_TAG, "${type.name} saved to ${result.path}")
                         ProfilingState.Saved(type, result.path, profileExporter.adbCommand(File(result.path)))
