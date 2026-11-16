@@ -30,7 +30,6 @@ mod report;
 mod safe_read;
 mod sys;
 mod system;
-mod tags;
 #[cfg(test)]
 mod test_support;
 

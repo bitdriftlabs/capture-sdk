@@ -80,7 +80,6 @@ pub struct RegionsReport {
 }
 
 pub struct TagRow {
-  pub name: String,
   pub tag: u32,
   pub regions: u32,
   pub private_dirty: u64,

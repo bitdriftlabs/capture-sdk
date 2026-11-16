@@ -24,7 +24,6 @@ use crate::sys::vm_region::{
   region_info,
   region_short_info,
 };
-use crate::tags::tag_name;
 use std::collections::HashMap;
 
 const MAX_REGIONS: u32 = 200_000;
@@ -174,7 +173,6 @@ fn report(
     .map(|(tag, totals)| {
       let tag = u32::try_from(tag).unwrap_or_default();
       TagRow {
-        name: tag_name(tag).map_or_else(|| format!("VM_TAG_{tag}"), str::to_string),
         tag,
         regions: totals.regions,
         private_dirty: totals.private_dirty,

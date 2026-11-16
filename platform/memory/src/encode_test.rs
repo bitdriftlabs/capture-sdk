@@ -47,7 +47,6 @@ fn regions(image: usize) -> RegionsReport {
     charged: 5,
     virtual_size: 6,
     by_tag: vec![TagRow {
-      name: "MALLOC_SMALL".to_string(),
       tag: 7,
       regions: 8,
       private_dirty: 9,
@@ -187,7 +186,7 @@ fn every_region_field_round_trips() {
     [2, 3, 4, 5, 6]
   );
   let tag = &regions.by_tag[0];
-  assert_eq!(tag.name, "MALLOC_SMALL");
+  assert!(tag.name.is_empty());
   assert_eq!([tag.tag, tag.regions], [7, 8]);
   assert_eq!(
     [

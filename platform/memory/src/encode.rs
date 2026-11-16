@@ -152,7 +152,6 @@ fn regions(report: &RegionsReport, numbers: &mut ImageNumbers) -> proto::Regions
 
 fn tag_row(row: &TagRow) -> proto::TagRow {
   proto::TagRow {
-    name: row.name.clone(),
     tag: row.tag,
     regions: row.regions,
     private_dirty: row.private_dirty,
