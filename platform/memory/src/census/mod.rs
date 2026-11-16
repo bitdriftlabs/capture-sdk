@@ -72,6 +72,7 @@ struct Summary {
   unclassified_blocks: u64,
   unclassified_bytes: u64,
   unclassified_histogram: [u64; SIZE_BUCKETS],
+  unclassified_histogram_bytes: [u64; SIZE_BUCKETS],
   largest_block_bytes: u64,
   truncated: bool,
   skipped_blocks: u64,
@@ -90,6 +91,13 @@ impl Summary {
   const fn unclassified(&mut self, size: u64) {
     self.unclassified_blocks += 1;
     self.unclassified_bytes += size;
+  }
+
+  /// Places blocks in the histogram by their size.
+  const fn place_unclassified(&mut self, size: u64, blocks: u64, bytes: u64) {
+    let bucket = size_bucket(size);
+    self.unclassified_histogram[bucket] += blocks;
+    self.unclassified_histogram_bytes[bucket] += bytes;
   }
 
   /// Moves blocks out of the unclassified tallies once resolution names them.

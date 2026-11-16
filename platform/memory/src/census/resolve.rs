@@ -8,7 +8,7 @@
 // may have been freed since it was recorded, so every read goes through a safe read.
 
 use super::tables::{Candidate, ClassTable, ReadableRanges, Resolution};
-use super::{Census, ISA_MASK, size_bucket};
+use super::{Census, ISA_MASK};
 use crate::images::ImageTable;
 use crate::safe_read;
 use crate::sys::mach::now_ns;
@@ -138,8 +138,11 @@ impl Census<'_> {
       resolve_candidate(&resolver, candidate, &mut self.names, &mut self.summary);
       if candidate.resolution == Resolution::Unresolved {
         // No per-candidate histogram is kept; the average size places its blocks.
-        self.summary.unclassified_histogram[size_bucket(candidate.bytes / candidate.blocks)] +=
-          candidate.blocks;
+        self.summary.place_unclassified(
+          candidate.bytes / candidate.blocks,
+          candidate.blocks,
+          candidate.bytes,
+        );
       }
     }
     self.summary.resolve_ns = now_ns() - started;

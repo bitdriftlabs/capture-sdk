@@ -10,6 +10,7 @@ use super::*;
 use crate::counters;
 use crate::test_support::memory_lock;
 use libc::{MAP_ANON, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE, c_void, mmap, munmap};
+use std::collections::HashSet;
 
 /// `VM_MEMORY_APPLICATION_SPECIFIC_1`, reserved for apps.
 const APPLICATION_TAG: u32 = 240;
@@ -98,6 +99,22 @@ fn image_rows_point_into_the_table_and_are_sorted() {
       .windows(2)
       .all(|pair| pair[0].charged >= pair[1].charged)
   );
+}
+
+#[test]
+fn image_rows_fall_within_the_charge_of_their_tag() {
+  let images = ImageTable::survey();
+  let report = walk(Some(&images));
+  let mut charged_by_tag: HashMap<u32, u64> = HashMap::new();
+  let mut keys = HashSet::new();
+  for row in &report.by_image {
+    assert!(keys.insert((row.image, row.tag)));
+    *charged_by_tag.entry(row.tag).or_default() += row.charged;
+  }
+  for (tag, charged) in charged_by_tag {
+    let tag_row = report.by_tag.iter().find(|row| row.tag == tag).unwrap();
+    assert!(charged <= tag_row.charged);
+  }
 }
 
 #[test]

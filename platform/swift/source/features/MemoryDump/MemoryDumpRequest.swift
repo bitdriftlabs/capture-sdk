@@ -14,82 +14,38 @@ struct MemoryDumpRequest: Equatable {
         case heap
     }
 
-    struct HeapOptions: Equatable {
-        var budgetMs: UInt64 = 250
-        var owners = true
+    let includeHeap: Bool
+
+    init(includeHeap: Bool = true) {
+        self.includeHeap = includeHeap
     }
 
-    static let maximumHeapBudgetMs: UInt64 = 4_000
-
-    /// The requested stages, in execution order and without duplicates.
-    let stages: [Stage]
-    let heap: HeapOptions
-
-    init(stages: [Stage] = Stage.allCases, heap: HeapOptions = .init()) {
-        self.stages = Stage.allCases.filter(stages.contains)
-        self.heap = heap
+    /// The stages to run, in execution order.
+    var stages: [Stage] {
+        self.includeHeap ? Stage.allCases : [.counters, .regions]
     }
 
-    /// Parses the command's flat arguments.
+    /// Parses the command's arguments.
     ///
     /// - parameter arguments: The invocation arguments.
     ///
-    /// - throws: An invalid-arguments `CommandError` for an unknown argument, a value of the wrong
-    ///           type, or a value outside its accepted range.
+    /// - throws: An invalid-arguments `CommandError` for an unknown argument or a value of the wrong
+    ///           type.
     init(arguments: CommandArguments) throws(CommandError) {
-        var stages = Stage.allCases
-        var heap = HeapOptions()
+        var includeHeap = true
 
         for (name, value) in arguments {
             switch name {
-            case "stages":
-                stages = try Self.parseStages(try Self.string(value, name: name))
-            case "heap.budget_ms":
-                heap.budgetMs = min(try Self.uint64(value, name: name), Self.maximumHeapBudgetMs)
-            case "heap.owners":
-                heap.owners = try Self.bool(value, name: name)
+            case "include_heap":
+                guard case let .bool(flag) = value else {
+                    throw .invalidArguments(description: "Argument '\(name)' must be a bool.")
+                }
+                includeHeap = flag
             default:
                 throw .invalidArguments(description: "Unknown argument '\(name)'.")
             }
         }
 
-        self.init(stages: stages, heap: heap)
-    }
-
-    private static func parseStages(_ rawStages: String) throws(CommandError) -> [Stage] {
-        var stages: [Stage] = []
-        for rawStage in rawStages.split(separator: ",", omittingEmptySubsequences: false) {
-            let name = rawStage.trimmingCharacters(in: .whitespaces)
-            guard let stage = Stage(rawValue: name) else {
-                throw .invalidArguments(description: "Unknown stage '\(name)'.")
-            }
-            stages.append(stage)
-        }
-        return stages
-    }
-
-    private static func string(_ value: CommandArgument, name: String) throws(CommandError) -> String {
-        guard case let .string(string) = value else {
-            throw typeMismatch(name: name, expected: "string")
-        }
-        return string
-    }
-
-    private static func uint64(_ value: CommandArgument, name: String) throws(CommandError) -> UInt64 {
-        guard case let .uint64(number) = value else {
-            throw typeMismatch(name: name, expected: "uint64")
-        }
-        return number
-    }
-
-    private static func bool(_ value: CommandArgument, name: String) throws(CommandError) -> Bool {
-        guard case let .bool(flag) = value else {
-            throw typeMismatch(name: name, expected: "bool")
-        }
-        return flag
-    }
-
-    private static func typeMismatch(name: String, expected: String) -> CommandError {
-        .invalidArguments(description: "Argument '\(name)' must be a \(expected).")
+        self.init(includeHeap: includeHeap)
     }
 }

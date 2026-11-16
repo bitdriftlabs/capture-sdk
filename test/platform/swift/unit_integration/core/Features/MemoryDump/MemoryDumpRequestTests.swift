@@ -13,28 +13,22 @@ final class MemoryDumpRequestTests: XCTestCase {
     private var request: MemoryDumpRequest?
     private var error: CommandError?
 
-    func testNoArgumentsUsesDefaults() {
+    func testNoArgumentsIncludeTheHeap() {
         givenArguments([:])
         whenParsing()
-        thenRequestEquals(MemoryDumpRequest())
+        thenRequestEquals(MemoryDumpRequest(includeHeap: true))
         thenStagesAre([.counters, .regions, .heap])
     }
 
-    func testExplicitArgumentsOverrideDefaults() {
-        givenArguments([
-            "stages": .string("regions"),
-            "heap.budget_ms": .uint64(100),
-            "heap.owners": .bool(false),
-        ])
+    func testExcludingTheHeapKeepsCountersAndRegions() {
+        givenArguments(["include_heap": .bool(false)])
         whenParsing()
-        thenRequestEquals(MemoryDumpRequest(
-            stages: [.regions],
-            heap: .init(budgetMs: 100, owners: false)
-        ))
+        thenRequestEquals(MemoryDumpRequest(includeHeap: false))
+        thenStagesAre([.counters, .regions])
     }
 
     func testRemovedOptionsAreRejected() {
-        for name in ["regions.mode", "regions.limit", "heap.limit", "heap.webkit"] {
+        for name in ["stages", "heap.budget_ms", "heap.owners", "regions.mode", "heap.limit"] {
             givenArguments([name: .uint64(1)])
             whenParsing()
             thenFailsWithInvalidArguments(mentioning: name)
@@ -43,46 +37,10 @@ final class MemoryDumpRequestTests: XCTestCase {
         }
     }
 
-    func testStagesRunInExecutionOrderWithoutDuplicates() {
-        givenArguments(["stages": .string("heap, counters,heap")])
-        whenParsing()
-        thenStagesAre([.counters, .heap])
-    }
-
-    func testUnknownArgumentIsRejected() {
-        givenArguments(["regions.depth": .uint64(1)])
-        whenParsing()
-        thenFailsWithInvalidArguments(mentioning: "regions.depth")
-    }
-
     func testWrongArgumentTypeIsRejected() {
-        givenArguments(["heap.owners": .string("true")])
+        givenArguments(["include_heap": .string("true")])
         whenParsing()
-        thenFailsWithInvalidArguments(mentioning: "heap.owners")
-    }
-
-    func testUnknownStageIsRejected() {
-        givenArguments(["stages": .string("counters,stacks")])
-        whenParsing()
-        thenFailsWithInvalidArguments(mentioning: "stacks")
-    }
-
-    func testEmptyStageIsRejected() {
-        givenArguments(["stages": .string("counters,")])
-        whenParsing()
-        thenFailsWithInvalidArguments(mentioning: "stage")
-    }
-
-    func testHeapBudgetIsClampedBelowTheCommandTimeout() {
-        givenArguments(["heap.budget_ms": .uint64(60_000)])
-        whenParsing()
-        thenHeapBudgetIs(MemoryDumpRequest.maximumHeapBudgetMs)
-    }
-
-    func testZeroHeapBudgetIsAccepted() {
-        givenArguments(["heap.budget_ms": .uint64(0)])
-        whenParsing()
-        thenHeapBudgetIs(0)
+        thenFailsWithInvalidArguments(mentioning: "include_heap")
     }
 }
 
@@ -107,11 +65,6 @@ private extension MemoryDumpRequestTests {
     func thenStagesAre(_ stages: [MemoryDumpRequest.Stage]) {
         XCTAssertNil(error)
         XCTAssertEqual(request?.stages, stages)
-    }
-
-    func thenHeapBudgetIs(_ budgetMs: UInt64) {
-        XCTAssertNil(error)
-        XCTAssertEqual(request?.heap.budgetMs, budgetMs)
     }
 
     func thenFailsWithInvalidArguments(mentioning text: String) {

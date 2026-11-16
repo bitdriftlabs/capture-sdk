@@ -23,13 +23,12 @@ use crate::report::{
   Report,
   SystemIdentity,
   TagRow,
-  TypeKind,
   TypeRow,
   Unclassified,
   ZoneRow,
 };
 use bd_proto::protos::memory::memory_dump as proto;
-use bd_proto::protos::memory::memory_dump::type_row::{Identity as ProtoIdentity, Kind};
+use bd_proto::protos::memory::memory_dump::type_row::Identity as ProtoIdentity;
 use protobuf::Message;
 use std::collections::HashMap;
 
@@ -143,6 +142,7 @@ fn regions(report: &RegionsReport, numbers: &mut ImageNumbers) -> proto::Regions
       .map(|row| proto::ImageChargeRow {
         image: numbers.number(row.image),
         charged: row.charged,
+        tag: row.tag,
         ..Default::default()
       })
       .collect(),
@@ -202,6 +202,7 @@ fn unclassified(report: &Unclassified) -> proto::Unclassified {
     blocks: report.blocks,
     bytes: report.bytes,
     histogram: report.histogram.clone(),
+    histogram_bytes: report.histogram_bytes.clone(),
     ..Default::default()
   }
 }
@@ -222,25 +223,16 @@ fn owners(report: &Owners, numbers: &mut ImageNumbers) -> proto::Owners {
 }
 
 fn type_row(row: &TypeRow, numbers: &mut ImageNumbers) -> proto::TypeRow {
-  let (identity, kind) = match &row.identity {
-    Identity::Named { kind, name } => (
-      ProtoIdentity::Name(name.clone()),
-      match kind {
-        TypeKind::Class => Kind::CLASS,
-      },
-    ),
-    Identity::Address { image, offset } => (
-      ProtoIdentity::Address(proto::ImageAddress {
-        image: numbers.number(*image),
-        offset: *offset,
-        ..Default::default()
-      }),
-      Kind::UNSPECIFIED,
-    ),
+  let identity = match &row.identity {
+    Identity::Named { name } => ProtoIdentity::Name(name.clone()),
+    Identity::Address { image, offset } => ProtoIdentity::Address(proto::ImageAddress {
+      image: numbers.number(*image),
+      offset: *offset,
+      ..Default::default()
+    }),
   };
   proto::TypeRow {
     identity: Some(identity),
-    kind: kind.into(),
     blocks: row.blocks,
     bytes: row.bytes,
     ..Default::default()

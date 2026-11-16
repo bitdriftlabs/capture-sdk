@@ -9,16 +9,7 @@
 
 use super::Census;
 use super::tables::Resolution;
-use crate::report::{
-  BlockCount,
-  HeapReport,
-  Identity,
-  Owners,
-  TypeKind,
-  TypeRow,
-  Unclassified,
-  ZoneRow,
-};
+use crate::report::{BlockCount, HeapReport, Identity, Owners, TypeRow, Unclassified, ZoneRow};
 use crate::sys::objc::validated_class_name;
 use std::collections::HashMap;
 
@@ -40,9 +31,9 @@ impl Totals {
 }
 
 impl Census<'_> {
-  fn named(&self, kind: TypeKind, name: usize) -> Option<Identity> {
+  fn named(&self, name: usize) -> Option<Identity> {
     let name = self.names.get(name)?.clone();
-    Some(Identity::Named { kind, name })
+    Some(Identity::Named { name })
   }
 
   pub(super) fn report(self) -> HeapReport {
@@ -56,10 +47,7 @@ impl Census<'_> {
       // SAFETY: an image's class list holds only classes. Realizing one with instances costs
       // nothing: it was realized when they were allocated.
       let name = unsafe { validated_class_name(*pointer) }.unwrap_or_default();
-      let key = Identity::Named {
-        kind: TypeKind::Class,
-        name,
-      };
+      let key = Identity::Named { name };
       if tally.blocks > 0 {
         types
           .entry(key.clone())
@@ -89,7 +77,7 @@ impl Census<'_> {
             image: candidate.name,
             offset,
           }),
-        Resolution::Class => self.named(TypeKind::Class, candidate.name),
+        Resolution::Class => self.named(candidate.name),
       };
       if let Some(identity) = identity {
         types
@@ -124,6 +112,7 @@ impl Census<'_> {
         blocks: summary.unclassified_blocks,
         bytes: summary.unclassified_bytes,
         histogram: summary.unclassified_histogram.to_vec(),
+        histogram_bytes: summary.unclassified_histogram_bytes.to_vec(),
       },
       owners: self.options.owners.then(|| Owners {
         blocks: summary.owned_blocks,

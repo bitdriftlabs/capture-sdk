@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 enum BuiltinCommands {
-    static func make(screenshot: SessionReplayController?) -> [CommandRegistry.Builtin] {
+    static func make(screenshot: SessionReplayController?, memoryDump: MemoryDumpCommand) -> [CommandRegistry.Builtin] {
         let screenshotType = BuiltinCommandType.takeScreenshot
         let traceType = BuiltinCommandType.stackSamplingTrace
         return [
@@ -22,6 +22,7 @@ enum BuiltinCommands {
             .init(type: traceType.rawValue, command: Command(key: traceType.key) { _ in
                 .failure(CommandError(title: "not implemented"))
             }, artifactType: "stack_sampling_trace", timeoutMilliseconds: 15_000),
+            memoryDump.builtin,
         ]
     }
 

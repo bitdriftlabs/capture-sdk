@@ -92,6 +92,7 @@ pub struct TagRow {
 
 pub struct ImageChargeRow {
   pub image: usize,
+  pub tag: u32,
   pub charged: u64,
 }
 
@@ -127,6 +128,8 @@ pub struct Unclassified {
   pub bytes: u64,
   /// Blocks per power-of-two size: index `n` counts sizes in [2^n, 2^(n+1)).
   pub histogram: Vec<u64>,
+  /// Bytes of the blocks counted in each histogram entry.
+  pub histogram_bytes: Vec<u64>,
 }
 
 /// Unclassified blocks credited to the named object pointing at them. A subset of
@@ -141,16 +144,10 @@ pub struct Owners {
   pub by_type: Vec<TypeRow>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum TypeKind {
-  Class,
-}
-
 /// What the first word of a row's blocks points to.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Identity {
   Named {
-    kind: TypeKind,
     name: String,
   },
   /// Not named on device: an offset from the image's mach header, for the backend to symbolicate.

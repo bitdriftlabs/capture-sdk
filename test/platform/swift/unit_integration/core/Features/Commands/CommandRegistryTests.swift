@@ -6,10 +6,13 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @_spi(ExperimentalAPI) @testable import Capture
+@testable import CaptureMocks
 import XCTest
 
 final class CommandRegistryTests: XCTestCase {
-    // Built-in wire IDs match workflow_command.proto: 2 = TAKE_SCREENSHOT, 3 = STACK_SAMPLING_TRACE.
+    // Built-in wire IDs match workflow_command.proto: 2 = TAKE_SCREENSHOT, 3 = STACK_SAMPLING_TRACE,
+    // 12 = MEMORY_DUMP.
+    private let logger = MockCoreLogging()
     private var sut: CommandRegistry!
     private var bridge: CommandRegistrationRecorder!
     private var target: CommandsTarget!
@@ -23,7 +26,7 @@ final class CommandRegistryTests: XCTestCase {
     func testBuiltinCannotBeShadowedOrUnregisteredByMatchingAppName() async throws {
         let registry = CommandRegistry(
             commands: [Command(key: "stack_sampling_trace") { _ in .success(CommandResult(context: ["app": "true"])) }],
-            builtins: BuiltinCommands.make(screenshot: nil)
+            builtins: makeBuiltins()
         )
         let appResult = await registry.execute(key: "stack_sampling_trace", arguments: [:])
         XCTAssertEqual(try appResult.get().context, ["app": "true"])
@@ -39,7 +42,7 @@ final class CommandRegistryTests: XCTestCase {
     }
 
     func testScreenshotValidatesArgumentsAndUnavailableProvider() async {
-        let registry = CommandRegistry(builtins: BuiltinCommands.make(screenshot: nil))
+        let registry = CommandRegistry(builtins: makeBuiltins())
         let invalid = await registry.execute(key: "take_screenshot", arguments: ["extra": .bool(true)], builtinType: 2)
         guard case let .failure(error) = invalid else { return XCTFail("expected invalid arguments") }
         XCTAssertEqual(error.code, CommandError.invalidArguments().code)
@@ -57,7 +60,7 @@ final class CommandRegistryTests: XCTestCase {
                 await gate.wait()
                 return .success(CommandResult())
             }, ],
-            builtins: BuiltinCommands.make(screenshot: nil),
+            builtins: makeBuiltins(),
             maxConcurrentExecutions: 1
         )
         async let appResult = registry.execute(key: "app", arguments: [:])
@@ -67,6 +70,18 @@ final class CommandRegistryTests: XCTestCase {
         XCTAssertEqual(error.code, CommandError.maximumConcurrency.code)
         whenOpeningGate(gate)
         _ = try await appResult.get()
+    }
+
+    func testMemoryDumpIsABuiltinWithItsArtifactType() async {
+        let builtin = makeBuiltins().first { $0.type == 12 }
+        XCTAssertEqual(builtin?.command.key, "memory_dump")
+        XCTAssertEqual(builtin?.artifactType, "memory_dump")
+        XCTAssertEqual(builtin?.timeoutMilliseconds, 15_000)
+
+        let registry = CommandRegistry(builtins: makeBuiltins(memoryDumpEnabled: false))
+        let result = await registry.execute(key: "memory_dump", arguments: [:], builtinType: 12)
+        guard case let .failure(error) = result else { return XCTFail("expected the disabled memory dump") }
+        XCTAssertEqual(error.title, "Memory dump is disabled")
     }
 
     func testFileFactoryPreservesDataApiWithoutReadingTheFile() {
@@ -332,6 +347,11 @@ final class CommandRegistryTests: XCTestCase {
 }
 
 private extension CommandRegistryTests {
+    func makeBuiltins(memoryDumpEnabled: Bool = true) -> [CommandRegistry.Builtin] {
+        logger.mockRuntimeVariable(.memoryDumpEnabled, with: memoryDumpEnabled)
+        return BuiltinCommands.make(screenshot: nil, memoryDump: MemoryDumpCommand(logger: logger))
+    }
+
     @discardableResult
     func givenRegisteredCommand(key: String, handler: @escaping CommandHandler) async -> CommandHandle {
         await sut.register(key: key, handler: handler, target: target)

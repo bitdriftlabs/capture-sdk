@@ -42,7 +42,7 @@ final class LoggerTests: XCTestCase {
 
         XCTAssertEqual(
             bridge.commandRegistrationEvents,
-            ["register:\(MemoryDumpCommand.key)", "register:sample_command", "start"]
+            ["register:sample_command", "start"]
         )
         let result = await logger.executeCommand(key: "sample_command", arguments: [:])
         let commandResult = try result.get()
@@ -64,8 +64,12 @@ final class LoggerTests: XCTestCase {
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
 
-        XCTAssertEqual(bridge.builtinRegistrationAttempts, [BuiltinCommandType.takeScreenshot.rawValue, BuiltinCommandType.stackSamplingTrace.rawValue])
-        XCTAssertEqual(bridge.commandRegistrationEvents, ["register:\(MemoryDumpCommand.key)", "register:app", "start"])
+        XCTAssertEqual(bridge.builtinRegistrationAttempts, [
+            BuiltinCommandType.takeScreenshot.rawValue,
+            BuiltinCommandType.stackSamplingTrace.rawValue,
+            BuiltinCommandType.memoryDump.rawValue,
+        ])
+        XCTAssertEqual(bridge.commandRegistrationEvents, ["register:app", "start"])
         XCTAssertEqual(
             bridge.startLog.load()?.0.first(where: { $0.key == "_failed_builtin_commands" })?.data as? String,
             BuiltinCommandType.takeScreenshot.key
