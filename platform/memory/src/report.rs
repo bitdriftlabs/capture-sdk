@@ -21,6 +21,8 @@ pub struct Report {
   pub counters: Option<CountersReport>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub regions: Option<RegionsReport>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub heap: Option<HeapReport>,
 }
 
 //
@@ -97,4 +99,115 @@ pub struct TagRow {
 pub struct ImageChargeRow {
   pub name: String,
   pub charged: u64,
+}
+
+//
+// HeapReport
+//
+
+#[derive(Serialize)]
+pub struct HeapReport {
+  /// The lock budget ran out: the figures are a floor, not an inventory.
+  pub truncated: bool,
+  pub total: BlockCount,
+  pub largest_block_bytes: u64,
+  pub named: BlockCount,
+  pub swift_boxes: BlockCount,
+  pub images: BlockCount,
+  /// The tables of the dump itself, counted in the totals but in no other category.
+  pub reporter: BlockCount,
+  pub unclassified: Unclassified,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub owners: Option<Owners>,
+  pub dropped: Dropped,
+  pub timings: HeapTimings,
+  pub by_type: Vec<TypeRow>,
+  pub by_image: Vec<ImageBlocksRow>,
+  pub zones: Vec<ZoneRow>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct BlockCount {
+  pub blocks: u64,
+  pub bytes: u64,
+}
+
+#[derive(Serialize, Debug)]
+pub struct Unclassified {
+  pub blocks: u64,
+  pub bytes: u64,
+  /// Blocks per power-of-two size: index `n` counts sizes in [2^n, 2^(n+1)).
+  pub histogram: Vec<u64>,
+}
+
+/// Unclassified blocks credited to the named object pointing at them. A subset of
+/// `unclassified`, never an addition to it.
+#[derive(Serialize, Debug)]
+pub struct Owners {
+  pub blocks: u64,
+  pub bytes: u64,
+  pub shared_blocks: u64,
+  pub table_overflow: u64,
+  /// Types by the unclassified bytes they own.
+  pub by_type: Vec<TypeRow>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct Dropped {
+  pub skipped_blocks: u64,
+  pub candidate_overflow: u64,
+  pub unreadable_candidates: u64,
+}
+
+#[derive(Serialize, Debug)]
+#[allow(clippy::struct_field_names)]
+pub struct HeapTimings {
+  pub lock_held_ms: f64,
+  pub lock_wait_ms: f64,
+  pub resolve_ms: f64,
+  pub owners_ms: f64,
+}
+
+#[derive(Serialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum TypeKind {
+  Class,
+  Cxx,
+}
+
+#[derive(Serialize, Debug)]
+pub struct TypeRow {
+  pub name: String,
+  pub kind: TypeKind,
+  pub blocks: u64,
+  pub bytes: u64,
+}
+
+#[derive(Serialize, Debug)]
+pub struct ImageBlocksRow {
+  pub name: String,
+  pub blocks: u64,
+  pub bytes: u64,
+}
+
+#[derive(Serialize, Debug)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct ZoneRow {
+  pub name: String,
+  pub blocks: u64,
+  pub bytes: u64,
+  pub lock_held_ms: f64,
+  /// The zone was locked and enumerated.
+  pub enumerated: bool,
+  /// The enumerator reported at least one batch.
+  pub seen: bool,
+  /// The zone is never locked.
+  pub skipped: bool,
+  /// The zone spent its budget share before its enumeration finished.
+  pub truncated: bool,
+}
+
+#[allow(clippy::cast_precision_loss)]
+pub fn milliseconds(nanoseconds: u64) -> f64 {
+  (nanoseconds as f64 / 1_000.0).round() / 1_000.0
 }

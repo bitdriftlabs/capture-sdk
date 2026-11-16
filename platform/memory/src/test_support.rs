@@ -8,6 +8,7 @@ use std::sync::{Mutex, MutexGuard};
 
 /// Bazel runs a crate's tests as threads of one process. A region mapped and unmapped while another
 /// test walks the map shows in the walk but not in the footprint read after it.
+/// Two censuses locking zones from different threads can deadlock.
 static MEMORY_LOCK: Mutex<()> = Mutex::new(());
 
 pub fn memory_lock() -> MutexGuard<'static, ()> {

@@ -10,5 +10,7 @@
 
 pub mod dyld;
 pub mod mach;
+pub mod malloc;
+pub mod objc;
 pub mod task_info;
 pub mod vm_region;

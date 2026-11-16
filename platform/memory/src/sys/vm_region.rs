@@ -18,6 +18,7 @@ use libc::{
 };
 
 /// From `<mach/vm_prot.h>`.
+pub const VM_PROT_READ: c_int = 0x1;
 pub const VM_PROT_WRITE: c_int = 0x2;
 
 /// Share modes from `<mach/vm_region.h>`.

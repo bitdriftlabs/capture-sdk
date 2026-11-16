@@ -9,9 +9,13 @@ version      = "1.0.0"
 anyhow.workspace     = true
 libc.workspace       = true
 log.workspace        = true
+objc.workspace       = true
 serde.workspace      = true
 serde_json.workspace = true
 
 [lib]
 crate-type = ["rlib"]
 name       = "bd_memory_dump"
+
+[features]
+cargo-clippy = []

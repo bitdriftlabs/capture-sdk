@@ -4,8 +4,8 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-//! Memory diagnostics for the `ios_memory_dump` command: kernel counters and the VM map, captured
-//! from inside the process.
+//! Memory diagnostics for the `ios_memory_dump` command: kernel counters, the VM map and a census
+//! of the malloc heap, captured from inside the process.
 
 #![deny(
   clippy::expect_used,
@@ -20,6 +20,7 @@
 #[path = "./lib_test.rs"]
 mod tests;
 
+mod census;
 mod counters;
 mod images;
 mod regions;
@@ -30,8 +31,9 @@ mod tags;
 #[cfg(test)]
 mod test_support;
 
+pub use census::HeapOptions;
 use images::ImageTable;
-use report::{Report, SCHEMA_VERSION};
+use report::{HeapReport, Report, SCHEMA_VERSION};
 use std::time::Instant;
 
 //
@@ -60,19 +62,6 @@ impl Stages {
 }
 
 //
-// HeapOptions
-//
-
-#[derive(Clone, Copy)]
-pub struct HeapOptions {
-  /// Time the zone locks may be held, shared among the enumerated zones. A zone that spends its
-  /// share stops recording; time a zone leaves unused goes to the zones after it.
-  pub budget_ms: u64,
-  /// Credit unnamed blocks to the named object that points at them.
-  pub owners: bool,
-}
-
-//
 // Request
 //
 
@@ -98,14 +87,16 @@ pub fn capture(request: &Request) -> anyhow::Result<Dump> {
     schema_version: SCHEMA_VERSION,
     counters: None,
     regions: None,
+    heap: None,
   };
 
   if let Some(footprint) = counters::phys_footprint() {
     context.push(("phys_footprint_before".to_string(), footprint.to_string()));
   }
 
+  // Surveyed once, before the stages that attribute addresses to images.
   // TODO(ademarco): worth moving to a shared cache once we use this in bd_crash_reporter
-  let images = request.stages.regions.then(ImageTable::survey);
+  let images = (request.stages.regions || request.stages.heap).then(ImageTable::survey);
 
   if request.stages.counters {
     let started = Instant::now();
@@ -116,6 +107,13 @@ pub fn capture(request: &Request) -> anyhow::Result<Dump> {
     let started = Instant::now();
     report.regions = Some(regions::walk(images.as_ref()));
     context.push(timing("regions", started));
+  }
+  if request.stages.heap {
+    let started = Instant::now();
+    let heap = census::capture(request.heap, images.as_ref());
+    context.push(timing("heap", started));
+    context.extend(heap_context(&heap));
+    report.heap = Some(heap);
   }
 
   if let Some(footprint) = counters::phys_footprint() {
@@ -134,4 +132,25 @@ fn timing(stage: &str, started: Instant) -> (String, String) {
     format!("{stage}_ms"),
     format!("{:.1}", started.elapsed().as_secs_f64() * 1_000.0),
   )
+}
+
+fn heap_context(heap: &HeapReport) -> [(String, String); 3] {
+  let zones = |include: fn(&report::ZoneRow) -> bool| {
+    heap
+      .zones
+      .iter()
+      .filter(|zone| include(zone))
+      .map(|zone| zone.name.as_str())
+      .collect::<Vec<_>>()
+      .join(",")
+  };
+  [
+    ("heap_truncated".to_string(), heap.truncated.to_string()),
+    // Zones enumerated without ever reporting a batch keep their blocks out of the census.
+    (
+      "heap_zones_not_seen".to_string(),
+      zones(|zone| zone.enumerated && !zone.seen),
+    ),
+    ("heap_zones_skipped".to_string(), zones(|zone| zone.skipped)),
+  ]
 }
