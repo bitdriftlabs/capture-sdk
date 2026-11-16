@@ -7,26 +7,16 @@
 // Tables the census fills while zones are locked. Each one is allocated in full before the first
 // lock and written without allocating afterwards.
 
-use crate::sys::objc::registered_classes;
+use crate::mapped::MappedVec;
+use crate::sys::objc::known_classes;
 use crate::sys::vm_region::{VM_PROT_READ, region_short_info};
-use std::ffi::CStr;
 
-const CANDIDATE_CAPACITY_BITS: u32 = 17;
-const CANDIDATE_CAPACITY: usize = 1 << CANDIDATE_CAPACITY_BITS;
+const MIN_CANDIDATE_CAPACITY_BITS: u32 = 14;
+const MAX_CANDIDATE_CAPACITY_BITS: u32 = 17;
 /// A hard probe limit keeps a saturated table from turning each insert into a full scan while a
 /// zone is locked.
 const CANDIDATE_PROBE_LIMIT: usize = 32;
 const RANGE_CAPACITY: usize = 8192;
-
-//
-// ClassEntry
-//
-
-pub struct ClassEntry {
-  pub pointer: usize,
-  pub instance_size: usize,
-  pub name: &'static CStr,
-}
 
 //
 // Tally
@@ -46,33 +36,24 @@ pub struct Tally {
 // ClassTable
 //
 
-/// The registered classes sorted by address, searched by bisection.
+/// The classes the loaded images define, sorted by address and searched by bisection.
 pub struct ClassTable {
-  pub entries: Vec<ClassEntry>,
-  pub tallies: Vec<Tally>,
+  pub pointers: MappedVec<usize>,
+  pub tallies: MappedVec<Tally>,
 }
 
 impl ClassTable {
-  pub fn new() -> Self {
-    let mut entries: Vec<ClassEntry> = registered_classes()
-      .into_iter()
-      .map(|class| ClassEntry {
-        pointer: class.pointer,
-        instance_size: class.instance_size,
-        name: class.name,
-      })
-      .collect();
-    entries.sort_unstable_by_key(|entry| entry.pointer);
-    let tallies = vec![Tally::default(); entries.len()];
-    Self { entries, tallies }
+  pub fn new() -> Option<Self> {
+    let mut pointers = known_classes()?;
+    pointers.sort_unstable();
+    // SAFETY: a zeroed `Tally` is the default one.
+    let tallies = unsafe { MappedVec::zeroed(pointers.len()) }?;
+    Some(Self { pointers, tallies })
   }
 
   /// Index of the class at `pointer`. No allocations.
   pub fn find(&self, pointer: usize) -> Option<usize> {
-    self
-      .entries
-      .binary_search_by_key(&pointer, |entry| entry.pointer)
-      .ok()
+    self.pointers.binary_search(&pointer).ok()
   }
 }
 
@@ -84,10 +65,8 @@ impl ClassTable {
 #[repr(u8)]
 pub enum Resolution {
   Unresolved = 0,
-  /// An `ObjC` or Swift class the runtime does not list. `name` indexes the census names.
+  /// An `ObjC` or Swift class no image lists. `name` indexes the census names.
   Class,
-  /// A polymorphic C++ type named through RTTI. `name` indexes the census names.
-  Cxx,
   /// No type, only the image owning the first word. `name` is the image index.
   Image,
   /// A Swift heap object with no class, counted without a name.
@@ -113,33 +92,33 @@ pub struct Candidate {
 // CandidateTable
 //
 
-/// Open-addressed table of candidates, sized for the tens of thousands of distinct first words a
-/// large app produces. Zero-filled on allocation, so only the pages touched are committed.
+/// Open-addressed table of candidates. Zero-filled on allocation, but hashing spreads the
+/// candidates over every page, so the whole table is committed.
 pub struct CandidateTable {
-  pub slots: Box<[Candidate]>,
+  pub slots: MappedVec<Candidate>,
+  capacity_bits: u32,
 }
 
 impl CandidateTable {
-  pub fn new() -> Self {
-    let slots = Box::<[Candidate]>::new_zeroed_slice(CANDIDATE_CAPACITY);
+  pub fn new(blocks: usize) -> Option<Self> {
+    let capacity_bits = candidate_capacity_bits(blocks);
     // SAFETY: every field of `Candidate` is valid when zeroed: integers, and `Unresolved = 0`.
-    let slots = unsafe { slots.assume_init() };
-    Self { slots }
+    let slots = unsafe { MappedVec::zeroed(1 << capacity_bits) }?;
+    Some(Self {
+      slots,
+      capacity_bits,
+    })
   }
 
-  const fn slot(metadata: usize) -> usize {
-    ((metadata as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15) >> (64 - CANDIDATE_CAPACITY_BITS))
-      as usize
-  }
-
-  fn probe(metadata: usize) -> impl Iterator<Item = usize> {
-    let start = Self::slot(metadata);
-    (0 .. CANDIDATE_PROBE_LIMIT).map(move |probe| (start + probe) & (CANDIDATE_CAPACITY - 1))
+  fn probe(&self, metadata: usize) -> impl Iterator<Item = usize> + use<> {
+    let start = metadata.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> (usize::BITS - self.capacity_bits);
+    let mask = (1 << self.capacity_bits) - 1;
+    (0 .. CANDIDATE_PROBE_LIMIT).map(move |probe| (start + probe) & mask)
   }
 
   /// Adds a block under `metadata`. Returns false when the table is full. No allocations.
   pub fn record(&mut self, metadata: usize, size: u64) -> bool {
-    for index in Self::probe(metadata) {
+    for index in self.probe(metadata) {
       let candidate = &mut self.slots[index];
       if candidate.metadata == metadata {
         candidate.blocks += 1;
@@ -157,7 +136,7 @@ impl CandidateTable {
   }
 
   pub fn find(&self, metadata: usize) -> Option<&Candidate> {
-    for index in Self::probe(metadata) {
+    for index in self.probe(metadata) {
       let candidate = &self.slots[index];
       if candidate.metadata == metadata {
         return Some(candidate);
@@ -176,24 +155,33 @@ impl CandidateTable {
   }
 }
 
+/// Slots for half the heap's blocks, a power of two within bounds. Distinct first words stay well
+/// under that: an iPhone app with 64K blocks had 10K.
+const fn candidate_capacity_bits(blocks: usize) -> u32 {
+  let bits = (blocks / 2).next_power_of_two().trailing_zeros();
+  if bits < MIN_CANDIDATE_CAPACITY_BITS {
+    MIN_CANDIDATE_CAPACITY_BITS
+  } else if bits > MAX_CANDIDATE_CAPACITY_BITS {
+    MAX_CANDIDATE_CAPACITY_BITS
+  } else {
+    bits
+  }
+}
+
 //
 // ReadableRanges
 //
 
 /// The readable ranges of the address space, sorted and merged.
 pub struct ReadableRanges {
-  ranges: Vec<(usize, usize)>,
+  ranges: MappedVec<(usize, usize)>,
 }
 
 impl ReadableRanges {
-  pub fn new() -> Self {
-    Self {
-      ranges: Vec::with_capacity(RANGE_CAPACITY),
-    }
-  }
-
-  pub fn as_ptr(&self) -> usize {
-    self.ranges.as_ptr() as usize
+  pub fn new() -> Option<Self> {
+    Some(Self {
+      ranges: MappedVec::with_capacity(RANGE_CAPACITY)?,
+    })
   }
 
   /// Surveys the address space. Makes syscalls, so never call it with a zone locked.
@@ -218,7 +206,9 @@ impl ReadableRanges {
         let end = address + region.size;
         match self.ranges.last_mut() {
           Some(last) if last.1 == address => last.1 = end,
-          _ => self.ranges.push((address, end)),
+          _ => {
+            let _ = self.ranges.push((address, end));
+          },
         }
       }
       address += region.size;
@@ -227,11 +217,29 @@ impl ReadableRanges {
 
   /// End of the readable range containing `address`. No syscalls, no allocations.
   pub fn readable_end(&self, address: usize) -> Option<usize> {
+    self.readable_range(address).map(|range| range.1)
+  }
+
+  /// Whether `address` is readable, checking `last_range` before searching and keeping the range
+  /// found there. No syscalls, no allocations.
+  pub fn is_readable(&self, address: usize, last_range: &mut (usize, usize)) -> bool {
+    if (last_range.0 .. last_range.1).contains(&address) {
+      return true;
+    }
+    let Some(range) = self.readable_range(address) else {
+      return false;
+    };
+    *last_range = range;
+    true
+  }
+
+  /// The readable range containing `address`, as [start, end). No syscalls, no allocations.
+  fn readable_range(&self, address: usize) -> Option<(usize, usize)> {
     let index = self.ranges.partition_point(|range| range.1 <= address);
     self
       .ranges
       .get(index)
       .filter(|range| range.0 <= address)
-      .map(|range| range.1)
+      .copied()
   }
 }

@@ -8,13 +8,16 @@
 // may have been freed since it was recorded, so every read goes through a safe read.
 
 use super::tables::{Candidate, ClassTable, ReadableRanges, Resolution};
-use super::{ADDRESS_MASK, Census, ISA_MASK, size_bucket};
+use super::{Census, ISA_MASK, size_bucket};
 use crate::images::ImageTable;
 use crate::safe_read;
 use crate::sys::mach::now_ns;
 use crate::sys::objc::validated_class_name;
 
-const CXX_NAME_CAPACITY: usize = 256;
+#[cfg(test)]
+#[path = "./resolve_test.rs"]
+mod tests;
+
 /// Hops from a class to the root metaclass, which points at itself.
 const ISA_CHAIN_HOPS: usize = 3;
 const SUPERCLASS_CHAIN_HOPS: usize = 16;
@@ -65,8 +68,9 @@ impl Resolver<'_> {
     false
   }
 
-  /// Every real class, including Swift generic instantiations the runtime does not list, inherits
-  /// from a registered class. The superclass is the second word of `objc_class`.
+  /// Every real class, including the Swift generic instantiations and runtime-created classes no
+  /// image lists, inherits from a class some image lists. The superclass is the second word of
+  /// `objc_class`.
   fn superclass_chain_reaches_known(&self, candidate: usize) -> bool {
     let mut current = candidate;
     for _ in 0 .. SUPERCLASS_CHAIN_HOPS {
@@ -85,27 +89,34 @@ impl Resolver<'_> {
     false
   }
 
-  fn class_name(&self, candidate: usize) -> Option<String> {
-    if !self.isa_chain_is_consistent(candidate) || !self.superclass_chain_reaches_known(candidate) {
-      return None;
-    }
-    // SAFETY: validated as a class by both chains above.
-    unsafe { validated_class_name(candidate) }
+  /// A class's metaclass inherits from its superclass's metaclass. A buffer that only mimics the
+  /// two chains, such as an array of class pointers, breaks this.
+  fn metaclass_matches_superclass(&self, candidate: usize) -> bool {
+    let pointer_at = |address: usize| self.read_word(address).map(|word| word & ISA_MASK);
+    let (Some(metaclass), Some(superclass)) = (
+      pointer_at(candidate),
+      pointer_at(candidate + size_of::<usize>()),
+    ) else {
+      return false;
+    };
+    let (Some(superclass_metaclass), Some(metaclass_superclass)) = (
+      pointer_at(superclass),
+      pointer_at(metaclass + size_of::<usize>()),
+    ) else {
+      return false;
+    };
+    superclass_metaclass != 0 && superclass_metaclass == metaclass_superclass
   }
 
-  /// Itanium ABI: a polymorphic object's first word points into its vtable, whose previous slot
-  /// is the `type_info` pointer; the `type_info`'s second word is the mangled name.
-  fn cxx_name(&self, vtable: usize) -> Option<String> {
-    let type_info = self.read_word(vtable.checked_sub(size_of::<usize>())?)? & ADDRESS_MASK;
-    let name = self.read_word(type_info + size_of::<usize>())? & ADDRESS_MASK;
-    self.ranges.readable_end(name)?;
-    let name = safe_read::read_string(name, CXX_NAME_CAPACITY)?;
-    // A mangled name starts with a length, a nested-name marker or a pointer modifier.
-    let first = *name.first()?;
-    if name.len() < 2 || !(first.is_ascii_alphanumeric() || first == b'_' || first == b'*') {
+  fn class_name(&self, candidate: usize) -> Option<String> {
+    if !self.isa_chain_is_consistent(candidate)
+      || !self.superclass_chain_reaches_known(candidate)
+      || !self.metaclass_matches_superclass(candidate)
+    {
       return None;
     }
-    String::from_utf8(name).ok()
+    // SAFETY: validated as a class by the chains and the metaclass above.
+    unsafe { validated_class_name(candidate) }
   }
 }
 
@@ -156,16 +167,8 @@ fn resolve_candidate(
     return;
   }
 
-  let named = resolver
-    .class_name(candidate.metadata)
-    .map(|name| (Resolution::Class, name))
-    .or_else(|| {
-      resolver
-        .cxx_name(candidate.metadata)
-        .map(|name| (Resolution::Cxx, name))
-    });
-  if let Some((resolution, name)) = named {
-    candidate.resolution = resolution;
+  if let Some(name) = resolver.class_name(candidate.metadata) {
+    candidate.resolution = Resolution::Class;
     candidate.name = names.len();
     names.push(name);
     summary.named_blocks += candidate.blocks;
@@ -174,6 +177,7 @@ fn resolve_candidate(
     return;
   }
 
+  // A C++ vtable lands here too: the backend names it from the image offset.
   if let Some(image) = resolver
     .images
     .and_then(|images| images.owner(candidate.metadata))

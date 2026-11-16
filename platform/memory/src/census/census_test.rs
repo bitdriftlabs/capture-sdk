@@ -8,6 +8,7 @@
 
 use super::*;
 use crate::report::{Identity, TypeRow};
+use crate::sys::objc::register_test_class;
 use crate::test_support::memory_lock;
 use libc::{
   MAP_ANON,
@@ -44,7 +45,9 @@ fn holder_class(name: &'static str, cell: &'static OnceLock<&'static Class>) -> 
   cell.get_or_init(|| {
     let mut declaration = ClassDecl::new(name, class!(NSObject)).unwrap();
     declaration.add_ivar::<usize>(BUFFER_IVAR);
-    declaration.register()
+    let class = declaration.register();
+    register_test_class(std::ptr::from_ref::<Class>(class) as usize);
+    class
   })
 }
 
@@ -110,6 +113,7 @@ fn census_with_budget(budget_ms: u64, owners: bool) -> HeapReport {
     HeapOptions { budget_ms, owners },
     Some(&ImageTable::survey()),
   )
+  .unwrap()
 }
 
 fn is_named(row: &TypeRow, class: &str) -> bool {
@@ -270,11 +274,10 @@ fn blocks_pointing_at_box_metadata_are_swift_boxes() {
 }
 
 #[test]
-fn the_dump_tables_are_reported_apart() {
+fn the_dump_tables_are_not_in_the_heap() {
   let _lock = memory_lock();
   let report = census(true);
-  assert!(report.reporter.blocks >= 3);
-  assert!(report.reporter.bytes > 0);
+  assert!(report.largest_block_bytes < 1 << 20);
 }
 
 fn zone_named(name: &str, blocks: usize) -> *mut c_void {
@@ -392,7 +395,8 @@ fn candidate_unmapped_before_resolution_stays_unresolved() {
       owners: false,
     },
     None,
-  );
+  )
+  .unwrap();
   census.before_resolve = Some(Box::new(move || {
     // SAFETY: the mapping created above.
     assert_eq!(unsafe { munmap(region as *mut c_void, size) }, 0);
@@ -408,4 +412,60 @@ fn candidate_unmapped_before_resolution_stays_unresolved() {
     report.unclassified.histogram.iter().sum::<u64>(),
     report.unclassified.blocks
   );
+}
+
+#[test]
+fn owner_tables_map_the_scan_scratch_before_the_census() {
+  let tables = super::owner_tables::OwnerTables::new(0).unwrap();
+  assert_eq!(tables.scratch.len(), super::owner_tables::SCRATCH_SIZE);
+}
+
+#[test]
+fn a_protected_block_is_left_unclassified() {
+  let _lock = memory_lock();
+  let page = crate::sys::mach::page_size();
+  let mut block = std::ptr::null_mut();
+  // SAFETY: a page-aligned block of whole pages, so protecting it touches no other block.
+  unsafe {
+    assert_eq!(libc::posix_memalign(&raw mut block, page, 4 * page), 0);
+    block
+      .cast::<usize>()
+      .write(std::ptr::from_ref::<Class>(start_holder()) as usize);
+    assert_eq!(libc::mprotect(block, 4 * page, libc::PROT_NONE), 0);
+  }
+  let report = census(true);
+  // SAFETY: the block allocated and protected above.
+  unsafe {
+    assert_eq!(libc::mprotect(block, 4 * page, PROT_READ | PROT_WRITE), 0);
+    free(block);
+  }
+  assert!(report.total.blocks > 0);
+  assert!(
+    !report
+      .by_type
+      .iter()
+      .any(|row| is_named(row, "BdMemoryDumpStartHolder"))
+  );
+}
+
+#[test]
+fn candidate_table_holds_half_the_heap_within_bounds() {
+  use super::tables::CandidateTable;
+  let slots = |blocks| CandidateTable::new(blocks).unwrap().slots.len();
+  assert_eq!(slots(0), 1 << 14);
+  assert_eq!(slots(64_053), 1 << 15);
+  assert_eq!(slots(10_000_000), 1 << 17);
+}
+
+#[test]
+fn a_full_candidate_table_refuses_new_candidates() {
+  use super::tables::CandidateTable;
+  let mut table = CandidateTable::new(0).unwrap();
+  let capacity = table.slots.len();
+  let recorded = (1 ..= 2 * capacity)
+    .filter(|index| table.record(index * 8, 16))
+    .count();
+  assert!(recorded <= capacity, "{recorded}");
+  assert!(table.record(8, 16));
+  assert_eq!(table.find(8).unwrap().blocks, 2);
 }

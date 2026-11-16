@@ -15,10 +15,6 @@ use crate::sys::mach::now_ns;
 use crate::sys::malloc::{MALLOC_PTR_IN_USE_RANGE_TYPE, RangeSink, Zone};
 use libc::vm_range_t;
 
-/// The dump's own tables are all at least this large; smaller blocks skip the comparison.
-const REPORTER_BLOCK_MIN_SIZE: u64 = 16 * 1024;
-const REPORTER_BLOCK_CAPACITY: usize = 8;
-
 //
 // ZoneSummary
 //
@@ -74,10 +70,11 @@ struct Recorder<'t> {
   owners: Option<&'t mut OwnerTables>,
   summary: &'t mut Summary,
   zone: &'t mut ZoneSummary,
-  /// Start addresses of the dump's own tables.
-  reporter_blocks: [usize; REPORTER_BLOCK_CAPACITY],
   deadline_ns: u64,
   over_budget: bool,
+  /// The readable range the last block fell in. Blocks arrive region by region, so most blocks
+  /// skip the search.
+  last_readable: (usize, usize),
 }
 
 impl RangeSink for Recorder<'_> {
@@ -120,20 +117,19 @@ impl Recorder<'_> {
       summary.unclassified_histogram[size_bucket(size)] += 1;
       return;
     }
-    if size >= REPORTER_BLOCK_MIN_SIZE && self.reporter_blocks.contains(&address) {
-      summary.reporter_blocks += 1;
-      summary.reporter_bytes += size;
-      return;
-    }
 
-    // SAFETY: the zone is locked, so the block is live, word-aligned and at least a word long.
-    let first_word = unsafe { (address as *const usize).read() };
+    // An app can protect a live block, so only blocks the survey found readable are read. One
+    // protected after the survey still faults: a safe read is a syscall, too slow for every block.
+    let first_word = if self.ranges.is_readable(address, &mut self.last_readable) {
+      // SAFETY: the zone is locked, so the block is live, word-aligned and at least a word long,
+      // and its page was readable when surveyed.
+      unsafe { (address as *const usize).read() }
+    } else {
+      0
+    };
     let candidate = first_word & ISA_MASK;
 
-    // A block smaller than its class cannot be an instance of it.
-    if let Some(class) = self.classes.find(candidate)
-      && self.classes.entries[class].instance_size as u64 <= size
-    {
+    if let Some(class) = self.classes.find(candidate) {
       let tally = &mut self.classes.tallies[class];
       tally.blocks += 1;
       tally.bytes += size;
@@ -156,39 +152,23 @@ impl Recorder<'_> {
     if candidate > 0x1000
       && candidate.trailing_zeros() >= 3
       && self.ranges.readable_end(candidate).is_some()
-      && self.candidates.record(candidate, size)
     {
-      if let Some(unnamed) = unnamed {
-        unnamed.candidate = candidate;
+      if self.candidates.record(candidate, size) {
+        if let Some(unnamed) = unnamed {
+          unnamed.candidate = candidate;
+        }
+        // The histogram is completed after resolution, from the candidates left unnamed.
+        return;
       }
-      // The histogram is completed after resolution, from the candidates left unnamed.
-      return;
+      summary.candidate_table_overflow += 1;
     }
     summary.unclassified_histogram[size_bucket(size)] += 1;
   }
 }
 
 impl Census<'_> {
-  fn reporter_blocks(&self) -> [usize; REPORTER_BLOCK_CAPACITY] {
-    let mut blocks = [0; REPORTER_BLOCK_CAPACITY];
-    let mut addresses = vec![
-      self.classes.entries.as_ptr() as usize,
-      self.classes.tallies.as_ptr() as usize,
-      self.candidates.slots.as_ptr() as usize,
-      self.ranges.as_ptr(),
-    ];
-    if let Some(owners) = &self.owners {
-      addresses.extend(owners.table_addresses());
-    }
-    for (slot, address) in blocks.iter_mut().zip(addresses) {
-      *slot = address;
-    }
-    blocks
-  }
-
   /// Locks each zone in turn and records its live blocks.
   pub(super) fn enumerate(&mut self) {
-    let reporter_blocks = self.reporter_blocks();
     let mut zones_left = self.zones.iter().filter(|zone| zone.will_lock()).count() as u64;
     let mut budget_left_ns = self.options.budget_ms.saturating_mul(1_000_000);
 
@@ -213,6 +193,9 @@ impl Census<'_> {
         zone,
         summary: zone_summary,
       } = state;
+      // Surveyed per zone: the heap regions created while the zones before it were locked must be
+      // readable to the recorder.
+      self.ranges.survey();
       let wait_started = now_ns();
       let Some(lock) = zone.lock() else {
         continue;
@@ -225,9 +208,9 @@ impl Census<'_> {
         owners: self.owners.as_mut(),
         summary: &mut self.summary,
         zone: &mut *zone_summary,
-        reporter_blocks,
         deadline_ns: held_from + share_ns,
         over_budget: false,
+        last_readable: (0, 0),
       };
       lock.enumerate(&mut recorder);
       drop(lock);

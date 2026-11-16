@@ -6,7 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 // Stage 3: the malloc heap's live blocks, grouped by type, by owning image and by the named object
 // holding them. Zones are locked one at a time for a bounded budget; everything that allocates or
-// makes syscalls happens before the first lock or after the last one.
+// makes syscalls happens while no zone is locked.
 
 #[cfg(test)]
 #[path = "./census_test.rs"]
@@ -22,6 +22,7 @@ mod tables;
 use crate::images::ImageTable;
 use crate::report::HeapReport;
 use crate::sys::malloc::Zone;
+use anyhow::Context;
 use enumerate::ZoneState;
 use owner_tables::OwnerTables;
 use tables::{CandidateTable, ClassTable, ReadableRanges};
@@ -33,10 +34,6 @@ const ISA_MASK: usize = 0x0000_000f_ffff_fff8;
 /// bits a device uses.
 #[cfg(not(all(target_arch = "aarch64", target_os = "ios", not(target_abi = "sim"))))]
 const ISA_MASK: usize = 0x0000_7fff_ffff_fff8;
-
-/// Clears pointer authentication bits without touching alignment: a string pointer can land on any
-/// byte.
-const ADDRESS_MASK: usize = ISA_MASK | 0x7;
 
 /// Power-of-two size buckets for the blocks that could not be named.
 pub const SIZE_BUCKETS: usize = 32;
@@ -72,8 +69,6 @@ struct Summary {
   swift_box_bytes: u64,
   image_blocks: u64,
   image_bytes: u64,
-  reporter_blocks: u64,
-  reporter_bytes: u64,
   unclassified_blocks: u64,
   unclassified_bytes: u64,
   unclassified_histogram: [u64; SIZE_BUCKETS],
@@ -87,6 +82,7 @@ struct Summary {
   owned_bytes: u64,
   shared_owned_blocks: u64,
   owner_table_overflow: u64,
+  candidate_table_overflow: u64,
   owners_ns: u64,
 }
 
@@ -116,6 +112,15 @@ const fn size_bucket(size: u64) -> usize {
   }
 }
 
+/// Blocks in use in the zones the census locks, before the locks. Some zones report no statistics.
+fn blocks_in_use(zones: &[ZoneState]) -> usize {
+  zones
+    .iter()
+    .filter(|zone| zone.will_lock())
+    .map(|zone| zone.zone.blocks_in_use())
+    .sum()
+}
+
 //
 // Census
 //
@@ -128,40 +133,45 @@ struct Census<'a> {
   ranges: ReadableRanges,
   zones: Vec<ZoneState>,
   owners: Option<OwnerTables>,
-  /// C++ and unlisted class names found by resolution.
+  /// Names of the classes no image lists, found by resolution.
   names: Vec<String>,
   summary: Summary,
   #[cfg(test)]
   before_resolve: Option<Box<dyn FnOnce()>>,
 }
 
-pub fn capture(options: HeapOptions, images: Option<&ImageTable>) -> HeapReport {
-  Census::new(options, images).run()
+pub fn capture(options: HeapOptions, images: Option<&ImageTable>) -> anyhow::Result<HeapReport> {
+  Ok(Census::new(options, images)?.run())
 }
 
 impl<'a> Census<'a> {
-  fn new(options: HeapOptions, images: Option<&'a ImageTable>) -> Self {
+  fn new(options: HeapOptions, images: Option<&'a ImageTable>) -> anyhow::Result<Self> {
     let zones: Vec<ZoneState> = Zone::all().into_iter().map(ZoneState::new).collect();
-    let owners = options.owners.then(|| OwnerTables::new(&zones));
-    Self {
+    let blocks = blocks_in_use(&zones);
+    let owners = if options.owners {
+      Some(OwnerTables::new(blocks).context("mapping the owner tables")?)
+    } else {
+      None
+    };
+    Ok(Self {
       options,
       images,
-      classes: ClassTable::new(),
-      candidates: CandidateTable::new(),
-      ranges: ReadableRanges::new(),
+      classes: ClassTable::new().context("mapping the class table")?,
+      candidates: CandidateTable::new(blocks).context("mapping the candidate table")?,
+      ranges: ReadableRanges::new().context("mapping the readable ranges")?,
       zones,
       owners,
       names: Vec::new(),
       summary: Summary::default(),
       #[cfg(test)]
       before_resolve: None,
-    }
+    })
   }
 
   fn run(mut self) -> HeapReport {
-    // Every syscall and allocation happen here, before any zone is locked: the recorder filters
-    // candidates against this survey and writes into the tables without allocating.
-    self.ranges.survey();
+    // Every syscall and allocation happen outside the zone locks: the recorder reads blocks and
+    // filters candidates against the survey taken before each lock and writes into the tables
+    // without allocating.
     self.enumerate();
 
     // Regions may have been unmapped since the pre-lock survey.
@@ -175,14 +185,15 @@ impl<'a> Census<'a> {
     let summary = &self.summary;
     log::debug!(
       "heap census: {} blocks, {} bytes, truncated: {}, locks held {} ms, waited {} ms, resolve \
-       {} ms, owners {} ms",
+       {} ms, owners {} ms, candidate table overflow {}",
       summary.total_blocks,
       summary.total_bytes,
       summary.truncated,
       summary.lock_held_ns / 1_000_000,
       summary.lock_wait_ns / 1_000_000,
       summary.resolve_ns / 1_000_000,
-      summary.owners_ns / 1_000_000
+      summary.owners_ns / 1_000_000,
+      summary.candidate_table_overflow
     );
     self.report()
   }

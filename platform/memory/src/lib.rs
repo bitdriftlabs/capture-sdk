@@ -24,6 +24,7 @@ mod census;
 mod counters;
 mod encode;
 mod images;
+mod mapped;
 mod regions;
 mod report;
 mod safe_read;
@@ -112,10 +113,14 @@ pub fn capture(request: &Request) -> anyhow::Result<Dump> {
   }
   if request.stages.heap {
     let started = Instant::now();
-    let heap = census::capture(request.heap, images.as_ref());
-    context.push(timing("heap", started));
-    context.extend(heap_context(&heap));
-    report.heap = Some(heap);
+    match census::capture(request.heap, images.as_ref()) {
+      Ok(heap) => {
+        context.push(timing("heap", started));
+        context.extend(heap_context(&heap));
+        report.heap = Some(heap);
+      },
+      Err(error) => context.push(("heap_error".to_string(), format!("{error:#}"))),
+    }
   }
 
   if let Some(footprint) = counters::phys_footprint() {

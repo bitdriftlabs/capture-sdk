@@ -85,7 +85,6 @@ fn heap(image: usize, owners: bool) -> HeapReport {
     named: count(3),
     swift_boxes: count(4),
     images: count(5),
-    reporter: count(6),
     unclassified: Unclassified {
       blocks: 7,
       bytes: 8,
@@ -100,7 +99,6 @@ fn heap(image: usize, owners: bool) -> HeapReport {
     }),
     by_type: vec![
       named(TypeKind::Class, "_TtC7Example4Feed", 19),
-      named(TypeKind::Cxx, "N5caulk4FileE", 20),
       TypeRow {
         identity: Identity::Address {
           image,
@@ -224,7 +222,6 @@ fn every_heap_field_round_trips() {
   assert_eq!(count(&heap.named), (3, 48));
   assert_eq!(count(&heap.swift_boxes), (4, 64));
   assert_eq!(count(&heap.images), (5, 80));
-  assert_eq!(count(&heap.reporter), (6, 96));
   assert_eq!((heap.unclassified.blocks, heap.unclassified.bytes), (7, 8));
   assert_eq!(heap.unclassified.histogram, vec![0, 9, 0, 10]);
 
@@ -266,14 +263,12 @@ fn type_rows_carry_a_name_and_kind_or_an_address() {
   assert_eq!(rows[0].name(), "_TtC7Example4Feed");
   assert_eq!(rows[0].kind.enum_value(), Ok(Kind::CLASS));
   assert_eq!((rows[0].blocks, rows[0].bytes), (19, 304));
-  assert_eq!(rows[1].name(), "N5caulk4FileE");
-  assert_eq!(rows[1].kind.enum_value(), Ok(Kind::CXX));
 
-  assert!(!rows[2].has_name());
-  assert_eq!(rows[2].kind.enum_value(), Ok(Kind::UNSPECIFIED));
-  assert_eq!(rows[2].address().image, 0);
-  assert_eq!(rows[2].address().offset, 0x4010);
-  assert_eq!((rows[2].blocks, rows[2].bytes), (21, 22));
+  assert!(!rows[1].has_name());
+  assert_eq!(rows[1].kind.enum_value(), Ok(Kind::UNSPECIFIED));
+  assert_eq!(rows[1].address().image, 0);
+  assert_eq!(rows[1].address().offset, 0x4010);
+  assert_eq!((rows[1].blocks, rows[1].bytes), (21, 22));
   assert!(dump.heap.owners.is_none());
 }
 
@@ -290,7 +285,7 @@ fn images_are_listed_once_in_order_of_first_reference() {
     &images,
   );
   assert_eq!(dump.regions.by_image[0].image, 0);
-  assert_eq!(dump.heap.by_type[2].address().image, 1);
+  assert_eq!(dump.heap.by_type[1].address().image, 1);
   let names: Vec<&str> = dump
     .images
     .iter()

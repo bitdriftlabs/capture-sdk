@@ -4,8 +4,11 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
+use crate::safe_read;
 use libc::{c_char, intptr_t};
-use std::ffi::CStr;
+
+/// `PATH_MAX` from `<sys/syslimits.h>`.
+const PATH_CAPACITY: usize = 1024;
 
 // From `<mach-o/dyld.h>`.
 unsafe extern "C" {
@@ -32,16 +35,13 @@ pub fn image_header(index: u32) -> Option<(usize, usize)> {
   Some((header as usize, slide.cast_unsigned()))
 }
 
+/// Copied with a safe read: the path belongs to dyld and goes away if the image is unloaded.
 pub fn image_path(index: u32) -> Option<String> {
   // SAFETY: dyld returns NULL or a NUL-terminated path it owns.
   let path = unsafe { _dyld_get_image_name(index) };
   if path.is_null() {
     return None;
   }
-  // SAFETY: checked for NULL above.
-  Some(
-    unsafe { CStr::from_ptr(path) }
-      .to_string_lossy()
-      .into_owned(),
-  )
+  let path = safe_read::read_string(path as usize, PATH_CAPACITY)?;
+  Some(String::from_utf8_lossy(&path).into_owned())
 }

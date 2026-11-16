@@ -29,12 +29,27 @@ const HEADER_SIZEOFCMDS: usize = 20;
 /// `struct load_command` from `<mach-o/loader.h>`: the offset of `cmdsize`.
 const COMMAND_CMDSIZE: usize = 4;
 
-/// `struct segment_command_64` from `<mach-o/loader.h>`: its size and the offsets of `vmaddr`,
-/// `vmsize` and `filesize`.
+/// `struct segment_command_64` from `<mach-o/loader.h>`: its size and the offsets of `segname`,
+/// `vmaddr`, `vmsize` and `nsects`.
 const SEGMENT_COMMAND_SIZE: usize = 72;
+const SEGMENT_SEGNAME: usize = 8;
+const SEGMENT_NAME_SIZE: usize = 16;
 const SEGMENT_VMADDR: usize = 24;
 const SEGMENT_VMSIZE: usize = 32;
-const SEGMENT_FILESIZE: usize = 48;
+const SEGMENT_NSECTS: usize = 64;
+/// `struct section_64` from `<mach-o/loader.h>`: its size and the offsets of `addr` and `size`.
+/// `sectname` is its first field.
+const SECTION_SIZE: usize = 80;
+const SECTION_ADDR: usize = 32;
+const SECTION_BYTES: usize = 40;
+/// The section listing the classes an image defines.
+const CLASS_LIST: &[u8] = b"__objc_classlist";
+/// `SEG_LINKEDIT` from `<mach-o/loader.h>`. In the shared cache every image's `__LINKEDIT` is the
+/// same range, so it is left out to keep segments from overlapping.
+const LINKEDIT: &[u8] = b"__LINKEDIT";
+/// `SEG_PAGEZERO` from `<mach-o/loader.h>`: the unmapped range below the executable, which no
+/// address of the image falls in.
+const PAGEZERO: &[u8] = b"__PAGEZERO";
 const UUID_COMMAND_SIZE: usize = 24;
 const UUID_SIZE: usize = 16;
 
@@ -64,8 +79,10 @@ struct LoadedImage {
 
 #[derive(Default)]
 struct LoadCommands {
-  /// The (vmaddr, vmsize) of each segment with file content.
+  /// The (vmaddr, vmsize) of each mapped segment, zero-fill ones included.
   segments: Vec<(usize, usize)>,
+  /// The (addr, size) of each `__objc_classlist` section.
+  class_lists: Vec<(usize, usize)>,
   uuid: Option<[u8; UUID_SIZE]>,
 }
 
@@ -163,6 +180,29 @@ impl ImageTable {
   }
 }
 
+/// The `__objc_classlist` sections of the loaded images, as (address, bytes): arrays of pointers
+/// to the classes each image defines.
+pub fn class_lists() -> Vec<(usize, usize)> {
+  (0 .. dyld::image_count())
+    .filter_map(dyld::image_header)
+    .flat_map(|(header, slide)| {
+      load_commands(header)
+        .class_lists
+        .into_iter()
+        .map(move |(address, size)| (address.wrapping_add(slide), size))
+    })
+    .collect()
+}
+
+/// A Mach-O name field holds up to 16 bytes, NUL-padded.
+fn name_is(field: &[u8], name: &[u8]) -> bool {
+  field.split(|byte| *byte == 0).next() == Some(name)
+}
+
+fn is_left_out(name: &[u8]) -> bool {
+  name_is(name, LINKEDIT) || name_is(name, PAGEZERO)
+}
+
 pub fn binary_name(path: &str) -> &str {
   path.rsplit('/').next().unwrap_or(path)
 }
@@ -190,13 +230,17 @@ fn load_commands(header: usize) -> LoadCommands {
     if command == LC_SEGMENT_64 && command_size >= SEGMENT_COMMAND_SIZE {
       let address = read_u64(&commands, offset + SEGMENT_VMADDR);
       let size = read_u64(&commands, offset + SEGMENT_VMSIZE);
-      let file_size = read_u64(&commands, offset + SEGMENT_FILESIZE);
       if let (Ok(address), Ok(size)) = (usize::try_from(address), usize::try_from(size))
         && size > 0
-        && file_size > 0
+        && !is_left_out(
+          &commands[offset + SEGMENT_SEGNAME .. offset + SEGMENT_SEGNAME + SEGMENT_NAME_SIZE],
+        )
       {
         parsed.segments.push((address, size));
       }
+      parsed.class_lists.extend(class_list_sections(
+        &commands[offset .. offset + command_size],
+      ));
     }
     if command == LC_UUID && command_size >= UUID_COMMAND_SIZE {
       parsed.uuid = commands
@@ -206,6 +250,22 @@ fn load_commands(header: usize) -> LoadCommands {
     offset += command_size;
   }
   parsed
+}
+
+/// The (addr, size) of the `__objc_classlist` sections a segment command lists.
+fn class_list_sections(segment: &[u8]) -> impl Iterator<Item = (usize, usize)> + '_ {
+  let count = read_u32(segment, SEGMENT_NSECTS) as usize;
+  segment[SEGMENT_COMMAND_SIZE ..]
+    .as_chunks::<SECTION_SIZE>()
+    .0
+    .iter()
+    .take(count)
+    .filter(|section| name_is(&section[.. SEGMENT_NAME_SIZE], CLASS_LIST))
+    .filter_map(|section| {
+      let address = usize::try_from(read_u64(section, SECTION_ADDR)).ok()?;
+      let size = usize::try_from(read_u64(section, SECTION_BYTES)).ok()?;
+      Some((address, size))
+    })
 }
 
 fn read_u32(bytes: &[u8], offset: usize) -> u32 {

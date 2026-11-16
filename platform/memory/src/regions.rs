@@ -5,8 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 // Stage 2: walks this process's VM map and aggregates it by Mach tag and by owning image. Takes no
-// locks. Pages are counted only for regions whose current or maximum protection allows writing: a
-// region that could never be written cannot hold a dirty page.
+// locks. Pages are counted for every region that may hold a dirty page.
 
 #[cfg(test)]
 #[path = "./regions_test.rs"]
@@ -16,6 +15,7 @@ use crate::images::ImageTable;
 use crate::report::{ImageChargeRow, RegionsReport, TagRow};
 use crate::sys::mach::{KERN_INVALID_ADDRESS, kernel_page_size};
 use crate::sys::vm_region::{
+  RegionShortInfo,
   SM_COW,
   SM_SHARED,
   SM_SHARED_ALIASED,
@@ -43,14 +43,32 @@ struct TagTotals {
   regions: u32,
 }
 
-/// Pages other processes map too. A copy-on-write region with several references counts as shared:
-/// the shared cache arrives that way, and charging it in full puts the total above the footprint.
-const fn is_shared(share_mode: u8, ref_count: u32) -> bool {
+/// Splits a region's dirty bytes into (private, shared). A copy-on-write region's reference count
+/// adds up its shadows' references, so a private copy over shared pages, such as the shared cache,
+/// looks shared. Only its pages in objects no other mapping references are private.
+const fn split_dirty(share_mode: u8, ref_count: u32, dirty: u64, now_private: u64) -> (u64, u64) {
   match share_mode {
-    SM_SHARED | SM_TRUESHARED | SM_SHARED_ALIASED => true,
-    SM_COW => ref_count > 1,
-    _ => false,
+    SM_SHARED | SM_TRUESHARED | SM_SHARED_ALIASED => (0, dirty),
+    SM_COW if ref_count > 1 => {
+      let private = if now_private < dirty {
+        now_private
+      } else {
+        dirty
+      };
+      (private, dirty - private)
+    },
+    _ => (dirty, 0),
   }
+}
+
+/// A region no protection lets write can still hold dirty pages: dyld writes into `__DATA_CONST`
+/// and then makes it read-only, and an app can lower a dirty mapping's maximum protection. Two
+/// kinds are still skipped, and counting their pages is the bulk of the walk's cost: a file
+/// mapping with no private copy holds only clean pages, and a submap such as the shared region is
+/// shared with other processes, so it holds no private copy either.
+const fn may_hold_dirty_pages(info: &RegionShortInfo, depth: u32) -> bool {
+  let writable = (info.protection | info.max_protection) & VM_PROT_WRITE != 0;
+  writable || (depth == 0 && (info.external_pager == 0 || info.shadow_depth > 0))
 }
 
 pub fn walk(images: Option<&ImageTable>) -> RegionsReport {
@@ -83,6 +101,7 @@ pub fn walk(images: Option<&ImageTable>) -> RegionsReport {
     // A submap is a container: descend without advancing, or its contents count twice.
     if info.is_submap != 0 {
       if depth + 1 >= MAX_SUBMAP_DEPTH {
+        truncated = true;
         address += region.size;
       } else {
         depth += 1;
@@ -90,12 +109,11 @@ pub fn walk(images: Option<&ImageTable>) -> RegionsReport {
       continue;
     }
 
-    // Current protection is not enough: dyld writes into __DATA_CONST and then makes it
-    // read-only, and those pages stay dirty.
     let mut ref_count = info.ref_count;
     let mut dirty = 0;
     let mut compressed = 0;
-    if (info.protection | info.max_protection) & VM_PROT_WRITE != 0 {
+    let mut now_private = 0;
+    if may_hold_dirty_pages(&info, depth) {
       match region_info(address, depth) {
         // The map can change between the two calls; losing a count beats charging it to the
         // wrong region.
@@ -103,6 +121,7 @@ pub fn walk(images: Option<&ImageTable>) -> RegionsReport {
           let counted = counted.info;
           dirty = u64::from(counted.pages_dirtied) * page_size;
           compressed = u64::from(counted.pages_swapped_out) * page_size;
+          now_private = u64::from(counted.pages_shared_now_private) * page_size;
           ref_count = counted.ref_count;
         },
         _ => truncated = true,
@@ -113,16 +132,13 @@ pub fn walk(images: Option<&ImageTable>) -> RegionsReport {
     totals.regions += 1;
     totals.virtual_size += region.size as u64;
     totals.compressed += compressed;
-    let shared = is_shared(info.share_mode, ref_count);
-    if shared {
-      totals.shared_dirty += dirty;
-    } else {
-      totals.private_dirty += dirty;
-    }
+    let (private_dirty, shared_dirty) = split_dirty(info.share_mode, ref_count, dirty, now_private);
+    totals.private_dirty += private_dirty;
+    totals.shared_dirty += shared_dirty;
 
     // Which segment the dirty pages landed in is unknown at region granularity, so the charge is
     // prorated by how much of the region each image covers.
-    let charged = if shared { 0 } else { dirty } + compressed;
+    let charged = private_dirty + compressed;
     if let Some(images) = images
       && charged > 0
     {

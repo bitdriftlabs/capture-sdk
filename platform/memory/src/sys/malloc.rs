@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 use super::mach::{KERN_SUCCESS, task_self};
+use crate::safe_read;
 use libc::{
   c_char,
   c_uint,
@@ -15,12 +16,13 @@ use libc::{
   vm_range_t,
   vm_size_t,
 };
-use std::ffi::CStr;
 use std::marker::PhantomData;
 use std::slice;
 
 /// From `<malloc/malloc.h>`, as are the callback types and structures below.
 pub const MALLOC_PTR_IN_USE_RANGE_TYPE: c_uint = 1;
+
+const ZONE_NAME_CAPACITY: usize = 256;
 
 type MemoryReader = unsafe extern "C" fn(
   task: mach_port_t,
@@ -178,16 +180,15 @@ impl Zone {
     unsafe { (*self.0).introspect.as_ref() }
   }
 
+  /// Copied with safe reads, so a zone destroyed meanwhile gives no name instead of faulting.
   pub fn name(&self) -> String {
-    // SAFETY: as in `introspection`; the name is a NUL-terminated string the zone owns.
-    let name = unsafe { (*self.0).zone_name };
-    if name.is_null() {
-      return "(unnamed)".to_string();
-    }
-    // SAFETY: checked for NULL above.
-    unsafe { CStr::from_ptr(name) }
-      .to_string_lossy()
-      .into_owned()
+    safe_read::read_word(self.0 as usize + std::mem::offset_of!(MallocZone, zone_name))
+      .filter(|name| *name != 0)
+      .and_then(|name| safe_read::read_string(name, ZONE_NAME_CAPACITY))
+      .map_or_else(
+        || "(unnamed)".to_string(),
+        |name| String::from_utf8_lossy(&name).into_owned(),
+      )
   }
 
   pub fn is_enumerable(&self) -> bool {
