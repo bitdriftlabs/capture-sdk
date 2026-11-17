@@ -10,6 +10,7 @@ package io.bitdrift.capture.commands.file
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import io.bitdrift.capture.commands.CommandArgument
+import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandInvocation
 import io.bitdrift.capture.commands.CommandResult
 import kotlinx.coroutines.runBlocking
@@ -87,6 +88,30 @@ class FileListCommandTest {
             assertThat(FileListCommand(context).execute(scope)).isEqualTo(
                 CommandResult.Success(
                     context = mapOf("file_count" to "2", "contents" to "x\ny"),
+                ),
+            )
+        }
+
+    @Test
+    fun `listing a lot of files`(): Unit =
+        runBlocking {
+            for (i in 1..300) {
+                val fileIndex = "$i".padStart(3, '0')
+                assertThat(
+                    File(
+                        "${context.cacheDir}/file$fileIndex.txt",
+                    ).createNewFile(),
+                ).isTrue
+            }
+
+            val scope = CommandInvocation("key", "command", "session_id", mapOf())
+            val expectedContents =
+                (1..300).joinToString("\n") { "file${"$it".padStart(3, '0')}.txt" }
+
+            assertThat(FileListCommand(context).execute(scope)).isEqualTo(
+                CommandResult.Success(
+                    CommandAttachment(expectedContents.encodeToByteArray(), "text/plain"),
+                    mapOf("file_count" to "300"),
                 ),
             )
         }
