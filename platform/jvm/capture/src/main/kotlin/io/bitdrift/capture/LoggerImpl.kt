@@ -25,6 +25,10 @@ import io.bitdrift.capture.commands.profiling.Profiler
 import io.bitdrift.capture.commands.profiling.stacksampling.StackSamplingCommand
 import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
 import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
+import io.bitdrift.capture.commands.settings.SettingsClearCommand
+import io.bitdrift.capture.commands.settings.SettingsGetCommand
+import io.bitdrift.capture.commands.settings.SettingsRemoveCommand
+import io.bitdrift.capture.commands.settings.SettingsSetCommand
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -140,6 +144,10 @@ internal class LoggerImpl(
                     profiler = Profiler(context, commandDispatcher.asExecutor()),
                     profileability = ProfileabilityChecker(context),
                 ),
+                SettingsClearCommand(context),
+                SettingsGetCommand(context),
+                SettingsSetCommand(context),
+                SettingsRemoveCommand(context),
             ),
         ),
 ) : IInternalLogger,

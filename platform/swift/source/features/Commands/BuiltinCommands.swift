@@ -10,7 +10,7 @@ enum BuiltinCommands {
         let screenshotType = BuiltinCommandType.takeScreenshot
         let traceType = BuiltinCommandType.stackSamplingTrace
         return [
-            .init(type: screenshotType.rawValue, command: Command(key: screenshotType.key) { arguments in
+            makeBuiltin(screenshotType, artifactType: "screenshot") { arguments in
                 guard arguments.isEmpty else {
                     return .failure(.invalidArguments(description: "screenshot does not accept arguments"))
                 }
@@ -18,11 +18,23 @@ enum BuiltinCommands {
                     return .failure(CommandError(title: "screenshot capture unavailable"))
                 }
                 return await screenshot.captureCommandScreenshot()
-            }, artifactType: "screenshot"),
+            },
             .init(type: traceType.rawValue, command: Command(key: traceType.key) { _ in
                 .failure(CommandError(title: "not implemented"))
             }, artifactType: "stack_sampling_trace", timeoutMilliseconds: 15_000),
             memoryDump.builtin,
+            makeBuiltin(.userSettingsClear, artifactType: "settings") {
+                UserSettingsCommands.defaultsClear($0)
+            },
+            makeBuiltin(.userSettingsGet, artifactType: "settings") {
+                UserSettingsCommands.defaultsGet($0)
+            },
+            makeBuiltin(.userSettingsRemove, artifactType: "settings") {
+                UserSettingsCommands.defaultsRemove($0)
+            },
+            makeBuiltin(.userSettingsSet, artifactType: "settings") {
+                UserSettingsCommands.defaultsSet($0)
+            },
         ]
     }
 
@@ -42,4 +54,8 @@ enum BuiltinCommands {
             ) ? nil : builtin.command.key
         }
     }
+}
+
+private func makeBuiltin(_ type: BuiltinCommandType, artifactType: String, handler: @escaping CommandHandler) -> CommandRegistry.Builtin {
+    return .init(type: type.rawValue, command: Command(key: type.key, handler: handler), artifactType: artifactType)
 }
