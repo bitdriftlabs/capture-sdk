@@ -141,6 +141,10 @@ class CaptureLoggerTest {
             assertThat(bridge.builtins).containsExactlyInAnyOrder(
                 Triple("take_screenshot", "screenshot", 0L),
                 Triple("stack_sampling_trace", "stack_sampling_trace", 0L),
+                Triple("user_settings_get", "settings", 100L),
+                Triple("user_settings_set", "settings", 100L),
+                Triple("user_settings_clear", "settings", 100L),
+                Triple("user_settings_remove", "settings", 100L),
             )
             assertThat(bridge.registered).containsExactly(logger.loggerId to "app")
             assertThat(logger.getSdkStatus()).isNotNull()
@@ -151,7 +155,11 @@ class CaptureLoggerTest {
             val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
             assertThat(sdkConfigured.fields)
-                .containsEntry("_failed_builtin_commands", "stack_sampling_trace,take_screenshot".toFieldValue())
+                .containsEntry(
+                    "_failed_builtin_commands",
+                    "stack_sampling_trace,take_screenshot,user_settings_clear,user_settings_get,user_settings_remove,user_settings_set"
+                        .toFieldValue(),
+                )
         }
     }
 
