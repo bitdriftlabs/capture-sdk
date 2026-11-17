@@ -11,13 +11,17 @@ import android.app.Activity
 import android.view.View
 import io.bitdrift.capture.common.IWindowManager
 
-/** [IWindowManager] fake; set [firstValidActivity] to simulate an already-started activity. */
+/**
+ * [IWindowManager] fake; set [firstValidActivity] to simulate an already-started activity and
+ * [rootViews] (bottom to top) to simulate the windows the app has added.
+ */
 internal class FakeWindowManager(
     var firstValidActivity: Activity? = null,
+    var rootViews: List<View> = emptyList(),
 ) : IWindowManager {
-    override fun getTopMostVisibleRootView(): View? = null
+    override fun getTopMostVisibleRootView(): View? = rootViews.lastOrNull()
 
-    override fun getAllRootViews(): List<View> = emptyList()
+    override fun getAllRootViews(): List<View> = rootViews
 
     override fun findFirstValidActivity(): Activity? = firstValidActivity
 }
