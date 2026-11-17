@@ -78,10 +78,13 @@ import Foundation
             return .success(CommandResult())
         }
 
-        guard let domain = Bundle.main.bundleIdentifier else {
-            return .failure(CommandError(title: "cannot access defaults for app without identifier"))
+        if let domain = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: domain)
+        } else {
+            for (key, _) in UserDefaults.standard.dictionaryRepresentation() {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
         }
-        UserDefaults.standard.removePersistentDomain(forName: domain)
         return .success(CommandResult())
     }
 
