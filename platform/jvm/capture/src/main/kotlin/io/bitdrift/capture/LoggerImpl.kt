@@ -19,6 +19,10 @@ import io.bitdrift.capture.attributes.LocaleAttributes
 import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.file.FileClearCommand
+import io.bitdrift.capture.commands.file.FileDeleteCommand
+import io.bitdrift.capture.commands.file.FileListCommand
+import io.bitdrift.capture.commands.file.FileSizeCommand
 import io.bitdrift.capture.commands.profiling.ProfileabilityChecker
 import io.bitdrift.capture.commands.profiling.Profiler
 import io.bitdrift.capture.commands.profiling.stacksampling.StackSamplingCommand
@@ -141,6 +145,10 @@ internal class LoggerImpl(
                 SettingsGetCommand(context),
                 SettingsSetCommand(context),
                 SettingsRemoveCommand(context),
+                FileClearCommand(context),
+                FileDeleteCommand(context),
+                FileListCommand(context),
+                FileSizeCommand(context),
             ),
         ),
 ) : IInternalLogger,

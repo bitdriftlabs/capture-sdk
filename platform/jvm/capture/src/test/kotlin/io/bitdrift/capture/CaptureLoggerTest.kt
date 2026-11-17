@@ -145,6 +145,10 @@ class CaptureLoggerTest {
                 Triple("user_settings_set", "settings", 100L),
                 Triple("user_settings_clear", "settings", 100L),
                 Triple("user_settings_remove", "settings", 100L),
+                Triple("file_list", "file", 10_000L),
+                Triple("file_clear", "file", 10_000L),
+                Triple("file_size", "file", 10_000L),
+                Triple("file_delete", "file", 10_000L),
             )
             assertThat(bridge.registered).containsExactly(logger.loggerId to "app")
             assertThat(logger.getSdkStatus()).isNotNull()
@@ -157,7 +161,7 @@ class CaptureLoggerTest {
             assertThat(sdkConfigured.fields)
                 .containsEntry(
                     "_failed_builtin_commands",
-                    "stack_sampling_trace,take_screenshot,user_settings_clear,user_settings_get,user_settings_remove,user_settings_set"
+                    "file_clear,file_delete,file_list,file_size,stack_sampling_trace,take_screenshot,user_settings_clear,user_settings_get,user_settings_remove,user_settings_set"
                         .toFieldValue(),
                 )
         }
