@@ -61,6 +61,7 @@ class CrashProfileCollectorTest {
     @Before
     fun setUp() {
         CrashProfileSource.resetForTest()
+        // Seed Robolectric's settings provider. Real apps can read BOOT_COUNT, not write it.
         Settings.Global.putInt(context.contentResolver, Settings.Global.BOOT_COUNT, 3)
         whenever(runtime.getConfigValue(any<RuntimeConfig>())).thenAnswer { invocation ->
             invocation.getArgument<RuntimeConfig>(0).defaultValue

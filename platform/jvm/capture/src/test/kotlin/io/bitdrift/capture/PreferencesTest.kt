@@ -9,6 +9,7 @@ package io.bitdrift.capture
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
@@ -17,35 +18,50 @@ import com.nhaarman.mockitokotlin2.whenever
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class PreferencesTest {
-    private val context: Context = mock()
+    private val mockContext: Context = mock()
     private val storage: SharedPreferences = mock()
     private val editor: SharedPreferences.Editor = mock()
 
     @Before
     fun setUp() {
-        whenever(context.getSharedPreferences(any(), any())).thenReturn(storage)
+        whenever(mockContext.getSharedPreferences(any(), any())).thenReturn(storage)
         whenever(storage.edit()).thenReturn(editor)
         whenever(editor.putString(any(), any())).thenReturn(editor)
         whenever(editor.remove(any())).thenReturn(editor)
     }
 
     @Test
-    fun blockingWritesAndRemovalsReturnTheCommitResult() {
+    fun blockingWritesAndRemovalsWorkWithAndroidPreferences() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
         val preferences = Preferences(context)
-        for (committed in listOf(false, true)) {
-            whenever(editor.commit()).thenReturn(committed)
-            for (value in listOf("owned", null)) {
-                assertThat(preferences.setStringBlocking("ownership", value)).isEqualTo(committed)
-            }
-        }
+        val key = "crash_profiles.owned.anr"
+
+        assertThat(preferences.setStringBlocking(key, "anr")).isTrue()
+        assertThat(preferences.getString(key)).isEqualTo("anr")
+        assertThat(preferences.setStringBlocking(key, null)).isTrue()
+        assertThat(preferences.getString(key)).isNull()
+    }
+
+    @Test
+    fun blockingWritesAndRemovalsReturnCommitFailures() {
+        val preferences = Preferences(mockContext)
+        whenever(editor.commit()).thenReturn(false)
+
+        assertThat(preferences.setStringBlocking("ownership", "owned")).isFalse()
+        assertThat(preferences.setStringBlocking("ownership", null)).isFalse()
         verify(editor, never()).apply()
     }
 
     @Test
     fun asynchronousWritesStillUseApply() {
-        Preferences(context).setString("ownership", "owned", blocking = false)
+        Preferences(mockContext).setString("ownership", "owned", blocking = false)
 
         verify(editor).apply()
         verify(editor, never()).commit()
@@ -55,7 +71,7 @@ class PreferencesTest {
     fun legacyBlockingWritesKeepTheirVoidContract() {
         whenever(editor.commit()).thenReturn(false)
 
-        Preferences(context).setString("ownership", "owned", blocking = true)
+        Preferences(mockContext).setString("ownership", "owned", blocking = true)
 
         verify(editor).commit()
         verify(editor, never()).apply()

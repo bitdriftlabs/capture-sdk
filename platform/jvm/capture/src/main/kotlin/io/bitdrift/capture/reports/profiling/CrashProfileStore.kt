@@ -88,18 +88,11 @@ internal class CrashProfileStore(
         directory.parentFile?.let(fileOperations::syncDirectory)
         val target = File(directory, "${UUID.randomUUID()}.${kind.value}")
         val temporary = File(directory, "${target.name}.partial")
-        var renamed = false
+        val renamed: Boolean
         var committed = false
         try {
             // Even a zero-copy adoption must not be replayable before validation and file sync.
-            if (owned) {
-                try {
-                    fileOperations.move(source, temporary)
-                    renamed = true
-                } catch (e: AtomicMoveNotSupportedException) {
-                    Log.d(LOG_TAG, "Crash profile requires a cross-filesystem copy", e)
-                }
-            }
+            renamed = owned && tryStageByRename(source, temporary)
             if (renamed) {
                 if (temporary.length() != sourceBytes) throw IOException("Crash profile changed during adoption")
                 if (!temporary.setLastModified(now())) throw IOException("Cannot timestamp adopted crash profile")
@@ -131,12 +124,26 @@ internal class CrashProfileStore(
         return target
     }
 
+    private fun tryStageByRename(
+        source: File,
+        temporary: File,
+    ): Boolean =
+        try {
+            fileOperations.move(source, temporary)
+            true
+        } catch (e: AtomicMoveNotSupportedException) {
+            // Only staging the original can fall back to a copy; publication must stay atomic.
+            Log.d(LOG_TAG, "Crash profile requires a cross-filesystem copy", e)
+            false
+        }
+
     private fun files(): List<Pair<File, Long>> =
         try {
             scanFiles()
         } catch (e: NoSuchFileException) {
-            // Native retention renames entries independently. Start over once so the renamed bytes
-            // are counted too; never treat a missing path as an empty or successfully expired file.
+            // A missing entry may have been renamed by native retention, not deleted. Re-list once
+            // so its new name and bytes are included. If the second scan also races, fail rather
+            // than undercount the budget or keep retrying on the shared SDK executor.
             Log.d(LOG_TAG, "Retrying crash profile inventory after an entry disappeared", e)
             scanFiles()
         }

@@ -506,6 +506,8 @@ object Capture {
             kind: CrashProfileKind,
             completion: (CaptureResult<Unit>) -> Unit,
         ) {
+            // Use the same callback thread for early failures and completed imports, without
+            // running caller code on the shared SDK executor that performs the import.
             val logger = logger() as? LoggerImpl
             if (logger == null) {
                 mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }

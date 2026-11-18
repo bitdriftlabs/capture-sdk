@@ -41,6 +41,8 @@ import java.nio.ByteBuffer
 import java.util.Date
 
 @RunWith(RobolectricTestRunner::class)
+// TODO: Add API 36/37 SDK wiring tests after enabling JDK 21 for Gradle and Bazel tests and
+// upgrading Robolectric for API 37. Actual OS trigger delivery still needs a device test.
 @Config(sdk = [35])
 class CrashProfileJniTest {
     @get:Rule
@@ -54,6 +56,7 @@ class CrashProfileJniTest {
         CaptureJniLibrary.load()
         ShadowProcess.setPid(12345)
         CrashProfileSource.resetForTest()
+        // Seed Robolectric's settings provider. Real apps can read BOOT_COUNT, not write it.
         Settings.Global.putInt(context.contentResolver, Settings.Global.BOOT_COUNT, 7)
     }
 
@@ -63,13 +66,12 @@ class CrashProfileJniTest {
     }
 
     @Test
-    fun capturedSourceRoundTripsThroughNativeEncodingAndReportPersistenceForAllApiLevels() {
+    fun capturedSourceRoundTripsThroughNativeEncodingAndReportPersistenceAcrossNativeApiLevels() {
         val source = checkNotNull(CrashProfileSource.current(context, ::encode))
         val facts = checkNotNull(captured)
         assertThat(CrashProfileSource.current(context) { error("source must be cached") }).isSameAs(source)
 
-        // Exercise the real JNI metadata and persistence boundary for pre-ANR, ANR, and OOM APIs.
-        // Robolectric's framework is API 35; no ProfilingManager or service is required.
+        // Vary the API level passed to native code without changing the Android framework level.
         listOf(35, 36, 37).forEach { api ->
             withNativeLogger(api) { processor ->
                 val report = persist(processor, source, facts.pid)
