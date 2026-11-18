@@ -89,7 +89,7 @@ class CrashProfileCollectorTest {
     fun startupOptOutOverridesEnabledRuntimeFlagsWithoutTouchingHostState() {
         enable(anr = true, oom = true)
         profiler.triggerKinds += setOf(ANR, OOM)
-        profiler.pending += ANR to "/previous-anr"
+        pending += ANR to "/previous-anr"
 
         collector(configuration = Configuration()).start()
         profiler.deliver(ANR, "/host-anr")
@@ -97,7 +97,6 @@ class CrashProfileCollectorTest {
         assertThat(profiler.events).containsExactly("unregister")
         assertThat(profiler.triggerKinds).containsExactlyInAnyOrder(ANR, OOM)
         assertThat(profiler.summaries).isEmpty()
-        assertThat(profiler.pendingReads).isZero()
         assertThat(encoded).isEmpty()
         assertThat(submitted).isEmpty()
         assertThat(CrashProfileSource.oomSource).isNull()
@@ -413,47 +412,6 @@ class CrashProfileCollectorTest {
         assertThat(attempts).isEqualTo(3)
         assertThat(profiler.triggerKinds).containsExactly(ANR)
         assertThat(submitted).containsExactly(Triple("/live", ANR, true))
-    }
-
-    @Test
-    fun legacyEnumerationFailureDoesNotPreventListenerRegistration() {
-        enable(anr = true, oom = false)
-        profiler.pendingFailure = IllegalStateException("profiling service unavailable")
-
-        SafeEventListenerLogger(collector()).start()
-        profiler.deliver(ANR, "/live")
-
-        assertThat(profiler.events).contains("register")
-        assertThat(submitted).containsExactly(Triple("/live", ANR, true))
-    }
-
-    @Test
-    fun retainedPlatformProfileIsOnlyRemovedAfterSuccessfulMigration() {
-        enable(anr = true, oom = false)
-        val source = temporary.newFile("original.bitdrift-retained-anr").apply { writeText("profile") }
-        val directory = File(temporary.root, "profiles")
-        var failSync = true
-        val operations =
-            object : CrashProfileStore.CrashProfileFileOperations() {
-                override fun syncFile(file: File) {
-                    if (failSync) throw IOException("disk failure")
-                    super.syncFile(file)
-                }
-            }
-        val profileStore = CrashProfileStore(directory, runtime, operations)
-        profiler.pending += ANR to source.path
-
-        collector(configuration = manualConfiguration(), profileStore = profileStore).start()
-        assertThat(source.readText()).isEqualTo("profile")
-        assertThat(profileStore.pendingResults()).isEmpty()
-        assertThat(submitted).isEmpty()
-
-        failSync = false
-        collector(configuration = manualConfiguration(), profileStore = profileStore).start()
-        assertThat(source).doesNotExist()
-        val (_, path) = profileStore.pendingResults().single()
-        assertThat(File(path).readText()).isEqualTo("profile")
-        assertThat(submitted).containsExactly(Triple(path, ANR, false))
     }
 
     @Test
@@ -893,7 +851,6 @@ class CrashProfileCollectorTest {
 
         assertThat(expired).doesNotExist()
         assertThat(submitted).isEmpty()
-        assertThat(profiler.pendingReads).isZero()
     }
 
     @Test
@@ -953,10 +910,7 @@ class CrashProfileCollectorTest {
         val events = mutableListOf<String>()
         val summaries = mutableListOf<ByteArray>()
         var failure: RuntimeException? = null
-        val pending = mutableListOf<Pair<String, String>>()
         val triggerKinds = mutableSetOf<String>()
-        var pendingReads = 0
-        var pendingFailure: RuntimeException? = null
         private var onResult: ((String?, String?) -> Unit)? = null
 
         override fun addTriggers(kinds: Set<String>) {
@@ -987,12 +941,6 @@ class CrashProfileCollectorTest {
         override fun unregister() {
             events += "unregister"
             onResult = null
-        }
-
-        override fun pendingResults(): List<Pair<String, String>> {
-            pendingReads++
-            pendingFailure?.let { throw it }
-            return pending
         }
 
         fun deliver(

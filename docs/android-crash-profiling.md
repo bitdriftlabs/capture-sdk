@@ -149,12 +149,10 @@ SDK-owned file with a retained suffix. On the next startup it waits for previous
 discovery and retries attribution once. An unmatched retry or an unreadable profile is deleted.
 Newly imported files that were persisted before process death but not yet handed to native
 attribution are also recovered. Matching and uploading require the corresponding runtime flag. The
-SDK migrates files carrying its retained suffix from the platform directory, deleting the original
-only after the private copy is durable. It does not sweep unrelated platform results.
+SDK replays only files in its private store; it does not scan Android's profiling directory.
 
-Startup migration and pending replay failures are logged independently and do not prevent
-registration for new automatic results. Pending files remain available for recovery on a later
-listener start or process restart.
+Pending replay failures are logged and do not prevent registration for new automatic results.
+Pending files remain available for recovery on a later listener start or process restart.
 
 File-backed profiles use whole-file upload through **1 MiB logical size**, and chunked upload above
 that boundary. `artifact_upload.chunked.max_logical_bytes` controls both the per-file logical limit

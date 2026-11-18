@@ -176,25 +176,6 @@ internal class CrashProfileCollector(
         resubmittedKinds += pendingKinds
     }
 
-    private fun migrateLegacy(enabled: Set<String>) {
-        if (enabled.isEmpty()) return
-        // Migrate only SDK-retained legacy files, never unrelated platform results.
-        profiler
-            .pendingResults()
-            .filter { (kind, _) -> kind in enabled }
-            .forEach { (kind, path) ->
-                guarded("migrate retained profile") {
-                    val source = File(path)
-                    // This is already a retained result, not a fresh callback we must clean up
-                    // on failure. Keep the original until the private copy is durable.
-                    store.importProfile(source, CrashProfileKind.entries.first { it.value == kind })
-                    if (!source.delete() && source.exists()) {
-                        Log.w(LOG_TAG, "Failed to remove migrated crash profile: $path")
-                    }
-                }
-            }
-    }
-
     private fun adopt(
         path: String,
         kind: String,
@@ -231,7 +212,7 @@ internal class CrashProfileCollector(
         val removed = previouslyOwned - owned - pendingOwnershipClears
         if (removed.isNotEmpty()) {
             // TODO: Signal manual-mode handoff after removing claimed triggers and persisting
-            // the marker clears, but before migrating/replaying files. Capture startup success
+            // the marker clears, but before replaying files. Capture startup success
             // does not await this cleanup, so it can remove triggers the application just added.
             profiler.removeTriggers(removed)
             pendingOwnershipClears += removed
@@ -257,7 +238,6 @@ internal class CrashProfileCollector(
         if (owned.isNotEmpty() || removed.isNotEmpty()) {
             Log.d(LOG_TAG, "Crash profile triggers: enabled=$owned, removed=$removed")
         }
-        guarded("migrate retained profiles") { migrateLegacy(available) }
         guarded("resubmit pending profiles") { resubmitPending(available) }
         if (owned.isEmpty()) {
             Log.d(LOG_TAG, "Crash profile listener not registered: no automatically owned triggers")

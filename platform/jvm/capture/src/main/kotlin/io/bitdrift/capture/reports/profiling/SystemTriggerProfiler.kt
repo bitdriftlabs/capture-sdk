@@ -16,7 +16,6 @@ import android.os.ProfilingTrigger
 import android.util.Log
 import androidx.annotation.RequiresApi
 import io.bitdrift.capture.Capture.LOG_TAG
-import java.io.File
 import java.util.concurrent.Executor
 import java.util.function.Consumer
 
@@ -37,12 +36,6 @@ internal interface ISystemTriggerProfiler {
     fun register(onResult: (kind: String?, path: String?) -> Unit)
 
     fun unregister()
-
-    /**
-     * Legacy results retained in the platform directory, for migration to SDK-private storage.
-     * Only files carrying the SDK's retained suffix qualify, never host results.
-     */
-    fun pendingResults(): List<Pair<String, String>>
 }
 
 /**
@@ -51,7 +44,7 @@ internal interface ISystemTriggerProfiler {
  */
 @RequiresApi(API_ANR)
 internal class SystemTriggerProfiler(
-    private val context: Context,
+    context: Context,
     private val executor: Executor,
     supportsOom: Boolean,
 ) : ISystemTriggerProfiler {
@@ -119,21 +112,6 @@ internal class SystemTriggerProfiler(
         callback?.let { manager?.unregisterForAllProfilingResults(it) }
         Log.d(LOG_TAG, "System profiling listener unregistered: wasRegistered=${callback != null}")
         callback = null
-    }
-
-    override fun pendingResults(): List<Pair<String, String>> =
-        // Older SDK versions retained these in place. New profiles use CrashProfileStore instead.
-        File(context.filesDir, RESULT_DIRECTORY)
-            .listFiles()
-            .orEmpty()
-            .mapNotNull { file ->
-                triggers.keys
-                    .firstOrNull { kind -> file.name.endsWith(CrashProfileStore.RETAINED_SUFFIX + kind) }
-                    ?.let { kind -> kind to file.path }
-            }
-
-    private companion object {
-        const val RESULT_DIRECTORY = "profiling"
     }
 }
 

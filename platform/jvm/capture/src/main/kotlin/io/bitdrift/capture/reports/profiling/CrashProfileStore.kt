@@ -71,20 +71,17 @@ internal class CrashProfileStore(
     ): File {
         validateSource(source)
         val sourceBytes = Files.size(source.toPath())
-        val maxProfileBytes =
+        val maxBytes =
             minOf(runtime.getConfigValue(RuntimeConfig.CHUNKED_ARTIFACT_MAX_BYTES).toLong(), MAX_CHUNKED_BYTES)
-        val existing = files()
-        val maxPendingBytes = maxProfileBytes
-        val pendingBytes = existing.sumOf { it.second }
-        val available = minOf(maxProfileBytes, maxPendingBytes - pendingBytes)
+        val pendingBytes = files().sumOf { it.second }
+        val available = maxBytes - pendingBytes
         Log.d(
             LOG_TAG,
             "Crash profile admission: kind=${kind.value}, owned=$owned, sourceBytes=$sourceBytes, " +
-                "attachmentMaxBytes=$maxProfileBytes, pendingBytes=$pendingBytes, " +
-                "maxPendingBytes=$maxPendingBytes, availableBytes=$available",
+                "maxBytes=$maxBytes, pendingBytes=$pendingBytes, availableBytes=$available",
         )
         if (sourceBytes > available || sourceBytes == 0L) {
-            val limit = if (sourceBytes > maxProfileBytes) "attachment size limit" else "pending profile storage budget"
+            val limit = if (sourceBytes > maxBytes) "attachment size limit" else "pending profile storage budget"
             throw IOException("Crash profile exceeds the $limit")
         }
         Files.createDirectories(directory.toPath())
