@@ -90,3 +90,13 @@ data class SdkStartFailure(
     val reason: String,
     val cause: Throwable? = null,
 ) : Error(reason)
+
+/**
+ * A crash profile could not be imported. The caller still owns its original file.
+ * @param reason A description of the failure.
+ * @param cause The underlying failure, when available.
+ */
+data class CrashProfileImportFailure(
+    val reason: String,
+    val cause: Exception? = null,
+) : Error(reason)

@@ -67,7 +67,7 @@ class StreamHandle(
      * @param feature the feature flag path to disable
      */
     fun disableRuntimeFeature(feature: String) {
-        CaptureTestJniLibrary.disableRuntimeFeature(streamId, feature)
+        CaptureTestJniLibrary.setRuntimeFeatureEnabled(streamId, feature, false)
     }
 }
 
