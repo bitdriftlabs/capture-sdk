@@ -11,6 +11,11 @@ struct FilledButtonStyle: ButtonStyle {
     let fill: Color
     let foreground: Color
 
+    init(fill: Color = Theme.primary, foreground: Color = Theme.textPrimary) {
+        self.fill = fill
+        self.foreground = foreground
+    }
+
     func makeBody(configuration: ButtonStyleConfiguration) -> some View {
         FilledFeedbackLabel(
             configuration: configuration,
@@ -25,6 +30,9 @@ private struct FilledFeedbackLabel: View {
     let fill: Color
     let foreground: Color
 
+    @Environment(\.isEnabled)
+    private var isEnabled
+
     private var isActive: Bool {
         self.configuration.isPressed
     }
@@ -33,7 +41,9 @@ private struct FilledFeedbackLabel: View {
         self.configuration.label
             .font(.headline.weight(.semibold))
             .foregroundColor(self.foreground)
-            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, minHeight: 24)
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(
@@ -41,7 +51,7 @@ private struct FilledFeedbackLabel: View {
                     .fill(self.fill)
             )
             .scaleEffect(self.isActive ? 0.95 : 1.0)
-            .opacity(self.isActive ? 0.9 : 1.0)
+            .opacity(self.isEnabled ? (self.isActive ? 0.9 : 1.0) : 0.55)
             .brightness(self.isActive ? 0.1 : 0.0)
             .animation(.easeOut(duration: 0.1), value: self.isActive)
     }

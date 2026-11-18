@@ -27,5 +27,8 @@ struct PanelScreen<Content: View>: View {
                 .padding(.vertical, 16)
             }
         }
+        .foregroundColor(Theme.textPrimary)
+        .tint(Theme.primary)
+        .preferredColorScheme(.dark)
     }
 }

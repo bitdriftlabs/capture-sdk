@@ -71,6 +71,8 @@ import io.bitdrift.gradletestapp.ui.compose.components.TestingToolsCard
 import io.bitdrift.gradletestapp.ui.compose.components.TracingStatusCard
 import io.bitdrift.gradletestapp.ui.designsystem.BdButtonSize
 import io.bitdrift.gradletestapp.ui.designsystem.BdFloatingNavBar
+import io.bitdrift.gradletestapp.ui.designsystem.BdPrimaryButton
+import io.bitdrift.gradletestapp.ui.designsystem.BdSectionCard
 import io.bitdrift.gradletestapp.ui.designsystem.BdNavItem
 import io.bitdrift.gradletestapp.ui.designsystem.BdSecondaryButton
 import io.bitdrift.gradletestapp.ui.designsystem.BdSurface
@@ -102,6 +104,11 @@ fun MainScreen(
     val context = LocalContext.current
     var selectedTab by rememberSaveable { mutableIntStateOf(BottomNavTab.HOME.ordinal) }
     val currentTab = BottomNavTab.entries[selectedTab]
+    var showStorage by rememberSaveable { mutableStateOf(false) }
+    if (showStorage) {
+        StorageLabScreen(onBack = { showStorage = false })
+        return
+    }
 
     LaunchedEffect(currentTab) {
         Logger.logScreenView(currentTab.screenName)
@@ -173,6 +180,7 @@ fun MainScreen(
                             onAction = onAction,
                             context = context,
                             currentEntityId = currentEntityId,
+                            onOpenStorage = { showStorage = true },
                         )
 
                     BottomNavTab.STRESS_TESTS ->
@@ -302,6 +310,7 @@ private fun SdkApisTabContent(
     onAction: (AppAction) -> Unit,
     context: android.content.Context,
     currentEntityId: () -> String,
+    onOpenStorage: () -> Unit,
 ) {
     val toasterText =
         stringResource(
@@ -310,6 +319,18 @@ private fun SdkApisTabContent(
         )
 
     BdCardList {
+        item {
+            BdSectionCard(
+                title = "Storage Lab",
+                subtitle = "Prepare preferences and cache files to test persistence commands.",
+            ) {
+                BdPrimaryButton(
+                    text = "Open Storage Lab",
+                    onClick = onOpenStorage,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
         item {
             TestingToolsCard(
                 uiState = uiState,

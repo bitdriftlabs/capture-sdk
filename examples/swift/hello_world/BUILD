@@ -14,7 +14,10 @@ CI_APP_ICONS = select({
 })
 
 exports_files(
-    ["E2EStartupConfiguration.swift"],
+    [
+        "E2EStartupConfiguration.swift",
+        "StoragePanel/StorageLabStore.swift",
+    ],
     visibility = ["//examples/swift/hello_world/tests:__pkg__"],
 )
 
@@ -65,7 +68,10 @@ objc_library(
 
 swift_library(
     name = "ios_main",
-    srcs = glob(["**/*.swift"]),
+    srcs = glob(
+        ["**/*.swift"],
+        exclude = ["tests/**"],
+    ),
     tags = ["manual"],
     deps = [
         ":capture_xcframework",
@@ -132,7 +138,10 @@ xcarchive(
 
 swift_library(
     name = "ios_direct",
-    srcs = glob(["**/*.swift"]),
+    srcs = glob(
+        ["**/*.swift"],
+        exclude = ["tests/**"],
+    ),
     tags = ["manual"],
     deps = [
         ":crash_support",

@@ -30,6 +30,7 @@ struct ContentView: View {
                 ManualCapturePanelView(loggerCustomer: self.loggerCustomer)
                 AutomaticCapturePanelView(loggerCustomer: self.loggerCustomer)
                 CommandsPanelView(viewModel: self.commandsViewModel)
+                StoragePanelView()
                 CrashPanelView(viewModel: self.crashPanelViewModel)
                 MemoryPanelView(loggerCustomer: self.loggerCustomer)
                 DiagnosticsPanelView(loggerCustomer: self.loggerCustomer)

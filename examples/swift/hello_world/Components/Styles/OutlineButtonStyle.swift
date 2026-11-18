@@ -13,8 +13,8 @@ struct OutlineButtonStyle: ButtonStyle {
     let background: Color
 
     init(
-        stroke: Color,
-        foreground: Color,
+        stroke: Color = Theme.primary,
+        foreground: Color = Theme.textPrimary,
         background: Color = .clear
     ) {
         self.stroke = stroke
@@ -38,7 +38,8 @@ private struct OutlineFeedbackLabel: View {
     let foreground: Color
     let background: Color
 
-    @State private var flashPressed = false
+    @Environment(\.isEnabled)
+    private var isEnabled
 
     private var isActive: Bool {
         self.configuration.isPressed
@@ -48,7 +49,9 @@ private struct OutlineFeedbackLabel: View {
         self.configuration.label
             .font(.headline.weight(.semibold))
             .foregroundColor(self.foreground)
-            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, minHeight: 24)
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(
@@ -60,7 +63,7 @@ private struct OutlineFeedbackLabel: View {
                     .stroke(self.stroke.opacity(self.isActive ? 0 : 0.8), lineWidth: 1)
             )
             .scaleEffect(self.isActive ? 0.95 : 1.0)
-            .opacity(self.isActive ? 0.9 : 1.0)
+            .opacity(self.isEnabled ? (self.isActive ? 0.9 : 1.0) : 0.55)
             .animation(.easeOut(duration: 0.1), value: self.isActive)
     }
 }
