@@ -24,6 +24,7 @@ pub mod crash_report;
 pub mod events;
 pub mod ffi;
 pub mod key_value_storage;
+pub mod memory_dump;
 pub mod resource_utilization;
 mod session;
 pub mod session_replay;

@@ -19,6 +19,9 @@
 mod test_jvm;
 
 mod commands;
+mod crash_profile_source;
+#[cfg(target_os = "android")]
+mod crash_profiles;
 pub mod events;
 pub mod executor;
 pub mod ffi;

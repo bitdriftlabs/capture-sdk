@@ -18,7 +18,7 @@ use capture_core::resource_utilization::TargetHandler as ResourceUtilizationTarg
 use capture_core::session_replay::TargetHandler as SessionReplayTargetHandler;
 use jni::JNIEnv;
 use jni::objects::{JClass, JMap, JObject, JString};
-use jni::sys::{jint, jlong, jobject};
+use jni::sys::{JNI_TRUE, jboolean, jint, jlong, jobject};
 use platform_shared::LoggerId;
 use platform_test_helpers::{
   await_api_server_stream_closed,
@@ -492,11 +492,12 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_runEventsListen
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeFeature(
+pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_setRuntimeFeatureEnabled(
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
   stream_id: jint,
   feature: JString<'_>,
+  enabled: jboolean,
 ) {
   platform_test_helpers::with_expected_server(|h| {
     StreamHandle::from_stream_id(stream_id, h).blocking_stream_action(
@@ -504,9 +505,9 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_disableRuntimeF
         bd_test_helpers::runtime::make_update(
           vec![(
             env.get_string(&feature).unwrap().to_str().unwrap(),
-            ValueKind::Bool(false),
+            ValueKind::Bool(enabled == JNI_TRUE),
           )],
-          "disabled".to_string(),
+          format!("enabled-{enabled}"),
         ),
       ),
     );

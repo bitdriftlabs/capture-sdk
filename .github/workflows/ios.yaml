@@ -171,6 +171,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        run: |
+          RUST_VERSION="$(sed -n 's/^RUST_VERSION = "\(.*\)"/\1/p' MODULE.bazel)"
+          rustup toolchain install "$RUST_VERSION" --profile minimal
+          rustup default "$RUST_VERSION"
       - name: Install dependencies
         run: |
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 brew install protobuf flatbuffers

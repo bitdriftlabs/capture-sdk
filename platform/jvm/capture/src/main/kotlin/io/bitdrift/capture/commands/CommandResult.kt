@@ -55,6 +55,11 @@ class CommandAttachment private constructor(
 ) {
     constructor(bytes: ByteArray, contentType: String) : this(bytes, contentType, null)
 
+    override fun equals(other: Any?): Boolean {
+        val attach = other as? CommandAttachment ?: return false
+        return this.bytes.contentEquals(attach.bytes) && this.contentType == attach.contentType && this.file == attach.file
+    }
+
     /** Factories for payloads held outside memory. */
     companion object {
         /** Creates an attachment without reading the file. Ownership transfers when returned. */

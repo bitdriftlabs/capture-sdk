@@ -135,7 +135,6 @@ class MainViewModel(
                         sessionStrategy = cfg.sessionStrategy,
                         isDeferredStart = cfg.isDeferredStart,
                         isSleepModeEnabled = cfg.isSleepModeEnabled,
-                        entityId = CaptureSdkInitializer.currentUserUuid,
                     ),
             )
         }
@@ -205,7 +204,6 @@ class MainViewModel(
             is ConfigAction.UpdateApiUrl -> updateApiUrl(action.apiUrl)
             is ConfigAction.UpdateLogLevel -> updateLogLevel(action.logLevel)
             is ConfigAction.SetSleepModeEnabled -> setSleepModeEnabled(action.enabled)
-            is ConfigAction.ClearEntityId -> clearEntityId()
             is ConfigAction.SetSampleCommandsRegistered ->
                 if (action.registered) SampleCommands.register(application) else SampleCommands.unregister()
 
@@ -477,12 +475,12 @@ class MainViewModel(
 
             val result = sdkRepository.generateDeviceCode()
             if (result.isSuccess) {
-                val deviceCode = result.getOrNull()
+                val generatedDeviceCode = result.getOrNull()
                 _uiState.update {
                     it.copy(
                         session =
                             it.session.copy(
-                                deviceCode = deviceCode,
+                                deviceCode = generatedDeviceCode,
                                 isDeviceCodeValid = true,
                                 deviceCodeError = null,
                             ),
@@ -646,15 +644,6 @@ class MainViewModel(
     private fun updateApiUrl(apiUrl: String) {
         _uiState.update {
             it.copy(config = it.config.copy(apiUrl = apiUrl))
-        }
-    }
-
-    fun currentEntityId(): String = _uiState.value.config.entityId
-
-    private fun clearEntityId() {
-        Logger.clearEntityId()
-        _uiState.update { state ->
-            state.copy(config = state.config.copy(entityId = ""))
         }
     }
 

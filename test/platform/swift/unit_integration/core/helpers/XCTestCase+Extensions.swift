@@ -229,3 +229,21 @@ public func AssertAnyEqual(_ lhs: Any, _ rhs: Any?, file: StaticString = #filePa
     }
     eq(lhs, rhs)
 }
+
+/// Assertion to verify a file exists
+///
+/// - parameter path: a file path
+/// - parameter file: file path to attribute assertion failure
+/// - parameter line: line number associated with file path
+public func AssertFileExists(_ path: String, file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssertTrue(FileManager.default.fileExists(atPath: path), "\(path) does not exist", file: file, line: line)
+}
+
+/// Assertion to verify a file does not exist
+///
+/// - parameter path: a file path
+/// - parameter file: file path to attribute assertion failure
+/// - parameter line: line number associated with file path
+public func AssertFileDoesNotExist(_ path: String, file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssertFalse(FileManager.default.fileExists(atPath: path), "\(path) exists", file: file, line: line)
+}

@@ -35,4 +35,12 @@ class MockPreferences : IPreferences {
             stringStorage.remove(key)
         }
     }
+
+    override fun setStringBlocking(
+        key: String,
+        value: String?,
+    ): Boolean {
+        setString(key, value, blocking = true)
+        return true
+    }
 }

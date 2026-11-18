@@ -57,7 +57,6 @@ import io.bitdrift.gradletestapp.data.model.SessionAction
 import io.bitdrift.gradletestapp.init.SampleCommands
 import io.bitdrift.gradletestapp.ui.compose.components.AppTerminationsCard
 import io.bitdrift.gradletestapp.ui.compose.components.CommandsCard
-import io.bitdrift.gradletestapp.ui.compose.components.EntityIdCard
 import io.bitdrift.gradletestapp.ui.compose.components.FatalIssuesCard
 import io.bitdrift.gradletestapp.ui.compose.components.FeatureFlagsTestingCard
 import io.bitdrift.gradletestapp.ui.compose.components.GlobalFieldsCard
@@ -98,7 +97,6 @@ private enum class BottomNavTab(
 fun MainScreen(
     uiState: AppState,
     onAction: (AppAction) -> Unit,
-    currentEntityId: () -> String,
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -179,7 +177,6 @@ fun MainScreen(
                             uiState = uiState,
                             onAction = onAction,
                             context = context,
-                            currentEntityId = currentEntityId,
                             onOpenStorage = { showStorage = true },
                         )
 
@@ -309,7 +306,6 @@ private fun SdkApisTabContent(
     uiState: AppState,
     onAction: (AppAction) -> Unit,
     context: android.content.Context,
-    currentEntityId: () -> String,
     onOpenStorage: () -> Unit,
 ) {
     val toasterText =
@@ -386,12 +382,6 @@ private fun SdkApisTabContent(
             FeatureFlagsTestingCard(
                 onAddVariantFlag = { value -> onAction(FeatureFlagsTestAction.AddVariantFlag(value)) },
                 onAddManyFeatureFlags = { onAction(FeatureFlagsTestAction.AddManyFeatureFlags) },
-            )
-        }
-        item {
-            EntityIdCard(
-                entityIdValue = currentEntityId(),
-                onClearEntityId = { onAction(ConfigAction.ClearEntityId) },
             )
         }
         item {
