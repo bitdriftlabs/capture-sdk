@@ -28,6 +28,7 @@ import io.bitdrift.capture.reports.Report
 import io.bitdrift.capture.reports.profiling.CrashProfilingMode
 import io.bitdrift.capture.timber.CaptureTree
 import io.bitdrift.gradletestapp.data.repository.AppExitRepository
+import io.bitdrift.gradletestapp.data.EntityIdSettings
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.BITDRIFT_API_KEY
 import io.bitdrift.gradletestapp.ui.fragments.ConfigurationSettingsFragment.Companion.DEFAULT_SIMULATED_START_DELAY_MILLIS
@@ -62,9 +63,6 @@ object CaptureSdkInitializer {
     val sdkInitializationState: StateFlow<Boolean?> = _sdkInitializationState.asStateFlow()
     val isStarting: StateFlow<Boolean> = _isStarting.asStateFlow()
 
-    val currentUserUuid: String
-        get() = userUuid
-
     /**
      * Init sdk with the persisted settings
      */
@@ -92,7 +90,7 @@ object CaptureSdkInitializer {
                 _isStarting.value = true
 
                 val startAction = {
-                    startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext)
+                    startCaptureSdk(persistedSdkConfigResult.captureSdkInitSettings, applicationContext, sharedPreferences)
                     logPreviousRunInfoToBitdrift()
                 }
 
@@ -119,13 +117,14 @@ object CaptureSdkInitializer {
     private fun startCaptureSdk(
         settings: CaptureSdkInitSettings,
         context: Context,
+        sharedPreferences: SharedPreferences,
     ) {
         val onStartResult: (CaptureResult<ILogger>) -> Unit = { startResult ->
             when (startResult) {
                 is CaptureResult.Success -> {
                     val logger = startResult.value
-                    Log.d("bitdrift","SDK started successfully. sessionUrl=${logger.sessionUrl}, deviceId(entityId)=${logger.deviceId}")
-                    Capture.Logger.setEntityId(logger.deviceId)
+                    EntityIdSettings.applySaved(sharedPreferences, logger)
+                    Log.d("bitdrift", "SDK started successfully. sessionUrl=${logger.sessionUrl}, deviceId=${logger.deviceId}")
                     addSessionUrlToThirdPartySdks(context, logger.sessionUrl)
                     _isStarting.value = false
                     _sdkInitializationState.value = true

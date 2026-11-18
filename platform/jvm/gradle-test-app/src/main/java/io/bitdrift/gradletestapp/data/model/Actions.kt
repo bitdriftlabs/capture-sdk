@@ -32,8 +32,6 @@ sealed class ConfigAction : AppAction {
         val enabled: Boolean,
     ) : ConfigAction()
 
-    object ClearEntityId : ConfigAction()
-
     data class SetSampleCommandsRegistered(
         val registered: Boolean,
     ) : ConfigAction()

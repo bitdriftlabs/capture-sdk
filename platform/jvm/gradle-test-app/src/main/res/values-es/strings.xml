@@ -46,4 +46,8 @@
     <string name="restart_warning_summary">Haz click aquí para reinciar</string>
     <string name="log_message_toast">Log enviado con nivel: %1$s</string>
     <string name="webview_testing">WebView Testing</string>
+    <string name="entity_id_title">ID de entidad</string>
+    <string name="entity_id_not_set">Sin configurar</string>
+    <string name="entity_id_save">Guardar</string>
+    <string name="entity_id_clear">Borrar</string>
 </resources>

@@ -27,6 +27,7 @@ import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import io.bitdrift.gradletestapp.R
+import io.bitdrift.gradletestapp.data.EntityIdSettings
 import io.bitdrift.gradletestapp.ui.compose.components.SettingsApiKeysDialogFragment
 import kotlin.system.exitProcess
 
@@ -41,7 +42,7 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
 
         addRestartCategory(context, screen)
         addInitialConfigurationCategory(context, screen, sharedPreferences)
-        addConfigurationOptionsCategory(context, screen)
+        addConfigurationOptionsCategory(context, screen, sharedPreferences)
 
         preferenceScreen = screen
     }
@@ -164,12 +165,34 @@ class ConfigurationSettingsFragment : PreferenceFragmentCompat() {
     private fun addConfigurationOptionsCategory(
         context: Context,
         screen: PreferenceScreen,
+        sharedPreferences: SharedPreferences,
     ) {
         val category = newCategory(context, screen, "capture_category", "Configuration Options")
         category.addPreference(buildSwitchPreference(context))
         category.addPreference(buildCrashProfilingSwitch(context))
         category.addPreference(buildSessionReplaySwitch(context))
         category.addPreference(buildDiagnosticsSwitch(context))
+        category.addPreference(buildEntityIdPreference(context, sharedPreferences))
+    }
+
+    private fun buildEntityIdPreference(
+        context: Context,
+        sharedPreferences: SharedPreferences,
+    ): Preference =
+        Preference(context).apply {
+            key = EntityIdSettings.PREFS_KEY
+            setTitle(R.string.entity_id_title)
+            isIconSpaceReserved = false
+            fun currentSummary() = EntityIdSettings.read(sharedPreferences) ?: context.getString(R.string.entity_id_not_set)
+            summary = currentSummary()
+            childFragmentManager.setFragmentResultListener(EntityIdDialogFragment.TAG, this@ConfigurationSettingsFragment) { _, result ->
+                EntityIdSettings.save(sharedPreferences, checkNotNull(result.getString(EntityIdSettings.PREFS_KEY)))
+                summary = currentSummary()
+            }
+            setOnPreferenceClickListener {
+                EntityIdDialogFragment().show(childFragmentManager, EntityIdDialogFragment.TAG)
+                true
+            }
     }
 
     private fun enabledSummary(enabled: Boolean): String = if (enabled) "Enabled" else "Disabled"
