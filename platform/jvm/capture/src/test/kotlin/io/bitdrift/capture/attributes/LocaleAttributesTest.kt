@@ -49,4 +49,17 @@ class LocaleAttributesTest {
 
         verify(logger, times(1)).updateOotbField("_locale", "fr_CA")
     }
+
+    @Test
+    fun stop_stops_forwarding_locale_changes() {
+        val attributes = LocaleAttributes(context)
+        val logger: IInternalLogger = mock()
+        val frenchCanadianConfig = Configuration(context.resources.configuration).apply { setLocale(Locale.CANADA_FRENCH) }
+
+        attributes.start(logger)
+        attributes.stop()
+        attributes.onConfigurationChanged(frenchCanadianConfig)
+
+        verifyNoInteractions(logger)
+    }
 }

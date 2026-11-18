@@ -255,7 +255,7 @@ class LogBenchmarkTest {
                 commandDispatcher = CommandRegistry.defaultDispatcher(),
             )
             runWithMeasurementDisabled {
-                CaptureJniLibrary.shutdown(logger.loggerId)
+                logger.shutdown()
                 CaptureJniLibrary.destroyLogger(logger.loggerId)
             }
         }
@@ -276,8 +276,8 @@ class LogBenchmarkTest {
     }
 
     private fun destroyCurrentLogger() {
-        (Capture.logger() as? IInternalLogger)?.let {
-            CaptureJniLibrary.shutdown((it as io.bitdrift.capture.LoggerImpl).loggerId)
+        (Capture.logger() as? io.bitdrift.capture.LoggerImpl)?.let {
+            it.shutdown()
             CaptureJniLibrary.destroyLogger(it.loggerId)
         }
     }

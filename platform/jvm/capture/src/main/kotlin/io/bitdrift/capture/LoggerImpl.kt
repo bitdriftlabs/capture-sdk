@@ -794,6 +794,18 @@ internal class LoggerImpl(
         )
     }
 
+    /**
+     * Shuts down the native logger after stopping the OOTB field providers. Their platform callbacks
+     * pass [loggerId] to JNI, so they must stop before the logger is shut down and destroyed.
+     */
+    internal fun shutdown() {
+        try {
+            ootbFieldProviders.forEach { it.stop() }
+        } finally {
+            CaptureJniLibrary.shutdown(loggerId)
+        }
+    }
+
     @Suppress("UnusedPrivateMember")
     private fun stopLoggingDefaultEvents() {
         appExitLogger.uninstallAppExitLogger()
