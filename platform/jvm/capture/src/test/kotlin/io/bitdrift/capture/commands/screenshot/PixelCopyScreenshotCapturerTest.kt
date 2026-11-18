@@ -24,7 +24,7 @@ class PixelCopyScreenshotCapturerTest {
                 val result = PixelCopyScreenshotCapturer { bytes }.capture()
                 val attachment = (result as CommandResult.Success).attachment!!
                 assertThat(attachment.bytes).isEqualTo(bytes)
-                assertThat(attachment.contentType).isEqualTo("image/jpeg")
+                assertThat(attachment.contentType).isEqualTo("image/webp")
             }
         }
 
