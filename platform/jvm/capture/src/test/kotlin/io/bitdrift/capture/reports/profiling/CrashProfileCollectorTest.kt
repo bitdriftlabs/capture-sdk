@@ -66,15 +66,7 @@ class CrashProfileCollectorTest {
             invocation.getArgument<RuntimeConfig>(0).defaultValue
         }
         whenever(store.pendingResults()).thenAnswer { pending.toList() }
-        whenever(store.adopt(any(), any())).thenAnswer { invocation ->
-            val file = invocation.getArgument<File>(0)
-            val kind = invocation.getArgument<CrashProfileKind>(1)
-            if (profiler.pending.any { it.second == file.path }) {
-                pending += kind.value to file.path
-                profiler.pending.removeAll { it.second == file.path }
-            }
-            file
-        }
+        whenever(store.adopt(any(), any())).thenAnswer { it.getArgument<File>(0) }
         whenever(store.importProfile(any(), any())).thenReturn(File("/sdk-private/imported.anr"))
     }
 
@@ -433,6 +425,35 @@ class CrashProfileCollectorTest {
 
         assertThat(profiler.events).contains("register")
         assertThat(submitted).containsExactly(Triple("/live", ANR, true))
+    }
+
+    @Test
+    fun retainedPlatformProfileIsOnlyRemovedAfterSuccessfulMigration() {
+        enable(anr = true, oom = false)
+        val source = temporary.newFile("original.bitdrift-retained-anr").apply { writeText("profile") }
+        val directory = File(temporary.root, "profiles")
+        var failSync = true
+        val operations =
+            object : CrashProfileStore.CrashProfileFileOperations() {
+                override fun syncFile(file: File) {
+                    if (failSync) throw IOException("disk failure")
+                    super.syncFile(file)
+                }
+            }
+        val profileStore = CrashProfileStore(directory, runtime, operations)
+        profiler.pending += ANR to source.path
+
+        collector(configuration = manualConfiguration(), profileStore = profileStore).start()
+        assertThat(source.readText()).isEqualTo("profile")
+        assertThat(profileStore.pendingResults()).isEmpty()
+        assertThat(submitted).isEmpty()
+
+        failSync = false
+        collector(configuration = manualConfiguration(), profileStore = profileStore).start()
+        assertThat(source).doesNotExist()
+        val (_, path) = profileStore.pendingResults().single()
+        assertThat(File(path).readText()).isEqualTo("profile")
+        assertThat(submitted).containsExactly(Triple(path, ANR, false))
     }
 
     @Test

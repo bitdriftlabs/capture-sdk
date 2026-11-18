@@ -355,6 +355,8 @@ internal class LoggerImpl(
 
         configuration.crashProfilingMode?.warnIfUnsupportedApi(Build.VERSION.SDK_INT)
         if (Build.VERSION.SDK_INT >= API_ANR) {
+            // TODO: Give profiling a dedicated serial dispatcher so profile copies and fsyncs
+            // cannot stall platform events or previous-run report discovery on CommonBackground.
             val executor = eventListenerDispatcher.executorService
             val supportsOom = Build.VERSION.SDK_INT >= API_OOM
             crashProfileCollector =
@@ -381,6 +383,8 @@ internal class LoggerImpl(
                         runtime,
                     ),
                 )
+            // TODO: Reconcile persisted trigger ownership independently of platform_events.enabled.
+            // When the listener never starts, even local opt-out cannot remove previously claimed types.
             eventsListenerTarget.add(crashProfileCollector)
         } else {
             crashProfileCollector = null

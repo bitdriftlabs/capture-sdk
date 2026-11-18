@@ -222,6 +222,9 @@ internal class IssueReporterProcessor(
                 )
             val deviceMetrics = createDeviceMetrics(builder, timestamp)
             // Facts were prepared at startup: the crashing thread only copies a string.
+            // TODO: Supply trustworthy process-exit evidence for recovered JVM OOMs; see
+            // report_candidate in shared-core/bd-artifact-upload/src/crash_profile_attribution.rs.
+            // The exception time is not a death bound, and an unbounded run can match a reused PID.
             val crashProfileSource =
                 CrashProfileSource.oomSource.takeIf {
                     reportType == ReportType.JVMCrash && throwable is OutOfMemoryError

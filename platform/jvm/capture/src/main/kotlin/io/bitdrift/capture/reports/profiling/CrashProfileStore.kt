@@ -20,6 +20,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.LinkOption
+import java.nio.file.NoSuchFileException
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.BasicFileAttributes
@@ -89,27 +90,27 @@ internal class CrashProfileStore(
         Files.createDirectories(directory.toPath())
         directory.parentFile?.let(fileOperations::syncDirectory)
         val target = File(directory, "${UUID.randomUUID()}.${kind.value}")
-        if (owned) {
-            try {
-                fileOperations.move(source, target)
-                if (target.length() != sourceBytes) throw IOException("Crash profile changed during adoption")
-                if (!target.setLastModified(now())) throw IOException("Cannot timestamp adopted crash profile")
-                fileOperations.syncFile(target)
-                fileOperations.syncDirectory(directory)
-                source.absoluteFile.parentFile?.let(fileOperations::syncDirectory)
-                Log.d(LOG_TAG, "Adopted crash profile by rename: ${target.name}")
-                return target
-            } catch (e: AtomicMoveNotSupportedException) {
-                Log.d(LOG_TAG, "Crash profile requires a cross-filesystem copy", e)
-            }
-        }
-
         val temporary = File(directory, "${target.name}.partial")
+        var renamed = false
         var committed = false
         try {
-            fileOperations.copy(source, temporary, available)
-            if (temporary.length() != sourceBytes || Files.size(source.toPath()) != sourceBytes) {
-                throw IOException("Crash profile changed during import")
+            // Even a zero-copy adoption must not be replayable before validation and file sync.
+            if (owned) {
+                try {
+                    fileOperations.move(source, temporary)
+                    renamed = true
+                } catch (e: AtomicMoveNotSupportedException) {
+                    Log.d(LOG_TAG, "Crash profile requires a cross-filesystem copy", e)
+                }
+            }
+            if (renamed) {
+                if (temporary.length() != sourceBytes) throw IOException("Crash profile changed during adoption")
+                if (!temporary.setLastModified(now())) throw IOException("Cannot timestamp adopted crash profile")
+            } else {
+                fileOperations.copy(source, temporary, available)
+                if (temporary.length() != sourceBytes || Files.size(source.toPath()) != sourceBytes) {
+                    throw IOException("Crash profile changed during import")
+                }
             }
             fileOperations.syncFile(temporary)
             fileOperations.move(temporary, target)
@@ -124,22 +125,32 @@ internal class CrashProfileStore(
             }
         }
         if (owned) {
-            Files.delete(source.toPath())
+            if (!renamed) Files.delete(source.toPath())
             source.absoluteFile.parentFile?.let(fileOperations::syncDirectory)
         }
         if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
-            Log.d(LOG_TAG, "Stored private crash profile copy: ${target.name}")
+            Log.d(LOG_TAG, "Stored private crash profile: ${target.name}, renamed=$renamed")
         }
         return target
     }
 
-    private fun files(): List<Pair<File, Long>> {
+    private fun files(): List<Pair<File, Long>> =
+        try {
+            scanFiles()
+        } catch (e: NoSuchFileException) {
+            // Native retention renames entries independently. Start over once so the renamed bytes
+            // are counted too; never treat a missing path as an empty or successfully expired file.
+            Log.d(LOG_TAG, "Retrying crash profile inventory after an entry disappeared", e)
+            scanFiles()
+        }
+
+    private fun scanFiles(): List<Pair<File, Long>> {
         if (!directory.exists()) return emptyList()
         val files = directory.listFiles() ?: throw IOException("Cannot list crash profile directory")
         val cutoff = now() - MAX_AGE_MS
+        // TODO: Reclaim abandoned .partial files before age-based expiry. First coordinate with
+        // live writers across processes; a serial executor only protects this process's writer.
         return files.mapNotNull { file ->
-            // Native retention can rename entries independently. Missing paths must fail the scan,
-            // not look like zero-byte files or successfully removed expired files.
             val attributes = fileOperations.readAttributes(file)
             if (attributes.lastModifiedTime().toMillis() >= cutoff) {
                 file to attributes.size()

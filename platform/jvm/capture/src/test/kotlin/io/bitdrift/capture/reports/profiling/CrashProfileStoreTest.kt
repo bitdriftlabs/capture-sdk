@@ -139,6 +139,56 @@ class CrashProfileStoreTest {
     }
 
     @Test
+    fun failedRenameAdoptionDoesNotPublishAnUnvalidatedOrUnsyncedFile() {
+        for (failing in listOf("size", "sync", "directory")) {
+            val original = temporary.newFile("owned-$failing").apply { writeText("profile") }
+            val operations =
+                object : CrashProfileFileOperations() {
+                    override fun move(
+                        source: File,
+                        target: File,
+                    ) {
+                        if (source == original && failing == "size") source.appendText("!")
+                        super.move(source, target)
+                    }
+
+                    override fun syncFile(file: File) {
+                        if (failing == "sync") throw IOException("file sync failed")
+                        super.syncFile(file)
+                    }
+
+                    override fun syncDirectory(directory: File) {
+                        if (failing == "directory" && directory == this@CrashProfileStoreTest.directory) {
+                            throw IOException("directory sync failed")
+                        }
+                        super.syncDirectory(directory)
+                    }
+                }
+
+            assertThatThrownBy { CrashProfileStore(directory, runtime, operations).adopt(original, CrashProfileKind.OOM) }
+                .isInstanceOf(IOException::class.java)
+            assertThat(directory.listFiles()).isEmpty()
+        }
+    }
+
+    @Test
+    fun aSourceDirectorySyncFailureDoesNotRollBackACommittedAdoption() {
+        val source = temporary.newFolder("platform").resolve("owned").apply { writeText("profile") }
+        val operations =
+            object : CrashProfileFileOperations() {
+                override fun syncDirectory(directory: File) {
+                    if (directory == source.parentFile) throw IOException("source directory sync failed")
+                    super.syncDirectory(directory)
+                }
+            }
+
+        assertThatThrownBy { CrashProfileStore(directory, runtime, operations).adopt(source, CrashProfileKind.ANR) }
+            .hasMessage("source directory sync failed")
+        val (_, path) = store().pendingResults().single()
+        assertThat(File(path).readText()).isEqualTo("profile")
+    }
+
+    @Test
     fun crossFilesystemAdoptionCopiesSyncsAndPublishesBeforeDeletingItsOriginal() {
         val source = temporary.newFile("cross-device").apply { writeText("profile") }
         val original = source
@@ -404,31 +454,67 @@ class CrashProfileStoreTest {
     }
 
     @Test
-    fun retentionBeforeMetadataReadsFailsAdmissionInsteadOfCountingZeroBytes() {
+    fun retentionBeforeMetadataReadsRetriesAndCountsTheRetainedBytes() {
         for (owned in listOf(false, true)) {
-            assertRetentionRaceRejectsAdmission(owned, renameBeforeRead = true, expired = false)
+            assertRetentionRaceRejectsAdmission(owned, renameBeforeRead = true)
         }
     }
 
     @Test
     fun retentionAfterMetadataReadsKeepsTheRetainedBytesInTheBudget() {
         for (owned in listOf(false, true)) {
-            assertRetentionRaceRejectsAdmission(owned, renameBeforeRead = false, expired = false)
+            assertRetentionRaceRejectsAdmission(owned, renameBeforeRead = false)
         }
     }
 
     @Test
-    fun retentionDuringExpiryFailsAdmissionInsteadOfPretendingTheBytesWereDeleted() {
+    fun retentionDuringExpiryRetriesAndRemovesTheRenamedExpiredFile() {
         for (owned in listOf(false, true)) {
-            assertRetentionRaceRejectsAdmission(owned, renameBeforeRead = false, expired = true)
+            val fixture = retentionRace(renameBeforeRead = false, expired = true)
+            val persisted = fixture.stage(owned)
+            assertThat(fixture.retained).doesNotExist()
+            assertThat(persisted.length()).isEqualTo(32)
         }
+    }
+
+    @Test
+    fun repeatedDisappearanceRejectsAdmissionWithoutDroppingTheExistingBytes() {
+        val existing = temporary.newFolder("busy").resolve("existing.anr").apply { writeBytes(ByteArray(48)) }
+        val alternate = existing.resolveSibling("alternate.anr")
+        val source = temporary.newFile().apply { writeBytes(ByteArray(32)) }
+        val operations =
+            object : CrashProfileFileOperations() {
+                override fun readAttributes(file: File): BasicFileAttributes {
+                    val next = if (file == existing) alternate else existing
+                    Files.move(file.toPath(), next.toPath())
+                    return super.readAttributes(file)
+                }
+            }
+        val store = CrashProfileStore(existing.parentFile!!, runtime, operations)
+
+        assertThatThrownBy { store.adopt(source, CrashProfileKind.ANR) }
+            .isInstanceOf(NoSuchFileException::class.java)
+        assertThat(source.length()).isEqualTo(32)
+        assertThat(existing.length()).isEqualTo(48)
     }
 
     private fun assertRetentionRaceRejectsAdmission(
         owned: Boolean,
         renameBeforeRead: Boolean,
-        expired: Boolean,
     ) {
+        val fixture = retentionRace(renameBeforeRead, expired = false)
+        assertThatThrownBy { fixture.stage(owned) }
+            .isInstanceOf(IOException::class.java)
+            .hasMessageContaining("budget")
+        assertThat(fixture.retained.length()).isEqualTo(48)
+        assertThat(fixture.source.length()).isEqualTo(32)
+        assertThat(fixture.retained.parentFile!!.listFiles()).containsExactly(fixture.retained)
+    }
+
+    private fun retentionRace(
+        renameBeforeRead: Boolean,
+        expired: Boolean,
+    ): RetentionRace {
         val profileDirectory = temporary.newFolder()
         val existing =
             File(profileDirectory, "existing.anr").apply {
@@ -441,27 +527,23 @@ class CrashProfileStoreTest {
         val operations =
             object : CrashProfileFileOperations() {
                 override fun readAttributes(file: File): BasicFileAttributes {
-                    if (renameBeforeRead) Files.move(file.toPath(), retained.toPath())
+                    if (renameBeforeRead && file == existing) Files.move(file.toPath(), retained.toPath())
                     val attributes = super.readAttributes(file)
-                    if (!renameBeforeRead) Files.move(file.toPath(), retained.toPath())
+                    if (!renameBeforeRead && file == existing) Files.move(file.toPath(), retained.toPath())
                     return attributes
                 }
             }
         val store = CrashProfileStore(profileDirectory, runtime, operations) { now }
+        return RetentionRace(store, source, retained)
+    }
 
-        val failure =
-            assertThatThrownBy {
-                if (owned) store.adopt(source, CrashProfileKind.ANR) else store.importProfile(source, CrashProfileKind.ANR)
-            }
-        if (renameBeforeRead || expired) {
-            failure.isInstanceOf(NoSuchFileException::class.java)
-        } else {
-            failure.isInstanceOf(IOException::class.java).hasMessageContaining("budget")
-        }
-        assertThat(existing).doesNotExist()
-        assertThat(retained.length()).isEqualTo(48)
-        assertThat(source.length()).isEqualTo(32)
-        assertThat(profileDirectory.listFiles()!!.sumOf { it.length() }).isEqualTo(48)
+    private data class RetentionRace(
+        val store: CrashProfileStore,
+        val source: File,
+        val retained: File,
+    ) {
+        fun stage(owned: Boolean): File =
+            if (owned) store.adopt(source, CrashProfileKind.ANR) else store.importProfile(source, CrashProfileKind.ANR)
     }
 
     @Test

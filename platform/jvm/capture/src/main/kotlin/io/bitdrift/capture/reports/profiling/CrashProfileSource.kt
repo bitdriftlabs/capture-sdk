@@ -74,8 +74,9 @@ internal object CrashProfileSource {
         return CrashProfileFacts(
             pid = Process.myPid(),
             bootCount = bootCount,
-            // TODO: Read kernel /proc/self/stat starttime using _SC_CLK_TCK, not framework bind
-            // time. A difference over the matcher's 10 ms tolerance rejects valid profiles.
+            // TODO: Read /proc/self/stat starttime using the device's _SC_CLK_TCK and verify
+            // parity with Perfetto's process_start_from_boot. Framework bind time can exceed
+            // PROCESS_START_TOLERANCE_NS in shared-core/bd-artifact-upload/src/crash_profile/mod.rs.
             processStartElapsedNs = Process.getStartElapsedRealtime() * NANOS_PER_MILLI,
             wallNs = wallNs,
             elapsedNs = elapsedNs,

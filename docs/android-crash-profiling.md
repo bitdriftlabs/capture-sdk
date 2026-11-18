@@ -98,8 +98,8 @@ does not promise that the profile matched a report or was uploaded. Parsing, att
 compression, and upload occur afterward and can reject an unusable profile. An import rejected
 because profiling is disabled does not read the source. Queued imports are rejected if their
 collector stops before they begin. An import already copying may finish persisting after stop; its
-private copy is recovered on the next SDK startup rather than being submitted through the stopped
-collector.
+private copy can be recovered on the next SDK startup if the collector detects the stop before
+submission.
 
 The owner may release the original once all consumers finish reading, not merely when Capture
 finishes. Capture's private snapshot needs one raw copy; automatic collection avoids that copy by
@@ -120,10 +120,11 @@ successful startup callback does not await it. Application triggers registered i
 therefore be removed by later SDK cleanup. This transition is not currently race-free, and waiting
 for ordinary SDK startup is not a trigger-handoff barrier.
 
-Both modes prepare source facts required by Capture's attribution. In particular, Capture owns
+Both modes prepare source facts when the platform-event listener starts. In particular, Capture owns
 `ActivityManager.setProcessStateSummary` while ANR profiling is enabled; another component must not
 overwrite it. Java OOM reports also carry SDK source facts. Manual mode changes collection and file
-ownership, not the attribution requirements.
+ownership, not the attribution requirements. A manual import can persist a profile before listener
+startup; successful import does not mean the source process's report has attribution facts.
 
 ### Known process-start attribution gap
 
@@ -139,16 +140,17 @@ parsing/conversion tests and device verification against Perfetto metadata.
 
 Pending raw profiles live under `files/bitdrift_capture/crash_profiles/`, outside Android's
 `files/profiling/` cleanup. Profile kind is encoded in SDK-owned filenames, so no separate sidecar
-must survive a move. Borrowed copies are written to a temporary file, synced, and atomically
-published before success is reported. Adoption syncs the renamed file and directories.
+must survive a move. Borrowed copies and adopted results are staged under a temporary name,
+validated, and synced before the final filename is published. Same-filesystem adoption does not copy
+the payload.
 
 A fatal ANR or Java OOM profile can arrive before its report exists. Native attribution retains the
 SDK-owned file with a retained suffix. On the next startup it waits for previous-run report
 discovery and retries attribution once. An unmatched retry or an unreadable profile is deleted.
 Newly imported files that were persisted before process death but not yet handed to native
 attribution are also recovered. Matching and uploading require the corresponding runtime flag. The
-SDK migrates legacy files carrying its retained suffix from the platform directory; it does not
-sweep unrelated platform results.
+SDK migrates files carrying its retained suffix from the platform directory, deleting the original
+only after the private copy is durable. It does not sweep unrelated platform results.
 
 Startup migration and pending replay failures are logged independently and do not prevent
 registration for new automatic results. Pending files remain available for recovery on a later
@@ -165,11 +167,12 @@ evicting retained files.
 Both upload representations use the same native artifact capacity. Admission failures are explicit.
 Private profiles still face the current per-file limit at native uploader handoff; already-admitted
 workflow files and durably staged uploads drain after reductions. If a native retention rename makes
-an entry disappear during a scan or expiry removal, admission fails rather than undercounting its
-bytes. Pending files older than seven days are removed when the store is scanned at startup or
-import, including while collection is disabled. This is opportunistic cleanup, not a background
-timer. After attribution, all profiles share the native artifact store's 64-artifact / 640 MiB
-physical storage and staging budget with whole/chunked command and workflow files, reports and
-snapshots. The count is a sanity bound; the byte budget can reject earlier. Pressure rejects new
-work rather than evicting accepted uploads. This is not a device-wide disk ceiling. Platform
-originals and exports are outside these SDK-owned budgets.
+an entry disappear during a scan or expiry removal, the SDK retries the whole inventory once. If it
+still cannot complete the scan, admission fails rather than undercounting bytes. Pending files older
+than seven days are removed when the store is scanned at startup or import, including while
+collection is disabled. This is opportunistic cleanup, not a background timer. After attribution,
+all profiles share the native artifact store's 64-artifact / 640 MiB physical storage and staging
+budget with whole/chunked command and workflow files, reports and snapshots. The count is a sanity
+bound; the byte budget can reject earlier. Pressure rejects new work rather than evicting accepted
+uploads. This is not a device-wide disk ceiling. Platform originals and exports are outside these
+SDK-owned budgets.

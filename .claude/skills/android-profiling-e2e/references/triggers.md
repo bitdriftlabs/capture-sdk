@@ -1,10 +1,8 @@
 # System-triggered ANR/OOM crash-profile acceptance
 
 Use the existing Gradle sample and [device/lifecycle skill](../../android-launch-run/SKILL.md).
-Exercise the SDK's real `CrashProfileCollector`, not an independent profiling listener. The former
-sample-only trigger activity, registration implementation and `e2eTriggerProfiling` build property
-have been removed. The sample's existing termination controls can generate the same ANR/OOM inputs
-without competing for trigger ownership. Native results alone do not establish backend acceptance.
+Exercise the SDK's real `CrashProfileCollector` with the sample's termination controls. Do not
+register a competing trigger collector. Native results alone do not establish backend acceptance.
 
 ## Startup configuration and ownership
 
@@ -22,10 +20,10 @@ using request-specific callbacks and must be ignored by crash adoption.
 
 Triggers persist across process restarts and reboots. Existing SDK preferences record claimed types
 so local opt-out, fatal-reporting opt-out or runtime disable can remove only those types.
-Unregistering a callback alone does not stop capture. Coordinate any ownership handoff with the
-app's other profiling consumers; Android cannot identify a replacement registration's owner. Old
-M0/POC installs predate these markers: remove their old registrations on a dedicated device or
-uninstall the test app before testing fresh-install opt-out.
+Keep `platform_events.enabled` on for these checks: the SDK reconciles ownership on listener
+startup. Unregistering a callback alone does not stop capture. Coordinate any ownership handoff
+with the app's other profiling consumers; Android cannot identify a replacement registration's
+owner.
 
 ## Build and configure
 
@@ -70,10 +68,8 @@ callbacks from pre-reboot queued results. A long-running trace's package version
 after an APK update.
 
 Record every override. `profiling_testing rate_limiter.disabled=true` is a labelled diagnostic
-control, not ordinary-rate acceptance. Temporary unredacted files are diagnostic-only: never upload,
-commit or count them as successful redacted delivery. On tested modules `370399999` and `361040400`,
-`cmd profiling_service` has no shell implementation and `dumpsys profiling_service` supplies no
-useful output; do not assume newer diagnostic commands.
+control, not ordinary-rate acceptance. Temporary unredacted files are diagnostic-only: never
+upload, commit or count them as successful redacted delivery.
 
 ## Drive existing sample controls
 
@@ -115,14 +111,6 @@ Keep capture source identity distinct from the receiving process and adoption-ti
 across updates/reboots. File survival alone is not proof of OS callback replay. Backend acceptance
 additionally requires ClickHouse links, authorized reads, processing and independently importable
 downloads through the monorepo's local-universe skill.
-
-## Historical M0 recordings
-
-`scripts/collect_triggers.py` and its tests remain for saved M0 evidence and reader/matcher parity.
-They expect the retired experiment's external `trigger-profiling` files and JSONL history; **do not
-run their live collection against the current sample**. Saved original bytes, startup lifetimes and
-fictional report-ID fixtures remain useful offline evidence, but do not prove current SDK
-restoration, canonical report links or backend authorization.
 
 ## Restore owned state
 

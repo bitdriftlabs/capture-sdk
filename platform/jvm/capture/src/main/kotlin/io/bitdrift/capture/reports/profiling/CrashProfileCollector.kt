@@ -88,6 +88,8 @@ internal class CrashProfileCollector(
 
     override fun stop() {
         // Invalidate callbacks and imports immediately, including work already queued by Android.
+        // TODO: Fence invalidation and native submission together, including pending replay.
+        // JNI targets the latest logger; it must not receive work from a stopped collector.
         stopped = true
         generation.incrementAndGet()
         executor.execute {
@@ -112,6 +114,8 @@ internal class CrashProfileCollector(
                         check(!wasStopped && isCurrent(importedGeneration)) { "Crash profile collector was stopped" }
                         val enabled = enabledKinds()
                         check(kind.value in enabled) { "Crash profiling is disabled for ${kind.value}" }
+                        // TODO: Prepare the ANR summary and cached OOM source independently of
+                        // event-listener start. Encoding facts here does not install either.
                         checkNotNull(CrashProfileSource.current(context, encodeSource)) { "Crash profile source facts are unavailable" }
                         store.validateSource(file)
                         resubmitPending(enabled)
@@ -140,6 +144,9 @@ internal class CrashProfileCollector(
         return CaptureResult.Failure(CrashProfileImportFailure(error.message ?: "Crash profile import failed", error))
     }
 
+    // TODO: Gate on effective IssueReporter state, not just local configuration. The cached
+    // crash_reporting.enabled flag or an init failure can skip the previous-run report pass.
+    // Coordinate skipped/failed recovery with shared-core's ReportAttribution::mark_ready gate.
     private fun enabledKinds(): Set<String> =
         buildSet {
             if (configuration.crashProfilingMode != null && configuration.enableFatalIssueReporting) {
@@ -149,6 +156,10 @@ internal class CrashProfileCollector(
         }
 
     private fun resubmitPending(enabled: Set<String>) {
+        // TODO: To match delayed results after report ACK and another restart, restore a bounded,
+        // installation-scoped ledger of attribution facts before releasing the native recovery gate.
+        // See shared-core/bd-artifact-upload/src/crash_profile_attribution.rs: acknowledged
+        // reports are only kept in memory, not restored from the pending-upload index.
         val pendingKinds = enabled - resubmittedKinds
         val pending = store.pendingResults()
         Log.d(
@@ -172,7 +183,15 @@ internal class CrashProfileCollector(
             .pendingResults()
             .filter { (kind, _) -> kind in enabled }
             .forEach { (kind, path) ->
-                guarded("migrate retained profile") { adopt(path, kind) }
+                guarded("migrate retained profile") {
+                    val source = File(path)
+                    // This is already a retained result, not a fresh callback we must clean up
+                    // on failure. Keep the original until the private copy is durable.
+                    store.importProfile(source, CrashProfileKind.entries.first { it.value == kind })
+                    if (!source.delete() && source.exists()) {
+                        Log.w(LOG_TAG, "Failed to remove migrated crash profile: $path")
+                    }
+                }
             }
     }
 
@@ -211,8 +230,9 @@ internal class CrashProfileCollector(
         val previouslyOwned = setOf(ANR, OOM).filter { preferences.getString(ownershipKey(it)) != null }.toSet()
         val removed = previouslyOwned - owned - pendingOwnershipClears
         if (removed.isNotEmpty()) {
-            // TODO: Establish a manual-mode handoff boundary. Capture startup success does not
-            // await this cleanup, which can remove application triggers registered meanwhile.
+            // TODO: Signal manual-mode handoff after removing claimed triggers and persisting
+            // the marker clears, but before migrating/replaying files. Capture startup success
+            // does not await this cleanup, so it can remove triggers the application just added.
             profiler.removeTriggers(removed)
             pendingOwnershipClears += removed
         }
