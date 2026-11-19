@@ -28,6 +28,7 @@ platform(
         "Arch": "arm64",
         "OSFamily": "darwin",
         "Pool": "default",
+        "env-overrides": "PATH=/usr/bin:/bin:/usr/sbin:/sbin",
         "use-self-hosted-executors": "true",
     },
     parents = ["@build_bazel_apple_support//platforms:macos_arm64"],

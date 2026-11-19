@@ -102,32 +102,39 @@ common:workflows --experimental_remote_downloader=grpcs://remote.buildbuddy.io
 # tests, runs remotely; the client only drives Bazel. Outputs stay remote, which keeps the client
 # disk small. The executor image has no autodetected C/C++ toolchain, so use the hermetic LLVM one.
 # This config is for `build` and `test` only.
-build:rbe --remote_executor=grpcs://remote.buildbuddy.io
-build:rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_linux_x86_64
-build:rbe --host_platform=//bazel/platforms:buildbuddy_linux_x86_64
-build:rbe --platforms=//bazel/platforms:buildbuddy_linux_x86_64
-build:rbe --config=linux-hermetic-llvm
-build:rbe --jobs=200
-build:rbe --remote_download_minimal
-build:rbe --remote_timeout=600
+build:rbe-common --remote_executor=grpcs://remote.buildbuddy.io
+build:rbe-common --host_platform=//bazel/platforms:buildbuddy_linux_x86_64
+build:rbe-common --config=linux-hermetic-llvm
+build:rbe-common --jobs=200
+build:rbe-common --remote_timeout=600
 # The repository-wide --modify_execution_info below keeps C++ link/archive actions off remote
-# execution for macOS builds. Values accumulate, so remove the tag again for the Linux executors.
-build:rbe --modify_execution_info=^(CppArchive|CppLink)$=-no-remote
+# execution for macOS builds. Values accumulate, so remove the tag again for RBE configurations.
+build:rbe-common --modify_execution_info=^(CppArchive|CppLink)$=-no-remote
 
-# Mixed CI keeps Linux as the default target platform and transitions Apple tests
-# to macOS. The rules-based Apple toolchain works from a Linux Bazel runner.
-build:mixed-rbe --config=rbe
-build:mixed-rbe --action_env=PATH=/usr/bin:/bin:/usr/sbin:/sbin
-build:mixed-rbe --define=capture_mixed_rbe=true
-build:mixed-rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_macos_arm64
-build:mixed-rbe --xcode_version_config=//bazel/platforms:executor_xcodes
-build:mixed-rbe --repo_env=APPLE_SUPPORT_RULES_BASED_TOOLCHAIN=1
-build:mixed-rbe --ios_multi_cpus=sim_arm64
-build:mixed-rbe --modify_execution_info=^(AppleLipo|BitcodeSymbolsCopy|BundleApp|BundleTreeApp|DsymDwarf|DsymLipo|GenerateAppleSymbolsFile|ObjcBinarySymbolStrip|ObjcLink|ProcessAndSign|SignBinary|SwiftArchive|SwiftStdlibCopy)$=-no-remote,^(BundleResources|ImportedDynamicFrameworkProcessor)$=-no-remote-exec
+build:rbe --config=rbe-common
+build:rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_linux_x86_64
+build:rbe --platforms=//bazel/platforms:buildbuddy_linux_x86_64
+build:rbe --remote_download_minimal
+
+# The rules-based Apple toolchain works from a Linux Bazel runner.
+build:apple-rbe-common --config=rbe-common
+build:apple-rbe-common --define=capture_mixed_rbe=true
+build:apple-rbe-common --xcode_version_config=//bazel/platforms:executor_xcodes
+build:apple-rbe-common --repo_env=APPLE_SUPPORT_RULES_BASED_TOOLCHAIN=1
+build:apple-rbe-common --ios_multi_cpus=sim_arm64
+build:apple-rbe-common --modify_execution_info=^(AppleLipo|BitcodeSymbolsCopy|BundleApp|BundleTreeApp|DsymDwarf|DsymLipo|GenerateAppleSymbolsFile|ObjcBinarySymbolStrip|ObjcLink|ProcessAndSign|SignBinary|SwiftArchive|SwiftStdlibCopy)$=-no-remote,^(BundleResources|ImportedDynamicFrameworkProcessor)$=-no-remote-exec
+
+# Prefer Linux for tools with no OS constraint in the mixed test graph.
+build:mixed-rbe --config=apple-rbe-common
+build:mixed-rbe --config=libunwind
+build:mixed-rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_linux_x86_64,//bazel/platforms:buildbuddy_macos_arm64
+build:mixed-rbe --platforms=//bazel/platforms:buildbuddy_linux_x86_64
+build:mixed-rbe --remote_download_minimal
 
 # Apple-only CI builds use the same remote executor and fetch their final
 # products for simulator launch, measurement, or upload on the caller.
-build:apple-rbe --config=mixed-rbe
+build:apple-rbe --config=apple-rbe-common
+build:apple-rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_macos_arm64
 build:apple-rbe --platforms=//bazel/platforms:buildbuddy_macos_arm64
 build:apple-rbe --remote_download_outputs=toplevel
 
