@@ -14,19 +14,23 @@ import android.os.ProfilingManager
 import android.os.ProfilingResult
 import androidx.annotation.RequiresApi
 import androidx.core.os.HeapProfileRequestBuilder
+import androidx.core.os.JavaHeapDumpRequestBuilder
 import androidx.core.os.ProfilingRequest
 import androidx.core.os.StackSamplingRequestBuilder
+import androidx.core.os.SystemTraceRequestBuilder
 import io.bitdrift.capture.commands.BuiltinCommandArguments
 import io.bitdrift.capture.commands.HeapProfileTraceArguments
+import io.bitdrift.capture.commands.JavaHeapDumpArguments
 import io.bitdrift.capture.commands.StackSamplingTraceArguments
+import io.bitdrift.capture.commands.SystemTraceArguments
 import io.bitdrift.capture.utils.BuildVersionChecker
 import io.bitdrift.capture.utils.toIntSaturated
 import java.util.concurrent.Executor
 
 /**
  * Runs captures through android.os.ProfilingManager, building each request with androidx.core's
- * request builders. Every sampling parameter is always set: the platform's own defaults are not
- * documented. Every capture carries the SDK's [TAG], so an app can recognise it among its own
+ * request builders. Each command sets the parameters it exposes. Every capture carries the SDK's
+ * [TAG], so an app can recognise it among its own
  * profiling results. Below Android 15, where `ProfilingManager` does not exist, every
  * request fails as `unsupported`.
  *
@@ -93,6 +97,18 @@ internal class Profiler(
                     .setBufferSizeKb(bufferSizeKb.toIntSaturated())
                     .setSamplingIntervalBytes(samplingIntervalBytes)
                     .setTrackJavaAllocations(trackJavaAllocations)
+                    .setTag(TAG)
+                    .setCancellationSignal(signal)
+                    .build()
+            is SystemTraceArguments ->
+                SystemTraceRequestBuilder()
+                    .setDurationMs(durationMs.toIntSaturated())
+                    .setTag(TAG)
+                    .setCancellationSignal(signal)
+                    .build()
+            is JavaHeapDumpArguments ->
+                JavaHeapDumpRequestBuilder()
+                    .setBufferSizeKb(bufferSizeKb.toIntSaturated())
                     .setTag(TAG)
                     .setCancellationSignal(signal)
                     .build()

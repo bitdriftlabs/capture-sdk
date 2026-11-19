@@ -21,7 +21,9 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.commands.BuiltinCommandArguments
 import io.bitdrift.capture.commands.HeapProfileTraceArguments
+import io.bitdrift.capture.commands.JavaHeapDumpArguments
 import io.bitdrift.capture.commands.StackSamplingTraceArguments
+import io.bitdrift.capture.commands.SystemTraceArguments
 import io.bitdrift.capture.utils.BuildVersionChecker
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
@@ -119,6 +121,29 @@ class ProfilerTest {
         val values = params.firstValue.let { bundle -> bundle.keySet().map { bundle.get(it) } }
         assertThat(values).contains(5_000, 8_192, 65_536L, true)
         assertThat(outcomes).isEmpty()
+    }
+
+    @Test
+    fun requestsASystemTraceWithOnlyTheDuration() {
+        assertSingleParameterRequest(SystemTraceArguments(5_000), ProfilingManager.PROFILING_TYPE_SYSTEM_TRACE, 5_000)
+    }
+
+    @Test
+    fun requestsAJavaHeapDumpWithOnlyTheBufferSize() {
+        assertSingleParameterRequest(JavaHeapDumpArguments(65_536), ProfilingManager.PROFILING_TYPE_JAVA_HEAP_DUMP, 65_536)
+    }
+
+    private fun assertSingleParameterRequest(
+        arguments: BuiltinCommandArguments,
+        profilingType: Int,
+        value: Int,
+    ) {
+        profiler.request(arguments) { outcomes += it }
+
+        val params = argumentCaptor<Bundle>()
+        verify(manager).requestProfiling(eq(profilingType), params.capture(), eq("bitdrift"), any(), any(), any())
+        val bundle = params.firstValue
+        assertThat(bundle.keySet().map { bundle.getInt(it) }).containsExactly(value)
     }
 
     @Test

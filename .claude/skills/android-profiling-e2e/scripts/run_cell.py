@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 import zlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from common import CELLS, EXT_DIR, PKG, TRIGGERS, adb, command_name  # noqa: E402
+from common import CELLS, EXT_DIR, PKG, STRICT_WORKFLOW_CELLS, TRIGGERS, adb, command_name  # noqa: E402
 
 
 def mark(msg):
@@ -111,7 +111,7 @@ def main():
         trigger = a.trigger or cell["trigger"]
         mark(f"TRIGGER {trigger}")
         tap_text(f"^{re.escape(trigger)}$")
-        if a.type == "heap_profile_trace":
+        if a.type in STRICT_WORKFLOW_CELLS:
             # The next event advances the command step; it must not retrigger the workflow.
             follow_up = "Log JSON Field" if trigger == "Log Single Message" else "Log Single Message"
             tap_text(f"^{re.escape(follow_up)}$")

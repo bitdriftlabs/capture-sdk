@@ -37,6 +37,18 @@ enum class BuiltinCommandType(val wireValue: Int, val key: String) {
                 trackJavaAllocations = scope.argument<Boolean>("track_java_allocations"),
             )
     },
+    SYSTEM_TRACE(14, "system_trace") {
+        override fun parse(scope: CommandScope) =
+            SystemTraceArguments(
+                durationMs = scope.argument<Long>("duration_ms"),
+            )
+    },
+    JAVA_HEAP_DUMP(15, "java_heap_dump") {
+        override fun parse(scope: CommandScope) =
+            JavaHeapDumpArguments(
+                bufferSizeKb = scope.argument<Long>("buffer_size_kb"),
+            )
+    },
     ;
 
     /** This command's generated arguments, or null if it does not use a generated parser. */
@@ -60,4 +72,12 @@ internal data class HeapProfileTraceArguments(
     val bufferSizeKb: Long,
     val samplingIntervalBytes: Long,
     val trackJavaAllocations: Boolean,
+) : BuiltinCommandArguments
+
+internal data class SystemTraceArguments(
+    val durationMs: Long,
+) : BuiltinCommandArguments
+
+internal data class JavaHeapDumpArguments(
+    val bufferSizeKb: Long,
 ) : BuiltinCommandArguments

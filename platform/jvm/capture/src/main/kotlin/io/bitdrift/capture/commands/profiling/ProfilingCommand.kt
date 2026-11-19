@@ -19,9 +19,8 @@ import java.io.File
 import kotlin.coroutines.resume
 
 /**
- * A built-in that records a Perfetto trace of this process through the platform profiler and
- * returns the file as the command attachment. Only [type] differs between capture kinds: it parses
- * the arguments that [IProfiler] turns into a platform request.
+ * A built-in that records a Perfetto trace through the platform profiler and returns it as the
+ * command attachment. [type] selects the capture and parses the arguments for [IProfiler].
  *
  * The backend always sends every argument, filling in the proto's defaults; a missing or mistyped
  * one fails the invocation with `invalid_arguments` before the profiler is asked. The platform
@@ -37,7 +36,12 @@ internal class ProfilingCommand(
 
     // Stack sampling keeps the core's runtime-configured timeout.
     override val timeoutMs: Long? =
-        if (type == BuiltinCommandType.HEAP_PROFILE_TRACE) HEAP_PROFILE_TIMEOUT_MS else null
+        when (type) {
+            BuiltinCommandType.HEAP_PROFILE_TRACE -> HEAP_PROFILE_TIMEOUT_MS
+            BuiltinCommandType.SYSTEM_TRACE -> SYSTEM_TRACE_TIMEOUT_MS
+            BuiltinCommandType.JAVA_HEAP_DUMP -> JAVA_HEAP_DUMP_TIMEOUT_MS
+            else -> null
+        }
 
     override suspend fun execute(scope: CommandScope): CommandResult {
         val arguments = checkNotNull(type.parse(scope)) { "${type.key} declares no arguments to profile with" }
@@ -87,5 +91,10 @@ internal class ProfilingCommand(
         // AOSP Configs allows up to 300 s of recording by default, plus 42 s for startup,
         // flushing, and file processing. Leave a little more time for the result callback.
         const val HEAP_PROFILE_TIMEOUT_MS = 350_000L
+
+        // AOSP permits up to 600 s for system recording and another 32 s for startup, file
+        // processing and redaction. ART dumps allow 113 s including the data source stop timeout.
+        const val SYSTEM_TRACE_TIMEOUT_MS = 650_000L
+        const val JAVA_HEAP_DUMP_TIMEOUT_MS = 120_000L
     }
 }

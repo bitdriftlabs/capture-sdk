@@ -14,7 +14,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from common import CELLS, PKG, TRIGGERS, command_name  # noqa: E402
+from common import CELLS, PKG, STRICT_WORKFLOW_CELLS, TRIGGERS, command_name  # noqa: E402
 
 
 def parse_override(s, current):
@@ -38,10 +38,10 @@ def main():
     ap.add_argument("--app-id", default=PKG)
     ap.add_argument("--marker", help="require this workflow_e2e_run global field on the trigger")
     ap.add_argument("--arg", action="append", default=[], help="override a command argument, key=value")
-    ap.add_argument("--defaults", action="store_true", help="omit arguments to exercise heap_profile_trace server defaults")
+    ap.add_argument("--defaults", action="store_true", help="omit arguments to exercise built-in server defaults")
     a = ap.parse_args()
-    if a.defaults and (a.arg or a.type != "heap_profile_trace"):
-        ap.error("--defaults is only for heap_profile_trace and cannot be combined with --arg")
+    if a.defaults and (a.arg or a.type not in STRICT_WORKFLOW_CELLS):
+        ap.error("--defaults is only for the built-in system trace, heap dump, and heap profile cells and cannot be combined with --arg")
 
     cell = CELLS[a.type]
     args = dict(cell["args"])
