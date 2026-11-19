@@ -124,6 +124,37 @@ xcarchive(
     visibility = ["//visibility:public"],
 )
 
+# rules_apple requires a profile label for a device app. The artifact embeds an
+# empty placeholder, which the signing job replaces with its real profile.
+genrule(
+    name = "unsigned_size_profile",
+    outs = ["unsigned-size.mobileprovision"],
+    cmd = "touch $@",
+)
+
+# Keep this sample equivalent to ios_app_size so App Thinning can compare them.
+ios_application(
+    name = "ios_app_size_unsigned",
+    app_icons = CI_APP_ICONS,
+    bundle_id = "io.bitdrift.example.swiftapp.helloworld",
+    bundle_name = "Bitdrift Sample App",
+    executable_name = "hello_world_app",
+    families = [
+        "iphone",
+        "ipad",
+    ],
+    features = ["disable_legacy_signing"],
+    infoplists = ["Info.plist"],
+    minimum_os_version = MINIMUM_IOS_VERSION,
+    provisioning_profile = ":unsigned_size_profile",
+    target_compatible_with = [
+        "@platforms//os:ios",
+        "@build_bazel_apple_support//constraints:device",
+    ],
+    version = ":hello_world_version",
+    deps = [":ios_main"],
+)
+
 # App that directly imports Capture as a `swift_library` for compatibility with `rules_xcodeproj`
 # and allowing building the app and all its deps in a single step.
 

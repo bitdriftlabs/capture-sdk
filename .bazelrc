@@ -125,11 +125,11 @@ build:apple-rbe-common --define=capture_mixed_rbe=true
 build:apple-rbe-common --jobs=10
 build:apple-rbe-common --xcode_version_config=//bazel/platforms:executor_xcodes
 build:apple-rbe-common --repo_env=APPLE_SUPPORT_RULES_BASED_TOOLCHAIN=1
-build:apple-rbe-common --ios_multi_cpus=sim_arm64
 build:apple-rbe-common --modify_execution_info=^(AppleLipo|BitcodeSymbolsCopy|BundleApp|BundleTreeApp|DsymDwarf|DsymLipo|GenerateAppleSymbolsFile|ObjcBinarySymbolStrip|ObjcLink|ProcessAndSign|SignBinary|SwiftArchive|SwiftStdlibCopy)$=-no-remote,^(BundleResources|ImportedDynamicFrameworkProcessor)$=-no-remote-exec
 
 # Prefer Linux for tools with no OS constraint in the mixed test graph.
 build:mixed-rbe --config=apple-rbe-common
+build:mixed-rbe --ios_multi_cpus=sim_arm64
 build:mixed-rbe --config=linux-hermetic-llvm
 build:mixed-rbe --config=libunwind
 build:mixed-rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_linux_x86_64,//bazel/platforms:buildbuddy_macos_arm64
@@ -138,10 +138,14 @@ build:mixed-rbe --remote_download_minimal
 
 # Apple-only CI builds use the same remote executor and fetch their final
 # products for simulator launch, measurement, or upload on the caller.
-build:apple-rbe --config=apple-rbe-common
-build:apple-rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_macos_arm64
-build:apple-rbe --platforms=//bazel/platforms:buildbuddy_macos_arm64
-build:apple-rbe --remote_download_outputs=toplevel
+build:apple-rbe-base --config=apple-rbe-common
+build:apple-rbe-base --extra_execution_platforms=//bazel/platforms:buildbuddy_macos_arm64
+build:apple-rbe-base --platforms=//bazel/platforms:buildbuddy_macos_arm64
+build:apple-rbe-base --remote_download_outputs=toplevel
+build:apple-rbe --config=apple-rbe-base
+build:apple-rbe --ios_multi_cpus=sim_arm64
+build:apple-device-rbe --config=apple-rbe-base
+build:apple-device-rbe --ios_multi_cpus=arm64
 
 # Custom iOS release configuration
 build --ios_simulator_device="iPhone 17"

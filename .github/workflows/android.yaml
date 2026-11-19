@@ -459,3 +459,8 @@ jobs:
         fetch-depth: 1
     - name: check result
       run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_sizes.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
+    - name: Require BuildBuddy Test
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TEST_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT"

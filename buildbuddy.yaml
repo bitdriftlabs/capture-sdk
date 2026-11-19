@@ -24,9 +24,18 @@ actions:
           --test_output=errors
           --test_env=RUST_LOG=debug
           -- //... //platform/shared:platform-shared_release_backtrace_test
-      # Clippy shares this runner's Bazel server and fetched repositories. It uses `bazel build`
-      # rather than `bazel test`: the repository-wide --build_tests_only would omit production
-      # rust_library targets.
+
+  # Clippy changes the analysis flags and builds production rust_library targets.
+  - name: Clippy
+    triggers:
+      push:
+        branches:
+          - main
+      pull_request:
+        branches:
+          - "*"
+    container_image: ubuntu-24.04
+    steps:
       - run: >-
           bazel build
           --config=workflows
@@ -35,3 +44,47 @@ actions:
           --lockfile_mode=error
           --build_tag_filters=clippy,-macos_only
           -- //... //platform/shared:build_script_
+
+  # Run manually after Test so release flags and Mac actions have their own run.
+  - name: iOS release artifacts
+    triggers: {}
+    container_image: ubuntu-24.04
+    steps:
+      - run: |
+          set -euo pipefail
+          events="$(mktemp)"
+          trap 'rm -f "$events"' EXIT
+          bazel build \
+            --config=workflows \
+            --config=release-ios \
+            --config=apple-device-rbe \
+            --define=ios_produce_framework_plist=true \
+            --build_event_json_file="$events" \
+            --build_event_json_file_path_conversion=false \
+            --lockfile_mode=error \
+            -- //:ios_dist //examples/swift/hello_world:ios_app_size_unsigned.ipa
+          # The Apple transition puts the IPA outside the bazel-bin symlink.
+          python3 - "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" <<'PY'
+          import json
+          from pathlib import Path
+          import shutil
+          import sys
+          from urllib.parse import unquote, urlsplit
+
+          names = {
+              "Capture.ios.zip": "Capture.ios.zip",
+              "ios_app_size_unsigned.ipa": "ios_app_size.ipa",
+          }
+          outputs = {name: set() for name in names}
+          with open(sys.argv[1]) as events:
+              for event in map(json.loads, events):
+                  for file in event.get("namedSetOfFiles", {}).get("files", []):
+                      uri = urlsplit(file.get("uri", ""))
+                      path = Path(unquote(uri.path))
+                      if uri.scheme == "file" and path.name in outputs and path.is_file():
+                          outputs[path.name].add(path)
+          for name, paths in outputs.items():
+              if len(paths) != 1:
+                  sys.exit(f"Expected one materialized Bazel output named {name}, got {paths}")
+              shutil.copyfile(paths.pop(), Path(sys.argv[2]) / names[name])
+          PY

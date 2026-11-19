@@ -3,6 +3,7 @@ load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugi
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
 load("@rules_multirun//:defs.bzl", "multirun")
 load("@rules_pkg//:pkg.bzl", "pkg_zip")
+load("@rules_python//python:defs.bzl", "py_test")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
@@ -72,7 +73,6 @@ pkg_zip(
         ":license",
     ],
     out = "Capture.ios.zip",
-    tags = ["local"],
     visibility = ["//visibility:public"],
 )
 
@@ -344,4 +344,55 @@ xcodeproj(
             ),
         ),
     ],
+)
+
+py_test(
+    name = "check_release_config_version_test",
+    size = "small",
+    srcs = [
+        "ci/check_release_config_version.py",
+        "ci/check_release_config_version_test.py",
+    ],
+    imports = ["ci"],
+    main = "ci/check_release_config_version_test.py",
+)
+
+py_test(
+    name = "license_header_test",
+    size = "small",
+    srcs = [
+        "ci/license_header.py",
+        "ci/license_header_test.py",
+    ],
+    main = "ci/license_header_test.py",
+)
+
+py_test(
+    name = "parse_benchmark_results_test",
+    size = "small",
+    srcs = [
+        "ci/parse_benchmark_results.py",
+        "ci/parse_benchmark_results_test.py",
+    ],
+    imports = ["ci"],
+    main = "ci/parse_benchmark_results_test.py",
+)
+
+py_test(
+    name = "parse_ios_app_thinning_report_test",
+    size = "small",
+    srcs = [
+        "ci/parse_ios_app_thinning_report.py",
+        "ci/parse_ios_app_thinning_report_test.py",
+    ],
+    imports = ["ci"],
+    main = "ci/parse_ios_app_thinning_report_test.py",
+)
+
+py_test(
+    name = "update_release_version_test",
+    size = "small",
+    srcs = ["ci/update_release_version_test.py"],
+    data = ["ci/update_release_version.sh"],
+    main = "ci/update_release_version_test.py",
 )
