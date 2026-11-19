@@ -10,15 +10,14 @@ package io.bitdrift.capture.commands.screenshot
 import io.bitdrift.capture.commands.CommandAttachment
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.common.IWindowManager
-import io.bitdrift.capture.common.MainThreadHandler
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 /**
  * Takes a screenshot through [ScreenshotCaptureEngine] on the calling command's thread.
  *
- * The copy is not interruptible: a cancelled command still waits the few milliseconds for the
- * platform to hand the bitmap back, so no capture is ever left running behind the next invocation.
+ * A cancelled command waits for capture completion or the engine's per-window timeout. Timed-out
+ * copies may still finish in the platform; their bitmaps are never recycled while they could be in use.
  * The registry already runs one invocation of a command at a time, so nothing else serializes here.
  *
  * @param captureScreenshot produces the JPEG bytes or throws [ScreenshotCaptureException].
@@ -28,8 +27,7 @@ internal class PixelCopyScreenshotCapturer(
 ) : IScreenshotCapturer {
     constructor(
         windowManager: IWindowManager,
-        mainThreadHandler: MainThreadHandler = MainThreadHandler(),
-    ) : this(ScreenshotCaptureEngine(mainThreadHandler, windowManager)::captureDeviceCommandScreenshot)
+    ) : this(ScreenshotCaptureEngine(windowManager)::captureDeviceCommandScreenshot)
 
     override suspend fun capture(): CommandResult =
         try {
