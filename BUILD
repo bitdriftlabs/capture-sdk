@@ -15,6 +15,7 @@ load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
 load("//bazel:rustfmt.bzl", "rustfmt_runner")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
 load("//bazel/ios:xcframework.bzl", "strip_rust_metadata_xcframework")
+load("//bazel/platforms:macos_rbe_test.bzl", "macos_rbe_test")
 
 alias(
     name = "ios_app",
@@ -45,6 +46,7 @@ rustfmt_runner(
 
 strip_rust_metadata_xcframework(
     name = "ios_xcframework_for_distribution",
+    exec_compatible_with = ["@platforms//os:macos"],
     metadata_stripper = "//bazel/ios:strip_rust_metadata",
     visibility = ["//visibility:public"],
     xcframework = "//platform/swift/source:Capture",
@@ -56,6 +58,11 @@ sh_test(
     data = [":ios_xcframework_for_distribution"],
     tags = ["macos_only"],
     target_compatible_with = ["@platforms//os:macos"],
+)
+
+macos_rbe_test(
+    name = "ios_xcframework_archive_metadata_test_rbe",
+    test = ":ios_xcframework_archive_metadata_test",
 )
 
 pkg_zip(

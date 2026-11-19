@@ -114,6 +114,16 @@ build:rbe --remote_timeout=600
 # execution for macOS builds. Values accumulate, so remove the tag again for the Linux executors.
 build:rbe --modify_execution_info=^(CppArchive|CppLink)$=-no-remote
 
+# Mixed CI keeps Linux as the default target platform and transitions Apple tests
+# to macOS. The rules-based Apple toolchain works from a Linux Bazel runner.
+build:mixed-rbe --config=rbe
+build:mixed-rbe --define=capture_mixed_rbe=true
+build:mixed-rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_macos_arm64
+build:mixed-rbe --xcode_version_config=//bazel/platforms:executor_xcodes
+build:mixed-rbe --repo_env=APPLE_SUPPORT_RULES_BASED_TOOLCHAIN=1
+build:mixed-rbe --ios_multi_cpus=sim_arm64
+build:mixed-rbe --modify_execution_info=^(AppleLipo|BitcodeSymbolsCopy|BundleApp|BundleTreeApp|DsymDwarf|DsymLipo|GenerateAppleSymbolsFile|ObjcBinarySymbolStrip|ObjcLink|ProcessAndSign|SignBinary|SwiftArchive|SwiftStdlibCopy)$=-no-remote,^(BundleResources|ImportedDynamicFrameworkProcessor)$=-no-remote-exec
+
 # Custom iOS release configuration
 build --ios_simulator_device="iPhone 17"
 build:force-xcode-version --ios_simulator_version=26.2

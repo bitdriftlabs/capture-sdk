@@ -4,6 +4,7 @@ load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("@rules_rust//rust:defs.bzl", "rust_clippy")
+load("//bazel/platforms:macos_rbe_test.bzl", "macos_rbe_test")
 
 def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], tags = [], **args):
     rust_binary(
@@ -64,6 +65,7 @@ def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], **args)
         tags = _clippy_tags(tags),
         **args
     )
+    _macos_rbe_test_if_needed(name, tags)
 
 def bitdrift_rust_integration_test(name, **args):
     bitdrift_rust_library(
@@ -152,6 +154,8 @@ def bitdrift_rust_library(
             tags = test_tags,
         )
 
+    _macos_rbe_test_if_needed(test_name, test_tags)
+
     rust_clippy(
         name = "_{}_rust_clippy".format(name),
         target_compatible_with = target_compatible_with,
@@ -169,6 +173,10 @@ def _clippy_tags(tags):
     if "macos_only" in tags:
         result.append("clippy_macos")
     return result
+
+def _macos_rbe_test_if_needed(name, tags):
+    if "macos_only" in tags and "manual" not in tags:
+        macos_rbe_test(name = name + "_rbe", test = ":" + name)
 
 def _java_runtime_test_impl(ctx):
     java_runtime = ctx.toolchains["@bazel_tools//tools/jdk:runtime_toolchain_type"].java_runtime

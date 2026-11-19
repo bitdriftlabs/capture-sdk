@@ -30,9 +30,11 @@ bitdrift_mobile_swift_test(
     ],
     data = glob(["testdata/*"]),
     repository = "@capture",
+    simulator = "27.0",
     tags = ["macos_only"],
     use_test_host = True,
     visibility = ["//visibility:public"],
+    xcode = "27.0",
     deps = [
         "//platform/swift/source:ios_lib",
         "//platform/swift/source:objc_bridge",
