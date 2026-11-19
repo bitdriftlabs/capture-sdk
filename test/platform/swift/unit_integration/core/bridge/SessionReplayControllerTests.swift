@@ -56,7 +56,7 @@ final class SessionReplayControllerTests: XCTestCase {
                 XCTAssertEqual(attachment.mimeType, "image/jpeg")
             } else {
                 guard case let .failure(error) = result else { return XCTFail("expected invalid screenshot") }
-                XCTAssertEqual(error.title, "invalid or unavailable screenshot")
+                XCTAssertEqual(error.message, "invalid or unavailable screenshot")
             }
         }
     }
@@ -74,7 +74,7 @@ final class SessionReplayControllerTests: XCTestCase {
         first.cancel()
         let busy = await target.captureCommandScreenshot()
         guard case let .failure(error) = busy else { return XCTFail("expected busy screenshot") }
-        XCTAssertEqual(error.title, "screenshot capture already in progress")
+        XCTAssertEqual(error.message, "screenshot capture already in progress")
         XCTAssertEqual(capture.count, 1)
 
         capture.finish(nil)

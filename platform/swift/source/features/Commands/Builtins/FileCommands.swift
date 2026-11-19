@@ -13,7 +13,7 @@ import Foundation
             let target = FileManager.SearchPathDirectory.cachesDirectory
             let mask = FileManager.SearchPathDomainMask.allDomainsMask
             return switch FileManager.default.urls(for: target, in: mask).first {
-            case .none: .failure(CommandError(title: "failed to access file system"))
+            case .none: .failure(CommandError(message: "failed to access file system"))
             case .some(let url): .success(url)
             }
         }
@@ -55,7 +55,7 @@ import Foundation
 
                     if contents.lengthOfBytes(using: .utf8) > LIST_CONTEXT_MAX_BYTES {
                         guard let data = contents.data(using: .utf8) else {
-                            return .failure(CommandError(title: "failed to encode response"))
+                            return .failure(CommandError(message: "failed to encode response"))
                         }
                         attachment = CommandAttachment(data: data, mimeType: "text/plain")
                     } else {
@@ -63,7 +63,7 @@ import Foundation
                     }
                     return .success(CommandResult(attachment: attachment, context: context))
                 } catch {
-                    return .failure(CommandError(title: "failed to read directory"))
+                    return .failure(CommandError(message: "failed to read directory"))
                 }
             }
     }
@@ -80,13 +80,15 @@ import Foundation
                 var isDir: ObjCBool = false
                 if FileManager.default.fileExists(atPath: fileURL.filePath, isDirectory: &isDir) && isDir.boolValue {
                     guard let recursiveArg = arguments["recursive"], case .bool(let recursive) = recursiveArg, recursive else {
-                        return .failure(CommandError(title: "did not delete file", description: "declining to delete directory without <recursive> set to true"))
+                        return .failure(CommandError(
+                            message: "did not delete file: declining to delete directory without <recursive> set to true"
+                        ))
                     }
                 }
                 do {
                     try FileManager.default.removeItem(at: fileURL)
                 } catch {
-                    return .failure(CommandError(title: "failed to delete file"))
+                    return .failure(CommandError(message: "failed to delete file"))
                 }
                 return .success(CommandResult())
             }
@@ -105,7 +107,7 @@ import Foundation
                     do {
                         try FileManager.default.removeItem(at: fileURL)
                     } catch {
-                        return .failure(CommandError(title: "failed to delete file"))
+                        return .failure(CommandError(message: "failed to delete file"))
                     }
                 }
                 return .success(CommandResult())
@@ -113,7 +115,7 @@ import Foundation
     }
 }
 
-private let ERR_DOES_NOT_EXIST = CommandError(title: "file does not exist")
+private let ERR_DOES_NOT_EXIST = CommandError(message: "file does not exist")
 
 /// File size in bytes
 ///
@@ -145,7 +147,7 @@ private func size(fileURL: URL) -> Result<Int, CommandError> {
 ///
 /// - returns: A path within `dir`, `dir` itself if `path` is unspecified, or an error
 private func subpath(_ dir: URL, _ arguments: CommandArguments, requirePath: Bool = false) -> Result<URL, CommandError> {
-    let PATH_REQUIRED_ERROR = CommandError.invalidArguments(description: "<path> argument must be a string")
+    let PATH_REQUIRED_ERROR = CommandError.invalidArguments(message: "<path> argument must be a string")
 
     guard let pathArg = arguments["path"] else {
         return requirePath ? .failure(PATH_REQUIRED_ERROR) : .success(dir)
@@ -179,7 +181,7 @@ private func fileEnumerator(_ fileURL: URL, resourceKeys: [URLResourceKey]? = ni
     }
     if isDir.boolValue {
         return switch FileManager.default.enumerator(at: fileURL, includingPropertiesForKeys: resourceKeys) {
-        case .none: .failure(CommandError(title: "failed to read directory"))
+        case .none: .failure(CommandError(message: "failed to read directory"))
         case .some(let enumerator): .success(enumerator)
         }
     }

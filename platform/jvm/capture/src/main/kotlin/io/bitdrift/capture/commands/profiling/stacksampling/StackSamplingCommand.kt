@@ -50,8 +50,8 @@ internal class StackSamplingCommand(
         val request = parse()
         if (!profileability.isProfileable()) {
             return error(
-                "not_profileable",
-                "the app is not profileable; set <profileable android:enabled=\"true\" /> or use a debuggable build",
+                "not_profileable: the app is not profileable; " +
+                    "set <profileable android:enabled=\"true\" /> or use a debuggable build",
             )
         }
         return when (val outcome = capture(request)) {
@@ -60,8 +60,7 @@ internal class StackSamplingCommand(
             }
             is ProfileOutcome.Failed ->
                 error(
-                    outcome.name,
-                    outcome.message.ifEmpty { null },
+                    listOfNotNull(outcome.name, outcome.message.takeUnless { it.isBlank() }).joinToString(": "),
                     context =
                         mapOf(
                             "profiling_error_code" to outcome.code.toString(),

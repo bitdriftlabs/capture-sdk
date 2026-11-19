@@ -22,7 +22,7 @@ import Foundation
         } catch let error as CommandError {
             return .failure(error)
         } catch {
-            return .failure(CommandError(title: "could not complete command"))
+            return .failure(CommandError(message: "could not complete command"))
         }
     }
 
@@ -36,14 +36,14 @@ import Foundation
             let defaults = try getDefaults(arguments)
             let key = try getKey(arguments)
             guard let value = arguments["value"] else {
-                throw CommandError.invalidArguments(description: "must specify <value> and string <key> to set")
+                throw CommandError.invalidArguments(message: "must specify <value> and string <key> to set")
             }
             defaults.set(value.value(), forKey: key)
             return .success(CommandResult())
         } catch let error as CommandError {
             return .failure(error)
         } catch {
-            return .failure(CommandError(title: "could not complete command"))
+            return .failure(CommandError(message: "could not complete command"))
         }
     }
 
@@ -57,13 +57,13 @@ import Foundation
             let defaults = try getDefaults(arguments)
             let key = try getKey(arguments)
             guard let value = defaults.value(forKey: key) else {
-                return .failure(CommandError(title: "Unable to fetch value", description: "key '\(key)' is not set"))
+                return .failure(CommandError(message: "Unable to fetch value: key '\(key)' is not set"))
             }
             return .success(CommandResult(context: [key: "\(value)"]))
         } catch let error as CommandError {
             return .failure(error)
         } catch {
-            return .failure(CommandError(title: "could not complete command"))
+            return .failure(CommandError(message: "could not complete command"))
         }
     }
 
@@ -90,7 +90,7 @@ import Foundation
 
     private static func getKey(_ arguments: CommandArguments) throws -> String {
         guard let keyArg = arguments["key"], case .string(let key) = keyArg else {
-            throw CommandError.invalidArguments(description: "must specify string <key>")
+            throw CommandError.invalidArguments(message: "must specify string <key>")
         }
         return key
     }
@@ -100,10 +100,10 @@ import Foundation
             return UserDefaults.standard
         }
         guard case .string(let suiteName) = suiteName else {
-            throw CommandError.invalidArguments(description: "must specify string <suite_name>")
+            throw CommandError.invalidArguments(message: "must specify string <suite_name>")
         }
         guard let defaults = UserDefaults(suiteName: suiteName) else {
-            throw CommandError(title: "unable to fetch UserDefaults", description: "unable to read suite named \(suiteName)")
+            throw CommandError(message: "unable to fetch UserDefaults: unable to read suite named \(suiteName)")
         }
         return defaults
     }

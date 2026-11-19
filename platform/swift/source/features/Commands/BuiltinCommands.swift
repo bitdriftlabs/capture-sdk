@@ -12,15 +12,15 @@ enum BuiltinCommands {
         return [
             makeBuiltin(screenshotType, artifactType: "screenshot") { arguments in
                 guard arguments.isEmpty else {
-                    return .failure(.invalidArguments(description: "screenshot does not accept arguments"))
+                    return .failure(.invalidArguments(message: "screenshot does not accept arguments"))
                 }
                 guard let screenshot else {
-                    return .failure(CommandError(title: "screenshot capture unavailable"))
+                    return .failure(CommandError(message: "screenshot capture unavailable"))
                 }
                 return await screenshot.captureCommandScreenshot()
             },
             .init(type: traceType.rawValue, command: Command(key: traceType.key) { _ in
-                .failure(CommandError(title: "not implemented"))
+                .failure(CommandError(message: "not implemented"))
             }, artifactType: "stack_sampling_trace", timeoutMilliseconds: 15_000),
             memoryDump.builtin,
             makeBuiltin(.userSettingsClear, artifactType: "settings") {

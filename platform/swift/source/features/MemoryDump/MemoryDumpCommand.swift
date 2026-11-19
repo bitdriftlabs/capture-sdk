@@ -42,10 +42,8 @@ final class MemoryDumpCommand: @unchecked Sendable {
 
     func execute(_ arguments: CommandArguments) async -> Result<CommandResult, CommandError> {
         guard self.runtimeValue(.memoryDumpEnabled) else {
-            return .failure(CommandError(
-                title: "Memory dump is disabled",
-                description: "Enable \(RuntimeVariable<Bool>.memoryDumpEnabled.name) to run \(Self.type.key)."
-            ))
+            let flag = RuntimeVariable<Bool>.memoryDumpEnabled.name
+            return .failure(CommandError(message: "Memory dump is disabled: Enable \(flag) to run \(Self.type.key)."))
         }
 
         let request: MemoryDumpRequest
@@ -83,13 +81,16 @@ final class MemoryDumpCommand: @unchecked Sendable {
             Self.heapOwners
         ) as? [String: Any]
         guard let output else {
-            return .failure(CommandError(title: "Unable to capture memory dump"))
+            return .failure(CommandError(message: "Unable to capture memory dump"))
         }
         if let error = output["error"] as? String {
-            return .failure(CommandError(title: "Unable to capture memory dump", description: error))
+            let message = error.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? "Unable to capture memory dump"
+                : "Unable to capture memory dump: \(error)"
+            return .failure(CommandError(message: message))
         }
         guard let attachment = output["attachment"] as? Data else {
-            return .failure(CommandError(title: "Unable to capture memory dump"))
+            return .failure(CommandError(message: "Unable to capture memory dump"))
         }
 
         context.merge(output["context"] as? [String: String] ?? [:]) { current, _ in current }

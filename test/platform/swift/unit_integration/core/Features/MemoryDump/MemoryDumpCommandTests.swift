@@ -23,7 +23,7 @@ final class MemoryDumpCommandTests: XCTestCase {
     func testDisabledCommandFailsWithClearError() async {
         givenMemoryDumpCommand(enabled: false)
         await whenExecuting()
-        thenFailsWithTitle("Memory dump is disabled")
+        thenFailsWithMessagePrefix("Memory dump is disabled: Enable ")
     }
 
     func testInvalidArgumentsFail() async {
@@ -107,11 +107,11 @@ private extension MemoryDumpCommandTests {
         result = await sut.execute(arguments)
     }
 
-    func thenFailsWithTitle(_ title: String) {
+    func thenFailsWithMessagePrefix(_ prefix: String) {
         guard case let .failure(error) = result else {
             return XCTFail("expected a failure, got \(String(describing: result))")
         }
-        XCTAssertEqual(error.title, title)
+        XCTAssertTrue(error.message.hasPrefix(prefix), error.message)
     }
 
     func thenFailsWithCode(_ code: String) {

@@ -338,7 +338,7 @@ internal class CommandRegistry(
                 fail(
                     invocationId,
                     result.code,
-                    listOfNotNull(result.title, result.description).joinToString(": "),
+                    result.message,
                     result.context.toJniFields(),
                 )
         }

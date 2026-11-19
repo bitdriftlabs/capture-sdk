@@ -118,8 +118,7 @@ class SampleCommandsTest {
                     filesDir,
                 ) { throw IOException("export storage full") } as CommandResult.Error
 
-            assertEquals("profiling_failed", result.title)
-            assertEquals("export storage full", result.description)
+            assertEquals("profiling_failed: export storage full", result.message)
             assertEquals(listOf(profilesDir), filesDir.listFiles()!!.toList())
         }
 
@@ -134,8 +133,7 @@ class SampleCommandsTest {
                     filesDir,
                 ) as CommandResult.Error
 
-            assertEquals("profiling_failed", result.title)
-            assertEquals("trace file missing", result.description)
+            assertEquals("profiling_failed: trace file missing", result.message)
             assertTrue(filesDir.listFiles()!!.isEmpty())
         }
 

@@ -23,7 +23,7 @@ internal class SettingsGetCommand(
         getSharedPreferences(scope).getStringFromAny(key)?.let {
             return CommandResult.Success(context = mapOf(key to it))
         }
-        return CommandResult.Error("unable to fetch value", "key '$key' is not set")
+        return CommandResult.Error("unable to fetch value: key '$key' is not set")
     }
 }
 

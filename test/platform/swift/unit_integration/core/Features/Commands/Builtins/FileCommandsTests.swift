@@ -49,14 +49,14 @@ final class FileCommandsSizeTests: FileCommandsTestCase {
     }
 
     func testSizeInvalidArguments() throws {
-        XCTAssertEqual(sut(["path": 4.asArgument()]), Result.failure(CommandError.invalidArguments(description: "<path> argument must be a string")))
+        XCTAssertEqual(sut(["path": 4.asArgument()]), Result.failure(CommandError.invalidArguments(message: "<path> argument must be a string")))
     }
 
     func testSizeMissingFile() throws {
         try writeCacheFile("sample1.txt", sizeKb: 3)
         try writeCacheFile("sample2.txt", sizeKb: 4)
 
-        XCTAssertEqual(sut(["path": "sample3.txt".asArgument()]), Result.failure(CommandError(title: "file does not exist")))
+        XCTAssertEqual(sut(["path": "sample3.txt".asArgument()]), Result.failure(CommandError(message: "file does not exist")))
     }
 
     func testSizeSpecificFile() throws {
@@ -67,7 +67,7 @@ final class FileCommandsSizeTests: FileCommandsTestCase {
     }
 
     func testSizeEscape() throws {
-        XCTAssertEqual(sut(["path": SAMPLE_DOCUMENT.path.asArgument()]), Result.failure(CommandError(title: "file does not exist")))
+        XCTAssertEqual(sut(["path": SAMPLE_DOCUMENT.path.asArgument()]), Result.failure(CommandError(message: "file does not exist")))
     }
 }
 
@@ -83,7 +83,7 @@ final class FileCommandsDeleteTests: FileCommandsTestCase {
     }
 
     func testDeleteNonexistent() throws {
-        XCTAssertEqual(sut(["path": "a/sample9.txt".asArgument()]), Result.failure(CommandError(title: "file does not exist")))
+        XCTAssertEqual(sut(["path": "a/sample9.txt".asArgument()]), Result.failure(CommandError(message: "file does not exist")))
         AssertFileExists(CACHE_DIRECTORY.appendingPathComponent("a/sample1.txt").path)
         AssertFileExists(CACHE_DIRECTORY.appendingPathComponent("a/sample2.txt").path)
         AssertFileExists(CACHE_DIRECTORY.appendingPathComponent("b/sample.txt").path)
@@ -91,7 +91,7 @@ final class FileCommandsDeleteTests: FileCommandsTestCase {
     }
 
     func testDeleteEscape() throws {
-        XCTAssertEqual(sut(["path": SAMPLE_DOCUMENT.path.asArgument()]), Result.failure(CommandError(title: "file does not exist")))
+        XCTAssertEqual(sut(["path": SAMPLE_DOCUMENT.path.asArgument()]), Result.failure(CommandError(message: "file does not exist")))
         AssertFileExists(CACHE_DIRECTORY.appendingPathComponent("a/sample1.txt").path)
         AssertFileExists(CACHE_DIRECTORY.appendingPathComponent("a/sample2.txt").path)
         AssertFileExists(CACHE_DIRECTORY.appendingPathComponent("b/sample.txt").path)
@@ -107,7 +107,12 @@ final class FileCommandsDeleteTests: FileCommandsTestCase {
     }
 
     func testDeleteDirectoryWithoutRecursive() throws {
-        XCTAssertEqual(sut(["path": "a".asArgument()]), Result.failure(CommandError(title: "did not delete file", description: "declining to delete directory without <recursive> set to true")))
+        XCTAssertEqual(
+            sut(["path": "a".asArgument()]),
+            .failure(CommandError(
+                message: "did not delete file: declining to delete directory without <recursive> set to true"
+            ))
+        )
         AssertFileExists(CACHE_DIRECTORY.appendingPathComponent("a/sample1.txt").path)
         AssertFileExists(CACHE_DIRECTORY.appendingPathComponent("a/sample2.txt").path)
         AssertFileExists(CACHE_DIRECTORY.appendingPathComponent("b/sample.txt").path)
@@ -146,11 +151,11 @@ final class FileCommandsListTests: FileCommandsTestCase {
     private let sut = FileCommands.list
 
     func testListInvalidArguments() throws {
-        XCTAssertEqual(sut(["path": false.asArgument()]), Result.failure(CommandError.invalidArguments(description: "<path> argument must be a string")))
+        XCTAssertEqual(sut(["path": false.asArgument()]), Result.failure(CommandError.invalidArguments(message: "<path> argument must be a string")))
     }
 
     func testListNonexistent() throws {
-        XCTAssertEqual(sut(["path": "somedir".asArgument()]), Result.failure(CommandError(title: "file does not exist")))
+        XCTAssertEqual(sut(["path": "somedir".asArgument()]), Result.failure(CommandError(message: "file does not exist")))
     }
 
     func testListSmall() throws {
@@ -191,6 +196,6 @@ final class FileCommandsListTests: FileCommandsTestCase {
 
     func testListEscape() throws {
         let result = sut(["path": SAMPLE_DOCUMENT.path.asArgument()])
-        XCTAssertEqual(result, Result.failure(CommandError(title: "file does not exist")))
+        XCTAssertEqual(result, Result.failure(CommandError(message: "file does not exist")))
     }
 }

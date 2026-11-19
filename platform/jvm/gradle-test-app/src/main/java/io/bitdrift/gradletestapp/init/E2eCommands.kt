@@ -52,7 +52,7 @@ internal object E2eCommands {
                         context = mapOf("source" to "fixture_replay"),
                     )
                 } catch (e: IOException) {
-                    error("fixture_replay_failed", e.message)
+                    error(listOfNotNull("fixture_replay_failed", e.message?.takeUnless { it.isBlank() }).joinToString(": "))
                 }
             },
             Capture.Logger.registerCommand("e2e_report") {
@@ -61,7 +61,7 @@ internal object E2eCommands {
                     val path = withContext(Dispatchers.IO) { persistParent(context) }
                     success(context = mapOf("report_file" to path, "source" to "synthetic_anr"))
                 } catch (e: IOException) {
-                    error("fixture_report_failed", e.message)
+                    error(listOfNotNull("fixture_report_failed", e.message?.takeUnless { it.isBlank() }).joinToString(": "))
                 }
             },
             Capture.Logger.registerCommand("e2e_import_profile") {
@@ -77,10 +77,13 @@ internal object E2eCommands {
                         }
                     when (imported) {
                         is CaptureResult.Success -> success(context = mapOf("private_copy_persisted" to "true"))
-                        is CaptureResult.Failure -> error("fixture_import_failed", imported.error.message)
+                        is CaptureResult.Failure ->
+                            error(
+                                listOfNotNull("fixture_import_failed", imported.error.message.takeUnless { it.isBlank() }).joinToString(": "),
+                            )
                     }
                 } catch (e: IOException) {
-                    error("fixture_import_failed", e.message)
+                    error(listOfNotNull("fixture_import_failed", e.message?.takeUnless { it.isBlank() }).joinToString(": "))
                 }
             },
             Capture.Logger.registerCommand("e2e_log") {

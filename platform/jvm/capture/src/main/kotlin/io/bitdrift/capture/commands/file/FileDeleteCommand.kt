@@ -26,8 +26,7 @@ internal class FileDeleteCommand(
         } else if (path.isDirectory) {
             if (!scope.arguments.contains("recursive")) {
                 return CommandResult.Error(
-                    "did not delete file",
-                    "declining to delete directory without recursive set to true",
+                    "did not delete file: declining to delete directory without recursive set to true",
                 )
             }
             if (scope.typedArgument("recursive", Boolean::class) && path.deleteRecursively()) {

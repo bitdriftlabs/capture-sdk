@@ -38,11 +38,11 @@ struct MemoryDumpRequest: Equatable {
             switch name {
             case "include_heap":
                 guard case let .bool(flag) = value else {
-                    throw .invalidArguments(description: "Argument '\(name)' must be a bool.")
+                    throw .invalidArguments(message: "Argument '\(name)' must be a bool.")
                 }
                 includeHeap = flag
             default:
-                throw .invalidArguments(description: "Unknown argument '\(name)'.")
+                throw .invalidArguments(message: "Unknown argument '\(name)'.")
             }
         }
 
