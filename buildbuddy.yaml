@@ -19,7 +19,7 @@ actions:
           bazel test
           --config=workflows
           --config=mixed-rbe
-          --config=libunwind
+          --keep_going
           --lockfile_mode=error
           --test_output=errors
           --test_env=RUST_LOG=debug
@@ -31,7 +31,6 @@ actions:
           bazel build
           --config=workflows
           --config=mixed-rbe
-          --config=libunwind
           --config=clippy
           --lockfile_mode=error
           --build_tag_filters=clippy,-macos_only

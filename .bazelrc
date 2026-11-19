@@ -117,6 +117,7 @@ build:rbe --modify_execution_info=^(CppArchive|CppLink)$=-no-remote
 # Mixed CI keeps Linux as the default target platform and transitions Apple tests
 # to macOS. The rules-based Apple toolchain works from a Linux Bazel runner.
 build:mixed-rbe --config=rbe
+build:mixed-rbe --action_env=PATH=/usr/bin:/bin:/usr/sbin:/sbin
 build:mixed-rbe --define=capture_mixed_rbe=true
 build:mixed-rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_macos_arm64
 build:mixed-rbe --xcode_version_config=//bazel/platforms:executor_xcodes
