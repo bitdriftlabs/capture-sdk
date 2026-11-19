@@ -28,7 +28,7 @@ scripts are `$SK/scripts/*.py`.
 |---|---|
 | System-triggered ANR/OOM capture, delayed delivery, or crash correlation evidence | [Crash-profile acceptance](./references/triggers.md). Use the real SDK's startup opt-in and sample termination controls; do not create a second trigger collector or claim backend acceptance from native evidence alone. |
 | Verify the production `heap_profile_trace` workflow command | Run `heap_profile_trace` on Android 15+ with SDK config 52+. Use the monorepo's `local-universe-e2e` **Built-in Heap Profile Workflow Smoke** for a local run. Neither `heap_profile_demo` cell exercises this built-in. |
-| Verify the production system trace and Java heap dump commands | Use the monorepo's **Built-in System Trace and Java Heap Dump Smoke**. Use types 14 and 15, not registered demo commands. |
+| Verify the production system trace and Java heap dump commands | Use the monorepo's **Built-in System Trace and Java Heap Dump Smoke**. Use type 14 for system traces and type 12 for Java heap dumps, not registered demo commands. |
 | Direct/workflow capture and backend enrichment | Continue below and use the existing cell matrix. |
 
 For command-driven capture, this skill tests one path end to end:
