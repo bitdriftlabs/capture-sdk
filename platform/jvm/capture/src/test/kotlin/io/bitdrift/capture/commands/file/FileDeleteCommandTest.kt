@@ -63,8 +63,7 @@ class FileDeleteCommandTest {
                 )
             assertThat(FileDeleteCommand(context).execute(scope)).isEqualTo(
                 CommandResult.Error(
-                    "did not delete file",
-                    "declining to delete directory without recursive set to true",
+                    "did not delete file: declining to delete directory without recursive set to true",
                 ),
             )
             assertThat(dir.exists()).isTrue

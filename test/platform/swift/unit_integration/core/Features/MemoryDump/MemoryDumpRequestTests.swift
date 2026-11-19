@@ -71,8 +71,8 @@ private extension MemoryDumpRequestTests {
         XCTAssertNil(request)
         XCTAssertEqual(error?.code, "invalid_arguments")
         XCTAssertTrue(
-            error?.description?.contains(text) == true,
-            "'\(error?.description ?? "")' does not mention '\(text)'"
+            error?.message.contains(text) == true,
+            "'\(error?.message ?? "")' does not mention '\(text)'"
         )
     }
 }

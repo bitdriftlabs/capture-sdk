@@ -37,8 +37,7 @@ final class CommandRegistryTests: XCTestCase {
         guard case let .failure(error) = builtinResult else {
             return XCTFail("expected native stack stub failure")
         }
-        XCTAssertEqual(error.title, "not implemented")
-        XCTAssertNil(error.description)
+        XCTAssertEqual(error.message, "not implemented")
     }
 
     func testScreenshotValidatesArgumentsAndUnavailableProvider() async {
@@ -48,7 +47,7 @@ final class CommandRegistryTests: XCTestCase {
         XCTAssertEqual(error.code, CommandError.invalidArguments().code)
         let unavailable = await registry.execute(key: "take_screenshot", arguments: [:], builtinType: 2)
         guard case let .failure(error) = unavailable else { return XCTFail("expected unavailable screenshot") }
-        XCTAssertEqual(error.title, "screenshot capture unavailable")
+        XCTAssertEqual(error.message, "screenshot capture unavailable")
     }
 
     func testBuiltinsShareTheAppConcurrencyLimit() async throws {
@@ -81,7 +80,7 @@ final class CommandRegistryTests: XCTestCase {
         let registry = CommandRegistry(builtins: makeBuiltins(memoryDumpEnabled: false))
         let result = await registry.execute(key: "memory_dump", arguments: [:], builtinType: 12)
         guard case let .failure(error) = result else { return XCTFail("expected the disabled memory dump") }
-        XCTAssertEqual(error.title, "Memory dump is disabled")
+        XCTAssertTrue(error.message.hasPrefix("Memory dump is disabled: Enable "))
     }
 
     func testFileFactoryPreservesDataApiWithoutReadingTheFile() {
@@ -314,7 +313,7 @@ final class CommandRegistryTests: XCTestCase {
 
         let result = await registry.execute(key: "overflow", arguments: [:])
 
-        thenResultFails(result, title: "Maximum command concurrency reached")
+        thenResultFails(result, message: "Maximum command concurrency reached")
         whenOpeningGate(allowExecutionsToFinish)
         for execution in activeExecutions {
             try thenResultIsSuccess(await execution.value)
@@ -338,7 +337,7 @@ final class CommandRegistryTests: XCTestCase {
 
         thenResultFails(
             await registry.execute(key: "second", arguments: [:]),
-            title: "Maximum command concurrency reached"
+            message: "Maximum command concurrency reached"
         )
         whenOpeningGate(allowExecutionToFinish)
         try thenResultIsSuccess(await activeExecution)
@@ -398,11 +397,11 @@ private extension CommandRegistryTests {
         XCTAssertEqual(result, .failure(.alreadyExecuting))
     }
 
-    func thenResultFails(_ result: Result<CommandResult, CommandError>, title: String) {
+    func thenResultFails(_ result: Result<CommandResult, CommandError>, message: String) {
         guard case let .failure(error) = result else {
             return XCTFail("Expected command failure")
         }
-        XCTAssertEqual(error.title, title)
+        XCTAssertEqual(error.message, message)
     }
 
     func thenMaximumConcurrentExecutionsIs(_ value: LockedValue<Int>, expected: Int) {

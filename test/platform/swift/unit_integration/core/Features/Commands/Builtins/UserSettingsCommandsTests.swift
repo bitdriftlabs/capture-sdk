@@ -23,19 +23,19 @@ final class UserSettingsCommandsGetTests: UserSettingsCommandsTestCase {
 
     func testGetNonexistentValue() throws {
         let result = sut(["key": "a".asArgument()])
-        XCTAssertEqual(result, Result.failure(CommandError(title: "Unable to fetch value", description: "key 'a' is not set")))
+        XCTAssertEqual(result, Result.failure(CommandError(message: "Unable to fetch value: key 'a' is not set")))
     }
 
     func testGetNonexistentValueSpecificSuite() throws {
         UserDefaults(suiteName: "special")?.set("x", forKey: "3")
         let result = sut(["key": "a".asArgument(), "suite_name": "other".asArgument()])
-        XCTAssertEqual(result, Result.failure(CommandError(title: "Unable to fetch value", description: "key 'a' is not set")))
+        XCTAssertEqual(result, Result.failure(CommandError(message: "Unable to fetch value: key 'a' is not set")))
     }
 
     func testGetInvalidArguments() throws {
         for args in [["key": false.asArgument()], [:]] {
             XCTContext.runActivity(named: "run get() with args \(args) expecting invalid argument error") { _ in
-                XCTAssertEqual(sut(args), Result.failure(CommandError.invalidArguments(description: "must specify string <key>")))
+                XCTAssertEqual(sut(args), Result.failure(CommandError.invalidArguments(message: "must specify string <key>")))
             }
         }
     }
@@ -72,7 +72,7 @@ final class UserSettingsCommandSetTests: UserSettingsCommandsTestCase {
             (["value": Int64(9).asArgument()], "must specify string <key>"),
         ] {
             XCTContext.runActivity(named: "run set() command with args: \(args) expects error '\(description)'") { _ in
-                XCTAssertEqual(sut(args), Result.failure(CommandError.invalidArguments(description: description)))
+                XCTAssertEqual(sut(args), Result.failure(CommandError.invalidArguments(message: description)))
             }
         }
     }
@@ -102,7 +102,7 @@ final class UserSettingsCommandRemoveTests: UserSettingsCommandsTestCase {
 
     func testRemoveInvalidArguments() throws {
         for args in [["key": 993.asArgument()], [:]] {
-            XCTAssertEqual(sut(args), Result.failure(CommandError.invalidArguments(description: "must specify string <key>")))
+            XCTAssertEqual(sut(args), Result.failure(CommandError.invalidArguments(message: "must specify string <key>")))
         }
     }
 

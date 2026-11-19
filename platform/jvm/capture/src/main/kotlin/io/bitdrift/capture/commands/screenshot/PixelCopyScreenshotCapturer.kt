@@ -36,7 +36,9 @@ internal class PixelCopyScreenshotCapturer(
             CommandResult.Success(CommandAttachment(withContext(NonCancellable) { captureScreenshot() }, CONTENT_TYPE))
         } catch (e: ScreenshotCaptureException) {
             // The reason travels on the failure result.
-            CommandResult.Error("screenshot capture failed", description = e.message)
+            CommandResult.Error(
+                listOfNotNull("screenshot capture failed", e.message?.takeUnless { it.isBlank() }).joinToString(": "),
+            )
         }
 
     private companion object {

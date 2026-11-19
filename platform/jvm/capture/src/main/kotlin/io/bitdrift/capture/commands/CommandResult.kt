@@ -11,6 +11,9 @@ import java.io.File
 
 /**
  * The outcome of a registered command.
+ *
+ * Command outcome logs reserve the context keys `_result` and `_duration_ms`, and all keys
+ * starting with `_command_`, `_workflow_command_`, or `_span_`.
  */
 sealed class CommandResult {
     /**
@@ -27,14 +30,13 @@ sealed class CommandResult {
     /**
      * The command failed.
      *
-     * @param title a short identifier of the failure.
-     * @param description an optional human readable description of the failure.
+     * @param message the human-readable failure message.
      * @param context key-value pairs describing the failure, captured as fields of the command log.
+     * Direct command results report these fields separately from the failure message.
      * @param code why it failed; [CommandErrorCode.HandlerFailed] unless the arguments were unusable.
      */
     data class Error(
-        val title: String,
-        val description: String? = null,
+        val message: String,
         val context: Map<String, String> = emptyMap(),
         val code: CommandErrorCode = CommandErrorCode.HandlerFailed,
     ) : CommandResult()

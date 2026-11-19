@@ -150,7 +150,10 @@ class StackSamplingCommandTest {
 
             val error = command.execute(invocation()) as CommandResult.Error
 
-            assertThat(error.title).isEqualTo("not_profileable")
+            assertThat(error.message).isEqualTo(
+                "not_profileable: the app is not profileable; " +
+                    "set <profileable android:enabled=\"true\" /> or use a debuggable build",
+            )
             assertThat(error.code).isEqualTo(CommandErrorCode.HandlerFailed)
             assertThat(profiler.requests).isEmpty()
         }
@@ -162,8 +165,7 @@ class StackSamplingCommandTest {
             profiler.complete(ProfileOutcome.Failed(2, "FAILED_RATE_LIMIT_PROCESS", "rate limited"))
 
             val error = result.await() as CommandResult.Error
-            assertThat(error.title).isEqualTo("FAILED_RATE_LIMIT_PROCESS")
-            assertThat(error.description).isEqualTo("rate limited")
+            assertThat(error.message).isEqualTo("FAILED_RATE_LIMIT_PROCESS: rate limited")
             assertThat(error.context).isEqualTo(
                 mapOf("profiling_error_code" to "2", "profiling_error_name" to "FAILED_RATE_LIMIT_PROCESS"),
             )

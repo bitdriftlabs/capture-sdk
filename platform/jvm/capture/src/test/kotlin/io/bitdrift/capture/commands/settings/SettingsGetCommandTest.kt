@@ -69,20 +69,14 @@ class SettingsGetCommandTest(
                         "key" to CommandArgument.Text("existing_string"),
                         "file_name" to CommandArgument.Text("com.example.nonexistent"),
                     ),
-                    CommandResult.Error(
-                        "unable to fetch value",
-                        "key 'existing_string' is not set",
-                    ),
+                    CommandResult.Error("unable to fetch value: key 'existing_string' is not set"),
                 ),
                 arrayOf(
                     mapOf(
                         "key" to CommandArgument.Text("unknown_key"),
                         "file_name" to CommandArgument.Text("com.example.myprefs"),
                     ),
-                    CommandResult.Error(
-                        "unable to fetch value",
-                        "key 'unknown_key' is not set",
-                    ),
+                    CommandResult.Error("unable to fetch value: key 'unknown_key' is not set"),
                 ),
                 arrayOf(
                     mapOf(

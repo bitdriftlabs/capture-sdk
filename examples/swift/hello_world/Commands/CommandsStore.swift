@@ -28,7 +28,7 @@ actor CommandsStore {
             }
         case "flip_flag":
             guard let flag = arguments.string(for: "flag"), !flag.isEmpty else {
-                result = .failure(CommandError(title: "Missing flag argument"))
+                result = .failure(CommandError(message: "Missing flag argument"))
                 break
             }
 
@@ -43,7 +43,7 @@ actor CommandsStore {
                 ])
             )
         default:
-            result = .failure(CommandError(title: "Unknown command"))
+            result = .failure(CommandError(message: "Unknown command"))
         }
 
         let outcome: CommandInvocationRecord.Outcome
@@ -51,7 +51,7 @@ actor CommandsStore {
         case let .success(commandResult):
             outcome = .succeeded(context: commandResult.context)
         case let .failure(error):
-            outcome = .failed(message: [error.title, error.description].compactMap { $0 }.joined(separator: ": "))
+            outcome = .failed(message: error.message)
         }
         let record = CommandInvocationRecord(
             id: UUID(),

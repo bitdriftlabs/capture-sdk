@@ -110,20 +110,26 @@ object SampleCommands {
                 val seconds = argument("seconds")
                 val duration =
                     seconds.toLongOrNull()?.seconds
-                        ?: return@registerCommand error("invalid_seconds", seconds, code = CommandErrorCode.InvalidArguments)
+                        ?: return@registerCommand error(
+                            listOfNotNull("invalid_seconds", seconds.takeUnless { it.isBlank() }).joinToString(": "),
+                            code = CommandErrorCode.InvalidArguments,
+                        )
                 delay(duration)
                 success(context = mapOf("slept" to duration.toString()))
             },
             Capture.Logger.registerCommand("fail") {
                 announce()
-                error("Unsupported", description = "this command always fails")
+                error("Unsupported: this command always fails")
             },
             Capture.Logger.registerCommand("system_trace") {
                 announce()
                 val requestedType = if ("profiling_type" in arguments) argument<String>("profiling_type") else "STACK_SAMPLING"
                 val profilingType =
                     AppProfiler.ProfilingType.entries.firstOrNull { it.name.equals(requestedType, ignoreCase = true) }
-                        ?: return@registerCommand error("invalid_profiling_type", requestedType, code = CommandErrorCode.InvalidArguments)
+                        ?: return@registerCommand error(
+                            listOfNotNull("invalid_profiling_type", requestedType.takeUnless { it.isBlank() }).joinToString(": "),
+                            code = CommandErrorCode.InvalidArguments,
+                        )
                 val durationMs =
                     if (profilingType.usesDuration) {
                         (if ("duration_ms" in arguments) argument<Long>("duration_ms") else DEFAULT_TRACE_DURATION_MS).also {
@@ -250,7 +256,9 @@ object SampleCommands {
                     outcome
                 } catch (e: IOException) {
                     Log.w(LOG_TAG, "Could not prepare profiling attachment", e)
-                    CommandResult.Error("profiling_failed", e.message)
+                    CommandResult.Error(
+                        listOfNotNull("profiling_failed", e.message?.takeUnless { it.isBlank() }).joinToString(": "),
+                    )
                 } finally {
                     unclaimed?.deleteUnclaimed()
                 }
@@ -262,8 +270,7 @@ object SampleCommands {
                         "errorCode=${result.errorCode} message=${result.message}",
                 )
                 CommandResult.Error(
-                    "profiling_failed",
-                    listOfNotNull(result.errorName, result.message.ifEmpty { null }).joinToString(": "),
+                    listOfNotNull("profiling_failed", result.errorName, result.message.takeUnless { it.isBlank() }).joinToString(": "),
                     context =
                         buildMap {
                             put("profiling_type", profilingType.name)
