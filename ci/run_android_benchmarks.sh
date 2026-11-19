@@ -32,6 +32,14 @@ adb -s "$emulator_serial" install -r -t "$apk"
 adb -s "$emulator_serial" shell rm -rf "$device_output_dir"
 adb -s "$emulator_serial" shell mkdir -p "$device_output_dir"
 
+# Preserve device-side crash evidence before the emulator runner tears the device down, including
+# when adb or the instrumentation pipeline fails before the normal result checks below.
+collect_diagnostics() {
+  adb -s "$emulator_serial" logcat -b all -d -v threadtime >"${output_dir}/logcat.txt" 2>&1 || true
+  adb -s "$emulator_serial" shell dumpsys activity exit-info "$package" >"${output_dir}/exit-info.txt" 2>&1 || true
+}
+trap collect_diagnostics EXIT
+
 readonly instrumentation_log="${output_dir}/instrumentation.txt"
 adb -s "$emulator_serial" logcat -b all -c
 # Mirror the Gradle module's runner arguments: profiling off for real-world timings, and the

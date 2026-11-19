@@ -50,12 +50,14 @@
   same runtime setting controls per-file admission and aggregate private pending storage, defaulting
   to 256 MiB and capped at that ceiling. Files enter shared upload admission after attribution.
   Durably staged profiles retain their identity and report links across restart and policy changes.
+- Screenshot commands composite visible app windows, including dialogs and popups, into one JPEG.
 
 **Fixed**
 
 - Fixed capture-plugin debug-file uploads by updating the bundled bd CLI to 0.2.48 and passing
   custom base domains to the upload command.
 - Fixed excessive JVM heap usage when capture-plugin downloads the bundled bd CLI.
+- Screenshot commands mask `FLAG_SECURE` windows with black rectangles.
 
 ### iOS
 
@@ -1054,7 +1056,7 @@
 **Changed**
 
 - Simplify constructor of `CaptureOkHttpEventListenerFactory`. Remove usage of `(call: Call) ->
-  EventListener)` in favor of `EventListener.Factory`.
+EventListener)` in favor of `EventListener.Factory`.
 - Make `HttpField.PATH_TEMPLATE` constant public so consumers can override it using a custom
   `OkHttpRequestFieldProvider`.
 
