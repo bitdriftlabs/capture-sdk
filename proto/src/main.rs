@@ -98,7 +98,12 @@ fn builtin_commands() -> Vec<BuiltinCommand> {
       // parsing, including platform-specific, optional and dynamically typed arguments.
       let generates_arguments = matches!(
         WellKnownCommandType::from_i32(value.value()),
-        Some(WellKnownCommandType::STACK_SAMPLING_TRACE | WellKnownCommandType::HEAP_PROFILE_TRACE)
+        Some(
+          WellKnownCommandType::STACK_SAMPLING_TRACE
+            | WellKnownCommandType::HEAP_PROFILE_TRACE
+            | WellKnownCommandType::SYSTEM_TRACE
+            | WellKnownCommandType::MEMORY_DUMP
+        )
       );
       let arguments = metadata
         .argument_definitions

@@ -147,6 +147,8 @@ class CaptureLoggerTest {
                 Triple("take_screenshot", "screenshot", 0L),
                 Triple("stack_sampling_trace", "stack_sampling_trace", 0L),
                 Triple("heap_profile_trace", "heap_profile_trace", 350_000L),
+                Triple("system_trace", "system_trace", 650_000L),
+                Triple("memory_dump", "memory_dump", 120_000L),
                 Triple("user_settings_get", "settings", 100L),
                 Triple("user_settings_set", "settings", 100L),
                 Triple("user_settings_clear", "settings", 100L),
@@ -168,7 +170,8 @@ class CaptureLoggerTest {
                 .containsEntry(
                     "_failed_builtin_commands",
                     (
-                        "file_clear,file_delete,file_list,file_size,heap_profile_trace,stack_sampling_trace,take_screenshot," +
+                        "file_clear,file_delete,file_list,file_size,heap_profile_trace,memory_dump," +
+                            "stack_sampling_trace,system_trace,take_screenshot," +
                             "user_settings_clear,user_settings_get,user_settings_remove,user_settings_set"
                     ).toFieldValue(),
                 )

@@ -20,7 +20,7 @@ import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from common import CELLS, bd, command_name, tp  # noqa: E402
+from common import CELLS, STRICT_WORKFLOW_CELLS, bd, command_name, tp  # noqa: E402
 
 PERFETTO_MIME = "application/vnd.bitdrift.perfetto-trace"
 BUNDLE_MEMBERS = {"trace.perfetto", "symbols.pb", "deobfuscation.pb"}
@@ -109,6 +109,25 @@ def heap_profile_evidence(raw, processed):
     return counts
 
 
+def trace_evidence(kind, raw, processed):
+    if kind == "heap_profile":
+        return heap_profile_evidence(raw, processed)
+    if kind == "heap_graph":
+        sql = """select
+          (select count(*) from heap_graph_object) objects,
+          (select count(*) from heap_graph_reference where owned_id is not null) refs"""
+    elif kind == "system_timeline":
+        sql = """select
+          (select count(*) from slice where dur > 0) +
+          (select count(*) from sched where dur > 0) timeline_slices"""
+    else:
+        raise ValueError(f"unknown strict profiling kind: {kind}")
+    counts = {label: tp(path, sql)[0] for label, path in (("raw", raw), ("processed", processed))}
+    if counts["raw"] != counts["processed"] or not all(int(value) > 0 for value in counts["raw"].values()):
+        raise RuntimeError(f"expected matching nonempty {kind} input and output: {counts}")
+    return counts
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cell", required=True)
@@ -119,9 +138,9 @@ def main():
     ap.add_argument("--local", action="store_true", help="download from local Envoy using BD_API_KEY")
     ap.add_argument("--marker", help="require this workflow_e2e_run value on the completion")
     a = ap.parse_args()
-    strict = a.type == "heap_profile_trace"
+    strict = a.type in STRICT_WORKFLOW_CELLS
     if strict and not (a.workflow and a.action_id):
-        ap.error("heap_profile_trace requires --workflow and --action-id")
+        ap.error(f"{a.type} requires --workflow and --action-id")
     if a.local and (not os.environ.get("BD_CLI") or not os.environ.get("BD_API_KEY")):
         ap.error("--local requires an explicit local BD_CLI command and BD_API_KEY")
     d = pathlib.Path(a.runs) / a.cell
@@ -181,7 +200,8 @@ def main():
         if (backend["status"].get("processing_state") != "ready"
                 or not all(integ.get(k) for k in ("attachment_size_eq_raw", "tar_trace_eq_raw", "default_eq_processed"))):
             sys.exit(f"expected ready, byte-identical Perfetto downloads; see {d / 'backend.json'}: {integ}")
-        summary["analyses"]["heap_profile_samples"] = heap_profile_evidence(raw, tarp)
+        kind = CELLS[a.type]["kind"]
+        summary["analyses"]["heap_profile_samples" if kind == "heap_profile" else kind] = trace_evidence(kind, raw, tarp)
     elif CELLS[a.type]["kind"] != "heap_graph":  # frame naming per module, before vs after processing
         for label, p in (("raw", raw), ("processed", tarp)):
             if p.exists():

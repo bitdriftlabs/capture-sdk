@@ -151,6 +151,8 @@ internal class LoggerImpl(
                 ScreenshotCommand(PixelCopyScreenshotCapturer(windowManager)),
                 ProfilingCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, profiler, profileability),
                 ProfilingCommand(BuiltinCommandType.HEAP_PROFILE_TRACE, profiler, profileability),
+                ProfilingCommand(BuiltinCommandType.SYSTEM_TRACE, profiler, profileability),
+                ProfilingCommand(BuiltinCommandType.MEMORY_DUMP, profiler, profileability),
                 SettingsClearCommand(context),
                 SettingsGetCommand(context),
                 SettingsSetCommand(context),

@@ -60,6 +60,16 @@ CELLS = {
         "trigger": "Log Single Message", "wait": 5, "activity": 7, "interval": "60s",
         "device_copy": False, "kind": "heap_profile", "label": "Heap profile (built-in command)",
     },
+    "system_trace": {
+        "command": 14, "args": {"duration_ms": _i(5000)},
+        "trigger": "Log Single Message", "wait": 5, "activity": 7, "interval": "60s",
+        "device_copy": False, "kind": "system_timeline", "label": "System trace (built-in command)",
+    },
+    "memory_dump": {
+        "command": 12, "args": {"include_heap": {"bool_data": True}},
+        "trigger": "Log Single Message", "wait": 5, "activity": 4, "interval": "60s",
+        "device_copy": False, "kind": "heap_graph", "label": "Java heap dump (built-in command)",
+    },
     "stack_sampling": {
         # The SDK's built-in STACK_SAMPLING_TRACE command (well-known type 3): the production CPU
         # profiler path. It doesn't go through the test app's SampleCommands, so there is no on-device copy.
@@ -69,7 +79,8 @@ CELLS = {
     },
 }
 
-BUILTIN_NAMES = {3: "stack_sampling_trace", 13: "heap_profile_trace"}
+BUILTIN_NAMES = {3: "stack_sampling_trace", 12: "memory_dump", 13: "heap_profile_trace", 14: "system_trace"}
+STRICT_WORKFLOW_CELLS = {"heap_profile_trace", "system_trace", "memory_dump"}
 
 
 def command_name(cell_type):
@@ -122,7 +133,10 @@ def tp(trace, sql=None, *, sql_file=None):
         raise ValueError("specify exactly one of sql and sql_file")
     env = {k: v for k, v in os.environ.items() if k not in ("PERFETTO_BINARY_PATH", "DEBUGINFOD_URLS")}
     args = [str(trace), sql] if sql_file is None else ["-f", str(sql_file), str(trace)]
-    r = subprocess.run([TP, "query", *args], capture_output=True, text=True, env=env)
+    r = subprocess.run([TP, "query", "--format", "csv", *args], capture_output=True, text=True, env=env)
+    if r.returncode != 0 and "unrecognized option `--format'" in r.stderr:
+        # Older Perfetto versions always emit CSV and do not recognize --format.
+        r = subprocess.run([TP, "query", *args], capture_output=True, text=True, env=env)
     if r.returncode != 0:
         raise RuntimeError(f"trace_processor failed on {trace}: {(r.stderr or r.stdout)[:800]}")
     lines = r.stdout.splitlines()
