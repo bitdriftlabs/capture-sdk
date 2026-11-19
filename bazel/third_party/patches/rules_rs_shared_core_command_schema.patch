@@ -1,0 +1,17 @@
+--- rs/private/git_cargo_workspace_repository.bzl
++++ rs/private/git_cargo_workspace_repository.bzl
+@@ -66,2 +66,14 @@
+     patch(rctx)
++    if rctx.attr.remote == "https://github.com/bitdriftlabs/shared-core.git":
++        # Expose a narrow protobuf import tree through the existing pinned Git checkout.
++        for proto, directory in [
++            ("bitdrift_public/protobuf/logging/v1/payload.proto", "api/src"),
++            ("bitdrift_public/protobuf/workflow/v1/workflow_command.proto", "api/src"),
++            ("validate/validate.proto", "api/protoc-gen-validate"),
++        ]:
++            rctx.file(
++                "bd-proto/command_schema/" + proto,
++                rctx.read(directory + "/" + proto),
++                executable = False,
++            )
+     rctx.delete(rctx.path(".git"))

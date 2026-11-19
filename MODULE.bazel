@@ -432,6 +432,7 @@ single_version_override(
     patches = [
         "//bazel/third_party/patches:rules_rs_android_cfg_arch.patch",
         "//bazel/third_party/patches:rules_rs_external_path_dependencies.patch",
+        "//bazel/third_party/patches:rules_rs_shared_core_command_schema.patch",
         "//bazel/third_party/patches:rules_rs_shared_core_stable_name.patch",
     ],
 )
@@ -602,8 +603,13 @@ crate.annotation(
     crate = "bd-pgv",
 )
 crate.annotation(
+    additive_build_file = "//bazel/third_party:shared_core_command_schema.BUILD",
     build_script_env = {"SKIP_PROTO_GEN": "1"},
     crate = "bd-proto",
+    extra_aliased_targets = {
+        "workflow_command_imports": "workflow_command_imports",
+        "workflow_command_proto": "workflow_command_proto",
+    },
 )
 crate.annotation(
     build_script_env = {"SKIP_FILE_GEN": "1"},

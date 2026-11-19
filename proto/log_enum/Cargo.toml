@@ -1,0 +1,10 @@
+[package]
+edition = "2024"
+name    = "log-enum-codegen"
+version = "0.1.0"
+license-file = "LICENSE"
+publish = false
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
