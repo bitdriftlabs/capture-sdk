@@ -53,9 +53,9 @@ actions:
           --build_tag_filters=clippy,-macos_only
           -- //... //platform/shared:build_script_
 
-  # Opt-in prototype. The workflow and its Bazel actions run on the same Mac,
-  # so XCTest has access to the executor's installed simulator runtimes.
-  - name: Test macOS and iOS (prototype)
+  # Opt-in prototypes. BuildBuddy recycles runners by action name, so each
+  # Xcode configuration can reuse its own Bazel analysis across runs.
+  - name: Test macOS and iOS 26.2 (prototype)
     os: darwin
     arch: arm64
     self_hosted: true
@@ -70,7 +70,14 @@ actions:
           --test_env=STARTUP_TIMEOUT_SEC=300
           --test_tag_filters=macos_only
           -- //...
-      # MetricKit's iOS 27 cases require the newer SDK and simulator.
+
+  # MetricKit's iOS 27 cases require the newer SDK and simulator.
+  - name: Test iOS 27 MetricKit (prototype)
+    os: darwin
+    arch: arm64
+    self_hosted: true
+    pool: workflows
+    steps:
       - run: >-
           bazel test
           --config=ci
