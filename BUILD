@@ -4,7 +4,6 @@ load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
 load("@rules_multirun//:defs.bzl", "multirun")
 load("@rules_pkg//:pkg.bzl", "pkg_zip")
 load("@rules_python//python:defs.bzl", "py_test")
-load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
     "top_level_targets",
@@ -16,7 +15,6 @@ load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
 load("//bazel:rustfmt.bzl", "rustfmt_runner")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
 load("//bazel/ios:xcframework.bzl", "strip_rust_metadata_xcframework")
-load("//bazel/platforms:configured_test.bzl", "macos_rbe_test")
 
 alias(
     name = "ios_app",
@@ -53,17 +51,23 @@ strip_rust_metadata_xcframework(
     xcframework = "//platform/swift/source:Capture",
 )
 
-sh_test(
-    name = "ios_xcframework_archive_metadata_test",
-    srcs = ["ci/check_ios_xcframework_archive_members.sh"],
-    data = [":ios_xcframework_for_distribution"],
-    tags = ["macos_only"],
-    target_compatible_with = ["@platforms//os:macos"],
-)
-
-macos_rbe_test(
-    name = "ios_xcframework_archive_metadata_test_rbe",
-    test = ":ios_xcframework_archive_metadata_test",
+genrule(
+    name = "check_ios_release_xcframework",
+    srcs = [":ios_xcframework_for_distribution"],
+    outs = ["ios_release_xcframework.checked"],
+    cmd = """
+set -euo pipefail
+IOS_CAPTURE_AR="$(location //bazel/ios:llvm_ar)" \
+IOS_CAPTURE_XCFRAMEWORK_ROOT="$(location :ios_xcframework_for_distribution)" \
+    bash "$(location ci/check_ios_xcframework_archive_members.sh)"
+touch "$@"
+""",
+    exec_compatible_with = ["@platforms//os:macos"],
+    tags = ["manual"],
+    tools = [
+        "ci/check_ios_xcframework_archive_members.sh",
+        "//bazel/ios:llvm_ar",
+    ],
 )
 
 pkg_zip(

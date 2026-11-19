@@ -63,7 +63,8 @@ actions:
             --build_event_json_file="$events" \
             --build_event_json_file_path_conversion=false \
             --lockfile_mode=error \
-            -- //:ios_dist //examples/swift/hello_world:ios_app_size_unsigned.ipa
+            -- //:ios_dist //:check_ios_release_xcframework \
+            //examples/swift/hello_world:ios_app_size_unsigned.ipa
           # The Apple transition puts the IPA outside the bazel-bin symlink.
           python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
             Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa
