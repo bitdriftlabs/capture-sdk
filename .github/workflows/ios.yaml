@@ -106,11 +106,18 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
-      - run: ./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app
-        name: "Build app"
-      # TODO(snowp): Add some kind of assertion that the app does that it's supposed to
-      - run: ./bazelw run --config ci --config release-ios //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
-        name: "Run app"
+      - name: Build app on Mac RBE and launch on the runner
+        run: |
+          set -euo pipefail
+          configs=(--config=ci --config=release-ios)
+          if [[ -s .buildrc.bb ]]; then
+            configs+=(--config=apple-rbe)
+          fi
+          launcher="$RUNNER_TEMP/launch-hello-world.sh"
+          ./bazelw run "${configs[@]}" \
+            --script_path="$launcher" //examples/swift/hello_world:ios_app
+          # TODO(snowp): Assert that the app starts successfully.
+          /bin/bash "$launcher" &> /tmp/envoy.log &
   xcode_27_build:
     name: xcode 27 build and test
     timeout-minutes: 40
@@ -119,7 +126,7 @@ jobs:
       needs.pre_check.outputs.should_run == 'true' &&
       (github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: xcode-27
+    runs-on: ubuntu-latest
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
@@ -136,31 +143,17 @@ jobs:
         id: plan
         run: IOS_RELEASE_DRY_RUN=1 ./tools/ios_release.sh Capture 0.0.0 swift-6.4 >> "$GITHUB_OUTPUT"
 
-      - name: Install dependencies
-        run: ./ci/mac_ci_setup.sh "$XCODE_VERSION"
-        env:
-          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
-
-      - name: Build the SDK with Xcode 27
-        run: |
-          ./bazelw build \
-            --config ci \
-            --xcode_version="$XCODE_VERSION" \
-            --ios_simulator_version=27.0 \
-            //platform/swift/source:capture_ios_static_framework
-        env:
-          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
-
-      - name: Test the iOS 27 code paths with Xcode 27
+      - name: Build and test the SDK with Xcode 27 on Mac RBE
         run: |
           ./bazelw test \
-            --config ci \
+            --config=ci \
+            --config=apple-rbe \
+            --nobuild_tests_only \
             --test_output=errors \
-            --test_env=REUSE_GLOBAL_SIMULATOR=1 \
-            --test_env=STARTUP_TIMEOUT_SEC=300 \
             --xcode_version="$XCODE_VERSION" \
             --ios_simulator_version=27.0 \
-            //test/platform/swift/unit_integration/core:ios27_test
+            //platform/swift/source:capture_ios_static_framework \
+            //test/platform/swift/unit_integration/core:ios27_test_rbe
         env:
           XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
   unit_tests:
@@ -257,6 +250,20 @@ jobs:
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh
 
+      - name: Build unsigned Capture SDK XCFramework on Mac RBE
+        run: |
+          set -euo pipefail
+          configs=(--config=ci --config=release-ios)
+          if [[ -s .buildrc.bb ]]; then
+            configs+=(--config=apple-rbe)
+          fi
+          ./bazelw build \
+            "${configs[@]}" \
+            --cpu=ios_arm64 \
+            --define ios_produce_framework_plist=true \
+            //:ios_dist
+          cp bazel-bin/Capture.ios.zip "$RUNNER_TEMP/Capture.ios.zip"
+
       - name: Install signing assets
         env:
           IOS_SIZE_CERT_P12_BASE64: ${{ secrets.IOS_SIZE_CERT_P12_BASE64 }}
@@ -293,7 +300,7 @@ jobs:
           cp "$PROFILE_PATH" "$XCODE_PROFILE_DIR/"
           cp "$PROFILE_PATH" "$LEGACY_PROFILE_DIR/"
 
-      - name: Build iOS size artifacts and Capture SDK XCFramework
+      - name: Build the signed iOS size archive
         env:
           APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
           APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
@@ -304,8 +311,7 @@ jobs:
             --config release-ios \
             --cpu=ios_arm64 \
             --define ios_produce_framework_plist=true \
-            //examples/swift/hello_world:ios_app_archive \
-            //:ios_dist
+            //examples/swift/hello_world:ios_app_archive
 
       - name: Export and measure thinned iOS app size
         id: ios_size
@@ -327,7 +333,7 @@ jobs:
           set -euo pipefail
           rm -rf ios_capture_size
           mkdir -p ios_capture_size
-          unzip -q bazel-bin/Capture.ios.zip -d ios_capture_size
+          unzip -q "$RUNNER_TEMP/Capture.ios.zip" -d ios_capture_size
 
       - name: Measure Capture SDK binary size
         id: capture_binary_size
@@ -361,7 +367,7 @@ jobs:
           path: |
             ios_app_size_output/export/*.ipa
             ios_app_size_output/export/App Thinning Size Report.txt
-            bazel-bin/Capture.ios.zip
+            ${{ runner.temp }}/Capture.ios.zip
             ios_capture_binary_size_output.log
 
       - name: Remove signing assets

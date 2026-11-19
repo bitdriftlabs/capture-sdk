@@ -125,6 +125,12 @@ build:mixed-rbe --repo_env=APPLE_SUPPORT_RULES_BASED_TOOLCHAIN=1
 build:mixed-rbe --ios_multi_cpus=sim_arm64
 build:mixed-rbe --modify_execution_info=^(AppleLipo|BitcodeSymbolsCopy|BundleApp|BundleTreeApp|DsymDwarf|DsymLipo|GenerateAppleSymbolsFile|ObjcBinarySymbolStrip|ObjcLink|ProcessAndSign|SignBinary|SwiftArchive|SwiftStdlibCopy)$=-no-remote,^(BundleResources|ImportedDynamicFrameworkProcessor)$=-no-remote-exec
 
+# Apple-only CI builds use the same remote executor and fetch their final
+# products for simulator launch, measurement, or upload on the caller.
+build:apple-rbe --config=mixed-rbe
+build:apple-rbe --platforms=//bazel/platforms:buildbuddy_macos_arm64
+build:apple-rbe --remote_download_outputs=toplevel
+
 # Custom iOS release configuration
 build --ios_simulator_device="iPhone 17"
 build:force-xcode-version --ios_simulator_version=26.2

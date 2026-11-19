@@ -90,9 +90,6 @@ ios_application(
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
         "//conditions:default": None,
     }),
-    tags = [
-        "no-remote",
-    ],
     version = ":hello_world_version",
     visibility = ["//visibility:public"],
     deps = [":ios_main"],
