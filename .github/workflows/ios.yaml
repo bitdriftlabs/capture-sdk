@@ -113,54 +113,14 @@ jobs:
 
       - name: "Install dependencies"
         run: ./ci/mac_ci_setup.sh
-      - name: Build app on Mac RBE and launch on the runner
+      - name: Build and launch the app on the runner
         run: |
           set -euo pipefail
-          configs=(--config=ci --config=release-ios)
-          if [[ -s .buildrc.bb ]]; then
-            configs+=(--config=apple-rbe)
-          fi
           launcher="$RUNNER_TEMP/launch-hello-world.sh"
-          ./bazelw run "${configs[@]}" \
-            --script_path="$launcher" //examples/swift/hello_world:ios_app
+          ./bazelw run --config=ci --config=release-ios --remote_executor= \
+            --ios_multi_cpus=sim_arm64 --script_path="$launcher" //examples/swift/hello_world:ios_app
           # TODO(snowp): Assert that the app starts successfully.
           /bin/bash "$launcher" &> /tmp/envoy.log &
-  xcode_27_build:
-    name: Xcode 27 SDK build
-    timeout-minutes: 40
-    needs: "pre_check"
-    if: >-
-      needs.pre_check.outputs.should_run == 'true' &&
-      (github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-latest
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
-      deployment: false
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Resolve the Xcode 27 toolchain
-        id: plan
-        run: IOS_RELEASE_DRY_RUN=1 ./tools/ios_release.sh Capture 0.0.0 swift-6.4 >> "$GITHUB_OUTPUT"
-
-      - name: Build the SDK with Xcode 27 on Mac RBE
-        run: |
-          ./bazelw build \
-            --config=ci \
-            --config=apple-rbe \
-            --xcode_version="$XCODE_VERSION" \
-            --ios_simulator_version=27.0 \
-            //platform/swift/source:capture_ios_static_framework
-        env:
-          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
-
   clippy:
     name: iOS Clippy
     runs-on: macos-26
@@ -236,18 +196,16 @@ jobs:
         env:
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
           ARTIFACT_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
-        run: ./ci/download_buildbuddy_ios_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$GITHUB_SHA" "$RUNNER_TEMP"
+        run: |
+          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$GITHUB_SHA" "$RUNNER_TEMP" \
+            Capture.ios.zip ios_app_size.ipa
 
-      - name: Build unsigned Capture SDK XCFramework on Mac RBE
+      - name: Build the unsigned Capture SDK XCFramework locally
         if: github.event_name != 'workflow_dispatch'
         run: |
           set -euo pipefail
-          configs=(--config=ci --config=release-ios)
-          if [[ -s .buildrc.bb ]]; then
-            configs+=(--config=apple-rbe)
-          fi
           ./bazelw build \
-            "${configs[@]}" \
+            --config=ci --config=release-ios --remote_executor= \
             --cpu=ios_arm64 \
             --define ios_produce_framework_plist=true \
             //:ios_dist
@@ -299,6 +257,7 @@ jobs:
           ./bazelw build \
             --config ci \
             --config release-ios \
+            --remote_executor= \
             --cpu=ios_arm64 \
             --define ios_produce_framework_plist=true \
             //examples/swift/hello_world:ios_app_archive
@@ -618,7 +577,6 @@ jobs:
         "pre_check",
         "clippy",
         "swift_hello_world",
-        "xcode_27_build",
         "ios_size_comparison",
         "ios_size_baseline",
       ]
@@ -633,7 +591,6 @@ jobs:
           ./ci/check_result.sh ${{ needs.pre_check.result }} \
           && ./ci/check_result.sh ${{ needs.clippy.result }} \
           && ./ci/check_result.sh ${{ needs.swift_hello_world.result }} \
-          && ./ci/check_result.sh ${{ needs.xcode_27_build.result }} \
           && ./ci/check_result.sh ${{ needs.ios_size_comparison.result }} \
           && ./ci/check_result.sh ${{ needs.ios_size_baseline.result }}
       - name: Require BuildBuddy Test

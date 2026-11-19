@@ -11,26 +11,13 @@ concurrency:
 jobs:
   linux_test:
     runs-on: ubuntu-latest
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
-      deployment: false
     steps:
-      # --- Build the project for release
-
-      # Checkout repo to Github Actions runner
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Android SDK
-        uses: ./.github/actions/android-setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-      - name: Build config-version binary
-        run: ./bazelw build --config ci //tools/config_version
-      - name: Require BuildBuddy Clippy
+      - name: Require BuildBuddy Test and Clippy
         env:
           GH_TOKEN: ${{ github.token }}
           TEST_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT" Clippy
+        run: |
+          bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT" Test
+          bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT" Clippy

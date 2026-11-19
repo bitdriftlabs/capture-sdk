@@ -39,7 +39,8 @@ actions:
       - run: >-
           bazel build
           --config=workflows
-          --config=mixed-rbe
+          --config=rbe
+          --config=libunwind
           --config=clippy
           --lockfile_mode=error
           --build_tag_filters=clippy,-macos_only
@@ -64,27 +65,28 @@ actions:
             --lockfile_mode=error \
             -- //:ios_dist //examples/swift/hello_world:ios_app_size_unsigned.ipa
           # The Apple transition puts the IPA outside the bazel-bin symlink.
-          python3 - "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" <<'PY'
-          import json
-          from pathlib import Path
-          import shutil
-          import sys
-          from urllib.parse import unquote, urlsplit
+          python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
+            Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa
 
-          names = {
-              "Capture.ios.zip": "Capture.ios.zip",
-              "ios_app_size_unsigned.ipa": "ios_app_size.ipa",
-          }
-          outputs = {name: set() for name in names}
-          with open(sys.argv[1]) as events:
-              for event in map(json.loads, events):
-                  for file in event.get("namedSetOfFiles", {}).get("files", []):
-                      uri = urlsplit(file.get("uri", ""))
-                      path = Path(unquote(uri.path))
-                      if uri.scheme == "file" and path.name in outputs and path.is_file():
-                          outputs[path.name].add(path)
-          for name, paths in outputs.items():
-              if len(paths) != 1:
-                  sys.exit(f"Expected one materialized Bazel output named {name}, got {paths}")
-              shutil.copyfile(paths.pop(), Path(sys.argv[2]) / names[name])
-          PY
+  - name: Android release artifacts
+    triggers: {}
+    container_image: ubuntu-24.04
+    steps:
+      - run: |
+          set -euo pipefail
+          events="$(mktemp)"
+          trap 'rm -f "$events"' EXIT
+          bazel build \
+            --config=workflows \
+            --config=rbe \
+            --config=release-android \
+            --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 \
+            --remote_download_outputs=toplevel \
+            --build_event_json_file="$events" \
+            --build_event_json_file_path_conversion=false \
+            --lockfile_mode=error \
+            -- //examples/android:android_app //:capture_aar_so_size_arm64_v8a \
+            //:capture_aar_so_size_x86_64 //platform/jvm/microbenchmark:microbenchmark_test_apk
+          python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
+            android_app.apk capture_aar_so_size_arm64_v8a_kb.txt \
+            capture_aar_so_size_x86_64_kb.txt microbenchmark_test_apk.apk

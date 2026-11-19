@@ -4,6 +4,12 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
+    inputs:
+      artifact_invocation_id:
+        description: Successful BuildBuddy Android release artifacts invocation for this commit
+        required: true
+        type: string
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -18,6 +24,7 @@ permissions:
 jobs:
   pre_check:
     name: pre_check
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
@@ -86,7 +93,10 @@ jobs:
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
-    if: needs.pre_check.outputs.should_run == 'true'
+    if: >-
+      always() && !cancelled() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (needs.pre_check.result == 'success' && needs.pre_check.outputs.should_run == 'true'))
     needs: pre_check
     steps:
       - name: Checkout
@@ -95,38 +105,62 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Android SDK
+        if: github.event_name != 'workflow_dispatch'
         uses: ./.github/actions/android-setup
         with:
           buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
 
+      - name: Download Android size artifacts
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
+          ARTIFACT_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
+        run: |
+          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$GITHUB_SHA" android-release-artifacts \
+            android_app.apk capture_aar_so_size_arm64_v8a_kb.txt capture_aar_so_size_x86_64_kb.txt
+
       - name: Build Bazel multi-ABI APK and AAR size targets
+        if: github.event_name != 'workflow_dispatch'
         timeout-minutes: 30
         run: |
           # Package both the emulator ABI and the production ABI in one build.
           # The size targets extract each library from the resulting AAR.
           ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --remote_download_toplevel --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_arm64_v8a :capture_aar_so_size_x86_64
+          mkdir -p android-release-artifacts
+          cp bazel-bin/examples/android/android_app.apk bazel-bin/capture_aar_so_size_*_kb.txt android-release-artifacts/
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
         with:
           name: android_app.apk
-          path: ./bazel-bin/examples/android/android_app.apk
+          path: android-release-artifacts/android_app.apk
+
+      - name: Report downloaded artifact sizes
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: android-release-artifacts
+        run: |
+          {
+            printf 'Example APK (bytes) | ARM64 native library (KB) | x86-64 native library (KB)\n'
+            printf '%s\n' '--- | --- | ---'
+            printf '%s | %s | %s\n' "$(stat -c%s android_app.apk)" \
+              "$(cat capture_aar_so_size_arm64_v8a_kb.txt)" "$(cat capture_aar_so_size_x86_64_kb.txt)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Save size baselines and push to branch (main only)
-        if: github.ref == 'refs/heads/main' && success()
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Get APK size
-          APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
+          APK_PATH=android-release-artifacts/android_app.apk
           APK_SIZE_FILE=ci/baseline_binary_size_arm64_v8a_x86_64.txt
           stat -c%s "$APK_PATH" > "$APK_SIZE_FILE"
 
           # Get the Bazel-generated compressed SO sizes for each packaged ABI.
-          ARM64_SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_arm64_v8a_kb.txt)
+          ARM64_SO_SIZE_KB=$(cat android-release-artifacts/capture_aar_so_size_arm64_v8a_kb.txt)
           ARM64_SO_SIZE_FILE=ci/baseline_so_size_arm64_v8a_kb.txt
           echo "$ARM64_SO_SIZE_KB" > "$ARM64_SO_SIZE_FILE"
-          X86_64_SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
+          X86_64_SO_SIZE_KB=$(cat android-release-artifacts/capture_aar_so_size_x86_64_kb.txt)
           X86_64_SO_SIZE_FILE=ci/baseline_so_size_x86_64_kb.txt
           echo "$X86_64_SO_SIZE_KB" > "$X86_64_SO_SIZE_FILE"
 
@@ -173,10 +207,10 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: apk_size
         run: |
-          APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
+          APK_PATH=android-release-artifacts/android_app.apk
           BASELINE_PATH=ci/baseline_binary_size_arm64_v8a_x86_64.txt
 
-          if [ -z "$APK_PATH" ]; then
+          if [ ! -f "$APK_PATH" ]; then
             echo "Current APK file not found!"
             exit 1
           fi
@@ -200,7 +234,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: arm64_so_size
         run: |
-          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_arm64_v8a_kb.txt)
+          SO_SIZE_KB=$(cat android-release-artifacts/capture_aar_so_size_arm64_v8a_kb.txt)
           BASELINE_PATH=ci/baseline_so_size_arm64_v8a_kb.txt
 
           if [ -z "$SO_SIZE_KB" ]; then
@@ -224,7 +258,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: x86_64_so_size
         run: |
-          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
+          SO_SIZE_KB=$(cat android-release-artifacts/capture_aar_so_size_x86_64_kb.txt)
           BASELINE_PATH=ci/baseline_so_size_x86_64_kb.txt
 
           if [ -z "$SO_SIZE_KB" ]; then
@@ -389,6 +423,52 @@ jobs:
           gradle-test-app:check gradle-test-app:connectedCheck --build-cache --stacktrace
           -x gradle-test-app:testReleaseUnitTest -x gradle-test-app:testProfileableUnitTest
 
+  run_android_benchmarks:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest-8-cores
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Android emulator
+        uses: ./.github/actions/setup-android-emulator
+        with:
+          enable-bazel-cache: "false"
+          api-level: '31'
+          target: default
+          arch: x86_64
+
+      - name: Download the benchmark APK
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
+          ARTIFACT_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
+        run: |
+          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$GITHUB_SHA" android-release-artifacts \
+            microbenchmark_test_apk.apk
+
+      - name: Run Microbenchmarks
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
+        timeout-minutes: 30
+        with:
+          channel: stable
+          force-avd-creation: false
+          api-level: 31
+          target: default
+          ram-size: 2048M
+          arch: x86_64
+          disk-size: 6144M
+          profile: Nexus 6
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./ci/run_android_benchmarks.sh android-release-artifacts/microbenchmark_test_apk.apk benchmark-output
+
+      - name: Upload benchmark results and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-output/
+
   verify_android_hello_world_per_version:
     needs: build_and_compare_sizes
     runs-on: ubuntu-latest-8-cores
@@ -450,7 +530,7 @@ jobs:
   verify_android:
     runs-on: ubuntu-latest
     needs: ["pre_check", "build_and_compare_sizes", "verify_android_hello_world_per_version", "gradle_tests"]
-    if: always()
+    if: always() && github.event_name != 'workflow_dispatch'
     steps:
     # Checkout repo to Github Actions runner
     - name: Checkout

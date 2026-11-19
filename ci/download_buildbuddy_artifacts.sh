@@ -5,6 +5,8 @@ set -euo pipefail
 invocation_id="${1:?Expected BuildBuddy workflow invocation ID}"
 commit="${2:?Expected commit SHA}"
 output_dir="${3:?Expected output directory}"
+shift 3
+: "${1:?Expected at least one artifact name}"
 : "${BUILDBUDDY_API_KEY:?Expected BuildBuddy API key}"
 
 api() {
@@ -29,9 +31,13 @@ invocation="$(api GetInvocation --data "$request" | jq -ce \
 }
 
 mkdir -p "$output_dir"
-staging_dir="$(mktemp -d "$output_dir/.ios-artifacts.XXXXXX")"
+staging_dir="$(mktemp -d "$output_dir/.buildbuddy-artifacts.XXXXXX")"
 trap 'rm -rf "$staging_dir"' EXIT
-for name in Capture.ios.zip ios_app_size.ipa; do
+for name in "$@"; do
+  if [[ ! "$name" =~ ^[[:alnum:]][[:alnum:]_.-]*$ ]]; then
+    echo "Expected an artifact basename, got $name." >&2
+    exit 1
+  fi
   uri="$(jq -er --arg name "$name" '
     [.artifacts[] | select((.name | split("/") | last) == $name) | .uri]
     | if length == 1 then .[0] else error("Expected exactly one artifact named " + $name) end
@@ -39,8 +45,11 @@ for name in Capture.ios.zip ios_app_size.ipa; do
   ' <<< "$invocation")"
   request="$(jq -nc --arg uri "$uri" '{uri: $uri}')"
   api GetFile --data "$request" --output "$staging_dir/$name"
-  unzip -tq "$staging_dir/$name"
+  case "$name" in
+    *.zip | *.ipa | *.apk) unzip -tq "$staging_dir/$name" ;;
+    *.txt) grep -Eq '^[1-9][0-9]*$' "$staging_dir/$name" ;;
+  esac
 done
-for name in Capture.ios.zip ios_app_size.ipa; do
+for name in "$@"; do
   mv "$staging_dir/$name" "$output_dir/$name"
 done

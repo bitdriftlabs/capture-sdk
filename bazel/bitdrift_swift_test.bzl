@@ -17,7 +17,7 @@ TSAN_LINKOPTS = select({
 # - Provides a set of linker options that is required to properly run tests
 # - Sets default visibility and OS requirements
 #
-def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = [], xcode = "", simulator = ""):
+def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = [], xcode = "", simulator = "", build_data = []):
     test_lib_name = name + "_lib"
     swift_library(
         name = test_lib_name,
@@ -38,7 +38,7 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
     ios_unit_test(
         name = name,
         target_compatible_with = APPLE_TARGET_COMPATIBILITY,
-        data = data,
+        data = data + build_data,
         deps = [test_lib_name],
         linkopts = TSAN_LINKOPTS,
         minimum_os_version = MINIMUM_IOS_VERSION_TESTS,

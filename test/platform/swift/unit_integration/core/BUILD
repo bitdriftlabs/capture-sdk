@@ -28,6 +28,8 @@ bitdrift_mobile_swift_test(
         "reports/MetricKitDiagnosticManagerTests.swift",
         "reports/MetricKitLegacyCrashAdapterTests.swift",
     ],
+    # Build the release framework shape with the same Xcode selection as this test.
+    build_data = ["//platform/swift/source:capture_ios_static_framework"],
     data = glob(["testdata/*"]),
     repository = "@capture",
     simulator = "27.0",
