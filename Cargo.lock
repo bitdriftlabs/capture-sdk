@@ -2589,6 +2589,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 
 [[package]]
+name = "log-enum-codegen"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "logger_benchmark"
 version = "1.0.0"
 dependencies = [
@@ -3197,10 +3205,8 @@ dependencies = [
 name = "proto"
 version = "0.1.0"
 dependencies = [
- "bd-proto",
  "protobuf 4.0.0-alpha.0",
- "serde",
- "serde_json",
+ "protobuf-parse",
 ]
 
 [[package]]
