@@ -20,9 +20,9 @@
     ///
     /// - parameter message: The human-readable failure message.
     ///
-    /// - parameter context:     Fields to report with the failed command, separate from the failure message.
-    ///   Command outcome logs reserve `_result`, `_duration_ms`, and keys
-    ///   starting with `_command_`, `_workflow_command_`, or `_span_`.
+    /// - parameter context: Fields to report with the failed command, separate from the failure message.
+    ///                      Command outcome logs reserve `_result`, `_duration_ms`, and keys
+    ///                      starting with `_command_`, `_workflow_command_`, or `_span_`.
     public init(
         message: String,
         context: [String: String] = [:]

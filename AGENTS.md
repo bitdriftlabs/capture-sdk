@@ -5,8 +5,9 @@ Multi-platform telemetry SDK for iOS/Android with a shared Rust core.
 ## Quick Reference
 
 ```bash
-# Format (run before commits)
+# Format (run before commits or handing off changes)
 make format
+make lint-docstrings                # Required after Swift edits if not running make format
 
 # Tests
 make test-gradle                    # Android unit tests
@@ -22,6 +23,14 @@ make run-ios-app-direct             # iOS (fastest)
 make repin                          # Fix "Digests do not match" errors
 make xcframework                    # Build iOS release artifact
 ```
+
+## Formatting at closeout
+
+- Run the repository's `make format` before handing off changes, then review the resulting diff.
+- If using focused validation for a Swift change, run `make lint-docstrings` after the final edit.
+  SwiftLint and XCTest do not run this CI check. Fix alignment with
+  `make fix-docstrings FILE=path/to/File.swift`, then rerun `make lint-docstrings` and report the
+  command you actually ran.
 
 ## Testing
 

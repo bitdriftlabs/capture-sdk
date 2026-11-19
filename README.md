@@ -22,6 +22,9 @@ For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sd
 brew install buildifier taplo swiftlint shellcheck
 ```
 
+For Swift documentation, use `make fix-docstrings FILE=path/to/File.swift` to format one file.
+`make lint-docstrings` runs the same read-only check as `make format` and CI.
+
 ## Release build cache policy
 
 Release builds do not use the Bazel/BuildBuddy remote cache. GitHub Actions caches used by a
