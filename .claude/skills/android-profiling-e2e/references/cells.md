@@ -31,9 +31,11 @@ definitions, and checks that each command is enabled.
 - The stack sampler is a built-in (well-known type 3, key `stack_sampling_trace`). Its definition is
   fixed and it only needs to be enabled; it was enabled on staging in November 2026.
 - The heap profiler is a separate built-in (type 13, key `heap_profile_trace`) gated on Android
-  15+ and SDK config 52+. Use the built-in selector, not a registered command alias. The smoke
-  uses a short capture and denser sampling than production defaults to leave time for finalization
-  and reliably observe allocations during brief UI activity.
+  15+ and SDK config 52+. Use the built-in selector, not a registered command alias. The SDK's
+  350-second execution deadline covers AOSP's default maximum recording of 300 seconds plus
+  startup and finalization; Android still clamps the requested duration to its device limits.
+  The smoke uses a short capture and denser sampling than production defaults to reliably observe
+  allocations during brief UI activity.
 
 The test app's registered `system_trace` command also captures stack samples, but it isn't used
 here. The built-in is the path customers' workflows use.

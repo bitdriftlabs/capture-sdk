@@ -35,7 +35,6 @@ internal class ProfilingCommand(
     /** Each profiling command's artifact contract type ID is its key. */
     override val artifactType: String = type.key
 
-    // The default 5-second heap recording also needs time for Android to start and finalize it.
     // Stack sampling keeps the core's runtime-configured timeout.
     override val timeoutMs: Long? =
         if (type == BuiltinCommandType.HEAP_PROFILE_TRACE) HEAP_PROFILE_TIMEOUT_MS else null
@@ -84,6 +83,9 @@ internal class ProfilingCommand(
 
     private companion object {
         const val CONTENT_TYPE = "application/vnd.bitdrift.perfetto-trace"
-        const val HEAP_PROFILE_TIMEOUT_MS = 15_000L
+
+        // AOSP Configs allows up to 300 s of recording by default, plus 42 s for startup,
+        // flushing, and file processing. Leave a little more time for the result callback.
+        const val HEAP_PROFILE_TIMEOUT_MS = 350_000L
     }
 }

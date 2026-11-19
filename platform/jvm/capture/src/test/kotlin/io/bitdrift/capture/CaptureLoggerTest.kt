@@ -146,7 +146,7 @@ class CaptureLoggerTest {
             assertThat(bridge.builtins).containsExactlyInAnyOrder(
                 Triple("take_screenshot", "screenshot", 0L),
                 Triple("stack_sampling_trace", "stack_sampling_trace", 0L),
-                Triple("heap_profile_trace", "heap_profile_trace", 15_000L),
+                Triple("heap_profile_trace", "heap_profile_trace", 350_000L),
                 Triple("user_settings_get", "settings", 100L),
                 Triple("user_settings_set", "settings", 100L),
                 Triple("user_settings_clear", "settings", 100L),
