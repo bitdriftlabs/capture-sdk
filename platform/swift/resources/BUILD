@@ -20,6 +20,7 @@ filegroup(
 filegroup(
     name = "maybe_info_plist",
     srcs = select({
+        "//bazel/ios:omit_framework_plist_for_test_bundle": [],
         "//bazel/ios:produce_framework_plist": [":info_plist"],
         "//conditions:default": [],
     }),

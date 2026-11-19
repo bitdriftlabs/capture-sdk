@@ -9,17 +9,11 @@ shift 3
 : "${1:?Expected at least one artifact name}"
 : "${BUILDBUDDY_API_KEY:?Expected BuildBuddy API key}"
 
-api() {
-  local method="$1"
-  shift
-  printf 'header = "x-buildbuddy-api-key: %s"\n' "$BUILDBUDDY_API_KEY" |
-    curl --config - --fail --silent --show-error --retry 3 \
-      --header 'Content-Type: application/json' \
-      "https://app.buildbuddy.io/api/v1/$method" "$@"
-}
+# shellcheck source=ci/buildbuddy_api.sh
+source "$(dirname "${BASH_SOURCE[0]}")/buildbuddy_api.sh"
 
 request="$(jq -nc --arg id "$invocation_id" '{selector: {invocation_id: $id}, include_artifacts: true}')"
-invocation="$(api GetInvocation --data "$request" | jq -ce \
+invocation="$(buildbuddy_api GetInvocation --retry 3 --data "$request" | jq -ce \
   --arg id "$invocation_id" --arg commit "$commit" '
     .invocation[] | select(
       .id.invocationId == $id and .commitSha == $commit and .success == true
@@ -44,9 +38,10 @@ for name in "$@"; do
     | select(startswith("bytestream://"))
   ' <<< "$invocation")"
   request="$(jq -nc --arg uri "$uri" '{uri: $uri}')"
-  api GetFile --data "$request" --output "$staging_dir/$name"
+  buildbuddy_api GetFile --retry 3 --max-time 600 --data "$request" --output "$staging_dir/$name"
   case "$name" in
     *.zip | *.ipa | *.apk) unzip -tq "$staging_dir/$name" ;;
+    *.tar.gz) tar -tzf "$staging_dir/$name" > /dev/null ;;
     *.txt) grep -Eq '^[1-9][0-9]*$' "$staging_dir/$name" ;;
   esac
 done

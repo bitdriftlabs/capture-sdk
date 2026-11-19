@@ -42,7 +42,11 @@ swift_library(
     ],
     features = [
         "swift.enable_library_evolution",
-    ],
+    ] + select({
+        # The optimized benchmark imports Capture's internal APIs.
+        "//bazel/ios:omit_framework_plist_for_test_bundle": ["swift.enable_testing"],
+        "//conditions:default": [],
+    }),
     generates_header = True,
     library_evolution = True,
     module_name = "Capture",

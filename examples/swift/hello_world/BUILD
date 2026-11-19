@@ -5,6 +5,7 @@ load("@rules_apple//apple:xcarchive.bzl", "xcarchive")
 load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
+load("//bazel/ios:configured_artifacts.bzl", "ios_artifacts")
 
 APP_ICONS = glob(["AppAssets.xcassets/AppIcon.appiconset/**"])
 
@@ -18,9 +19,18 @@ exports_files(
     visibility = ["//examples/swift/hello_world/tests:__pkg__"],
 )
 
+# The XCFramework declares its own slices. Use the same CPU setting as the
+# device release build before those splits so the SDK compile actions can share.
+ios_artifacts(
+    name = "distribution_xcframework",
+    srcs = ["//:ios_xcframework_for_distribution"],
+    cpu = "arm64",
+    tags = ["manual"],
+)
+
 genrule(
     name = "expanded_xcframework",
-    srcs = ["//:ios_xcframework_for_distribution"],
+    srcs = [":distribution_xcframework"],
     outs = [
         "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/x86_64.swiftdoc",
         "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/arm64.swiftinterface",
@@ -66,6 +76,13 @@ objc_library(
 swift_library(
     name = "ios_main",
     srcs = glob(["**/*.swift"]),
+    # The XCFramework import only supplies the public Swift interface to swiftc.
+    # The demo uses SDK SPI and the compiler needs its private companion as an input.
+    swiftc_inputs = [
+        "Capture.xcframework/ios-arm64/Capture.framework/Modules/Capture.swiftmodule/arm64.private.swiftinterface",
+        "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/arm64.private.swiftinterface",
+        "Capture.xcframework/ios-arm64_x86_64-simulator/Capture.framework/Modules/Capture.swiftmodule/x86_64.private.swiftinterface",
+    ],
     tags = ["manual"],
     deps = [
         ":capture_xcframework",
@@ -122,6 +139,13 @@ xcarchive(
     name = "ios_app_archive",
     bundle = ":ios_app_size",
     visibility = ["//visibility:public"],
+)
+
+ios_artifacts(
+    name = "ios_app_simulator_artifact",
+    srcs = [":ios_app.ipa"],
+    cpu = "sim_arm64",
+    tags = ["manual"],
 )
 
 # rules_apple requires a profile label for a device app. The artifact embeds an

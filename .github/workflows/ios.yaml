@@ -57,6 +57,14 @@ jobs:
         with:
           files: |
             .github/workflows/ios.yaml
+            buildbuddy.yaml
+            ci/buildbuddy_api.sh
+            ci/download_buildbuddy_artifacts.sh
+            ci/run_buildbuddy_workflow.sh
+            ci/stage_bazel_artifacts.py
+            ci/verify_ios_simulator_ipa.sh
+            ci/ios_ci_simulator.sh
+            ci/run_ios_benchmark_artifact.sh
             ci/ios_app_size_report.sh
             ci/parse_ios_app_thinning_report.py
             ci/capture_ios_binary_size.sh
@@ -92,35 +100,104 @@ jobs:
         id: check_changes
         if: env.run_tests == 'true'
         run: ./ci/run_tests.sh
-  swift_hello_world:
-    name: swift_hello_world
-    timeout-minutes: 40
-    needs: "pre_check"
-    if: needs.pre_check.outputs.should_run == 'true'
-    runs-on: macos-26
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
-      deployment: false
+  ios_release_artifacts:
+    name: iOS release artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    needs: pre_check
+    if: >-
+      always() && !cancelled() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (needs.pre_check.result == 'success' && needs.pre_check.outputs.should_run == 'true' &&
+        (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)))
+    outputs:
+      invocation_id: ${{ steps.artifacts.outputs.invocation_id }}
+      commit: ${{ steps.artifacts.outputs.commit }}
     steps:
-      # Checkout repo to Github Actions runner
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: "Install dependencies"
-        run: ./ci/mac_ci_setup.sh
-      - name: Build and launch the app on the runner
+      - name: Build iOS artifacts after Test
+        id: artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          SOURCE_BRANCH: ${{ github.head_ref || github.ref_name }}
+          EXISTING_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
         run: |
           set -euo pipefail
-          launcher="$RUNNER_TEMP/launch-hello-world.sh"
-          ./bazelw run --config=ci --config=release-ios --remote_executor= \
-            --ios_multi_cpus=sim_arm64 --script_path="$launcher" //examples/swift/hello_world:ios_app
-          # TODO(snowp): Assert that the app starts successfully.
-          /bin/bash "$launcher" &> /tmp/envoy.log &
+          commit="$(git rev-parse HEAD)"
+          invocation="$EXISTING_INVOCATION_ID"
+          if [[ -z "$invocation" ]]; then
+            bash ci/wait_for_buildbuddy_check.sh "$commit" Test
+            invocation="$(./ci/run_buildbuddy_workflow.sh 'iOS release artifacts' "$SOURCE_BRANCH" "$commit")"
+          fi
+          if [[ ! "$invocation" =~ ^[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12}$ ]]; then
+            echo "Invalid BuildBuddy invocation ID." >&2
+            exit 1
+          fi
+          echo "invocation_id=$invocation" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+  swift_hello_world:
+    name: swift_hello_world
+    timeout-minutes: 25
+    needs: ios_release_artifacts
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.ios_release_artifacts.outputs.commit }}
+
+      - name: Install dependencies
+        run: ./ci/mac_ci_setup.sh
+
+      - name: Download and launch the simulator app
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
+          ARTIFACT_INVOCATION_ID: ${{ needs.ios_release_artifacts.outputs.invocation_id }}
+          ARTIFACT_COMMIT: ${{ needs.ios_release_artifacts.outputs.commit }}
+        run: |
+          set -euo pipefail
+          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$ARTIFACT_COMMIT" "$RUNNER_TEMP" \
+            ios_hello_world_simulator.ipa
+          ./ci/verify_ios_simulator_ipa.sh "$RUNNER_TEMP/ios_hello_world_simulator.ipa"
+
+  ios_benchmark:
+    name: iOS benchmark
+    timeout-minutes: 30
+    needs: ios_release_artifacts
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.ios_release_artifacts.outputs.commit }}
+
+      - name: Install dependencies
+        run: ./ci/mac_ci_setup.sh
+
+      - name: Download and run the benchmark
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
+          ARTIFACT_INVOCATION_ID: ${{ needs.ios_release_artifacts.outputs.invocation_id }}
+          ARTIFACT_COMMIT: ${{ needs.ios_release_artifacts.outputs.commit }}
+        run: |
+          set -euo pipefail
+          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$ARTIFACT_COMMIT" "$RUNNER_TEMP" \
+            benchmark_runner.tar.gz
+          ./ci/run_ios_benchmark_artifact.sh "$RUNNER_TEMP/benchmark_runner.tar.gz" ios-benchmark-output
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-benchmark-results
+          path: ios-benchmark-output/
+
   clippy:
     name: iOS Clippy
     runs-on: macos-26
@@ -163,11 +240,7 @@ jobs:
   ios_size_comparison:
     name: iOS size comparison
     timeout-minutes: 40
-    needs: "pre_check"
-    if: >-
-      always() && !cancelled() &&
-      (github.event_name == 'workflow_dispatch' ||
-       (needs.pre_check.result == 'success' && needs.pre_check.outputs.should_run == 'true'))
+    needs: ios_release_artifacts
     runs-on: macos-26
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
@@ -180,36 +253,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
-      - name: Setup
-        if: github.event_name != 'workflow_dispatch'
-        uses: ./.github/actions/setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          ref: ${{ needs.ios_release_artifacts.outputs.commit }}
 
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh
 
       - name: Download iOS release artifacts
-        if: github.event_name == 'workflow_dispatch'
         env:
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
-          ARTIFACT_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
+          ARTIFACT_INVOCATION_ID: ${{ needs.ios_release_artifacts.outputs.invocation_id }}
+          ARTIFACT_COMMIT: ${{ needs.ios_release_artifacts.outputs.commit }}
         run: |
-          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$GITHUB_SHA" "$RUNNER_TEMP" \
+          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$ARTIFACT_COMMIT" "$RUNNER_TEMP" \
             Capture.ios.zip ios_app_size.ipa
-
-      - name: Build the unsigned Capture SDK XCFramework locally
-        if: github.event_name != 'workflow_dispatch'
-        run: |
-          set -euo pipefail
-          ./bazelw build \
-            --config=ci --config=release-ios --remote_executor= \
-            --cpu=ios_arm64 \
-            --define ios_produce_framework_plist=true \
-            //:ios_dist
-          cp bazel-bin/Capture.ios.zip "$RUNNER_TEMP/Capture.ios.zip"
 
       - name: Install signing assets
         env:
@@ -247,34 +303,13 @@ jobs:
           cp "$PROFILE_PATH" "$XCODE_PROFILE_DIR/"
           cp "$PROFILE_PATH" "$LEGACY_PROFILE_DIR/"
 
-      - name: Build the signed iOS size archive
-        if: github.event_name != 'workflow_dispatch'
-        env:
-          APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
-          APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
-        run: |
-          set -euo pipefail
-          ./bazelw build \
-            --config ci \
-            --config release-ios \
-            --remote_executor= \
-            --cpu=ios_arm64 \
-            --define ios_produce_framework_plist=true \
-            //examples/swift/hello_world:ios_app_archive
-
       - name: Export and measure thinned iOS app size
         id: ios_size
-        env:
-          USE_BUILDBUDDY_ARTIFACTS: ${{ github.event_name == 'workflow_dispatch' }}
-          APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
-          APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
         run: |
           set -euo pipefail
-          if [[ "$USE_BUILDBUDDY_ARTIFACTS" == "true" ]]; then
-            export IOS_APP_SIZE_UNSIGNED_IPA="$RUNNER_TEMP/ios_app_size.ipa"
-            export IOS_APP_SIZE_PROFILE_PATH="$RUNNER_TEMP/ios-size-signing/ios_size_profile.mobileprovision"
-            export IOS_APP_SIZE_KEYCHAIN_PATH="$RUNNER_TEMP/ios-size-signing/ios-size.keychain-db"
-          fi
+          export IOS_APP_SIZE_UNSIGNED_IPA="$RUNNER_TEMP/ios_app_size.ipa"
+          export IOS_APP_SIZE_PROFILE_PATH="$RUNNER_TEMP/ios-size-signing/ios_size_profile.mobileprovision"
+          export IOS_APP_SIZE_KEYCHAIN_PATH="$RUNNER_TEMP/ios-size-signing/ios-size.keychain-db"
           ./ci/ios_app_size_report.sh | tee ios_app_size_output.log
           IOS_APP_SIZE_KB=$(grep '^IOS_APP_SIZE_KB=' ios_app_size_output.log | cut -d'=' -f2 || true)
           if [ -z "$IOS_APP_SIZE_KB" ]; then
@@ -296,8 +331,6 @@ jobs:
           IOS_CAPTURE_BINARY_PATH: ios_capture_size/Capture.xcframework/ios-arm64/Capture.framework/Capture
         run: |
           set -euo pipefail
-          IOS_CAPTURE_XCFRAMEWORK_ROOT=ios_capture_size/Capture.xcframework \
-            ./ci/check_ios_xcframework_archive_members.sh
           ./ci/capture_ios_binary_size.sh | tee ios_capture_binary_size_output.log
           IOS_CAPTURE_BINARY_SIZE_KB=$(grep '^IOS_CAPTURE_BINARY_SIZE_KB=' ios_capture_binary_size_output.log | cut -d'=' -f2 || true)
           if [ -z "$IOS_CAPTURE_BINARY_SIZE_KB" ]; then
@@ -577,6 +610,8 @@ jobs:
         "pre_check",
         "clippy",
         "swift_hello_world",
+        "ios_benchmark",
+        "ios_release_artifacts",
         "ios_size_comparison",
         "ios_size_baseline",
       ]
@@ -591,6 +626,8 @@ jobs:
           ./ci/check_result.sh ${{ needs.pre_check.result }} \
           && ./ci/check_result.sh ${{ needs.clippy.result }} \
           && ./ci/check_result.sh ${{ needs.swift_hello_world.result }} \
+          && ./ci/check_result.sh ${{ needs.ios_benchmark.result }} \
+          && ./ci/check_result.sh ${{ needs.ios_release_artifacts.result }} \
           && ./ci/check_result.sh ${{ needs.ios_size_comparison.result }} \
           && ./ci/check_result.sh ${{ needs.ios_size_baseline.result }}
       - name: Require BuildBuddy Test

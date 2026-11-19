@@ -7,7 +7,7 @@ _PLATFORMS = "//command_line_option:platforms"
 _EXECUTION_PLATFORMS = "//command_line_option:extra_execution_platforms"
 _EXTRA_TOOLCHAINS = "//command_line_option:extra_toolchains"
 _LINUX_LLVM_TOOLCHAIN = "@llvm//toolchain:all"
-_MACOS_EXEC_CONSTRAINTS = ["@platforms//os:macos", "@platforms//cpu:arm64"]
+_MACOS_EXEC_CONSTRAINTS = ["@platforms//os:macos"]
 _COMPILATION_MODE = "//command_line_option:compilation_mode"
 _RUSTC_FLAGS = "@rules_rust//rust/settings:extra_rustc_flag"
 _MIXED_RBE_ONLY = {
@@ -16,7 +16,17 @@ _MIXED_RBE_ONLY = {
 }
 
 def _macos_configuration(settings, attr):
-    return {
+    config = {
+        _XCODE_VERSION: attr.xcode or settings[_XCODE_VERSION],
+        _SIMULATOR_VERSION: attr.simulator or settings[_SIMULATOR_VERSION],
+    }
+    if not attr.remote:
+        return config | {
+            _PLATFORMS: settings[_PLATFORMS],
+            _EXECUTION_PLATFORMS: settings[_EXECUTION_PLATFORMS],
+            _EXTRA_TOOLCHAINS: settings[_EXTRA_TOOLCHAINS],
+        }
+    return config | {
         _PLATFORMS: [_MACOS_PLATFORM],
         # Apple toolchain helpers also use exec transitions of their own.
         _EXECUTION_PLATFORMS: [_MACOS_PLATFORM] + [
@@ -30,13 +40,11 @@ def _macos_configuration(settings, attr):
             for toolchain in settings[_EXTRA_TOOLCHAINS]
             if toolchain != _LINUX_LLVM_TOOLCHAIN
         ],
-        _XCODE_VERSION: attr.xcode or settings[_XCODE_VERSION],
-        _SIMULATOR_VERSION: attr.simulator or settings[_SIMULATOR_VERSION],
     }
 
 _macos_transition = transition(
     implementation = _macos_configuration,
-    inputs = [_EXECUTION_PLATFORMS, _EXTRA_TOOLCHAINS, _XCODE_VERSION, _SIMULATOR_VERSION],
+    inputs = [_EXECUTION_PLATFORMS, _EXTRA_TOOLCHAINS, _PLATFORMS, _XCODE_VERSION, _SIMULATOR_VERSION],
     outputs = [_EXECUTION_PLATFORMS, _EXTRA_TOOLCHAINS, _PLATFORMS, _XCODE_VERSION, _SIMULATOR_VERSION],
 )
 
@@ -90,9 +98,10 @@ def _test_attrs(configuration):
         ),
     }
 
-_macos_rbe_test = rule(
+_macos_test = rule(
     implementation = _configured_test_impl,
     attrs = _test_attrs(_macos_transition) | {
+        "remote": attr.bool(),
         "simulator": attr.string(),
         "xcode": attr.string(),
     },
@@ -102,19 +111,28 @@ _macos_rbe_test = rule(
     test = True,
 )
 
-def macos_rbe_test(name, test, xcode = "", simulator = "", xctest = False, timeout = "moderate"):
-    _macos_rbe_test(
+def macos_test(name, test, xcode = "", simulator = "", xctest = False, timeout = "moderate", tags = [], visibility = None):
+    _macos_test(
         name = name,
         test = test,
         xcode = xcode,
         simulator = simulator,
-        runner_env = {
-            "APPLE_SDK_PLATFORM": "iPhoneSimulator",
-            "STARTUP_TIMEOUT_SEC": "300",
-        } if xctest else {},
+        remote = select({"//bazel/platforms:mixed_rbe": True, "//conditions:default": False}),
+        runner_env = select({
+            "//bazel/platforms:mixed_rbe": {
+                "APPLE_SDK_PLATFORM": "iPhoneSimulator",
+                "STARTUP_TIMEOUT_SEC": "300",
+            } if xctest else {},
+            "//conditions:default": {},
+        }),
         timeout = timeout,
-        target_compatible_with = select(_MIXED_RBE_ONLY),
-        tags = ["macos_only"],
+        target_compatible_with = select({
+            "//bazel/platforms:mixed_rbe": [],
+            "@platforms//os:macos": [],
+            "//conditions:default": ["@platforms//:incompatible"],
+        }),
+        tags = tags,
+        visibility = visibility,
     )
 
 _release_test = rule(

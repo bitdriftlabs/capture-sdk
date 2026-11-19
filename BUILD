@@ -274,7 +274,7 @@ xcodeproj(
                 # Running benchmark tests doesn't work on real devices
                 # See https://github.com/MobileNativeFoundation/rules_xcodeproj/issues/2395
                 # for more details.
-                "//test/platform/swift/benchmark:run_benchmarks",
+                "//test/platform/swift/benchmark:run_benchmarks_xctest",
             ],
             target_environments = [
                 "device",
@@ -282,8 +282,8 @@ xcodeproj(
             ],
         ),
         # Tests
-        "//test/platform/swift/unit_integration/core:test",
-        "//test/platform/swift/unit_integration/integrations:test",
+        "//test/platform/swift/unit_integration/core:test_xctest",
+        "//test/platform/swift/unit_integration/integrations:test_xctest",
     ],
     xcode_configurations = {
         "Debug": {
@@ -327,7 +327,7 @@ xcodeproj(
             name = "iOS Capture Unit Integration Tests",
             test = xcschemes.test(
                 test_targets = [
-                    "//test/platform/swift/unit_integration/core:test",
+                    "//test/platform/swift/unit_integration/core:test_xctest",
                 ],
             ),
         ),
@@ -335,7 +335,7 @@ xcodeproj(
             name = "iOS Capture URLSession Integration Tests",
             test = xcschemes.test(
                 test_targets = [
-                    "//test/platform/swift/unit_integration/integrations:test",
+                    "//test/platform/swift/unit_integration/integrations:test_xctest",
                 ],
             ),
         ),
@@ -343,7 +343,7 @@ xcodeproj(
             name = "iOS Benchmark Tests",
             test = xcschemes.test(
                 test_targets = [
-                    "//test/platform/swift/benchmark:run_benchmarks",
+                    "//test/platform/swift/benchmark:run_benchmarks_xctest",
                 ],
             ),
         ),
