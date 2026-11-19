@@ -31,5 +31,5 @@ export XML_OUTPUT_FILE="$outputs/test.xml"
 export APPLE_SDK_PLATFORM="iPhoneSimulator"
 export STARTUP_TIMEOUT_SEC=300
 cd "$TEST_SRCDIR/$TEST_WORKSPACE"
-"$output/run_benchmarks_xctest" --destination="platform=iOS Simulator,id=$simulator" 2>&1 |
+"$output/run_benchmarks_xctest" --destination="platform=ios_simulator,id=$simulator" 2>&1 |
   tee "$outputs/xctest.log"
