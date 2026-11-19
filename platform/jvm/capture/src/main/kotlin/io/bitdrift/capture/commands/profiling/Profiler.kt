@@ -20,7 +20,7 @@ import androidx.core.os.StackSamplingRequestBuilder
 import androidx.core.os.SystemTraceRequestBuilder
 import io.bitdrift.capture.commands.BuiltinCommandArguments
 import io.bitdrift.capture.commands.HeapProfileTraceArguments
-import io.bitdrift.capture.commands.JavaHeapDumpArguments
+import io.bitdrift.capture.commands.MemoryDumpArguments
 import io.bitdrift.capture.commands.StackSamplingTraceArguments
 import io.bitdrift.capture.commands.SystemTraceArguments
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -106,9 +106,9 @@ internal class Profiler(
                     .setTag(TAG)
                     .setCancellationSignal(signal)
                     .build()
-            is JavaHeapDumpArguments ->
+            is MemoryDumpArguments ->
                 JavaHeapDumpRequestBuilder()
-                    .setBufferSizeKb(bufferSizeKb.toIntSaturated())
+                    .setBufferSizeKb(64 * 1024)
                     .setTag(TAG)
                     .setCancellationSignal(signal)
                     .build()

@@ -10,7 +10,7 @@
 | `heap_profile_java` | registered `heap_profile_demo` | same, `track_java_allocations=true` | Log JSON Field | 45 s | yes |
 | `heap_profile_trace` | built-in type `13` (`HEAP_PROFILE_TRACE`) | `duration_ms=2000`, `buffer_size_kb=8192`, `sampling_interval_bytes=4096`, `track_java_allocations=true` | Log Single Message, then Log JSON Field | poll captures after 5 s | no |
 | `system_trace` | built-in type `14` (`SYSTEM_TRACE`) | `duration_ms=5000` | Log Single Message, then Log JSON Field | poll captures after 5 s | no |
-| `java_heap_dump` | built-in type `15` (`JAVA_HEAP_DUMP`) | `buffer_size_kb=65536` | Log Single Message, then Log JSON Field | poll captures after 5 s | no |
+| `memory_dump` | built-in type `12` (`MEMORY_DUMP`) | `include_heap=true`; Android uses a fixed 64 MiB profiling buffer | Log Single Message, then Log JSON Field | poll captures after 5 s | no |
 | `stack_sampling` | built-in type `3` (`STACK_SAMPLING_TRACE`) | `duration_ms=5000`, `frequency_hz=100`, `buffer_size_kb=1024` | Log JSON Field | 45 s | **no** |
 
 All argument types matter: integers are `sint_data` strings, booleans are `bool_data`, and strings

@@ -15,6 +15,7 @@ import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandInvocation
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.HeapProfileTraceArguments
+import io.bitdrift.capture.commands.MemoryDumpArguments
 import io.bitdrift.capture.commands.MissingCommandArgumentException
 import io.bitdrift.capture.commands.StackSamplingTraceArguments
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
@@ -60,7 +61,7 @@ class ProfilingCommandTest {
     private var profileable = true
     private val systemDirectory: File = Files.createTempDirectory("profiling").toFile()
     private val commands =
-        listOf(BuiltinCommandType.STACK_SAMPLING_TRACE, BuiltinCommandType.HEAP_PROFILE_TRACE)
+        listOf(BuiltinCommandType.STACK_SAMPLING_TRACE, BuiltinCommandType.HEAP_PROFILE_TRACE, BuiltinCommandType.MEMORY_DUMP)
             .associateWith { ProfilingCommand(it, profiler) { profileable } }
     private val command = commands.getValue(BuiltinCommandType.STACK_SAMPLING_TRACE)
     private val heapProfile = commands.getValue(BuiltinCommandType.HEAP_PROFILE_TRACE)
@@ -112,6 +113,28 @@ class ProfilingCommandTest {
             assertThat(success.attachment?.contentType).isEqualTo("application/vnd.bitdrift.perfetto-trace")
             assertThat(trace).hasContent("trace")
             assertThat(success.context).isEmpty()
+        }
+
+    @Test
+    fun androidMemoryDumpRequiresHeapAndReturnsPerfetto(): Unit =
+        runBlocking {
+            val type = BuiltinCommandType.MEMORY_DUMP
+            val memoryDump = commands.getValue(type)
+            val rejected = memoryDump.execute(invocationOf(type, mapOf("include_heap" to CommandArgument.Bool(false))))
+            assertThat((rejected as CommandResult.Error).code).isEqualTo(CommandErrorCode.InvalidArguments)
+            assertThat(profiler.requests).isEmpty()
+
+            val result =
+                async(Dispatchers.Unconfined) {
+                    memoryDump.execute(invocationOf(type, mapOf("include_heap" to CommandArgument.Bool(true))))
+                }
+            assertThat(profiler.requests).containsExactly(MemoryDumpArguments(true))
+            val trace = systemTrace()
+            profiler.complete(ProfileOutcome.Saved(trace.path))
+
+            val success = result.await() as CommandResult.Success
+            assertThat(success.attachment?.file).isEqualTo(trace.absoluteFile)
+            assertThat(success.attachment?.contentType).isEqualTo("application/vnd.bitdrift.perfetto-trace")
         }
 
     @Test

@@ -27,7 +27,12 @@ enum class BuiltinCommandType(val wireValue: Int, val key: String) {
     FILE_SIZE(9, "file_size"),
     FILE_CLEAR(10, "file_clear"),
     FILE_DELETE(11, "file_delete"),
-    MEMORY_DUMP(12, "memory_dump"),
+    MEMORY_DUMP(12, "memory_dump") {
+        override fun parse(scope: CommandScope) =
+            MemoryDumpArguments(
+                includeHeap = scope.argument<Boolean>("include_heap"),
+            )
+    },
     HEAP_PROFILE_TRACE(13, "heap_profile_trace") {
         override fun parse(scope: CommandScope) =
             HeapProfileTraceArguments(
@@ -41,12 +46,6 @@ enum class BuiltinCommandType(val wireValue: Int, val key: String) {
         override fun parse(scope: CommandScope) =
             SystemTraceArguments(
                 durationMs = scope.argument<Long>("duration_ms"),
-            )
-    },
-    JAVA_HEAP_DUMP(15, "java_heap_dump") {
-        override fun parse(scope: CommandScope) =
-            JavaHeapDumpArguments(
-                bufferSizeKb = scope.argument<Long>("buffer_size_kb"),
             )
     },
     ;
@@ -67,6 +66,10 @@ internal data class StackSamplingTraceArguments(
     val bufferSizeKb: Long,
 ) : BuiltinCommandArguments
 
+internal data class MemoryDumpArguments(
+    val includeHeap: Boolean,
+) : BuiltinCommandArguments
+
 internal data class HeapProfileTraceArguments(
     val durationMs: Long,
     val bufferSizeKb: Long,
@@ -76,8 +79,4 @@ internal data class HeapProfileTraceArguments(
 
 internal data class SystemTraceArguments(
     val durationMs: Long,
-) : BuiltinCommandArguments
-
-internal data class JavaHeapDumpArguments(
-    val bufferSizeKb: Long,
 ) : BuiltinCommandArguments

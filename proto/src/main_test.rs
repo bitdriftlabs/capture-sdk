@@ -83,7 +83,7 @@ fn builtin_arguments_carry_their_proto_names_and_kotlin_types() {
   );
   assert_eq!(arguments["SYSTEM_TRACE"], owned(&[("duration_ms", "Long")]));
   assert_eq!(
-    arguments["JAVA_HEAP_DUMP"],
-    owned(&[("buffer_size_kb", "Long")])
+    arguments["MEMORY_DUMP"],
+    owned(&[("include_heap", "Boolean")])
   );
 }

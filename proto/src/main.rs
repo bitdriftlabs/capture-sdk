@@ -102,7 +102,7 @@ fn builtin_commands() -> Vec<BuiltinCommand> {
           WellKnownCommandType::STACK_SAMPLING_TRACE
             | WellKnownCommandType::HEAP_PROFILE_TRACE
             | WellKnownCommandType::SYSTEM_TRACE
-            | WellKnownCommandType::JAVA_HEAP_DUMP
+            | WellKnownCommandType::MEMORY_DUMP
         )
       );
       let arguments = metadata

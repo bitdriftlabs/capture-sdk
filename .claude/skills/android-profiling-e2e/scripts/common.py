@@ -65,8 +65,8 @@ CELLS = {
         "trigger": "Log Single Message", "wait": 5, "activity": 7, "interval": "60s",
         "device_copy": False, "kind": "system_timeline", "label": "System trace (built-in command)",
     },
-    "java_heap_dump": {
-        "command": 15, "args": {"buffer_size_kb": _i(65536)},
+    "memory_dump": {
+        "command": 12, "args": {"include_heap": {"bool_data": True}},
         "trigger": "Log Single Message", "wait": 5, "activity": 4, "interval": "60s",
         "device_copy": False, "kind": "heap_graph", "label": "Java heap dump (built-in command)",
     },
@@ -79,8 +79,8 @@ CELLS = {
     },
 }
 
-BUILTIN_NAMES = {3: "stack_sampling_trace", 13: "heap_profile_trace", 14: "system_trace", 15: "java_heap_dump"}
-STRICT_WORKFLOW_CELLS = {"heap_profile_trace", "system_trace", "java_heap_dump"}
+BUILTIN_NAMES = {3: "stack_sampling_trace", 12: "memory_dump", 13: "heap_profile_trace", 14: "system_trace"}
+STRICT_WORKFLOW_CELLS = {"heap_profile_trace", "system_trace", "memory_dump"}
 
 
 def command_name(cell_type):

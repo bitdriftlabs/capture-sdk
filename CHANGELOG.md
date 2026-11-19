@@ -29,8 +29,8 @@
 - Added the built-in `heap_profile_trace` remote command. It records a Perfetto heap profile of
   the app process through `ProfilingManager` on Android 15 and later and uploads the trace as the
   command attachment.
-- Added the Android 15+ built-in `system_trace` and `java_heap_dump` commands for direct and
-  workflow capture. System traces are redacted by Android; ART heap graphs are not log-redacted.
+- Added Android 15+ support for the built-in `system_trace` and `memory_dump` commands for direct
+  and workflow capture. System traces are redacted by Android; ART heap graphs are not log-redacted.
 - Added system-triggered ANR (Android 16+) and Java OutOfMemoryError (Android 17+) profiles attached
   to the matching fatal issue reports. While enabled, the SDK owns these `ProfilingManager` trigger
   types and, for ANR, the process-state summary. Opt in at SDK start with

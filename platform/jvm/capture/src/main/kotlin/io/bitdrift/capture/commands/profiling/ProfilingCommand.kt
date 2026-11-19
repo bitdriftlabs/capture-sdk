@@ -10,9 +10,11 @@ package io.bitdrift.capture.commands.profiling
 import io.bitdrift.capture.commands.BuiltinCommandArguments
 import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.CommandAttachment
+import io.bitdrift.capture.commands.CommandErrorCode
 import io.bitdrift.capture.commands.CommandResult
 import io.bitdrift.capture.commands.CommandScope
 import io.bitdrift.capture.commands.IBuiltinCommand
+import io.bitdrift.capture.commands.MemoryDumpArguments
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
@@ -39,12 +41,15 @@ internal class ProfilingCommand(
         when (type) {
             BuiltinCommandType.HEAP_PROFILE_TRACE -> HEAP_PROFILE_TIMEOUT_MS
             BuiltinCommandType.SYSTEM_TRACE -> SYSTEM_TRACE_TIMEOUT_MS
-            BuiltinCommandType.JAVA_HEAP_DUMP -> JAVA_HEAP_DUMP_TIMEOUT_MS
+            BuiltinCommandType.MEMORY_DUMP -> JAVA_HEAP_DUMP_TIMEOUT_MS
             else -> null
         }
 
     override suspend fun execute(scope: CommandScope): CommandResult {
         val arguments = checkNotNull(type.parse(scope)) { "${type.key} declares no arguments to profile with" }
+        if (arguments is MemoryDumpArguments && !arguments.includeHeap) {
+            return scope.error("include_heap must be true on Android", code = CommandErrorCode.InvalidArguments)
+        }
         if (!profileability.isProfileable()) {
             return scope.error(
                 "not_profileable: the app is not profileable; " +

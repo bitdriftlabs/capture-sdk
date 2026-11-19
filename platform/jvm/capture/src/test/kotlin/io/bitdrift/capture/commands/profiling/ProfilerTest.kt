@@ -21,7 +21,7 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.commands.BuiltinCommandArguments
 import io.bitdrift.capture.commands.HeapProfileTraceArguments
-import io.bitdrift.capture.commands.JavaHeapDumpArguments
+import io.bitdrift.capture.commands.MemoryDumpArguments
 import io.bitdrift.capture.commands.StackSamplingTraceArguments
 import io.bitdrift.capture.commands.SystemTraceArguments
 import io.bitdrift.capture.utils.BuildVersionChecker
@@ -130,7 +130,7 @@ class ProfilerTest {
 
     @Test
     fun requestsAJavaHeapDumpWithOnlyTheBufferSize() {
-        assertSingleParameterRequest(JavaHeapDumpArguments(65_536), ProfilingManager.PROFILING_TYPE_JAVA_HEAP_DUMP, 65_536)
+        assertSingleParameterRequest(MemoryDumpArguments(true), ProfilingManager.PROFILING_TYPE_JAVA_HEAP_DUMP, 65_536)
     }
 
     private fun assertSingleParameterRequest(
