@@ -1,4 +1,4 @@
-# BuildBuddy Workflows. This action runs the Linux slice of CI (ci/run_bazel_tests.sh and
+# BuildBuddy Workflows. Test runs the Linux slice of CI (ci/run_bazel_tests.sh and
 # ci/run_clippy.sh with linux_runner) on BuildBuddy remote execution. The runner only drives Bazel:
 # compilation and tests run on the remote executors in //bazel/platforms, with outputs left remote,
 # so the default runner memory and disk suffice. Every run covers the full slice; unchanged targets
@@ -52,3 +52,32 @@ actions:
           --lockfile_mode=error
           --build_tag_filters=clippy,-macos_only
           -- //... //platform/shared:build_script_
+
+  # Opt-in prototype. The workflow and its Bazel actions run on the same Mac,
+  # so XCTest has access to the executor's installed simulator runtimes.
+  - name: Test macOS and iOS (prototype)
+    os: darwin
+    arch: arm64
+    self_hosted: true
+    pool: workflows
+    steps:
+      - run: >-
+          bazel test
+          --config=ci
+          --test_output=errors
+          --test_env=RUST_LOG=debug
+          --test_env=REUSE_GLOBAL_SIMULATOR=1
+          --test_env=STARTUP_TIMEOUT_SEC=300
+          --test_tag_filters=macos_only
+          -- //...
+      # MetricKit's iOS 27 cases require the newer SDK and simulator.
+      - run: >-
+          bazel test
+          --config=ci
+          --xcode_version=27.0
+          --ios_simulator_version=27.0
+          --test_output=errors
+          --test_env=RUST_LOG=debug
+          --test_env=REUSE_GLOBAL_SIMULATOR=1
+          --test_env=STARTUP_TIMEOUT_SEC=300
+          -- //test/platform/swift/unit_integration/core:ios27_test
