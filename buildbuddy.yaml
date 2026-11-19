@@ -59,7 +59,7 @@ actions:
     os: darwin
     arch: arm64
     self_hosted: true
-    pool: workflows
+    pool: default
     triggers:
       push:
         branches:
@@ -80,7 +80,7 @@ actions:
     os: darwin
     arch: arm64
     self_hosted: true
-    pool: workflows
+    pool: default
     triggers:
       push:
         branches:
