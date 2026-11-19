@@ -23,7 +23,7 @@ actions:
           --lockfile_mode=error
           --test_output=errors
           --test_env=RUST_LOG=debug
-          -- //...
+          -- //... //platform/shared:platform-shared_release_backtrace_test
       # Clippy shares this runner's Bazel server and fetched repositories. It uses `bazel build`
       # rather than `bazel test`: the repository-wide --build_tests_only would omit production
       # rust_library targets.
@@ -35,15 +35,3 @@ actions:
           --lockfile_mode=error
           --build_tag_filters=clippy,-macos_only
           -- //... //platform/shared:build_script_
-      # Release builds compile out anyhow backtraces. Run this configuration last.
-      - run: >-
-          bazel test
-          --config=workflows
-          --config=rbe
-          --config=release-common
-          --config=libunwind
-          --test_output=errors
-          --test_env=ANYHOW_EXPECT_DISABLED_BACKTRACE=1
-          --test_env=RUST_BACKTRACE=1
-          --test_arg=anyhow_preserves_error_api
-          //platform/shared:platform-shared_test

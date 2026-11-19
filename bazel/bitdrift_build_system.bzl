@@ -4,7 +4,7 @@ load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("@rules_rust//rust:defs.bzl", "rust_clippy")
-load("//bazel/platforms:macos_rbe_test.bzl", "macos_rbe_test")
+load("//bazel/platforms:configured_test.bzl", "macos_rbe_test")
 
 def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], tags = [], **args):
     rust_binary(

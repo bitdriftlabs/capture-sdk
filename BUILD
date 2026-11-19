@@ -15,7 +15,7 @@ load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
 load("//bazel:rustfmt.bzl", "rustfmt_runner")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
 load("//bazel/ios:xcframework.bzl", "strip_rust_metadata_xcframework")
-load("//bazel/platforms:macos_rbe_test.bzl", "macos_rbe_test")
+load("//bazel/platforms:configured_test.bzl", "macos_rbe_test")
 
 alias(
     name = "ios_app",

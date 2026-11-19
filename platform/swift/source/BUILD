@@ -189,7 +189,6 @@ apple_static_xcframework(
     tags = [
         "macos_only",
         "no-cache",
-        "no-remote",
     ],
     target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],

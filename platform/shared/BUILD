@@ -1,11 +1,17 @@
 load("@rules_rs//rs:cargo_build_script.bzl", "cargo_build_script")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary", "bitdrift_rust_library")
+load("//bazel/platforms:configured_test.bzl", "release_backtrace_test")
 
 bitdrift_rust_library(
     name = "platform-shared",
     srcs = glob(["src/**/*.rs"]),
     visibility = ["//visibility:public"],
     deps = [":build_script"],
+)
+
+release_backtrace_test(
+    name = "platform-shared_release_backtrace_test",
+    test = ":platform-shared_test",
 )
 
 bitdrift_rust_binary(

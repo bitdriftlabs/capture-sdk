@@ -2,7 +2,7 @@ load("@rules_apple//apple:ios.bzl", "ios_unit_test")
 load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:config.bzl", "APPLE_TARGET_COMPATIBILITY", "MINIMUM_IOS_VERSION_TESTS")
-load("//bazel/platforms:macos_rbe_test.bzl", "macos_rbe_test")
+load("//bazel/platforms:configured_test.bzl", "macos_rbe_test")
 
 # Rust, Swift, ObjC, and C++ TSan instrumentation can exceed ld's compact-unwind
 # personality limit in one XCTest bundle.
