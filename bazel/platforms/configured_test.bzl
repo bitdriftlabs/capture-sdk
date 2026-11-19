@@ -5,6 +5,8 @@ _XCODE_VERSION = "//command_line_option:xcode_version"
 _SIMULATOR_VERSION = "//command_line_option:ios_simulator_version"
 _PLATFORMS = "//command_line_option:platforms"
 _EXECUTION_PLATFORMS = "//command_line_option:extra_execution_platforms"
+_EXTRA_TOOLCHAINS = "//command_line_option:extra_toolchains"
+_LINUX_LLVM_TOOLCHAIN = "@llvm//toolchain:all"
 _MACOS_EXEC_CONSTRAINTS = ["@platforms//os:macos", "@platforms//cpu:arm64"]
 _COMPILATION_MODE = "//command_line_option:compilation_mode"
 _RUSTC_FLAGS = "@rules_rust//rust/settings:extra_rustc_flag"
@@ -22,14 +24,20 @@ def _macos_configuration(settings, attr):
             for platform in settings[_EXECUTION_PLATFORMS]
             if platform != _MACOS_PLATFORM
         ],
+        # Use the Xcode toolchain for Apple targets and their exec dependencies.
+        _EXTRA_TOOLCHAINS: [
+            toolchain
+            for toolchain in settings[_EXTRA_TOOLCHAINS]
+            if toolchain != _LINUX_LLVM_TOOLCHAIN
+        ],
         _XCODE_VERSION: attr.xcode or settings[_XCODE_VERSION],
         _SIMULATOR_VERSION: attr.simulator or settings[_SIMULATOR_VERSION],
     }
 
 _macos_transition = transition(
     implementation = _macos_configuration,
-    inputs = [_EXECUTION_PLATFORMS, _XCODE_VERSION, _SIMULATOR_VERSION],
-    outputs = [_EXECUTION_PLATFORMS, _PLATFORMS, _XCODE_VERSION, _SIMULATOR_VERSION],
+    inputs = [_EXECUTION_PLATFORMS, _EXTRA_TOOLCHAINS, _XCODE_VERSION, _SIMULATOR_VERSION],
+    outputs = [_EXECUTION_PLATFORMS, _EXTRA_TOOLCHAINS, _PLATFORMS, _XCODE_VERSION, _SIMULATOR_VERSION],
 )
 
 def _release_configuration(settings, _attr):

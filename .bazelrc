@@ -98,20 +98,23 @@ common:workflows --config=ci
 common:workflows --repository_cache=
 common:workflows --experimental_remote_downloader=grpcs://remote.buildbuddy.io
 
-# Build and test on BuildBuddy's amd64 remote executors (//bazel/platforms). Every action, including
-# tests, runs remotely; the client only drives Bazel. Outputs stay remote, which keeps the client
-# disk small. The executor image has no autodetected C/C++ toolchain, so use the hermetic LLVM one.
-# This config is for `build` and `test` only.
+# Shared settings for BuildBuddy's Linux and macOS execution platforms.
 build:rbe-common --remote_executor=grpcs://remote.buildbuddy.io
+build:rbe-common --remote_cache_compression
+build:rbe-common --experimental_remote_cache_chunking
 build:rbe-common --host_platform=//bazel/platforms:buildbuddy_linux_x86_64
-build:rbe-common --config=linux-hermetic-llvm
-build:rbe-common --jobs=200
 build:rbe-common --remote_timeout=600
 # The repository-wide --modify_execution_info below keeps C++ link/archive actions off remote
 # execution for macOS builds. Values accumulate, so remove the tag again for RBE configurations.
 build:rbe-common --modify_execution_info=^(CppArchive|CppLink)$=-no-remote
 
+# Enable when investigating remote execution or cache behavior.
+build:rbe-diagnostics --remote_grpc_log=bazel-remote-grpc.log
+build:rbe-diagnostics --execution_log_compact_file=execution_log.binpb.zst
+
 build:rbe --config=rbe-common
+build:rbe --config=linux-hermetic-llvm
+build:rbe --jobs=200
 build:rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_linux_x86_64
 build:rbe --platforms=//bazel/platforms:buildbuddy_linux_x86_64
 build:rbe --remote_download_minimal
@@ -119,6 +122,7 @@ build:rbe --remote_download_minimal
 # The rules-based Apple toolchain works from a Linux Bazel runner.
 build:apple-rbe-common --config=rbe-common
 build:apple-rbe-common --define=capture_mixed_rbe=true
+build:apple-rbe-common --jobs=10
 build:apple-rbe-common --xcode_version_config=//bazel/platforms:executor_xcodes
 build:apple-rbe-common --repo_env=APPLE_SUPPORT_RULES_BASED_TOOLCHAIN=1
 build:apple-rbe-common --ios_multi_cpus=sim_arm64
@@ -126,6 +130,7 @@ build:apple-rbe-common --modify_execution_info=^(AppleLipo|BitcodeSymbolsCopy|Bu
 
 # Prefer Linux for tools with no OS constraint in the mixed test graph.
 build:mixed-rbe --config=apple-rbe-common
+build:mixed-rbe --config=linux-hermetic-llvm
 build:mixed-rbe --config=libunwind
 build:mixed-rbe --extra_execution_platforms=//bazel/platforms:buildbuddy_linux_x86_64,//bazel/platforms:buildbuddy_macos_arm64
 build:mixed-rbe --platforms=//bazel/platforms:buildbuddy_linux_x86_64
