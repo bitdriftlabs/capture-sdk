@@ -8,6 +8,7 @@ import csv
 import glob
 import io
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -53,6 +54,12 @@ CELLS = {
         "trigger": "Log JSON Field", "wait": 45, "activity": 7, "interval": "10s",
         "device_copy": True, "kind": "heap_profile", "label": "Heap profile, Java allocations on",
     },
+    "heap_profile_trace": {
+        "command": 13, "args": {**_HP, "duration_ms": _i(2000), "sampling_interval_bytes": _i(4096),
+                                "track_java_allocations": _b(True)},
+        "trigger": "Log Single Message", "wait": 5, "activity": 7, "interval": "60s",
+        "device_copy": False, "kind": "heap_profile", "label": "Heap profile (built-in command)",
+    },
     "stack_sampling": {
         # The SDK's built-in STACK_SAMPLING_TRACE command (well-known type 3): the production CPU
         # profiler path. It doesn't go through the test app's SampleCommands, so there is no on-device copy.
@@ -62,12 +69,19 @@ CELLS = {
     },
 }
 
-BUILTIN_NAMES = {3: "stack_sampling_trace"}
+BUILTIN_NAMES = {3: "stack_sampling_trace", 13: "heap_profile_trace"}
 
 
 def command_name(cell_type):
     c = CELLS[cell_type]["command"]
     return BUILTIN_NAMES.get(c, str(c)) if isinstance(c, int) else c
+
+
+def bd(*args):
+    command = shlex.split(os.environ.get("BD_CLI", "bd"))
+    if not command:
+        raise ValueError("BD_CLI must name a command")
+    return subprocess.run([*command, *args], capture_output=True, text=True, timeout=60)
 
 
 # ---------------------------------------------------------------- tools
@@ -100,15 +114,20 @@ def find_llvm_symbolizer():
 TP = find_trace_processor()
 
 
-def tp(trace, sql):
+def tp(trace, sql=None, *, sql_file=None):
     """Run one query; returns a list of dicts with None for NULL. Raises if trace_processor fails."""
+    if not TP:
+        raise RuntimeError("trace_processor not found; set TRACE_PROCESSOR to its executable")
+    if (sql is None) == (sql_file is None):
+        raise ValueError("specify exactly one of sql and sql_file")
     env = {k: v for k, v in os.environ.items() if k not in ("PERFETTO_BINARY_PATH", "DEBUGINFOD_URLS")}
-    r = subprocess.run([TP, "query", "--no-agent", "--quiet", str(trace), sql], capture_output=True, text=True, env=env)
+    args = [str(trace), sql] if sql_file is None else ["-f", str(sql_file), str(trace)]
+    r = subprocess.run([TP, "query", *args], capture_output=True, text=True, env=env)
+    if r.returncode != 0:
+        raise RuntimeError(f"trace_processor failed on {trace}: {(r.stderr or r.stdout)[:800]}")
     lines = r.stdout.splitlines()
-    start = next((i for i, l in enumerate(lines) if l.startswith('"')), None)
+    start = next((i for i, line in enumerate(lines) if line.startswith('"')), None)
     if start is None:
-        if r.returncode != 0:
-            raise RuntimeError(f"trace_processor failed on {trace}: {(r.stderr or r.stdout)[-600:]}")
         return []
     rows = csv.DictReader(io.StringIO("\n".join(lines[start:])))
     return [{k: (None if v in ("[NULL]", "") else v) for k, v in row.items()} for row in rows]
@@ -124,7 +143,8 @@ def adb(*args, check=True):
 def check():
     ok = True
     for name, path in (("trace_processor", TP), ("llvm-symbolizer", find_llvm_symbolizer()),
-                       ("zstd", shutil.which("zstd")), ("adb", shutil.which("adb")), ("bd", shutil.which("bd"))):
+                       ("zstd", shutil.which("zstd")), ("adb", shutil.which("adb")),
+                       ("bd", os.environ.get("BD_CLI") or shutil.which("bd"))):
         print(f"{name:16} {path or 'MISSING'}")
         ok &= bool(path)
     if not ok:

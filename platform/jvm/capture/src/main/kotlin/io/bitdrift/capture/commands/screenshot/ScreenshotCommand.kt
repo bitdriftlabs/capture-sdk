@@ -17,7 +17,7 @@ import io.bitdrift.capture.commands.IBuiltinCommand
  * takes no arguments and ignores any it is sent; the backend validates arguments against the
  * command's definition before sending.
  */
-internal class ScreenshotBuiltinCommand(
+internal class ScreenshotCommand(
     private val capturer: IScreenshotCapturer,
 ) : IBuiltinCommand {
     override val type: BuiltinCommandType = BuiltinCommandType.TAKE_SCREENSHOT

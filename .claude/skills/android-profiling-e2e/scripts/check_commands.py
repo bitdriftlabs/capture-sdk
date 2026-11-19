@@ -20,17 +20,16 @@ import argparse
 import json
 import pathlib
 import shlex
-import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from common import CELLS  # noqa: E402
+from common import CELLS, bd, command_name  # noqa: E402
 
 TYPE_OF = {"sint_data": "INT64", "bool_data": "BOOL", "string_data": "STRING"}
 
 
 def definitions():
-    r = subprocess.run(["bd", "command", "list", "-ojson"], capture_output=True, text=True)
+    r = bd("command", "list", "-ojson")
     if r.returncode != 0:
         sys.exit(f"bd command list failed: {r.stderr.strip()[:300]}")
     reg, builtin = {}, {}
@@ -56,7 +55,7 @@ def main():
         cell = CELLS[t]
         cmd = cell["command"]
         is_builtin = isinstance(cmd, int)
-        entry = builtin.get(cmd) if is_builtin else reg.get(cmd)
+        entry = (builtin.get(cmd) or builtin.get(command_name(t))) if is_builtin else reg.get(cmd)
         label = f"built-in type {cmd}" if is_builtin else f"'{cmd}'"
         if entry is None:
             problems += 1

@@ -8,6 +8,7 @@
 | `heap_dump` | registered `java_heap_dump_demo` | `buffer_size_kb=65536` | Log Single Message | 90 s | yes |
 | `heap_profile_native` | registered `heap_profile_demo` | `duration_ms=5000`, `buffer_size_kb=8192`, `sampling_interval_bytes=65536`, `track_java_allocations=false` | Log JSON Field | 45 s | yes |
 | `heap_profile_java` | registered `heap_profile_demo` | same, `track_java_allocations=true` | Log JSON Field | 45 s | yes |
+| `heap_profile_trace` | built-in type `13` (`HEAP_PROFILE_TRACE`) | `duration_ms=2000`, `buffer_size_kb=8192`, `sampling_interval_bytes=4096`, `track_java_allocations=true` | Log Single Message, then Log JSON Field | poll captures after 5 s | no |
 | `stack_sampling` | built-in type `3` (`STACK_SAMPLING_TRACE`) | `duration_ms=5000`, `frequency_hz=100`, `buffer_size_kb=1024` | Log JSON Field | 45 s | **no** |
 
 All argument types matter: integers are `sint_data` strings, booleans are `bool_data`, and strings
@@ -29,6 +30,12 @@ definitions, and checks that each command is enabled.
   with `invalid_arguments` if one is left out.
 - The stack sampler is a built-in (well-known type 3, key `stack_sampling_trace`). Its definition is
   fixed and it only needs to be enabled; it was enabled on staging in November 2026.
+- The heap profiler is a separate built-in (type 13, key `heap_profile_trace`) gated on Android
+  15+ and SDK config 52+. Use the built-in selector, not a registered command alias. The SDK's
+  350-second execution deadline covers AOSP's default maximum recording of 300 seconds plus
+  startup and finalization; Android still clamps the requested duration to its device limits.
+  The smoke uses a short capture and denser sampling than production defaults to reliably observe
+  allocations during brief UI activity.
 
 The test app's registered `system_trace` command also captures stack samples, but it isn't used
 here. The built-in is the path customers' workflows use.

@@ -11,7 +11,14 @@ package io.bitdrift.capture.commands
 enum class BuiltinCommandType(val wireValue: Int, val key: String) {
     DUMP_DEVICE_BUFFER(1, "dump_device_buffer"),
     TAKE_SCREENSHOT(2, "take_screenshot"),
-    STACK_SAMPLING_TRACE(3, "stack_sampling_trace"),
+    STACK_SAMPLING_TRACE(3, "stack_sampling_trace") {
+        override fun parse(scope: CommandScope) =
+            StackSamplingTraceArguments(
+                durationMs = scope.argument<Long>("duration_ms"),
+                frequencyHz = scope.argument<Long>("frequency_hz"),
+                bufferSizeKb = scope.argument<Long>("buffer_size_kb"),
+            )
+    },
     USER_SETTINGS_REMOVE(4, "user_settings_remove"),
     USER_SETTINGS_SET(5, "user_settings_set"),
     USER_SETTINGS_GET(6, "user_settings_get"),
@@ -21,4 +28,36 @@ enum class BuiltinCommandType(val wireValue: Int, val key: String) {
     FILE_CLEAR(10, "file_clear"),
     FILE_DELETE(11, "file_delete"),
     MEMORY_DUMP(12, "memory_dump"),
+    HEAP_PROFILE_TRACE(13, "heap_profile_trace") {
+        override fun parse(scope: CommandScope) =
+            HeapProfileTraceArguments(
+                durationMs = scope.argument<Long>("duration_ms"),
+                bufferSizeKb = scope.argument<Long>("buffer_size_kb"),
+                samplingIntervalBytes = scope.argument<Long>("sampling_interval_bytes"),
+                trackJavaAllocations = scope.argument<Boolean>("track_java_allocations"),
+            )
+    },
+    ;
+
+    /** This command's generated arguments, or null if it does not use a generated parser. */
+    internal open fun parse(scope: CommandScope): BuiltinCommandArguments? = null
 }
+
+/**
+ * The arguments of a built-in that declares any, generated from its proto definition. Open, so a
+ * consumer handles only the arguments it serves and a new command never breaks an unrelated one.
+ */
+internal interface BuiltinCommandArguments
+
+internal data class StackSamplingTraceArguments(
+    val durationMs: Long,
+    val frequencyHz: Long,
+    val bufferSizeKb: Long,
+) : BuiltinCommandArguments
+
+internal data class HeapProfileTraceArguments(
+    val durationMs: Long,
+    val bufferSizeKb: Long,
+    val samplingIntervalBytes: Long,
+    val trackJavaAllocations: Boolean,
+) : BuiltinCommandArguments
