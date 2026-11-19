@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use super::{builtin_commands, camel_case};
 use std::collections::BTreeMap;
@@ -28,8 +28,12 @@ fn builtin_metadata_preserves_wire_ids_and_keys() {
     (3, "stack_sampling_trace".to_owned())
   );
   assert_eq!(
+    commands["USER_SETTINGS_REMOVE"],
+    (4, "user_settings_remove".to_owned())
+  );
+  assert_eq!(
     commands["HEAP_PROFILE_TRACE"],
-    (4, "heap_profile_trace".to_owned())
+    (13, "heap_profile_trace".to_owned())
   );
 }
 
@@ -59,7 +63,7 @@ fn builtin_arguments_carry_their_proto_names_and_kotlin_types() {
       .map(|(name, kotlin_type)| ((*name).to_owned(), *kotlin_type))
       .collect::<Vec<_>>()
   };
-  assert!(arguments["TAKE_SCREENSHOT"].is_empty());
+  assert_eq!(arguments["USER_SETTINGS_SET"], vec![]);
   assert_eq!(
     arguments["STACK_SAMPLING_TRACE"],
     owned(&[

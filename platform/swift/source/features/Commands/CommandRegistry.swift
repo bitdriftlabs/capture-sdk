@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 actor CommandRegistry {
     struct Builtin: Sendable {
@@ -73,7 +73,7 @@ actor CommandRegistry {
         builtinType: Int32? = nil
     ) async -> Result<CommandResult, CommandError> {
         guard !Task.isCancelled else {
-            return .failure(CommandError(title: "Command cancelled"))
+            return .failure(CommandError(message: "Command cancelled"))
         }
         let identity = builtinType.map(Identity.builtin) ?? .app(key)
         guard let registration = registrations[identity] else {
@@ -92,7 +92,7 @@ actor CommandRegistry {
             executingKeys.remove(identity)
         }
         guard !Task.isCancelled else {
-            return .failure(CommandError(title: "Command cancelled"))
+            return .failure(CommandError(message: "Command cancelled"))
         }
         // Invoke the handler in the caller's task so bridge cancellation reaches app code.
         let result = await registration.handler(arguments)
@@ -100,7 +100,7 @@ actor CommandRegistry {
             if case let .success(result) = result {
                 result.attachment?.discardOwnedFile()
             }
-            return .failure(CommandError(title: "Command cancelled"))
+            return .failure(CommandError(message: "Command cancelled"))
         }
         return result
     }

@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 internal import CaptureLoggerBridge
 internal import CapturePassable
@@ -54,14 +54,14 @@ extension SessionReplayController: CapturePassable.SessionReplayTarget {
         await withCheckedContinuation { continuation in
             guard startScreenshotCapture(completion: { jpeg in
                 guard let jpeg, !jpeg.isEmpty else {
-                    continuation.resume(returning: .failure(CommandError(title: "invalid or unavailable screenshot")))
+                    continuation.resume(returning: .failure(CommandError(message: "invalid or unavailable screenshot")))
                     return
                 }
                 continuation.resume(returning: .success(CommandResult(
                     attachment: CommandAttachment(data: jpeg, mimeType: "image/jpeg")
                 )))
             }) else {
-                continuation.resume(returning: .failure(CommandError(title: "screenshot capture already in progress")))
+                continuation.resume(returning: .failure(CommandError(message: "screenshot capture already in progress")))
                 return
             }
             if let captureScreenshot {

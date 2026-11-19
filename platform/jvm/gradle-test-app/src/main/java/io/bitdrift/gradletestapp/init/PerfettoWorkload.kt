@@ -3,11 +3,12 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.gradletestapp.init
 
 import android.os.Trace
+import io.bitdrift.gradletestapp.BuildConfig
 import io.bitdrift.gradletestapp.diagnostics.fatalissues.NativeThreads
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -15,6 +16,7 @@ internal class PerfettoWorkload private constructor(
     private val running: AtomicBoolean,
     private val threads: List<Thread>,
     private var graph: PerfettoHeapNode?,
+    private var heapPadding: Array<ByteArray>?,
 ) : AutoCloseable {
     override fun close() {
         running.set(false)
@@ -26,6 +28,8 @@ internal class PerfettoWorkload private constructor(
             node = node.next
         }
         graph = null
+        heapPadding?.let { result += it.size }
+        heapPadding = null
     }
 
     companion object {
@@ -75,7 +79,14 @@ internal class PerfettoWorkload private constructor(
                         )
                     AppProfiler.ProfilingType.JAVA_HEAP_DUMP -> emptyList()
                 }
-            return PerfettoWorkload(running, threads, graph).also { threads.forEach(Thread::start) }
+            // ART graphs contain object metadata, not byte-array contents; use object count for size.
+            val heapPadding =
+                if (type == AppProfiler.ProfilingType.JAVA_HEAP_DUMP && BuildConfig.E2E_TRACE_COPY) {
+                    Array(1_000_000) { ByteArray(32) }
+                } else {
+                    null
+                }
+            return PerfettoWorkload(running, threads, graph, heapPadding).also { threads.forEach(Thread::start) }
         }
 
         private fun perfettoJavaCpuWorkload(durationMs: Long) {

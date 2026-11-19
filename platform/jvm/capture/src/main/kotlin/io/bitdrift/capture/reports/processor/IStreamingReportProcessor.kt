@@ -3,8 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
-
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.reports.processor
 
 import java.io.InputStream
@@ -19,6 +18,14 @@ internal data class AnrReport(
     val appExitDescription: String?,
     val memoryPressureLevel: Int,
     val isFileSizeOptimizationEnabled: Boolean,
+    /** The exited process, from its exit record. */
+    val processId: Int,
+    /**
+     * The exit record's process-state summary: the SDK's encoded crash-profile source, if any. It is
+     * passed through unchanged, so array identity equality is sufficient.
+     */
+    @Suppress("ArrayInDataClass")
+    val crashProfileSource: ByteArray?,
 )
 
 /** Immutable input for persisting a JavaScript error report. */

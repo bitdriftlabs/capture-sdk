@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.capture
 
@@ -89,4 +89,14 @@ data object SdkNotStartedError : Error("SDK not started")
 data class SdkStartFailure(
     val reason: String,
     val cause: Throwable? = null,
+) : Error(reason)
+
+/**
+ * A crash profile could not be imported. The caller still owns its original file.
+ * @param reason A description of the failure.
+ * @param cause The underlying failure, when available.
+ */
+data class CrashProfileImportFailure(
+    val reason: String,
+    val cause: Exception? = null,
 ) : Error(reason)

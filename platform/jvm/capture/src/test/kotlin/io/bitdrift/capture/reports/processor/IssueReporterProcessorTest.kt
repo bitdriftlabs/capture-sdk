@@ -3,12 +3,12 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
-
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture.reports.processor
 
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.app.ApplicationExitInfo
+import android.os.Process
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.any
@@ -35,6 +35,7 @@ import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Platform
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.Report
 import io.bitdrift.capture.reports.binformat.v1.issue_reporting.ReportType
 import io.bitdrift.capture.reports.persistence.IIssueReporterStore
+import io.bitdrift.capture.reports.profiling.CrashProfileSource
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -279,6 +280,45 @@ class IssueReporterProcessorTest {
         )
 
         assertAnrReport(trace, "foreground")
+    }
+
+    @Test
+    fun processAppExitReport_whenAnr_shouldPassProcessStateSummaryToNative() {
+        doReturn("/some/path/foo.cap").`when`(issueReporterStorage).generateFatalIssueFilePath()
+        processor.processAppExitReport(
+            applicationExit =
+                createApplicationExitInfo(
+                    reason = ApplicationExitInfo.REASON_ANR,
+                    processStateSummary = FAKE_SOURCE,
+                ),
+        )
+
+        assertAnrReport(null, "foreground", FAKE_SOURCE)
+    }
+
+    @Test
+    fun processJvmCrash_whenOomProfilesEnabled_shouldStoreProcessAndSource() {
+        CrashProfileSource.oomSource = FAKE_SOURCE
+        try {
+            val report = persistJvmCrashAndGetReport(Thread("crashing_thread"), OutOfMemoryError("heap"), null)
+            assertThat(report.appMetrics!!.processId).isEqualTo(Process.myPid().toUInt())
+            val source = ByteArray(report.crashProfileSourceLength) { report.crashProfileSource(it).toByte() }
+            assertThat(source).isEqualTo(FAKE_SOURCE)
+        } finally {
+            CrashProfileSource.oomSource = null
+        }
+    }
+
+    @Test
+    fun processJvmCrash_whenNotOom_shouldStoreProcessWithoutSource() {
+        CrashProfileSource.oomSource = FAKE_SOURCE
+        try {
+            val report = persistJvmCrashAndGetReport(Thread("crashing_thread"), FakeJvmException(), null)
+            assertThat(report.appMetrics!!.processId).isEqualTo(Process.myPid().toUInt())
+            assertThat(report.crashProfileSourceLength).isEqualTo(0)
+        } finally {
+            CrashProfileSource.oomSource = null
+        }
     }
 
     @Test
@@ -680,6 +720,7 @@ class IssueReporterProcessorTest {
     private fun assertAnrReport(
         stream: InputStream?,
         runningState: String,
+        crashProfileSource: ByteArray? = null,
     ) {
         verify(streamingReportProcessor).processAndPersistANR(anrReportCaptor.capture())
         assertThat(anrReportCaptor.firstValue).isEqualTo(
@@ -692,6 +733,8 @@ class IssueReporterProcessorTest {
                 null,
                 MemoryPressureLevel.Warning.nativeValue,
                 true,
+                FAKE_PID,
+                crashProfileSource,
             ),
         )
     }
@@ -703,8 +746,11 @@ class IssueReporterProcessorTest {
         status: Int = 0,
         reason: Int = ApplicationExitInfo.REASON_UNKNOWN,
         importance: Int = RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+        processStateSummary: ByteArray? = null,
     ): ApplicationExitInfo {
         val applicationExitInfo = mock<ApplicationExitInfo>()
+        whenever(applicationExitInfo.pid).thenReturn(FAKE_PID)
+        whenever(applicationExitInfo.processStateSummary).thenReturn(processStateSummary)
         whenever(applicationExitInfo.timestamp).thenReturn(timestamp)
         whenever(applicationExitInfo.description).thenReturn(description)
         whenever(applicationExitInfo.traceInputStream).thenReturn(traceInputStream)
@@ -715,6 +761,8 @@ class IssueReporterProcessorTest {
     }
 
     private companion object {
+        const val FAKE_PID = 4321
+        val FAKE_SOURCE = byteArrayOf(1, 2, 3)
         const val FAKE_TIME_STAMP = 1241515210914L
         const val FAKE_FATAL_PATH = "/reports/new/fatal-report.cap"
         const val FAKE_NON_FATAL_PATH = "/reports/watcher/current_session/non-fatal-report.cap"

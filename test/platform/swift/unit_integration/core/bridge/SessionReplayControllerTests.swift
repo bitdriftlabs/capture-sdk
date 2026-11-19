@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @_spi(ExperimentalAPI) @testable import Capture
 import CaptureMocks
@@ -56,7 +56,7 @@ final class SessionReplayControllerTests: XCTestCase {
                 XCTAssertEqual(attachment.mimeType, "image/jpeg")
             } else {
                 guard case let .failure(error) = result else { return XCTFail("expected invalid screenshot") }
-                XCTAssertEqual(error.title, "invalid or unavailable screenshot")
+                XCTAssertEqual(error.message, "invalid or unavailable screenshot")
             }
         }
     }
@@ -74,7 +74,7 @@ final class SessionReplayControllerTests: XCTestCase {
         first.cancel()
         let busy = await target.captureCommandScreenshot()
         guard case let .failure(error) = busy else { return XCTFail("expected busy screenshot") }
-        XCTAssertEqual(error.title, "screenshot capture already in progress")
+        XCTAssertEqual(error.message, "screenshot capture already in progress")
         XCTAssertEqual(capture.count, 1)
 
         capture.finish(nil)

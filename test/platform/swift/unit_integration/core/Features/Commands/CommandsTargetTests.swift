@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @_spi(ExperimentalAPI) @testable import Capture
 import XCTest
@@ -207,7 +207,7 @@ final class CommandsTargetTests: XCTestCase {
         await gate.open()
         let result = await task.value
 
-        XCTAssertEqual(result, .failure(CommandError(title: "Command cancelled")))
+        XCTAssertEqual(result, .failure(CommandError(message: "Command cancelled")))
         let next = await registry.execute(key: "second", arguments: [:])
         XCTAssertEqual(next, .success(CommandResult()))
     }
@@ -249,7 +249,7 @@ final class CommandsTargetTests: XCTestCase {
 
         XCTAssertEqual(fileManager.removals, [])
         XCTAssertTrue(FileManager.default.fileExists(atPath: directory.path))
-        XCTAssertEqual(CommandError.invalidAttachment.code, CommandError(title: "failure").code)
+        XCTAssertEqual(CommandError.invalidAttachment.code, CommandError(message: "failure").code)
     }
 
     func testUnacceptedFileCompletionsAreDeletedForAppsAndBuiltins() async throws {

@@ -26,7 +26,6 @@ compile_commands.json
 !/dist/WORKSPACE
 *.egg-info/
 /external
-/formatters/
 /tmp
 /target
 ios_app_size_output/

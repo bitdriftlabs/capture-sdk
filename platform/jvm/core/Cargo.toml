@@ -1,6 +1,6 @@
 [package]
 edition      = "2024"
-license-file = "../../../LICENSE"
+license-file = "LICENSE"
 name         = "capture-core"
 publish      = false
 version      = "1.0.0"
@@ -29,6 +29,7 @@ futures-util.workspace          = true
 jni.workspace                   = true
 log.workspace                   = true
 memmap2.workspace               = true
+parking_lot.workspace           = true
 platform-shared.workspace       = true
 protobuf.workspace              = true
 tempfile.workspace              = true

@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.capture.commands
 
@@ -1041,20 +1041,20 @@ class CommandRegistryTest {
     }
 
     @Test
-    fun completesErrorWithTitleDescriptionAndContext() {
-        registry.register("fail") { error("Unsupported", description = "always fails", context = mapOf("code" to "42")) }
+    fun completesErrorWithMessageAndContext() {
+        registry.register("fail") { error("Unsupported: always fails", context = mapOf("error" to "42")) }
 
         registry.dispatch(1, "fail", null, "session")
 
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isEqualTo("handler_failed")
         assertThat(completion.message).isEqualTo("Unsupported: always fails")
-        assertThat(completion.fields.map { it.key to it.stringValue }).containsExactly("code" to "42")
+        assertThat(completion.fields.map { it.key to it.stringValue }).containsExactly("error" to "42")
         assertThat(completion.attachment).isNull()
     }
 
     @Test
-    fun completesErrorWithoutDescription() {
+    fun completesErrorWithoutContext() {
         registry.register("fail") { error("Unsupported") }
 
         registry.dispatch(1, "fail", null, "session")

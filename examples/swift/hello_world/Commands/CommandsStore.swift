@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @_spi(ExperimentalAPI) import Capture
 import Foundation
@@ -16,7 +16,7 @@ actor CommandsStore {
         let result: Result<CommandResult, CommandError>
 
         switch key {
-        case "memory_dump":
+        case "task_vm_info":
             let isAttachment: Bool
             if case let .bool(value) = arguments["is_attachment"] {
                 isAttachment = value
@@ -28,7 +28,7 @@ actor CommandsStore {
             }
         case "flip_flag":
             guard let flag = arguments.string(for: "flag"), !flag.isEmpty else {
-                result = .failure(CommandError(title: "Missing flag argument"))
+                result = .failure(CommandError(message: "Missing flag argument"))
                 break
             }
 
@@ -43,7 +43,7 @@ actor CommandsStore {
                 ])
             )
         default:
-            result = .failure(CommandError(title: "Unknown command"))
+            result = .failure(CommandError(message: "Unknown command"))
         }
 
         let outcome: CommandInvocationRecord.Outcome
@@ -51,7 +51,7 @@ actor CommandsStore {
         case let .success(commandResult):
             outcome = .succeeded(context: commandResult.context)
         case let .failure(error):
-            outcome = .failed(message: [error.title, error.description].compactMap { $0 }.joined(separator: ": "))
+            outcome = .failed(message: error.message)
         }
         let record = CommandInvocationRecord(
             id: UUID(),

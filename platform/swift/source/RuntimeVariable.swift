@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 internal import CaptureLoggerBridge
 import Foundation
@@ -147,6 +147,16 @@ extension RuntimeVariable<Bool> {
 
     static let webviewSwizzling = RuntimeVariable(
         name: "client_feature.ios.webview_swizzling",
+        defaultValue: true
+    )
+
+    static let memoryDumpEnabled = RuntimeVariable(
+        name: "client_feature.ios.memory_dump",
+        defaultValue: true
+    )
+
+    static let memoryDumpHeapEnabled = RuntimeVariable(
+        name: "client_feature.ios.memory_dump_heap",
         defaultValue: true
     )
 }

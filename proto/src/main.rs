@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 #[cfg(test)]
 #[path = "./main_test.rs"]
@@ -12,7 +12,7 @@ mod tests;
 use bd_proto::protos::workflow::workflow_command::WellKnownCommandType;
 use bd_proto::protos::workflow::workflow_command::device_command_argument_definition::Type;
 use bd_proto::protos::workflow::workflow_command::exts::well_known_command_options;
-use protobuf::EnumFull;
+use protobuf::{Enum, EnumFull};
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -94,9 +94,16 @@ fn builtin_commands() -> Vec<BuiltinCommand> {
       let metadata = well_known_command_options
         .get(value.proto().options.as_ref().expect("command options"))
         .expect("well-known command metadata");
+      // Only the profiling handlers use generated parsers. Other built-ins keep their own
+      // parsing, including platform-specific, optional and dynamically typed arguments.
+      let generates_arguments = matches!(
+        WellKnownCommandType::from_i32(value.value()),
+        Some(WellKnownCommandType::STACK_SAMPLING_TRACE | WellKnownCommandType::HEAP_PROFILE_TRACE)
+      );
       let arguments = metadata
         .argument_definitions
         .iter()
+        .filter(|_| generates_arguments)
         .map(|argument| {
           // The server fills every default, so an argument is absent only when it is optional
           // without one; the generated classes have no nullable fields for that yet.
@@ -160,14 +167,26 @@ fn generate_kotlin_arguments(name: &str, arguments: &[(String, &str)]) {
 fn pascal_case(name: &str) -> String {
   let camel = camel_case(name);
   let mut chars = camel.chars();
-  chars
-    .next()
-    .map(|first| first.to_ascii_uppercase().to_string() + chars.as_str())
-    .unwrap_or_default()
+  let Some(first) = chars.next() else {
+    return String::new();
+  };
+  first.to_ascii_uppercase().to_string() + chars.as_str()
 }
 
 fn generate_builtin_commands(language: &str) {
   let commands = builtin_commands();
+  // The Kotlin output is checked in for Gradle, so it carries the repository license header.
+  for line in [
+    "// capture-sdk - bitdrift's client SDK",
+    "// Copyright Bitdrift, Inc. All rights reserved.",
+    "//",
+    "// Use of this source code is governed by a source available license that can be found in the",
+    "// LICENSE file or at:",
+    "// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt",
+    "",
+  ] {
+    println!("{line}");
+  }
   println!("// Generated from workflow_command.proto; do not edit.");
   match language {
     "kotlin" => {
@@ -179,8 +198,7 @@ fn generate_builtin_commands(language: &str) {
       println!(
         "    ;
 
-    /** This command's arguments as its proto definition declares them, or null when it has none. \
-         */
+    /** This command's generated arguments, or null if it does not use a generated parser. */
     internal open fun parse(scope: CommandScope): BuiltinCommandArguments? = null
 }}
 

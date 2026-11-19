@@ -30,6 +30,10 @@ build --features=swift.use_global_module_cache
 
 # Gate the references to androidndk behind a flag to support building on arm linux.
 build:android --android_crosstool_top=@androidndk//:toolchain
+# rules_android's multidex tools (DexFileSplitter) use Java records, so build and run exec tools
+# with Java 17 rather than Bazel's Java 11 default.
+build:android --tool_java_language_version=17
+build:android --tool_java_runtime_version=remotejdk_17
 
 build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
 build --@rules_rust//rust/settings:clippy.toml=//:.clippy.toml

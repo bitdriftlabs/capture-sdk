@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.capture.commands.screenshot
 
@@ -36,7 +36,9 @@ internal class PixelCopyScreenshotCapturer(
             CommandResult.Success(CommandAttachment(withContext(NonCancellable) { captureScreenshot() }, CONTENT_TYPE))
         } catch (e: ScreenshotCaptureException) {
             // The reason travels on the failure result.
-            CommandResult.Error("screenshot capture failed", description = e.message)
+            CommandResult.Error(
+                listOfNotNull("screenshot capture failed", e.message?.takeUnless { it.isBlank() }).joinToString(": "),
+            )
         }
 
     private companion object {

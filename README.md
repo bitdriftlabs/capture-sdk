@@ -6,16 +6,12 @@ See [here](https://docs.bitdrift.io/product/overview) for more information.
 
 For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sdk/wiki)
 
-## Licensing
+## Documentation
 
-First-party code is licensed under [PolyForm Strict License 1.0.0](LICENSE), a source-available
-license, not an open-source license. Previously published versions retain their original
-licenses. Third-party components retain their own licenses and notices.
-
-The root `LICENSE` is the canonical text for source and release artifacts. Check license
-metadata and headers with `ci/check_license.sh`; add missing headers or normalize canonical
-header formatting with `python3 ci/license_header.py`. Noncanonical first-party headers are
-rejected, not migrated.
+- [Android crash profiling](docs/android-crash-profiling.md): automatic collection, caller-managed
+  imports, file ownership, and pending profile storage.
+- [Gradle test app: manual crash-profile testing](platform/jvm/gradle-test-app/docs/crash-profiling.md):
+  emulator/device setup, ANR/OOM scenarios, symbol uploads, backend verification, and cleanup.
 
 ## Local formatting
 
@@ -25,6 +21,9 @@ rejected, not migrated.
 ```sh
 brew install buildifier taplo swiftlint shellcheck
 ```
+
+For Swift documentation, use `make fix-docstrings FILE=path/to/File.swift` to format one file.
+`make lint-docstrings` runs the same read-only check as `make format` and CI.
 
 ## Release build cache policy
 

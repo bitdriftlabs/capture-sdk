@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.capture
 
@@ -97,10 +97,11 @@ object CaptureTestJniLibrary {
     // Runs events listener target test.
     external fun runEventsListenerTargetTest(target: Any)
 
-    // Issues a runtime update causing the specified feature to be marked as disabled.
-    external fun disableRuntimeFeature(
+    // Issues a runtime update for the specified feature.
+    external fun setRuntimeFeatureEnabled(
         streamId: Int,
         feature: String,
+        enabled: Boolean,
     )
 
     // Returns the next received artifact upload.

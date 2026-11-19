@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @testable import Capture
 import CapturePassable
@@ -228,4 +228,22 @@ public func AssertAnyEqual(_ lhs: Any, _ rhs: Any?, file: StaticString = #filePa
         return
     }
     eq(lhs, rhs)
+}
+
+/// Assertion to verify a file exists
+///
+/// - parameter path: a file path
+/// - parameter file: file path to attribute assertion failure
+/// - parameter line: line number associated with file path
+public func AssertFileExists(_ path: String, file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssertTrue(FileManager.default.fileExists(atPath: path), "\(path) does not exist", file: file, line: line)
+}
+
+/// Assertion to verify a file does not exist
+///
+/// - parameter path: a file path
+/// - parameter file: file path to attribute assertion failure
+/// - parameter line: line number associated with file path
+public func AssertFileDoesNotExist(_ path: String, file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssertFalse(FileManager.default.fileExists(atPath: path), "\(path) exists", file: file, line: line)
 }

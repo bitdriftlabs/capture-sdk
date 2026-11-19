@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.capture.commands.profiling
 
@@ -193,7 +193,10 @@ class ProfilingCommandTest {
 
             val error = command.execute(invocation()) as CommandResult.Error
 
-            assertThat(error.title).isEqualTo("not_profileable")
+            assertThat(error.message).isEqualTo(
+                "not_profileable: the app is not profileable; " +
+                    "set <profileable android:enabled=\"true\" /> or use a debuggable build",
+            )
             assertThat(error.code).isEqualTo(CommandErrorCode.HandlerFailed)
             assertThat(profiler.requests).isEmpty()
         }
@@ -205,8 +208,7 @@ class ProfilingCommandTest {
             profiler.complete(ProfileOutcome.Failed(2, "FAILED_RATE_LIMIT_PROCESS", "rate limited"))
 
             val error = result.await() as CommandResult.Error
-            assertThat(error.title).isEqualTo("FAILED_RATE_LIMIT_PROCESS")
-            assertThat(error.description).isEqualTo("rate limited")
+            assertThat(error.message).isEqualTo("FAILED_RATE_LIMIT_PROCESS: rate limited")
             assertThat(error.context).isEqualTo(
                 mapOf("profiling_error_code" to "2", "profiling_error_name" to "FAILED_RATE_LIMIT_PROCESS"),
             )

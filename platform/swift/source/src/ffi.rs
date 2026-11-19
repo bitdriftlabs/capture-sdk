@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 // Helpers for safely interacting with Objective-C types.
 use crate::ffi;
@@ -118,6 +118,14 @@ pub fn make_nsstring(s: &str) -> anyhow::Result<StrongPtr> {
   let string_cls = class!(NSString);
   let c_str = CString::new(s)?;
   Ok(unsafe { StrongPtr::retain(msg_send![string_cls, stringWithUTF8String: c_str.as_ptr()]) })
+}
+
+/// Copies bytes into a new `NSData`.
+#[must_use]
+pub fn make_nsdata(bytes: &[u8]) -> StrongPtr {
+  unsafe {
+    StrongPtr::retain(msg_send![class!(NSData), dataWithBytes: bytes.as_ptr() length: bytes.len()])
+  }
 }
 
 /// Creates an empty `NSString`.

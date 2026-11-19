@@ -1,7 +1,7 @@
 [package]
 description  = "Bitdrift objc crate"
 edition      = "2024"
-license-file = "../../../LICENSE"
+license-file = "LICENSE"
 name         = "swift_bridge"
 publish      = false
 version      = "1.0.0"
@@ -21,6 +21,7 @@ bd-error-reporter.workspace  = true
 bd-key-value.workspace       = true
 bd-log-primitives.workspace  = true
 bd-logger.workspace          = true
+bd-memory-dump.workspace     = true
 bd-noop-network.workspace    = true
 bd-proto.workspace           = true
 bd-report-parsers.workspace  = true

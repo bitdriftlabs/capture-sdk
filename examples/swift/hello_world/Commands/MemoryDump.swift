@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @_spi(ExperimentalAPI) import Capture
 import Darwin
@@ -50,8 +50,7 @@ struct MemoryDump: Encodable {
         guard status == KERN_SUCCESS else {
             return .failure(
                 CommandError(
-                    title: "Unable to collect memory information",
-                    description: "task_info returned \(status)"
+                    message: "Unable to collect memory information: task_info returned \(status)"
                 )
             )
         }
@@ -93,8 +92,7 @@ struct MemoryDump: Encodable {
         } catch {
             return .failure(
                 CommandError(
-                    title: "Unable to encode memory information",
-                    description: error.localizedDescription
+                    message: "Unable to encode memory information: \(error.localizedDescription)"
                 )
             )
         }

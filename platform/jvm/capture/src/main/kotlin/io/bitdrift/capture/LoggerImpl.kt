@@ -3,13 +3,14 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.capture
 
 import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -20,6 +21,10 @@ import io.bitdrift.capture.attributes.NetworkAttributes
 import io.bitdrift.capture.commands.BuiltinCommandType
 import io.bitdrift.capture.commands.BuiltinCommandsInstaller
 import io.bitdrift.capture.commands.CommandRegistry
+import io.bitdrift.capture.commands.file.FileClearCommand
+import io.bitdrift.capture.commands.file.FileDeleteCommand
+import io.bitdrift.capture.commands.file.FileListCommand
+import io.bitdrift.capture.commands.file.FileSizeCommand
 import io.bitdrift.capture.commands.profiling.IProfileabilityChecker
 import io.bitdrift.capture.commands.profiling.IProfiler
 import io.bitdrift.capture.commands.profiling.ProfileabilityChecker
@@ -27,6 +32,10 @@ import io.bitdrift.capture.commands.profiling.Profiler
 import io.bitdrift.capture.commands.profiling.ProfilingCommand
 import io.bitdrift.capture.commands.screenshot.PixelCopyScreenshotCapturer
 import io.bitdrift.capture.commands.screenshot.ScreenshotCommand
+import io.bitdrift.capture.commands.settings.SettingsClearCommand
+import io.bitdrift.capture.commands.settings.SettingsGetCommand
+import io.bitdrift.capture.commands.settings.SettingsRemoveCommand
+import io.bitdrift.capture.commands.settings.SettingsSetCommand
 import io.bitdrift.capture.common.IWindowManager
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
@@ -82,6 +91,12 @@ import io.bitdrift.capture.reports.jvmcrash.ICaptureUncaughtExceptionHandler
 import io.bitdrift.capture.reports.processor.ICompletedReportsProcessor
 import io.bitdrift.capture.reports.processor.IIssueReporterProcessor
 import io.bitdrift.capture.reports.processor.ReportProcessingSession
+import io.bitdrift.capture.reports.profiling.API_ANR
+import io.bitdrift.capture.reports.profiling.API_OOM
+import io.bitdrift.capture.reports.profiling.CrashProfileCollector
+import io.bitdrift.capture.reports.profiling.CrashProfileKind
+import io.bitdrift.capture.reports.profiling.CrashProfileStore
+import io.bitdrift.capture.reports.profiling.SystemTriggerProfiler
 import io.bitdrift.capture.threading.CaptureDispatchers
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.SdkDirectory
@@ -136,6 +151,14 @@ internal class LoggerImpl(
                 ScreenshotCommand(PixelCopyScreenshotCapturer(windowManager)),
                 ProfilingCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, profiler, profileability),
                 ProfilingCommand(BuiltinCommandType.HEAP_PROFILE_TRACE, profiler, profileability),
+                SettingsClearCommand(context),
+                SettingsGetCommand(context),
+                SettingsSetCommand(context),
+                SettingsRemoveCommand(context),
+                FileClearCommand(context),
+                FileDeleteCommand(context),
+                FileListCommand(context),
+                FileSizeCommand(context),
             ),
         ),
 ) : IInternalLogger,
@@ -153,6 +176,7 @@ internal class LoggerImpl(
     private val threadCountMonitor = ThreadCountMonitor()
     private val memoryMetricsProvider = MemoryMetricsProvider(activityManager)
     private val appExitLogger: AppExitLogger
+    private val crashProfileCollector: CrashProfileCollector?
 
     /** Keys of the SDK built-ins the core refused at start; reported on the SDKConfigured event. */
     private val refusedBuiltinCommands: List<String>
@@ -180,7 +204,7 @@ internal class LoggerImpl(
     private val sessionReplayTarget: ISessionReplayTarget
     private val captureUncaughtExceptionHandler: ICaptureUncaughtExceptionHandler = CaptureUncaughtExceptionHandler()
 
-    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+    private val latestAppExitInfoProvider: ILatestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager, preferences)
     private val previousRunInfoResolver =
         PreviousRunInfoResolver(latestAppExitInfoProvider, preferences, captureUncaughtExceptionHandler)
     private val isSdkDirectoryFirstCreated: Boolean
@@ -332,6 +356,43 @@ internal class LoggerImpl(
 
         addJankStatsMonitorTarget(windowManager, context)
 
+        configuration.crashProfilingMode?.warnIfUnsupportedApi(Build.VERSION.SDK_INT)
+        if (Build.VERSION.SDK_INT >= API_ANR) {
+            // TODO: Give profiling a dedicated serial dispatcher so profile copies and fsyncs
+            // cannot stall platform events or previous-run report discovery on CommonBackground.
+            val executor = eventListenerDispatcher.executorService
+            val supportsOom = Build.VERSION.SDK_INT >= API_OOM
+            crashProfileCollector =
+                CrashProfileCollector(
+                    context,
+                    SystemTriggerProfiler(context, executor, supportsOom),
+                    runtime,
+                    { facts ->
+                        CaptureJniLibrary.encodeCrashProfileSource(
+                            facts.pid,
+                            facts.bootCount,
+                            facts.processStartElapsedNs,
+                            facts.wallNs,
+                            facts.elapsedNs,
+                        )
+                    },
+                    CaptureJniLibrary::submitCrashProfile,
+                    executor,
+                    supportsOom,
+                    configuration,
+                    preferences,
+                    CrashProfileStore(
+                        File(sdkDirectory, CrashProfileStore.DIRECTORY),
+                        runtime,
+                    ),
+                )
+            // TODO: Reconcile persisted trigger ownership independently of platform_events.enabled.
+            // When the listener never starts, even local opt-out cannot remove previously claimed types.
+            eventsListenerTarget.add(crashProfileCollector)
+        } else {
+            crashProfileCollector = null
+        }
+
         addWindowFocusFlushTarget(context, windowManager)
 
         appExitLogger =
@@ -358,6 +419,19 @@ internal class LoggerImpl(
 
     override fun processIssueReports(reportProcessingSession: ReportProcessingSession) {
         CaptureJniLibrary.processIssueReports(this.loggerId, reportProcessingSession)
+    }
+
+    internal fun importCrashProfile(
+        file: File,
+        kind: CrashProfileKind,
+        completion: (CaptureResult<Unit>) -> Unit,
+    ) {
+        val collector = crashProfileCollector
+        if (Build.VERSION.SDK_INT < API_ANR || collector == null) {
+            completion(CaptureResult.Failure(CrashProfileImportFailure("Crash profiles require Android 16 or newer")))
+        } else {
+            collector.importProfile(file, kind, completion)
+        }
     }
 
     override fun onReportProcessingError(

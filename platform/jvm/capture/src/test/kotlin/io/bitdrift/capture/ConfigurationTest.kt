@@ -3,8 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
-
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 package io.bitdrift.capture
 
 import androidx.test.core.app.ApplicationProvider
@@ -16,6 +15,7 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
+import io.bitdrift.capture.reports.profiling.CrashProfilingMode
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.assertj.core.api.Assertions
 import org.junit.After
@@ -27,6 +27,29 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [24])
 class ConfigurationTest {
+    @Test
+    fun crashProfilingRequiresExplicitOptIn() {
+        Assertions.assertThat(Configuration().crashProfilingMode).isNull()
+        Assertions.assertThat(Configuration().enableFatalIssueReporting).isTrue()
+        for (mode in CrashProfilingMode.entries) {
+            Assertions.assertThat(Configuration(crashProfilingMode = mode).crashProfilingMode).isEqualTo(mode)
+        }
+    }
+
+    @Test
+    fun copiesAndDataClassSemanticsIncludeProfilingMode() {
+        val original = Configuration(crashProfilingMode = CrashProfilingMode.MANUAL)
+        Assertions.assertThat(original.copy()).isEqualTo(original).hasSameHashCodeAs(original)
+        Assertions
+            .assertThat(original.copy(sleepMode = SleepMode.ENABLED).crashProfilingMode)
+            .isEqualTo(CrashProfilingMode.MANUAL)
+        Assertions.assertThat(original.copy(crashProfilingMode = null).crashProfilingMode).isNull()
+        Assertions.assertThat(original.copy(crashProfilingMode = null)).isNotEqualTo(original)
+        Assertions.assertThat(original.copy(crashProfilingMode = CrashProfilingMode.AUTOMATIC)).isNotEqualTo(original)
+        val (_, _, _, _, mode) = original
+        Assertions.assertThat(mode).isEqualTo(CrashProfilingMode.MANUAL)
+    }
+
     @Test
     fun configurationFailure() {
         val targetDomain = "http://capture.example:8080"

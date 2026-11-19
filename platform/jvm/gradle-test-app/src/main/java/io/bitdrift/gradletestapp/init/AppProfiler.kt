@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.gradletestapp.init
 
@@ -11,6 +11,7 @@ import android.content.Context
 import android.os.Build
 import android.os.CancellationSignal
 import android.os.ProfilingResult
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.os.HeapProfileRequestBuilder
 import androidx.core.os.JavaHeapDumpRequestBuilder
@@ -21,6 +22,7 @@ import androidx.core.os.requestProfiling
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
 import java.util.function.Consumer
 import kotlin.coroutines.resume
 
@@ -109,24 +111,34 @@ object AppProfiler {
     private suspend fun requestProfile(
         context: Context,
         request: Request,
-    ): Result {
-        val profilingResult =
-            suspendCancellableCoroutine { continuation ->
-                val cancellationSignal = CancellationSignal()
-                continuation.invokeOnCancellation { cancellationSignal.cancel() }
-                requestProfiling(
-                    context,
-                    request.toPlatformRequest(cancellationSignal),
-                    Dispatchers.IO.asExecutor(),
-                    Consumer<ProfilingResult> { continuation.resume(it) },
-                )
-            }
-
-        if (profilingResult.errorCode != ProfilingResult.ERROR_NONE) {
-            val errorCode = profilingResult.errorCode
-            return Result.Failure(profilingResult.errorMessage.orEmpty(), errorCode, errorCodeName(errorCode))
+    ): Result =
+        suspendCancellableCoroutine { continuation ->
+            val cancellationSignal = CancellationSignal()
+            continuation.invokeOnCancellation { cancellationSignal.cancel() }
+            requestProfiling(
+                context,
+                request.toPlatformRequest(cancellationSignal),
+                Dispatchers.IO.asExecutor(),
+                Consumer<ProfilingResult> { result ->
+                    val outcome = result.toOutcome()
+                    // A saved file is a resource even when cancellation wins before resumption.
+                    continuation.resume(outcome) { _, unclaimed, _ ->
+                        if (unclaimed is Result.Saved) {
+                            val file = File(unclaimed.path)
+                            Log.d("AppProfiler", "Deleting cancelled profile ${file.path}")
+                            if (file.exists() && !file.delete()) Log.w("AppProfiler", "Could not delete cancelled profile ${file.path}")
+                        }
+                    }
+                },
+            )
         }
-        return profilingResult.resultFilePath?.let(Result::Saved) ?: Result.Failure("no profile file produced")
+
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    private fun ProfilingResult.toOutcome(): Result {
+        if (errorCode != ProfilingResult.ERROR_NONE) {
+            return Result.Failure(errorMessage.orEmpty(), errorCode, errorCodeName(errorCode))
+        }
+        return resultFilePath?.takeIf(String::isNotBlank)?.let(Result::Saved) ?: Result.Failure("no profile file produced")
     }
 
     private fun errorCodeName(errorCode: Int): String =

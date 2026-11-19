@@ -38,18 +38,22 @@ fix-yaml:
 .PHONY: fix-swiftlint
 SWIFTLINT ?= swiftlint
 fix-swiftlint:
-# tools/lint:fix doesn't warn about all docstring violations.
 # WebViewBridgeScript.swift is auto-generated; swiftlint's --format flag reindents it via
 # SourceKit regardless of `excluded` in .swiftlint.yml, so it's passed an explicit file list here.
 	$(SWIFTLINT) --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
 
+.PHONY: fix-docstrings
+fix-docstrings:
+	$(if $(FILE),,$(error Usage: make fix-docstrings FILE=path/to/File.swift))
+	./bazelw run //tools/lint:fix-docstrings -- --include "$(FILE)"
+
 .PHONY: lint-docstrings
 lint-docstrings:
-# Format doc strings first (by running tools/lint:fix) and validate whether any violations remain.
-	./bazelw run tools/lint:lint-docstrings
+	./bazelw run //tools/lint:lint-docstrings
 
 .PHONY: fix-swift
-fix-swift: fix-swiftlint lint-docstrings
+fix-swift: fix-swiftlint
+	+@$(MAKE) $(FORMAT_MAKE_FLAGS) lint-docstrings
 
 .PHONY: format-bazel
 format-bazel:
@@ -68,11 +72,14 @@ format:
 check-license:
 	./ci/check_license.sh
 
-# Use repin when you get Error: Digests do not match
+# Use repin when you get Error: Digests do not match, or after changing Maven artifacts in
+# MODULE.bazel (Bazel then reports that maven_install.json must be regenerated).
 .PHONY: repin
 repin:
 	# rules_rs resolves crates from Cargo.lock and records its facts in MODULE.bazel.lock.
 	./bazelw mod tidy
+	# Re-resolve @maven and rewrite maven_install.json with the resolved versions and checksums.
+	./bazelw run --repo_env=REPIN=1 @maven//:pin
 
 .PHONY: push-additional-images
 push-additional-images:

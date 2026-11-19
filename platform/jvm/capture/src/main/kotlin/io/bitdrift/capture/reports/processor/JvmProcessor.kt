@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.capture.reports.processor
 
@@ -34,6 +34,7 @@ internal object JvmProcessor {
         allThreads: Map<Thread, Array<StackTraceElement>>?,
         reportType: Byte,
         isFileSizeOptimizationEnabled: Boolean,
+        crashProfileSource: ByteArray? = null,
     ): Int {
         val stackTraceOffsetsByFrames = mutableMapOf<List<StackTraceElement>, Int>()
         val errors = buildErrors(builder, throwable, isFileSizeOptimizationEnabled)
@@ -82,6 +83,7 @@ internal object JvmProcessor {
             0,
             stateOffset = 0,
             featureFlagsOffset = 0,
+            crashProfileSourceOffset = crashProfileSource?.let { builder.createByteVector(it) } ?: 0,
         )
     }
 

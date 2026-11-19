@@ -3,7 +3,7 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 package io.bitdrift.capture.fakes
 
@@ -15,6 +15,7 @@ import io.bitdrift.capture.common.RuntimeStringConfig
 /** [Runtime] fake that answers with each flag's declared default unless a test overrides it. */
 internal class FakeRuntime : Runtime {
     private val overrides = mutableMapOf<RuntimeFeature, Boolean>()
+    private val configOverrides = mutableMapOf<RuntimeConfig, Int>()
 
     fun setEnabled(
         feature: RuntimeFeature,
@@ -23,9 +24,16 @@ internal class FakeRuntime : Runtime {
         overrides[feature] = enabled
     }
 
+    fun setConfigValue(
+        config: RuntimeConfig,
+        value: Int,
+    ) {
+        configOverrides[config] = value
+    }
+
     override fun isEnabled(feature: RuntimeFeature): Boolean = overrides[feature] ?: feature.defaultValue
 
-    override fun getConfigValue(config: RuntimeConfig): Int = config.defaultValue
+    override fun getConfigValue(config: RuntimeConfig): Int = configOverrides[config] ?: config.defaultValue
 
     override fun getConfigValue(config: RuntimeStringConfig): String = config.defaultValue
 }

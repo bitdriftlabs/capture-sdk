@@ -3,13 +3,16 @@
 //
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
-// https://polyformproject.org/licenses/strict/1.0.0
+// https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 @_spi(ExperimentalAPI) @testable import Capture
+@testable import CaptureMocks
 import XCTest
 
 final class CommandRegistryTests: XCTestCase {
-    // Built-in wire IDs match workflow_command.proto: 2 = TAKE_SCREENSHOT, 3 = STACK_SAMPLING_TRACE.
+    // Built-in wire IDs match workflow_command.proto: 2 = TAKE_SCREENSHOT, 3 = STACK_SAMPLING_TRACE,
+    // 12 = MEMORY_DUMP.
+    private let logger = MockCoreLogging()
     private var sut: CommandRegistry!
     private var bridge: CommandRegistrationRecorder!
     private var target: CommandsTarget!
@@ -23,7 +26,7 @@ final class CommandRegistryTests: XCTestCase {
     func testBuiltinCannotBeShadowedOrUnregisteredByMatchingAppName() async throws {
         let registry = CommandRegistry(
             commands: [Command(key: "stack_sampling_trace") { _ in .success(CommandResult(context: ["app": "true"])) }],
-            builtins: BuiltinCommands.make(screenshot: nil)
+            builtins: makeBuiltins()
         )
         let appResult = await registry.execute(key: "stack_sampling_trace", arguments: [:])
         XCTAssertEqual(try appResult.get().context, ["app": "true"])
@@ -34,18 +37,17 @@ final class CommandRegistryTests: XCTestCase {
         guard case let .failure(error) = builtinResult else {
             return XCTFail("expected native stack stub failure")
         }
-        XCTAssertEqual(error.title, "not implemented")
-        XCTAssertNil(error.description)
+        XCTAssertEqual(error.message, "not implemented")
     }
 
     func testScreenshotValidatesArgumentsAndUnavailableProvider() async {
-        let registry = CommandRegistry(builtins: BuiltinCommands.make(screenshot: nil))
+        let registry = CommandRegistry(builtins: makeBuiltins())
         let invalid = await registry.execute(key: "take_screenshot", arguments: ["extra": .bool(true)], builtinType: 2)
         guard case let .failure(error) = invalid else { return XCTFail("expected invalid arguments") }
         XCTAssertEqual(error.code, CommandError.invalidArguments().code)
         let unavailable = await registry.execute(key: "take_screenshot", arguments: [:], builtinType: 2)
         guard case let .failure(error) = unavailable else { return XCTFail("expected unavailable screenshot") }
-        XCTAssertEqual(error.title, "screenshot capture unavailable")
+        XCTAssertEqual(error.message, "screenshot capture unavailable")
     }
 
     func testBuiltinsShareTheAppConcurrencyLimit() async throws {
@@ -57,7 +59,7 @@ final class CommandRegistryTests: XCTestCase {
                 await gate.wait()
                 return .success(CommandResult())
             }, ],
-            builtins: BuiltinCommands.make(screenshot: nil),
+            builtins: makeBuiltins(),
             maxConcurrentExecutions: 1
         )
         async let appResult = registry.execute(key: "app", arguments: [:])
@@ -67,6 +69,18 @@ final class CommandRegistryTests: XCTestCase {
         XCTAssertEqual(error.code, CommandError.maximumConcurrency.code)
         whenOpeningGate(gate)
         _ = try await appResult.get()
+    }
+
+    func testMemoryDumpIsABuiltinWithItsArtifactType() async {
+        let builtin = makeBuiltins().first { $0.type == 12 }
+        XCTAssertEqual(builtin?.command.key, "memory_dump")
+        XCTAssertEqual(builtin?.artifactType, "memory_dump")
+        XCTAssertEqual(builtin?.timeoutMilliseconds, 15_000)
+
+        let registry = CommandRegistry(builtins: makeBuiltins(memoryDumpEnabled: false))
+        let result = await registry.execute(key: "memory_dump", arguments: [:], builtinType: 12)
+        guard case let .failure(error) = result else { return XCTFail("expected the disabled memory dump") }
+        XCTAssertTrue(error.message.hasPrefix("Memory dump is disabled: Enable "))
     }
 
     func testFileFactoryPreservesDataApiWithoutReadingTheFile() {
@@ -299,7 +313,7 @@ final class CommandRegistryTests: XCTestCase {
 
         let result = await registry.execute(key: "overflow", arguments: [:])
 
-        thenResultFails(result, title: "Maximum command concurrency reached")
+        thenResultFails(result, message: "Maximum command concurrency reached")
         whenOpeningGate(allowExecutionsToFinish)
         for execution in activeExecutions {
             try thenResultIsSuccess(await execution.value)
@@ -323,7 +337,7 @@ final class CommandRegistryTests: XCTestCase {
 
         thenResultFails(
             await registry.execute(key: "second", arguments: [:]),
-            title: "Maximum command concurrency reached"
+            message: "Maximum command concurrency reached"
         )
         whenOpeningGate(allowExecutionToFinish)
         try thenResultIsSuccess(await activeExecution)
@@ -332,6 +346,11 @@ final class CommandRegistryTests: XCTestCase {
 }
 
 private extension CommandRegistryTests {
+    func makeBuiltins(memoryDumpEnabled: Bool = true) -> [CommandRegistry.Builtin] {
+        logger.mockRuntimeVariable(.memoryDumpEnabled, with: memoryDumpEnabled)
+        return BuiltinCommands.make(screenshot: nil, memoryDump: MemoryDumpCommand(logger: logger))
+    }
+
     @discardableResult
     func givenRegisteredCommand(key: String, handler: @escaping CommandHandler) async -> CommandHandle {
         await sut.register(key: key, handler: handler, target: target)
@@ -378,11 +397,11 @@ private extension CommandRegistryTests {
         XCTAssertEqual(result, .failure(.alreadyExecuting))
     }
 
-    func thenResultFails(_ result: Result<CommandResult, CommandError>, title: String) {
+    func thenResultFails(_ result: Result<CommandResult, CommandError>, message: String) {
         guard case let .failure(error) = result else {
             return XCTFail("Expected command failure")
         }
-        XCTAssertEqual(error.title, title)
+        XCTAssertEqual(error.message, message)
     }
 
     func thenMaximumConcurrentExecutionsIs(_ value: LockedValue<Int>, expected: Int) {
