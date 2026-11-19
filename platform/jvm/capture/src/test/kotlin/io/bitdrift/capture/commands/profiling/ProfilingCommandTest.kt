@@ -89,11 +89,11 @@ class ProfilingCommandTest {
         File(systemDirectory, name).apply { writeText("trace") }
 
     @Test
-    fun eachCommandRegistersUnderItsKeyAsArtifactTypeWithoutATimeout() {
+    fun eachCommandRegistersUnderItsKeyAsArtifactType() {
         for (command in commands.values) {
             assertThat(command.artifactType).isEqualTo(command.type.key)
-            assertThat(command.timeoutMs).isNull()
         }
+        assertThat(command.timeoutMs).isNull()
     }
 
     @Test

@@ -27,6 +27,7 @@ scripts are `$SK/scripts/*.py`.
 | Requirement | Procedure |
 |---|---|
 | System-triggered ANR/OOM capture, delayed delivery, or crash correlation evidence | [Crash-profile acceptance](./references/triggers.md). Use the real SDK's startup opt-in and sample termination controls; do not create a second trigger collector or claim backend acceptance from native evidence alone. |
+| Verify the production `heap_profile_trace` workflow command | Run `heap_profile_trace` on Android 15+ with SDK config 52+. Use the monorepo's `local-universe-e2e` **Built-in Heap Profile Workflow Smoke** for a local run. Neither `heap_profile_demo` cell exercises this built-in. |
 | Direct/workflow capture and backend enrichment | Continue below and use the existing cell matrix. |
 
 For command-driven capture, this skill tests one path end to end:
@@ -76,6 +77,7 @@ Ask for anything the user hasn't specified, in one round:
   | `heap_dump` | `java_heap_dump_demo` | heap graph class + field deobfuscation |
   | `heap_profile_native` | `heap_profile_demo`, `track_java_allocations=false` | native symbolication, Java frames from ART unwinding |
   | `heap_profile_java` | `heap_profile_demo`, `track_java_allocations=true` | Java allocation frames, JIT deobfuscation |
+  | `heap_profile_trace` | SDK built-in command type 13 (`HEAP_PROFILE_TRACE`) | workflow dispatch through the SDK built-in, typed attachment, and real heap-allocation samples |
   | `stack_sampling` | SDK built-in command type 3 (`STACK_SAMPLING_TRACE`) | CPU perf-sample frames, native and Java, through the production profiler path |
 
   Exact arguments, triggers and waits are in `references/cells.md`.
@@ -197,6 +199,11 @@ temp workflows kept for auditing, not deleted.
 - Post-process. This finds the session and attachment, downloads raw/processed/default plus
   `/status`, compares hashes and runs the trace_processor summaries:
   `python3 $SK/scripts/post_cell.py --cell R-HPJ --type heap_profile_java --runs .tmp/.../runs --workflow <id>`
+- For `heap_profile_trace`, also pass `--action-id` with the actual `.workflow.actions[].flush_rule.id`
+  from `bd workflow describe`. The verifier fails unless the completion belongs to that action,
+  succeeded with a typed `WORKFLOW` attachment, and both raw and processed traces contain positive,
+  matching allocation sample counts and no CPU samples. No demo trace copy is expected. Use
+  `--already-open` on the driver to preserve a verified live config and global-field marker.
 
 If a run produces no command, check in this order: the workflow is LIVE, the app has the SDK
 key/URL, the trigger log matched (logcat), and no other workflow grabbed the profiler. Fix the

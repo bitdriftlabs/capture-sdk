@@ -16,6 +16,7 @@ import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
+import zlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from common import CELLS, EXT_DIR, PKG, TRIGGERS, adb, command_name  # noqa: E402
@@ -31,10 +32,6 @@ def screen():
     return (int(m.group(1)), int(m.group(2))) if m else (1080, 2400)
 
 
-W, H = screen()
-X, Y_LOW, Y_HIGH = str(W // 2), str(int(H * 0.72)), str(int(H * 0.38))  # swipe span scales with the screen
-
-
 def nodes():
     adb("shell", "uiautomator", "dump", "/sdcard/ui.xml")
     return list(ET.fromstring(adb("shell", "cat", "/sdcard/ui.xml")).iter("node"))
@@ -42,6 +39,7 @@ def nodes():
 
 def tap_text(pattern, scrolls=8):
     rx = re.compile(pattern, re.I)
+    w, h = screen()
     for _ in range(scrolls + 1):
         for n in nodes():
             if rx.search(n.get("text") or "") or rx.search(n.get("content-desc") or ""):
@@ -49,9 +47,28 @@ def tap_text(pattern, scrolls=8):
                 adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
                 mark(f"ACTION tap '{n.get('text') or n.get('content-desc')}'")
                 return
-        adb("shell", "input", "swipe", X, Y_LOW, X, Y_HIGH, "300")
+        adb("shell", "input", "swipe", str(w // 2), str(int(h * 0.72)), str(int(h * 0.38)), "300")
         time.sleep(0.6)
     raise RuntimeError(f"no UI node matching {pattern!r}")
+
+
+def await_action(action_id, timeout):
+    """Wait for the deployed action in the real SDK's config cache (debug build only)."""
+    deadline = time.monotonic() + timeout
+    while True:
+        result = subprocess.run(
+            ["adb", "exec-out", "run-as", PKG, "cat", "files/bitdrift_capture/config/protobuf.pb"],
+            capture_output=True, timeout=10,
+        )
+        if result.returncode == 0:
+            try:
+                if action_id.encode() in zlib.decompress(result.stdout):
+                    return
+            except zlib.error:
+                pass  # The cache can be replaced while it is being read.
+        if time.monotonic() >= deadline:
+            raise RuntimeError(f"SDK config never contained action {action_id}; check key, endpoint, and workflow eligibility")
+        time.sleep(2)
 
 
 def main():
@@ -63,42 +80,54 @@ def main():
                     help="use another trigger button than the cell default, e.g. when a live workflow you may not "
                          "stop reacts to the default one. Pass the same value to make_workflow.py and run_cell.py")
     ap.add_argument("--settle", type=int, default=30, help="seconds for workflow config delivery after launch")
-    ap.add_argument("--wait", type=int, help="seconds after the trigger for capture + upload")
+    ap.add_argument("--wait", type=int, help="seconds after activity for capture + upload")
+    ap.add_argument("--already-open", action="store_true", help="keep the configured app open on SDK APIs")
+    ap.add_argument("--await-action", help="wait for a read-back action ID in the debug SDK's config cache")
+    ap.add_argument("--config-wait", type=int, default=120, help="seconds to wait with --await-action")
     a = ap.parse_args()
     cell = CELLS[a.type]
-    wait = a.wait or cell["wait"]
+    wait = cell["wait"] if a.wait is None else a.wait
+    w, h = screen()
+    x, y_low, y_high = str(w // 2), str(int(h * 0.72)), str(int(h * 0.38))
     out = pathlib.Path(a.out) / a.cell
     out.mkdir(parents=True, exist_ok=True)
 
-    adb("shell", "rm", "-rf", EXT_DIR, check=False)
-    adb("logcat", "-c", check=False)
-    logcat = subprocess.Popen(["adb", "logcat", "-v", "threadtime", "-b", "main,events,system"],
-                              stdout=open(out / "logcat.txt", "w"), stderr=subprocess.STDOUT)
+    with (out / "logcat.txt").open("w") as log_file:
+        logcat = subprocess.Popen(["adb", "logcat", "-T", "1", "-v", "threadtime", "-b", "main,events,system"],
+                                  stdout=log_file, stderr=subprocess.STDOUT)
     started = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     try:
-        adb("shell", "am", "force-stop", PKG)
-        adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
-        mark(f"CELL {a.cell} launch")
-        adb("shell", "am", "start", "-W", "-n", f"{PKG}/.ui.activities.MainActivity")
-        time.sleep(a.settle)
-        tap_text(r"^SDK APIs$")
+        if not a.already_open:
+            adb("shell", "am", "force-stop", PKG)
+            adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
+            mark(f"CELL {a.cell} launch")
+            adb("shell", "am", "start", "-W", "-n", f"{PKG}/.ui.activities.MainActivity")
+            if not a.await_action:
+                time.sleep(a.settle)
+            tap_text(r"^SDK APIs$")
+        if a.await_action:
+            await_action(a.await_action, a.config_wait)
         time.sleep(1.5)
         trigger = a.trigger or cell["trigger"]
         mark(f"TRIGGER {trigger}")
         tap_text(f"^{re.escape(trigger)}$")
+        if a.type == "heap_profile_trace":
+            # The next event advances the command step; it must not retrigger the workflow.
+            follow_up = "Log JSON Field" if trigger == "Log Single Message" else "Log Single Message"
+            tap_text(f"^{re.escape(follow_up)}$")
         t_end, i = time.time() + cell["activity"], 0
         while time.time() < t_end:  # allocations / CPU work while the capture records
-            y1, y2 = (Y_LOW, Y_HIGH) if i % 2 == 0 else (Y_HIGH, Y_LOW)
-            adb("shell", "input", "swipe", X, y1, X, y2, "200")
+            y1, y2 = (y_low, y_high) if i % 2 == 0 else (y_high, y_low)
+            adb("shell", "input", "swipe", x, y1, x, y2, "200")
             i += 1
         mark(f"ACTIVITY done; waiting {wait}s for result + upload")
         time.sleep(wait)
     finally:
         mark(f"CELL {a.cell} end")
-        time.sleep(1)
         logcat.terminate()
+        logcat.wait(timeout=5)
 
-    log = (out / "logcat.txt").read_text(errors="replace")
+    log = (out / "logcat.txt").read_text(errors="replace").partition(f"TRIGGER {trigger}")[2]
     name = re.escape(command_name(a.type))
     info = {
         "cell": a.cell, "type": a.type, "started": started,
@@ -108,7 +137,8 @@ def main():
         "profiling_failures": re.findall(r"Profiling failed .*", log),
         "traces": [],
     }
-    for path, size, sid, cid in re.findall(r"E2E trace copy path=(\S+) bytes=(\d+) sessionId=(\S+) commandId=(\S+)", log):
+    copies = re.findall(r"E2E trace copy path=(\S+) bytes=(\d+) sessionId=(\S+) commandId=(\S+)", log)
+    for path, size, sid, cid in copies if cell["device_copy"] else ():
         local = out / f"device_{cid}.perfetto-trace"
         adb("pull", path, str(local))
         info["traces"].append({"device_path": path, "bytes": int(size), "session_id": sid, "command_id": cid,

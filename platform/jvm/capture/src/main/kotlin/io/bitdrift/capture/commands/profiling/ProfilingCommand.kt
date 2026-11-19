@@ -35,8 +35,10 @@ internal class ProfilingCommand(
     /** Each profiling command's artifact contract type ID is its key. */
     override val artifactType: String = type.key
 
-    // No timeout of its own: the core applies its runtime-configured `device_command.execution_timeout_ms`.
-    override val timeoutMs: Long? = null
+    // The default 5-second heap recording also needs time for Android to start and finalize it.
+    // Stack sampling keeps the core's runtime-configured timeout.
+    override val timeoutMs: Long? =
+        if (type == BuiltinCommandType.HEAP_PROFILE_TRACE) HEAP_PROFILE_TIMEOUT_MS else null
 
     override suspend fun execute(scope: CommandScope): CommandResult {
         val arguments = checkNotNull(type.parse(scope)) { "${type.key} declares no arguments to profile with" }
@@ -82,5 +84,6 @@ internal class ProfilingCommand(
 
     private companion object {
         const val CONTENT_TYPE = "application/vnd.bitdrift.perfetto-trace"
+        const val HEAP_PROFILE_TIMEOUT_MS = 15_000L
     }
 }

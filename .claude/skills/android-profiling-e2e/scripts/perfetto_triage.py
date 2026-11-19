@@ -13,11 +13,8 @@ native_heap.md) or the android-profiler skill's analysis workflows (perfetto-sql
     perfetto_triage.py <processed.tar> --type heap_profile_java --out triage.json
 """
 import argparse
-import csv
-import io
 import json
 import pathlib
-import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -55,15 +52,6 @@ PERF_QUERIES = {
 }
 
 
-def run_file(trace, sql_file):
-    r = subprocess.run([TP, "query", "--no-agent", "--quiet", str(trace), "-f", str(sql_file)], capture_output=True, text=True)
-    lines = r.stdout.splitlines()
-    start = next((i for i, l in enumerate(lines) if l.startswith('"')), None)
-    if start is None:
-        return {"error": (r.stderr or r.stdout)[-400:]}
-    return list(csv.DictReader(io.StringIO("\n".join(lines[start:]))))
-
-
 def shorten(rows, limit=400):
     for r in rows if isinstance(rows, list) else []:
         for k, v in r.items():
@@ -88,7 +76,7 @@ def main():
         res["top_app_allocators"] = shorten(tp(a.trace, APP_ALLOC))
     for f in SQL_FILES.get(a.type, []):
         path = SCRIPTS / f if SCRIPTS else None
-        res[f] = shorten(run_file(a.trace, path)) if path and path.exists() else {"error": f"{f} not found under {SCRIPTS}"}
+        res[f] = shorten(tp(a.trace, sql_file=path)) if path and path.exists() else {"error": f"{f} not found under {SCRIPTS}"}
     pathlib.Path(a.out).write_text(json.dumps(res, indent=2))
     print(json.dumps(res, indent=1)[:3000])
 
