@@ -60,6 +60,10 @@ actions:
     arch: arm64
     self_hosted: true
     pool: workflows
+    triggers:
+      push:
+        branches:
+          - sp/buildbuddy-ios-tests
     steps:
       - run: >-
           bazel test
@@ -77,6 +81,10 @@ actions:
     arch: arm64
     self_hosted: true
     pool: workflows
+    triggers:
+      push:
+        branches:
+          - sp/buildbuddy-ios-tests
     steps:
       - run: >-
           bazel test
