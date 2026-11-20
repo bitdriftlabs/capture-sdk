@@ -108,9 +108,13 @@ build:rbe-common --remote_timeout=600
 # execution for macOS builds. Values accumulate, so remove the tag again for RBE configurations.
 build:rbe-common --modify_execution_info=^(CppArchive|CppLink)$=-no-remote
 
-# Enable when investigating remote execution or cache behavior.
+# Enable when investigating remote execution, cache behavior, or action timing.
 build:rbe-diagnostics --remote_grpc_log=bazel-remote-grpc.log
 build:rbe-diagnostics --execution_log_compact_file=execution_log.binpb.zst
+build:rbe-diagnostics --profile=bazel-profile.json.gz
+build:rbe-diagnostics --noslim_profile
+build:rbe-diagnostics --experimental_profile_include_target_label
+build:rbe-diagnostics --experimental_profile_include_primary_output
 
 build:rbe --config=rbe-common
 build:rbe --config=linux-hermetic-llvm
