@@ -100,6 +100,7 @@ common:workflows --experimental_remote_downloader=grpcs://remote.buildbuddy.io
 
 # Shared settings for BuildBuddy's Linux and macOS execution platforms.
 build:rbe-common --remote_executor=grpcs://remote.buildbuddy.io
+build:rbe-common --config=rbe-diagnostics
 build:rbe-common --remote_cache_compression
 build:rbe-common --experimental_remote_cache_chunking
 build:rbe-common --host_platform=//bazel/platforms:buildbuddy_linux_x86_64
@@ -108,7 +109,7 @@ build:rbe-common --remote_timeout=600
 # execution for macOS builds. Values accumulate, so remove the tag again for RBE configurations.
 build:rbe-common --modify_execution_info=^(CppArchive|CppLink)$=-no-remote
 
-# Enable when investigating remote execution, cache behavior, or action timing.
+# Record detailed diagnostics for remote execution, caching, and action timing.
 build:rbe-diagnostics --remote_grpc_log=bazel-remote-grpc.log
 build:rbe-diagnostics --execution_log_compact_file=execution_log.binpb.zst
 build:rbe-diagnostics --profile=bazel-profile.json.gz
