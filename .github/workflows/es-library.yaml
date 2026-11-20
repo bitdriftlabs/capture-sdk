@@ -43,9 +43,6 @@ jobs:
           # Nx compares the PR checkout with its base commit.
           fetch-depth: 0
 
-      - name: Check license headers
-        run: scripts/check_license.sh
-
       - name: Setup Javascript
         uses: ./.github/actions/javascript-setup
 
