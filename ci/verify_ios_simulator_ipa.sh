@@ -16,9 +16,14 @@ trap cleanup EXIT
 ditto -x -k "$ipa" "$output"
 app="$output/Payload/Bitdrift Sample App.app"
 bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")"
-# shellcheck source=ci/ios_ci_simulator.sh
-source "$(dirname "${BASH_SOURCE[0]}")/ios_ci_simulator.sh"
-simulator="$(create_ios_ci_simulator)"
+runtime="${IOS_CI_SIMULATOR_RUNTIME:-}"
+if [[ -z "$runtime" ]]; then
+  runtime="$(xcrun simctl list runtimes -j | jq -er '
+    [.runtimes[] | select(.isAvailable and (.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-26-")))]
+    | max_by(.version | split(".") | map(tonumber)) | .identifier // error("No iOS 26 simulator runtime installed")
+  ')"
+fi
+simulator="$(xcrun simctl create "Capture CI" com.apple.CoreSimulator.SimDeviceType.iPhone-17 "$runtime")"
 xcrun simctl boot "$simulator"
 xcrun simctl bootstatus "$simulator" -b
 xcrun simctl install "$simulator" "$app"

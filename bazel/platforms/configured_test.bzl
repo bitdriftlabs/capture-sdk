@@ -1,4 +1,6 @@
-"""Run tests with a target-specific configuration in mixed RBE CI."""
+"""Configure Apple tests and lint targets in mixed RBE CI."""
+
+load("@rules_rust//rust:defs.bzl", "rust_clippy_aspect")
 
 _MACOS_PLATFORM = "//bazel/platforms:buildbuddy_macos_arm64"
 _XCODE_VERSION = "//command_line_option:xcode_version"
@@ -12,8 +14,8 @@ _RUSTC_FLAGS = "@rules_rust//rust/settings:extra_rustc_flag"
 
 def _macos_configuration(settings, attr):
     config = {
-        _XCODE_VERSION: attr.xcode or settings[_XCODE_VERSION],
-        _SIMULATOR_VERSION: attr.simulator or settings[_SIMULATOR_VERSION],
+        _XCODE_VERSION: getattr(attr, "xcode", "") or settings[_XCODE_VERSION],
+        _SIMULATOR_VERSION: getattr(attr, "simulator", "") or settings[_SIMULATOR_VERSION],
     }
     if not attr.remote:
         return config | {
@@ -42,6 +44,35 @@ _macos_transition = transition(
     inputs = [_EXECUTION_PLATFORMS, _EXTRA_TOOLCHAINS, _PLATFORMS, _XCODE_VERSION, _SIMULATOR_VERSION],
     outputs = [_EXECUTION_PLATFORMS, _EXTRA_TOOLCHAINS, _PLATFORMS, _XCODE_VERSION, _SIMULATOR_VERSION],
 )
+
+def _macos_clippy_impl(ctx):
+    return [OutputGroupInfo(clippy_checks = depset(transitive = [
+        dep[OutputGroupInfo].clippy_checks
+        for dep in ctx.attr.deps
+    ]))]
+
+_macos_clippy = rule(
+    implementation = _macos_clippy_impl,
+    attrs = {
+        "deps": attr.label_list(aspects = [rust_clippy_aspect], cfg = _macos_transition),
+        "remote": attr.bool(default = True),
+        "_allowlist_function_transition": attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
+        ),
+    },
+)
+
+def macos_clippy(name, deps):
+    _macos_clippy(
+        name = name,
+        deps = deps,
+        tags = ["clippy"],
+        target_compatible_with = select({
+            "//bazel/platforms:mixed_rbe": [],
+            "//conditions:default": ["@platforms//:incompatible"],
+        }),
+        testonly = True,
+    )
 
 def _anyhow_no_backtrace_configuration(settings, _attr):
     # The flag must reach the anyhow dependency to exercise its release behavior.

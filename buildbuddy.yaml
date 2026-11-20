@@ -39,14 +39,14 @@ actions:
       - run: >-
           bazel build
           --config=workflows
-          --config=rbe
-          --config=libunwind
+          --config=mixed-rbe
           --config=clippy
+          --jobs=200
           --lockfile_mode=error
           --build_tag_filters=clippy,-macos_only
           -- //... //platform/shared:build_script_
 
-  # Run manually after Test so release flags and Mac actions have their own run.
+  # GitHub dispatches this after Test and Clippy so their Mac actions can finish first.
   - name: iOS release artifacts
     triggers: {}
     container_image: ubuntu-24.04
@@ -55,21 +55,20 @@ actions:
           set -euo pipefail
           events="$(mktemp)"
           trap 'rm -f "$events"' EXIT
-          bazel build \
+          bazel test \
             --config=workflows \
             --config=release-ios \
             --config=apple-device-rbe \
+            --nobuild_tests_only \
             --define=ios_produce_framework_plist=true \
             --build_event_json_file="$events" \
             --build_event_json_file_path_conversion=false \
             --lockfile_mode=error \
             -- //:ios_dist //:check_ios_release_xcframework \
             //examples/swift/hello_world:ios_app_size_unsigned.ipa \
-            //examples/swift/hello_world:ios_app_simulator_artifact
-          # The Apple transition puts the IPA outside the bazel-bin symlink.
+            //examples/swift/hello_world:ios_app_simulator_smoke_test
           python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
-            Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa \
-            ios_app.ipa=ios_hello_world_simulator.ipa
+            Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa
 
   - name: Android release artifacts
     triggers: {}
@@ -89,7 +88,7 @@ actions:
             --build_event_json_file_path_conversion=false \
             --lockfile_mode=error \
             -- //examples/android:android_app //:capture_aar_so_size_arm64_v8a \
-            //:capture_aar_so_size_x86_64 //platform/jvm/microbenchmark:microbenchmark_test_apk
+            //:capture_aar_so_size_x86_64
           python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
             android_app.apk capture_aar_so_size_arm64_v8a_kb.txt \
-            capture_aar_so_size_x86_64_kb.txt microbenchmark_test_apk.apk
+            capture_aar_so_size_x86_64_kb.txt

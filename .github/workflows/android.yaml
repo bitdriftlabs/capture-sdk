@@ -30,7 +30,11 @@ jobs:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     outputs:
-      should_run: ${{ steps.check_changes.outputs.run_tests }}
+      should_run: >-
+        ${{ github.event_name == 'push' || steps.bazel_check.outputs.changed == 'true' ||
+          steps.workflow_check.outputs.changed == 'true' ||
+          steps.gradle_check.outputs.changed == 'true' ||
+          steps.cargo_check.outputs.changed == 'true' }}
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout
@@ -38,55 +42,42 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-
-      # Check for Bazel build file changes
-      - name: Check for Bazel build file changes
-        id: bazel_check
-        run: ./ci/check_bazel.sh //examples/android:android_app
-
       - name: Check for workflow file changes
         id: workflow_check
         uses: ./.github/actions/files-changed
         with:
-          regex: '^(\.bazelrc|MODULE\.bazel(\.lock)?|buildbuddy\.yaml|\.github/(workflows/android\.yaml|actions/(setup|android-setup)/.*)|ci/((buildbuddy_api|download_buildbuddy_artifacts|run_buildbuddy_workflow|wait_for_buildbuddy_check)\.sh|stage_bazel_artifacts\.py)|tools/(android_sdk_wrapper|setup_android_sdk|android_toolchain_versions|check_android_toolchain_versions)\.sh)$'
+          regex: '^(\.bazel(rc|version)|MODULE\.bazel(\.lock)?|buildbuddy\.yaml|\.github/(workflows/android\.yaml|actions/(setup|android-setup)/.*)|ci/((buildbuddy_api|download_buildbuddy_artifacts|run_buildbuddy_workflow|wait_for_buildbuddy_check)\.sh|stage_bazel_artifacts\.py)|tools/(android_sdk_wrapper|setup_android_sdk|android_toolchain_versions|check_android_toolchain_versions)\.sh)$'
 
       - name: Check for relevant Gradle changes
         id: gradle_check
         uses: ./.github/actions/files-changed
         with:
-          regex: '^(platform/jvm/(capture-plugin/.*|gradle-test-app/.*\.(gradle|kts|kt|xml))|platform/jvm/capture/src/test/.*)$'
+          regex: '^(platform/jvm/((capture-plugin|capture-timber|buildSrc|gradle)/.*|settings\.gradle\.kts|gradle\.properties|gradlew|gradle-test-app/.*\.(gradle|kts|kt|xml))|platform/jvm/capture/src/test/.*)$'
 
-      - name: Check for Cargo.toml changes
+      - name: Check for Rust dependency changes
         id: cargo_check
         uses: ./.github/actions/files-changed
         with:
-          files: Cargo.toml
+          files: |
+            Cargo.toml
+            Cargo.lock
 
-      - name: Determine if tests should run
-        id: check_changes_separate
-        run: |
-          bazel_changed="${{ steps.bazel_check.outputs.changed }}"
-          workflow_changed="${{ steps.workflow_check.outputs.changed }}"
-          gradle_changed="${{ steps.gradle_check.outputs.changed }}"
-          cargo_changed="${{ steps.cargo_check.outputs.changed }}"
+      - name: Setup Bazel for change detection
+        if: >-
+          github.event_name != 'push' &&
+          steps.workflow_check.outputs.changed != 'true' &&
+          steps.gradle_check.outputs.changed != 'true' &&
+          steps.cargo_check.outputs.changed != 'true'
+        uses: ./.github/actions/setup
 
-          if [[ "$bazel_changed" == "true" || "$workflow_changed" == "true" || "$gradle_changed" == "true" || "$cargo_changed" == "true" ]]; then
-            echo "Changes detected in one or more checks. Running tests."
-            echo "run_tests=true" >> $GITHUB_ENV
-          else
-            echo "No relevant changes found."
-            echo "run_tests=false" >> $GITHUB_ENV
-          fi
-        shell: bash
-
-      - name: Run downstream tests if changes are detected
-        id: check_changes
-        if: env.run_tests == 'true'
-        run: ./ci/run_tests.sh
+      - name: Check affected Bazel targets
+        if: >-
+          github.event_name != 'push' &&
+          steps.workflow_check.outputs.changed != 'true' &&
+          steps.gradle_check.outputs.changed != 'true' &&
+          steps.cargo_check.outputs.changed != 'true'
+        id: bazel_check
+        run: ./ci/check_bazel.sh //examples/android:android_app //:capture_aar_so_size_
 
   build_and_compare_sizes:
     runs-on: ubuntu-latest
@@ -107,9 +98,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Build Android artifacts after Test and download
+      - name: Build and download Android artifacts
         env:
-          GH_TOKEN: ${{ github.token }}
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
           SOURCE_BRANCH: ${{ github.head_ref || github.ref_name }}
           EXISTING_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
@@ -118,7 +108,6 @@ jobs:
           commit="$(git rev-parse HEAD)"
           invocation="$EXISTING_INVOCATION_ID"
           if [[ -z "$invocation" ]]; then
-            bash ci/wait_for_buildbuddy_check.sh "$commit" Test
             invocation="$(./ci/run_buildbuddy_workflow.sh 'Android release artifacts' "$SOURCE_BRANCH" "$commit")"
           fi
           ./ci/download_buildbuddy_artifacts.sh "$invocation" "$commit" android-release-artifacts \
@@ -418,52 +407,6 @@ jobs:
           gradle-test-app:check gradle-test-app:connectedCheck --build-cache --stacktrace
           -x gradle-test-app:testReleaseUnitTest -x gradle-test-app:testProfileableUnitTest
 
-  run_android_benchmarks:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest-8-cores
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Android emulator
-        uses: ./.github/actions/setup-android-emulator
-        with:
-          enable-bazel-cache: "false"
-          api-level: '31'
-          target: default
-          arch: x86_64
-
-      - name: Download the benchmark APK
-        env:
-          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
-          ARTIFACT_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
-        run: |
-          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$GITHUB_SHA" android-release-artifacts \
-            microbenchmark_test_apk.apk
-
-      - name: Run Microbenchmarks
-        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
-        timeout-minutes: 30
-        with:
-          channel: stable
-          force-avd-creation: false
-          api-level: 31
-          target: default
-          ram-size: 2048M
-          arch: x86_64
-          disk-size: 6144M
-          profile: Nexus 6
-          disable-animations: true
-          emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./ci/run_android_benchmarks.sh android-release-artifacts/microbenchmark_test_apk.apk benchmark-output
-
-      - name: Upload benchmark results and diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results
-          path: benchmark-output/
-
   verify_android_hello_world_per_version:
     needs: build_and_compare_sizes
     runs-on: ubuntu-latest-8-cores
@@ -478,7 +421,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - uses: actions/download-artifact@v4
         with:
@@ -487,7 +430,7 @@ jobs:
       - name: Setup Android emulator
         uses: ./.github/actions/setup-android-emulator
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          enable-bazel-cache: "false"
           api-level: ${{ matrix.api-level }}
           target: google_apis
           arch: x86_64

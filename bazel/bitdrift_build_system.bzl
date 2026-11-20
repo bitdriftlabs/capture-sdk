@@ -4,7 +4,7 @@ load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("@rules_rust//rust:defs.bzl", "rust_clippy")
-load("//bazel/platforms:configured_test.bzl", "macos_test")
+load("//bazel/platforms:configured_test.bzl", "macos_clippy", "macos_test")
 
 def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], tags = [], **args):
     rust_binary(
@@ -71,6 +71,8 @@ def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], run_on_
     if run_on_macos:
         macos_test(name = name, test = ":" + raw_name, tags = tags, visibility = args.get("visibility"))
         _macos_test_clippy_alias(name, raw_name, tags)
+    if "macos_only" in tags:
+        macos_clippy(name = name + "_macos_clippy", deps = [":" + raw_name])
 
 def bitdrift_rust_integration_test(name, **args):
     bitdrift_rust_library(
@@ -164,6 +166,9 @@ def bitdrift_rust_library(
     if run_on_macos:
         macos_test(name = test_name, test = ":" + (launcher_name if configure_java_home else raw_test_name), tags = test_tags)
         _macos_test_clippy_alias(test_name, raw_test_name, test_tags)
+
+    if "macos_only" in tags:
+        macos_clippy(name = name + "_macos_clippy", deps = [":" + name, ":" + raw_test_name])
 
     rust_clippy(
         name = "_{}_rust_clippy".format(name),

@@ -3,6 +3,7 @@ load("@rules_apple//apple:ios.bzl", "ios_application")
 load("@rules_apple//apple:versioning.bzl", "apple_bundle_version")
 load("@rules_apple//apple:xcarchive.bzl", "xcarchive")
 load("@rules_cc//cc:defs.bzl", "objc_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//bazel:config.bzl", "MINIMUM_IOS_VERSION")
 load("//bazel/ios:configured_artifacts.bzl", "ios_artifacts")
@@ -145,6 +146,20 @@ ios_artifacts(
     name = "ios_app_simulator_artifact",
     srcs = [":ios_app.ipa"],
     cpu = "sim_arm64",
+    tags = ["manual"],
+)
+
+sh_test(
+    name = "ios_app_simulator_smoke_test",
+    timeout = "long",
+    srcs = ["//:ci/verify_ios_simulator_ipa.sh"],
+    args = ["$(rootpath :ios_app_simulator_artifact)"],
+    data = [":ios_app_simulator_artifact"],
+    env = {
+        "IOS_CI_SIMULATOR_RUNTIME": "com.apple.CoreSimulator.SimRuntime.iOS-26-2",
+        "XCODE_VERSION_OVERRIDE": "26.0.1.17A400",
+    },
+    exec_compatible_with = ["@platforms//os:macos"],
     tags = ["manual"],
 )
 

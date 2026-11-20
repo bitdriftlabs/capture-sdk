@@ -218,6 +218,11 @@ exports_files([
     ".clippy.toml",
 ])
 
+exports_files(
+    ["ci/verify_ios_simulator_ipa.sh"],
+    visibility = ["//examples/swift/hello_world:__pkg__"],
+)
+
 kt_kotlinc_options(
     name = "kt_kotlinc_options",
     warn = "error",
