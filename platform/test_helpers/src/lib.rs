@@ -348,6 +348,9 @@ pub fn run_large_upload_test_impl(
   handle: &mut ServerHandle,
   logger_id: LoggerId<'_>,
 ) -> anyhow::Result<()> {
+  const LOG_COUNT: usize = 22;
+  const LOGS_PER_FLUSH: usize = 5;
+
   let Some(stream) = handle.blocking_next_stream() else {
     bail!("Failed to get initial stream - client never connected");
   };
@@ -401,9 +404,6 @@ pub fn run_large_upload_test_impl(
   ));
 
   handle.blocking_next_configuration_ack();
-
-  const LOG_COUNT: usize = 22;
-  const LOGS_PER_FLUSH: usize = 5;
 
   // Keep each burst below the async log queue's 1 MiB limit while amortizing the stats flush.
   for batch_start in (0 .. LOG_COUNT).step_by(LOGS_PER_FLUSH) {
