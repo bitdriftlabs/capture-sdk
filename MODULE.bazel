@@ -432,6 +432,7 @@ single_version_override(
     patches = [
         "//bazel/third_party/patches:rules_rs_android_cfg_arch.patch",
         "//bazel/third_party/patches:rules_rs_external_path_dependencies.patch",
+        "//bazel/third_party/patches:rules_rs_shared_core_stable_name.patch",
     ],
 )
 
