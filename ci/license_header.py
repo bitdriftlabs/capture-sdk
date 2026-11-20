@@ -27,6 +27,7 @@ headers = {
 exclude_dirs = (
     './.git',
     './target/',
+    './platform/es/',
 )
 exclude_files = (
     # Swift Package Manager requires swift-tools-version to be the first line.
