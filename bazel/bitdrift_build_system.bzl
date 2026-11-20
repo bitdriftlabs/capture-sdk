@@ -54,9 +54,10 @@ def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps =
         ],
     )
 
-def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], **args):
-    wrapped = _wrap_macos_test(tags)
-    raw_name = name + "_binary" if wrapped else name
+def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], run_on_macos = False, **args):
+    raw_name = name + "_binary" if run_on_macos else name
+    if run_on_macos and "macos_only" not in tags:
+        tags = tags + ["macos_only"]
     rust_test(
         name = raw_name,
         rustc_flags = _rustc_flags(),
@@ -64,10 +65,10 @@ def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], **args)
         deps = all_crate_deps(normal = True, normal_dev = True, cargo_only = True) + deps,
         proc_macro_deps = proc_macro_deps,
         aliases = _crate_aliases(),
-        tags = _clippy_tags(tags) + (["manual"] if wrapped else []),
+        tags = _clippy_tags(tags) + (["manual"] if run_on_macos else []),
         **args
     )
-    if wrapped:
+    if run_on_macos:
         macos_test(name = name, test = ":" + raw_name, tags = tags, visibility = args.get("visibility"))
         _macos_test_clippy_alias(name, raw_name, tags)
 
@@ -105,6 +106,7 @@ def bitdrift_rust_library(
         crate_aliases = None,
         test_crate_aliases = None,
         configure_java_home = False,
+        run_on_macos = False,
         target_compatible_with = [],
         **args):
     if crate_aliases == None:
@@ -115,11 +117,12 @@ def bitdrift_rust_library(
         test_name = "{}_test".format(name)
     if test_tags == None:
         test_tags = tags
+    if run_on_macos and "macos_only" not in test_tags:
+        test_tags = test_tags + ["macos_only"]
 
     clippy_tags = _clippy_tags(tags)
-    wrapped = _wrap_macos_test(test_tags)
-    launcher_name = test_name + "_launcher" if wrapped else test_name
-    raw_test_name = test_name + "_binary" if configure_java_home or wrapped else test_name
+    launcher_name = test_name + "_launcher" if run_on_macos else test_name
+    raw_test_name = test_name + "_binary" if configure_java_home or run_on_macos else test_name
 
     rust_library(
         name = name,
@@ -139,7 +142,7 @@ def bitdrift_rust_library(
         name = raw_test_name,
         target_compatible_with = target_compatible_with,
         crate = name,
-        tags = _clippy_tags(test_tags) + (["manual"] if wrapped else []),
+        tags = _clippy_tags(test_tags) + (["manual"] if run_on_macos else []),
         rustc_flags = _rustc_flags(),
         aliases = test_crate_aliases,
         data = data + test_data,
@@ -155,10 +158,10 @@ def bitdrift_rust_library(
             name = launcher_name,
             target_compatible_with = target_compatible_with,
             test_binary = ":" + raw_test_name,
-            tags = test_tags + (["manual"] if wrapped else []),
+            tags = test_tags + (["manual"] if run_on_macos else []),
         )
 
-    if wrapped:
+    if run_on_macos:
         macos_test(name = test_name, test = ":" + (launcher_name if configure_java_home else raw_test_name), tags = test_tags)
         _macos_test_clippy_alias(test_name, raw_test_name, test_tags)
 
@@ -179,9 +182,6 @@ def _clippy_tags(tags):
     if "macos_only" in tags:
         result.append("clippy_macos")
     return result
-
-def _wrap_macos_test(tags):
-    return "macos_only" in tags and "manual" not in tags
 
 def _macos_test_clippy_alias(name, binary, tags):
     # An alias lets the build-based Clippy slice find the hidden test binary

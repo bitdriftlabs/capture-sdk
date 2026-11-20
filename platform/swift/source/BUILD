@@ -80,6 +80,7 @@ swift_library(
 
 bitdrift_rust_library(
     name = "swift_bridge",
+    run_on_macos = True,
     tags = [
         "macos_only",
     ],
@@ -94,7 +95,7 @@ bitdrift_rust_library(
 bitdrift_rust_test(
     name = "commands_rust_test",
     crate = ":swift_bridge",
-    tags = ["macos_only"],
+    run_on_macos = True,
     target_compatible_with = APPLE_TARGET_COMPATIBILITY,
 )
 
