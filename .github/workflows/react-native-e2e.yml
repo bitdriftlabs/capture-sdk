@@ -1,11 +1,18 @@
 name: React Native E2E
 on:
   pull_request:
+    paths:
+      - 'platform/es/**'
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    working-directory: platform/es
+permissions:
+  contents: read
 jobs:
   build-ios-hermes:
     strategy:
@@ -30,11 +37,11 @@ jobs:
         run: npm exec nx run @bitdrift/react-native:prepare-release
 
       - name: Install Hermes sample dependencies
-        working-directory: examples/HermesSample
+        working-directory: platform/es/examples/HermesSample
         run: npm install --no-package-lock
 
       - name: Install CocoaPods
-        working-directory: examples/HermesSample/ios
+        working-directory: platform/es/examples/HermesSample/ios
         run: |
           if [ "${{ matrix.linkage }}" = static ]; then
             USE_FRAMEWORKS=static pod install
@@ -43,7 +50,7 @@ jobs:
           fi
 
       - name: Build Hermes sample
-        working-directory: examples/HermesSample/ios
+        working-directory: platform/es/examples/HermesSample/ios
         run: |
           xcodebuild \
             -workspace HermesSample.xcworkspace \
@@ -83,16 +90,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            examples/expo/ios/Pods
+            platform/es/examples/expo/ios/Pods
             ~/Library/Caches/CocoaPods
-          key: ${{ runner.os }}-pods-${{ matrix.settings.new_arch }}-${{ hashFiles('packages/react-native/BdReactNative.podspec') }}
+          key: ${{ runner.os }}-pods-${{ matrix.settings.new_arch }}-${{ hashFiles('platform/es/packages/react-native/BdReactNative.podspec') }}
           restore-keys: |
             ${{ runner.os }}-pods-${{ matrix.settings.new_arch }}-
 
       - name: Install Maestro
         run: |
           curl -fsSL "https://get.maestro.mobile.dev" | bash
-          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
         env:
           MAESTRO_VERSION: 2.11.0
 
@@ -149,7 +156,7 @@ jobs:
           )
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
-          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
+          echo "DEVICE_ID=$DEVICE_ID" >> "$GITHUB_ENV"
 
       - name: Install app on simulator
         run: |
@@ -157,16 +164,16 @@ jobs:
 
       - name: Resolve Metro cache directory
         id: metro-cache-dir
-        run: echo "path=$(node -p "require('path').join(require('os').tmpdir(), 'metro-cache')")" >> $GITHUB_OUTPUT
+        run: echo "path=$(node -p "require('path').join(require('os').tmpdir(), 'metro-cache')")" >> "$GITHUB_OUTPUT"
 
       - name: Restore Metro cache
         id: metro-cache
         uses: actions/cache/restore@v4
         with:
           path: ${{ steps.metro-cache-dir.outputs.path }}
-          key: ${{ runner.os }}-metro-ios-${{ matrix.settings.new_arch }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          key: ${{ runner.os }}-metro-ios-${{ matrix.settings.new_arch }}-${{ hashFiles('platform/es/package-lock.json') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-metro-ios-${{ matrix.settings.new_arch }}-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-metro-ios-${{ matrix.settings.new_arch }}-${{ hashFiles('platform/es/package-lock.json') }}-
             ${{ runner.os }}-metro-ios-${{ matrix.settings.new_arch }}-
 
       - name: Serve Expo
@@ -174,7 +181,7 @@ jobs:
 
       - name: Wait for Metro bundler
         run: |
-          for i in $(seq 1 60); do
+          for ((attempt = 0; attempt < 60; attempt++)); do
             curl -sf http://localhost:8081/status | grep -q "packager-status:running" && exit 0
             sleep 2
           done
@@ -231,35 +238,17 @@ jobs:
       - name: Setup Javascript
         uses: ./.github/actions/javascript-setup
 
-      - name: Setup linux dependencies
-        run: sudo apt-get install -y lld
-
-      - name: Setup rust/dependencies
-        # // TODO we dont need all these
-        run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
-
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
-          cache: 'gradle'
 
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            .cargo-cache
-            target/
-          key: ${{ matrix.settings.target }}-cargo
       - name: Install Maestro
         run: |
-          wget -q -O /tmp/${MAESTRO_VERSION} "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip"
-          unzip -q /tmp/${MAESTRO_VERSION} -d /opt/ 
-          rm /tmp/${MAESTRO_VERSION}
-          echo "/opt/maestro/bin" >> $GITHUB_PATH
+          wget -q -O "/tmp/${MAESTRO_VERSION}" "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip"
+          unzip -q "/tmp/${MAESTRO_VERSION}" -d /opt/
+          rm "/tmp/${MAESTRO_VERSION}"
+          echo "/opt/maestro/bin" >> "$GITHUB_PATH"
         env:
           MAESTRO_VERSION: 1.39.9
       - name: Enable KVM group perms
@@ -281,7 +270,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # pin@v2.35.0
         with:
           api-level: 29
-          script: cd examples/expo/android && ./gradlew installDebug --build-cache -PreactNativeDevServerPort=19000 -PreactNativeArchitectures=x86 && maestro test ../maestro_flow.yaml
+          script: cd platform/es/examples/expo/android && ./gradlew installDebug --build-cache -PreactNativeDevServerPort=19000 -PreactNativeArchitectures=x86 && maestro test ../maestro_flow.yaml
         env:
           MAESTRO_CLI_NO_ANALYTICS: true
       - name: Upload Maestro artifacts

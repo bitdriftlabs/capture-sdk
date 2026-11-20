@@ -3,18 +3,23 @@ name: Verify SDK Versions
 on:
   pull_request:
     paths:
-      - 'packages/react-native/package.json'
-      - 'packages/react-native/BdReactNative.podspec'
-      - 'packages/react-native/android/build.gradle'
-      - 'packages/react-native/src/plugin/withAndroid.ts'
+      - 'platform/es/packages/react-native/package.json'
+      - 'platform/es/packages/react-native/BdReactNative.podspec'
+      - 'platform/es/packages/react-native/android/build.gradle'
+      - 'platform/es/packages/react-native/src/plugin/withAndroid.ts'
   push:
     branches: [main]
     paths:
-      - 'packages/react-native/package.json'
-      - 'packages/react-native/BdReactNative.podspec'
-      - 'packages/react-native/android/build.gradle'
-      - 'packages/react-native/src/plugin/withAndroid.ts'
+      - 'platform/es/packages/react-native/package.json'
+      - 'platform/es/packages/react-native/BdReactNative.podspec'
+      - 'platform/es/packages/react-native/android/build.gradle'
+      - 'platform/es/packages/react-native/src/plugin/withAndroid.ts'
 
+defaults:
+  run:
+    working-directory: platform/es
+permissions:
+  contents: read
 jobs:
   verify:
     name: Verify Capture SDK versions are in sync

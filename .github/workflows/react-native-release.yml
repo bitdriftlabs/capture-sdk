@@ -1,9 +1,8 @@
 name: React Native Release
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
-  pull-requests: write
 
 on:
   workflow_dispatch:
@@ -13,21 +12,33 @@ on:
         required: true
         type: string
 
+defaults:
+  run:
+    working-directory: platform/es
 jobs:
   publish:
     name: Publish
+    if: github.ref == 'refs/heads/main'
+    concurrency:
+      group: react-native-npm-release
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ github.event.inputs.version }}
+      VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
       - name: Setup Javascript
         uses: ./.github/actions/javascript-setup
+        with:
+          cache-key-scope: release-${{ github.workflow }}
       - name: Get Capture SDK version
         id: capture-sdk
         run: |
           CAPTURE_SDK_VERSION=$(node -p "require('./packages/react-native/package.json').captureSdkVersion")
-          echo "version=$CAPTURE_SDK_VERSION" >> $GITHUB_OUTPUT
+          echo "version=$CAPTURE_SDK_VERSION" >> "$GITHUB_OUTPUT"
       - name: Validate React Native version against Capture SDK, repository and npm
         run: |
           node <<'NODE'
@@ -57,22 +68,31 @@ jobs:
           NODE
       - name: Prepare release
         run: |
-          npm version --workspace @bitdrift/react-native $VERSION
+          npm version --workspace @bitdrift/react-native --no-git-tag-version "$VERSION"
           npx nx prepare-release @bitdrift/react-native
       - name: Publish release
         run: npm publish ./dist/react-native --provenance
+      # Use the existing release app so the resulting PR triggers SDK checks.
+      - name: Create release app token
+        id: release-app
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0
+        with:
+          app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
+          private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+
       - name: Create a PR with the updated version
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.release-app.outputs.token }}
           CAPTURE_SDK_VERSION: ${{ steps.capture-sdk.outputs.version }}
         run: |
+          gh auth setup-git
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          git checkout -b release-rn-$VERSION
+          git checkout -b "release-rn-$VERSION"
           git add packages/react-native/package.json package-lock.json
           git commit -m "chore: release react-native $VERSION (capture-sdk $CAPTURE_SDK_VERSION)"
-          git push --set-upstream origin release-rn-$VERSION
+          git push --set-upstream origin "release-rn-$VERSION"
 
-          gh pr create --title "chore: release react-native $VERSION" --body "v$VERSION (capture-sdk v$CAPTURE_SDK_VERSION)" --base main --head release-rn-$VERSION
-          gh pr merge --auto -r
+          gh pr create --title "chore: release react-native $VERSION" --body "v$VERSION (capture-sdk v$CAPTURE_SDK_VERSION)" --base main --head "release-rn-$VERSION"
+          gh pr merge "release-rn-$VERSION" --auto --rebase
