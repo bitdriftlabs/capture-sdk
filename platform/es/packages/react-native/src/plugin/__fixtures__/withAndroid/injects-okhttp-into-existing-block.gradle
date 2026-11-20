@@ -10,7 +10,7 @@ bitdrift {
     instrumentation {
         automaticOkHttpInstrumentation = true
         okHttpInstrumentationType = OVERWRITE
-        automaticWebViewInstrumentation = true
+        webViewAutomaticInstrumentationScope = JS_ENABLED
     }
 }
 

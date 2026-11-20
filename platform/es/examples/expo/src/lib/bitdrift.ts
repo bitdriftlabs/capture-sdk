@@ -14,12 +14,13 @@ import {
 } from '@bitdrift/react-native';
 
 const BITDRIFT_API_KEY = process.env.EXPO_PUBLIC_BITDRIFT_API_KEY;
+const isManualWebViewDemo = process.env.EXPO_PUBLIC_WEBVIEW_DEMO_MODE === 'manual';
 
 if (BITDRIFT_API_KEY) {
   init(BITDRIFT_API_KEY, SessionStrategy.Fixed, {
     url: process.env.EXPO_PUBLIC_BITDRIFT_API_URL ?? 'https://api.bitdrift.io',
     enableNetworkInstrumentation: true,
-    UNSTABLE_enableWebViewInstrumentation: true,
+    UNSTABLE_enableWebViewInstrumentation: !isManualWebViewDemo,
     startResult: (result) => {
       console.log('Start result:', result);
       console.log('SDK status after start result:', getSdkStatus());

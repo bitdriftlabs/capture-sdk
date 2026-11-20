@@ -73,7 +73,7 @@ describe('withAndroid', () => {
 
 bitdrift {
     instrumentation {
-        automaticWebViewInstrumentation = true
+        webViewAutomaticInstrumentationScope = JS_ENABLED
     }
 }
 `;
@@ -137,5 +137,27 @@ bitdrift {
         UNSTABLE_webViewInstrumentation: true,
       }),
     ).toBe(readFixture('appends-webview-block.gradle'));
+  });
+
+  test('migrates the legacy WebView setting once', () => {
+    const contents = `plugins {
+    id 'com.android.application'
+}
+
+bitdrift {
+    instrumentation {
+        automaticWebViewInstrumentation = true
+    }
+}
+`;
+    const props = { UNSTABLE_webViewInstrumentation: true };
+
+    const migrated = applyAppBuildGradlePlugin(contents, props);
+
+    expect(migrated).toContain(
+      'webViewAutomaticInstrumentationScope = JS_ENABLED',
+    );
+    expect(migrated).not.toContain('automaticWebViewInstrumentation');
+    expect(applyAppBuildGradlePlugin(migrated, props)).toBe(migrated);
   });
 });
