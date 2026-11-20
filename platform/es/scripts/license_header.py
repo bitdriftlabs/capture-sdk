@@ -23,10 +23,7 @@ headers = {
 # If so we need to build it into the generator.
 exclude_dirs = (
     './.git',
-    './target/',
     './examples/',
-    './packages/core/index.d.ts',
-    './packages/core/index.js',
     './node_modules/',
 )
 
@@ -45,12 +42,6 @@ def check_file(file_path):
     print(f'Checking {file_path}')
     with open(file_path, 'r+') as file:
         content = file.read()
-
-        if (file_path.endswith('Cargo.toml') and
-            not file_path == './Cargo.toml' and
-                not 'license-file = "LICENSE"' in content):
-            raise Exception(
-                f'license-file = "LICENSE" not found in {file_path}')
 
         header = headers.get(ext)
         if not header:
