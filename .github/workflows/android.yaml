@@ -30,54 +30,22 @@ jobs:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     outputs:
-      should_run: >-
-        ${{ github.event_name == 'push' || steps.bazel_check.outputs.changed == 'true' ||
-          steps.workflow_check.outputs.changed == 'true' ||
-          steps.gradle_check.outputs.changed == 'true' ||
-          steps.cargo_check.outputs.changed == 'true' }}
+      artifacts: ${{ steps.changes.outputs.artifacts }}
+      timber: ${{ steps.changes.outputs.timber }}
+      plugin: ${{ steps.changes.outputs.plugin }}
+      licenses: ${{ steps.changes.outputs.licenses }}
+      instrumentation: ${{ steps.changes.outputs.instrumentation }}
     steps:
-      # Checkout repo to Github Actions runner
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Check for workflow file changes
-        id: workflow_check
-        uses: ./.github/actions/files-changed
-        with:
-          regex: '^(\.bazel(rc|version)|MODULE\.bazel(\.lock)?|buildbuddy\.yaml|\.github/(workflows/android\.yaml|actions/(setup|android-setup)/.*)|ci/((buildbuddy_api|download_buildbuddy_artifacts|run_buildbuddy_workflow|wait_for_buildbuddy_check)\.sh|stage_bazel_artifacts\.py)|tools/(android_sdk_wrapper|setup_android_sdk|android_toolchain_versions|check_android_toolchain_versions)\.sh)$'
-
-      - name: Check for relevant Gradle changes
-        id: gradle_check
-        uses: ./.github/actions/files-changed
-        with:
-          regex: '^(platform/jvm/((capture-plugin|capture-timber|buildSrc|gradle)/.*|settings\.gradle\.kts|gradle\.properties|gradlew|gradle-test-app/.*\.(gradle|kts|kt|xml))|platform/jvm/capture/src/test/.*)$'
-
-      - name: Check for Rust dependency changes
-        id: cargo_check
-        uses: ./.github/actions/files-changed
-        with:
-          files: |
-            Cargo.toml
-            Cargo.lock
-
-      - name: Setup Bazel for change detection
-        if: >-
-          github.event_name != 'push' &&
-          steps.workflow_check.outputs.changed != 'true' &&
-          steps.gradle_check.outputs.changed != 'true' &&
-          steps.cargo_check.outputs.changed != 'true'
-        uses: ./.github/actions/setup
-
-      - name: Check affected Bazel targets
-        if: >-
-          github.event_name != 'push' &&
-          steps.workflow_check.outputs.changed != 'true' &&
-          steps.gradle_check.outputs.changed != 'true' &&
-          steps.cargo_check.outputs.changed != 'true'
-        id: bazel_check
-        run: ./ci/check_bazel.sh //examples/android:android_app //:capture_aar_so_size_
+      - name: Select Android CI jobs
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash ci/android_ci_changes.sh "$BASE_SHA" "$HEAD_SHA"
 
   build_and_compare_sizes:
     runs-on: ubuntu-latest
@@ -88,7 +56,7 @@ jobs:
     if: >-
       always() && !cancelled() &&
       (github.event_name == 'workflow_dispatch' ||
-       (needs.pre_check.result == 'success' && needs.pre_check.outputs.should_run == 'true' &&
+       (needs.pre_check.result == 'success' && needs.pre_check.outputs.artifacts == 'true' &&
         (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)))
     needs: pre_check
     steps:
@@ -352,21 +320,38 @@ jobs:
             }
 
   gradle_tests:
-    # Requires a "larger runner", for nested virtualization support
-    runs-on: ubuntu-latest-8-cores
+    # Only emulator instrumentation needs nested virtualization.
+    runs-on: ${{ needs.pre_check.outputs.instrumentation == 'true' && 'ubuntu-latest-8-cores' || 'ubuntu-latest' }}
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     env:
       SKIP_PROTO_GEN: 1
-    if: needs.pre_check.outputs.should_run == 'true'
+    if: >-
+      needs.pre_check.outputs.timber == 'true' ||
+      needs.pre_check.outputs.plugin == 'true' ||
+      needs.pre_check.outputs.licenses == 'true' ||
+      needs.pre_check.outputs.instrumentation == 'true'
     needs: pre_check
     steps:
 
     - name: Checkout project sources
       uses: actions/checkout@v4
 
+    - name: Set up JDK
+      if: needs.pre_check.outputs.instrumentation != 'true'
+      uses: actions/setup-java@v4
+      with:
+        distribution: zulu
+        java-version: '17'
+    - name: Set up Android SDK
+      if: needs.pre_check.outputs.instrumentation != 'true'
+      uses: ./.github/actions/android-setup
+      with:
+        enable-bazel-cache: "false"
+        setup-local-android-sdk: "true"
     - name: Setup Android emulator
+      if: needs.pre_check.outputs.instrumentation == 'true'
       uses: ./.github/actions/setup-android-emulator
       with:
         buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
@@ -378,15 +363,19 @@ jobs:
       with:
         cache-read-only: ${{ github.ref != 'refs/heads/main' }}
     - name: Gradle capture-timber unit tests
+      if: needs.pre_check.outputs.timber == 'true'
       working-directory: ./platform/jvm
       run: ./gradlew capture-timber:testReleaseUnitTest --build-cache --info
     - name: Gradle capture-plugin unit tests
+      if: needs.pre_check.outputs.plugin == 'true'
       working-directory: ./platform/jvm
       run: ./gradlew capture-plugin:test --build-cache --info
     - name: Check Licenses for modules
+      if: needs.pre_check.outputs.licenses == 'true'
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense
     - name: Instrumentation Tests
+      if: needs.pre_check.outputs.instrumentation == 'true'
       uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
       with:
         channel: stable
