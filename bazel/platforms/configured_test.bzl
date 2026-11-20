@@ -10,10 +10,6 @@ _LINUX_LLVM_TOOLCHAIN = "@llvm//toolchain:all"
 _MACOS_EXEC_CONSTRAINTS = ["@platforms//os:macos"]
 _COMPILATION_MODE = "//command_line_option:compilation_mode"
 _RUSTC_FLAGS = "@rules_rust//rust/settings:extra_rustc_flag"
-_MIXED_RBE_ONLY = {
-    "//bazel/platforms:mixed_rbe": [],
-    "//conditions:default": ["@platforms//:incompatible"],
-}
 
 def _macos_configuration(settings, attr):
     config = {
@@ -144,12 +140,11 @@ _release_test = rule(
 def release_backtrace_test(name, test):
     _release_test(
         name = name,
+        size = "small",
         test = test,
-        args = ["anyhow_preserves_error_api"],
         runner_env = {
             "ANYHOW_EXPECT_DISABLED_BACKTRACE": "1",
             "RUST_BACKTRACE": "1",
         },
         tags = ["manual"],
-        target_compatible_with = select(_MIXED_RBE_ONLY),
     )
