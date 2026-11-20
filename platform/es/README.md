@@ -1,13 +1,12 @@
-# capture-es
-
-**capture-es:** bitdrift SDK integration
+# React Native SDK workspace
 
 ## Setup
 
-To install dependencies, run
+From the repository root, enter the Nx workspace and install dependencies with the Node version in `.nvmrc`.
 
 ```sh
-$ npm ci
+cd platform/es
+npm ci
 ```
 
 ## React Native

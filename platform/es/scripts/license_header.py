@@ -1,8 +1,8 @@
-import os
+import argparse
+from pathlib import Path
+import subprocess
 
-# Define the header you want to check for and insert
-header = """
-// capture-es - bitdrift's ES SDK
+HEADER = """// capture-es - bitdrift's ES SDK
 // Copyright Bitdrift, Inc. All rights reserved.
 //
 // Use of this source code is governed by a source available license that can be found in the
@@ -10,55 +10,31 @@ header = """
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 """
 
-headers = {
-    '.rs': header,
-    '.kt': header,
-    '.java': header,
-    '.swift': header,
-    '.ts': header,
-    '.js': header,
-}
-
-# TODO(mattklein123): Figure out if we want our license at the top of the generated proto files.
-# If so we need to build it into the generator.
-exclude_dirs = (
-    './.git',
-    './examples/',
-    './node_modules/',
-)
-
-extensions_to_check = ('.rs', '.toml', '.kt', '.java', '.swift', '.ts', '.js')
+EXTENSIONS = {".kt", ".java", ".swift", ".ts", ".js"}
 
 
-def check_file(file_path):
-    for dir in exclude_dirs:
-        if file_path.startswith(dir):
-            return
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--fix", action="store_true", help="Insert missing headers")
+    args = parser.parse_args()
 
-    _, ext = os.path.splitext(file_path)
-    if not ext in extensions_to_check:
-        return
+    files = subprocess.check_output(["git", "ls-files", "-z", "--", ".", ":(exclude)examples"])
+    failed = False
+    for name in files.decode().split("\0"):
+        path = Path(name)
+        if path.suffix not in EXTENSIONS or not path.is_file():
+            continue
+        content = path.read_text()
+        if content.startswith(HEADER):
+            continue
+        if args.fix:
+            path.write_text(HEADER + "\n" + content)
+        else:
+            print(f"Missing license header: {path}")
+            failed = True
 
-    print(f'Checking {file_path}')
-    with open(file_path, 'r+') as file:
-        content = file.read()
-
-        header = headers.get(ext)
-        if not header:
-            return
-        header = header.lstrip()
-
-        if not content.startswith(header):
-            file.seek(0, 0)
-            file.write(header + '\n' + content)
-
-
-def iterate_over_files():
-    for root, _, files in os.walk('.'):
-        for file in files:
-            file_path = os.path.join(root, file)
-            check_file(file_path)
+    return int(failed)
 
 
-# Run the script
-iterate_over_files()
+if __name__ == "__main__":
+    raise SystemExit(main())
