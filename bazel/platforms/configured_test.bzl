@@ -8,7 +8,6 @@ _EXECUTION_PLATFORMS = "//command_line_option:extra_execution_platforms"
 _EXTRA_TOOLCHAINS = "//command_line_option:extra_toolchains"
 _LINUX_LLVM_TOOLCHAIN = "@llvm//toolchain:all"
 _MACOS_EXEC_CONSTRAINTS = ["@platforms//os:macos"]
-_COMPILATION_MODE = "//command_line_option:compilation_mode"
 _RUSTC_FLAGS = "@rules_rust//rust/settings:extra_rustc_flag"
 
 def _macos_configuration(settings, attr):
@@ -44,21 +43,14 @@ _macos_transition = transition(
     outputs = [_EXECUTION_PLATFORMS, _EXTRA_TOOLCHAINS, _PLATFORMS, _XCODE_VERSION, _SIMULATOR_VERSION],
 )
 
-def _release_configuration(settings, _attr):
-    # Match the optimized Rust configuration used by --config=release-common.
-    return {
-        _COMPILATION_MODE: "opt",
-        _RUSTC_FLAGS: settings[_RUSTC_FLAGS] + [
-            "-Ccodegen-units=1",
-            "-Copt-level=z",
-            "--cfg=anyhow_no_backtrace",
-        ],
-    }
+def _anyhow_no_backtrace_configuration(settings, _attr):
+    # The flag must reach the anyhow dependency to exercise its release behavior.
+    return {_RUSTC_FLAGS: settings[_RUSTC_FLAGS] + ["--cfg=anyhow_no_backtrace"]}
 
-_release_transition = transition(
-    implementation = _release_configuration,
+_anyhow_no_backtrace_transition = transition(
+    implementation = _anyhow_no_backtrace_configuration,
     inputs = [_RUSTC_FLAGS],
-    outputs = [_COMPILATION_MODE, _RUSTC_FLAGS],
+    outputs = [_RUSTC_FLAGS],
 )
 
 def _configured_test_impl(ctx):
@@ -131,14 +123,14 @@ def macos_test(name, test, xcode = "", simulator = "", xctest = False, timeout =
         visibility = visibility,
     )
 
-_release_test = rule(
+_anyhow_no_backtrace_test = rule(
     implementation = _configured_test_impl,
-    attrs = _test_attrs(_release_transition),
+    attrs = _test_attrs(_anyhow_no_backtrace_transition),
     test = True,
 )
 
 def release_backtrace_test(name, test):
-    _release_test(
+    _anyhow_no_backtrace_test(
         name = name,
         size = "small",
         test = test,
