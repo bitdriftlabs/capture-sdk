@@ -41,6 +41,7 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
         deps = [test_lib_name],
         linkopts = TSAN_LINKOPTS,
         minimum_os_version = MINIMUM_IOS_VERSION_TESTS,
+        runner = "//bazel/ios:swift_test_runner",
         timeout = "long",
         tags = tags + [
             # CI reuses one global simulator; parallel xcodebuild test runs can
