@@ -52,7 +52,7 @@ jobs:
         id: workflow_check
         uses: ./.github/actions/files-changed
         with:
-          regex: '^(\.bazelrc|MODULE\.bazel(\.lock)?|\.github/(workflows/android\.yaml|actions/(setup|android-setup)/.*)|tools/(android_sdk_wrapper|setup_android_sdk|android_toolchain_versions|check_android_toolchain_versions)\.sh)$'
+          regex: '^(\.bazelrc|MODULE\.bazel(\.lock)?|buildbuddy\.yaml|\.github/(workflows/android\.yaml|actions/(setup|android-setup)/.*)|ci/((buildbuddy_api|download_buildbuddy_artifacts|run_buildbuddy_workflow|wait_for_buildbuddy_check)\.sh|stage_bazel_artifacts\.py)|tools/(android_sdk_wrapper|setup_android_sdk|android_toolchain_versions|check_android_toolchain_versions)\.sh)$'
 
       - name: Check for relevant Gradle changes
         id: gradle_check
@@ -90,44 +90,39 @@ jobs:
 
   build_and_compare_sizes:
     runs-on: ubuntu-latest
+    timeout-minutes: 150
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     if: >-
       always() && !cancelled() &&
       (github.event_name == 'workflow_dispatch' ||
-       (needs.pre_check.result == 'success' && needs.pre_check.outputs.should_run == 'true'))
+       (needs.pre_check.result == 'success' && needs.pre_check.outputs.should_run == 'true' &&
+        (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)))
     needs: pre_check
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Setup Android SDK
-        if: github.event_name != 'workflow_dispatch'
-        uses: ./.github/actions/android-setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Download Android size artifacts
-        if: github.event_name == 'workflow_dispatch'
+      - name: Build Android artifacts after Test and download
         env:
-          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
-          ARTIFACT_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
+          GH_TOKEN: ${{ github.token }}
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          SOURCE_BRANCH: ${{ github.head_ref || github.ref_name }}
+          EXISTING_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
         run: |
-          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$GITHUB_SHA" android-release-artifacts \
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          invocation="$EXISTING_INVOCATION_ID"
+          if [[ -z "$invocation" ]]; then
+            bash ci/wait_for_buildbuddy_check.sh "$commit" Test
+            invocation="$(./ci/run_buildbuddy_workflow.sh 'Android release artifacts' "$SOURCE_BRANCH" "$commit")"
+          fi
+          ./ci/download_buildbuddy_artifacts.sh "$invocation" "$commit" android-release-artifacts \
             android_app.apk capture_aar_so_size_arm64_v8a_kb.txt capture_aar_so_size_x86_64_kb.txt
-
-      - name: Build Bazel multi-ABI APK and AAR size targets
-        if: github.event_name != 'workflow_dispatch'
-        timeout-minutes: 30
-        run: |
-          # Package both the emulator ABI and the production ABI in one build.
-          # The size targets extract each library from the resulting AAR.
-          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --remote_download_toplevel --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_arm64_v8a :capture_aar_so_size_x86_64
-          mkdir -p android-release-artifacts
-          cp bazel-bin/examples/android/android_app.apk bazel-bin/capture_aar_so_size_*_kb.txt android-release-artifacts/
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4

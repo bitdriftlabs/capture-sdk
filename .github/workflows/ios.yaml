@@ -206,7 +206,7 @@ jobs:
       deployment: false
     needs: "pre_check"
     if: >-
-      needs.pre_check.outputs.should_run == 'true' &&
+      needs.pre_check.result == 'success' &&
       (github.event_name == 'push' ||
       needs.pre_check.outputs.has_affected_clippy_targets == 'true' ||
       needs.pre_check.outputs.workflow_changed == 'true' ||
