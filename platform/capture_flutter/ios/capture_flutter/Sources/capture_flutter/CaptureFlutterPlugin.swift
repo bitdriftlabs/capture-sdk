@@ -73,12 +73,74 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             }
             Logger.removeField(withKey: key)
             result(nil)
+        case "setEntityId":
+            guard let args = call.arguments as? [String: Any],
+                  let entityId = args["entityId"] as? String else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing entityId", details: nil))
+                return
+            }
+            Logger.setEntityID(entityId)
+            result(nil)
+        case "clearEntityId":
+            Logger.clearEntityID()
+            result(nil)
         case "startSpan":
             handleStartSpan(call, result: result)
         case "endSpan":
             handleEndSpan(call, result: result)
-        case "logReplayScreen":
-            handleLogReplayScreen(call, result: result)
+        case "updateReplayRects":
+            handleUpdateReplayRects(call, result: result)
+        case "logAppLaunchTTI":
+            guard let args = call.arguments as? [String: Any],
+                  let durationMs = args["durationMs"] as? NSNumber else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing durationMs", details: nil))
+                return
+            }
+            Logger.logAppLaunchTTI(durationMs.doubleValue / 1000)
+            result(nil)
+        case "logNetworkRequest":
+            guard let args = call.arguments as? [String: Any] else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing request", details: nil))
+                return
+            }
+            Logger.shared?.log(Self.httpRequestInfo(args), file: nil, line: nil, function: nil)
+            result(nil)
+        case "logNetworkResponse":
+            guard let args = call.arguments as? [String: Any],
+                  let request = args["request"] as? [String: Any] else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing response", details: nil))
+                return
+            }
+            Logger.shared?.log(
+                Self.httpResponseInfo(args, request: Self.httpRequestInfo(request)),
+                file: nil,
+                line: nil,
+                function: nil
+            )
+            result(nil)
+        case "getPreviousRunInfo":
+            result(Logger.previousRunInfo.map { info in
+                [
+                    "hasFatallyTerminated": info.hasFatallyTerminated,
+                    "terminationReason": String(describing: info.terminationReason),
+                ] as [String: Any]
+            })
+        case "setSleepMode":
+            let args = call.arguments as? [String: Any]
+            Logger.setSleepMode(Self.sleepMode(args?["mode"] as? String))
+            result(nil)
+        case "setFeatureFlagExposure":
+            guard let args = call.arguments as? [String: Any],
+                  let name = args["name"] as? String else {
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing name", details: nil))
+                return
+            }
+            if let variant = args["variant"] as? Bool {
+                Logger.setFeatureFlagExposure(withName: name, variant: variant)
+            } else {
+                Logger.setFeatureFlagExposure(withName: name, variant: "\(args["variant"] ?? "")")
+            }
+            result(nil)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -90,22 +152,33 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
             result(FlutterError(code: "INVALID_ARGS", message: "Missing apiKey", details: nil))
             return
         }
-        let apiUrl = args["apiUrl"] as? String ?? "https://api.bitdrift.io"
+        let apiUrlString = args["apiUrl"] as? String ?? "https://api.bitdrift.io"
+        guard let apiUrl = URL(string: apiUrlString) else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Invalid apiUrl", details: nil))
+            return
+        }
         let strategyName = args["sessionStrategy"] as? String ?? "fixed"
         let sessionStrategy: SessionStrategy = strategyName == "activityBased"
             ? .activityBased()
             : .fixed()
 
+        let enableSessionReplay = args["enableSessionReplay"] as? Bool ?? false
+        let sessionReplayConfiguration = enableSessionReplay
+            ? SessionReplayConfiguration(categorizers: ["FlutterView": AnnotatedView(.ignore)])
+            : nil
         let configuration = Configuration(
-            // Flutter provides its own wireframe data via logSessionReplayScreen.
-            sessionReplayConfiguration: nil,
-            apiURL: URL(string: apiUrl)!
+            sessionReplayConfiguration: sessionReplayConfiguration,
+            sleepMode: Self.sleepMode(args["sleepMode"] as? String),
+            enableFatalIssueReporting: args["enableFatalIssueReporting"] as? Bool ?? true,
+            apiURL: apiUrl
         )
+        let initialFields = (args["initialFields"] as? [String: String]) ?? [:]
 
         Logger.start(
             withAPIKey: apiKey,
             sessionStrategy: sessionStrategy,
-            configuration: configuration
+            configuration: configuration,
+            initialFields: initialFields
         )
         result(true)
     }
@@ -192,16 +265,87 @@ public class CaptureFlutterPlugin: NSObject, FlutterPlugin {
         result(nil)
     }
 
-    private func handleLogReplayScreen(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    private func handleUpdateReplayRects(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
-              let screenData = args["screen"] as? FlutterStandardTypedData else {
-            result(FlutterError(code: "INVALID_ARGS", message: "Missing screen data", details: nil))
+              let rectsData = args["rects"] as? FlutterStandardTypedData else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing rects", details: nil))
             return
         }
-        // logSessionReplayScreen is internal on the iOS SDK (requires @testable import).
-        // No public API exists for this yet — placeholder logs replay size as info.
-        // Track: expose logSessionReplayScreen on Logger public API.
-        Logger.logInfo("_session_replay", fields: ["_replay_size": "\(screenData.data.count)"])
+
+        let values: [Int32] = rectsData.data.withUnsafeBytes { Array($0.bindMemory(to: Int32.self)) }
+        var rects: [(frame: CGRect, type: ViewType)] = []
+        rects.reserveCapacity(values.count / 5)
+        var index = 0
+        while index + 4 < values.count {
+            if let type = ViewType(rawValue: UInt8(truncatingIfNeeded: values[index])) {
+                let frame = CGRect(
+                    x: CGFloat(values[index + 1]),
+                    y: CGFloat(values[index + 2]),
+                    width: CGFloat(values[index + 3]),
+                    height: CGFloat(values[index + 4])
+                )
+                rects.append((frame, type))
+            }
+            index += 5
+        }
+
+        let windows = UIApplication.shared.connectedScenes.flatMap { ($0 as? UIWindowScene)?.windows ?? [] }
+        FlutterReplayOverlayView.attached(in: windows)?.update(rects: rects)
         result(nil)
+    }
+
+    private static func sleepMode(_ name: String?) -> SleepMode {
+        name == "enabled" ? .enabled : .disabled
+    }
+
+    private static func httpRequestInfo(_ args: [String: Any]) -> HTTPRequestInfo {
+        let path = (args["path"] as? String).map {
+            HTTPURLPath(value: $0, template: args["pathTemplate"] as? String)
+        }
+        return HTTPRequestInfo(
+            method: args["method"] as? String ?? "GET",
+            host: args["host"] as? String,
+            path: path,
+            query: args["query"] as? String,
+            headers: args["headers"] as? [String: String],
+            bytesExpectedToSendCount: (args["bytesExpectedToSendCount"] as? NSNumber)?.int64Value,
+            spanID: args["spanId"] as? String ?? UUID().uuidString,
+            extraFields: args["extraFields"] as? [String: String]
+        )
+    }
+
+    private static func httpResponseInfo(_ args: [String: Any], request: HTTPRequestInfo) -> HTTPResponseInfo {
+        let result: HTTPResponse.HTTPResult
+        switch args["result"] as? String {
+        case "success": result = .success
+        case "canceled": result = .canceled
+        default: result = .failure
+        }
+
+        var extraFields: Fields = [:]
+        let optionalFields: [(String, Any?)] = [
+            ("_error_type", args["errorType"]),
+            ("_error_message", args["errorMessage"]),
+            ("_request_body_bytes_sent_count", args["requestBodyBytesSentCount"]),
+            ("_response_body_bytes_received_count", args["responseBodyBytesReceivedCount"]),
+        ]
+        for case let (key, value?) in optionalFields where !(value is NSNull) {
+            extraFields[key] = "\(value)"
+        }
+        for (key, value) in (args["extraFields"] as? [String: String]) ?? [:] {
+            extraFields[key] = value
+        }
+
+        return HTTPResponseInfo(
+            requestInfo: request,
+            response: HTTPResponse(
+                result: result,
+                headers: args["headers"] as? [String: String],
+                statusCode: (args["statusCode"] as? NSNumber)?.intValue,
+                error: nil
+            ),
+            duration: ((args["durationMs"] as? NSNumber)?.doubleValue ?? 0) / 1000,
+            extraFields: extraFields
+        )
     }
 }
