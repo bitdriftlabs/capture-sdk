@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       artifact_invocation_id:
-        description: Successful BuildBuddy iOS release artifacts invocation for this commit
+        description: Successful BuildBuddy iOS CI artifacts invocation for this commit
         required: true
         type: string
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
@@ -47,54 +47,38 @@ jobs:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     outputs:
-      should_run: >-
-        ${{ github.event_name == 'push' || steps.bazel_check.outputs.changed == 'true' ||
-          steps.workflow_check.outputs.changed == 'true' }}
+      should_run: ${{ github.event_name == 'push' || steps.changes.outputs.should_run == 'true' }}
     steps:
-      # Checkout repo to Github Actions runner
       - name: Checkout
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Check for workflow file changes
-        id: workflow_check
-        uses: ./.github/actions/files-changed
-        with:
-          files: |
-            .github/workflows/ios.yaml
-            .bazelrc
-            .bazelversion
-            MODULE.bazel
-            MODULE.bazel.lock
-            Cargo.toml
-            Cargo.lock
-            buildbuddy.yaml
-            ci/buildbuddy_api.sh
-            ci/download_buildbuddy_artifacts.sh
-            ci/run_buildbuddy_workflow.sh
-            ci/stage_bazel_artifacts.py
-            ci/verify_ios_simulator_ipa.sh
-            ci/ios_app_size_report.sh
-            ci/parse_ios_app_thinning_report.py
-            ci/capture_ios_binary_size.sh
-            ci/check_ios_xcframework_archive_members.sh
-            ci/extract_embedded_profile_plist.py
-      - name: Setup Bazel for change detection
-        if: >-
-          github.event_name != 'push' &&
-          steps.workflow_check.outputs.changed != 'true'
-        uses: ./.github/actions/setup
-
-      - name: Check affected Bazel targets
-        if: >-
-          github.event_name != 'push' &&
-          steps.workflow_check.outputs.changed != 'true'
-        id: bazel_check
-        run: ./ci/check_bazel.sh //examples/swift/hello_world //platform/swift //test/platform/swift //:ios_dist //:check_ios_release_xcframework
+      - name: Check for changes that may affect iOS artifacts
+        if: github.event_name == 'pull_request'
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Exclude only paths known to be unrelated to the iOS artifacts.
+          # Disable rename detection so moves out of relevant paths still count.
+          result=0
+          git diff --quiet --no-renames "$BASE_SHA...$HEAD_SHA" -- . \
+            ':(exclude,glob)**/*.md' ':(exclude)docs/' \
+            ':(exclude)examples/android/' \
+            ':(exclude,glob)platform/jvm/**/*.kt' ':(exclude,glob)platform/jvm/**/*.kts' \
+            ':(exclude,glob)platform/jvm/**/*.java' ':(exclude,glob)platform/jvm/**/*.rs' \
+            ':(exclude).github/workflows/android.yaml' \
+            ':(exclude)ci/android_ci_changes.sh' || result=$?
+          case "$result" in
+            0) echo "should_run=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "should_run=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$result" ;;
+          esac
 
   ios_release_artifacts:
-    name: iOS release artifacts
+    name: iOS CI artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 150
     needs: [pre_check, linux_test]
@@ -124,7 +108,7 @@ jobs:
           commit="$(git rev-parse HEAD)"
           invocation="$EXISTING_INVOCATION_ID"
           if [[ -z "$invocation" ]]; then
-            invocation="$(./ci/run_buildbuddy_workflow.sh 'iOS release artifacts' "$SOURCE_BRANCH" "$commit")"
+            invocation="$(./ci/run_buildbuddy_workflow.sh 'iOS CI artifacts' "$SOURCE_BRANCH" "$commit")"
           fi
           if [[ ! "$invocation" =~ ^[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12}$ ]]; then
             echo "Invalid BuildBuddy invocation ID." >&2
@@ -154,7 +138,7 @@ jobs:
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh
 
-      - name: Download iOS release artifacts
+      - name: Download iOS CI artifacts
         env:
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
           ARTIFACT_INVOCATION_ID: ${{ needs.ios_release_artifacts.outputs.invocation_id }}

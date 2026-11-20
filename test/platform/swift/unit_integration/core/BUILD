@@ -32,6 +32,10 @@ bitdrift_mobile_swift_test(
     data = glob(["testdata/*"]),
     repository = "@capture",
     simulator = "27.0",
+    target_compatible_with = select({
+        "//bazel/platforms:ios27_tests": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
     use_test_host = True,
     visibility = ["//visibility:public"],
     xcode = "27.0",

@@ -54,25 +54,17 @@ def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps =
         ],
     )
 
-def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], run_on_macos = False, **args):
-    raw_name = name + "_binary" if run_on_macos else name
-    if run_on_macos and "macos_only" not in tags:
-        tags = tags + ["macos_only"]
+def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], **args):
     rust_test(
-        name = raw_name,
+        name = name,
         rustc_flags = _rustc_flags(),
         edition = "2024",
         deps = all_crate_deps(normal = True, normal_dev = True, cargo_only = True) + deps,
         proc_macro_deps = proc_macro_deps,
         aliases = _crate_aliases(),
-        tags = _clippy_tags(tags) + (["manual"] if run_on_macos else []),
+        tags = _clippy_tags(tags),
         **args
     )
-    if run_on_macos:
-        macos_test(name = name, test = ":" + raw_name, tags = tags, visibility = args.get("visibility"))
-        _macos_test_clippy_alias(name, raw_name, tags)
-    if "macos_only" in tags:
-        macos_clippy(name = name + "_macos_clippy", deps = [":" + raw_name])
 
 def bitdrift_rust_integration_test(name, **args):
     bitdrift_rust_library(

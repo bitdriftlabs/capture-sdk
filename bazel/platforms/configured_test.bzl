@@ -130,7 +130,7 @@ _macos_test = rule(
     test = True,
 )
 
-def macos_test(name, test, xcode = "", simulator = "", xctest = False, timeout = "moderate", tags = [], visibility = None):
+def macos_test(name, test, xcode = "", simulator = "", xctest = False, timeout = "moderate", tags = [], visibility = None, target_compatible_with = []):
     _macos_test(
         name = name,
         test = test,
@@ -149,7 +149,7 @@ def macos_test(name, test, xcode = "", simulator = "", xctest = False, timeout =
             "//bazel/platforms:mixed_rbe": [],
             "@platforms//os:macos": [],
             "//conditions:default": ["@platforms//:incompatible"],
-        }),
+        }) + target_compatible_with,
         tags = tags,
         visibility = visibility,
     )
@@ -160,7 +160,7 @@ _anyhow_no_backtrace_test = rule(
     test = True,
 )
 
-def release_backtrace_test(name, test):
+def anyhow_no_backtrace_test(name, test):
     _anyhow_no_backtrace_test(
         name = name,
         size = "small",
@@ -169,5 +169,4 @@ def release_backtrace_test(name, test):
             "ANYHOW_EXPECT_DISABLED_BACKTRACE": "1",
             "RUST_BACKTRACE": "1",
         },
-        tags = ["manual"],
     )

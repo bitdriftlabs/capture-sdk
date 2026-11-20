@@ -41,6 +41,12 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+config_setting(
+    name = "ios27_tests",
+    define_values = {"capture_ios27_tests": "true"},
+    visibility = ["//visibility:public"],
+)
+
 xcode_version(
     name = "xcode_26",
     aliases = ["26.0.1"],

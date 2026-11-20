@@ -19,11 +19,12 @@ actions:
           bazel test
           --config=workflows
           --config=mixed-rbe
+          --config=ios27-tests
           --keep_going
           --lockfile_mode=error
           --test_output=errors
           --test_env=RUST_LOG=debug
-          -- //... //platform/shared:platform-shared_release_backtrace_test
+          -- //...
 
   # Clippy changes the analysis flags and builds production rust_library targets.
   - name: Clippy
@@ -47,7 +48,7 @@ actions:
           -- //... //platform/shared:build_script_
 
   # GitHub dispatches this after Test and Clippy so their Mac actions can finish first.
-  - name: iOS release artifacts
+  - name: iOS CI artifacts
     triggers: {}
     container_image: ubuntu-24.04
     steps:
@@ -70,7 +71,7 @@ actions:
           python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
             Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa
 
-  - name: Android release artifacts
+  - name: Android CI artifacts
     triggers: {}
     container_image: ubuntu-24.04
     steps:

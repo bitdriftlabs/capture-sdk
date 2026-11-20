@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       artifact_invocation_id:
-        description: Successful BuildBuddy Android release artifacts invocation for this commit
+        description: Successful BuildBuddy Android CI artifacts invocation for this commit
         required: true
         type: string
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
@@ -76,7 +76,7 @@ jobs:
           commit="$(git rev-parse HEAD)"
           invocation="$EXISTING_INVOCATION_ID"
           if [[ -z "$invocation" ]]; then
-            invocation="$(./ci/run_buildbuddy_workflow.sh 'Android release artifacts' "$SOURCE_BRANCH" "$commit")"
+            invocation="$(./ci/run_buildbuddy_workflow.sh 'Android CI artifacts' "$SOURCE_BRANCH" "$commit")"
           fi
           ./ci/download_buildbuddy_artifacts.sh "$invocation" "$commit" android-release-artifacts \
             android_app.apk capture_aar_so_size_arm64_v8a_kb.txt capture_aar_so_size_x86_64_kb.txt

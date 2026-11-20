@@ -11,7 +11,7 @@ make lint-docstrings                # Required after Swift edits if not running 
 
 # Tests
 make test-gradle                    # Android unit tests
-cargo nextest run -p swift_bridge   # Rust bridge tests
+./bazelw test //platform/swift/source:swift_bridge_test  # Rust bridge tests
 ./bazelw test //test/platform/swift/unit_integration/core:test  # iOS tests
 ./bazelw test //platform/jvm/...    # Android tests via Bazel
 
@@ -35,12 +35,14 @@ make xcframework                    # Build iOS release artifact
 ## Testing
 
 - iOS tests must be run through Bazel.
+- See [Running tests](README.md#running-tests) for the default suite and the Xcode 27 opt-in.
 - Android is often easier to run through Gradle but sometimes issues only reproduce through Bazel. platform/jvm/gradlew can be invoked directly (use -p to target the correct directory).
 - `test --build_tests_only` is configured in `.bazelrc`, so wildcard test commands build only test targets rather than unrelated build targets.
 
 ## Clippy
 
-CI runs Clippy through `ci/run_clippy.sh`, which uses `bazel build` and the runner's Clippy tags.
+The BuildBuddy Clippy workflow uses `bazel build` and routes Apple targets to macOS. The
+`ci/run_clippy.sh` helper selects the corresponding local targets.
 Do not substitute `./bazelw test //... --config=clippy`: the repository-wide
 `--build_tests_only` setting can omit production `rust_library` targets that CI lints.
 
@@ -123,12 +125,13 @@ Do not equate framework metadata or an unsigned stripped-app proxy with signed A
 
 ## Release Build Cache Policy
 
-Release workflows must not use the Bazel/BuildBuddy remote cache. Release Bazel invocations include
-`--config=nocache`; configure their shared setup actions with `enable-bazel-cache: "false"` as a
-second safeguard. GitHub Actions dependency caches that remain necessary for a release must use the
-`release-${{ github.workflow }}` cache-key scope, so a release cache is never restored by
-pull-request or ordinary `main` CI builds. Do not enable an unscoped cache (including an
-action-managed Gradle cache) in a release workflow.
+Build publishable SDK and example-app artifacts in the release workflows with `--config=nocache`
+and set `enable-bazel-cache: "false"` on their shared setup actions. Scope any GitHub Actions
+dependency caches, including Gradle caches, to `release-${{ github.workflow }}`.
+
+The BuildBuddy **iOS CI artifacts** and **Android CI artifacts** workflows may reuse normal CI
+action results for pull requests and `main`. Their optimized artifacts are for smoke tests
+and size reports only. Signed sample apps from App Thinning checks remain CI artifacts.
 
 ## Project Structure
 
