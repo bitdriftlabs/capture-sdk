@@ -41,6 +41,25 @@ class LicenseHeaderTest(unittest.TestCase):
         (self.root / 'build' / 'generated.kt').write_text('generated\n')
         self.assertEqual(self.run_checker('--check').returncode, 0)
 
+    def test_shared_checker_covers_js_and_ts_and_skips_es_examples(self):
+        sdk_source = self.root / 'sdk.js'
+        es_root = self.root / 'platform' / 'es'
+        examples = es_root / 'examples'
+        examples.mkdir(parents=True)
+        es_source = es_root / 'library.ts'
+        example = examples / 'Demo.swift'
+        for path in (sdk_source, es_source, example):
+            path.write_text('original\n')
+
+        result = self.run_checker('--check')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(sdk_source.name, result.stderr)
+        self.assertIn(es_source.name, result.stderr)
+        self.assertNotIn(example.name, result.stderr)
+        self.assertEqual(self.run_checker().returncode, 0)
+        self.assertEqual(self.run_checker('--check').returncode, 0)
+        self.assertEqual(example.read_text(), 'original\n')
+
     def test_cargo_license_metadata_is_required(self):
         (self.root / 'crate').mkdir()
         manifest = self.root / 'crate' / 'Cargo.toml'
