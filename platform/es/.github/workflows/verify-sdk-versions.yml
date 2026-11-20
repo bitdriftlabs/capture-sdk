@@ -1,0 +1,65 @@
+name: Verify SDK Versions
+
+on:
+  pull_request:
+    paths:
+      - 'packages/react-native/package.json'
+      - 'packages/react-native/BdReactNative.podspec'
+      - 'packages/react-native/android/build.gradle'
+      - 'packages/react-native/src/plugin/withAndroid.ts'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/react-native/package.json'
+      - 'packages/react-native/BdReactNative.podspec'
+      - 'packages/react-native/android/build.gradle'
+      - 'packages/react-native/src/plugin/withAndroid.ts'
+
+jobs:
+  verify:
+    name: Verify Capture SDK versions are in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract and compare versions
+        run: |
+          set -e
+
+          PACKAGE_JSON_VERSION=$(node -p "require('./packages/react-native/package.json').captureSdkVersion")
+          PODSPEC_VERSION=$(grep "capture_version = '" packages/react-native/BdReactNative.podspec | sed "s/.*capture_version = '\([^']*\)'.*/\1/")
+          GRADLE_VERSION=$(grep "api 'io.bitdrift:capture:" packages/react-native/android/build.gradle | sed "s/.*api 'io.bitdrift:capture:\([^']*\)'.*/\1/")
+          ANDROID_PLUGIN_VERSION=$(grep "id 'io.bitdrift.capture-plugin' version" packages/react-native/src/plugin/withAndroid.ts | sed "s/.*version '\([^']*\)'.*/\1/")
+
+          echo "Capture SDK versions found:"
+          echo "  package.json:    $PACKAGE_JSON_VERSION"
+          echo "  podspec:         $PODSPEC_VERSION"
+          echo "  build.gradle:    $GRADLE_VERSION"
+          echo "  withAndroid.ts:  $ANDROID_PLUGIN_VERSION"
+
+          MISMATCH=0
+
+          if [ "$PACKAGE_JSON_VERSION" != "$PODSPEC_VERSION" ]; then
+            echo "::error::Version mismatch: package.json ($PACKAGE_JSON_VERSION) != podspec ($PODSPEC_VERSION)"
+            MISMATCH=1
+          fi
+
+          if [ "$PACKAGE_JSON_VERSION" != "$GRADLE_VERSION" ]; then
+            echo "::error::Version mismatch: package.json ($PACKAGE_JSON_VERSION) != build.gradle ($GRADLE_VERSION)"
+            MISMATCH=1
+          fi
+
+          if [ "$PACKAGE_JSON_VERSION" != "$ANDROID_PLUGIN_VERSION" ]; then
+            echo "::error::Version mismatch: package.json ($PACKAGE_JSON_VERSION) != withAndroid.ts ($ANDROID_PLUGIN_VERSION)"
+            MISMATCH=1
+          fi
+
+          if [ "$MISMATCH" -eq 1 ]; then
+            echo ""
+            echo "All Capture SDK version strings must match."
+            echo "Run: ./scripts/update_rn_capture_version.sh <version>"
+            exit 1
+          fi
+
+          echo ""
+          echo "All Capture SDK versions are in sync: $PACKAGE_JSON_VERSION"

@@ -1,0 +1,28 @@
+{
+  "name": "@bitdrift/electron",
+  "version": "0.2.1",
+  "description": "Electron support of the bitdrift SDK",
+  "license": "See license in LICENSE file",
+  "keywords": [
+    "bitdrift",
+    "bd-electron",
+    "bdcore"
+  ],
+  "author": {
+    "name": "bitdrift",
+    "url": "https://bitdrift.io",
+    "email": "info@bitdrift.io"
+  },
+  "bugs": {
+    "url": "https://github.com/bitdriftlabs/capture-es/issues"
+  },
+  "dependencies": {
+    "@bitdrift/core": "^0.2.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "electron": ">=28"
+  }
+}

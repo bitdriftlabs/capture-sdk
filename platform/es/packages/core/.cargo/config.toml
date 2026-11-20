@@ -1,0 +1,93 @@
+[profile.release]
+# Debug disabled to increase CI speed and reduce image size. If we need to do profiling
+# we can temporarily enable this.
+debug           = false
+lto             = "thin"
+split-debuginfo = "off"
+
+[profile.ci-test]
+debug    = false
+inherits = "test"
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-args=-Wl,-undefined,dynamic_lookup"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-args=-Wl,-undefined,dynamic_lookup"]
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+# Specific to cross compiling on Ubuntu 22.04.
+[target.aarch64-unknown-linux-gnu]
+rustflags = [
+  "-C",
+  "linker=aarch64-linux-gnu-gcc",
+  "-C",
+  "link-args=-B/usr/bin",
+  "-C",
+  "link-args=-fuse-ld=lld",
+]
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+#####################################
+# Warnings and Linter Configuration #
+#####################################
+# This is a hack to work around the fact that neither rustc, cargo, nor clippy
+# allows globally configuring lints. To avoid having to copy a massive block of
+# allow/warn/deny statements to the top of every file, we configure them as
+# all-profile compiler flags here.
+[target.'cfg(all())']
+rustflags = [
+  "-Dwarnings",
+  "-Dfuture-incompatible",
+  "-Dnonstandard-style",
+  "-Drust-2018-compatibility",
+  "-Drust-2018-idioms",
+  "-Drust-2021-compatibility",
+  "-Dunused",
+  "-Dclippy::all",
+  "-Dclippy::correctness",
+  "-Dclippy::suspicious",
+  "-Dclippy::style",
+  "-Dclippy::complexity",
+  "-Dclippy::perf",
+  "-Dclippy::pedantic",
+  "-Dclippy::nursery",
+
+  # The following produces very annoying error lines over entire async functions when there
+  # are compile errors. Trying enabling this again later.
+  "-Arust_2021_incompatible_closure_captures",
+
+  "-Aclippy::future-not-send",
+  "-Aclippy::missing-errors-doc",
+  "-Aclippy::missing-panics-doc",
+  "-Aclippy::module-name-repetitions",
+  "-Aclippy::similar-names",
+  "-Aclippy::too-many-arguments",
+  "-Aclippy::too-many-lines",
+  "-Aclippy::unnecessary-wraps",
+  "-Aclippy::unused-async",
+
+  # Appears spurious on 1.62. Try to remove later.
+  "-Aclippy::redundant-pub-crate",
+
+  # Doesn't seem to work well, disable for now.
+  "-Aclippy::significant-drop-in-scrutinee",
+  "-Aclippy::significant-drop-tightening",
+
+  # ProtoHashWrapper causes this to trigger due to the mutable cached size within the message.
+  # The cache sized field is correctly handled but there doesn't seem to be a way to turn this
+  # off for a type.
+  "-Aclippy::mutable-key-type",
+]
+
+# Fetch internal repos via git
+[net]
+git-fetch-with-cli = true
+
+# Make sure we don't compile protoc
+[env]
+PROTOC_NO_VENDOR = "true"

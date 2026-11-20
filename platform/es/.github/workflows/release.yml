@@ -1,0 +1,181 @@
+name: Electron Release
+env:
+  DEBUG: napi:*
+  APP_NAME: core
+  MACOSX_DEPLOYMENT_TARGET: '10.13'
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Select the target project(s) to release'
+        type: choice
+        required: true
+        options:
+          - "@bitdrift/core, @bitdrift/electron"
+          - "@bitdrift/electron"
+          # Allowing core alone is a bit of a footgun, because the developer
+          # will need to manually update the version in @bitdrift/electron too.
+          # - "@bitdrift/core"
+
+      version:
+        description: 'The package version to use e.g. 1.80.0'
+        required: true
+        type: string
+
+jobs:
+  build-core:
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            target: x86_64-apple-darwin
+          - host: macos-latest
+            target: aarch64-apple-darwin
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+          - host: windows-latest
+            target: i686-pc-windows-msvc
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+    name: stable - ${{ matrix.settings.target }}
+    runs-on: ${{ matrix.settings.host }}
+    if: contains(github.event.inputs.targets, '@bitdrift/core')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+
+      - name: Setup linux dependencies
+        if: ${{ matrix.settings.host == 'ubuntu-latest' }}
+        run: sudo apt-get install -y lld
+
+      - name: Setup rust/dependencies
+        run: rustup target add ${{ matrix.settings.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            .cargo-cache
+            target/
+          key: ${{ matrix.settings.target }}-cargo
+
+      - name: Build
+        run: npm exec nx build "@bitdrift/core" -- --args="--target ${{ matrix.settings.target }}"
+        env:
+          SKIP_PROTO_GEN: true
+
+      - name: Azure login
+        uses: azure/login@v2
+        if: contains(matrix.settings.target, 'windows')
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Codesign Microsoft build with Trusted Signing
+        uses: azure/trusted-signing-action@v0.5.0
+        if: contains(matrix.settings.target, 'windows')
+        with:
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: bitdrift
+          certificate-profile-name: PublicTrust
+          files-folder: ${{ github.workspace }}\packages\core
+          files-folder-filter: ${{ env.APP_NAME }}.win32-*.node
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Codesign macOS build
+        if: contains(matrix.settings.target, 'darwin')
+        run: bash tools/sign.sh packages/core/${{ env.APP_NAME }}.darwin-*.node
+        env:
+          BITDRIFT_CERT_P12: ${{ secrets.BITDRIFT_CERT_P12 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: packages/core/${{ env.APP_NAME }}.*.node
+          if-no-files-found: error
+
+  test-core-in-host:
+    name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
+    if: contains(github.event.inputs.targets, '@bitdrift/core')
+    needs: [build-core]
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            target: aarch64-apple-darwin
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: packages/core
+      - name: Test bindings
+        run: npm exec nx test:artifacts:js @bitdrift/core
+
+  nop-test:
+    name: No-op test
+    if: contains(github.event.inputs.targets, '@bitdrift/core') == false
+    needs: [build-core]
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: [test-core-in-host, build-core]
+    if: always() && contains(needs.*.result, 'success')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: packages/core/artifacts
+      - name: Move artifacts
+        run: npm exec nx move-artifacts @bitdrift/core
+      - name: Publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          VERSION: ${{ github.event.inputs.version }}
+          TARGETS: ${{ github.event.inputs.targets }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # TODO: Enable this once we go public
+          # NPM_CONFIG_PROVENANCE: true
+        run: bash tools/release.sh

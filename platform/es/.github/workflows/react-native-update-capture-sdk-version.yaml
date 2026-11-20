@@ -1,0 +1,84 @@
+name: React Native Update Version
+on:
+    workflow_call:
+      inputs:
+        version:
+          description: 'The Capture SDK version to release, ex: 0.18.6'
+          required: true
+          type: string
+    workflow_dispatch:
+      inputs:
+        version:
+          description: 'The Capture SDK version to release, ex: 0.18.6'
+          required: true
+          type: string
+          
+jobs:
+  update-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: ./.github/actions/javascript-setup
+
+      - name: Run update_rn_capture_version.sh to pick latest capture-sdk version
+        id: update-capture-sdk-version
+        run: ./scripts/update_rn_capture_version.sh ${{ inputs.version }}
+
+      - name: Calculate React Native version from Capture SDK
+        env:
+          CAPTURE_SDK_VERSION: ${{ inputs.version }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const parse = (version) => {
+            if (!/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(version)) {
+              throw new Error(`Expected a stable major.minor.patch version: ${version}`);
+            }
+            return version.split('.').map(Number);
+          };
+          const sdkVersion = process.env.CAPTURE_SDK_VERSION;
+          const [major, minor, patch] = parse(sdkVersion);
+          const currentVersion = require('./packages/react-native/package.json').version;
+          const published = JSON.parse(execFileSync('npm', [
+            'view', '@bitdrift/react-native', 'versions', '--json', '--prefer-online'
+          ], { encoding: 'utf8' }));
+          let highestPatch = -1;
+          for (const version of [currentVersion, ...published.filter(v => !v.includes('-') && !v.includes('+'))]) {
+            const [rnMajor, rnMinor, rnPatch] = parse(version);
+            if (rnMajor > major || (rnMajor === major && rnMinor > minor)) {
+              throw new Error(`React Native ${version} is ahead of Capture SDK ${sdkVersion} in major/minor. Resolve manually.`);
+            }
+            if (rnMajor === major && rnMinor === minor) {
+              highestPatch = Math.max(highestPatch, rnPatch);
+            }
+          }
+          const version = `${major}.${minor}.${Math.max(patch, highestPatch + 1)}`;
+          fs.writeFileSync('.auto-release-react-version', `${version}\n`);
+          console.log(`Capture SDK ${sdkVersion} -> React Native ${version}`);
+          NODE
+
+      - name: Create Pull Request with Capture SDK version bump
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Update Capture SDK version to ${{ inputs.version }}"
+          commit-message: Update Capture SDK version to ${{ inputs.version }}
+          committer: GitHub Action <noreply@github.com>
+          base: main
+          delete-branch: true
+          branch: update-capture-sdk-${{ inputs.version }}
+          body: |
+            This PR updates the Capture SDK to version ${{ inputs.version }}.
+            
+            https://github.com/bitdriftlabs/capture-sdk/releases/tag/v${{ inputs.version }}
+
+

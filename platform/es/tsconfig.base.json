@@ -1,0 +1,26 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "paths": {
+      "@bitdrift/core": ["./packages/core/index.d.ts"],
+      "@bitdrift/core-darwin-arm64": ["./packages/core/core.darwin-arm64.node"],
+      "@bitdrift/electron": ["./packages/electron/src/index.ts"],
+      "@bitdrift/electron/renderer": ["./packages/electron/src/renderer.ts"],
+      "@bitdrift/react-native": ["./packages/react-native/src/index.tsx"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

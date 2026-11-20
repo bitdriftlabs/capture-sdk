@@ -1,0 +1,59 @@
+[package]
+authors      = ["bitdrift"]
+categories   = ["development-tools::debugging"]
+description  = "bitdrift SDK integration"
+edition      = "2021"
+exclude      = ["*.node"]
+keywords     = ["bitdrift", "sdk", "node", "rust"]
+license-file = "LICENSE"
+name         = "core"
+repository   = "https://github.com/bitdriftlabs/capture-es"
+version      = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow                  = "1.0.98"
+bd-client-common        = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-device               = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-events               = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-hyper-network        = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-key-value            = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-log                  = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-log-primitives       = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-logger               = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-metadata             = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-resource-utilization = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-session              = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-session-replay       = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-shutdown             = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-time                 = { git = "https://github.com/bitdriftlabs/shared-core" }
+ctor                    = "0.2.9"
+
+
+# Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
+napi        = { version = "2.16.17", default-features = false, features = ["napi4", "anyhow"] }
+napi-derive = "2.16.13"
+parking_lot = "0.12.3"
+time        = "0.3.41"
+tokio       = "1.45.0"
+tracing     = "0.1.41"
+uuid        = "1.16.0"
+
+[dev-dependencies]
+assert_matches   = "1.5.0"
+bd-client-common = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-proto         = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-runtime       = { git = "https://github.com/bitdriftlabs/shared-core" }
+bd-test-helpers  = { git = "https://github.com/bitdriftlabs/shared-core" }
+tempdir          = "0.3"
+
+[build-dependencies]
+napi-build = "2.2.0"
+
+[profile.release]
+codegen-units   = 1
+lto             = true
+overflow-checks = false
+strip           = true
