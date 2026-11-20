@@ -1,0 +1,50 @@
+name: ES Lint & Tests
+on:
+  pull_request:
+    paths:
+      - 'platform/es/**'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+defaults:
+  run:
+    working-directory: platform/es
+permissions:
+  contents: read
+env:
+  NX_BASE: ${{ github.event.pull_request.base.sha }}
+  NX_HEAD: ${{ github.sha }}
+jobs:
+  test:
+    name: ES tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # Nx compares the PR checkout with its base commit.
+          fetch-depth: 0
+
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+
+      - name: Test
+        run: npm run test
+
+  lint:
+    name: ES lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # Nx compares the PR checkout with its base commit.
+          fetch-depth: 0
+
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+
+      - name: Lint
+        run: npm run lint

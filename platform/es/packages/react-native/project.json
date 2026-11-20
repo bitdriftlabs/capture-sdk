@@ -57,19 +57,6 @@
         "parallel": false
       },
       "outputs": ["{workspaceRoot}/dist"]
-    },
-    "TODOrelease": {
-      "executor": "nx:run-commands",
-      "dependsOn": ["prepare-release"],
-      "options": {
-        "commands": [
-          "VERSION=$(jq -r '.version' dist/react-native/package.json)",
-          "git tag -a v$VERSION -m \"Release v$VERSION\"",
-          "git push origin v$VERSION",
-          "npm publish dist/react-native"
-        ],
-        "parallel": false
-      }
     }
   }
 }

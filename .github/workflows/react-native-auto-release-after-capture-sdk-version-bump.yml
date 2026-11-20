@@ -1,0 +1,39 @@
+name: React Native auto release upon a new Capture SDK release
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'platform/es/.auto-release-react-version'
+
+permissions:
+  contents: read
+  actions: write
+
+defaults:
+  run:
+    working-directory: platform/es
+
+jobs:
+  auto-publish:
+    if: >-
+      github.event.pull_request.merged &&
+      startsWith(github.event.pull_request.title, 'Update Capture SDK version to ') &&
+      github.event.pull_request.user.login == 'bitdrift-opening-capture-sdk-prs[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          persist-credentials: false
+
+      - name: Dispatch the React Native release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(tr -d '\n\r' < .auto-release-react-version)
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Invalid React Native release version: $version"
+            exit 1
+          fi
+          gh workflow run react-native-release.yml --ref main --raw-field "version=$version"
