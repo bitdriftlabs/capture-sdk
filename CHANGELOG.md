@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.51.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.52.0...HEAD
 
 ### Both
 
@@ -11,12 +11,7 @@
 
 **Changed**
 
-- Command results and workflow attachments use whole-file upload through 1 MiB logical size and
-  chunked upload above it for byte, file-handle and path sources, with a 256 MiB inclusive ceiling
-  and a runtime-configurable lower admission limit. One native store owns and accounts for retained
-  and upload-ready whole/chunked payloads, reports and snapshots, bounded at 64 artifacts and 640
-  MiB including staging reservations. Capacity pressure rejects new work instead of evicting
-  accepted uploads.
+- Nothing yet!
 
 **Fixed**
 
@@ -26,46 +21,78 @@
 
 **Added**
 
-- Added the built-in `heap_profile_trace` remote command. It records a Perfetto heap profile of
-  the app process through `ProfilingManager` on Android 15 and later and uploads the trace as the
-  command attachment.
-- Added Android 15+ support for the built-in `system_trace` and `memory_dump` commands for direct
-  and workflow capture. System traces are redacted by Android; ART heap graphs are not log-redacted.
-- Added system-triggered ANR (Android 16+) and Java OutOfMemoryError (Android 17+) profiles attached
-  to the matching fatal issue reports. While enabled, the SDK owns these `ProfilingManager` trigger
-  types and, for ANR, the process-state summary. Opt in at SDK start with
-  `Configuration(crashProfilingMode = CrashProfilingMode.AUTOMATIC)` (`null` disables profiling by
-  default); fatal issue reporting must also be enabled. The
-  `client_feature.android.crash_profiles.anr` and `client_feature.android.crash_profiles.oom`
-  runtime flags, both enabled by default, control collection within that opt-in at each
-  platform-event listener start (normally the next process). Native attribution separately checks
-  the live flags. On-demand profiling is unaffected.
-- Added non-destructive `Capture.Logger.importCrashProfile` and `CrashProfilingMode.MANUAL` for apps
-  that coordinate their own profiling listeners and file lifecycle. Automatic collection adopts
-  files by rename into SDK-private storage, avoiding an extra payload copy. Pending profiles have a
-  separately bounded private store and expire after seven days.
+- Nothing yet!
 
 **Changed**
 
-- File-backed ANR/OOM profiles use whole-file upload through 1 MiB and chunked upload above it,
-  supporting up to 256 MiB per file. Both representations use common native artifact capacity. The
-  same runtime setting controls per-file admission and aggregate private pending storage, defaulting
-  to 256 MiB and capped at that ceiling. Files enter shared upload admission after attribution.
-  Durably staged profiles retain their identity and report links across restart and policy changes.
-- Screenshot commands composite visible app windows, including dialogs and popups, into one JPEG.
+- Nothing yet!
 
 **Fixed**
 
-- Fixed capture-plugin debug-file uploads by updating the bundled bd CLI to 0.2.48 and passing
-  custom base domains to the upload command.
-- Fixed excessive JVM heap usage when capture-plugin downloads the bundled bd CLI.
-- Screenshot commands mask `FLAG_SECURE` windows with black rectangles.
+- Nothing yet!
 
 ### iOS
 
 **Added**
 
 - Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.52.0]
+[0.52.0]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.52.0...HEAD
+
+### Both
+
+**Added**
+
+- Added built-in commands to read, update, remove and clear app settings (UserDefaults on iOS / SharedPreferences on iOS)
+- Added built-in commands to list, size, clear and delete files in the app cache.
+- Added optional deduplication of persistent log fields to reduce on-device buffer usage.
+
+**Changed**
+
+- Command attachments and Android crash profiles now support compressed, resumable uploads up to
+  256 MiB per file.
+- Command errors now use a single `message` parameter instead of `title` and `description`.
+- Improved workflow matching performance.
+
+**Fixed**
+
+- Applied data scrubbing before log filters and workflows, and to crash-report metadata on upload.
+- Fixed local command expiration being affected by system clock changes.
+
+### Android
+
+**Added**
+
+- Added the built-in `heap_profile_trace`, `system_trace` and `memory_dump` commands on Android 15+.
+- Added opt-in ANR (Android 16+) and Java OutOfMemoryError (Android 17+) profiles attached to fatal
+  issue reports, with automatic collection and manual import support.
+
+**Changed**
+
+- Screenshot commands now include visible app windows, dialogs and popups in one JPEG.
+
+**Fixed**
+
+- Fixed capture-plugin debug-file uploads with custom base domains and updated the bundled bd CLI
+  to 0.2.48.
+- Fixed excessive JVM heap usage when capture-plugin downloads the bundled bd CLI.
+- Screenshot commands now mask `FLAG_SECURE` windows with black rectangles.
+
+### iOS
+
+**Added**
+
+- Added the built-in `memory_dump` command to capture memory counters, virtual memory regions and
+  a heap inventory.
 
 **Changed**
 
