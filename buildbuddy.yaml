@@ -65,12 +65,11 @@ actions:
             --lockfile_mode=error \
             -- //:ios_dist //:check_ios_release_xcframework \
             //examples/swift/hello_world:ios_app_size_unsigned.ipa \
-            //examples/swift/hello_world:ios_app_simulator_artifact \
-            //test/platform/swift/benchmark:ios_benchmark_runner_artifact
+            //examples/swift/hello_world:ios_app_simulator_artifact
           # The Apple transition puts the IPA outside the bazel-bin symlink.
           python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
             Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa \
-            ios_app.ipa=ios_hello_world_simulator.ipa benchmark_runner.tar.gz
+            ios_app.ipa=ios_hello_world_simulator.ipa
 
   - name: Android release artifacts
     triggers: {}

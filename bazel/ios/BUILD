@@ -1,4 +1,3 @@
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@ios_signing_overrides//:signing_overrides.bzl", "PROFILE_NAME", "TEAM_ID")
 load("@rules_apple//apple:apple.bzl", "local_provisioning_profile")
 load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
@@ -44,18 +43,6 @@ alias(
 config_setting(
     name = "produce_framework_plist",
     values = {"define": "ios_produce_framework_plist=true"},
-)
-
-bool_flag(
-    name = "omit_framework_plist",
-    build_setting_default = False,
-)
-
-config_setting(
-    name = "omit_framework_plist_for_test_bundle",
-    define_values = {"ios_produce_framework_plist": "true"},
-    flag_values = {":omit_framework_plist": "true"},
-    visibility = ["//visibility:public"],
 )
 
 # Rust host tools retain the ordinary host sysroot. Only iOS Simulator targets

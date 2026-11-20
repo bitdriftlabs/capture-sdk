@@ -17,7 +17,7 @@ TSAN_LINKOPTS = select({
 # - Provides a set of linker options that is required to properly run tests
 # - Sets default visibility and OS requirements
 #
-def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = [], xcode = "", simulator = "", build_data = [], swift_features = []):
+def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = [], xcode = "", simulator = "", build_data = []):
     test_lib_name = name + "_lib"
     wrapped = "macos_only" in tags
     xctest_name = name + "_xctest" if wrapped else name
@@ -27,7 +27,6 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
         srcs = srcs,
         data = data,
         deps = deps,
-        features = swift_features,
         linkopts = ["-lresolv.9"],
         testonly = True,
         visibility = ["//visibility:private"],

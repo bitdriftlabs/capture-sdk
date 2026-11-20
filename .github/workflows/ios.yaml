@@ -64,7 +64,6 @@ jobs:
             ci/stage_bazel_artifacts.py
             ci/verify_ios_simulator_ipa.sh
             ci/ios_ci_simulator.sh
-            ci/run_ios_benchmark_artifact.sh
             ci/ios_app_size_report.sh
             ci/parse_ios_app_thinning_report.py
             ci/capture_ios_binary_size.sh
@@ -165,38 +164,6 @@ jobs:
           ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$ARTIFACT_COMMIT" "$RUNNER_TEMP" \
             ios_hello_world_simulator.ipa
           ./ci/verify_ios_simulator_ipa.sh "$RUNNER_TEMP/ios_hello_world_simulator.ipa"
-
-  ios_benchmark:
-    name: iOS benchmark
-    timeout-minutes: 30
-    needs: ios_release_artifacts
-    runs-on: macos-26
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.ios_release_artifacts.outputs.commit }}
-
-      - name: Install dependencies
-        run: ./ci/mac_ci_setup.sh
-
-      - name: Download and run the benchmark
-        env:
-          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
-          ARTIFACT_INVOCATION_ID: ${{ needs.ios_release_artifacts.outputs.invocation_id }}
-          ARTIFACT_COMMIT: ${{ needs.ios_release_artifacts.outputs.commit }}
-        run: |
-          set -euo pipefail
-          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$ARTIFACT_COMMIT" "$RUNNER_TEMP" \
-            benchmark_runner.tar.gz
-          ./ci/run_ios_benchmark_artifact.sh "$RUNNER_TEMP/benchmark_runner.tar.gz" ios-benchmark-output
-
-      - name: Upload benchmark results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-benchmark-results
-          path: ios-benchmark-output/
 
   clippy:
     name: iOS Clippy
@@ -610,7 +577,6 @@ jobs:
         "pre_check",
         "clippy",
         "swift_hello_world",
-        "ios_benchmark",
         "ios_release_artifacts",
         "ios_size_comparison",
         "ios_size_baseline",
@@ -626,7 +592,6 @@ jobs:
           ./ci/check_result.sh ${{ needs.pre_check.result }} \
           && ./ci/check_result.sh ${{ needs.clippy.result }} \
           && ./ci/check_result.sh ${{ needs.swift_hello_world.result }} \
-          && ./ci/check_result.sh ${{ needs.ios_benchmark.result }} \
           && ./ci/check_result.sh ${{ needs.ios_release_artifacts.result }} \
           && ./ci/check_result.sh ${{ needs.ios_size_comparison.result }} \
           && ./ci/check_result.sh ${{ needs.ios_size_baseline.result }}
