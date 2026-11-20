@@ -40,6 +40,20 @@ tasks.withType<PluginUnderTestMetadata>().configureEach {
     pluginClasspath.from(pluginTestClasspath)
 }
 
+val pluginProjectDirectory = layout.projectDirectory
+val cliTestBinary = providers.environmentVariable("BD_CLI_TEST_BINARY").map(pluginProjectDirectory::file)
+
+tasks.named<Test>("test") {
+    inputs.file(cliTestBinary)
+        .withPropertyName("cliTestBinary")
+        .withPathSensitivity(PathSensitivity.NONE)
+        .optional()
+
+    // The downloader's version is tracked through the test classpath, and it selects a binary for the host.
+    inputs.property("cliHostOs", providers.systemProperty("os.name"))
+    inputs.property("cliHostArch", providers.systemProperty("os.arch"))
+}
+
 mavenPublishing {
     configureBasedOnAppliedPlugins()
 
