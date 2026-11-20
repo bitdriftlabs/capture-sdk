@@ -402,16 +402,22 @@ pub fn run_large_upload_test_impl(
 
   handle.blocking_next_configuration_ack();
 
-  for _ in 0 .. 22 {
-    logger_id.log(
-      log_level::DEBUG,
-      LogType::NORMAL,
-      LogMessage::Bytes(vec![0; 100_000].into()),
-      [].into(),
-      [].into(),
-      None,
-      &CaptureSession::default(),
-    );
+  const LOG_COUNT: usize = 22;
+  const LOGS_PER_FLUSH: usize = 5;
+
+  // Keep each burst below the async log queue's 1 MiB limit while amortizing the stats flush.
+  for batch_start in (0 .. LOG_COUNT).step_by(LOGS_PER_FLUSH) {
+    for _ in batch_start .. (batch_start + LOGS_PER_FLUSH).min(LOG_COUNT) {
+      logger_id.log(
+        log_level::DEBUG,
+        LogType::NORMAL,
+        LogMessage::Bytes(vec![0; 100_000].into()),
+        [].into(),
+        [].into(),
+        None,
+        &CaptureSession::default(),
+      );
+    }
 
     logger_id.flush_state(Block::Yes {
       timeout: std::time::Duration::from_secs(5),
@@ -420,7 +426,9 @@ pub fn run_large_upload_test_impl(
   }
 
   let Some(log_upload) = handle.blocking_next_log_upload() else {
-    bail!("Failed to receive log upload - no upload received after logging 22 large messages");
+    bail!(
+      "Failed to receive log upload - no upload received after logging {LOG_COUNT} large messages"
+    );
   };
 
   let log_count = log_upload.logs().len();
