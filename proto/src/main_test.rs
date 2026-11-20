@@ -5,12 +5,18 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
-use super::{builtin_commands, camel_case};
+use super::{BuiltinCommand, builtin_commands, camel_case};
 use std::collections::BTreeMap;
+use std::path::Path;
+
+fn commands() -> Vec<BuiltinCommand> {
+  let schema = std::env::var("WORKFLOW_COMMAND_PROTO").expect("missing test schema");
+  builtin_commands(Path::new(&schema))
+}
 
 #[test]
 fn builtin_metadata_preserves_wire_ids_and_keys() {
-  let commands = builtin_commands()
+  let commands = commands()
     .into_iter()
     .map(|(name, value, key, _)| (name, (value, key)))
     .collect::<BTreeMap<_, _>>();
@@ -53,7 +59,7 @@ fn command_names_use_camel_case() {
 
 #[test]
 fn builtin_arguments_carry_their_proto_names_and_kotlin_types() {
-  let arguments = builtin_commands()
+  let arguments = commands()
     .into_iter()
     .map(|(name, _, _, arguments)| (name, arguments))
     .collect::<BTreeMap<_, _>>();
