@@ -11,6 +11,9 @@
 /bazel-*
 **/Bazel Generated/
 
+# Downloaded CI formatters
+/formatters/
+
 # Claude code
 .claude/settings.local.json
 

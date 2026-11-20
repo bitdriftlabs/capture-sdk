@@ -28,7 +28,7 @@ fi
 rust_sources=()
 while IFS= read -r -d '' source; do
   rust_sources+=("$source")
-done < <(git ls-files -z -- '*.rs')
+done < <(git ls-files -z -- '*.rs' ':(exclude)platform/es')
 
 "$rustfmt" --config-path "$BUILD_WORKSPACE_DIRECTORY/rustfmt.toml" "${{rust_sources[@]}}"
 """.format(
