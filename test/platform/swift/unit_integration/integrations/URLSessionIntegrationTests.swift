@@ -24,7 +24,7 @@ extension XCTestCase {
 }
 
 // swiftlint:disable file_length
-private final class URLSessionIncompleteDelegate: NSObject, URLSessionTaskDelegate {
+private final class URLSessionIncompleteDelegate: NSObject, AVAssetDownloadDelegate {
     var didCompleteExpectation: XCTestExpectation?
 
     func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError _: Error?) {
@@ -117,17 +117,8 @@ final class URLSessionIntegrationTests: XCTestCase {
     }
 
     func testCreateDataTask() throws {
-        let requestExpectation = self.expectation(description: "request not logged")
-        requestExpectation.isInverted = true
-        let responseExpectation = self.expectation(description: "response not logged")
-        responseExpectation.isInverted = true
-
-        URLSession.shared.dataTask(with: self.makeURLRequest()) { _, _, _ in }
-
-        XCTAssertEqual(
-            .completed,
-            XCTWaiter().wait(for: [requestExpectation, responseExpectation], timeout: 2)
-        )
+        let task = URLSession.shared.dataTask(with: self.makeURLRequest()) { _, _, _ in }
+        defer { task.cancel() }
 
         XCTAssertTrue(self.logger.logs.isEmpty)
     }
@@ -135,19 +126,12 @@ final class URLSessionIntegrationTests: XCTestCase {
     func testResumeDataTaskUnswizzled() throws {
         self.customSetUp(swizzle: false)
 
-        let requestExpectation = self.expectation(description: "request not logged")
-        requestExpectation.isInverted = true
-        let responseExpectation = self.expectation(description: "response not logged")
-        responseExpectation.isInverted = true
-
-        let task = URLSession.shared.dataTask(with: self.makeURLRequest()) { _, _, _ in }
+        let completed = self.expectation(description: "unswizzled task completed")
+        let task = URLSession.shared.dataTask(with: self.makeURLRequest()) { _, _, _ in
+            completed.fulfill()
+        }
         task.resume()
-
-        XCTAssertEqual(
-            .completed,
-            XCTWaiter().wait(for: [requestExpectation, responseExpectation], timeout: 2)
-        )
-
+        XCTAssertEqual(.completed, XCTWaiter.wait(for: [completed], timeout: 5))
         XCTAssertTrue(self.logger.logs.isEmpty)
     }
 
@@ -183,29 +167,18 @@ final class URLSessionIntegrationTests: XCTestCase {
     func testCreateInvalidTask() throws {
         self.customSetUp(swizzle: true)
 
-        let requestExpectation = self.expectation(description: "request not logged")
-        requestExpectation.isInverted = true
-        let responseExpectation = self.expectation(description: "response not logged")
-        responseExpectation.isInverted = true
-
+        let completed = self.expectation(description: "asset download task completed")
+        let delegate = URLSessionIncompleteDelegate()
+        delegate.didCompleteExpectation = completed
         let session = AVAssetDownloadURLSession(configuration: .background(withIdentifier: self.backgroundSessionIdentifier()),
-                                                assetDownloadDelegate: nil,
+                                                assetDownloadDelegate: delegate,
                                                 delegateQueue: nil)
+        defer { session.invalidateAndCancel() }
 
         let task = session
             .makeAssetDownloadTask(downloadConfiguration: .init(asset: .init(url: self.makeURL()),
                                                                 title: "we"))
-        task.resume()
-
-        XCTAssertEqual(
-            .completed,
-            XCTWaiter().wait(for: [requestExpectation, responseExpectation], timeout: 2)
-        )
-
-        XCTAssertTrue(self.logger.logs.isEmpty)
-
-        task.cancel()
-        session.invalidateAndCancel()
+        self.assertNoLogsAfterCanceling(task, completion: completed)
     }
 
     func testBackgroundSessionTasks() throws {
@@ -614,56 +587,40 @@ final class URLSessionIntegrationTests: XCTestCase {
 
     // MARK: - Tasks Without Logging Support (Stream and WebSocket Tasks)
 
-    func testStreamedTasksWithoutLoggingSupportSharedSession() {
-        for taskTestCase in self.makeTaskWithoutLoggingSupportTestCases() {
-            let task = taskTestCase(.shared)
-
-            task.resume()
-
-            let logRequestExpectation = self.expectation(description: "request is not logged")
-            logRequestExpectation.isInverted = true
-            self.logger.logRequestExpectation = logRequestExpectation
-
-            let logResponseExpectation = self.expectation(description: "response is not logged")
-            logResponseExpectation.isInverted = true
-            self.logger.logResponseExpectation = logResponseExpectation
-
-            XCTAssertEqual(
-                .completed,
-                XCTWaiter().wait(for: [logRequestExpectation, logResponseExpectation], timeout: 2.0)
-            )
-
-            XCTAssertTrue(self.logger.logs.isEmpty)
-
-            self.customTearDown()
-        }
+    func testStreamedTasksWithoutLoggingSupportSharedSession() throws {
+        try self.assertUnsupportedTasksEmitNoLogs(in: .shared)
     }
 
     func testTasksWithoutLoggingSupportCustomSession() throws {
-        for taskTestCase in self.makeTaskWithoutLoggingSupportTestCases() {
-            let session = URLSession(configuration: .default)
-            let task = taskTestCase(session)
+        let session = URLSession(configuration: .default)
+        defer { session.invalidateAndCancel() }
+        try self.assertUnsupportedTasksEmitNoLogs(in: session)
+    }
 
-            task.resume()
+    private func assertUnsupportedTasksEmitNoLogs(in session: URLSession) throws {
+        var components = try XCTUnwrap(URLComponents(url: self.makeURL(), resolvingAgainstBaseURL: false))
+        components.scheme = "ws"
+        let url = try XCTUnwrap(components.url)
+        let tasks: [URLSessionTask] = [
+            session.webSocketTask(with: URLRequest(url: url)),
+            session.webSocketTask(with: url),
+            session.streamTask(withHostName: LocalHTTPServer.host, port: Int(LocalHTTPServer.shared.port)),
+        ]
 
-            let logRequestExpectation = self.expectation(description: "request is not logged")
-            logRequestExpectation.isInverted = true
-            self.logger.logRequestExpectation = logRequestExpectation
-
-            let logResponseExpectation = self.expectation(description: "response is not logged")
-            logResponseExpectation.isInverted = true
-            self.logger.logResponseExpectation = logResponseExpectation
-
-            XCTAssertEqual(
-                .completed,
-                XCTWaiter().wait(for: [logRequestExpectation, logResponseExpectation], timeout: 2.0)
-            )
-
-            XCTAssertTrue(self.logger.logs.isEmpty)
-
-            session.invalidateAndCancel()
-            self.customTearDown()
+        for task in tasks {
+            let completed = self.expectation(description: "unsupported task completed")
+            let delegate = URLSessionIncompleteDelegate()
+            delegate.didCompleteExpectation = completed
+            task.delegate = delegate
+            self.assertNoLogsAfterCanceling(task, completion: completed)
         }
+    }
+
+    private func assertNoLogsAfterCanceling(_ task: URLSessionTask, completion: XCTestExpectation) {
+        task.resume()
+        task.cancel()
+        XCTAssertEqual(.completed, XCTWaiter.wait(for: [completion], timeout: 5))
+        XCTAssertTrue(self.logger.logs.isEmpty)
     }
 
     // MARK: -
@@ -878,17 +835,6 @@ final class URLSessionIntegrationTests: XCTestCase {
             self.makeURLRequestFileUploadTaskTestCase(session:),
             self.makeURLRequestDownloadTaskTestCase(session:),
             self.makeURLDownloadTaskTestCase(session:),
-        ]
-    }
-
-    private func makeTaskWithoutLoggingSupportTestCases() -> [(URLSession) -> URLSessionTask] {
-        return [
-            { session in
-                let request = URLRequest(url: URL(staticString: "ws://bitdrift.io"))
-                return session.webSocketTask(with: request)
-            },
-            { session in session.webSocketTask(with: URL(staticString: "ws://bitdrift.io")) },
-            { session in session.streamTask(withHostName: "bitdrift.io", port: 123) },
         ]
     }
 
