@@ -4,6 +4,7 @@ load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
 load("@rules_multirun//:defs.bzl", "multirun")
 load("@rules_pkg//:pkg.bzl", "pkg_zip")
 load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
     "top_level_targets",
@@ -420,3 +421,42 @@ py_test(
     data = ["ci/update_release_version.sh"],
     main = "ci/update_release_version_test.py",
 )
+
+[
+    sh_test(
+        name = "android_smoke_api_" + api,
+        size = "large",
+        srcs = ["ci/verify_android.sh"],
+        args = [
+            api,
+            "$(rootpath @android_smoke_emulator//:emulator)",
+            "$(rootpath @androidsdk//:platform-tools/adb)",
+            "$(rootpath " + image + ":source.properties)",
+            "$(rootpath @android_smoke_apk//:android_app.apk)",
+        ],
+        data = [
+            "ci/android_emulator.sh",
+            "@android_smoke_apk//:android_app.apk",
+            "@android_smoke_emulator//:emulator",
+            "@android_smoke_emulator//:files",
+            "@androidsdk//:platform-tools/adb",
+            image + ":files",
+            image + ":source.properties",
+        ],
+        tags = [
+            # The local tests bind fixed ADB and emulator ports.
+            "exclusive-if-local",
+            # Only runners with KVM and a downloaded CI APK can run these tests.
+            "manual",
+            "no-remote-exec",
+        ],
+        target_compatible_with = [
+            "@platforms//cpu:x86_64",
+            "@platforms//os:linux",
+        ],
+    )
+    for api, image in [
+        ("23", "@android_smoke_image_api_23//"),
+        ("35", "@android_smoke_image_api_35//"),
+    ]
+]

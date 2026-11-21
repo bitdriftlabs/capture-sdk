@@ -415,42 +415,22 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: android_app.apk
-          path: .
-      - name: Setup Android emulator
-        uses: ./.github/actions/setup-android-emulator
+          path: tmp/android-smoke
+
+      - name: Set up Bazel
+        uses: ./.github/actions/setup
         with:
-          enable-bazel-cache: "false"
-          api-level: ${{ matrix.api-level }}
-          target: google_apis
-          arch: x86_64
-      - name: run tests
-        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+
+      - name: Enable KVM access
+        run: sudo chmod a+rw /dev/kvm
+
+      - name: Verify Hello World on the emulator
         timeout-minutes: 15
-        with:
-          force-avd-creation: false
-          channel: stable
-          api-level: ${{ matrix.api-level }}
-          target: google_apis
-          ram-size: 2048M
-          arch: x86_64
-          disk-size: 6144M
-          profile: Nexus 6
-          emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./ci/verify_android.sh
-      - name: Cache hint on hello world failure
-        if: ${{ failure() }}
         run: |
-          echo "Android hello world verification failed. Emulator diagnostics are available as a workflow artifact."
-      - name: Upload emulator diagnostics
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-emulator-diagnostics-api-${{ matrix.api-level }}
-          path: |
-            ~/.android/avd/**/*.ini
-            ~/.android/avd/**/*.log
-            /tmp/android-runner/**
-          if-no-files-found: warn
+          ./bazelw test --lockfile_mode=error --test_output=all \
+            --experimental_remote_downloader=grpcs://remote.buildbuddy.io \
+            //:android_smoke_api_${{ matrix.api-level }}
 
   # This is a noop job that completes once all the jobs spawned by the previous step completes. By blocking PR merges on this
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.

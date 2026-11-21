@@ -30,6 +30,15 @@ it in **Test** and routes Apple targets to the Mac executor. **Clippy** runs sep
 Gradle plugin, Timber, and emulator instrumentation checks run in GitHub Actions when their
 inputs change. The artifact workflows validate the packaged apps and report sizes.
 
+The Android Hello World smoke tests run on x86-64 Linux with KVM. Put the optimized APK from
+**Android CI artifacts** at `tmp/android-smoke/android_app.apk`, then run:
+
+```sh
+./bazelw test //:android_smoke_api_23 //:android_smoke_api_35
+```
+
+Bazel fetches the pinned emulator and Google APIs images for those targets.
+
 ## Local formatting
 
 `make format` uses Bazel-managed Kotlin and Rust formatters plus local `buildifier`, `taplo`,

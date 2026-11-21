@@ -237,6 +237,41 @@ archive_override(
     urls = ["https://github.com/keith/hermetic_android_toolchains/archive/9ac990099a55fa9045605666a42d42426da3f099.tar.gz"],
 )
 
+# The smoke tests need Google APIs images. The toolchain extension's system_image tag
+# selects AOSP images and would fetch them along with the SDK used by ordinary builds.
+http_archive(
+    name = "android_smoke_emulator",
+    build_file = "//:ci/android_emulator.BUILD",
+    sha256 = "a4405349d8a9c52136ab7861e5331dc40e85574bd91cb8889a298a2ff4c52e26",
+    strip_prefix = "emulator",
+    url = "https://dl.google.com/android/repository/emulator-linux_x64-16970787.zip",
+)
+
+http_archive(
+    name = "android_smoke_image_api_23",
+    build_file = "//:ci/android_system_image.BUILD",
+    sha256 = "062f654f35d76e936538f6d9bb464eee53053c2f4e807ca551d4ddd043889e4e",
+    strip_prefix = "x86_64",
+    url = "https://dl.google.com/android/repository/sys-img/google_apis/x86_64-23_r33.zip",
+)
+
+http_archive(
+    name = "android_smoke_image_api_35",
+    build_file = "//:ci/android_system_image.BUILD",
+    sha256 = "c67b9ba0ff5bc0eb6d046871bfa228af14d4d47b02f0cdae94f048e511b7566e",
+    strip_prefix = "x86_64",
+    url = "https://dl.google.com/android/repository/sys-img/google_apis/x86_64-35_r09.zip",
+)
+
+# The Android CI artifacts workflow builds this optimized APK once for size reports and smoke tests.
+new_local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
+
+new_local_repository(
+    name = "android_smoke_apk",
+    build_file_content = 'exports_files(["android_app.apk"])',
+    path = "tmp/android-smoke",
+)
+
 register_toolchains("//:kotlin_toolchain")
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
