@@ -6,5 +6,4 @@ bitdrift_mobile_swift_test(
         "E2EStartupConfigurationTests.swift",
         "//examples/swift/hello_world:E2EStartupConfiguration.swift",
     ],
-    tags = ["macos_only"],
 )
