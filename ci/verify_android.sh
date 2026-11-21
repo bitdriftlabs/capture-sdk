@@ -12,7 +12,7 @@ export ANDROID_SERIAL="emulator-${emulator_port}"
 export ANDROID_ADB_SERVER_PORT=5038
 
 # shellcheck source=ci/android_emulator.sh
-source "$(dirname "${BASH_SOURCE[0]}")/android_emulator.sh"
+source "$PWD/ci/android_emulator.sh"
 
 if [[ ! -c /dev/kvm || ! -r /dev/kvm || ! -w /dev/kvm ]]; then
   echo "The Android smoke test requires read/write access to /dev/kvm." >&2
