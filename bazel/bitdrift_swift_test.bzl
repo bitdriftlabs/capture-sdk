@@ -17,8 +17,7 @@ TSAN_LINKOPTS = select({
 # - Provides a set of linker options that is required to properly run tests
 # - Sets default visibility and OS requirements
 #
-# Enable parallel scheduling only for suites that use distinct simulators.
-def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = [], xcode = "", simulator = "", build_data = [], target_compatible_with = [], parallel = False):
+def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = [], xcode = "", simulator = "", build_data = [], target_compatible_with = []):
     test_lib_name = name + "_lib"
     xctest_name = name + "_xctest"
     tags = [tag for tag in tags if tag not in ["macos_only", "exclusive"]] + ["macos_only"]
@@ -60,7 +59,7 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
         simulator = simulator,
         timeout = "long",
         xctest = True,
-        tags = tags if parallel else tags + ["exclusive-if-local"],
+        tags = tags,
         target_compatible_with = target_compatible_with,
         visibility = visibility,
     )

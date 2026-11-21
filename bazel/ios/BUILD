@@ -1,6 +1,7 @@
 load("@ios_signing_overrides//:signing_overrides.bzl", "PROFILE_NAME", "TEAM_ID")
 load("@rules_apple//apple:apple.bzl", "local_provisioning_profile")
 load("@rules_apple//apple/testing/default_runner:ios_xctestrun_runner.bzl", "ios_xctestrun_runner")
+load("@rules_python//python:defs.bzl", "py_binary")
 load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load(
@@ -10,8 +11,16 @@ load(
 
 ios_xctestrun_runner(
     name = "swift_test_runner",
+    create_simulator_action = ":create_test_simulator",
     reuse_simulator = True,
     visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "create_test_simulator",
+    srcs = ["create_test_simulator.py"],
+    data = ["@rules_apple//apple/testing/default_runner:simulator_creator"],
+    deps = ["@rules_python//python/runfiles"],
 )
 
 sh_binary(

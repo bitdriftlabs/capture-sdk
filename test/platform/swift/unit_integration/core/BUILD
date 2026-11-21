@@ -4,7 +4,6 @@ bitdrift_mobile_swift_test(
     name = "test",
     srcs = glob(["**/*.swift"]) + ["//proto:report_swift_source"],
     data = glob(["testdata/*"]),
-    parallel = True,  # The iOS 27 suite uses a different simulator runtime.
     repository = "@capture",
     use_test_host = True,
     visibility = ["//visibility:public"],
@@ -31,7 +30,6 @@ bitdrift_mobile_swift_test(
     # Build the release framework shape with the same Xcode selection as this test.
     build_data = ["//platform/swift/source:capture_ios_static_framework"],
     data = glob(["testdata/*"]),
-    parallel = True,
     repository = "@capture",
     simulator = "27.0",
     target_compatible_with = select({
