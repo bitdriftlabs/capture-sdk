@@ -18,13 +18,14 @@ wait_for_android_emulator_ready() {
   local stable_checks=0
 
   for _ in $(seq 1 "$attempts"); do
-    sys_boot_completed="$(adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')"
-    dev_boot_completed="$(adb -s "$serial" shell getprop dev.bootcomplete 2>/dev/null | tr -d '\r')"
-    boot_anim="$(adb -s "$serial" shell getprop init.svc.bootanim 2>/dev/null | tr -d '\r')"
-    system_server_pid="$(adb -s "$serial" shell pidof system_server 2>/dev/null | tr -d '\r')"
+    # adb can briefly reject shell requests during boot or a system_server restart.
+    sys_boot_completed="$(adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+    dev_boot_completed="$(adb -s "$serial" shell getprop dev.bootcomplete 2>/dev/null | tr -d '\r' || true)"
+    boot_anim="$(adb -s "$serial" shell getprop init.svc.bootanim 2>/dev/null | tr -d '\r' || true)"
+    system_server_pid="$(adb -s "$serial" shell pidof system_server 2>/dev/null | tr -d '\r' || true)"
     if [[ ! "$system_server_pid" =~ ^[0-9]+$ ]]; then
       system_server_pid="$(adb -s "$serial" shell ps 2>/dev/null | tr -d '\r' |
-        awk '$NF == "system_server" { print $2 }')"
+        awk '$NF == "system_server" { print $2 }' || true)"
     fi
 
     if [[ "$sys_boot_completed" == "1" ]] &&
