@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Self-instrumenting test APK for the replay instrumentation tests built by Bazel.
+  Gradle ignores this file; it only reads src/androidTest/AndroidManifest.xml.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.bitdrift.gradletestapp.replaytest">
+
+    <uses-sdk
+        android:minSdkVersion="23"
+        android:targetSdkVersion="35" />
+
+    <instrumentation
+        android:name="androidx.test.runner.AndroidJUnitRunner"
+        android:targetPackage="io.bitdrift.gradletestapp.replaytest" />
+
+    <!--
+      The tests host content in androidx.activity.ComponentActivity, which ui-test-manifest
+      declares with its own theme, exactly as when Gradle merges it into gradle-test-app.
+    -->
+    <application />
+</manifest>

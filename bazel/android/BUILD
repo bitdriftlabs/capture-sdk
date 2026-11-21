@@ -36,5 +36,6 @@ exports_files(
         "cfi.ld",
         "detekt.yml",
         "detekt_javadocs.yml",
+        "run_instrumentation.sh",
     ],
 )
