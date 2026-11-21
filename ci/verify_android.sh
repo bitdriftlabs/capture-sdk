@@ -24,7 +24,15 @@ export HOME="$TEST_TMPDIR/home"
 export ANDROID_USER_HOME="$HOME/.android"
 export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
 export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
-unset ANDROID_HOME ANDROID_SDK_ROOT ANDROID_SDK_HOME ADB_SERVER_SOCKET
+unset ANDROID_SDK_HOME ADB_SERVER_SOCKET
+
+# The emulator resolves the AVD image through an SDK root with a platform-tools directory.
+export ANDROID_HOME="$TEST_TMPDIR/sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+readonly image_sysdir="system-images/android-$api_level/google_apis/x86_64"
+mkdir -p "$ANDROID_HOME/platform-tools" "$ANDROID_HOME/${image_sysdir%/*}"
+ln -s "$adb_binary" "$ANDROID_HOME/platform-tools/adb"
+ln -s "$image_dir" "$ANDROID_HOME/$image_sysdir"
 
 readonly avd_name="capture-smoke"
 readonly avd_dir="$ANDROID_AVD_HOME/$avd_name.avd"
@@ -48,7 +56,7 @@ hw.lcd.density=560
 hw.lcd.height=2560
 hw.lcd.width=1440
 hw.ramSize=2048
-image.sysdir.1=$image_dir/
+image.sysdir.1=$image_sysdir/
 tag.id=google_apis
 target=android-$api_level
 AVD
