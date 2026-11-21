@@ -17,7 +17,8 @@ TSAN_LINKOPTS = select({
 # - Provides a set of linker options that is required to properly run tests
 # - Sets default visibility and OS requirements
 #
-def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = [], xcode = "", simulator = "", build_data = [], target_compatible_with = []):
+# Enable parallel scheduling only for suites that use distinct simulators.
+def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_test_host = False, repository = "", visibility = [], xcode = "", simulator = "", build_data = [], target_compatible_with = [], parallel = False):
     test_lib_name = name + "_lib"
     xctest_name = name + "_xctest"
     tags = [tag for tag in tags if tag not in ["macos_only", "exclusive"]] + ["macos_only"]
@@ -45,6 +46,7 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
         deps = [test_lib_name],
         linkopts = TSAN_LINKOPTS,
         minimum_os_version = MINIMUM_IOS_VERSION_TESTS,
+        runner = "//bazel/ios:swift_test_runner",
         timeout = "long",
         tags = [tag for tag in tags if tag != "manual"] + ["exclusive", "manual"],
         test_host = test_host,
@@ -58,7 +60,7 @@ def bitdrift_mobile_swift_test(name, srcs, data = [], deps = [], tags = [], use_
         simulator = simulator,
         timeout = "long",
         xctest = True,
-        tags = tags + ["exclusive-if-local"],
+        tags = tags if parallel else tags + ["exclusive-if-local"],
         target_compatible_with = target_compatible_with,
         visibility = visibility,
     )
