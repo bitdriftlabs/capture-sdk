@@ -398,6 +398,7 @@ jobs:
 
   verify_android_hello_world_per_version:
     needs: build_and_compare_sizes
+    if: ${{ !cancelled() && needs.build_and_compare_sizes.result == 'success' }}
     runs-on: ubuntu-latest-8-cores
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
