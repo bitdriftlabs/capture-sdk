@@ -127,7 +127,7 @@ jobs:
       deployment: false
     outputs:
       ios_app_size_kb: ${{ steps.ios_size.outputs.current_kb }}
-      capture_binary_size_kb: ${{ steps.capture_binary_size.outputs.current_kb }}
+      capture_binary_size_kb: ${{ steps.capture_archive_breakdown.outputs.current_kb }}
       capture_archive_breakdown: ${{ steps.capture_archive_breakdown.outputs.json }}
     steps:
       - name: Checkout
@@ -145,7 +145,16 @@ jobs:
           ARTIFACT_COMMIT: ${{ needs.ios_release_artifacts.outputs.commit }}
         run: |
           ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$ARTIFACT_COMMIT" "$RUNNER_TEMP" \
-            Capture.ios.zip ios_app_size.ipa
+            Capture.ios.zip ios_app_size.ipa ios_capture_archive_breakdown.json
+
+      - name: Read Capture SDK size report
+        id: capture_archive_breakdown
+        run: |
+          set -euo pipefail
+          jq -er '
+            select(.schema_version == 1 and (.archive_bytes | type == "number") and .archive_bytes > 0) |
+            "current_kb=\((.archive_bytes / 1024) | floor)", "json=\(.)"
+          ' "$RUNNER_TEMP/ios_capture_archive_breakdown.json" >> "$GITHUB_OUTPUT"
 
       - name: Install signing assets
         env:
@@ -198,36 +207,6 @@ jobs:
           fi
           echo "current_kb=$IOS_APP_SIZE_KB" >> "$GITHUB_OUTPUT"
 
-      - name: Materialize Capture SDK XCFramework
-        run: |
-          set -euo pipefail
-          rm -rf ios_capture_size
-          mkdir -p ios_capture_size
-          unzip -q "$RUNNER_TEMP/Capture.ios.zip" -d ios_capture_size
-
-      - name: Measure Capture SDK binary size
-        id: capture_binary_size
-        env:
-          IOS_CAPTURE_BINARY_PATH: ios_capture_size/Capture.xcframework/ios-arm64/Capture.framework/Capture
-        run: |
-          set -euo pipefail
-          ./ci/capture_ios_binary_size.sh | tee ios_capture_binary_size_output.log
-          IOS_CAPTURE_BINARY_SIZE_KB=$(grep '^IOS_CAPTURE_BINARY_SIZE_KB=' ios_capture_binary_size_output.log | cut -d'=' -f2 || true)
-          if [ -z "$IOS_CAPTURE_BINARY_SIZE_KB" ]; then
-            echo "Failed to parse IOS_CAPTURE_BINARY_SIZE_KB from binary size script output."
-            exit 1
-          fi
-          echo "current_kb=$IOS_CAPTURE_BINARY_SIZE_KB" >> "$GITHUB_OUTPUT"
-
-      - name: Snapshot Capture SDK archive composition
-        id: capture_archive_breakdown
-        env:
-          IOS_CAPTURE_BINARY_PATH: ios_capture_size/Capture.xcframework/ios-arm64/Capture.framework/Capture
-        run: |
-          set -euo pipefail
-          ./ci/capture_ios_archive_breakdown.py "$IOS_CAPTURE_BINARY_PATH" > ios_capture_archive_breakdown.json
-          echo "json=$(cat ios_capture_archive_breakdown.json)" >> "$GITHUB_OUTPUT"
-
       - name: Upload iOS size artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -236,7 +215,7 @@ jobs:
             ios_app_size_output/export/*.ipa
             ios_app_size_output/export/App Thinning Size Report.txt
             ${{ runner.temp }}/Capture.ios.zip
-            ios_capture_binary_size_output.log
+            ${{ runner.temp }}/ios_capture_archive_breakdown.json
 
       - name: Remove signing assets
         if: always()

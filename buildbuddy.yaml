@@ -66,10 +66,12 @@ actions:
             --build_event_json_file_path_conversion=false \
             --lockfile_mode=error \
             -- //:ios_dist //:check_ios_release_xcframework \
+            //:ios_capture_archive_breakdown \
             //examples/swift/hello_world:ios_app_size_unsigned.ipa \
             //examples/swift/hello_world:ios_app_simulator_smoke_test
           python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
-            Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa
+            Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa \
+            ios_capture_archive_breakdown.json
 
   - name: Android CI artifacts
     triggers: {}

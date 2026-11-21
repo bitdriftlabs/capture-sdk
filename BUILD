@@ -3,7 +3,7 @@ load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugi
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
 load("@rules_multirun//:defs.bzl", "multirun")
 load("@rules_pkg//:pkg.bzl", "pkg_zip")
-load("@rules_python//python:defs.bzl", "py_test")
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
     "top_level_targets",
@@ -14,7 +14,7 @@ load("//bazel:android_debug_info.bzl", "android_debug_info")
 load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
 load("//bazel:rustfmt.bzl", "rustfmt_runner")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
-load("//bazel/ios:xcframework.bzl", "strip_rust_metadata_xcframework")
+load("//bazel/ios:xcframework.bzl", "ios_xcframework_archive_breakdown", "strip_rust_metadata_xcframework")
 
 alias(
     name = "ios_app",
@@ -78,6 +78,21 @@ pkg_zip(
     ],
     out = "Capture.ios.zip",
     visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "capture_ios_archive_breakdown_tool",
+    srcs = ["ci/capture_ios_archive_breakdown.py"],
+    main = "ci/capture_ios_archive_breakdown.py",
+    tags = ["manual"],
+)
+
+ios_xcframework_archive_breakdown(
+    name = "ios_capture_archive_breakdown",
+    exec_compatible_with = ["@platforms//os:macos"],
+    tags = ["manual"],
+    tool = ":capture_ios_archive_breakdown_tool",
+    xcframework = ":ios_xcframework_for_distribution",
 )
 
 pkg_zip(

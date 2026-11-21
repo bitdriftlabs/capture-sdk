@@ -1,4 +1,6 @@
-"""Produces a distribution XCFramework without unnecessary Rust compiler metadata."""
+"""Prepares and measures the distribution XCFramework."""
+
+load("@build_bazel_apple_support//lib:apple_support.bzl", "apple_support")
 
 def _strip_rust_metadata_xcframework_impl(ctx):
     outdir = ctx.actions.declare_directory(ctx.attr.framwork_name + ".xcframework")
@@ -64,4 +66,33 @@ strip_rust_metadata_xcframework = rule(
         ),
         "xcframework": attr.label(allow_single_file = [".zip"]),
     },
+)
+
+def _ios_xcframework_archive_breakdown_impl(ctx):
+    xcframework = ctx.file.xcframework
+    report = ctx.actions.declare_file(ctx.label.name + ".json")
+    apple_support.run(
+        actions = ctx.actions,
+        apple_fragment = ctx.fragments.apple,
+        xcode_config = ctx.attr._xcode_config[apple_common.XcodeVersionConfig],
+        executable = ctx.attr.tool[DefaultInfo].files_to_run,
+        inputs = [xcframework],
+        outputs = [report],
+        arguments = [
+            xcframework.path + "/ios-arm64/Capture.framework/Capture",
+            "--output",
+            report.path,
+        ],
+        env = {"LC_ALL": "C"},
+        mnemonic = "IosArchiveBreakdown",
+    )
+    return [DefaultInfo(files = depset([report]))]
+
+ios_xcframework_archive_breakdown = rule(
+    implementation = _ios_xcframework_archive_breakdown_impl,
+    attrs = apple_support.action_required_attrs() | {
+        "tool": attr.label(cfg = "exec", executable = True, mandatory = True),
+        "xcframework": attr.label(allow_single_file = True, mandatory = True),
+    },
+    fragments = ["apple"],
 )
