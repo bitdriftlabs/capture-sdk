@@ -9,6 +9,7 @@
 
 # Bazel
 /bazel-*
+/execution_log.binpb.zst
 **/Bazel Generated/
 
 # Downloaded CI formatters

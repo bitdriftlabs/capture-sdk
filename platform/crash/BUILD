@@ -13,6 +13,7 @@ objc_library(
 
 bitdrift_rust_library(
     name = "bd_crash_reporter",
+    run_on_macos = True,
     tags = [
         "macos_only",
     ],

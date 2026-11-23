@@ -55,6 +55,7 @@ cc_library(
 bitdrift_rust_library(
     name = "test_swift_bridge",
     testonly = True,
+    run_on_macos = True,
     tags = ["macos_only"],
     target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],

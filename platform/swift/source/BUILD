@@ -6,7 +6,7 @@ load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_rs//rs:rust_static_library.bzl", "rust_static_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("@sdk_version//:sdk_version.bzl", "SDK_VERSION")
-load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library", "bitdrift_rust_test")
+load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_library")
 load("//bazel:config.bzl", "APPLE_TARGET_COMPATIBILITY", "MINIMUM_IOS_VERSION")
 load("//bazel:swift_header_collector.bzl", "swift_header_collector")
 
@@ -80,6 +80,7 @@ swift_library(
 
 bitdrift_rust_library(
     name = "swift_bridge",
+    run_on_macos = True,
     tags = [
         "macos_only",
     ],
@@ -89,13 +90,6 @@ bitdrift_rust_library(
         "//platform/memory:bd_memory_dump",
         "//platform/shared:platform-shared",
     ],
-)
-
-bitdrift_rust_test(
-    name = "commands_rust_test",
-    crate = ":swift_bridge",
-    tags = ["macos_only"],
-    target_compatible_with = APPLE_TARGET_COMPATIBILITY,
 )
 
 rust_static_library(
@@ -188,8 +182,6 @@ apple_static_xcframework(
     },
     tags = [
         "macos_only",
-        "no-cache",
-        "no-remote",
     ],
     target_compatible_with = APPLE_TARGET_COMPATIBILITY,
     visibility = ["//visibility:public"],

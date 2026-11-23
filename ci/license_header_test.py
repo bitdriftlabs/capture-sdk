@@ -1,24 +1,23 @@
 import pathlib
 import subprocess
+import sys
 import tempfile
 import unittest
 
 
-SCRIPT = pathlib.Path(__file__).with_name('license_header.py').resolve()
-SCRATCH = SCRIPT.parent.parent / '.tmp'
+SCRIPT = pathlib.Path(__file__).with_name('license_header.py').absolute()
 
 
 class LicenseHeaderTest(unittest.TestCase):
     def setUp(self):
-        SCRATCH.mkdir(exist_ok=True)
-        self.directory = tempfile.TemporaryDirectory(dir=SCRATCH)
+        self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.root = pathlib.Path(self.directory.name)
+        self.root = pathlib.Path(self.directory.name).resolve()
         subprocess.run(['git', 'init', '--quiet', str(self.root)], check=True)
 
     def run_checker(self, *args):
         return subprocess.run(
-            ['python3', str(SCRIPT), *args], cwd=self.root,
+            [sys.executable, str(SCRIPT), *args], cwd=self.root,
             capture_output=True, text=True)
 
     def test_check_reports_all_missing_headers_without_modifying_files(self):

@@ -64,14 +64,9 @@ run_linux_runner() {
 }
 
 run_macos_runner() {
-  # Keep the established full XCTest suite even when the Bazel Diff selection
-  # is affected-only. The affected targets still drive the Clippy invocation.
-  echo "Running the full iOS test suite for $mode mode."
-  local ios_test_targets=()
-  while IFS= read -r target; do
-    ios_test_targets+=("$target")
-  done < <(./bazelw query 'kind(ios_unit_test, //test/platform/swift/unit_integration/...)')
-  run_bazel_tests true false false macos_only '' "${ios_test_targets[@]}"
+  # Wildcard selection uses the public test wrappers and skips opt-in tests.
+  echo "Running the default iOS test suite for $mode mode."
+  run_bazel_tests true false false macos_only '' //test/platform/swift/unit_integration/...
 }
 
 case "$slice" in

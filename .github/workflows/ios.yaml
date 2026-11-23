@@ -4,6 +4,12 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
+    inputs:
+      artifact_invocation_id:
+        description: Successful BuildBuddy iOS CI artifacts invocation for this commit
+        required: true
+        type: string
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -15,247 +21,140 @@ permissions:
   pull-requests: write
   statuses: write
 jobs:
+  # Keep the required linux_test check while sharing its result with iOS jobs.
+  linux_test:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Require BuildBuddy Test and Clippy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TEST_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT" Test
+          bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT" Clippy
+
   pre_check:
     name: pre_check
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     outputs:
-      should_run: ${{ github.event_name == 'push' || steps.check_changes.outputs.run_tests }}
-      has_affected_clippy_targets: ${{ steps.bazel_check.outputs.has_affected_clippy_targets }}
-      workflow_changed: ${{ steps.workflow_check.outputs.changed }}
-      clippy_config_changed: ${{ steps.clippy_config_check.outputs.changed }}
+      should_run: ${{ github.event_name == 'push' || steps.changes.outputs.should_run == 'true' }}
     steps:
-      # Checkout repo to Github Actions runner
       - name: Checkout
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Check for Bazel build file changes
-        id: bazel_check
-        run: |
-          ./ci/check_bazel.sh //examples/swift:ios_app //platform/swift //test/platform/swift
+      - name: Check for changes that may affect iOS artifacts
+        if: github.event_name == 'pull_request'
+        id: changes
         env:
-          BAZEL_DIFF_CLIPPY_TARGETS_QUERY: 'attr("tags", "clippy_macos", //...)'
-      - name: Check for workflow file changes
-        id: workflow_check
-        uses: ./.github/actions/files-changed
-        with:
-          files: |
-            .github/workflows/ios.yaml
-            ci/ios_app_size_report.sh
-            ci/parse_ios_app_thinning_report.py
-            ci/capture_ios_binary_size.sh
-            ci/check_ios_xcframework_archive_members.sh
-            ci/extract_embedded_profile_plist.py
-      - name: Check for Clippy configuration changes
-        id: clippy_config_check
-        uses: ./.github/actions/check-clippy-config
-      - name: Upload affected Clippy targets
-        if: ${{ steps.bazel_check.outputs.has_affected_clippy_targets == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-affected-clippy-targets
-          path: /tmp/impacted_clippy_targets.txt
-          if-no-files-found: error
-      - name: Determine if tests should run
-        id: check_changes_separate
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          bazel_changed="${{ steps.bazel_check.outputs.changed }}"
-          workflow_changed="${{ steps.workflow_check.outputs.changed }}"
-          clippy_config_changed="${{ steps.clippy_config_check.outputs.changed }}"
+          # Exclude only paths known to be unrelated to the iOS artifacts.
+          # Disable rename detection so moves out of relevant paths still count.
+          result=0
+          git diff --quiet --no-renames "$BASE_SHA...$HEAD_SHA" -- . \
+            ':(exclude,glob)**/*.md' ':(exclude)docs/' \
+            ':(exclude)examples/android/' \
+            ':(exclude,glob)platform/jvm/**/*.kt' ':(exclude,glob)platform/jvm/**/*.kts' \
+            ':(exclude,glob)platform/jvm/**/*.java' ':(exclude,glob)platform/jvm/**/*.rs' \
+            ':(exclude).github/workflows/android.yaml' \
+            ':(exclude)ci/android_ci_changes.sh' || result=$?
+          case "$result" in
+            0) echo "should_run=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "should_run=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$result" ;;
+          esac
 
-          if [[ "$bazel_changed" == "true" || "$workflow_changed" == "true" || "$clippy_config_changed" == "true" ]]; then
-            echo "Changes detected in one or more checks. Running tests."
-            echo "run_tests=true" >> $GITHUB_ENV
-          else
-            echo "No relevant changes found."
-            echo "run_tests=false" >> $GITHUB_ENV
-          fi
-        shell: bash
-
-      - name: Run downstream tests if changes are detected
-        id: check_changes
-        if: env.run_tests == 'true'
-        run: ./ci/run_tests.sh
-  swift_hello_world:
-    name: swift_hello_world
-    timeout-minutes: 40
-    needs: "pre_check"
-    if: needs.pre_check.outputs.should_run == 'true'
-    runs-on: macos-26
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
-      deployment: false
-    steps:
-      # Checkout repo to Github Actions runner
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-
-      - name: "Install dependencies"
-        run: ./ci/mac_ci_setup.sh
-      - run: ./bazelw build --config ci --config release-ios //examples/swift/hello_world:ios_app
-        name: "Build app"
-      # TODO(snowp): Add some kind of assertion that the app does that it's supposed to
-      - run: ./bazelw run --config ci --config release-ios //examples/swift/hello_world:ios_app &> /tmp/envoy.log &
-        name: "Run app"
-  xcode_27_build:
-    name: xcode 27 build and test
-    timeout-minutes: 40
-    needs: "pre_check"
+  ios_release_artifacts:
+    name: iOS CI artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    needs: [pre_check, linux_test]
     if: >-
-      needs.pre_check.outputs.should_run == 'true' &&
-      (github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: xcode-27
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
-      deployment: false
+      always() && !cancelled() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (needs.linux_test.result == 'success' &&
+        needs.pre_check.result == 'success' && needs.pre_check.outputs.should_run == 'true' &&
+        (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)))
+    outputs:
+      invocation_id: ${{ steps.artifacts.outputs.invocation_id }}
+      commit: ${{ steps.artifacts.outputs.commit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Resolve the Xcode 27 toolchain
-        id: plan
-        run: IOS_RELEASE_DRY_RUN=1 ./tools/ios_release.sh Capture 0.0.0 swift-6.4 >> "$GITHUB_OUTPUT"
-
-      - name: Install dependencies
-        run: ./ci/mac_ci_setup.sh "$XCODE_VERSION"
+      - name: Build or select iOS artifacts
+        id: artifacts
         env:
-          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
-
-      - name: Build the SDK with Xcode 27
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          SOURCE_BRANCH: ${{ github.head_ref || github.ref_name }}
+          EXISTING_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
         run: |
-          ./bazelw build \
-            --config ci \
-            --xcode_version="$XCODE_VERSION" \
-            --ios_simulator_version=27.0 \
-            //platform/swift/source:capture_ios_static_framework
-        env:
-          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          invocation="$EXISTING_INVOCATION_ID"
+          if [[ -z "$invocation" ]]; then
+            invocation="$(./ci/run_buildbuddy_workflow.sh 'iOS CI artifacts' "$SOURCE_BRANCH" "$commit")"
+          fi
+          if [[ ! "$invocation" =~ ^[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12}$ ]]; then
+            echo "Invalid BuildBuddy invocation ID." >&2
+            exit 1
+          fi
+          echo "invocation_id=$invocation" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
 
-      - name: Test the iOS 27 code paths with Xcode 27
-        run: |
-          ./bazelw test \
-            --config ci \
-            --test_output=errors \
-            --test_env=REUSE_GLOBAL_SIMULATOR=1 \
-            --test_env=STARTUP_TIMEOUT_SEC=300 \
-            --xcode_version="$XCODE_VERSION" \
-            --ios_simulator_version=27.0 \
-            //test/platform/swift/unit_integration/core:ios27_test
-        env:
-          XCODE_VERSION: ${{ steps.plan.outputs.xcode_version }}
-  unit_tests:
-    name: unit tests
-    needs: "pre_check"
-    if: needs.pre_check.outputs.should_run == 'true'
-    runs-on: macos-26
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        run: |
-          RUST_VERSION="$(sed -n 's/^RUST_VERSION = "\(.*\)"/\1/p' MODULE.bazel)"
-          rustup toolchain install "$RUST_VERSION" --profile minimal
-          rustup default "$RUST_VERSION"
-      - name: Install dependencies
-        run: |
-          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 brew install protobuf flatbuffers
-          echo "/opt/homebrew/opt/protobuf/bin" >> "$GITHUB_PATH"
-          echo "/opt/homebrew/opt/flatbuffers/bin" >> "$GITHUB_PATH"
-      - name: Rust tests
-        run: SKIP_PROTO_GEN=1 cargo test --package swift_bridge
-
-  tests:
-    runs-on: macos-26
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
-      deployment: false
-    needs: "pre_check"
-    if: needs.pre_check.outputs.should_run == 'true'
-    steps:
-      # Checkout repo to Github Actions runner
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-
-      - name: "Install dependencies"
-        run: ./ci/mac_ci_setup.sh
-
-      - name: Download affected Clippy targets
-        if: ${{ github.event_name == 'pull_request' && needs.pre_check.outputs.has_affected_clippy_targets == 'true' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: ios-affected-clippy-targets
-          path: /tmp
-
-      - name: Run iOS tests
-        uses: ./.github/actions/run-bazel-tests
-        with:
-          slice: macos_runner
-          mode: full
-      - name: Run Clippy
-        if: ${{ github.event_name == 'push' || needs.pre_check.outputs.has_affected_clippy_targets == 'true' || needs.pre_check.outputs.workflow_changed == 'true' || needs.pre_check.outputs.clippy_config_changed == 'true' }}
-        uses: ./.github/actions/run-clippy
-        with:
-          slice: macos_runner
-          mode: ${{ (github.event_name == 'push' || needs.pre_check.outputs.workflow_changed == 'true' || needs.pre_check.outputs.clippy_config_changed == 'true') && 'full' || 'affected' }}
-          affected-targets-path: /tmp/impacted_clippy_targets.txt
-      - name: Upload iOS test failure artifacts
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-test-failure-artifacts
-          path: bazel-testlogs/test/platform/swift/unit_integration/**/test.outputs
-          if-no-files-found: warn
   ios_size_comparison:
     name: iOS size comparison
     timeout-minutes: 40
-    needs: "pre_check"
-    if: needs.pre_check.outputs.should_run == 'true'
+    needs: ios_release_artifacts
     runs-on: macos-26
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     outputs:
       ios_app_size_kb: ${{ steps.ios_size.outputs.current_kb }}
-      capture_binary_size_kb: ${{ steps.capture_binary_size.outputs.current_kb }}
+      capture_binary_size_kb: ${{ steps.capture_archive_breakdown.outputs.current_kb }}
       capture_archive_breakdown: ${{ steps.capture_archive_breakdown.outputs.json }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          ref: ${{ needs.ios_release_artifacts.outputs.commit }}
 
       - name: Install dependencies
         run: ./ci/mac_ci_setup.sh
+
+      - name: Download iOS CI artifacts
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY || secrets.BUILDBUDDY_RW_API_KEY }}
+          ARTIFACT_INVOCATION_ID: ${{ needs.ios_release_artifacts.outputs.invocation_id }}
+          ARTIFACT_COMMIT: ${{ needs.ios_release_artifacts.outputs.commit }}
+        run: |
+          ./ci/download_buildbuddy_artifacts.sh "$ARTIFACT_INVOCATION_ID" "$ARTIFACT_COMMIT" "$RUNNER_TEMP" \
+            Capture.ios.zip ios_app_size.ipa ios_capture_archive_breakdown.json
+
+      - name: Read Capture SDK size report
+        id: capture_archive_breakdown
+        run: |
+          set -euo pipefail
+          jq -er '
+            select(.schema_version == 1 and (.archive_bytes | type == "number") and .archive_bytes > 0) |
+            "current_kb=\((.archive_bytes / 1024) | floor)", "json=\(.)"
+          ' "$RUNNER_TEMP/ios_capture_archive_breakdown.json" >> "$GITHUB_OUTPUT"
 
       - name: Install signing assets
         env:
@@ -293,27 +192,13 @@ jobs:
           cp "$PROFILE_PATH" "$XCODE_PROFILE_DIR/"
           cp "$PROFILE_PATH" "$LEGACY_PROFILE_DIR/"
 
-      - name: Build iOS size artifacts and Capture SDK XCFramework
-        env:
-          APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
-          APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
-        run: |
-          set -euo pipefail
-          ./bazelw build \
-            --config ci \
-            --config release-ios \
-            --cpu=ios_arm64 \
-            --define ios_produce_framework_plist=true \
-            //examples/swift/hello_world:ios_app_archive \
-            //:ios_dist
-
       - name: Export and measure thinned iOS app size
         id: ios_size
-        env:
-          APPLE_TEAM_ID: ${{ secrets.IOS_SIZE_TEAM_ID }}
-          APPLE_PROFILE_NAME: ${{ secrets.IOS_SIZE_PROFILE_NAME }}
         run: |
           set -euo pipefail
+          export IOS_APP_SIZE_UNSIGNED_IPA="$RUNNER_TEMP/ios_app_size.ipa"
+          export IOS_APP_SIZE_PROFILE_PATH="$RUNNER_TEMP/ios-size-signing/ios_size_profile.mobileprovision"
+          export IOS_APP_SIZE_KEYCHAIN_PATH="$RUNNER_TEMP/ios-size-signing/ios-size.keychain-db"
           ./ci/ios_app_size_report.sh | tee ios_app_size_output.log
           IOS_APP_SIZE_KB=$(grep '^IOS_APP_SIZE_KB=' ios_app_size_output.log | cut -d'=' -f2 || true)
           if [ -z "$IOS_APP_SIZE_KB" ]; then
@@ -322,38 +207,6 @@ jobs:
           fi
           echo "current_kb=$IOS_APP_SIZE_KB" >> "$GITHUB_OUTPUT"
 
-      - name: Materialize Capture SDK XCFramework
-        run: |
-          set -euo pipefail
-          rm -rf ios_capture_size
-          mkdir -p ios_capture_size
-          unzip -q bazel-bin/Capture.ios.zip -d ios_capture_size
-
-      - name: Measure Capture SDK binary size
-        id: capture_binary_size
-        env:
-          IOS_CAPTURE_BINARY_PATH: ios_capture_size/Capture.xcframework/ios-arm64/Capture.framework/Capture
-        run: |
-          set -euo pipefail
-          IOS_CAPTURE_XCFRAMEWORK_ROOT=ios_capture_size/Capture.xcframework \
-            ./ci/check_ios_xcframework_archive_members.sh
-          ./ci/capture_ios_binary_size.sh | tee ios_capture_binary_size_output.log
-          IOS_CAPTURE_BINARY_SIZE_KB=$(grep '^IOS_CAPTURE_BINARY_SIZE_KB=' ios_capture_binary_size_output.log | cut -d'=' -f2 || true)
-          if [ -z "$IOS_CAPTURE_BINARY_SIZE_KB" ]; then
-            echo "Failed to parse IOS_CAPTURE_BINARY_SIZE_KB from binary size script output."
-            exit 1
-          fi
-          echo "current_kb=$IOS_CAPTURE_BINARY_SIZE_KB" >> "$GITHUB_OUTPUT"
-
-      - name: Snapshot Capture SDK archive composition
-        id: capture_archive_breakdown
-        env:
-          IOS_CAPTURE_BINARY_PATH: ios_capture_size/Capture.xcframework/ios-arm64/Capture.framework/Capture
-        run: |
-          set -euo pipefail
-          ./ci/capture_ios_archive_breakdown.py "$IOS_CAPTURE_BINARY_PATH" > ios_capture_archive_breakdown.json
-          echo "json=$(cat ios_capture_archive_breakdown.json)" >> "$GITHUB_OUTPUT"
-
       - name: Upload iOS size artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -361,8 +214,8 @@ jobs:
           path: |
             ios_app_size_output/export/*.ipa
             ios_app_size_output/export/App Thinning Size Report.txt
-            bazel-bin/Capture.ios.zip
-            ios_capture_binary_size_output.log
+            ${{ runner.temp }}/Capture.ios.zip
+            ${{ runner.temp }}/ios_capture_archive_breakdown.json
 
       - name: Remove signing assets
         if: always()
@@ -613,13 +466,13 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       [
-        "tests",
-        "swift_hello_world",
-        "unit_tests",
+        "pre_check",
+        "linux_test",
+        "ios_release_artifacts",
         "ios_size_comparison",
         "ios_size_baseline",
       ]
-    if: always()
+    if: always() && github.event_name != 'workflow_dispatch'
     steps:
       # Checkout repo to Github Actions runner
       - name: Checkout
@@ -627,8 +480,8 @@ jobs:
         with:
           fetch-depth: 1
       - run: |
-          ./ci/check_result.sh ${{ needs.tests.result }} \
-          && ./ci/check_result.sh ${{ needs.swift_hello_world.result }} \
-          && ./ci/check_result.sh ${{ needs.unit_tests.result }} \
+          ./ci/check_result.sh ${{ needs.pre_check.result }} \
+          && ./ci/check_result.sh ${{ needs.linux_test.result }} \
+          && ./ci/check_result.sh ${{ needs.ios_release_artifacts.result }} \
           && ./ci/check_result.sh ${{ needs.ios_size_comparison.result }} \
           && ./ci/check_result.sh ${{ needs.ios_size_baseline.result }}

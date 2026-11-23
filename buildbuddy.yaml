@@ -1,8 +1,5 @@
-# BuildBuddy Workflows. This action runs the Linux slice of CI (ci/run_bazel_tests.sh and
-# ci/run_clippy.sh with linux_runner) on BuildBuddy remote execution. The runner only drives Bazel:
-# compilation and tests run on the remote executors in //bazel/platforms, with outputs left remote,
-# so the default runner memory and disk suffice. Every run covers the full slice; unchanged targets
-# are remote cache hits.
+# BuildBuddy Workflows. The Linux runner drives Bazel and the execution platforms
+# in //bazel/platforms route build and test actions to Linux and macOS executors.
 #
 # Steps call `bazel` rather than ./bazelw because BuildBuddy adds its cache and results flags to
 # `bazel` invocations; the bazel on the runner is Bazelisk, so it still honors .bazelversion.
@@ -21,34 +18,80 @@ actions:
       - run: >-
           bazel test
           --config=workflows
-          --config=rbe
-          --config=libunwind
+          --config=mixed-rbe
+          --config=ios27-tests
+          --keep_going
           --lockfile_mode=error
           --test_output=errors
           --test_env=RUST_LOG=debug
-          --test_tag_filters=-macos_only
-          --build_tag_filters=-macos_only
-          -- //platform/... //test/...
-      # Release builds compile out anyhow backtraces.
-      - run: >-
-          bazel test
-          --config=workflows
-          --config=rbe
-          --config=release-common
-          --config=libunwind
-          --test_output=errors
-          --test_env=ANYHOW_EXPECT_DISABLED_BACKTRACE=1
-          --test_env=RUST_BACKTRACE=1
-          --test_arg=anyhow_preserves_error_api
-          //platform/shared:platform-shared_test
-      # Clippy shares this runner's Bazel server and fetched repositories. It uses `bazel build`
-      # rather than `bazel test`: the repository-wide --build_tests_only would omit production
-      # rust_library targets.
+          -- //...
+
+  # Clippy changes the analysis flags and builds production rust_library targets.
+  - name: Clippy
+    triggers:
+      push:
+        branches:
+          - main
+      pull_request:
+        branches:
+          - "*"
+    container_image: ubuntu-24.04
+    steps:
       - run: >-
           bazel build
           --config=workflows
-          --config=rbe
+          --config=mixed-rbe
           --config=clippy
+          --jobs=200
           --lockfile_mode=error
           --build_tag_filters=clippy,-macos_only
           -- //... //platform/shared:build_script_
+
+  # GitHub dispatches this after Test and Clippy so their Mac actions can finish first.
+  - name: iOS CI artifacts
+    triggers: {}
+    container_image: ubuntu-24.04
+    steps:
+      - run: |
+          set -euo pipefail
+          events="$(mktemp)"
+          trap 'rm -f "$events"' EXIT
+          bazel test \
+            --config=workflows \
+            --config=release-ios \
+            --config=apple-device-rbe \
+            --nobuild_tests_only \
+            --define=ios_produce_framework_plist=true \
+            --build_event_json_file="$events" \
+            --build_event_json_file_path_conversion=false \
+            --lockfile_mode=error \
+            -- //:ios_dist //:check_ios_release_xcframework \
+            //:ios_capture_archive_breakdown \
+            //examples/swift/hello_world:ios_app_size_unsigned.ipa \
+            //examples/swift/hello_world:ios_app_simulator_smoke_test
+          python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
+            Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa \
+            ios_capture_archive_breakdown.json
+
+  - name: Android CI artifacts
+    triggers: {}
+    container_image: ubuntu-24.04
+    steps:
+      - run: |
+          set -euo pipefail
+          events="$(mktemp)"
+          trap 'rm -f "$events"' EXIT
+          bazel build \
+            --config=workflows \
+            --config=rbe \
+            --config=release-android \
+            --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 \
+            --remote_download_outputs=toplevel \
+            --build_event_json_file="$events" \
+            --build_event_json_file_path_conversion=false \
+            --lockfile_mode=error \
+            -- //examples/android:android_app //:capture_aar_so_size_arm64_v8a \
+            //:capture_aar_so_size_x86_64
+          python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
+            android_app.apk capture_aar_so_size_arm64_v8a_kb.txt \
+            capture_aar_so_size_x86_64_kb.txt
