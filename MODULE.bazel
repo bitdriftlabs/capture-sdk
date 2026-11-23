@@ -85,6 +85,14 @@ bazel_dep(name = "hermetic_android_toolchains", version = "0.5.0", dev_dependenc
 bazel_dep(name = "rules_jvm_external", version = "7.1")
 bazel_dep(name = "rules_detekt", version = "0.8.1.13")
 bazel_dep(name = "flatbuffers", version = "25.12.19.bcr.1")
+
+# Backport the Swift vector source fix from https://github.com/google/flatbuffers/pull/8875.
+single_version_override(
+    module_name = "flatbuffers",
+    patch_strip = 1,
+    patches = ["//bazel/third_party/patches:flatbuffers_swift_vectors.patch"],
+)
+
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_kotlin", version = "2.3.20")
 bazel_dep(name = "rules_proto", version = "7.1.0")
