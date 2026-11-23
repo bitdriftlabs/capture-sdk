@@ -12,6 +12,9 @@
 /execution_log.binpb.zst
 **/Bazel Generated/
 
+# Downloaded CI formatters
+/formatters/
+
 # Claude code
 .claude/settings.local.json
 

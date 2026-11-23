@@ -21,11 +21,11 @@ setup-rust-analyzer:
 
 .PHONY: buildifier
 buildifier:
-	buildifier -warnings all -lint=fix -r .
+	find . -path './platform/es' -prune -o -type f \( -name '*.bzl' -o -name 'BUILD' -o -name 'BUILD.bazel' -o -name 'WORKSPACE' -o -name 'WORKSPACE.bazel' -o -name 'MODULE.bazel' -o -name 'REPO.bazel' \) -print0 | xargs -0 buildifier -warnings all -lint=fix
 
 .PHONY: lint-yaml
 lint-yaml:
-	taplo fmt --check $$(git ls-files -- '*.toml')
+	taplo fmt --check $$(git ls-files -- '*.toml' ':(exclude)platform/es')
 
 .PHONY: lint-shell
 lint-shell:
@@ -40,7 +40,7 @@ SWIFTLINT ?= swiftlint
 fix-swiftlint:
 # WebViewBridgeScript.swift is auto-generated; swiftlint's --format flag reindents it via
 # SourceKit regardless of `excluded` in .swiftlint.yml, so it's passed an explicit file list here.
-	$(SWIFTLINT) --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
+	$(SWIFTLINT) --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':(exclude)platform/es' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
 
 .PHONY: fix-docstrings
 fix-docstrings:

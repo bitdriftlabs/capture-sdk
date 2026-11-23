@@ -1,4 +1,4 @@
-exclude = ["bazel-*", "target/**", "proto/**"]
+exclude = ["bazel-*", "target/**", "proto/**", "platform/es/**"]
 
 [formatting]
 align_comments       = true
