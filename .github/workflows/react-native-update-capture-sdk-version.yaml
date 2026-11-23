@@ -1,36 +1,43 @@
 name: React Native Update Version
 on:
-    workflow_call:
-      inputs:
-        version:
-          description: 'The Capture SDK version to release, ex: 0.18.6'
-          required: true
-          type: string
-    workflow_dispatch:
-      inputs:
-        version:
-          description: 'The Capture SDK version to release, ex: 0.18.6'
-          required: true
-          type: string
-          
+  workflow_call:
+    inputs:
+      version:
+        description: The native Capture SDK version, for example 0.51.0
+        required: true
+        type: string
+    secrets:
+      OPEN_CAPTURE_SDK_PRS_APP_ID:
+        required: true
+      OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The native Capture SDK version, for example 0.51.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: platform/es
+
 jobs:
   update-versions:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-
     steps:
-    
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
 
-      - name: Setup Node.js
+      - name: Setup JavaScript
         uses: ./.github/actions/javascript-setup
-
-      - name: Run update_rn_capture_version.sh to pick latest capture-sdk version
-        id: update-capture-sdk-version
-        run: ./scripts/update_rn_capture_version.sh ${{ inputs.version }}
+        with:
+          cache-key-scope: release-${{ github.workflow }}
 
       - name: Calculate React Native version from Capture SDK
         env:
@@ -66,19 +73,30 @@ jobs:
           console.log(`Capture SDK ${sdkVersion} -> React Native ${version}`);
           NODE
 
-      - name: Create Pull Request with Capture SDK version bump
+      - name: Update the React Native native dependency pins
+        env:
+          CAPTURE_SDK_VERSION: ${{ inputs.version }}
+        run: ./scripts/update_rn_capture_version.sh "$CAPTURE_SDK_VERSION"
+
+      # Use the existing release app so the resulting PR triggers SDK checks.
+      - name: Create release app token
+        id: release-app
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0
+        with:
+          app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
+          private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+
+      - name: Create pull request with Capture SDK version bump
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Update Capture SDK version to ${{ inputs.version }}"
+          token: ${{ steps.release-app.outputs.token }}
+          title: Update Capture SDK version to ${{ inputs.version }}
           commit-message: Update Capture SDK version to ${{ inputs.version }}
-          committer: GitHub Action <noreply@github.com>
           base: main
           delete-branch: true
-          branch: update-capture-sdk-${{ inputs.version }}
+          branch: update-react-native-capture-sdk-${{ inputs.version }}
+          add-paths: platform/es
           body: |
-            This PR updates the Capture SDK to version ${{ inputs.version }}.
-            
+            Updates the React Native integration to Capture SDK ${{ inputs.version }}.
+
             https://github.com/bitdriftlabs/capture-sdk/releases/tag/v${{ inputs.version }}
-
-

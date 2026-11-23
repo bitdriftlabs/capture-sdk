@@ -34,14 +34,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitdriftlabs/capture-es.git"
+    "url": "git+https://github.com/bitdriftlabs/capture-sdk.git",
+    "directory": "platform/es/packages/react-native"
   },
   "author": "bitdrift <info@bitdrift.io> (https://bitdrift.io)",
   "license": "SEE LICENSE IN LICENSE",
   "bugs": {
-    "url": "https://github.com/bitdriftlabs/capture-es/issues"
+    "url": "https://github.com/bitdriftlabs/capture-sdk/issues"
   },
-  "homepage": "https://github.com/bitdriftlabs/capture-es#readme",
+  "homepage": "https://github.com/bitdriftlabs/capture-sdk/tree/main/platform/es/packages/react-native#readme",
   "publishConfig": {
     "access": "public"
   },

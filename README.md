@@ -12,6 +12,7 @@ For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sd
   imports, file ownership, and pending profile storage.
 - [Gradle test app: manual crash-profile testing](platform/jvm/gradle-test-app/docs/crash-profiling.md):
   emulator/device setup, ANR/OOM scenarios, symbol uploads, backend verification, and cleanup.
+- [React Native development and releases](platform/es/README.md)
 
 ## Running tests
 

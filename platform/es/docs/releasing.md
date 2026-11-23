@@ -1,37 +1,25 @@
-# Releasing
+# Releasing React Native
 
-This document explains the process of releasing new versions within capture-es repo
+The [SDK release workflow](https://github.com/bitdriftlabs/capture-sdk/actions/workflows/update_sdk_version.yaml)
+starts the React Native version bump for the `all` and `react-native` release targets.
+It checks the native release tag and opens a pull request updating the React Native SDK
+dependency pins. After that pull request merges, the next React Native package version
+is published to [npm](https://www.npmjs.com/package/@bitdrift/react-native).
 
-## Release for React Native
+For a React Native-only patch against the currently pinned native SDK, run
+[React Native Release](https://github.com/bitdriftlabs/capture-sdk/actions/workflows/react-native-release.yml)
+from `main` with the desired version. The workflow publishes the package and opens a PR
+to record the version in the workspace. Check that the new version appears on npm,
+then update the [React Native release notes](https://docs.bitdrift.io/sdk/releases-react-native).
 
-1. Get the latest capture-sdk release version, for example [0.17.11](https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.17.11)
-2. Run `scripts/update_rn_capture_version.sh` with the desired version
-3. Open and merge PR on [capture-es](https://github.com/bitdriftlabs/capture-es) repo
-4. Run Github action [React Native Release](https://github.com/bitdriftlabs/capture-es/actions/workflows/react-native-release.yml)
-3. Hit `Run Workflow` button on the right.
-4. Keep `main` branch selection, enter version number.
-5. The CI job should open a PR e.g. 'chore: release react-native 0.6.11' ([example](https://github.com/bitdriftlabs/capture-es/pull/82)).
-6. Close, re-open, approve and merge the PR.
-7. Verify that the release with expected version is published at https://www.npmjs.com/package/@bitdrift/react-native
-8. Update [release docs](https://docs.bitdrift.io/sdk/releases-react-native) to include latest version. 
+Publishing uses npm trusted publishing and provenance. Before the first release from
+`capture-sdk`, configure the package's trusted publisher for the `bitdriftlabs/capture-sdk`
+repository and the `react-native-release.yml` workflow.
 
-![](images/react_native_github_action.png)
+## Version tracking
 
-## Version Tracking
+From `platform/es`, read the pinned native dependency version with:
 
-The React Native package includes a `captureSdkVersion` field in `package.json` that tracks which Capture SDK version is bundled. This is automatically updated by `scripts/update_rn_capture_version.sh` when bumping the Capture SDK.
-
-Release commits include the Capture SDK version in the commit message:
-```
-chore: release react-native 0.10.2 (capture-sdk 0.21.2)
-```
-
-To find which React Native version includes a specific Capture SDK version:
-```bash
-git log --oneline | grep "release react-native.*capture-sdk"
-```
-
-Or check the `captureSdkVersion` field directly:
-```bash
+```sh
 node -p "require('./packages/react-native/package.json').captureSdkVersion"
 ```

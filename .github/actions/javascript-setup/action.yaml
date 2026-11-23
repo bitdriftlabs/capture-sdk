@@ -1,0 +1,24 @@
+name: Setup ES JavaScript environment
+description: Install dependencies for the Nx workspace under platform/es
+
+inputs:
+  cache-key-scope:
+    description: Scope of the npm dependency cache
+    default: es-ci
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: platform/es/.nvmrc
+
+    - uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ inputs.cache-key-scope }}-${{ runner.os }}-${{ runner.arch }}-npm-${{ hashFiles('platform/es/package-lock.json', 'platform/es/.nvmrc') }}
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: platform/es
+      run: npm ci
