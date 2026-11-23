@@ -26,7 +26,8 @@ part of the SDK, run the owning target directly.
 | Xcode 27 and iOS 27 checks | `./bazelw test --config=ios27-tests //test/platform/swift/unit_integration/core:ios27_test` |
 
 Xcode 27 and the iOS 27 simulator are required only for the opt-in check. BuildBuddy enables
-it in **Test** and routes Apple targets to the Mac executor. **Clippy** runs separately.
+it in **Test** and routes Apple targets to the Mac executor. The same workflow runs Clippy,
+combining linting and compilation for first-party Rust libraries and tests.
 Gradle plugin, Timber, and emulator instrumentation checks run in GitHub Actions when their
 inputs change. The artifact workflows validate the packaged apps and report sizes.
 

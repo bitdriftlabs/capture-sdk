@@ -4,7 +4,12 @@ load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("@rules_rust//rust:defs.bzl", "rust_clippy")
-load("//bazel/platforms:configured_test.bzl", "macos_clippy", "macos_test")
+load("//bazel/platforms:configured_test.bzl", "ci_clippy_check", "macos_clippy", "macos_test")
+
+_CLIPPY_IN_COMPILE = select({
+    "//tools/lint:clippy_in_compile_enabled": "//tools/lint:clippy_compile_config",
+    "//conditions:default": None,
+})
 
 def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], tags = [], **args):
     rust_binary(
@@ -17,6 +22,13 @@ def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], tag
         rustc_flags = _rustc_flags(),
         tags = _clippy_tags(tags),
         **args
+    )
+
+    ci_clippy_check(
+        name = name,
+        deps = [":" + name],
+        tags = tags,
+        target_compatible_with = args.get("target_compatible_with", []),
     )
 
     rust_clippy(
@@ -43,6 +55,13 @@ def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps =
         **args
     )
 
+    ci_clippy_check(
+        name = name,
+        deps = [":" + name],
+        tags = tags,
+        target_compatible_with = args.get("target_compatible_with", []),
+    )
+
     rust_clippy(
         name = "_{}_rust_clippy".format(name),
         testonly = True,
@@ -57,6 +76,7 @@ def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps =
 def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], **args):
     rust_test(
         name = name,
+        lint_config = _CLIPPY_IN_COMPILE,
         rustc_flags = _rustc_flags(),
         edition = "2024",
         deps = all_crate_deps(normal = True, normal_dev = True, cargo_only = True) + deps,
@@ -64,6 +84,14 @@ def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], **args)
         aliases = _crate_aliases(),
         tags = _clippy_tags(tags),
         **args
+    )
+
+    ci_clippy_check(
+        name = name,
+        deps = [":" + name],
+        in_compile = True,
+        tags = tags,
+        target_compatible_with = args.get("target_compatible_with", []),
     )
 
 def bitdrift_rust_integration_test(name, **args):
@@ -78,6 +106,7 @@ def bitdrift_rust_integration_test(name, **args):
 def bitdrift_rust_library_only(name, srcs, deps = [], tags = []):
     rust_library(
         name = name,
+        lint_config = _CLIPPY_IN_COMPILE,
         srcs = srcs,
         deps = deps + all_crate_deps(normal = True, cargo_only = True),
         disable_pipelining = True,
@@ -85,6 +114,13 @@ def bitdrift_rust_library_only(name, srcs, deps = [], tags = []):
         rustc_flags = _rustc_flags(),
         edition = "2024",
         tags = _clippy_tags(tags),
+    )
+
+    ci_clippy_check(
+        name = name,
+        deps = [":" + name],
+        in_compile = True,
+        tags = tags,
     )
 
 def bitdrift_rust_library(
@@ -120,6 +156,7 @@ def bitdrift_rust_library(
 
     rust_library(
         name = name,
+        lint_config = _CLIPPY_IN_COMPILE,
         target_compatible_with = target_compatible_with,
         deps = deps + all_crate_deps(normal = True, cargo_only = True),
         srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
@@ -134,6 +171,7 @@ def bitdrift_rust_library(
 
     rust_test(
         name = raw_test_name,
+        lint_config = _CLIPPY_IN_COMPILE,
         target_compatible_with = target_compatible_with,
         crate = name,
         tags = _clippy_tags(test_tags) + (["manual"] if run_on_macos else []),
@@ -161,6 +199,23 @@ def bitdrift_rust_library(
 
     if "macos_only" in tags:
         macos_clippy(name = name + "_macos_clippy", deps = [":" + name, ":" + raw_test_name])
+
+    ci_clippy_check(
+        name = name,
+        deps = [":" + name],
+        in_compile = True,
+        macos = "macos_only" in tags,
+        tags = tags,
+        target_compatible_with = [] if "macos_only" in tags else target_compatible_with,
+    )
+    ci_clippy_check(
+        name = raw_test_name,
+        deps = [":" + raw_test_name],
+        in_compile = True,
+        macos = "macos_only" in test_tags,
+        tags = test_tags,
+        target_compatible_with = [] if "macos_only" in test_tags else target_compatible_with,
+    )
 
     rust_clippy(
         name = "_{}_rust_clippy".format(name),

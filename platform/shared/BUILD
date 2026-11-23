@@ -1,7 +1,7 @@
 load("@rules_rs//rs:cargo_build_script.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_test")
 load("//bazel:bitdrift_build_system.bzl", "bitdrift_rust_binary", "bitdrift_rust_library")
-load("//bazel/platforms:configured_test.bzl", "anyhow_no_backtrace_test")
+load("//bazel/platforms:configured_test.bzl", "anyhow_no_backtrace_test", "ci_clippy_check")
 
 bitdrift_rust_library(
     name = "platform-shared",
@@ -37,6 +37,11 @@ cargo_build_script(
     data = [":sdk_version"],
     edition = "2024",
     tags = ["clippy"],
+)
+
+ci_clippy_check(
+    name = "build_script",
+    deps = [":build_script_"],
 )
 
 filegroup(

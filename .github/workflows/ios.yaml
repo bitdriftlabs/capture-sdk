@@ -31,13 +31,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Require BuildBuddy Test and Clippy
+      - name: Require BuildBuddy Test
         env:
           GH_TOKEN: ${{ github.token }}
           TEST_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT" Test
-          bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT" Clippy
+        run: bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT" Test
 
   pre_check:
     name: pre_check

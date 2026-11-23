@@ -1,0 +1,42 @@
+--- a/rust/private/rustc.bzl
++++ b/rust/private/rustc.bzl
+@@ -2185,10 +2185,20 @@
+ 
+     # Add flags for any 'rustc' lints that are specified.
+     lint_files = []
++    clippy_config = None
+     if hasattr(attr, "lint_config") and attr.lint_config:
+         rust_flags = rust_flags + attr.lint_config[LintsInfo].rustc_lint_flags
+         lint_files = lint_files + attr.lint_config[LintsInfo].rustc_lint_files
+ 
++        # A Clippy config opts this target into linting during the Rust compile.
++        clippy_files = attr.lint_config[LintsInfo].clippy_lint_files
++        if clippy_files:
++            if len(clippy_files) != 1 or clippy_files[0].basename not in ("clippy.toml", ".clippy.toml"):
++                fail("Clippy in compile requires exactly one clippy.toml")
++            clippy_config = clippy_files[0]
++            tool_file = rust_toolchain.clippy_driver
++            rust_flags = rust_flags + attr.lint_config[LintsInfo].clippy_lint_flags
++
+     profiling_dir, profiling_flags = setup_zself_profile(ctx, crate_info)
+     rust_flags = rust_flags + profiling_flags
+ 
+@@ -2209,6 +2219,9 @@
+         runtime_libs = runtime_libs,
+     )
+ 
++    if clippy_config:
++        compile_inputs = depset([clippy_config, tool_file], transitive = [compile_inputs])
++
+     compile_inputs_metadata = compile_inputs
+ 
+     # Metadata is emitted by a separate -Zno-codegen action. The full action
+@@ -2366,6 +2379,8 @@
+ 
+     # this is the final list of env vars
+     env.update(env_from_args)
++    if clippy_config:
++        env["CLIPPY_CONF_DIR"] = "${{pwd}}/{}".format(clippy_config.dirname)
+ 
+     if build_metadata and inject_allow_features_guardrail:
+         # RUSTC_BOOTSTRAP=1 is required for -Zno-codegen on stable/beta rustc, and
