@@ -74,6 +74,61 @@ def macos_clippy(name, deps):
         testonly = True,
     )
 
+def _ci_clippy_check_impl(ctx):
+    # In test mode, runfiles keep these checks reachable with --build_tests_only.
+    # The build actions report lint failures before this no-op test runs.
+    checks = [dep[DefaultInfo].files for dep in ctx.attr.compile_deps]
+    checks.extend([dep[OutputGroupInfo].clippy_checks for dep in ctx.attr.lint_deps])
+    executable = ctx.actions.declare_file(ctx.label.name)
+    ctx.actions.write(executable, "#!/bin/sh\nexit 0\n", is_executable = True)
+    return [DefaultInfo(
+        executable = executable,
+        runfiles = ctx.runfiles(transitive_files = depset(transitive = checks)),
+    )]
+
+_ci_clippy_check_test = rule(
+    implementation = _ci_clippy_check_impl,
+    attrs = {
+        "compile_deps": attr.label_list(cfg = _macos_transition),
+        "lint_deps": attr.label_list(aspects = [rust_clippy_aspect], cfg = _macos_transition),
+        "remote": attr.bool(),
+        "_allowlist_function_transition": attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
+        ),
+    },
+    test = True,
+)
+
+def ci_clippy_check(name, deps, in_compile = False, macos = False, tags = [], target_compatible_with = []):
+    """Include the given Rust targets in the combined BuildBuddy Test check.
+
+    Args:
+        name: Base name for the CI check.
+        deps: Rust targets to lint.
+        in_compile: Whether the targets compile with clippy-driver.
+        macos: Whether to configure the Rust targets for the remote Mac.
+        tags: Tags on the original Rust targets.
+        target_compatible_with: Constraints on the CI check itself.
+    """
+    ignored_tags = ["manual", "no_clippy", "no_lint", "noclippy", "nolint"]
+    if any([tag.replace("-", "_").lower() in ignored_tags for tag in tags]):
+        return
+    _ci_clippy_check_test(
+        name = name + "_ci_clippy",
+        compile_deps = deps if in_compile else [],
+        lint_deps = [] if in_compile else deps,
+        remote = macos,
+        size = "small",
+        tags = ["no-remote-exec"],
+        target_compatible_with = target_compatible_with + select({
+            "//tools/lint:clippy_in_compile_enabled": [],
+            "//conditions:default": ["@platforms//:incompatible"],
+        }) + (select({
+            "//bazel/platforms:mixed_rbe": [],
+            "//conditions:default": ["@platforms//:incompatible"],
+        }) if macos else []),
+    )
+
 def _anyhow_no_backtrace_configuration(settings, _attr):
     # The flag must reach the anyhow dependency to exercise its release behavior.
     return {_RUSTC_FLAGS: settings[_RUSTC_FLAGS] + ["--cfg=anyhow_no_backtrace"]}

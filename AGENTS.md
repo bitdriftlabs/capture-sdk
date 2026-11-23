@@ -41,12 +41,11 @@ make xcframework                    # Build iOS release artifact
 
 ## Clippy
 
-The BuildBuddy Clippy workflow uses `bazel build` and routes Apple targets to macOS. The
-`ci/run_clippy.sh` helper selects the corresponding local targets.
-Do not substitute `./bazelw test //... --config=clippy`: the repository-wide
-`--build_tests_only` setting can omit production `rust_library` targets that CI lints.
+BuildBuddy Test enables `--config=clippy-in-compile` to compile and lint first-party Rust libraries
+and tests together. CI Clippy test targets keep production libraries and lint-only checks in the
+graph with `--build_tests_only`. The mixed RBE configuration routes Apple checks to macOS.
 
-On macOS, run the same full Clippy slice locally with:
+For standalone local linting on macOS, use:
 
 ```bash
 ./ci/run_clippy.sh all full /dev/null
@@ -60,7 +59,7 @@ example, JNI core changes require:
 ```
 
 After any Clippy-driven Rust edit, run `make format`, then rerun the focused Clippy command. Use
-the same `ci/run_clippy.sh` entry point for a full local CI-parity check when practical.
+`ci/run_clippy.sh` for a broader standalone lint check when practical.
 
 ### Running One iOS XCTest With Rust Logs
 

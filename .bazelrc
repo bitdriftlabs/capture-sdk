@@ -52,8 +52,10 @@ test --build_tests_only
 test --test_env=RUST_BACKTRACE=full
 common --java_runtime_version=remotejdk_17
 
-# Shared configuration for all CI tasks. Clippy runs in its dedicated workflow so
-# artifact builds do not pay for lint-aspect analysis.
+# Compile and lint first-party Rust libraries and tests in one action in BuildBuddy Test.
+build:clippy-in-compile --//tools/lint:clippy_in_compile
+
+# Shared configuration for all CI tasks.
 build:ci --config=force-xcode-version
 build:ci --define build_config=ci
 

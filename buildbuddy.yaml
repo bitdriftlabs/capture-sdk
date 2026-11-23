@@ -20,34 +20,14 @@ actions:
           --config=workflows
           --config=mixed-rbe
           --config=ios27-tests
+          --config=clippy-in-compile
           --keep_going
           --lockfile_mode=error
           --test_output=errors
           --test_env=RUST_LOG=debug
           -- //...
 
-  # Clippy changes the analysis flags and builds production rust_library targets.
-  - name: Clippy
-    triggers:
-      push:
-        branches:
-          - main
-      pull_request:
-        branches:
-          - "*"
-    container_image: ubuntu-24.04
-    steps:
-      - run: >-
-          bazel build
-          --config=workflows
-          --config=mixed-rbe
-          --config=clippy
-          --jobs=200
-          --lockfile_mode=error
-          --build_tag_filters=clippy,-macos_only
-          -- //... //platform/shared:build_script_
-
-  # GitHub dispatches this after Test and Clippy so their Mac actions can finish first.
+  # GitHub dispatches this after Test and its Clippy checks finish using the Mac executor.
   - name: iOS CI artifacts
     triggers: {}
     container_image: ubuntu-24.04
