@@ -1,10 +1,18 @@
 diff --git rs/extensions.bzl rs/extensions.bzl
-index 66c1d27..2d39de7 100644
 --- rs/extensions.bzl
 +++ rs/extensions.bzl
-@@ -8,0 +9 @@ load(
+@@ -4,6 +4,7 @@
+ load("//rs/private:cargo_credentials.bzl", "load_cargo_credentials")
+ load(
+     "//rs/private:cargo_workspace_graph.bzl",
 +    "cargo_metadata_dep_to_dep_dict",
-@@ -79,0 +80,9 @@ def _git_crate_package_path(annotation, strip_prefix):
+     "cargo_platforms",
+     "cargo_toml_fact",
+     "platform_label",
+@@ -88,6 +89,16 @@
+         return _normalize_path(paths.normalize(paths.join(workspace_dir, crate_dir)))
+     return _normalize_path(workspace_dir or crate_dir)
+ 
 +def _is_path_in_workspace(path, workspace_root):
 +    """Checks whether a path belongs to the Cargo workspace being resolved."""
 +    normalized_path = _normalize_path(path)
@@ -14,10 +22,17 @@ index 66c1d27..2d39de7 100644
 +    normalized_workspace_root = paths.normalize(_normalize_path(workspace_root))
 +    return normalized_path.startswith(normalized_workspace_root + "/")
 +
-@@ -137,0 +147,56 @@ def _generate_hub_and_spokes(
++
+ def _target_label(repo_name, package_path, target):
+     return "@%s//%s:%s" % (repo_name, package_path, target)
+ 
+@@ -213,11 +224,69 @@
+     existing_facts = getattr(mctx, "facts", {}) or {}
+ 
+     workspace_cargo_toml_json = run_toml2json(mctx, cfg.cargo_toml)
 +    path_package_names = {
 +        package["name"]: True
-+        for package in all_packages
++        for package in hub.packages
 +        if not package.get("source")
 +    }
 +    workspace_root = paths.normalize(_normalize_path(cargo_metadata["workspace_root"]))
@@ -39,14 +54,14 @@ index 66c1d27..2d39de7 100644
 +
 +    # There cannot be more manifests to inspect than path packages in the lockfile, which bounds
 +    # this loop without requiring Starlark recursion.
-+    for _ in range(len(all_packages)):
++    for _ in range(len(hub.packages)):
 +        if not path_manifests:
 +            break
 +        manifest_path = path_manifests.pop()
 +        result = mctx.execute(
 +            [cargo_path, "metadata", "--no-deps", "--format-version=1", "--quiet", "--manifest-path", manifest_path] +
-+            (["--config", str(mctx.path(cargo_config))] if cargo_config else []),
-+            working_directory = str(mctx.path(cargo_lock_path).dirname),
++            (["--config", str(mctx.path(hub.cargo_config))] if hub.cargo_config else []),
++            working_directory = str(manifest.dirname),
 +        )
 +        if result.return_code != 0:
 +            fail(result.stdout + "\n" + result.stderr)
@@ -71,23 +86,25 @@ index 66c1d27..2d39de7 100644
 +        for package in path_metadata_packages
 +    }
 +
-@@ -147,0 +213 @@ def _generate_hub_and_spokes(
-+        path_metadata_packages = path_metadata_packages,
-@@ -212 +279 @@ def _generate_hub_and_spokes(
--            # Watch Cargo.toml so Bazel re-runs the extension when Cargo.toml changes.
-+            # Watch workspace Cargo.toml files so Bazel re-runs the extension when they change.
-@@ -214,4 +281,19 @@ def _generate_hub_and_spokes(
--            mctx.watch(mctx.path(cargo_toml_path))
--            annotation = annotation_for(annotations, name, package["version"], hub_name)
--            cargo_toml_json = run_toml2json(mctx, cargo_toml_path)
--            fact = cargo_toml_fact(cargo_toml_json, {})
 +
-+            # Module extensions cannot watch manifests outside the current workspace.
-+            if _is_path_in_workspace(cargo_toml_path, workspace_root):
-+                mctx.watch(mctx.path(cargo_toml_path))
-+                annotation = annotation_for(annotations, name, package["version"], hub_name)
-+                cargo_toml_json = run_toml2json(mctx, cargo_toml_path)
-+                fact = cargo_toml_fact(cargo_toml_json, {})
+     split_packages = split_lockfile_packages(
+         hub_name,
+         cargo_metadata,
+         workspace_cargo_toml_json,
+         hub.packages,
++        path_metadata_packages = path_metadata_packages,
+     )
+     packages = split_packages.packages
+     workspace_members = split_packages.workspace_members
+@@ -235,8 +304,18 @@
+         if package["source"].startswith("path+"):
+             # Local Cargo.toml can change without a Cargo.lock edit.
+             manifest_path = paths.join(package["local_path"], "Cargo.toml")
+-            mctx.watch(manifest_path)
+-            fact = cargo_toml_fact(run_toml2json(mctx, manifest_path))
++            if _is_path_in_workspace(manifest_path, workspace_root):
++                mctx.watch(manifest_path)
++                fact = cargo_toml_fact(run_toml2json(mctx, manifest_path))
 +            else:
 +                # Cargo metadata resolves workspace inheritance in external path dependencies.
 +                metadata_package = path_metadata_by_fq_crate.get(_fq_crate(name, version))
@@ -95,27 +112,29 @@ index 66c1d27..2d39de7 100644
 +                    fail("Cargo metadata did not include path dependency %s %s" % (name, version))
 +                fact = dict(
 +                    features = metadata_package.get("features", {}),
-+                    dependencies = [
-+                        cargo_metadata_dep_to_dep_dict(dep)
-+                        for dep in metadata_package.get("dependencies", [])
-+                    ],
++                    dependencies = [cargo_metadata_dep_to_dep_dict(dep) for dep in metadata_package.get("dependencies", [])],
 +                )
+         else:
+             key = package["fact_key"]
+             encoded_fact = existing_facts.get(key)
 diff --git rs/private/cargo_workspace_graph.bzl rs/private/cargo_workspace_graph.bzl
-index 9baee0e..c7d5aaa 100644
 --- rs/private/cargo_workspace_graph.bzl
 +++ rs/private/cargo_workspace_graph.bzl
-@@ -327 +327,8 @@ def _cargo_toml_patch_paths_by_name(workspace_cargo_toml, workspace_root, worksp
+@@ -295,13 +295,15 @@
+ def _workspace_member_keys(cargo_metadata):
+     return set([(package["name"], package["version"]) for package in cargo_metadata["packages"]])
+ 
 -def split_lockfile_packages(hub_name, cargo_metadata, workspace_cargo_toml, all_packages, repo_root = None, workspace_package_dir = ""):
-+def split_lockfile_packages(
-+        hub_name,
-+        cargo_metadata,
-+        workspace_cargo_toml,
-+        all_packages,
-+        repo_root = None,
-+        workspace_package_dir = "",
-+        path_metadata_packages = None):
-@@ -336 +343,3 @@ def split_lockfile_packages(hub_name, cargo_metadata, workspace_cargo_toml, all_
++def split_lockfile_packages(hub_name, cargo_metadata, workspace_cargo_toml, all_packages, repo_root = None, workspace_package_dir = "", path_metadata_packages = None):
+     if repo_root == None:
+         repo_root = cargo_metadata["workspace_root"]
+     repo_root = normalize_path(repo_root)
+ 
+     workspace_member_keys = _workspace_member_keys(cargo_metadata)
 -    dep_paths_by_name = _cargo_metadata_dep_paths_by_name(cargo_metadata["packages"], repo_root)
 +    if path_metadata_packages == None:
 +        path_metadata_packages = cargo_metadata["packages"]
 +    dep_paths_by_name = _cargo_metadata_dep_paths_by_name(path_metadata_packages, repo_root)
+     patch_paths_by_name = _cargo_toml_patch_paths_by_name(workspace_cargo_toml, repo_root, workspace_package_dir)
+     workspace_members = []
+     packages = []
