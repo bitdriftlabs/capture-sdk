@@ -100,7 +100,16 @@ _ci_clippy_check_test = rule(
 )
 
 def ci_clippy_check(name, deps, in_compile = False, macos = False, tags = [], target_compatible_with = []):
-    """Include the given Rust targets in the combined BuildBuddy Test check."""
+    """Include the given Rust targets in the combined BuildBuddy Test check.
+
+    Args:
+        name: Base name for the CI check.
+        deps: Rust targets to lint.
+        in_compile: Whether the targets compile with clippy-driver.
+        macos: Whether to configure the Rust targets for the remote Mac.
+        tags: Tags on the original Rust targets.
+        target_compatible_with: Constraints on the CI check itself.
+    """
     ignored_tags = ["manual", "no_clippy", "no_lint", "noclippy", "nolint"]
     if any([tag.replace("-", "_").lower() in ignored_tags for tag in tags]):
         return

@@ -1,5 +1,7 @@
 """Opt a Rust target into compiling with clippy-driver in CI."""
 
+# The rules_rust compile patch consumes this provider.
+# buildifier: disable=bzl-visibility
 load("@rules_rust//rust/private:providers.bzl", "LintsInfo")
 
 def _clippy_compile_config_impl(ctx):

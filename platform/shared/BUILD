@@ -40,7 +40,7 @@ cargo_build_script(
 )
 
 ci_clippy_check(
-    name = "build_script",
+    name = "platform_shared_build_script",
     deps = [":build_script_"],
 )
 
