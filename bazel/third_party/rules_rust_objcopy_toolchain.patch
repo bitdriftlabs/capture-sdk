@@ -1,0 +1,11 @@
+diff --git a/rust/private/repository_utils.bzl b/rust/private/repository_utils.bzl
+--- a/rust/private/repository_utils.bzl
++++ b/rust/private/repository_utils.bzl
+@@ -386,6 +386,7 @@
+     process_wrapper = "@rules_rust//util/process_wrapper",
+     linker = {linker_label},
+     linker_type = {linker_type},
++    rust_objcopy = {rust_objcopy_label},
+     rustfmt = {rustfmt_label},
+     cargo = "//:cargo",
+     clippy_driver = "//:clippy_driver_bin",
