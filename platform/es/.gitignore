@@ -90,13 +90,6 @@ yarn-error.log
 # testing
 /coverage
 
-# Local napi core
-packages/core/*.node
-packages/core/npm
-packages/core/**/*.node
-packages/core/artifacts/
-packages/core/sdk_directory/
-
 # Expo
 node_modules/
 .expo/
@@ -114,4 +107,3 @@ cache/
 examples/expo/ios
 examples/expo/android
 .env
-examples/hello-electron/.env
