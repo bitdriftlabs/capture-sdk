@@ -5,7 +5,6 @@ Local guidance for `platform/crash` (`bd-crash-reporter`).
 ## Base Rules
 
 - Primary instructions should be sourced from rust.instructions.md
-- ALWAYS use `cargo nextest` commands for verification as it's faster
 
 ## What This Crate Does
 
@@ -32,19 +31,11 @@ whether the previous run terminated while crash monitoring was active.
 
 ## Local Verification
 
-Run these first when touching only this crate:
-
-```bash
-cargo nextest run -p bd-crash-reporter
-cargo clippy -p bd-crash-reporter --tests --quiet
-cargo fmt --manifest-path platform/crash/Cargo.toml
-```
-
-Useful Bazel targets for this folder:
+Run these Bazel targets when touching this crate:
 
 ```bash
 ./bazelw test //platform/crash:bd_crash_reporter_test
-./bazelw test //platform/crash:_bd_crash_reporter_rust_clippy
+./bazelw build --config=clippy //platform/crash:bd_crash_reporter
 ```
 
 ## Cross-Platform Smoke Checks

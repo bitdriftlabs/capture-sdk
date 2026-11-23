@@ -17,7 +17,8 @@ For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sd
 ## Running tests
 
 Use `./bazelw test //...` for the default tests supported on your machine. To work on one
-part of the SDK, run the owning target directly.
+part of the SDK, run the owning target directly. Run Rust tests through Bazel. Direct Cargo
+test runs are unsupported.
 
 | Coverage | Command |
 | --- | --- |

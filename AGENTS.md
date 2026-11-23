@@ -34,7 +34,7 @@ make xcframework                    # Build iOS release artifact
 
 ## Testing
 
-- iOS tests must be run through Bazel.
+- Run SDK Rust and iOS tests through Bazel. Direct Cargo test runs are unsupported.
 - See [Running tests](README.md#running-tests) for the default suite and the Xcode 27 opt-in.
 - Android is often easier to run through Gradle but sometimes issues only reproduce through Bazel. platform/jvm/gradlew can be invoked directly (use -p to target the correct directory).
 - `test --build_tests_only` is configured in `.bazelrc`, so wildcard test commands build only test targets rather than unrelated build targets.
@@ -87,7 +87,8 @@ When a change touches both `shared-core` and `capture-sdk`, use this workflow:
 Recommended pre-repin checks for the touched `capture-sdk` slices:
 
 - Run the narrow Rust/unit checks that cover the edited code before the full Bazel pass.
-- For shared metadata or bridge wiring, prefer `cargo nextest run -p platform-shared`, targeted Android unit tests from `platform/jvm`, and the narrow iOS Bazel target `//test/platform/swift/unit_integration/core:test`.
+- For shared metadata or bridge wiring, start with `./bazelw test //platform/shared:platform-shared_test`,
+  targeted Android unit tests from `platform/jvm`, and `//test/platform/swift/unit_integration/core:test`.
 - If the `shared-core` bump changes a Rust API, expect the first breakage to show up in `platform/jvm/core` or other bridge/wiring crates that call into shared-core directly.
 
 Standard full verification:

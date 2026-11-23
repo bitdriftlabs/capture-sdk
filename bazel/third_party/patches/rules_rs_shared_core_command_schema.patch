@@ -1,17 +1,72 @@
+diff --git rs/private/crate_repository.bzl rs/private/crate_repository.bzl
+index 13f2c23..6aadabb 100644
+--- rs/private/crate_repository.bzl
++++ rs/private/crate_repository.bzl
+@@ -2,7 +2,7 @@ load("@bazel_tools//tools/build_defs/repo:cache.bzl", "get_default_canonical_id"
+ load("@bazel_tools//tools/build_defs/repo:utils.bzl", "get_auth", "patch")
+ load(":cargo_credentials.bzl", "repository_registry_auth_headers")
+ load(":registry_utils.bzl", "registry_download_url_from_template")
+-load(":repository_utils.bzl", "cargo_build_file_values", "common_attrs", "package_version", "render_build_file_content")
++load(":repository_utils.bzl", "cargo_build_file_values", "common_attrs", "expose_shared_core_command_schema", "package_version", "render_build_file_content")
+ load(":toml2json.bzl", "run_toml2json")
+ 
+ def _cargo_purl(package_name, version, qualifiers = {}):
+@@ -84,6 +84,7 @@ def _local_crate_repository_impl(rctx):
+         rctx.symlink(entry, entry.basename)
+ 
+     patch(rctx)
++    expose_shared_core_command_schema(rctx, rctx.attr.additive_build_file, root.dirname, "command_schema")
+ 
+     cargo_toml = run_toml2json(rctx, "Cargo.toml")
+ 
+diff --git rs/private/git_cargo_workspace_repository.bzl rs/private/git_cargo_workspace_repository.bzl
+index 08c0f13..e7e9c94 100644
 --- rs/private/git_cargo_workspace_repository.bzl
 +++ rs/private/git_cargo_workspace_repository.bzl
-@@ -66,2 +66,14 @@
+@@ -1,6 +1,6 @@
+ load("@bazel_tools//tools/build_defs/repo:git_worker.bzl", "git_repo")
+ load("@bazel_tools//tools/build_defs/repo:utils.bzl", "patch")
+-load(":repository_utils.bzl", "cargo_build_file_values", "inherit_workspace_package_fields", "package_version", "spoke_repo_name")
++load(":repository_utils.bzl", "cargo_build_file_values", "expose_shared_core_command_schema", "inherit_workspace_package_fields", "package_version", "spoke_repo_name")
+ load(":toml2json.bzl", "run_toml2json")
+ 
+ def _render_label_list(labels):
+@@ -87,6 +87,12 @@ def _git_cargo_workspace_repository_impl(rctx):
+         git_repo(rctx, rctx.path("."))
+ 
      patch(rctx)
-+    if rctx.attr.remote == "https://github.com/bitdriftlabs/shared-core.git":
-+        # Expose a narrow protobuf import tree through the existing pinned Git checkout.
-+        for proto, directory in [
-+            ("bitdrift_public/protobuf/logging/v1/payload.proto", "api/src"),
-+            ("bitdrift_public/protobuf/workflow/v1/workflow_command.proto", "api/src"),
-+            ("validate/validate.proto", "api/protoc-gen-validate"),
-+        ]:
-+            rctx.file(
-+                "bd-proto/command_schema/" + proto,
-+                rctx.read(directory + "/" + proto),
-+                executable = False,
-+            )
++    expose_shared_core_command_schema(
++        rctx,
++        rctx.attr.additive_build_files.get("bd-proto/BUILD.bazel"),
++        rctx.path("."),
++        "bd-proto/command_schema",
++    )
      rctx.delete(rctx.path(".git"))
+ 
+     workspace_cargo_toml = run_toml2json(rctx, rctx.attr.workspace_cargo_toml)
+diff --git rs/private/repository_utils.bzl rs/private/repository_utils.bzl
+index bf84b0c..dc11ce6 100644
+--- rs/private/repository_utils.bzl
++++ rs/private/repository_utils.bzl
+@@ -5,6 +5,21 @@ load(":semver.bzl", "parse_full_version")
+ # Bazel 8 does not define attr.label_list_dict.
+ _label_list_dict = getattr(attr, "label_list_dict", attr.string_list_dict)
+ 
++def expose_shared_core_command_schema(rctx, additive_build_file, source_root, output_dir):
++    """Materializes the schema inputs requested by the bd-proto BUILD annotation."""
++    if not additive_build_file or additive_build_file.name != "shared_core_command_schema.BUILD":
++        return
++
++    # Keep the import tree narrow so unrelated shared-core edits do not affect code generation.
++    for proto, directory in [
++        ("bitdrift_public/protobuf/logging/v1/payload.proto", "api/src"),
++        ("bitdrift_public/protobuf/workflow/v1/workflow_command.proto", "api/src"),
++        ("validate/validate.proto", "api/protoc-gen-validate"),
++    ]:
++        source = "{}/{}/{}".format(source_root, directory, proto)
++        # read watches local files outside the generated repository for edits.
++        rctx.file(output_dir + "/" + proto, rctx.read(source), executable = False)
++
+ def spoke_repo_name(hub_name, name, version):
+     return ("%s__%s-%s" % (hub_name, name, version)).replace("+", "-")
+ 
