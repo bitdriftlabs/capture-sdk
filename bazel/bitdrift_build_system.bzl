@@ -7,8 +7,8 @@ load("@rules_rust//rust:defs.bzl", "rust_clippy")
 load("//bazel/platforms:configured_test.bzl", "ci_clippy_check", "macos_clippy", "macos_test")
 
 _CLIPPY_IN_COMPILE = select({
-    "//tools/lint:clippy_in_compile_enabled": "//tools/lint:clippy_compile_config",
-    "//conditions:default": None,
+    "//tools/lint:clippy_in_compile_enabled": True,
+    "//conditions:default": False,
 })
 
 def bitdrift_rust_binary(name, srcs = None, deps = [], proc_macro_deps = [], tags = [], **args):
@@ -76,7 +76,7 @@ def bitdrift_rust_shared_library(name, srcs = None, deps = [], proc_macro_deps =
 def bitdrift_rust_test(name, deps = [], proc_macro_deps = [], tags = [], **args):
     rust_test(
         name = name,
-        lint_config = _CLIPPY_IN_COMPILE,
+        clippy_in_compile = _CLIPPY_IN_COMPILE,
         rustc_flags = _rustc_flags(),
         edition = "2024",
         deps = all_crate_deps(normal = True, normal_dev = True, cargo_only = True) + deps,
@@ -106,7 +106,7 @@ def bitdrift_rust_integration_test(name, **args):
 def bitdrift_rust_library_only(name, srcs, deps = [], tags = []):
     rust_library(
         name = name,
-        lint_config = _CLIPPY_IN_COMPILE,
+        clippy_in_compile = _CLIPPY_IN_COMPILE,
         srcs = srcs,
         deps = deps + all_crate_deps(normal = True, cargo_only = True),
         disable_pipelining = True,
@@ -156,7 +156,7 @@ def bitdrift_rust_library(
 
     rust_library(
         name = name,
-        lint_config = _CLIPPY_IN_COMPILE,
+        clippy_in_compile = _CLIPPY_IN_COMPILE,
         target_compatible_with = target_compatible_with,
         deps = deps + all_crate_deps(normal = True, cargo_only = True),
         srcs = srcs if srcs else native.glob(["src/**/*.rs"]),
@@ -171,7 +171,7 @@ def bitdrift_rust_library(
 
     rust_test(
         name = raw_test_name,
-        lint_config = _CLIPPY_IN_COMPILE,
+        clippy_in_compile = _CLIPPY_IN_COMPILE,
         target_compatible_with = target_compatible_with,
         crate = name,
         tags = _clippy_tags(test_tags) + (["manual"] if run_on_macos else []),

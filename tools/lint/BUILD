@@ -1,7 +1,6 @@
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@rules_multirun//:defs.bzl", "multirun", command = "command_force_opt")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
-load(":clippy_in_compile.bzl", "clippy_compile_config")
 
 bool_flag(
     name = "clippy_in_compile",
@@ -11,12 +10,6 @@ bool_flag(
 config_setting(
     name = "clippy_in_compile_enabled",
     flag_values = {":clippy_in_compile": "True"},
-    visibility = ["//visibility:public"],
-)
-
-clippy_compile_config(
-    name = "clippy_compile_config",
-    config = "//:.clippy.toml",
     visibility = ["//visibility:public"],
 )
 
