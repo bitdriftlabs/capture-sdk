@@ -417,7 +417,21 @@ maven.artifact(
     group = "io.github.classgraph",
     version = "4.8.146",
 )
-use_repo(maven, "maven")
+
+# Pin the Android build tools contributed by rules_android in their own repository.
+maven.install(
+    name = "rules_android_maven",
+    aar_import_bzl_label = "@rules_android//rules:rules.bzl",
+    known_contributing_modules = ["rules_android"],
+    lock_file = "//:rules_android_maven_install.json",
+    repositories = [
+        "https://maven.google.com",
+        "https://maven-central.storage-download.googleapis.com/maven2",
+        "https://repo1.maven.org/maven2",
+    ],
+    use_starlark_android_rules = True,
+)
+use_repo(maven, "maven", "rules_android_maven")
 
 ####################
 # Rust extensions

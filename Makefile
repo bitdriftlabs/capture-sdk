@@ -73,13 +73,15 @@ check-license:
 	./ci/check_license.sh
 
 # Use repin when you get Error: Digests do not match, or after changing Maven artifacts in
-# MODULE.bazel (Bazel then reports that maven_install.json must be regenerated).
+# MODULE.bazel (Bazel then reports that a Maven lockfile must be regenerated).
 .PHONY: repin
 repin:
+	set -e
 	# rules_rs resolves crates from Cargo.lock and records its facts in MODULE.bazel.lock.
 	./bazelw mod tidy
-	# Re-resolve @maven and rewrite maven_install.json with the resolved versions and checksums.
+	# Refresh the SDK and Android build tool lockfiles.
 	./bazelw run --repo_env=REPIN=1 @maven//:pin
+	./bazelw run --repo_env=REPIN=1 @rules_android_maven//:pin
 
 .PHONY: push-additional-images
 push-additional-images:
