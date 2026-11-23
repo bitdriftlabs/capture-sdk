@@ -9,42 +9,42 @@
     "run-android": {
       "dependsOn": [{
         "target": "prepare-release",
-        "projects": ["@bitdrift/react-native"],
+        "projects": ["@bitdrift/react-native", "@bitdrift/react-native-webview"],
         "params": "ignore"
       }]
     },
     "run-ios": {
       "dependsOn": [{
         "target": "prepare-release",
-        "projects": ["@bitdrift/react-native"],
+        "projects": ["@bitdrift/react-native", "@bitdrift/react-native-webview"],
         "params": "ignore"
       }]
     },
     "android": {
       "dependsOn": [{
         "target": "prepare-release",
-        "projects": ["@bitdrift/react-native"],
+        "projects": ["@bitdrift/react-native", "@bitdrift/react-native-webview"],
         "params": "ignore"
       }]
     },
     "ios": {
       "dependsOn": [{
         "target": "prepare-release",
-        "projects": ["@bitdrift/react-native"],
+        "projects": ["@bitdrift/react-native", "@bitdrift/react-native-webview"],
         "params": "ignore"
       }]
     },
     "prebuild": {
       "dependsOn": [{
         "target": "prepare-release",
-        "projects": ["@bitdrift/react-native"],
+        "projects": ["@bitdrift/react-native", "@bitdrift/react-native-webview"],
         "params": "ignore"
       }]
     },
     "start": {
       "dependsOn": [{
         "target": "prepare-release",
-        "projects": ["@bitdrift/react-native"],
+        "projects": ["@bitdrift/react-native", "@bitdrift/react-native-webview"],
         "params": "ignore"
       }]
     }

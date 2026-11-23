@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import { WebView as BitdriftWebView } from '@bitdrift/react-native-webview';
+import { WebView as ReactNativeWebView, type WebViewMessageEvent } from 'react-native-webview';
 
 // Reports whether the Capture bridge was injected into the page. The bridge registers
 // `window.webkit.messageHandlers.BitdriftLogger` on iOS and `window.BitdriftLogger` on Android.
@@ -18,6 +19,8 @@ const BITDRIFT_PROBE = `
 `;
 
 const SOURCE = { uri: 'https://bitdrift.io/' };
+const isManualInstrumentation =
+  process.env.EXPO_PUBLIC_WEBVIEW_DEMO_MODE === 'manual';
 
 export function WebViewDemo({ onClose }: { onClose: () => void }): JSX.Element {
   const [status, setStatus] = useState<string[]>([]);
@@ -39,17 +42,30 @@ export function WebViewDemo({ onClose }: { onClose: () => void }): JSX.Element {
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
           <Text style={styles.closeButtonText}>Close</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Automatic instrumentation</Text>
+        <Text style={styles.title}>
+          {isManualInstrumentation
+            ? 'Manual instrumentation'
+            : 'Automatic instrumentation'}
+        </Text>
       </View>
       <Text testID="webview-bitdrift-status" style={styles.status}>
         {status.length === 0 ? 'pending' : status.join('\n')}
       </Text>
-      <WebView
-        source={SOURCE}
-        injectedJavaScript={BITDRIFT_PROBE}
-        onMessage={onMessage}
-        style={styles.webView}
-      />
+      {isManualInstrumentation ? (
+        <BitdriftWebView
+          source={SOURCE}
+          injectedJavaScript={BITDRIFT_PROBE}
+          onMessage={onMessage}
+          style={styles.webView}
+        />
+      ) : (
+        <ReactNativeWebView
+          source={SOURCE}
+          injectedJavaScript={BITDRIFT_PROBE}
+          onMessage={onMessage}
+          style={styles.webView}
+        />
+      )}
     </View>
   );
 }

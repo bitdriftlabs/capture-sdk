@@ -69,9 +69,12 @@ jobs:
       - name: Prepare release
         run: |
           npm version --workspace @bitdrift/react-native --no-git-tag-version "$VERSION"
-          npx nx prepare-release @bitdrift/react-native
+          npm version --workspace @bitdrift/react-native-webview --no-git-tag-version "$VERSION"
+          npx nx run-many --target=prepare-release --projects=@bitdrift/react-native,@bitdrift/react-native-webview
       - name: Publish release
-        run: npm publish ./dist/react-native --provenance
+        run: |
+          npm publish ./dist/react-native --provenance
+          npm publish ./dist/react-native-webview --provenance
       # Use the existing release app so the resulting PR triggers SDK checks.
       - name: Create release app token
         id: release-app
@@ -90,9 +93,9 @@ jobs:
           git config user.email github-actions@github.com
 
           git checkout -b "release-rn-$VERSION"
-          git add packages/react-native/package.json package-lock.json
-          git commit -m "chore: release react-native $VERSION (capture-sdk $CAPTURE_SDK_VERSION)"
+          git add packages/react-native/package.json packages/react-native-webview/package.json package-lock.json
+          git commit -m "chore: release react-native packages $VERSION (capture-sdk $CAPTURE_SDK_VERSION)"
           git push --set-upstream origin "release-rn-$VERSION"
 
-          gh pr create --title "chore: release react-native $VERSION" --body "v$VERSION (capture-sdk v$CAPTURE_SDK_VERSION)" --base main --head "release-rn-$VERSION"
+          gh pr create --title "chore: release react-native packages $VERSION" --body "v$VERSION (capture-sdk v$CAPTURE_SDK_VERSION)" --base main --head "release-rn-$VERSION"
           gh pr merge "release-rn-$VERSION" --auto --rebase

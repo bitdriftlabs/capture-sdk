@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@bitdrift/react-native": "../../dist/react-native",
+    "@bitdrift/react-native-webview": "../../dist/react-native-webview",
     "@react-native-picker/picker": "*",
     "@testing-library/jest-native": "*",
     "@testing-library/react-native": "*",
@@ -18,6 +19,8 @@
   "scripts": {
     "eas-build-post-install": "cd ../../ && node tools/scripts/eas-build-post-install.mjs . examples/expo",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "android:manual": "EXPO_PUBLIC_WEBVIEW_DEMO_MODE=manual expo run:android",
+    "ios:manual": "EXPO_PUBLIC_WEBVIEW_DEMO_MODE=manual expo run:ios"
   }
 }

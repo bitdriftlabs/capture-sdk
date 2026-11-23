@@ -1,0 +1,53 @@
+{
+  "name": "@bitdrift/react-native-webview",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/react-native-webview/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/react-native-webview/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/react-native-webview",
+        "commands": ["tsc --noEmit"]
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/react-native-webview",
+        "command": "npx bob build"
+      },
+      "outputs": ["{workspaceRoot}/packages/react-native-webview/dist"]
+    },
+    "prepare-release": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "commands": [
+          "rm -rf dist/react-native-webview",
+          "mkdir -p dist/react-native-webview",
+          "cp -r packages/react-native-webview/dist/* dist/react-native-webview",
+          "cp packages/react-native-webview/*.podspec dist/react-native-webview",
+          "cp -r packages/react-native-webview/ios dist/react-native-webview",
+          "mkdir -p dist/react-native-webview/android",
+          "cp packages/react-native-webview/android/build.gradle dist/react-native-webview/android",
+          "cp -r packages/react-native-webview/android/src dist/react-native-webview/android",
+          "cp packages/react-native-webview/README.md dist/react-native-webview",
+          "cp packages/react-native-webview/react-native.config.js dist/react-native-webview",
+          "cp -r LICENSE.package dist/react-native-webview/LICENSE",
+          "jq '{name, version, description, author, license, homepage, repository, publishConfig, main: (.main | sub(\"^dist/\"; \"\") + \".js\"), module: (.module | sub(\"^dist/\"; \"\") + \".js\"), \"react-native\": (.main | sub(\"^dist/\"; \"\") + \".js\"), types: (.types | sub(\"^dist/\"; \"\")), peerDependencies: (.peerDependencies + {\"@bitdrift/react-native\": (\">=\" + .version)})}' packages/react-native-webview/package.json > dist/react-native-webview/package.json",
+          "rm dist/react-native-webview/commonjs/package.json"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/react-native-webview"]
+    }
+  }
+}

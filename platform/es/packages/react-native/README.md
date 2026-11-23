@@ -12,8 +12,7 @@ npm install @bitdrift/react-native
 
 ### Expo
 
-If you are using Expo to build your React Native app and don't want to use an ejected workflow, you can use the `@bitdrift/react-native` package to initialize the
-Capture library and log messages at different log levels. Note that this initializes the library later than is ideal, but should still provide most of the benefits of using Capture.
+If you are using Expo to build your React Native app and don't want to use an ejected workflow, you can use the `@bitdrift/react-native` package to initialize the Capture library and log messages at different log levels. Note that this initializes the library later than is ideal, but should still provide most of the benefits of using Capture.
 
 
 ```js
@@ -398,6 +397,8 @@ When using the Expo plugin with `networkInstrumentation: true`, the Android Grad
 
 WebView instrumentation captures telemetry from `react-native-webview` webviews like page views, network requests, navigation events, Web Vitals, long tasks, console logs, user interactions and errors. Call `init(...)` before any WebView is mounted.
 
+For selected, manually instrumented WebViews, install the separate `@bitdrift/react-native-webview` package and import its `WebView` component. This keeps `react-native-webview` out of the base SDK's native dependencies.
+
 #### iOS
 
 Enable automatic instrumentation of every WebView by passing `UNSTABLE_enableWebViewInstrumentation: true` to `init`:
@@ -435,7 +436,7 @@ Notes:
 
 - `UNSTABLE_webViewInstrumentation` only affects Android app builds. On iOS, use `UNSTABLE_enableWebViewInstrumentation` in `init`.
 - It is not automatically applied to vanilla React Native Android builds outside the Expo config plugin flow.
-- For non-Expo Android apps, apply the Gradle plugin and `bitdrift { instrumentation { automaticWebViewInstrumentation = true } }` manually.
+- For non-Expo Android apps, apply the Gradle plugin and `bitdrift { instrumentation { webViewAutomaticInstrumentationScope = JS_ENABLED } }` manually.
 
 The Android plugin mode can be configured with `okHttpInstrumentationType`:
 

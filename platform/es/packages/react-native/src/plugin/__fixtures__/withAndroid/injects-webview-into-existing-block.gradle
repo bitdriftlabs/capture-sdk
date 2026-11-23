@@ -8,7 +8,7 @@ plugins {
 
 bitdrift {
     instrumentation {
-        automaticWebViewInstrumentation = true
+        webViewAutomaticInstrumentationScope = JS_ENABLED
         automaticOkHttpInstrumentation = true
         okHttpInstrumentationType = PROXY
     }
