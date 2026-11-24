@@ -6,6 +6,7 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
 use assert_matches::assert_matches;
+use bd_client_common::file::read_compressed_limited;
 use bd_error_reporter::reporter::Reporter;
 use bd_logger::DataValue;
 use bd_test_helpers::runtime::ValueKind;
@@ -523,14 +524,33 @@ pub extern "C" fn Java_io_bitdrift_capture_CaptureTestJniLibrary_nextUploadedArt
   mut env: JNIEnv<'_>,
   _class: JClass<'_>,
 ) -> jobject {
-  let artifact_request = platform_test_helpers::with_expected_server(|h| {
-    h.blocking_next_artifact_upload()
-      .expect("expected artifact upload")
-  });
+  let (contents, feature_flags, session_id) = platform_test_helpers::with_expected_server(|h| {
+    let begin = h
+      .blocking_next_artifact_upload()
+      .expect("expected artifact Begin");
+    assert_eq!(begin.chunk_index, None);
+    assert_eq!(begin.contents, b"");
+    assert_eq!(begin.feature_flags, []);
+    assert!(!begin.chunks.is_empty(), "expected a nonempty artifact");
+    let logical_bytes = begin.logical_bytes.expect("expected logical artifact size");
 
-  let contents = artifact_request.contents;
-  let feature_flags = artifact_request.feature_flags;
-  let session_id = artifact_request.session_id;
+    // The session is sent on Begin; flags are sent with the last piece of the zlib stream.
+    let mut encoded = Vec::new();
+    let mut feature_flags = Vec::new();
+    for (index, descriptor) in begin.chunks.iter().enumerate() {
+      let chunk = h
+        .blocking_next_artifact_upload()
+        .expect("expected artifact chunk");
+      assert_eq!(chunk.artifact_id, begin.artifact_id);
+      assert_eq!(chunk.chunk_index, Some(u32::try_from(index).unwrap()));
+      assert_eq!(chunk.contents.len(), descriptor.encoded_bytes as usize);
+      encoded.extend_from_slice(&chunk.contents);
+      feature_flags = chunk.feature_flags;
+    }
+    let contents = read_compressed_limited(&encoded, logical_bytes).unwrap();
+    assert_eq!(contents.len() as u64, logical_bytes);
+    (contents, feature_flags, begin.session_id)
+  });
 
   // Create the byte array for contents
   let contents_array = env.byte_array_from_slice(&contents).unwrap();
