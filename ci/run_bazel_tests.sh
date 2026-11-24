@@ -4,8 +4,8 @@ set -euo pipefail
 
 # These names partition CI work by runner capability. "linux_runner" covers
 # every test that can run on Linux, including Android host tests;
-# "macos_runner" contains the iOS XCTest suite. "all" runs the complete test
-# set in one Bazel invocation on a local macOS machine.
+# "macos_runner" contains the iOS XCTest suite and Apple-native unwind tests.
+# "all" runs the complete test set in one Bazel invocation on a local macOS machine.
 if [[ $# -ne 3 ]]; then
   echo "Usage: $0 <all|linux_runner|macos_runner> <full|affected> <affected-targets-path>"
   exit 2
@@ -65,8 +65,10 @@ run_linux_runner() {
 
 run_macos_runner() {
   # Wildcard selection uses the public test wrappers and skips opt-in tests.
-  echo "Running the default iOS test suite for $mode mode."
-  run_bazel_tests true false false macos_only '' //test/platform/swift/unit_integration/...
+  echo "Running the default iOS and Apple-native unwind test suites for $mode mode."
+  run_bazel_tests true false false macos_only '' \
+    //test/platform/swift/unit_integration/... \
+    //platform/unwind:bd_unwind_apple_test
 }
 
 case "$slice" in

@@ -12,6 +12,7 @@ mod tests;
 use crate::memory::{AddressRange, MemoryReader};
 
 const MH_MAGIC_64: u32 = 0xfeed_facf;
+const MH_DYLIB_IN_CACHE: u32 = 0x8000_0000;
 const CPU_TYPE_ARM64: u32 = 0x0100_000c;
 const LC_SEGMENT_64: u32 = 0x19;
 const LC_UUID: u32 = 0x1b;
@@ -25,25 +26,21 @@ const SECTION_SIZE: u64 = 80;
 
 /// Metadata copied out of a loaded ARM64 Mach-O image during normal execution. All ranges use
 /// runtime addresses. These values own no mapped pointers and can be retained after an image
-/// unload; reading unwind bytes still requires a reader and a separately managed image lifetime or
-/// copy.
+/// unload for address attribution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ImageInfo {
-  pub header_address: u64,
   pub uuid: Option<[u8; 16]>,
   /// The __TEXT mapping, not an assertion that every byte in it is executable.
   pub text: AddressRange,
-  pub unwind_info: Option<AddressRange>,
-  pub eh_frame: Option<AddressRange>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ImageError {
   UnreadableMemory,
   InvalidHeader,
   UnsupportedArchitecture,
   InvalidLoadCommand,
-  InvalidSection,
+  NonzeroTextFileOffset { in_shared_cache: bool },
   MissingTextSegment,
   AddressOverflow,
 }
@@ -57,7 +54,6 @@ impl ImageInfo {
   /// size come from `mach_header_64`; each command supplies its own size. Work scales with those
   /// declared tables, validated structurally without a separate command-count or byte-size cap.
   ///
-  /// Mach-O definitions:
   /// <https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h>
   pub fn read(memory: &impl MemoryReader, header_address: u64) -> Result<Self, ImageError> {
     let header = read::<32>(memory, header_address)?;
@@ -81,8 +77,6 @@ impl ImageInfo {
       .ok_or(ImageError::AddressOverflow)?;
     let mut uuid = None;
     let mut text = None;
-    let mut unwind_info = None;
-    let mut eh_frame = None;
 
     for _ in 0 .. command_count {
       if commands_end.saturating_sub(command_address) < 8 {
@@ -113,9 +107,18 @@ impl ImageInfo {
           let address = u64_at(&segment, 24).ok_or(ImageError::InvalidLoadCommand)?;
           let length = u64_at(&segment, 32).ok_or(ImageError::InvalidLoadCommand)?;
           if name.starts_with(b"__TEXT\0") {
-            if text.is_some() || u64_at(&segment, 40) != Some(0) || u64_at(&segment, 48) == Some(0)
-            {
+            if text.is_some() || u64_at(&segment, 48) == Some(0) {
               return Err(ImageError::InvalidLoadCommand);
+            }
+            if u64_at(&segment, 40) != Some(0) {
+              // Shared-cache file offsets refer to the cache, not a standalone Mach-O file.
+              // Runtime relocation below depends only on virtual addresses.
+              let flags = u32_at(&header, 24).ok_or(ImageError::InvalidHeader)?;
+              if flags & MH_DYLIB_IN_CACHE == 0 {
+                return Err(ImageError::NonzeroTextFileOffset {
+                  in_shared_cache: false,
+                });
+              }
             }
             text = Some(AddressRange::new(address, length).ok_or(ImageError::InvalidLoadCommand)?);
           }
@@ -123,31 +126,8 @@ impl ImageInfo {
           if u64::from(sections) > (command_size - SEGMENT_SIZE) / SECTION_SIZE {
             return Err(ImageError::InvalidLoadCommand);
           }
-          for index in 0 .. sections {
-            let section = read::<80>(
-              memory,
-              command_address + SEGMENT_SIZE + u64::from(index) * SECTION_SIZE,
-            )?;
-            let name = section.get(.. 16).ok_or(ImageError::InvalidSection)?;
-            let destination = if name.starts_with(b"__unwind_info\0") {
-              &mut unwind_info
-            } else if name.starts_with(b"__eh_frame\0") {
-              &mut eh_frame
-            } else {
-              continue;
-            };
-            let section_address = u64_at(&section, 32).ok_or(ImageError::InvalidSection)?;
-            let section_size = u64_at(&section, 40).ok_or(ImageError::InvalidSection)?;
-            if section_size == 0 {
-              continue;
-            }
-            let segment_range =
-              AddressRange::new(address, length).ok_or(ImageError::InvalidSection)?;
-            if destination.is_some() || !segment_range.contains(section_address, section_size) {
-              return Err(ImageError::InvalidSection);
-            }
-            *destination = AddressRange::new(section_address, section_size);
-          }
+          // Section contents are not needed for frame-pointer snapshots. Validate their table
+          // fits the load command without reading individual section records.
         },
         _ => {},
       }
@@ -157,23 +137,11 @@ impl ImageInfo {
       return Err(ImageError::InvalidLoadCommand);
     }
     let preferred_text = text.ok_or(ImageError::MissingTextSegment)?;
-    let relocate = |range: AddressRange| {
-      // The header is at the beginning of the file-backed __TEXT mapping. Subtraction before
-      // addition avoids representing the ASLR slide as a signed integer.
-      let start = range
-        .start()
-        .checked_sub(preferred_text.start())
-        .and_then(|offset| header_address.checked_add(offset))
-        .ok_or(ImageError::AddressOverflow)?;
-      AddressRange::new(start, range.size()).ok_or(ImageError::AddressOverflow)
-    };
-    Ok(Self {
-      header_address,
-      uuid,
-      text: relocate(preferred_text)?,
-      unwind_info: unwind_info.map(relocate).transpose()?,
-      eh_frame: eh_frame.map(relocate).transpose()?,
-    })
+    // The header is at the beginning of the file-backed __TEXT mapping, including images in
+    // the shared cache. Only its size is needed to relocate the mapping to its runtime address.
+    let text = AddressRange::new(header_address, preferred_text.size())
+      .ok_or(ImageError::AddressOverflow)?;
+    Ok(Self { uuid, text })
   }
 }
 
