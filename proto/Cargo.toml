@@ -10,8 +10,6 @@ publish = false
 [dependencies]
 bd-proto.workspace = true
 protobuf.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 
 [[bin]]
 name = "proto_bin"

@@ -3,6 +3,7 @@
 DEFAULT_PATH="../shared-core"
 REPO_ROOT_DIR="$(dirname "$(dirname "$(realpath "$0")")")"
 CARGO_TOML="$REPO_ROOT_DIR/Cargo.toml"
+SHARED_CORE_GIT='git[[:space:]]*=[[:space:]]*"(https://github\.com/|ssh://git@github\.com/|git@github\.com:)bitdriftlabs/shared-core(\.git)?"'
 
 if [ ! -f "$CARGO_TOML" ]; then
   echo "Error: Cargo.toml not found in the root directory."
@@ -67,7 +68,9 @@ in_multiline_dependency=0
 rewrite_dependency_entry() {
   local line="$1"
 
-  if [[ ! "$line" =~ ^(bd-[A-Za-z0-9-]+)[[:space:]]*=[[:space:]]*\{(.*)$ ]]; then
+  # Leave existing path dependencies and any crates from other repositories alone.
+  if [[ ! "$line" =~ $SHARED_CORE_GIT ]] ||
+    [[ ! "$line" =~ ^(bd-[A-Za-z0-9-]+)[[:space:]]*=[[:space:]]*\{(.*)$ ]]; then
     printf '%s\n' "$line" >>"$TMP_FILE"
     return
   fi

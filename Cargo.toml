@@ -8,6 +8,7 @@ members = [
   "platform/swift/source",
   "platform/test_helpers",
   "proto",
+  "proto/log_enum",
   "test/benchmark",
   "test/platform/jvm",
   "test/platform/swift/bridging",
