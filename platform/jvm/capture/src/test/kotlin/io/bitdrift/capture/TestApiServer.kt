@@ -144,7 +144,7 @@ class TestApiServer {
     fun nextUploadedLog(): UploadedLog = CaptureTestJniLibrary.nextUploadedLog()
 
     /**
-     * Returns the next uploaded artifact with its feature flags, blocking until one is available.
+     * Returns the next complete artifact with its feature flags, blocking until all chunks arrive.
      */
     fun nextUploadedArtifact(): UploadedArtifact = CaptureTestJniLibrary.nextUploadedArtifact()
 
@@ -159,7 +159,7 @@ class TestApiServer {
 
     /**
      * Returns the next uploaded artifact decoded as a Report, blocking until one is available.
-     * Also returns the feature flags and session ID from the upload request.
+     * Also returns the feature flags from the final chunk and the session ID from Begin.
      */
     fun nextUploadedReport(): UploadedReport {
         val artifact = nextUploadedArtifact()

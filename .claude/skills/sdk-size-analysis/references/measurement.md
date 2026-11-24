@@ -130,8 +130,8 @@ and [ELF analyzer](../scripts/elf_analysis.py) with `--help`, or the
 [strip validator](../scripts/validate_stripped_macho.py). These are diagnostic
 interfaces, not the default route to numbers. Freeze both variants separately.
 For shared-core wiring, direct SDK dependencies need path entries; keep necessary
-protobuf patches, use `CARGO_BAZEL_REPIN=true` on the first changed-source build,
-and verify package name/version parity from parsed lockfiles.
+protobuf patches, run `make repin` before the first changed-source build, and verify
+package name/version parity from parsed lockfiles.
 
 Never strip linkable static frameworks. Analyze them with the SDK-owned
 [archive analyzer](../../../../ci/capture_ios_archive_breakdown.py).
