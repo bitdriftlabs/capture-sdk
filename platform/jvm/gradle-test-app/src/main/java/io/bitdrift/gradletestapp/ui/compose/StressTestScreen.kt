@@ -323,8 +323,10 @@ private fun ProfilingCard(
 ) {
     var selectedType by remember { mutableStateOf(AppProfiler.ProfilingType.STACK_SAMPLING) }
     var durationInput by remember { mutableStateOf("5000") }
-    val durationMs = durationInput.toLongOrNull()
-    val durationValid = !selectedType.usesDuration || (durationMs != null && durationMs > 0)
+    var bufferSizeInput by remember { mutableStateOf("65536") }
+    // A heap dump has no duration; its one setting is the buffer size, which the same field holds.
+    val input = if (selectedType.usesDuration) durationInput else bufferSizeInput
+    val value = input.toIntOrNull()?.takeIf { it > 0 }
     val running = profiling is ProfilingState.Running
 
     BdSectionCard(
@@ -340,26 +342,25 @@ private fun ProfilingCard(
         )
 
         OutlinedTextField(
-            value = if (selectedType.usesDuration) durationInput else "",
-            onValueChange = { value ->
-                if (value.all(Char::isDigit)) {
-                    durationInput = value
+            value = input,
+            onValueChange = { text ->
+                if (text.all(Char::isDigit)) {
+                    if (selectedType.usesDuration) durationInput = text else bufferSizeInput = text
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(if (selectedType.usesDuration) "Duration (ms)" else "Duration (not used for heap dumps)") },
+            label = { Text(if (selectedType.usesDuration) "Duration (ms)" else "Buffer size (KB)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
-            enabled = selectedType.usesDuration,
-            isError = !durationValid,
+            isError = value == null,
             shape = BdShape.Field,
             colors = bdFieldColors(),
         )
 
         BdPrimaryButton(
             text = if (running) "Profiling…" else "Start ${selectedType.displayName}",
-            onClick = { onAction(StressTestAction.StartProfiling(selectedType, durationMs ?: 0L)) },
-            enabled = !running && durationValid,
+            onClick = { value?.let { onAction(StressTestAction.StartProfiling(profilingRequest(selectedType, it))) } },
+            enabled = !running && value != null,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -460,3 +461,15 @@ private fun copyToClipboard(
 fun StressTestScreenPreview() {
     StressTestScreen({}, {}, DiskPressureState.Ready(0))
 }
+
+/** The request for [type]: [value] is the buffer size in KB for a heap dump and the duration in ms otherwise. */
+private fun profilingRequest(
+    type: AppProfiler.ProfilingType,
+    value: Int,
+): AppProfiler.Request =
+    when (type) {
+        AppProfiler.ProfilingType.JAVA_HEAP_DUMP -> AppProfiler.Request.JavaHeapDump(value)
+        AppProfiler.ProfilingType.HEAP_PROFILE -> AppProfiler.Request.HeapProfile(value)
+        AppProfiler.ProfilingType.STACK_SAMPLING -> AppProfiler.Request.StackSampling(value)
+        AppProfiler.ProfilingType.SYSTEM_TRACE -> AppProfiler.Request.SystemTrace(value)
+    }

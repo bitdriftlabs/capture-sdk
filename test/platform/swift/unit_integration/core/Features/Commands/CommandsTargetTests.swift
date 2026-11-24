@@ -207,7 +207,7 @@ final class CommandsTargetTests: XCTestCase {
         await gate.open()
         let result = await task.value
 
-        XCTAssertEqual(result, .failure(CommandError(title: "Command cancelled")))
+        XCTAssertEqual(result, .failure(CommandError(message: "Command cancelled")))
         let next = await registry.execute(key: "second", arguments: [:])
         XCTAssertEqual(next, .success(CommandResult()))
     }
@@ -249,7 +249,7 @@ final class CommandsTargetTests: XCTestCase {
 
         XCTAssertEqual(fileManager.removals, [])
         XCTAssertTrue(FileManager.default.fileExists(atPath: directory.path))
-        XCTAssertEqual(CommandError.invalidAttachment.code, CommandError(title: "failure").code)
+        XCTAssertEqual(CommandError.invalidAttachment.code, CommandError(message: "failure").code)
     }
 
     func testUnacceptedFileCompletionsAreDeletedForAppsAndBuiltins() async throws {

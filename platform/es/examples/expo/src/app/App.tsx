@@ -1,0 +1,688 @@
+/* eslint-disable jsx-a11y/accessible-emoji */
+import '../lib/bitdrift'; // Must be near the top
+
+import React, { useState, useEffect } from 'react';
+import {
+  SafeAreaView,
+  StyleSheet,
+  View,
+  Text,
+  StatusBar,
+  Pressable,
+  Clipboard,
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+} from 'react-native';
+import {
+  clearEntityId,
+  generateDeviceCode,
+  getPreviousRunInfo,
+  getSdkStatus,
+  getSessionURL,
+  info,
+  isTracingActive,
+  debug,
+  trace,
+  error,
+  warn,
+  logScreenView,
+  logAppLaunchTTI,
+  setEntityId,
+  type PreviousRunInfo,
+  type SdkStatus,
+  setFeatureFlagExposure,
+  startSpan,
+  SpanResult,
+} from '@bitdrift/react-native';
+import axios from 'axios';
+import { Picker } from '@react-native-picker/picker';
+import { InfoBlock } from './components/InfoBlock';
+import { WebViewDemo } from './components/WebViewDemo';
+import { showToast } from './utils/showToast';
+
+const LOG_LEVELS = new Map([
+  ['info', info],
+  ['debug', debug],
+  ['trace', trace],
+  ['error', error],
+  ['warn', warn],
+]);
+
+const hasAPIKeyConfigured = Boolean(process.env.EXPO_PUBLIC_BITDRIFT_API_KEY);
+
+const sendRandomRequest = async () => {
+  const endpoints = [
+    'https://jsonplaceholder.typicode.com/posts',
+    'https://jsonplaceholder.typicode.com/users',
+  ];
+  const randomEndpoint =
+    endpoints[Math.floor(Math.random() * endpoints.length)];
+  try {
+    const response = await axios.get(randomEndpoint);
+    console.log('Random Request Response:', response.data);
+  } catch (err: any) {
+    console.log('Error making random request:', err);
+  }
+};
+
+const ERROR_TYPES = ['TypeError', 'ReferenceError', 'SyntaxError', 'RangeError', 'PromiseRejection', 'AsyncError'] as const;
+
+type ErrorType = typeof ERROR_TYPES[number];
+
+const triggerGlobalJsError = (errorType: ErrorType = 'TypeError') => {
+  const buildType = __DEV__ ? 'Debug' : 'Release';
+  const message = `${buildType} build - ${errorType} error triggered for testing`;
+  
+  switch (errorType) {
+    case 'TypeError':
+      throw new TypeError(message);
+    case 'ReferenceError':
+      throw new ReferenceError(message);
+    case 'SyntaxError':
+      throw new SyntaxError(message);
+    case 'RangeError':
+      throw new RangeError(message);
+    case 'PromiseRejection':
+      Promise.reject(new Error(message));
+      return;
+    case 'AsyncError':
+      setTimeout(() => {
+        throw new Error(message);
+      }, 0);
+      return;
+  }
+};
+
+const triggerLogErrorExample = () => {
+  try {
+    const data = JSON.parse('{ invalid json }');
+    console.log(data);
+  } catch (err) {
+    error('JSON parsing failed in example', err);
+    showToast('Error logged with error API');
+  }
+};
+
+
+const LOG_LEVEL_ARRAY = Array.from(LOG_LEVELS.keys());
+const MANUAL_TEST_SPAN_NAME = 'expo_manual_test_span';
+
+const HomeScreen = () => {
+  const [selectedLogLevel, setSelectedLogLevel] = useState(
+    LOG_LEVEL_ARRAY[0] || 'info',
+  );
+  const [selectedErrorType, setSelectedErrorType] = useState<ErrorType>(
+    ERROR_TYPES[0],
+  );
+  const [temporaryDeviceCode, setTemporaryDeviceCode] = useState<string | null>(
+    null,
+  );
+  const [sessionURL, setSessionURL] = useState<string | null>(null);
+  const [sdkStatus, setSdkStatus] = useState<SdkStatus | null>(null);
+  const [tracingActive, setTracingActive] = useState(false);
+  const [previousRunInfo, setPreviousRunInfo] = useState<PreviousRunInfo>(null);
+  const [showPickerModal, setShowPickerModal] = useState(false);
+  const [showErrorPickerModal, setShowErrorPickerModal] = useState(false);
+  const [isWebViewDemoVisible, setIsWebViewDemoVisible] = useState(false);
+
+  useEffect(() => {
+    setPreviousRunInfo(getPreviousRunInfo());
+    setSdkStatus(getSdkStatus());
+    setTracingActive(isTracingActive());
+
+    getSessionURL()
+      .then(setSessionURL)
+      .catch(() => {});
+  }, []);
+
+  const refreshSdkStatus = () => {
+    setSdkStatus(getSdkStatus());
+    setTracingActive(isTracingActive());
+    showToast(`SDK state: ${getSdkStatus().initializationState}`);
+  };
+
+  const logMessageHandler = () => {
+    if (selectedLogLevel) {
+      const log = LOG_LEVELS.get(selectedLogLevel);
+      log?.(`[${selectedLogLevel.toUpperCase()}]: Log emitted`, {
+        randomNumber: Math.random(),
+      });
+
+      logScreenView('HomeScreen');
+      logAppLaunchTTI(1.0);
+      setSdkStatus(getSdkStatus());
+      setTracingActive(isTracingActive());
+      showToast(`Logged: [${selectedLogLevel.toUpperCase()}]: Log emitted`);
+    }
+  };
+
+  const handleGenerateTemporaryDeviceCode = async () => {
+    const deviceCode = await generateDeviceCode();
+    setTemporaryDeviceCode(deviceCode);
+  };
+
+  const handleCopySessionURL = () => {
+    if (sessionURL) {
+      Clipboard.setString(sessionURL);
+      Alert.alert('Copied!', 'Session URL copied to clipboard');
+    } else {
+      Alert.alert('Error', 'Session URL not available');
+    }
+  };
+
+  const handleSetFeatureFlagString = () => {
+    setFeatureFlagExposure('dark_mode', 'enabled');
+    showToast('Feature flag set: dark_mode = enabled');
+  };
+
+  const handleSetFeatureFlagBoolean = () => {
+    setFeatureFlagExposure('experimental_feature', true);
+    showToast('Feature flag set: experimental_feature = true');
+  };
+
+  const handleSetEntityId = () => {
+    setEntityId('expo-sample-entity');
+    showToast('Entity ID set: expo-sample-entity');
+  };
+
+  const handleClearEntityId = () => {
+    clearEntityId();
+    showToast('Entity ID cleared');
+  };
+
+  const handleCreateTestSpan = () => {
+    const span = startSpan(MANUAL_TEST_SPAN_NAME, 'info', {
+      source: 'expo_sample',
+      trigger: 'manual',
+    });
+
+    if (!span) {
+      showToast('Test span was not created: Capture has not started');
+      return;
+    }
+
+    setTimeout(() => {
+      span.end(SpanResult.SUCCESS, {
+        source: 'expo_sample',
+        trigger: 'manual',
+      });
+      showToast('Test span created');
+    }, 1_000);
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>
+        @bitdrift/react-native Expo Integration Example
+      </Text>
+
+      <Text testID="sdk-status">
+        {sessionURL ? 'SDK Ready' : 'SDK Not Ready'}
+      </Text>
+      <Text testID="sdk-initialization-state" style={styles.previousRunInfoText}>
+        SDK initialization state: {sdkStatus?.initializationState ?? 'unknown'}
+      </Text>
+      <Text style={styles.previousRunInfoText}>
+        SDK status: {JSON.stringify(sdkStatus)}
+      </Text>
+      <Text style={styles.previousRunInfoText}>
+        Tracing active: {tracingActive ? 'true' : 'false'}
+      </Text>
+      <Text testID="previous-run-info" style={styles.previousRunInfoText}>
+        Previous run info: {JSON.stringify(previousRunInfo)}
+      </Text>
+
+      {!hasAPIKeyConfigured && (
+        <InfoBlock
+          warning
+          message="Please configure your Bitdrift API Key and URL in your .env file to see logs in the Bitdrift dashboard."
+        />
+      )}
+
+      {hasAPIKeyConfigured && (
+        <View style={styles.inlineContainer}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonActive,
+            ]}
+            onPress={handleGenerateTemporaryDeviceCode}
+          >
+            <Text style={styles.buttonText}>Generate Temporary Device Code</Text>
+          </Pressable>
+          {temporaryDeviceCode && (
+            <Text selectable style={{ margin: 10 }}>
+              {temporaryDeviceCode}
+            </Text>
+          )}
+        </View>
+      )}
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonActive,
+        ]}
+        onPress={refreshSdkStatus}
+      >
+        <Text style={styles.buttonText}>Refresh SDK Status</Text>
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonActive,
+        ]}
+        onPress={handleCopySessionURL}
+      >
+        <Text style={styles.buttonText}>Copy Session URL</Text>
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [styles.button, pressed && styles.buttonActive]}
+        onPress={sendRandomRequest}
+      >
+        <Text style={styles.buttonText}>Send Random REST Request</Text>
+      </Pressable>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={() => setIsWebViewDemoVisible(true)}
+        >
+          <Text style={styles.buttonText}>Open bitdrift.io WebView</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleSetEntityId}
+        >
+          <Text style={styles.buttonText}>Set Entity ID</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleClearEntityId}
+        >
+          <Text style={styles.buttonText}>Clear Entity ID</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.pickerContainer}>
+        <Text style={styles.pickerLabel}>Log Level:</Text>
+        {Platform.OS === 'ios' ? (
+          <>
+            <Pressable
+              style={styles.pickerButton}
+              onPress={() => setShowPickerModal(true)}
+            >
+              <Text style={styles.pickerButtonText}>
+                {selectedLogLevel || 'Select level'}
+              </Text>
+            </Pressable>
+            <Modal
+              visible={showPickerModal}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowPickerModal(false)}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <View style={styles.modalHeader}>
+                    <Pressable
+                      onPress={() => setShowPickerModal(false)}
+                      style={styles.modalButton}
+                    >
+                      <Text style={styles.modalButtonText}>Done</Text>
+                    </Pressable>
+                  </View>
+                  <Picker
+                    selectedValue={selectedLogLevel || LOG_LEVEL_ARRAY[0]}
+                    onValueChange={(value: string) => {
+                      setSelectedLogLevel(value);
+                      setShowPickerModal(false);
+                    }}
+                    style={styles.picker}
+                  >
+                    {LOG_LEVEL_ARRAY.map((level) => (
+                      <Picker.Item 
+                        key={level} 
+                        label={level} 
+                        value={String(level)} 
+                        style={{ textTransform: 'capitalize' }}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            </Modal>
+          </>
+        ) : (
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={selectedLogLevel || LOG_LEVEL_ARRAY[0]}
+              onValueChange={(value: string) => setSelectedLogLevel(value)}
+              style={styles.pickerAndroid}
+            >
+              {LOG_LEVEL_ARRAY.map((level) => (
+                <Picker.Item key={level} label={level} value={level} style={{ textTransform: 'capitalize' }} />
+              ))}
+            </Picker>
+          </View>
+        )}
+      </View>
+      <View style={styles.inlineContainer}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={logMessageHandler}
+        >
+          <Text style={styles.buttonText}>Log</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.inlineContainer}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleCreateTestSpan}
+        >
+          <Text style={styles.buttonText}>Create Test Span</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.pickerContainer}>
+        <Text style={styles.pickerLabel}>Error Type:</Text>
+        {Platform.OS === 'ios' ? (
+          <>
+            <Pressable
+              style={styles.pickerButton}
+              onPress={() => setShowErrorPickerModal(true)}
+            >
+              <Text style={styles.pickerButtonText}>
+                {selectedErrorType || 'Select type'}
+              </Text>
+            </Pressable>
+            <Modal
+              visible={showErrorPickerModal}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowErrorPickerModal(false)}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <View style={styles.modalHeader}>
+                    <Pressable
+                      onPress={() => setShowErrorPickerModal(false)}
+                      style={styles.modalButton}
+                    >
+                      <Text style={styles.modalButtonText}>Done</Text>
+                    </Pressable>
+                  </View>
+                  <Picker
+                    selectedValue={selectedErrorType || ERROR_TYPES[0]}
+                    onValueChange={(value: string) => {
+                      if (ERROR_TYPES.includes(value as ErrorType)) {
+                        setSelectedErrorType(value as ErrorType);
+                        setShowErrorPickerModal(false);
+                      }
+                    }}
+                    style={styles.picker}
+                  >
+                    {ERROR_TYPES.map((type) => (
+                      <Picker.Item 
+                        key={type} 
+                        label={type} 
+                        value={type} 
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            </Modal>
+          </>
+        ) : (
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={selectedErrorType || ERROR_TYPES[0]}
+              onValueChange={(value: string) => {
+                if (ERROR_TYPES.includes(value as ErrorType)) {
+                  setSelectedErrorType(value as ErrorType);
+                }
+              }}
+              style={styles.pickerAndroid}
+            >
+              {ERROR_TYPES.map((type) => (
+                <Picker.Item key={type} label={type} value={type} />
+              ))}
+            </Picker>
+          </View>
+        )}
+      </View>
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            styles.errorButton,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={() => triggerGlobalJsError(selectedErrorType)}
+        >
+          <Text style={styles.buttonText}>Trigger {selectedErrorType}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            styles.logErrorButton,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={triggerLogErrorExample}
+        >
+          <Text style={styles.buttonText}>Test logError API</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleSetFeatureFlagString}
+        >
+          <Text style={styles.buttonText}>Set Flag (String)</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonActive,
+          ]}
+          onPress={handleSetFeatureFlagBoolean}
+        >
+          <Text style={styles.buttonText}>Set Flag (Boolean)</Text>
+        </Pressable>
+      </View>
+
+      <Modal
+        visible={isWebViewDemoVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setIsWebViewDemoVisible(false)}
+      >
+        <SafeAreaView style={styles.webViewContainer}>
+          {isWebViewDemoVisible && (
+            <WebViewDemo
+              onClose={() => setIsWebViewDemoVisible(false)}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
+
+    </ScrollView>
+  );
+};
+
+export const App = () => {
+  return (
+    <>
+      <StatusBar barStyle="dark-content" />
+      <SafeAreaView
+        style={{
+          flex: 1,
+        }}
+      >
+        <HomeScreen />
+      </SafeAreaView>
+    </>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+    alignItems: 'flex-start',
+    paddingBottom: 40,
+  },
+  inlineContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    columnGap: 10,
+    rowGap: 10,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  previousRunInfoText: {
+    marginTop: 8,
+    marginBottom: 8,
+    fontSize: 12,
+  },
+  button: {
+    backgroundColor: '#00A76F',
+    padding: 10,
+    borderRadius: 5,
+    marginVertical: 10,
+  },
+  errorButton: {
+    backgroundColor: '#e74c3c',
+  },
+  logErrorButton: {
+    backgroundColor: '#007ACC',
+  },
+  buttonActive: {
+    backgroundColor: '#007867',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  pickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+    width: '100%',
+  },
+  pickerLabel: {
+    fontSize: 16,
+    marginRight: 10,
+    minWidth: 80,
+  },
+  pickerWrapper: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+    maxHeight: 50,
+  },
+  pickerButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    backgroundColor: '#fff',
+    padding: 12,
+    justifyContent: 'center',
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  picker: {
+    height: 200,
+    width: '100%',
+    backgroundColor: '#fff',
+  },
+  pickerAndroid: {
+    height: 50,
+    width: '100%',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    color: '#00A76F',
+    fontWeight: '600',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 5,
+    width: '80%',
+    marginVertical: 10,
+  },
+  webViewContainer: {
+    flex: 1,
+  },
+});
+
+export default App;

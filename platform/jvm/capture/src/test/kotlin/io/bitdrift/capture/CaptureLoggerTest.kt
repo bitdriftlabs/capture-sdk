@@ -37,7 +37,10 @@ import io.bitdrift.capture.providers.fieldsOf
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.providers.toFieldValue
+import io.bitdrift.capture.reports.profiling.CrashProfileKind
+import io.bitdrift.capture.reports.profiling.CrashProfileStore
 import io.bitdrift.capture.threading.CaptureDispatchers
+import io.bitdrift.capture.utils.SdkDirectory
 import io.bitdrift.capture.utils.toStringMap
 import okhttp3.HttpUrl
 import org.assertj.core.api.Assertions.assertThat
@@ -48,7 +51,9 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 import java.io.IOException
+import java.io.RandomAccessFile
 import java.util.Date
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
@@ -140,7 +145,18 @@ class CaptureLoggerTest {
         withLogger(commandRegistry = registry) { logger ->
             assertThat(bridge.builtins).containsExactlyInAnyOrder(
                 Triple("take_screenshot", "screenshot", 0L),
-                Triple("stack_sampling_trace", "stack_sampling_trace", 15_000L),
+                Triple("stack_sampling_trace", "stack_sampling_trace", 0L),
+                Triple("heap_profile_trace", "heap_profile_trace", 350_000L),
+                Triple("system_trace", "system_trace", 650_000L),
+                Triple("memory_dump", "memory_dump", 120_000L),
+                Triple("user_settings_get", "settings", 100L),
+                Triple("user_settings_set", "settings", 100L),
+                Triple("user_settings_clear", "settings", 100L),
+                Triple("user_settings_remove", "settings", 100L),
+                Triple("file_list", "file", 10_000L),
+                Triple("file_clear", "file", 10_000L),
+                Triple("file_size", "file", 10_000L),
+                Triple("file_delete", "file", 10_000L),
             )
             assertThat(bridge.registered).containsExactly(logger.loggerId to "app")
             assertThat(logger.getSdkStatus()).isNotNull()
@@ -151,7 +167,14 @@ class CaptureLoggerTest {
             val sdkConfigured = CaptureTestJniLibrary.nextUploadedLog()
             assertThat(sdkConfigured.message).isEqualTo("SDKConfigured")
             assertThat(sdkConfigured.fields)
-                .containsEntry("_failed_builtin_commands", "stack_sampling_trace,take_screenshot".toFieldValue())
+                .containsEntry(
+                    "_failed_builtin_commands",
+                    (
+                        "file_clear,file_delete,file_list,file_size,heap_profile_trace,memory_dump," +
+                            "stack_sampling_trace,system_trace,take_screenshot," +
+                            "user_settings_clear,user_settings_get,user_settings_remove,user_settings_set"
+                    ).toFieldValue(),
+                )
         }
     }
 
@@ -564,12 +587,37 @@ class CaptureLoggerTest {
 
             assertThat(CaptureTestJniLibrary.awaitApiServerReceivedHandshake(streamId)).isTrue
 
-            CaptureTestJniLibrary.disableRuntimeFeature(
+            CaptureTestJniLibrary.setRuntimeFeatureEnabled(
                 streamId,
                 RuntimeFeature.SESSION_REPLAY_COMPOSE.featureName,
+                false,
             )
 
             assertThat(JniRuntime(logger.loggerId).isEnabled(RuntimeFeature.SESSION_REPLAY_COMPOSE)).isFalse
+        }
+
+    @Test
+    fun `large private profiles are retained before uploader admission`(): Unit =
+        withLogger { logger ->
+            val streamId = CaptureTestJniLibrary.awaitNextApiStream()
+            assertThat(CaptureTestJniLibrary.awaitApiServerReceivedHandshake(streamId)).isTrue()
+            val sdkDirectory = SdkDirectory.getPath(ContextHolder.APP_CONTEXT)
+            val size = 6L * 1024 * 1024 + 17
+            val source =
+                File(ContextHolder.APP_CONTEXT.cacheDir, "platform-profile").apply {
+                    RandomAccessFile(this, "rw").use { it.setLength(size) }
+                }
+            val privateDirectory = File(sdkDirectory, CrashProfileStore.DIRECTORY)
+            val imported = mutableListOf<File>()
+            try {
+                val store = CrashProfileStore(privateDirectory, JniRuntime(logger.loggerId))
+                repeat(3) { imported.add(store.importProfile(source, CrashProfileKind.ANR)) }
+                assertThat(imported).allMatch { it.length() == size }
+                assertThat(store.pendingResults().map { it.second }).containsAll(imported.map { it.path })
+            } finally {
+                imported.forEach { it.delete() }
+                source.delete()
+            }
         }
 
     @Test
@@ -613,6 +661,7 @@ class CaptureLoggerTest {
                 configuration = Configuration(),
                 windowManager = windowManager,
                 commandRegistry = commandRegistry,
+                commandDispatcher = CommandRegistry.defaultDispatcher(),
             )
         val sdkConfiguredDuration =
             LoggerImpl.SdkConfiguredDuration(

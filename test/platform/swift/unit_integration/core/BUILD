@@ -5,7 +5,6 @@ bitdrift_mobile_swift_test(
     srcs = glob(["**/*.swift"]) + ["//proto:report_swift_source"],
     data = glob(["testdata/*"]),
     repository = "@capture",
-    tags = ["macos_only"],
     use_test_host = True,
     visibility = ["//visibility:public"],
     deps = [
@@ -28,11 +27,18 @@ bitdrift_mobile_swift_test(
         "reports/MetricKitDiagnosticManagerTests.swift",
         "reports/MetricKitLegacyCrashAdapterTests.swift",
     ],
+    # Build the release framework shape with the same Xcode selection as this test.
+    build_data = ["//platform/swift/source:capture_ios_static_framework"],
     data = glob(["testdata/*"]),
     repository = "@capture",
-    tags = ["macos_only"],
+    simulator = "27.0",
+    target_compatible_with = select({
+        "//bazel/platforms:ios27_tests": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
     use_test_host = True,
     visibility = ["//visibility:public"],
+    xcode = "27.0",
     deps = [
         "//platform/swift/source:ios_lib",
         "//platform/swift/source:objc_bridge",

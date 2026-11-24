@@ -10,6 +10,7 @@ package io.bitdrift.capture
 import io.bitdrift.capture.experimental.ExperimentalBitdriftApi
 import io.bitdrift.capture.replay.SessionReplayConfiguration
 import io.bitdrift.capture.reports.IssueCallbackConfiguration
+import io.bitdrift.capture.reports.profiling.CrashProfilingMode
 
 /**
  * A configuration object representing the feature set enabled for Capture.
@@ -19,6 +20,15 @@ import io.bitdrift.capture.reports.IssueCallbackConfiguration
  * @param sleepMode SleepMode.ENABLED if Capture should initialize in minimal activity mode
  * @param issueCallbackConfiguration Optional callback configuration used for issue report callbacks.
  *                                   This is only effective when [enableFatalIssueReporting] is true.
+ * @param crashProfilingMode Opts into system-triggered ANR (Android 16+) and OOM (Android 17+)
+ *                           profiles; `null` disables profiling (the default). Requires fatal issue
+ *                           reporting and the corresponding runtime flags at listener startup.
+ *                           Automatic mode manages triggers, listeners, and original files; manual
+ *                           mode leaves collection to the app and imports private copies. Both modes
+ *                           own the ANR process-state summary. Runtime flag changes reconfigure OS
+ *                           registrations at the next listener start (normally the next process);
+ *                           native attribution separately checks live flags. On-demand profiling is
+ *                           unaffected.
  */
 data class Configuration
     @JvmOverloads
@@ -28,4 +38,5 @@ data class Configuration
         val sleepMode: SleepMode = SleepMode.DISABLED,
         @property:ExperimentalBitdriftApi
         val issueCallbackConfiguration: IssueCallbackConfiguration? = null,
+        val crashProfilingMode: CrashProfilingMode? = null,
     )

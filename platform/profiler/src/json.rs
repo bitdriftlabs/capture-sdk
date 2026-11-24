@@ -155,7 +155,7 @@ const fn image_error(error: ImageError) -> &'static str {
   }
 }
 
-fn string(output: &mut impl Write, value: &str) -> io::Result<()> {
+pub(crate) fn string(output: &mut impl Write, value: &str) -> io::Result<()> {
   output.write_all(b"\"")?;
   for character in value.chars() {
     match character {
@@ -171,7 +171,7 @@ fn string(output: &mut impl Write, value: &str) -> io::Result<()> {
   output.write_all(b"\"")
 }
 
-const fn status(status: ThreadStatus) -> &'static str {
+pub(crate) const fn status(status: ThreadStatus) -> &'static str {
   match status {
     ThreadStatus::CaptureThread => "capture_thread",
     ThreadStatus::SuspendFailed => "suspend_failed",

@@ -8,6 +8,36 @@
 import Foundation
 
 extension URL {
+    /// Get the absolute value of the path component for a URL, bypassing various
+    /// deprecations and undocumented changes to APIs.
+    ///
+    /// You would think that `URL.path()` would do what you're looking for, but
+    /// depending on the OS version, it returns _either_ a relative or absolute value.
+    ///
+    /// There's also `FilePath(url)?.string` (iOS 14), which requires unwrapping an
+    /// optional for what should be an infallible operation
+    var filePath: String { get {
+        if #available(iOS 16.0, *) {
+            return self.absoluteURL.standardizedFileURL.path(percentEncoded: false)
+        } else {
+            // always absolute, very obvious, deprecated for some reason
+            return self.path
+        }
+    }}
+
+    /// Create a new URL by appending a component to the path
+    ///
+    /// - parameter component: the new last path component
+    ///
+    /// - returns: a new URL
+    func join(_ component: String) -> URL {
+        if #available(iOS 16.0, *) {
+            return self.appending(component: component)
+        } else {
+            return self.appendingPathComponent(component)
+        }
+    }
+
     /// Initializes a new instance of the receiver using provided static string. The caller
     /// is responsible for ensuring that provided string is a valid URL.
     ///

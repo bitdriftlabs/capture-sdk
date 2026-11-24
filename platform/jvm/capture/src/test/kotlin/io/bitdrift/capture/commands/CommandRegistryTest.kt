@@ -8,7 +8,7 @@
 package io.bitdrift.capture.commands
 
 import io.bitdrift.capture.commands.screenshot.IScreenshotCapturer
-import io.bitdrift.capture.commands.screenshot.ScreenshotBuiltinCommand
+import io.bitdrift.capture.commands.screenshot.ScreenshotCommand
 import io.bitdrift.capture.providers.Field
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -52,12 +52,12 @@ class CommandRegistryTest {
             BuiltinCommandsInstaller(
                 registry,
                 listOf(
-                    ScreenshotBuiltinCommand(
+                    ScreenshotCommand(
                         object : IScreenshotCapturer {
                             override suspend fun capture() = CommandResult.Success()
                         },
                     ),
-                    UnavailableBuiltinCommand(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace", 15_000, "not under test"),
+                    builtin(BuiltinCommandType.STACK_SAMPLING_TRACE, "stack_sampling_trace", 15_000) { error("not under test") },
                 ),
             )
 
@@ -1041,20 +1041,20 @@ class CommandRegistryTest {
     }
 
     @Test
-    fun completesErrorWithTitleDescriptionAndContext() {
-        registry.register("fail") { error("Unsupported", description = "always fails", context = mapOf("code" to "42")) }
+    fun completesErrorWithMessageAndContext() {
+        registry.register("fail") { error("Unsupported: always fails", context = mapOf("error" to "42")) }
 
         registry.dispatch(1, "fail", null, "session")
 
         val completion = bridge.awaitCompletion()
         assertThat(completion.error).isEqualTo("handler_failed")
         assertThat(completion.message).isEqualTo("Unsupported: always fails")
-        assertThat(completion.fields.map { it.key to it.stringValue }).containsExactly("code" to "42")
+        assertThat(completion.fields.map { it.key to it.stringValue }).containsExactly("error" to "42")
         assertThat(completion.attachment).isNull()
     }
 
     @Test
-    fun completesErrorWithoutDescription() {
+    fun completesErrorWithoutContext() {
         registry.register("fail") { error("Unsupported") }
 
         registry.dispatch(1, "fail", null, "session")

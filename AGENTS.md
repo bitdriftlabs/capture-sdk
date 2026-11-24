@@ -5,12 +5,13 @@ Multi-platform telemetry SDK for iOS/Android with a shared Rust core.
 ## Quick Reference
 
 ```bash
-# Format (run before commits)
+# Format (run before commits or handing off changes)
 make format
+make lint-docstrings                # Required after Swift edits if not running make format
 
 # Tests
 make test-gradle                    # Android unit tests
-cargo nextest run -p swift_bridge   # Rust bridge tests
+./bazelw test //platform/swift/source:swift_bridge_test  # Rust bridge tests
 ./bazelw test //test/platform/swift/unit_integration/core:test  # iOS tests
 ./bazelw test //platform/jvm/...    # Android tests via Bazel
 
@@ -23,19 +24,28 @@ make repin                          # Fix "Digests do not match" errors
 make xcframework                    # Build iOS release artifact
 ```
 
+## Formatting at closeout
+
+- Run the repository's `make format` before handing off changes, then review the resulting diff.
+- If using focused validation for a Swift change, run `make lint-docstrings` after the final edit.
+  SwiftLint and XCTest do not run this CI check. Fix alignment with
+  `make fix-docstrings FILE=path/to/File.swift`, then rerun `make lint-docstrings` and report the
+  command you actually ran.
+
 ## Testing
 
 - iOS tests must be run through Bazel.
+- See [Running tests](README.md#running-tests) for the default suite and the Xcode 27 opt-in.
 - Android is often easier to run through Gradle but sometimes issues only reproduce through Bazel. platform/jvm/gradlew can be invoked directly (use -p to target the correct directory).
 - `test --build_tests_only` is configured in `.bazelrc`, so wildcard test commands build only test targets rather than unrelated build targets.
 
 ## Clippy
 
-CI runs Clippy through `ci/run_clippy.sh`, which uses `bazel build` and the runner's Clippy tags.
-Do not substitute `./bazelw test //... --config=clippy`: the repository-wide
-`--build_tests_only` setting can omit production `rust_library` targets that CI lints.
+BuildBuddy Test enables `--config=clippy-in-compile` to compile and lint first-party Rust libraries
+and tests together. CI Clippy test targets keep production libraries and lint-only checks in the
+graph with `--build_tests_only`. The mixed RBE configuration routes Apple checks to macOS.
 
-On macOS, run the same full Clippy slice locally with:
+For standalone local linting on macOS, use:
 
 ```bash
 ./ci/run_clippy.sh all full /dev/null
@@ -49,7 +59,7 @@ example, JNI core changes require:
 ```
 
 After any Clippy-driven Rust edit, run `make format`, then rerun the focused Clippy command. Use
-the same `ci/run_clippy.sh` entry point for a full local CI-parity check when practical.
+`ci/run_clippy.sh` for a broader standalone lint check when practical.
 
 ### Running One iOS XCTest With Rust Logs
 
@@ -101,6 +111,9 @@ Primary: **Bazel** (`./bazelw`). Secondary: Gradle for Android (`platform/jvm/gr
 
 Key Bazel configs: `--config android`, `--config release-ios`, `--config release-android`, `--config ci`
 
+Maven dependencies are pinned in `maven_install.json`. After changing a `maven.install` or
+`maven.artifact` entry in `MODULE.bazel`, run `make repin` and commit the regenerated lock file.
+
 ## SDK Size Comparisons
 
 Load [sdk-size-analysis](.claude/skills/sdk-size-analysis/SKILL.md) for Android/iOS size work.
@@ -111,12 +124,13 @@ Do not equate framework metadata or an unsigned stripped-app proxy with signed A
 
 ## Release Build Cache Policy
 
-Release workflows must not use the Bazel/BuildBuddy remote cache. Release Bazel invocations include
-`--config=nocache`; configure their shared setup actions with `enable-bazel-cache: "false"` as a
-second safeguard. GitHub Actions dependency caches that remain necessary for a release must use the
-`release-${{ github.workflow }}` cache-key scope, so a release cache is never restored by
-pull-request or ordinary `main` CI builds. Do not enable an unscoped cache (including an
-action-managed Gradle cache) in a release workflow.
+Build publishable SDK and example-app artifacts in the release workflows with `--config=nocache`
+and set `enable-bazel-cache: "false"` on their shared setup actions. Scope any GitHub Actions
+dependency caches, including Gradle caches, to `release-${{ github.workflow }}`.
+
+The BuildBuddy **iOS CI artifacts** and **Android CI artifacts** workflows may reuse normal CI
+action results for pull requests and `main`. Their optimized artifacts are for smoke tests
+and size reports only. Signed sample apps from App Thinning checks remain CI artifacts.
 
 ## Project Structure
 

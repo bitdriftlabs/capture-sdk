@@ -1,0 +1,92 @@
+{
+  "name": "@bitdrift/react-native",
+  "version": "0.52.1",
+  "captureSdkVersion": "0.52.0",
+  "description": "bitdrift integration for React Native",
+  "main": "dist/commonjs/index",
+  "module": "dist/module/index",
+  "types": "dist/typescript/packages/react-native/src/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src",
+    "dist",
+    "android",
+    "ios",
+    "cpp",
+    "*.podspec",
+    "src/NativeBdReactNative.ts",
+    "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
+    "!**/.*"
+  ],
+  "keywords": [
+    "react-native",
+    "ios",
+    "android"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitdriftlabs/capture-sdk.git",
+    "directory": "platform/es/packages/react-native"
+  },
+  "author": "bitdrift <info@bitdrift.io> (https://bitdrift.io)",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/bitdriftlabs/capture-sdk/issues"
+  },
+  "homepage": "https://github.com/bitdriftlabs/capture-sdk/tree/main/platform/es/packages/react-native#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "resolutions": {
+    "@types/react": "^18.2.44"
+  },
+  "peerDependencies": {
+    "expo": ">=47.0.0",
+    "react": "*",
+    "react-native": "*"
+  },
+  "peerDependenciesMeta": {
+    "expo": {
+      "optional": true
+    }
+  },
+  "packageManager": "yarn@3.6.1",
+  "codegenConfig": {
+    "name": "RNBdReactNativeSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.bdreactnative"
+    }
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "dist",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.lib.json",
+          "configFile": true
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "fast-json-stringify": "^6.0.0"
+  },
+  "devDependencies": {
+    "@expo/config-plugins": "^9.0.14"
+  }
+}

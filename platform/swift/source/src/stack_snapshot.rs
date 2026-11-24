@@ -15,7 +15,7 @@ use std::path::Path;
 
 // This SDK ceiling bounds the encoded file, independently of the capture buffer. The core still
 // enforces its runtime-configured upload limit, including configurations below this ceiling.
-const MAX_SNAPSHOT_JSON_BYTES: usize = 5 * 1024 * 1024;
+pub(crate) const MAX_STACK_CAPTURE_JSON_BYTES: usize = 5 * 1024 * 1024;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn capture_stack_snapshot_bridge_create() -> *mut c_void {
@@ -78,8 +78,12 @@ pub unsafe extern "C" fn capture_stack_snapshot(
     Ok(snapshot) => snapshot,
     Err(error) => return capture_error(error),
   };
-  if let Err(error) = write_attachment(&snapshot, Path::new(path), MAX_SNAPSHOT_JSON_BYTES, bridge)
-  {
+  if let Err(error) = write_attachment(
+    &snapshot,
+    Path::new(path),
+    MAX_STACK_CAPTURE_JSON_BYTES,
+    bridge,
+  ) {
     return match error {
       ExportError::Io => 5,
       ExportError::TooLarge => 6,
@@ -97,9 +101,9 @@ pub unsafe extern "C" fn capture_stack_snapshot(
   0
 }
 
-const fn capture_error(error: CaptureError) -> i32 {
+pub(crate) const fn capture_error(error: CaptureError) -> i32 {
   match error {
-    CaptureError::InvalidBufferSize => 1,
+    CaptureError::InvalidBufferSize | CaptureError::InvalidProfileConfig => 1,
     CaptureError::AlreadyCapturing => 2,
     CaptureError::UnsupportedArchitecture => 3,
     CaptureError::ThreadEnumerationFailed | CaptureError::ResumeFailed => 4,

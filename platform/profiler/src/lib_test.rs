@@ -20,9 +20,15 @@ use bd_unwind::image::{ImageError, ImageInfo};
 use bd_unwind::memory::AddressRange;
 use serde_json::Value;
 use std::collections::BTreeMap;
+use std::sync::Mutex;
+
+// Cargo nextest isolates tests in processes; Bazel also runs this binary in parallel threads.
+// Serialize only tests that intentionally acquire the process-wide capture slot.
+pub(crate) static CAPTURE_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn only_one_profiler_can_run_and_dropping_it_releases_the_slot() {
+  let _capture = CAPTURE_TEST_LOCK.lock().unwrap();
   let guard = Profiler::new(256, &CancellationToken::default()).unwrap();
   assert!(matches!(
     Profiler::new(256, &CancellationToken::default()),

@@ -19,6 +19,9 @@ Environment variables:
   IOS_APP_SIZE_ARCHIVE_PATH
       Path to the prebuilt xcarchive to export. Default:
       bazel-bin/examples/swift/hello_world/Bitdrift Sample App.xcarchive
+  IOS_APP_SIZE_UNSIGNED_IPA
+      BuildBuddy device IPA to sign on this machine. Requires
+      IOS_APP_SIZE_PROFILE_PATH and IOS_APP_SIZE_KEYCHAIN_PATH.
 
 Output:
   IOS_APP_SIZE_KB=<rounded compressed app size in KB>
@@ -79,13 +82,27 @@ strip_data_protection_entitlement() {
   local embedded_profile
   local signing_identity
 
-  # The archive already contains a signed .app and embedded provisioning profile.
-  # We decode that profile, remove the default data protection entitlement that
-  # blocks the export flow, and re-sign the copied app before xcodebuild export.
+  # Remove the default data protection entitlement that blocks xcodebuild export.
   application_path="$(plist_get "$archive_path/Info.plist" ":ApplicationProperties:ApplicationPath")"
   app_path="$archive_path/Products/$application_path"
   embedded_profile="$app_path/embedded.mobileprovision"
-  signing_identity="$(plist_get "$archive_path/Info.plist" ":ApplicationProperties:SigningIdentity")"
+  if [[ -n "${IOS_APP_SIZE_UNSIGNED_IPA:-}" ]]; then
+    cp "${IOS_APP_SIZE_PROFILE_PATH:?Expected provisioning profile path}" "$embedded_profile"
+    signing_identity="$(security find-identity -v -p codesigning "${IOS_APP_SIZE_KEYCHAIN_PATH:?Expected signing keychain path}" |
+      sed -nE 's/^[[:space:]]*[0-9]+\) ([0-9A-F]{40}) ".*"$/\1/p')"
+    if [[ ! "$signing_identity" =~ ^[0-9A-F]{40}$ ]]; then
+      echo "Expected exactly one valid signing identity in the iOS size keychain." >&2
+      exit 1
+    fi
+    if [[ -d "$app_path/Frameworks" ]]; then
+      while IFS= read -r -d '' framework; do
+        codesign --force --sign "$signing_identity" "$framework"
+      done < <(find "$app_path/Frameworks" -depth \
+        \( -type d -name '*.framework' -o -type f -name '*.dylib' \) -print0)
+    fi
+  else
+    signing_identity="$(plist_get "$archive_path/Info.plist" ":ApplicationProperties:SigningIdentity")"
+  fi
 
   if [[ ! -f "$embedded_profile" ]]; then
     echo "Expected embedded provisioning profile not found at $embedded_profile" >&2
@@ -101,6 +118,14 @@ strip_data_protection_entitlement() {
   fi
 
   codesign --force --sign "$signing_identity" --entitlements "$ENTITLEMENTS_PLIST" "$app_path"
+  if [[ -n "${IOS_APP_SIZE_UNSIGNED_IPA:-}" ]]; then
+    local signing_info authority team
+    signing_info="$(codesign -dv --verbose=4 "$app_path" 2>&1)"
+    authority="$(sed -n 's/^Authority=//p' <<< "$signing_info" | head -n 1)"
+    team="$(sed -n 's/^TeamIdentifier=//p' <<< "$signing_info")"
+    /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:SigningIdentity string ${authority:?}" "$archive_path/Info.plist"
+    /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:Team string ${team:?}" "$archive_path/Info.plist"
+  fi
 }
 
 copy_archive_for_export() {
@@ -108,6 +133,38 @@ copy_archive_for_export() {
   # mutating Bazel's archived output.
   ditto "$ARCHIVE_PATH" "$EXPORT_ARCHIVE_PATH"
   chmod -R u+w "$EXPORT_ARCHIVE_PATH"
+}
+
+archive_unsigned_ipa() {
+  local unpacked="$OUTPUT_DIR/unpacked"
+  ditto -x -k "$IOS_APP_SIZE_UNSIGNED_IPA" "$unpacked"
+  mkdir -p "$EXPORT_ARCHIVE_PATH/Products"
+  mv "$unpacked/Payload" "$EXPORT_ARCHIVE_PATH/Products/Applications"
+  python3 - "$EXPORT_ARCHIVE_PATH" <<'PYTHON'
+import datetime
+import pathlib
+import plistlib
+import sys
+
+archive = pathlib.Path(sys.argv[1])
+products = archive / "Products"
+app, = (products / "Applications").glob("*.app")
+with (app / "Info.plist").open("rb") as source:
+    info = plistlib.load(source)
+with (archive / "Info.plist").open("wb") as destination:
+    plistlib.dump({
+        "ApplicationProperties": {
+            "ApplicationPath": app.relative_to(products).as_posix(),
+            **{key: info[key] for key in (
+                "CFBundleIdentifier", "CFBundleShortVersionString", "CFBundleVersion"
+            )},
+        },
+        "ArchiveVersion": 2,
+        "CreationDate": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None),
+        "Name": app.stem,
+        "SchemeName": app.stem,
+    }, destination)
+PYTHON
 }
 
 write_export_options() {
@@ -140,8 +197,12 @@ export_archive() {
 }
 
 prepare_output_dir
-require_archive
-copy_archive_for_export
+if [[ -n "${IOS_APP_SIZE_UNSIGNED_IPA:-}" ]]; then
+  archive_unsigned_ipa
+else
+  require_archive
+  copy_archive_for_export
+fi
 strip_data_protection_entitlement "$EXPORT_ARCHIVE_PATH"
 
 APP_BUNDLE_ID="$(plist_get "$EXPORT_ARCHIVE_PATH/Info.plist" ":ApplicationProperties:CFBundleIdentifier")"

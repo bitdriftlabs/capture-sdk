@@ -1,0 +1,77 @@
+# BuildBuddy Workflows. The Linux runner drives Bazel and the execution platforms
+# in //bazel/platforms route build and test actions to Linux and macOS executors.
+#
+# Steps call `bazel` rather than ./bazelw because BuildBuddy adds its cache and results flags to
+# `bazel` invocations; the bazel on the runner is Bazelisk, so it still honors .bazelversion.
+
+actions:
+  - name: Test
+    triggers:
+      push:
+        branches:
+          - main
+      pull_request:
+        branches:
+          - "*"
+    container_image: ubuntu-24.04
+    steps:
+      - run: >-
+          bazel test
+          --config=workflows
+          --config=mixed-rbe
+          --config=ios27-tests
+          --config=clippy-in-compile
+          --keep_going
+          --lockfile_mode=error
+          --test_output=errors
+          --test_env=RUST_LOG=debug
+          -- //...
+
+  # GitHub dispatches this after Test and its Clippy checks finish using the Mac executor.
+  - name: iOS CI artifacts
+    triggers: {}
+    container_image: ubuntu-24.04
+    steps:
+      - run: |
+          set -euo pipefail
+          events="$(mktemp)"
+          trap 'rm -f "$events"' EXIT
+          bazel test \
+            --config=workflows \
+            --config=release-ios \
+            --config=apple-device-rbe \
+            --nobuild_tests_only \
+            --define=ios_produce_framework_plist=true \
+            --build_event_json_file="$events" \
+            --build_event_json_file_path_conversion=false \
+            --lockfile_mode=error \
+            -- //:ios_dist //:check_ios_release_xcframework \
+            //:ios_capture_archive_breakdown \
+            //examples/swift/hello_world:ios_app_size_unsigned.ipa \
+            //examples/swift/hello_world:ios_app_simulator_smoke_test
+          python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
+            Capture.ios.zip ios_app_size_unsigned.ipa=ios_app_size.ipa \
+            ios_capture_archive_breakdown.json
+
+  - name: Android CI artifacts
+    triggers: {}
+    container_image: ubuntu-24.04
+    steps:
+      - run: |
+          set -euo pipefail
+          events="$(mktemp)"
+          trap 'rm -f "$events"' EXIT
+          bazel build \
+            --config=workflows \
+            --config=rbe \
+            --config=release-android \
+            --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 \
+            --remote_download_outputs=toplevel \
+            --build_event_json_file="$events" \
+            --build_event_json_file_path_conversion=false \
+            --lockfile_mode=error \
+            -- //examples/android:android_app //:capture_aar_so_size_arm64_v8a \
+            //:capture_aar_so_size_x86_64
+          python3 ci/stage_bazel_artifacts.py "$events" "$BUILDBUDDY_ARTIFACTS_DIRECTORY" \
+            android_app.apk capture_aar_so_size_arm64_v8a_kb.txt \
+            capture_aar_so_size_x86_64_kb.txt

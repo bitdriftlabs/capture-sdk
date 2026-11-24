@@ -1,0 +1,98 @@
+name: React Native Release
+
+permissions:
+  contents: read
+  id-token: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The package version to use e.g. 1.80.0'
+        required: true
+        type: string
+
+defaults:
+  run:
+    working-directory: platform/es
+jobs:
+  publish:
+    name: Publish
+    if: github.ref == 'refs/heads/main'
+    concurrency:
+      group: react-native-npm-release
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Setup Javascript
+        uses: ./.github/actions/javascript-setup
+        with:
+          cache-key-scope: release-${{ github.workflow }}
+      - name: Get Capture SDK version
+        id: capture-sdk
+        run: |
+          CAPTURE_SDK_VERSION=$(node -p "require('./packages/react-native/package.json').captureSdkVersion")
+          echo "version=$CAPTURE_SDK_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Validate React Native version against Capture SDK, repository and npm
+        run: |
+          node <<'NODE'
+          const { execFileSync } = require('node:child_process');
+          const { version: currentVersion, captureSdkVersion: sdkVersion } = require('./packages/react-native/package.json');
+          const version = process.env.VERSION;
+          if (!/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(version)) {
+            throw new Error(`Expected a stable major.minor.patch version: ${version}`);
+          }
+          const [major, minor, patch] = version.split('.').map(Number);
+          const [sdkMajor, sdkMinor, sdkPatch] = sdkVersion.split('.').map(Number);
+          if (major !== sdkMajor || minor !== sdkMinor || patch < sdkPatch) {
+            throw new Error(`React Native ${version} must use Capture SDK ${sdkVersion}'s major/minor. Only the patch may increase.`);
+          }
+          const published = JSON.parse(execFileSync('npm', [
+            'view', '@bitdrift/react-native', 'versions', '--json', '--prefer-online'
+          ], { encoding: 'utf8' }));
+          for (const existing of [currentVersion, ...published.filter(v => !v.includes('-') && !v.includes('+'))]) {
+            const [existingMajor, existingMinor, existingPatch] = existing.split('.').map(Number);
+            const newer = major > existingMajor ||
+              (major === existingMajor && minor > existingMinor) ||
+              (major === existingMajor && minor === existingMinor && patch > existingPatch);
+            if (!newer) {
+              throw new Error(`React Native ${version} must be newer than ${existing}, already recorded in the repository or published to npm. Choose a higher patch.`);
+            }
+          }
+          NODE
+      - name: Prepare release
+        run: |
+          npm version --workspace @bitdrift/react-native --no-git-tag-version "$VERSION"
+          npx nx prepare-release @bitdrift/react-native
+      - name: Publish release
+        run: npm publish ./dist/react-native --provenance
+      # Use the existing release app so the resulting PR triggers SDK checks.
+      - name: Create release app token
+        id: release-app
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0
+        with:
+          app_id: ${{ secrets.OPEN_CAPTURE_SDK_PRS_APP_ID }}
+          private_key: ${{ secrets.OPEN_CAPTURE_SDK_PRS_PRIVATE_KEY }}
+
+      - name: Create a PR with the updated version
+        env:
+          GH_TOKEN: ${{ steps.release-app.outputs.token }}
+          CAPTURE_SDK_VERSION: ${{ steps.capture-sdk.outputs.version }}
+        run: |
+          gh auth setup-git
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          git checkout -b "release-rn-$VERSION"
+          git add packages/react-native/package.json package-lock.json
+          git commit -m "chore: release react-native $VERSION (capture-sdk $CAPTURE_SDK_VERSION)"
+          git push --set-upstream origin "release-rn-$VERSION"
+
+          gh pr create --title "chore: release react-native $VERSION" --body "v$VERSION (capture-sdk v$CAPTURE_SDK_VERSION)" --base main --head "release-rn-$VERSION"
+          gh pr merge "release-rn-$VERSION" --auto --rebase

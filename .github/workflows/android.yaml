@@ -4,6 +4,12 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
+    inputs:
+      artifact_invocation_id:
+        description: Successful BuildBuddy Android CI artifacts invocation for this commit
+        required: true
+        type: string
 # Cancel in-progress CI jobs when a new commit is pushed to a PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -18,115 +24,95 @@ permissions:
 jobs:
   pre_check:
     name: pre_check
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     outputs:
-      should_run: ${{ steps.check_changes.outputs.run_tests }}
+      artifacts: ${{ steps.changes.outputs.artifacts }}
+      timber: ${{ steps.changes.outputs.timber }}
+      plugin: ${{ steps.changes.outputs.plugin }}
+      licenses: ${{ steps.changes.outputs.licenses }}
+      instrumentation: ${{ steps.changes.outputs.instrumentation }}
     steps:
-      # Checkout repo to Github Actions runner
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-
-      # Check for Bazel build file changes
-      - name: Check for Bazel build file changes
-        id: bazel_check
-        run: ./ci/check_bazel.sh //examples/android:android_app
-
-      - name: Check for workflow file changes
-        id: workflow_check
-        uses: ./.github/actions/files-changed
-        with:
-          regex: '^(\.bazelrc|MODULE\.bazel(\.lock)?|\.github/(workflows/android\.yaml|actions/(setup|android-setup)/.*)|tools/(android_sdk_wrapper|setup_android_sdk|android_toolchain_versions|check_android_toolchain_versions)\.sh)$'
-
-      - name: Check for relevant Gradle changes
-        id: gradle_check
-        uses: ./.github/actions/files-changed
-        with:
-          regex: '^(platform/jvm/(capture-plugin/.*|gradle-test-app/.*\.(gradle|kts|kt|xml))|platform/jvm/capture/src/test/.*)$'
-
-      - name: Check for Cargo.toml changes
-        id: cargo_check
-        uses: ./.github/actions/files-changed
-        with:
-          files: Cargo.toml
-
-      - name: Determine if tests should run
-        id: check_changes_separate
-        run: |
-          bazel_changed="${{ steps.bazel_check.outputs.changed }}"
-          workflow_changed="${{ steps.workflow_check.outputs.changed }}"
-          gradle_changed="${{ steps.gradle_check.outputs.changed }}"
-          cargo_changed="${{ steps.cargo_check.outputs.changed }}"
-
-          if [[ "$bazel_changed" == "true" || "$workflow_changed" == "true" || "$gradle_changed" == "true" || "$cargo_changed" == "true" ]]; then
-            echo "Changes detected in one or more checks. Running tests."
-            echo "run_tests=true" >> $GITHUB_ENV
-          else
-            echo "No relevant changes found."
-            echo "run_tests=false" >> $GITHUB_ENV
-          fi
-        shell: bash
-
-      - name: Run downstream tests if changes are detected
-        id: check_changes
-        if: env.run_tests == 'true'
-        run: ./ci/run_tests.sh
+      - name: Select Android CI jobs
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash ci/android_ci_changes.sh "$BASE_SHA" "$HEAD_SHA"
 
   build_and_compare_sizes:
     runs-on: ubuntu-latest
+    timeout-minutes: 150
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
-    if: needs.pre_check.outputs.should_run == 'true'
+    if: >-
+      always() && !cancelled() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (needs.pre_check.result == 'success' && needs.pre_check.outputs.artifacts == 'true' &&
+        (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)))
     needs: pre_check
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Setup Android SDK
-        uses: ./.github/actions/android-setup
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Build Bazel multi-ABI APK and AAR size targets
-        timeout-minutes: 30
+      - name: Build and download Android artifacts
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          SOURCE_BRANCH: ${{ github.head_ref || github.ref_name }}
+          EXISTING_INVOCATION_ID: ${{ inputs.artifact_invocation_id }}
         run: |
-          # Package both the emulator ABI and the production ABI in one build.
-          # The size targets extract each library from the resulting AAR.
-          ./bazelw build --config ci --config release-android --config linux-hermetic-llvm --android_platforms=@rules_android//:arm64-v8a,@rules_android//:x86_64 //examples/android:android_app :capture_aar_so_size_arm64_v8a :capture_aar_so_size_x86_64
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          invocation="$EXISTING_INVOCATION_ID"
+          if [[ -z "$invocation" ]]; then
+            invocation="$(./ci/run_buildbuddy_workflow.sh 'Android CI artifacts' "$SOURCE_BRANCH" "$commit")"
+          fi
+          ./ci/download_buildbuddy_artifacts.sh "$invocation" "$commit" android-release-artifacts \
+            android_app.apk capture_aar_so_size_arm64_v8a_kb.txt capture_aar_so_size_x86_64_kb.txt
 
       - name: Upload PR APK
         uses: actions/upload-artifact@v4
         with:
           name: android_app.apk
-          path: ./bazel-bin/examples/android/android_app.apk
+          path: android-release-artifacts/android_app.apk
+
+      - name: Report downloaded artifact sizes
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: android-release-artifacts
+        run: |
+          {
+            printf 'Example APK (bytes) | ARM64 native library (KB) | x86-64 native library (KB)\n'
+            printf '%s\n' '--- | --- | ---'
+            printf '%s | %s | %s\n' "$(stat -c%s android_app.apk)" \
+              "$(cat capture_aar_so_size_arm64_v8a_kb.txt)" "$(cat capture_aar_so_size_x86_64_kb.txt)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Save size baselines and push to branch (main only)
-        if: github.ref == 'refs/heads/main' && success()
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Get APK size
-          APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
+          APK_PATH=android-release-artifacts/android_app.apk
           APK_SIZE_FILE=ci/baseline_binary_size_arm64_v8a_x86_64.txt
           stat -c%s "$APK_PATH" > "$APK_SIZE_FILE"
 
           # Get the Bazel-generated compressed SO sizes for each packaged ABI.
-          ARM64_SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_arm64_v8a_kb.txt)
+          ARM64_SO_SIZE_KB=$(cat android-release-artifacts/capture_aar_so_size_arm64_v8a_kb.txt)
           ARM64_SO_SIZE_FILE=ci/baseline_so_size_arm64_v8a_kb.txt
           echo "$ARM64_SO_SIZE_KB" > "$ARM64_SO_SIZE_FILE"
-          X86_64_SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
+          X86_64_SO_SIZE_KB=$(cat android-release-artifacts/capture_aar_so_size_x86_64_kb.txt)
           X86_64_SO_SIZE_FILE=ci/baseline_so_size_x86_64_kb.txt
           echo "$X86_64_SO_SIZE_KB" > "$X86_64_SO_SIZE_FILE"
 
@@ -173,10 +159,10 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: apk_size
         run: |
-          APK_PATH=$(find bazel-bin/examples/android -name "android_app.apk" | head -n 1)
+          APK_PATH=android-release-artifacts/android_app.apk
           BASELINE_PATH=ci/baseline_binary_size_arm64_v8a_x86_64.txt
 
-          if [ -z "$APK_PATH" ]; then
+          if [ ! -f "$APK_PATH" ]; then
             echo "Current APK file not found!"
             exit 1
           fi
@@ -200,7 +186,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: arm64_so_size
         run: |
-          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_arm64_v8a_kb.txt)
+          SO_SIZE_KB=$(cat android-release-artifacts/capture_aar_so_size_arm64_v8a_kb.txt)
           BASELINE_PATH=ci/baseline_so_size_arm64_v8a_kb.txt
 
           if [ -z "$SO_SIZE_KB" ]; then
@@ -224,7 +210,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         id: x86_64_so_size
         run: |
-          SO_SIZE_KB=$(cat bazel-bin/capture_aar_so_size_x86_64_kb.txt)
+          SO_SIZE_KB=$(cat android-release-artifacts/capture_aar_so_size_x86_64_kb.txt)
           BASELINE_PATH=ci/baseline_so_size_x86_64_kb.txt
 
           if [ -z "$SO_SIZE_KB" ]; then
@@ -334,38 +320,62 @@ jobs:
             }
 
   gradle_tests:
-    # Requires a "larger runner", for nested virtualization support
-    runs-on: ubuntu-latest-8-cores
+    # Only emulator instrumentation needs nested virtualization.
+    runs-on: ${{ needs.pre_check.outputs.instrumentation == 'true' && 'ubuntu-latest-8-cores' || 'ubuntu-latest' }}
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
       deployment: false
     env:
       SKIP_PROTO_GEN: 1
-    if: needs.pre_check.outputs.should_run == 'true'
+    if: >-
+      needs.pre_check.outputs.timber == 'true' ||
+      needs.pre_check.outputs.plugin == 'true' ||
+      needs.pre_check.outputs.licenses == 'true' ||
+      needs.pre_check.outputs.instrumentation == 'true'
     needs: pre_check
     steps:
 
     - name: Checkout project sources
       uses: actions/checkout@v4
 
+    - name: Set up JDK
+      if: needs.pre_check.outputs.instrumentation != 'true'
+      uses: actions/setup-java@v4
+      with:
+        distribution: zulu
+        java-version: '17'
+    - name: Set up Android SDK
+      if: needs.pre_check.outputs.instrumentation != 'true'
+      uses: ./.github/actions/android-setup
+      with:
+        enable-bazel-cache: "false"
+        setup-local-android-sdk: "true"
     - name: Setup Android emulator
+      if: needs.pre_check.outputs.instrumentation == 'true'
       uses: ./.github/actions/setup-android-emulator
       with:
         buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-        setup-gradle-cache: "true"
         api-level: '23'
         target: default
         arch: x86_64
+    - name: Set up Gradle caching
+      uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      with:
+        cache-read-only: ${{ github.ref != 'refs/heads/main' }}
     - name: Gradle capture-timber unit tests
+      if: needs.pre_check.outputs.timber == 'true'
       working-directory: ./platform/jvm
-      run: ./gradlew capture-timber:testReleaseUnitTest --info
+      run: ./gradlew capture-timber:testReleaseUnitTest --build-cache --info
     - name: Gradle capture-plugin unit tests
+      if: needs.pre_check.outputs.plugin == 'true'
       working-directory: ./platform/jvm
-      run: ./gradlew capture-plugin:test --info
+      run: ./gradlew capture-plugin:test --build-cache --info
     - name: Check Licenses for modules
+      if: needs.pre_check.outputs.licenses == 'true'
       working-directory: ./platform/jvm
       run: ./gradlew replay:checkLicense common:checkLicense capture:checkLicense
     - name: Instrumentation Tests
+      if: needs.pre_check.outputs.instrumentation == 'true'
       uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
       with:
         channel: stable
@@ -378,192 +388,13 @@ jobs:
         profile: Nexus 6
         disable-animations: true
         emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        script: cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test; adb uninstall io.bitdrift.gradletestapp; cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm gradle-test-app:check gradle-test-app:connectedCheck --stacktrace
-
-  run_android_benchmarks:
-    runs-on: ubuntu-latest-8-cores
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'main-cache' || '' }}
-      deployment: false
-    continue-on-error: true
-    env:
-      SKIP_PROTO_GEN: 1
-    if: needs.pre_check.outputs.should_run == 'true'
-    needs: pre_check
-    steps:
-      - name: Checkout project sources
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Android emulator
-        uses: ./.github/actions/setup-android-emulator
-        with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
-          setup-gradle-cache: "true"
-          api-level: '31'
-          target: default
-          arch: x86_64
-
-      - name: Run Microbenchmarks
-        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # pin@v2.37.0
-        timeout-minutes: 30
-        with:
-          channel: stable
-          force-avd-creation: false
-          api-level: 31
-          target: default
-          ram-size: 2048M
-          arch: x86_64
-          disk-size: 6144M
-          profile: Nexus 6
-          disable-animations: true
-          emulator-options: -no-snapshot-save -no-window -accel on -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm microbenchmark:connectedReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED --stacktrace
-
-      - name: Find benchmark JSON
-        id: find_benchmark
-        run: |
-          BENCHMARK_JSON=$(find platform/jvm/microbenchmark/build/outputs -name "*benchmarkData.json" -type f | head -n 1)
-          if [ -z "$BENCHMARK_JSON" ]; then
-            echo "No benchmark JSON file found!"
-            echo "found=false" >> $GITHUB_OUTPUT
-          else
-            echo "Found benchmark file: $BENCHMARK_JSON"
-            echo "found=true" >> $GITHUB_OUTPUT
-            echo "path=$BENCHMARK_JSON" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Save benchmark baseline (main only)
-        if: github.ref == 'refs/heads/main' && steps.find_benchmark.outputs.found == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          BENCHMARK_JSON="${{ steps.find_benchmark.outputs.path }}"
-
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          git fetch origin ci-baseline || true
-          git worktree add temp-worktree origin/ci-baseline
-
-          cp "$BENCHMARK_JSON" temp-worktree/ci/android_benchmark_baseline.json
-
-          cd temp-worktree
-          git add ci/android_benchmark_baseline.json
-
-          if ! git diff --cached --quiet; then
-            git commit -m "ci: update benchmark baseline [skip ci]"
-            git push origin HEAD:ci-baseline
-          else
-            echo "No changes to benchmark baseline."
-          fi
-
-          cd ..
-          git worktree remove temp-worktree --force
-
-      - name: Fetch benchmark baseline (PR only)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        id: fetch_baseline
-        run: |
-          git fetch origin ci-baseline || true
-          git worktree add temp-baseline origin/ci-baseline || true
-
-          echo "Checking for baseline file..."
-          ls -la temp-baseline/ci/ || echo "Could not list temp-baseline/ci/"
-
-          if [ -f temp-baseline/ci/android_benchmark_baseline.json ]; then
-            echo "Found baseline file, copying..."
-            cp temp-baseline/ci/android_benchmark_baseline.json ci/android_benchmark_baseline.json
-            echo "found=true" >> $GITHUB_OUTPUT
-            echo "Baseline found and copied."
-          else
-            echo "No benchmark baseline found."
-            echo "found=false" >> $GITHUB_OUTPUT
-          fi
-
-          git worktree remove temp-baseline --force || true
-
-      - name: Parse and compare benchmark results
-        if: github.event_name == 'pull_request' && steps.find_benchmark.outputs.found == 'true'
-        id: benchmark_results
-        run: |
-          BENCHMARK_JSON="${{ steps.find_benchmark.outputs.path }}"
-          BASELINE_JSON=""
-
-          echo "fetch_baseline.outputs.found = '${{ steps.fetch_baseline.outputs.found }}'"
-
-          if [ "${{ steps.fetch_baseline.outputs.found }}" == "true" ]; then
-            BASELINE_JSON="ci/android_benchmark_baseline.json"
-            echo "Using baseline: $BASELINE_JSON"
-          else
-            echo "No baseline found, running without comparison"
-          fi
-
-          # Parse and format the benchmark results using Python
-          if [ -n "$BASELINE_JSON" ]; then
-            python3 ./ci/parse_benchmark_results.py "$BENCHMARK_JSON" "$BASELINE_JSON" > benchmark_report.md
-          else
-            python3 ./ci/parse_benchmark_results.py "$BENCHMARK_JSON" > benchmark_report.md
-          fi
-
-          echo "Generated report:"
-          cat benchmark_report.md
-
-          # Store the report for the PR comment (handle multiline)
-          {
-            echo 'benchmark_report<<EOF'
-            cat benchmark_report.md
-            echo 'EOF'
-          } >> $GITHUB_OUTPUT
-
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results
-          path: |
-            platform/jvm/microbenchmark/build/outputs/connected_android_test_additional_output/
-            benchmark_report.md
-        if: always()
-
-      - name: Report benchmarks on PR
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
-        uses: actions/github-script@v6
-        env:
-          BENCHMARK_REPORT: ${{ steps.benchmark_results.outputs.benchmark_report }}
-        with:
-          script: |
-            const benchmarkReport = process.env.BENCHMARK_REPORT;
-
-            let body = '## Android Benchmark Results\n\n';
-            body += benchmarkReport || 'No benchmark data available.';
-
-            // Look for existing benchmark comment to update
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-            });
-
-            const markerText = '## Android Benchmark Results';
-            const foundComment = comments.data.find((c) => 
-              c.user.login === 'github-actions[bot]' && c.body.includes(markerText)
-            );
-
-            const comment = {
-              issue_number: context.payload.pull_request.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body,
-            };
-
-            if (foundComment?.id) {
-              comment.comment_id = foundComment.id;
-              await github.rest.issues.updateComment(comment);
-            } else {
-              await github.rest.issues.createComment(comment);
-            }
+        # Keep the aggregate task names so the app's Crashlytics setup stays consistent in CI.
+        script: >-
+          cd platform/jvm && adb uninstall io.bitdrift.gradletestapp.test;
+          adb uninstall io.bitdrift.gradletestapp;
+          cd ../.. && ./tools/android_sdk_wrapper.sh platform/jvm/gradlew -Prust-target=x86_64 -p platform/jvm
+          gradle-test-app:check gradle-test-app:connectedCheck --build-cache --stacktrace
+          -x gradle-test-app:testReleaseUnitTest -x gradle-test-app:testProfileableUnitTest
 
   verify_android_hello_world_per_version:
     needs: build_and_compare_sizes
@@ -579,7 +410,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - uses: actions/download-artifact@v4
         with:
@@ -588,7 +419,7 @@ jobs:
       - name: Setup Android emulator
         uses: ./.github/actions/setup-android-emulator
         with:
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_RW_API_KEY || secrets.BUILDBUDDY_API_KEY }}
+          enable-bazel-cache: "false"
           api-level: ${{ matrix.api-level }}
           target: google_apis
           arch: x86_64
@@ -625,8 +456,8 @@ jobs:
   # job completing, we are able to gate it on all the previous jobs without explicitly enumerating them.
   verify_android:
     runs-on: ubuntu-latest
-    needs: ["pre_check", "build_and_compare_sizes", "verify_android_hello_world_per_version", "gradle_tests", "run_android_benchmarks"]
-    if: always()
+    needs: ["pre_check", "build_and_compare_sizes", "verify_android_hello_world_per_version", "gradle_tests"]
+    if: always() && github.event_name != 'workflow_dispatch'
     steps:
     # Checkout repo to Github Actions runner
     - name: Checkout
@@ -635,3 +466,8 @@ jobs:
         fetch-depth: 1
     - name: check result
       run: ./ci/check_result.sh ${{ needs.pre_check.result }} && ./ci/check_result.sh ${{ needs.build_and_compare_sizes.result }} && ./ci/check_result.sh ${{ needs.verify_android_hello_world_per_version.result }} && ./ci/check_result.sh ${{ needs.gradle_tests.result }}
+    - name: Require BuildBuddy Test
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TEST_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: bash ci/wait_for_buildbuddy_check.sh "$TEST_COMMIT"

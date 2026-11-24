@@ -7,16 +7,20 @@ import tempfile
 import unittest
 
 
-SCRIPT = pathlib.Path(__file__).with_name('update_release_version.sh').resolve()
-SCRATCH = SCRIPT.parent.parent / '.tmp'
+SCRIPT = pathlib.Path(__file__).with_name('update_release_version.sh').absolute()
 
 
 class UpdateReleaseVersionTest(unittest.TestCase):
     def setUp(self):
-        SCRATCH.mkdir(exist_ok=True)
-        self.directory = tempfile.TemporaryDirectory(dir=SCRATCH)
+        self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = pathlib.Path(self.directory.name)
+        subprocess.run(['git', 'init', '--quiet', str(self.root)], check=True)
+        subprocess.run(
+            ['git', '-c', 'user.name=CI fixture', '-c', 'user.email=fixture@example.com',
+             '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null',
+             'commit', '--quiet', '--allow-empty', '-m', 'Initial commit'],
+            cwd=self.root, check=True)
         self.state = self.root / 'state.json'
         self.gh = self.root / 'gh'
         self.gh.write_text('''#!/usr/bin/env python3

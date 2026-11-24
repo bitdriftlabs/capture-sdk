@@ -7,6 +7,8 @@
 
 @_spi(ExperimentalAPI) public struct CommandResult: Equatable, Sendable {
     public let attachment: CommandAttachment?
+    /// Fields to report with the successful command. Command outcome logs reserve `_result`,
+    /// `_duration_ms`, and keys starting with `_command_`, `_workflow_command_`, or `_span_`.
     public let context: [String: String]
 
     public init(

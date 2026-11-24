@@ -13,10 +13,7 @@ ios_application(
         "//bazel:ios_device_build": "//bazel/ios:ios_provisioning_profile",
         "//conditions:default": None,
     }),
-    tags = [
-        "manual",
-        "no-remote",
-    ],
+    tags = ["manual"],
     visibility = ["//visibility:public"],
     deps = [":ios_main"],
 )

@@ -12,7 +12,8 @@ use super::{
   capture_stack_snapshot_bridge_create,
   capture_stack_snapshot_bridge_release,
 };
-use profiler::{CancellationToken, CaptureError, Profiler, Summary};
+use crate::stack_profile::capture_stack_profile;
+use profiler::{CancellationToken, CaptureError, ProfileSummary, Profiler, Summary};
 use std::ffi::CString;
 
 #[test]
@@ -24,6 +25,7 @@ fn bridge_handles_share_the_request_slot_and_rejected_cancellation_keeps_it_busy
   std::thread::spawn(move || {
     let handle = capture_stack_snapshot_bridge_create();
     let mut summary = Summary::default();
+    let mut profile_summary = ProfileSummary::default();
     // SAFETY: path, output and handle remain live throughout these synchronous calls. No capture
     // can enter the suspended section because the other request owns the process-wide slot.
     unsafe {
@@ -31,14 +33,37 @@ fn bridge_handles_share_the_request_slot_and_rejected_cancellation_keeps_it_busy
         capture_stack_snapshot(256, native_path.as_ptr(), handle, &raw mut summary),
         2
       );
+      assert_eq!(
+        capture_stack_profile(
+          20,
+          500,
+          256,
+          native_path.as_ptr(),
+          handle,
+          &raw mut profile_summary
+        ),
+        2
+      );
       capture_stack_snapshot_bridge_cancel(handle);
       assert_eq!(
         capture_stack_snapshot(256, native_path.as_ptr(), handle, &raw mut summary),
         7
       );
+      assert_eq!(
+        capture_stack_profile(
+          20,
+          500,
+          256,
+          native_path.as_ptr(),
+          handle,
+          &raw mut profile_summary
+        ),
+        7
+      );
       capture_stack_snapshot_bridge_release(handle);
     }
     assert_eq!(summary, Summary::default());
+    assert_eq!(profile_summary, ProfileSummary::default());
   })
   .join()
   .unwrap();

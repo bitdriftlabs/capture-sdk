@@ -97,10 +97,11 @@ object CaptureTestJniLibrary {
     // Runs events listener target test.
     external fun runEventsListenerTargetTest(target: Any)
 
-    // Issues a runtime update causing the specified feature to be marked as disabled.
-    external fun disableRuntimeFeature(
+    // Issues a runtime update for the specified feature.
+    external fun setRuntimeFeatureEnabled(
         streamId: Int,
         feature: String,
+        enabled: Boolean,
     )
 
     // Returns the next received artifact upload.

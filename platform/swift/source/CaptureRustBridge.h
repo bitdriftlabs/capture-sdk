@@ -26,7 +26,8 @@ NS_ASSUME_NONNULL_BEGIN
 void capture_report_error(const char *message);
 
 /* The owner retains this handle until capture and all cancellation calls finish. Cancellation
- * only sets an atomic flag; it does not wait, take locks, or resume any thread. */
+ * sets an atomic flag and wakes a parked profiling worker; it never waits, takes locks,
+ * or resumes a target thread. */
 void *capture_stack_snapshot_bridge_create(void);
 void capture_stack_snapshot_bridge_cancel(const void *bridge);
 void capture_stack_snapshot_bridge_release(void *bridge);
@@ -47,6 +48,31 @@ int32_t capture_stack_snapshot(
     const char *path,
     const void *bridge,
     capture_stack_snapshot_summary *summary
+);
+
+typedef struct {
+    uint64_t capture_rounds;
+    uint64_t captured_samples;
+    uint64_t failed_samples;
+    uint64_t truncated_samples;
+    uint64_t skipped_samples;
+    uint64_t retained_samples;
+    uint64_t dropped_samples;
+    uint64_t missed_ticks;
+    uint64_t dropped_images;
+    uint64_t failed_image_reads;
+} capture_stack_profile_summary;
+
+/* Uses the same cancellation handle and status codes as capture_stack_snapshot.
+ * frequency_hz is positive and at most 1e9 (a representable nanosecond interval);
+ * duration_ms and buffer_size_kb are positive. Export is capped at 5 MiB. */
+int32_t capture_stack_profile(
+    uint32_t frequency_hz,
+    uint32_t duration_ms,
+    uint32_t buffer_size_kb,
+    const char *path,
+    const void *bridge,
+    capture_stack_profile_summary *summary
 );
 
 /*
@@ -175,6 +201,22 @@ bool capture_complete_command(
     const NSString *_Nullable attachment_mime_type,
     const NSString *_Nullable error_code,
     const NSString *_Nullable error_message
+);
+
+/*
+ * Runs the requested stages of a memory dump on the calling thread.
+ *
+ * @param stages a bitmask of the stages to run: 1 counters, 2 regions, 4 heap.
+ * @param heap_budget_ms the time the heap census may hold the malloc zone locks.
+ * @param heap_owners whether the heap census credits unnamed blocks to the objects holding them.
+ *
+ * @return a dictionary with `context` (string to string) and `attachment` (the JSON report), or
+ *         with `error` when the dump failed; nil on an unexpected failure.
+ */
+NSDictionary *_Nullable capture_memory_dump(
+    uint32_t stages,
+    uint64_t heap_budget_ms,
+    bool heap_owners
 );
 
 /*

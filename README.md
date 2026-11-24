@@ -6,6 +6,32 @@ See [here](https://docs.bitdrift.io/product/overview) for more information.
 
 For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sdk/wiki)
 
+## Documentation
+
+- [Android crash profiling](docs/android-crash-profiling.md): automatic collection, caller-managed
+  imports, file ownership, and pending profile storage.
+- [Gradle test app: manual crash-profile testing](platform/jvm/gradle-test-app/docs/crash-profiling.md):
+  emulator/device setup, ANR/OOM scenarios, symbol uploads, backend verification, and cleanup.
+- [React Native development and releases](platform/es/README.md)
+
+## Running tests
+
+Use `./bazelw test //...` for the default tests supported on your machine. To work on one
+part of the SDK, run the owning target directly.
+
+| Coverage | Command |
+| --- | --- |
+| iOS XCTest suite | `./bazelw test //test/platform/swift/unit_integration/...` |
+| Swift bridge Rust tests, including commands | `./bazelw test //platform/swift/source:swift_bridge_test` |
+| Android Bazel tests | `./bazelw test //platform/jvm/...` |
+| Xcode 27 and iOS 27 checks | `./bazelw test --config=ios27-tests //test/platform/swift/unit_integration/core:ios27_test` |
+
+Xcode 27 and the iOS 27 simulator are required only for the opt-in check. BuildBuddy enables
+it in **Test** and routes Apple targets to the Mac executor. The same workflow runs Clippy,
+combining linting and compilation for first-party Rust libraries and tests.
+Gradle plugin, Timber, and emulator instrumentation checks run in GitHub Actions when their
+inputs change. The artifact workflows validate the packaged apps and report sizes.
+
 ## Local formatting
 
 `make format` uses Bazel-managed Kotlin and Rust formatters plus local `buildifier`, `taplo`,
@@ -15,12 +41,17 @@ For setup, please refer to the [wiki](https://github.com/bitdriftlabs/capture-sd
 brew install buildifier taplo swiftlint shellcheck
 ```
 
+For Swift documentation, use `make fix-docstrings FILE=path/to/File.swift` to format one file.
+`make lint-docstrings` runs the same read-only check as `make format` and CI.
+
 ## Release build cache policy
 
-Release builds do not use the Bazel/BuildBuddy remote cache. GitHub Actions caches used by a
-release are scoped as `release-${{ github.workflow }}` and must not be shared with pull-request or
-ordinary `main` builds. See `AGENTS.md` before changing release commands, workflows, or shared
-setup actions.
+Publishing workflows rebuild release artifacts with `--config=nocache`. Any GitHub Actions
+dependency caches they use are scoped to `release-${{ github.workflow }}`.
+
+The BuildBuddy **iOS CI artifacts** and **Android CI artifacts** workflows use optimized builds
+for smoke tests and size reports on pull requests and `main`. They can reuse the ordinary CI
+cache. See `AGENTS.md` for the cache requirements when changing either path.
 
 ## Release version policy
 

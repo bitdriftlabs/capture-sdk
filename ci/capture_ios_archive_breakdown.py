@@ -78,6 +78,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path)
     parser.add_argument("--architecture", default="ios-arm64")
+    parser.add_argument("--output", type=argparse.FileType("w"), default=sys.stdout)
     args = parser.parse_args()
 
     if not args.archive.is_file():
@@ -92,7 +93,7 @@ def main():
         "archive_bytes": args.archive.stat().st_size,
         "components": dict(sorted(components.items())),
     }
-    print(json.dumps(snapshot, separators=(",", ":"), sort_keys=True))
+    print(json.dumps(snapshot, separators=(",", ":"), sort_keys=True), file=args.output)
 
 
 if __name__ == "__main__":

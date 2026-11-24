@@ -34,3 +34,7 @@ class ParseBenchmarkResultsTest(unittest.TestCase):
             results, _ = parse_benchmark_json(path)
 
         self.assertEqual(set(results), {"logNotMatchedNoFields", "logNotMatched5000Fields"})
+
+
+if __name__ == "__main__":
+    unittest.main()

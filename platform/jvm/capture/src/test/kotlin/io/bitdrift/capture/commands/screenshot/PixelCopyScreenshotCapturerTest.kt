@@ -59,8 +59,7 @@ class PixelCopyScreenshotCapturerTest {
         runBlocking {
             val capturer = PixelCopyScreenshotCapturer { throw ScreenshotCaptureException("No visible root view") }
             val error = capturer.capture() as CommandResult.Error
-            assertThat(error.title).isEqualTo("screenshot capture failed")
-            assertThat(error.description).isEqualTo("No visible root view")
+            assertThat(error.message).isEqualTo("screenshot capture failed: No visible root view")
             assertThat(error.context).isEmpty()
         }
 }

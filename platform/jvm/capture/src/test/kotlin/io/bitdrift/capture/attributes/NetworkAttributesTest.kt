@@ -19,6 +19,7 @@ import android.telephony.TelephonyManager
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.verify
 import io.bitdrift.capture.IInternalLogger
@@ -33,6 +34,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import java.util.concurrent.ExecutorService
 import org.mockito.ArgumentMatchers.any as javaAny
 
 @RunWith(RobolectricTestRunner::class)
@@ -182,6 +184,41 @@ class NetworkAttributesTest {
         networkAttributes.onLost(mock(Network::class.java))
 
         verify(logger).updateOotbField("network_type", "unknown")
+    }
+
+    @Test
+    fun stop_unregisters_callback_and_stops_forwarding() {
+        grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
+        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val mockedConnectivityManager = obtainMockedConnectivityManager(context)
+        val networkAttributes = NetworkAttributes(context, MoreExecutors.newDirectExecutorService())
+        val logger: IInternalLogger = mock()
+
+        networkAttributes.start(logger)
+        networkAttributes.stop()
+        networkAttributes.onLost(mock(Network::class.java))
+
+        verify(mockedConnectivityManager).unregisterNetworkCallback(networkAttributes)
+        verify(logger, never()).updateOotbField(any(), any())
+    }
+
+    @Test
+    fun stop_before_monitoring_starts_skips_callback_registration() {
+        grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
+        val context = spy(ApplicationProvider.getApplicationContext<Context>())
+        val mockedConnectivityManager = obtainMockedConnectivityManager(context)
+        val executor: ExecutorService = mock()
+        val networkAttributes = NetworkAttributes(context, executor)
+
+        networkAttributes.start(mock())
+        val monitor = argumentCaptor<Runnable>()
+        verify(executor).execute(monitor.capture())
+        networkAttributes.stop()
+        monitor.firstValue.run()
+
+        verify(mockedConnectivityManager, never()).registerDefaultNetworkCallback(
+            javaAny(ConnectivityManager.NetworkCallback::class.java),
+        )
     }
 
     private fun invokeWithNetworkCapabilities(
