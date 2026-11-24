@@ -1302,6 +1302,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bd-unwind"
+version = "1.0.0"
+
+[[package]]
 name = "bd-versioned-kv"
 version = "1.0.0"
 source = "git+https://github.com/bitdriftlabs/shared-core.git?rev=867a54b5ad43a92b0652aeb291e4000e9f602249#867a54b5ad43a92b0652aeb291e4000e9f602249"
