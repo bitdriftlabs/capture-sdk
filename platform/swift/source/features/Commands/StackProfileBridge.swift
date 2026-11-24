@@ -29,6 +29,7 @@ struct StackProfileSummary: Sendable {
             "missed_ticks": String(native.missed_ticks),
             "dropped_images": String(native.dropped_images),
             "failed_image_reads": String(native.failed_image_reads),
+            "no_user_context_samples": String(native.no_user_context_samples),
         ]
     }
 }

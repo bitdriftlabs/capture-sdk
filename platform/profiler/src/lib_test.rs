@@ -240,14 +240,43 @@ fn summary_keeps_partial_stacks_and_distinguishes_failed_and_skipped_threads() {
   let mut skipped = sample_snapshot().threads.remove(0);
   skipped.frames.clear();
   skipped.status = ThreadStatus::CaptureThread;
-  snapshot.threads.extend([failed, skipped]);
+  let mut no_context = sample_snapshot().threads.remove(0);
+  no_context.frames.clear();
+  no_context.status = ThreadStatus::NoUserContext;
+  snapshot.threads.extend([failed, skipped, no_context]);
   let summary = snapshot.summary();
   assert_eq!(summary.captured_threads, 1);
   assert_eq!(summary.truncated_threads, 1);
   assert_eq!(summary.failed_threads, 1);
   assert_eq!(summary.skipped_threads, 1);
+  assert_eq!(summary.no_user_context_threads, 1);
   assert!(snapshot.ensure_useful().is_ok());
   snapshot.threads.remove(0);
+  assert_eq!(snapshot.ensure_useful(), Err(CaptureError::NoUsefulStacks));
+}
+
+#[test]
+fn snapshot_exports_absent_user_context_without_a_stack_sample() {
+  let mut snapshot = sample_snapshot();
+  snapshot.threads[0].status = ThreadStatus::NoUserContext;
+  snapshot.threads[0].frames.clear();
+  let mut output = Vec::new();
+  write_json(
+    &snapshot,
+    &mut output,
+    usize::MAX,
+    &CancellationToken::default(),
+  )
+  .unwrap();
+  let json: Value = serde_json::from_slice(&output).unwrap();
+  assert_eq!(json["bitdrift"]["noUserContextThreads"], 1);
+  assert_eq!(json["bitdrift"]["failedThreads"], 0);
+  assert_eq!(json["threads"][0]["bitdrift"]["status"], "no_user_context");
+  assert_eq!(
+    json["threads"][0]["bitdrift"]["frames"],
+    serde_json::json!([])
+  );
+  assert_eq!(json["threads"][0]["samples"]["data"], serde_json::json!([]));
   assert_eq!(snapshot.ensure_useful(), Err(CaptureError::NoUsefulStacks));
 }
 

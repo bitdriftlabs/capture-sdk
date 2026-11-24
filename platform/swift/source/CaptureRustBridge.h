@@ -37,6 +37,7 @@ typedef struct {
     size_t failed_threads;
     size_t truncated_threads;
     size_t skipped_threads;
+    size_t no_user_context_threads;
 } capture_stack_snapshot_summary;
 
 /* Writes a new snapshot file, capped at 5 MiB of encoded JSON. Returns 0 on success,
@@ -61,6 +62,7 @@ typedef struct {
     uint64_t missed_ticks;
     uint64_t dropped_images;
     uint64_t failed_image_reads;
+    uint64_t no_user_context_samples;
 } capture_stack_profile_summary;
 
 /* Uses the same cancellation handle and status codes as capture_stack_snapshot.

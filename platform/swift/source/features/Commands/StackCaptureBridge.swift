@@ -18,6 +18,7 @@ struct StackSnapshotSummary: Sendable {
     let failedThreads: Int
     let truncatedThreads: Int
     let skippedThreads: Int
+    let noUserContextThreads: Int
 
     var context: [String: String] {
         [
@@ -26,6 +27,7 @@ struct StackSnapshotSummary: Sendable {
             "failed_threads": String(failedThreads),
             "truncated_threads": String(truncatedThreads),
             "skipped_threads": String(skippedThreads),
+            "no_user_context_threads": String(noUserContextThreads),
         ]
     }
 }
@@ -48,7 +50,8 @@ final class StackCaptureBridge: StackSnapshotBridging, StackProfileBridging, @un
             capturedThreads: summary.captured_threads,
             failedThreads: summary.failed_threads,
             truncatedThreads: summary.truncated_threads,
-            skippedThreads: summary.skipped_threads
+            skippedThreads: summary.skipped_threads,
+            noUserContextThreads: summary.no_user_context_threads
         ))
     }
 

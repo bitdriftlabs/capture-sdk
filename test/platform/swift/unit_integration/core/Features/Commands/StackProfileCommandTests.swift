@@ -12,6 +12,15 @@ import Foundation
 import XCTest
 
 final class StackProfileCommandTests: XCTestCase {
+    func testSummarySeparatesMissingUserContextFromFailedSamples() {
+        var native = capture_stack_profile_summary()
+        native.failed_samples = 2
+        native.no_user_context_samples = 3
+        let summary = StackProfileSummary(native: native)
+        XCTAssertEqual(summary.context["failed_samples"], "2")
+        XCTAssertEqual(summary.context["no_user_context_samples"], "3")
+    }
+
     private let arguments: CommandArguments = [
         "frequency_hz": .uint64(20), "duration_ms": .uint64(500), "buffer_size_kb": .uint64(256),
     ]
@@ -149,6 +158,8 @@ final class StackProfileCommandTests: XCTestCase {
         let rounds = try XCTUnwrap(meta["captureRounds"] as? Int)
         XCTAssertGreaterThan(rounds, 1)
         XCTAssertEqual(result.context["capture_rounds"], String(rounds))
+        let noContext = try XCTUnwrap(meta["noUserContextSamples"] as? Int)
+        XCTAssertEqual(result.context["no_user_context_samples"], String(noContext))
         let threads = try XCTUnwrap(json["threads"] as? [[String: Any]])
         XCTAssertTrue(threads.contains { thread in
             guard let samples = thread["samples"] as? [String: Any],

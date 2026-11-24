@@ -13,6 +13,15 @@ import Foundation
 import XCTest
 
 final class StackSnapshotCommandTests: XCTestCase {
+    func testSummarySeparatesMissingUserContextFromFailedThreads() {
+        let summary = StackSnapshotSummary(
+            capturedThreads: 1, failedThreads: 2, truncatedThreads: 0, skippedThreads: 1,
+            noUserContextThreads: 3
+        )
+        XCTAssertEqual(summary.context["failed_threads"], "2")
+        XCTAssertEqual(summary.context["no_user_context_threads"], "3")
+    }
+
     func testRegisteredByDefaultBeforeLoggerStarts() async throws {
         let bridge = MockLoggerBridging()
         let logger = try Logger.testLogger(
@@ -134,7 +143,8 @@ final class StackSnapshotCommandTests: XCTestCase {
                 try Data("late result".utf8).write(to: url)
             } catch { return .failure(CommandError(message: "fixture could not be written")) }
             return .success(StackSnapshotSummary(
-                capturedThreads: 1, failedThreads: 0, truncatedThreads: 0, skippedThreads: 1
+                capturedThreads: 1, failedThreads: 0, truncatedThreads: 0, skippedThreads: 1,
+                noUserContextThreads: 0
             ))
         })
         let command = StackSnapshotCommand(fileManager: fileManager, makeBridge: { bridge }).make()
@@ -211,6 +221,8 @@ final class StackSnapshotCommandTests: XCTestCase {
         let captured = try XCTUnwrap(metadata["capturedThreads"] as? Int)
         XCTAssertGreaterThan(captured, 0)
         XCTAssertEqual(result.context["captured_threads"], String(captured))
+        let noContext = try XCTUnwrap(metadata["noUserContextThreads"] as? Int)
+        XCTAssertEqual(result.context["no_user_context_threads"], String(noContext))
         XCTAssertNotNil(result.context["failed_threads"])
         XCTAssertNotNil(result.context["truncated_threads"])
         XCTAssertNotNil(result.context["skipped_threads"])

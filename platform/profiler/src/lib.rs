@@ -105,6 +105,8 @@ pub enum ThreadStatus {
   SuspendFailed,
   RegistersUnavailable,
   StackUnavailable,
+  /// The sampled PC and SP are both zero; there is no user stack to walk.
+  NoUserContext,
 }
 
 pub struct ThreadSnapshot {
@@ -145,6 +147,8 @@ impl Snapshot {
     for thread in &self.threads {
       if thread.status == ThreadStatus::CaptureThread {
         summary.skipped_threads += 1;
+      } else if thread.status == ThreadStatus::NoUserContext {
+        summary.no_user_context_threads += 1;
       } else if thread.frames.iter().any(|frame| frame.address != 0) {
         summary.captured_threads += 1;
         if thread.stack_truncated || thread.status != ThreadStatus::Captured(StopReason::EndOfStack)
@@ -171,8 +175,8 @@ impl Snapshot {
 // Summary
 //
 
-/// Counts partition threads into captured (including partial), failed and skipped. Truncated
-/// threads are a subset of captured threads whose stack copy or walk did not complete.
+/// Counts partition threads into captured (including partial), failed, skipped and no user context.
+/// Truncated threads are a subset of captured threads whose stack copy or walk did not complete.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Summary {
@@ -180,6 +184,7 @@ pub struct Summary {
   pub failed_threads: usize,
   pub truncated_threads: usize,
   pub skipped_threads: usize,
+  pub no_user_context_threads: usize,
 }
 
 //

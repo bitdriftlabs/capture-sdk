@@ -164,7 +164,7 @@ pub(super) fn write(profile: &Profile, output: &mut impl Write) -> io::Result<()
     "failedSamples":{},"truncatedSamples":{},
     "skippedSamples":{},"retainedSamples":{},"droppedSamples":{},
     "missedTicks":{},"droppedImages":{},
-    "failedImageReads":{},"timing":{{"#,
+    "failedImageReads":{},"noUserContextSamples":{},"timing":{{"#,
     profile.config.duration.as_millis(),
     summary.capture_rounds,
     summary.captured_samples,
@@ -175,7 +175,8 @@ pub(super) fn write(profile: &Profile, output: &mut impl Write) -> io::Result<()
     summary.dropped_samples,
     summary.missed_ticks,
     summary.dropped_images,
-    summary.failed_image_reads
+    summary.failed_image_reads,
+    summary.no_user_context_samples
   )?;
   // Totals and maxima are per-round wall-clock measurements, in nanoseconds. The capture and
   // unwind stages do not overlap; roundWork also includes bookkeeping. Loader callbacks update

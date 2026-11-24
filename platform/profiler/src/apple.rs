@@ -31,13 +31,23 @@ use crate::{
   ThreadSnapshot,
   ThreadStatus,
 };
-use bd_unwind::aarch64::{Frame, FrameKind, strip_instruction_pointer, walk_frame_pointers};
+use bd_unwind::aarch64::{
+  Frame,
+  FrameKind,
+  Registers,
+  strip_instruction_pointer,
+  walk_frame_pointers,
+};
 use bd_unwind::apple::TaskMemory;
 use bd_unwind::image::{ImageError, ImageInfo};
 use bd_unwind::memory::{MemoryReader, StackMemory};
 use std::collections::BTreeMap;
 use std::mem::size_of;
 use std::time::{Duration, Instant};
+
+#[cfg(test)]
+#[path = "./apple_test.rs"]
+mod tests;
 
 pub(super) fn capture(
   budget: usize,
@@ -323,17 +333,7 @@ impl Collector {
         result.frame_count = trace.frame_count;
         result.status = ThreadStatus::Captured(trace.stop_reason);
       },
-      (None, _) => {
-        result.status = ThreadStatus::RegistersUnavailable;
-      },
-      (Some(state), _) => {
-        result.status = ThreadStatus::StackUnavailable;
-        frames[0] = Frame {
-          address: strip_instruction_pointer(state.pc),
-          kind: FrameKind::ProgramCounter,
-        };
-        result.frame_count = 1;
-      },
+      (state, _) => result.set_unavailable(state.as_ref(), frames),
     }
     Ok(result)
   }
@@ -353,6 +353,30 @@ struct ThreadCapture {
 }
 
 impl ThreadCapture {
+  // Classify only the returned context, not the thread's scheduler state: blocked threads with
+  // valid registers still have useful stacks. This runs after resume, like the normal walk.
+  fn set_unavailable(&mut self, state: Option<&Registers>, frames: &mut [Frame]) {
+    self.status = match state {
+      None => ThreadStatus::RegistersUnavailable,
+      Some(state) => {
+        let pc = strip_instruction_pointer(state.pc);
+        if pc == 0 && state.sp == 0 {
+          ThreadStatus::NoUserContext
+        } else {
+          // Preserve a usable sampled PC even when its stack cannot be read. Zero is not a frame.
+          if pc != 0 {
+            frames[0] = Frame {
+              address: pc,
+              kind: FrameKind::ProgramCounter,
+            };
+            self.frame_count = 1;
+          }
+          ThreadStatus::StackUnavailable
+        }
+      },
+    };
+  }
+
   const fn skipped() -> Self {
     Self {
       status: ThreadStatus::CaptureThread,

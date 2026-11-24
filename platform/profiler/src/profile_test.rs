@@ -143,6 +143,71 @@ fn cancellation_wakes_a_parked_worker_without_waiting_for_the_tick() {
   assert_eq!(worker.join().unwrap(), Err(CaptureError::Cancelled));
 }
 
+#[test]
+fn absent_user_context_is_retained_without_frames_and_counted_separately() {
+  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 1, 4096).unwrap();
+  record(&mut profile, 7, 1_000_000, 1);
+  for (tid, status) in [
+    (7, ThreadStatus::NoUserContext),
+    (9, ThreadStatus::StackUnavailable),
+  ] {
+    let observation = Observation {
+      native_id: tid,
+      name: "waiting",
+      status,
+      frames: &[],
+      stack_truncated: false,
+      copied_stack_bytes: 0,
+      timestamp_ns: 2_000_000,
+      suspension_ns: 1,
+    };
+    profile.record(ProfileSample::new(&observation), &[]);
+  }
+  assert_eq!(profile.summary.captured_samples, 1);
+  assert_eq!(profile.summary.failed_samples, 1);
+  assert_eq!(profile.summary.no_user_context_samples, 1);
+  assert_eq!(profile.summary.skipped_samples, 0);
+  assert_eq!(profile.summary.retained_samples, 3);
+  assert_eq!(profile.frames.len(), 1);
+  let mut output = Vec::new();
+  write_profile_json(
+    &profile,
+    &mut output,
+    usize::MAX,
+    &CancellationToken::default(),
+  )
+  .unwrap();
+  let json: Value = serde_json::from_slice(&output).unwrap();
+  assert_eq!(json["bitdrift"]["noUserContextSamples"], 1);
+  assert_eq!(json["bitdrift"]["failedSamples"], 1);
+  assert_eq!(
+    json["threads"][0]["bitdrift"]["observations"][1]["status"],
+    "no_user_context"
+  );
+  assert_eq!(
+    json["threads"][0]["bitdrift"]["observations"][1]["frames"],
+    serde_json::json!([])
+  );
+  assert_eq!(
+    json["threads"][0]["samples"]["data"],
+    serde_json::json!([[0, 1.0]])
+  );
+  assert_eq!(json["threads"][1]["samples"]["data"], serde_json::json!([]));
+  // Evict zero-frame observations and regular stacks together without desynchronizing the rings.
+  for i in 0 .. 100 {
+    record(&mut profile, 7, i + 3_000_000, 1);
+  }
+  assert_eq!(profile.summary.no_user_context_samples, 1);
+  assert_eq!(
+    profile.frames.len(),
+    profile.samples.iter().map(|s| s.frame_count).sum::<usize>()
+  );
+  assert_eq!(
+    profile.summary.retained_samples + profile.summary.dropped_samples,
+    103
+  );
+}
+
 #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 #[test]
 fn profiles_real_threads_with_reused_scratch_and_one_time_origin() {

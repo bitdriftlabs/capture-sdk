@@ -109,6 +109,7 @@ impl ProfileSample {
 
 /// Counts include observations later evicted. The retained count describes the exported window;
 /// dropped samples count ring evictions, and missed ticks count unattempted rounds.
+/// Absent user contexts are counted separately from captured, failed and skipped observations.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct ProfileSummary {
@@ -122,6 +123,7 @@ pub struct ProfileSummary {
   pub missed_ticks: u64,
   pub dropped_images: u64,
   pub failed_image_reads: u64,
+  pub no_user_context_samples: u64,
 }
 
 //
@@ -217,7 +219,9 @@ impl Profile {
       self.summary.skipped_samples += 1;
       return;
     }
-    if frames.iter().any(|frame| frame.address != 0) {
+    if sample.status == ThreadStatus::NoUserContext {
+      self.summary.no_user_context_samples += 1;
+    } else if frames.iter().any(|frame| frame.address != 0) {
       self.summary.captured_samples += 1;
       if sample.stack_truncated || sample.status != ThreadStatus::Captured(StopReason::EndOfStack) {
         self.summary.truncated_samples += 1;

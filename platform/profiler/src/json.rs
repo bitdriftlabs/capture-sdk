@@ -94,11 +94,13 @@ pub(super) fn write(snapshot: &Snapshot, output: &mut impl Write) -> io::Result<
   write!(
     output,
     r#"],"bitdrift":{{"version":1,"capture":"snapshot","capturedThreads":{},
-    "failedThreads":{},"truncatedThreads":{},"skippedThreads":{},"images":["#,
+    "failedThreads":{},"truncatedThreads":{},"skippedThreads":{},
+    "noUserContextThreads":{},"images":["#,
     summary.captured_threads,
     summary.failed_threads,
     summary.truncated_threads,
-    summary.skipped_threads
+    summary.skipped_threads,
+    summary.no_user_context_threads
   )?;
   for (index, image) in snapshot.images.iter().enumerate() {
     if index != 0 {
@@ -177,6 +179,7 @@ pub(crate) const fn status(status: ThreadStatus) -> &'static str {
     ThreadStatus::SuspendFailed => "suspend_failed",
     ThreadStatus::RegistersUnavailable => "registers_unavailable",
     ThreadStatus::StackUnavailable => "stack_unavailable",
+    ThreadStatus::NoUserContext => "no_user_context",
     ThreadStatus::Captured(reason) => match reason {
       StopReason::EndOfStack => "end_of_stack",
       StopReason::OutputFull => "output_full",
