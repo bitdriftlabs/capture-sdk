@@ -29,6 +29,12 @@ internal class DiskUsageMonitor(
     private val context: Context,
     private val clock: IClock = DefaultClock.getInstance(),
 ) {
+    // Internal storage locations are resolved once at construction, which happens during
+    // `Capture.Logger.start()`. See `LoggerImpl` for why storage paths must not be re-read from
+    // the Context after startup. External storage is still read lazily: it is only measured here.
+    private val cacheDir: File = context.cacheDir
+    private val filesDir: File = context.filesDir
+
     var runtime: Runtime? = null
 
     fun getDiskUsage(): ArrayFields {
@@ -44,8 +50,8 @@ internal class DiskUsageMonitor(
             return ArrayFields.EMPTY
         }
 
-        val cacheDirSize = calculateCumulativeSize(context.cacheDir)
-        val filesDirSize = calculateCumulativeSize(context.filesDir)
+        val cacheDirSize = calculateCumulativeSize(cacheDir)
+        val filesDirSize = calculateCumulativeSize(filesDir)
 
         val externalCacheDirSize = context.externalCacheDir?.let { calculateCumulativeSize(it) }
         val externalFilesDirSize = context.getExternalFilesDir(null)?.let { calculateCumulativeSize(it) }
