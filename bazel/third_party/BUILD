@@ -3,4 +3,5 @@ exports_files([
     "aspect_tools_telemetry_do_not_track.patch",
     "backtrace_apple_dyld.patch",
     "rules_rust_allocator_library_dedup.patch",
+    "rules_rust_clippy_in_compile.patch",
 ])

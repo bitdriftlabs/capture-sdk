@@ -70,14 +70,32 @@ internal class NetworkAttributes(
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
 
-    @Volatile
+    // Guards logger and callbackRegistered. Holding it while calling the logger lets stop() wait
+    // for an in-flight connectivity callback before the native logger is destroyed.
+    private val lock = Any()
     private var logger: IInternalLogger? = null
+    private var callbackRegistered = false
 
     /** Starts forwarding network changes to the native OOTB field store. */
     override fun start(logger: IInternalLogger) {
-        this.logger = logger
+        synchronized(lock) { this.logger = logger }
         executor.execute {
             monitorNetworkType()
+        }
+    }
+
+    @Suppress("SwallowedException")
+    override fun stop() {
+        synchronized(lock) {
+            logger = null
+            if (callbackRegistered) {
+                callbackRegistered = false
+                try {
+                    connectivityManager.unregisterNetworkCallback(this)
+                } catch (e: IllegalArgumentException) {
+                    // The callback was not registered; nothing to undo.
+                }
+            }
         }
     }
 
@@ -89,11 +107,16 @@ internal class NetworkAttributes(
                 connectivityManager.activeNetwork?.let { network ->
                     updateNetworkType(connectivityManager.getNetworkCapabilities(network))
                 }
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                    // TODO(BIT-6619): Remove registerNetworkCallback once we have a min api level of 24+
-                    connectivityManager.registerNetworkCallback(NetworkRequest.Builder().build(), this)
-                } else {
-                    connectivityManager.registerDefaultNetworkCallback(this)
+                synchronized(lock) {
+                    // start() schedules this on a background executor, so stop() may already have run.
+                    if (logger == null) return
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                        // TODO(BIT-6619): Remove registerNetworkCallback once we have a min api level of 24+
+                        connectivityManager.registerNetworkCallback(NetworkRequest.Builder().build(), this)
+                    } else {
+                        connectivityManager.registerDefaultNetworkCallback(this)
+                    }
+                    callbackRegistered = true
                 }
             } catch (e: Throwable) {
                 // Issue with some versions of Android: https://issuetracker.google.com/issues/175055271
@@ -139,7 +162,9 @@ internal class NetworkAttributes(
     private fun publishOotbField(
         key: String,
         value: String,
-    ) = logger?.updateOotbField(key, value)
+    ) {
+        synchronized(lock) { logger?.updateOotbField(key, value) }
+    }
 
     private fun radioType(): String {
         @Suppress("DEPRECATION")

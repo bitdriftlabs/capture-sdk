@@ -23,7 +23,9 @@ internal class LocaleAttributes(
     @Volatile
     private var locale = currentLocale()
 
-    @Volatile
+    // Guards logger. Holding it while calling the logger lets stop() wait for an in-flight
+    // configuration callback before the native logger is destroyed.
+    private val lock = Any()
     private var logger: IInternalLogger? = null
 
     override fun initialOotbFields(): Array<Field> = arrayOf(Field(LOCALE_KEY, FieldValue.StringField(locale)))
@@ -35,15 +37,20 @@ internal class LocaleAttributes(
      * listener does not need to replay it.
      */
     override fun start(logger: IInternalLogger) {
-        this.logger = logger
+        synchronized(lock) { this.logger = logger }
         context.registerComponentCallbacks(this)
+    }
+
+    override fun stop() {
+        context.unregisterComponentCallbacks(this)
+        synchronized(lock) { logger = null }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         val updatedLocale = currentLocale(newConfig)
         if (locale != updatedLocale) {
             locale = updatedLocale
-            logger?.updateOotbField(LOCALE_KEY, updatedLocale)
+            synchronized(lock) { logger?.updateOotbField(LOCALE_KEY, updatedLocale) }
         }
     }
 

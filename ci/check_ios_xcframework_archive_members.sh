@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-# This check only lists archive members; use Xcode's supported archive tool.
-archive_tool=$(xcrun --find ar)
+# Bazel supplies llvm-ar. Use Xcode's archive tool for standalone checks.
+archive_tool=${IOS_CAPTURE_AR:-$(xcrun --find ar)}
 if [[ -n "${IOS_CAPTURE_XCFRAMEWORK_ROOT:-}" ]]; then
   framework_root="$IOS_CAPTURE_XCFRAMEWORK_ROOT"
 else
@@ -26,15 +26,15 @@ for interface in \
   fi
 done
 
-metadata_members=$("$archive_tool" t "$archive" | grep -E '^lib\.rmeta(-link)?$' || true)
+members=$("$archive_tool" t "$archive")
+metadata_members=$(grep -E '^lib\.rmeta(-link)?$' <<< "$members" || true)
 if [[ -n "$metadata_members" ]]; then
   echo "Rust compiler metadata must not be shipped in the XCFramework archive:" >&2
   echo "$metadata_members" >&2
   exit 1
 fi
 
-duplicates=$("$archive_tool" t "$archive" |
-  awk '/^(alloc|cfg_if|compiler_builtins|core|hashbrown|libc|rustc_demangle|rustc_std_workspace_(alloc|core)|std|std_detect|unwind)-/' |
+duplicates=$(awk '/^(alloc|cfg_if|compiler_builtins|core|hashbrown|libc|rustc_demangle|rustc_std_workspace_(alloc|core)|std|std_detect|unwind)-/' <<< "$members" |
   LC_ALL=C sort |
   uniq -d)
 

@@ -89,7 +89,7 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
         } catch let error as ArgumentParsingError {
             completion(
                 requestID,
-                .failure(CommandError.invalidArguments(description: error.errorDescription))
+                .failure(CommandError.invalidArguments(message: error.localizedDescription))
             )
             return
         } catch {
@@ -225,7 +225,6 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
                 attachment?.discardOwnedFile()
             }
         case let .failure(error):
-            let message = [error.title, error.description].compactMap { $0 }.joined(separator: ": ")
             capture_complete_command(
                 requestID,
                 false,
@@ -234,7 +233,7 @@ final class CommandsTarget: NSObject, @unchecked Sendable {
                 nil,
                 nil,
                 error.code,
-                message
+                error.message
             )
         }
     }

@@ -20,6 +20,8 @@ headers = {
     '.kt': header,
     '.java': header,
     '.swift': header,
+    '.js': header,
+    '.ts': header,
 }
 
 # TODO(mattklein123): Figure out if we want our license at the top of the generated proto files.
@@ -27,6 +29,7 @@ headers = {
 exclude_dirs = (
     './.git',
     './target/',
+    './platform/es/examples/',
 )
 exclude_files = (
     # Swift Package Manager requires swift-tools-version to be the first line.

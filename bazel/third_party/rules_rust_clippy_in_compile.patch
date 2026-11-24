@@ -1,0 +1,58 @@
+diff --git a/rust/private/rust.bzl b/rust/private/rust.bzl
+--- a/rust/private/rust.bzl
++++ b/rust/private/rust.bzl
+@@ -754,6 +754,10 @@
+         """),
+         default = False,
+     ),
++    "clippy_in_compile": attr.bool(
++        doc = "Compile this crate with clippy-driver using its Clippy configuration.",
++        default = False,
++    ),
+     "clippy_config": attr.label(
+         doc = "Optional clippy.toml or .clippy.toml file for this crate. Overrides the global clippy.toml setting.",
+         allow_single_file = True,
+diff --git a/rust/private/rustc.bzl b/rust/private/rustc.bzl
+--- a/rust/private/rustc.bzl
++++ b/rust/private/rustc.bzl
+@@ -2183,11 +2183,19 @@
+     # Determine if the build is currently running with --stamp
+     stamp = is_stamping_enabled(attr)
+ 
++    use_clippy = getattr(attr, "clippy_in_compile", False)
++    clippy_config = getattr(file, "clippy_config", None) if use_clippy else None
++    if use_clippy:
++        tool_file = rust_toolchain.clippy_driver
++
+     # Add flags for any 'rustc' lints that are specified.
+     lint_files = []
+     if hasattr(attr, "lint_config") and attr.lint_config:
+         rust_flags = rust_flags + attr.lint_config[LintsInfo].rustc_lint_flags
+         lint_files = lint_files + attr.lint_config[LintsInfo].rustc_lint_files
++        if use_clippy:
++            rust_flags = rust_flags + attr.lint_config[LintsInfo].clippy_lint_flags
++            lint_files = lint_files + attr.lint_config[LintsInfo].clippy_lint_files
+ 
+     profiling_dir, profiling_flags = setup_zself_profile(ctx, crate_info)
+     rust_flags = rust_flags + profiling_flags
+@@ -2208,6 +2216,11 @@
+         experimental_use_cc_common_link = use_cc_common_link,
+         runtime_libs = runtime_libs,
+     )
++
++    if use_clippy:
++        # The TOML file is a compile input read by Clippy via CLIPPY_CONF_DIR.
++        clippy_inputs = [tool_file, clippy_config] if clippy_config else [tool_file]
++        compile_inputs = depset(clippy_inputs, transitive = [compile_inputs])
+ 
+     compile_inputs_metadata = compile_inputs
+ 
+@@ -2366,6 +2379,8 @@
+ 
+     # this is the final list of env vars
+     env.update(env_from_args)
++    if clippy_config:
++        env["CLIPPY_CONF_DIR"] = "${{pwd}}/{}".format(clippy_config.dirname)
+ 
+     if build_metadata and inject_allow_features_guardrail:
+         # RUSTC_BOOTSTRAP=1 is required for -Zno-codegen on stable/beta rustc, and

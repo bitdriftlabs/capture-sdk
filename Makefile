@@ -21,11 +21,11 @@ setup-rust-analyzer:
 
 .PHONY: buildifier
 buildifier:
-	buildifier -warnings all -lint=fix -r .
+	find . -path './platform/es' -prune -o -type f \( -name '*.bzl' -o -name 'BUILD' -o -name 'BUILD.bazel' -o -name 'WORKSPACE' -o -name 'WORKSPACE.bazel' -o -name 'MODULE.bazel' -o -name 'REPO.bazel' \) -print0 | xargs -0 buildifier -warnings all -lint=fix
 
 .PHONY: lint-yaml
 lint-yaml:
-	taplo fmt --check $$(git ls-files -- '*.toml')
+	taplo fmt --check $$(git ls-files -- '*.toml' ':(exclude)platform/es')
 
 .PHONY: lint-shell
 lint-shell:
@@ -38,18 +38,22 @@ fix-yaml:
 .PHONY: fix-swiftlint
 SWIFTLINT ?= swiftlint
 fix-swiftlint:
-# tools/lint:fix doesn't warn about all docstring violations.
 # WebViewBridgeScript.swift is auto-generated; swiftlint's --format flag reindents it via
 # SourceKit regardless of `excluded` in .swiftlint.yml, so it's passed an explicit file list here.
-	$(SWIFTLINT) --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
+	$(SWIFTLINT) --quiet --fix --format --force-exclude $$(git ls-files -- '*.swift' ':(exclude)platform/es' ':!:platform/swift/source/integrations/webview/WebViewBridgeScript.swift')
+
+.PHONY: fix-docstrings
+fix-docstrings:
+	$(if $(FILE),,$(error Usage: make fix-docstrings FILE=path/to/File.swift))
+	./bazelw run //tools/lint:fix-docstrings -- --include "$(FILE)"
 
 .PHONY: lint-docstrings
 lint-docstrings:
-# Format doc strings first (by running tools/lint:fix) and validate whether any violations remain.
-	./bazelw run tools/lint:lint-docstrings
+	./bazelw run //tools/lint:lint-docstrings
 
 .PHONY: fix-swift
-fix-swift: fix-swiftlint lint-docstrings
+fix-swift: fix-swiftlint
+	+@$(MAKE) $(FORMAT_MAKE_FLAGS) lint-docstrings
 
 .PHONY: format-bazel
 format-bazel:
@@ -68,11 +72,16 @@ format:
 check-license:
 	./ci/check_license.sh
 
-# Use repin when you get Error: Digests do not match
+# Use repin when you get Error: Digests do not match, or after changing Maven artifacts in
+# MODULE.bazel (Bazel then reports that a Maven lockfile must be regenerated).
 .PHONY: repin
 repin:
+	set -e
 	# rules_rs resolves crates from Cargo.lock and records its facts in MODULE.bazel.lock.
 	./bazelw mod tidy
+	# Refresh the SDK and Android build tool lockfiles.
+	./bazelw run --repo_env=REPIN=1 @maven//:pin
+	./bazelw run --repo_env=REPIN=1 @rules_android_maven//:pin
 
 .PHONY: push-additional-images
 push-additional-images:

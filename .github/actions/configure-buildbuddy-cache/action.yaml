@@ -1,12 +1,14 @@
 name: Configure BuildBuddy cache
-description: Configure Bazel to use the authenticated BuildBuddy remote cache.
+description: >-
+  Configure Bazel to use authenticated BuildBuddy remote execution on Linux runners, or the
+  BuildBuddy remote cache on macOS runners.
 
 inputs:
   api-key:
     description: BuildBuddy API key.
     required: false
   enabled:
-    description: Whether to configure the BuildBuddy remote cache.
+    description: Whether to configure BuildBuddy remote execution or the remote cache.
     required: false
     default: "true"
 
@@ -48,4 +50,9 @@ runs:
           echo "build --remote_cache_compression"
           echo "startup --experimental_remote_repo_contents_cache"
           printf "build --remote_header=x-buildbuddy-api-key=%s\\n" "$BUILDBUDDY_API_KEY"
+          # Linux runners build and test on BuildBuddy's amd64 executors. macOS runners keep the
+          # remote cache only, because Apple targets need macOS executors that --config=rbe lacks.
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            echo "build --config=rbe"
+          fi
         } > .buildrc.bb

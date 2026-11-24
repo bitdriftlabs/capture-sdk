@@ -54,14 +54,14 @@ extension SessionReplayController: CapturePassable.SessionReplayTarget {
         await withCheckedContinuation { continuation in
             guard startScreenshotCapture(completion: { jpeg in
                 guard let jpeg, !jpeg.isEmpty else {
-                    continuation.resume(returning: .failure(CommandError(title: "invalid or unavailable screenshot")))
+                    continuation.resume(returning: .failure(CommandError(message: "invalid or unavailable screenshot")))
                     return
                 }
                 continuation.resume(returning: .success(CommandResult(
                     attachment: CommandAttachment(data: jpeg, mimeType: "image/jpeg")
                 )))
             }) else {
-                continuation.resume(returning: .failure(CommandError(title: "screenshot capture already in progress")))
+                continuation.resume(returning: .failure(CommandError(message: "screenshot capture already in progress")))
                 return
             }
             if let captureScreenshot {

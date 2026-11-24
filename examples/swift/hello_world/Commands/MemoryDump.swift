@@ -50,8 +50,7 @@ struct MemoryDump: Encodable {
         guard status == KERN_SUCCESS else {
             return .failure(
                 CommandError(
-                    title: "Unable to collect memory information",
-                    description: "task_info returned \(status)"
+                    message: "Unable to collect memory information: task_info returned \(status)"
                 )
             )
         }
@@ -93,8 +92,7 @@ struct MemoryDump: Encodable {
         } catch {
             return .failure(
                 CommandError(
-                    title: "Unable to encode memory information",
-                    description: error.localizedDescription
+                    message: "Unable to encode memory information: \(error.localizedDescription)"
                 )
             )
         }

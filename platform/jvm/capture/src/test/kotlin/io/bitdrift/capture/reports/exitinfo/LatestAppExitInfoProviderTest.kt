@@ -16,6 +16,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import io.bitdrift.capture.MockPreferences
 import io.bitdrift.capture.reports.exitinfo.LatestAppExitInfoProvider.Companion.EXIT_REASON_EXCEPTION_MESSAGE
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
@@ -28,12 +29,15 @@ import org.robolectric.annotation.Config
 class LatestAppExitInfoProviderTest {
     private val activityManager: ActivityManager = mock()
 
+    // Survives across provider instances, as SharedPreferences survives across process starts.
+    private val preferences = MockPreferences()
+
     @Test
     fun get_withExceptionThrow_shouldReturnNullAndSendError() {
         val error = RuntimeException("test exception")
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenThrow(error)
 
-        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager, preferences)
 
         val exitReason = latestAppExitInfoProvider.get()
 
@@ -49,7 +53,7 @@ class LatestAppExitInfoProviderTest {
         whenever(mockExitInfo.processName).thenReturn(Application.getProcessName())
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
-        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager, preferences)
 
         val exitReason = latestAppExitInfoProvider.get()
 
@@ -66,7 +70,7 @@ class LatestAppExitInfoProviderTest {
                 .getHistoricalProcessExitReasons(anyOrNull(), any(), any()),
         ).thenReturn(emptyList())
 
-        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager, preferences)
 
         val exitReason = latestAppExitInfoProvider.get()
 
@@ -83,7 +87,7 @@ class LatestAppExitInfoProviderTest {
                 .getHistoricalProcessExitReasons(anyOrNull(), any(), any()),
         ).thenReturn(listOf(mockExitInfo))
 
-        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager, preferences)
 
         val exitReason = latestAppExitInfoProvider.get()
 
@@ -98,7 +102,7 @@ class LatestAppExitInfoProviderTest {
         whenever(mockExitInfo.processName).thenReturn(Application.getProcessName())
         whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(mockExitInfo))
 
-        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager)
+        val latestAppExitInfoProvider = LatestAppExitInfoProvider(activityManager, preferences)
 
         val initialResult = latestAppExitInfoProvider.get()
         latestAppExitInfoProvider.get()
@@ -108,6 +112,52 @@ class LatestAppExitInfoProviderTest {
         assertThat(initialResult).isEqualTo(latestResult)
         verify(activityManager, times(1)).getHistoricalProcessExitReasons(anyOrNull(), any(), any())
     }
+
+    /**
+     * BIT-10458: a normal reboot kills the app without adding an exit record, so on the next process
+     * start getHistoricalProcessExitReasons() still returns the native crash that was already reported.
+     * Each provider instance stands for one process start.
+     */
+    @Test
+    fun get_whenSameExitRecordOnNextProcessStart_shouldNotReportItAgain() {
+        val nativeCrash = mockExitInfo(pid = 3544, timestamp = 1_793_974_836_144L, reason = ApplicationExitInfo.REASON_CRASH_NATIVE)
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any())).thenReturn(listOf(nativeCrash))
+
+        // Start right after the crash: the crash is reported.
+        val startAfterCrash = LatestAppExitInfoProvider(activityManager, preferences).get()
+        // Start after a reboot: Android still returns the same record, as nothing newer was recorded.
+        val startAfterReboot = LatestAppExitInfoProvider(activityManager, preferences).get()
+
+        assertResult<LatestAppExitReasonResult.Valid>(startAfterCrash, expectedApplicationExitInfo = nativeCrash)
+        assertResult<LatestAppExitReasonResult.None>(startAfterReboot)
+    }
+
+    @Test
+    fun get_whenNewerExitRecordOnNextProcessStart_shouldReportTheNewerRecord() {
+        val nativeCrash = mockExitInfo(pid = 3544, timestamp = 1_793_974_836_144L, reason = ApplicationExitInfo.REASON_CRASH_NATIVE)
+        val laterExit = mockExitInfo(pid = 3717, timestamp = 1_793_976_000_000L, reason = ApplicationExitInfo.REASON_USER_REQUESTED)
+        whenever(activityManager.getHistoricalProcessExitReasons(anyOrNull(), any(), any()))
+            .thenReturn(listOf(nativeCrash))
+            .thenReturn(listOf(laterExit, nativeCrash))
+
+        val startAfterCrash = LatestAppExitInfoProvider(activityManager, preferences).get()
+        val nextStart = LatestAppExitInfoProvider(activityManager, preferences).get()
+
+        assertResult<LatestAppExitReasonResult.Valid>(startAfterCrash, expectedApplicationExitInfo = nativeCrash)
+        assertResult<LatestAppExitReasonResult.Valid>(nextStart, expectedApplicationExitInfo = laterExit)
+    }
+
+    private fun mockExitInfo(
+        pid: Int,
+        timestamp: Long,
+        reason: Int,
+    ): ApplicationExitInfo =
+        mock<ApplicationExitInfo>().also {
+            whenever(it.processName).thenReturn(Application.getProcessName())
+            whenever(it.pid).thenReturn(pid)
+            whenever(it.timestamp).thenReturn(timestamp)
+            whenever(it.reason).thenReturn(reason)
+        }
 
     private inline fun <reified T : LatestAppExitReasonResult> assertResult(
         exitReason: LatestAppExitReasonResult,

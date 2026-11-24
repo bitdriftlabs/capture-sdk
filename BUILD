@@ -3,7 +3,7 @@ load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugi
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_javac_options")
 load("@rules_multirun//:defs.bzl", "multirun")
 load("@rules_pkg//:pkg.bzl", "pkg_zip")
-load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
     "top_level_targets",
@@ -14,7 +14,7 @@ load("//bazel:android_debug_info.bzl", "android_debug_info")
 load("//bazel:framework_imports_extractor.bzl", "framework_imports_extractor")
 load("//bazel:rustfmt.bzl", "rustfmt_runner")
 load("//bazel/android:artifacts.bzl", "android_artifacts")
-load("//bazel/ios:xcframework.bzl", "strip_rust_metadata_xcframework")
+load("//bazel/ios:xcframework.bzl", "ios_xcframework_archive_breakdown", "strip_rust_metadata_xcframework")
 
 alias(
     name = "ios_app",
@@ -45,17 +45,29 @@ rustfmt_runner(
 
 strip_rust_metadata_xcframework(
     name = "ios_xcframework_for_distribution",
+    exec_compatible_with = ["@platforms//os:macos"],
     metadata_stripper = "//bazel/ios:strip_rust_metadata",
     visibility = ["//visibility:public"],
     xcframework = "//platform/swift/source:Capture",
 )
 
-sh_test(
-    name = "ios_xcframework_archive_metadata_test",
-    srcs = ["ci/check_ios_xcframework_archive_members.sh"],
-    data = [":ios_xcframework_for_distribution"],
-    tags = ["macos_only"],
-    target_compatible_with = ["@platforms//os:macos"],
+genrule(
+    name = "check_ios_release_xcframework",
+    srcs = [":ios_xcframework_for_distribution"],
+    outs = ["ios_release_xcframework.checked"],
+    cmd = """
+set -euo pipefail
+IOS_CAPTURE_AR="$(location //bazel/ios:llvm_ar)" \
+IOS_CAPTURE_XCFRAMEWORK_ROOT="$(location :ios_xcframework_for_distribution)" \
+    bash "$(location ci/check_ios_xcframework_archive_members.sh)"
+touch "$@"
+""",
+    exec_compatible_with = ["@platforms//os:macos"],
+    tags = ["manual"],
+    tools = [
+        "ci/check_ios_xcframework_archive_members.sh",
+        "//bazel/ios:llvm_ar",
+    ],
 )
 
 pkg_zip(
@@ -65,8 +77,22 @@ pkg_zip(
         ":license",
     ],
     out = "Capture.ios.zip",
-    tags = ["local"],
     visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "capture_ios_archive_breakdown_tool",
+    srcs = ["ci/capture_ios_archive_breakdown.py"],
+    main = "ci/capture_ios_archive_breakdown.py",
+    tags = ["manual"],
+)
+
+ios_xcframework_archive_breakdown(
+    name = "ios_capture_archive_breakdown",
+    exec_compatible_with = ["@platforms//os:macos"],
+    tags = ["manual"],
+    tool = ":capture_ios_archive_breakdown_tool",
+    xcframework = ":ios_xcframework_for_distribution",
 )
 
 pkg_zip(
@@ -207,6 +233,11 @@ exports_files([
     ".clippy.toml",
 ])
 
+exports_files(
+    ["ci/verify_ios_simulator_ipa.sh"],
+    visibility = ["//examples/swift/hello_world:__pkg__"],
+)
+
 kt_kotlinc_options(
     name = "kt_kotlinc_options",
     warn = "error",
@@ -263,7 +294,7 @@ xcodeproj(
                 # Running benchmark tests doesn't work on real devices
                 # See https://github.com/MobileNativeFoundation/rules_xcodeproj/issues/2395
                 # for more details.
-                "//test/platform/swift/benchmark:run_benchmarks",
+                "//test/platform/swift/benchmark:run_benchmarks_xctest",
             ],
             target_environments = [
                 "device",
@@ -271,8 +302,8 @@ xcodeproj(
             ],
         ),
         # Tests
-        "//test/platform/swift/unit_integration/core:test",
-        "//test/platform/swift/unit_integration/integrations:test",
+        "//test/platform/swift/unit_integration/core:test_xctest",
+        "//test/platform/swift/unit_integration/integrations:test_xctest",
     ],
     xcode_configurations = {
         "Debug": {
@@ -316,7 +347,7 @@ xcodeproj(
             name = "iOS Capture Unit Integration Tests",
             test = xcschemes.test(
                 test_targets = [
-                    "//test/platform/swift/unit_integration/core:test",
+                    "//test/platform/swift/unit_integration/core:test_xctest",
                 ],
             ),
         ),
@@ -324,7 +355,7 @@ xcodeproj(
             name = "iOS Capture URLSession Integration Tests",
             test = xcschemes.test(
                 test_targets = [
-                    "//test/platform/swift/unit_integration/integrations:test",
+                    "//test/platform/swift/unit_integration/integrations:test_xctest",
                 ],
             ),
         ),
@@ -332,9 +363,60 @@ xcodeproj(
             name = "iOS Benchmark Tests",
             test = xcschemes.test(
                 test_targets = [
-                    "//test/platform/swift/benchmark:run_benchmarks",
+                    "//test/platform/swift/benchmark:run_benchmarks_xctest",
                 ],
             ),
         ),
     ],
+)
+
+py_test(
+    name = "check_release_config_version_test",
+    size = "small",
+    srcs = [
+        "ci/check_release_config_version.py",
+        "ci/check_release_config_version_test.py",
+    ],
+    imports = ["ci"],
+    main = "ci/check_release_config_version_test.py",
+)
+
+py_test(
+    name = "license_header_test",
+    size = "small",
+    srcs = [
+        "ci/license_header.py",
+        "ci/license_header_test.py",
+    ],
+    main = "ci/license_header_test.py",
+)
+
+py_test(
+    name = "parse_benchmark_results_test",
+    size = "small",
+    srcs = [
+        "ci/parse_benchmark_results.py",
+        "ci/parse_benchmark_results_test.py",
+    ],
+    imports = ["ci"],
+    main = "ci/parse_benchmark_results_test.py",
+)
+
+py_test(
+    name = "parse_ios_app_thinning_report_test",
+    size = "small",
+    srcs = [
+        "ci/parse_ios_app_thinning_report.py",
+        "ci/parse_ios_app_thinning_report_test.py",
+    ],
+    imports = ["ci"],
+    main = "ci/parse_ios_app_thinning_report_test.py",
+)
+
+py_test(
+    name = "update_release_version_test",
+    size = "small",
+    srcs = ["ci/update_release_version_test.py"],
+    data = ["ci/update_release_version.sh"],
+    main = "ci/update_release_version_test.py",
 )

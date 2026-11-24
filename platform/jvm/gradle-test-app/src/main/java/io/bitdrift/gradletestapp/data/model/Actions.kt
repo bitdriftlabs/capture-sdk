@@ -32,8 +32,6 @@ sealed class ConfigAction : AppAction {
         val enabled: Boolean,
     ) : ConfigAction()
 
-    object ClearEntityId : ConfigAction()
-
     data class SetSampleCommandsRegistered(
         val registered: Boolean,
     ) : ConfigAction()
@@ -143,8 +141,7 @@ sealed class StressTestAction : AppAction {
     object RefreshDiskSpace : StressTestAction()
 
     data class StartProfiling(
-        val type: AppProfiler.ProfilingType,
-        val durationMs: Long,
+        val request: AppProfiler.Request,
     ) : StressTestAction()
 
     data class ExportProfile(

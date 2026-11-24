@@ -40,11 +40,10 @@ sealed interface CommandScope {
 
     /** Builds a [CommandResult.Error]. */
     fun error(
-        title: String,
-        description: String? = null,
+        message: String,
         context: Map<String, String> = emptyMap(),
         code: CommandErrorCode = CommandErrorCode.HandlerFailed,
-    ): CommandResult = CommandResult.Error(title, description, context, code)
+    ): CommandResult = CommandResult.Error(message, context, code)
 }
 
 /**

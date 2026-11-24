@@ -10,40 +10,39 @@
         case commandUnknown
         case commandAlreadyExecuting
         case maxCommandConcurrency
-        case invalidArguments(description: String?)
-        case handlerFailed(title: String, description: String?, context: [String: String])
+        case invalidArguments(message: String)
+        case handlerFailed(message: String, context: [String: String])
     }
 
     private let kind: Kind
 
     /// Creates an error indicating that a command handler could not complete its work.
     ///
-    /// - parameter title:       A short description of the failure.
+    /// - parameter message: The human-readable failure message.
     ///
-    /// - parameter description: Additional details about the failure.
-    ///
-    /// - parameter context:     Fields to report with the failed command.
+    /// - parameter context: Fields to report with the failed command, separate from the failure message.
+    ///                      Command outcome logs reserve `_result`, `_duration_ms`, and keys
+    ///                      starting with `_command_`, `_workflow_command_`, or `_span_`.
     public init(
-        title: String,
-        description: String? = nil,
+        message: String,
         context: [String: String] = [:]
     ) {
-        kind = .handlerFailed(title: title, description: description, context: context)
+        kind = .handlerFailed(message: message, context: context)
     }
 
     /// Creates an error indicating that the command's arguments could not be used.
     ///
-    /// - parameter description: Details about why the arguments were invalid.
+    /// - parameter message: Details about why the arguments were invalid.
     ///
     /// - returns: An invalid-arguments error.
-    public static func invalidArguments(description: String? = nil) -> CommandError {
-        CommandError(kind: .invalidArguments(description: description))
+    public static func invalidArguments(message: String = "Invalid command arguments") -> CommandError {
+        CommandError(kind: .invalidArguments(message: message))
     }
 
     static let notFound = CommandError(kind: .commandUnknown)
     static let alreadyExecuting = CommandError(kind: .commandAlreadyExecuting)
     static let maximumConcurrency = CommandError(kind: .maxCommandConcurrency)
-    static let invalidAttachment = CommandError(title: "attachment is not a local file")
+    static let invalidAttachment = CommandError(message: "attachment is not a local file")
 
     private init(kind: Kind) {
         self.kind = kind
@@ -64,7 +63,7 @@
         }
     }
 
-    public var title: String {
+    public var message: String {
         switch kind {
         case .commandUnknown:
             "Command not found"
@@ -72,25 +71,14 @@
             "Command is already executing"
         case .maxCommandConcurrency:
             "Maximum command concurrency reached"
-        case .invalidArguments:
-            "Invalid command arguments"
-        case let .handlerFailed(title, _, _):
-            title
-        }
-    }
-
-    public var description: String? {
-        switch kind {
-        case let .invalidArguments(description), let .handlerFailed(_, description, _):
-            description
-        default:
-            nil
+        case let .invalidArguments(message), let .handlerFailed(message, _):
+            message
         }
     }
 
     public var context: [String: String] {
         switch kind {
-        case let .handlerFailed(_, _, context):
+        case let .handlerFailed(_, context):
             context
         default:
             [:]
