@@ -52,18 +52,9 @@ bitdrift_rust_binary(
     name = "builtin_command_codegen",
 )
 
-WORKFLOW_COMMAND_PROTO = "@crates//:workflow_command_proto"
-
-WORKFLOW_COMMAND_SRCS = [
-    WORKFLOW_COMMAND_PROTO,
-    "@crates//:workflow_command_imports",
-]
-
 bitdrift_rust_test(
     name = "test",
     crate = ":builtin_command_codegen",
-    data = WORKFLOW_COMMAND_SRCS,
-    env = {"WORKFLOW_COMMAND_PROTO": "$(rootpath {})".format(WORKFLOW_COMMAND_PROTO)},
 )
 
 config_setting(
@@ -89,17 +80,15 @@ schema_codegen(
 
 schema_codegen(
     name = "builtin_command_kt_source",
-    srcs = WORKFLOW_COMMAND_SRCS,
     out = "BuiltinCommandType.kt",
-    args = "$(location {}) kotlin".format(WORKFLOW_COMMAND_PROTO),
+    args = "kotlin",
     tool = ":builtin_command_codegen",
 )
 
 schema_codegen(
     name = "builtin_command_swift_source",
-    srcs = WORKFLOW_COMMAND_SRCS,
     out = "BuiltinCommandType.swift",
-    args = "$(location {}) swift".format(WORKFLOW_COMMAND_PROTO),
+    args = "swift",
     tool = ":builtin_command_codegen",
 )
 

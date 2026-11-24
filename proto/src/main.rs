@@ -9,12 +9,10 @@
 #[path = "./main_test.rs"]
 mod tests;
 
-use protobuf::reflect::{EnumValueDescriptor, FileDescriptor, ReflectValueRef};
-use protobuf::{Message, UnknownValueRef};
-use protobuf_parse::Parser;
-use std::path::Path;
-
-const WORKFLOW_COMMAND_PROTO: &str = "bitdrift_public/protobuf/workflow/v1/workflow_command.proto";
+use bd_proto::protos::workflow::workflow_command::WellKnownCommandType;
+use bd_proto::protos::workflow::workflow_command::device_command_argument_definition::Type;
+use bd_proto::protos::workflow::workflow_command::exts::well_known_command_options;
+use protobuf::{Enum, EnumFull};
 
 fn camel_case(name: &str) -> String {
   name
@@ -36,113 +34,53 @@ fn camel_case(name: &str) -> String {
 /// A built-in's enum name, wire value, key, and arguments as (name, Kotlin type).
 type BuiltinCommand = (String, i32, String, Vec<(String, &'static str)>);
 
-fn builtin_commands(schema: &Path) -> Vec<BuiltinCommand> {
-  // The input tree mirrors the proto import paths. The other well-known imports
-  // (descriptor, duration, and timestamp) are provided by the protobuf parser.
-  let imports = schema
-    .ancestors()
-    .nth(Path::new(WORKFLOW_COMMAND_PROTO).components().count())
-    .expect("missing proto import root");
-  let parsed = Parser::new()
-    .pure()
-    .include(imports)
-    .input(schema)
-    .parse_and_typecheck()
-    .expect("parse workflow command schema");
-  let files =
-    FileDescriptor::new_dynamic_fds(parsed.file_descriptors, &[]).expect("resolve schema types");
-  let workflow = files
-    .iter()
-    .find(|file| file.name() == WORKFLOW_COMMAND_PROTO)
-    .expect("missing workflow command schema");
-  let command_type = workflow
-    .enum_by_package_relative_name("WellKnownCommandType")
-    .expect("missing command enum");
-  let options = workflow
-    .message_by_package_relative_name("WellKnownCommandOptions")
-    .expect("missing command options type");
-  let extension = workflow
-    .proto()
-    .extension
-    .iter()
-    .find(|field| field.name() == "well_known_command_options")
-    .expect("missing command options extension");
-  let option_number = u32::try_from(extension.number()).expect("invalid extension number");
-  let key_field = options.field_by_name("key").expect("missing key field");
-  let arguments_field = options
-    .field_by_name("argument_definitions")
-    .expect("missing arguments field");
-  let argument = workflow
-    .message_by_package_relative_name("DeviceCommandArgumentDefinition")
-    .expect("missing argument type");
-  let name_field = argument
-    .field_by_name("name")
-    .expect("missing argument name field");
-  let type_field = argument
-    .field_by_name("type")
-    .expect("missing argument type field");
-
-  command_type
+fn builtin_commands() -> Vec<BuiltinCommand> {
+  WellKnownCommandType::enum_descriptor()
     .values()
     .filter(|value| value.value() != 0)
     .map(|value| {
-      let metadata = value.proto().options.as_ref().expect("command options");
-      let Some(UnknownValueRef::LengthDelimited(bytes)) =
-        metadata.unknown_fields().get(option_number)
-      else {
-        panic!("missing command options for {}", value.name());
-      };
-      let metadata = options
-        .parse_from_bytes(bytes)
-        .expect("decode command options");
-      let ReflectValueRef::String(key) = key_field.get_singular_field_or_default(&*metadata) else {
-        panic!("invalid key for {}", value.name());
-      };
+      let metadata = well_known_command_options
+        .get(value.proto().options.as_ref().expect("command options"))
+        .expect("well-known command metadata");
       // Only the profiling handlers use generated parsers. Other built-ins keep their own
       // parsing, including platform-specific, optional and dynamically typed arguments.
-      let arguments = if matches!(
-        value.name(),
-        "STACK_SAMPLING_TRACE" | "HEAP_PROFILE_TRACE" | "SYSTEM_TRACE" | "MEMORY_DUMP"
-      ) {
-        arguments_field
-          .get_repeated(&*metadata)
-          .into_iter()
-          .map(|field| {
-            let ReflectValueRef::Message(field) = field else {
-              panic!("invalid argument for {}", value.name());
-            };
-            let ReflectValueRef::String(name) = name_field.get_singular_field_or_default(&*field)
-            else {
-              panic!("invalid argument name for {}", value.name());
-            };
-            let ReflectValueRef::Enum(types, number) =
-              type_field.get_singular_field_or_default(&*field)
-            else {
-              panic!("invalid type for argument {name}");
-            };
-            let kotlin_type = match types
-              .value_by_number(number)
-              .as_ref()
-              .map(EnumValueDescriptor::name)
-            {
-              Some("STRING") => "String",
-              Some("BINARY") => "ByteArray",
-              Some("UINT64") => "ULong",
-              Some("DOUBLE") => "Double",
-              Some("INT64") => "Long",
-              Some("BOOL") => "Boolean",
-              other => panic!("unsupported type {other:?} for argument {name}"),
-            };
-            (name.to_owned(), kotlin_type)
-          })
-          .collect()
-      } else {
-        Vec::new()
-      };
+      let generates_arguments = matches!(
+        WellKnownCommandType::from_i32(value.value()),
+        Some(
+          WellKnownCommandType::STACK_SAMPLING_TRACE
+            | WellKnownCommandType::HEAP_PROFILE_TRACE
+            | WellKnownCommandType::SYSTEM_TRACE
+            | WellKnownCommandType::MEMORY_DUMP
+        )
+      );
+      let arguments = metadata
+        .argument_definitions
+        .iter()
+        .filter(|_| generates_arguments)
+        .map(|argument| {
+          // The server fills every default, so an argument is absent only when it is optional
+          // without one; the generated classes have no nullable fields for that yet.
+          assert!(
+            !argument.optional || argument.default_value.is_some(),
+            "optional argument {} without a default is not supported",
+            argument.name
+          );
+          let kotlin_type = match argument.type_.enum_value() {
+            Ok(Type::STRING) => "String",
+            Ok(Type::BINARY) => "ByteArray",
+            Ok(Type::UINT64) => "ULong",
+            Ok(Type::DOUBLE) => "Double",
+            Ok(Type::INT64) => "Long",
+            Ok(Type::BOOL) => "Boolean",
+            other => panic!("unsupported type {other:?} for argument {}", argument.name),
+          };
+          (argument.name.clone(), kotlin_type)
+        })
+        .collect();
       (
-        value.name().to_owned(),
+        value.name().to_string(),
         value.value(),
-        key.to_owned(),
+        metadata.key,
         arguments,
       )
     })
@@ -188,8 +126,8 @@ fn pascal_case(name: &str) -> String {
   first.to_ascii_uppercase().to_string() + chars.as_str()
 }
 
-fn generate_builtin_commands(schema: &Path, language: &str) {
-  let commands = builtin_commands(schema);
+fn generate_builtin_commands(language: &str) {
+  let commands = builtin_commands();
   // The Kotlin output is checked in for Gradle, so it carries the repository license header.
   for line in [
     "// capture-sdk - bitdrift's client SDK",
@@ -245,8 +183,6 @@ internal interface BuiltinCommandArguments"
 }
 
 fn main() {
-  let mut args = std::env::args().skip(1);
-  let schema = args.next().expect("missing workflow command schema");
-  let language = args.next().expect("missing language");
-  generate_builtin_commands(Path::new(&schema), &language);
+  let language = std::env::args().nth(1).expect("missing language");
+  generate_builtin_commands(&language);
 }

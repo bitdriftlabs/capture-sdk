@@ -79,7 +79,6 @@ protobuf = { git = "https://github.com/bitdriftlabs/rust-protobuf.git", branch =
 ] }
 protobuf-codegen = { git = "https://github.com/bitdriftlabs/rust-protobuf.git", branch = "patch-stack" }
 protobuf-json-mapping = { git = "https://github.com/bitdriftlabs/rust-protobuf.git", branch = "patch-stack" }
-protobuf-parse = { git = "https://github.com/bitdriftlabs/rust-protobuf.git", branch = "patch-stack" }
 rand = "0.10.2"
 rand_distr = "0.6.0"
 serde = { version = "1", features = ["derive"] }
