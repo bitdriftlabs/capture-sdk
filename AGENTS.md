@@ -20,7 +20,7 @@ make run-ios-app-direct             # iOS (fastest)
 ./bazelw build --android_platforms=@rules_android//:x86_64 //examples/android:android_app
 
 # Other
-make repin                          # Fix "Digests do not match" errors
+make repin                          # Refresh Cargo, Bazel, and Maven lockfiles
 make xcframework                    # Build iOS release artifact
 ```
 
@@ -81,8 +81,9 @@ When a change touches both `shared-core` and `capture-sdk`, use this workflow:
 
 1. Make the `shared-core` changes on a branch and push that branch upstream first.
 2. In `capture-sdk`, update the `shared-core` git `rev` values in `Cargo.toml`.
-3. Treat `Cargo.toml` as the manual source of truth for the `shared-core` refs. The first Bazel run after the `rev` bump refreshes the derived cargo-bazel state automatically.
-4. The first Bazel test command after updating the `shared-core` refs must use `CARGO_BAZEL_REPIN=true`.
+3. Run `make repin`. It runs `cargo update` first because `rules_rs` reads `Cargo.lock`
+   rather than regenerating it. Then it refreshes `MODULE.bazel.lock` and the Maven pins.
+4. Review and commit the manifest and regenerated lockfiles together.
 
 Recommended pre-repin checks for the touched `capture-sdk` slices:
 
@@ -93,17 +94,11 @@ Recommended pre-repin checks for the touched `capture-sdk` slices:
 Standard full verification:
 
 ```bash
-CARGO_BAZEL_REPIN=true ./bazelw test //... --ios_simulator_device="iPhone 17"
+./bazelw test //... --ios_simulator_device="iPhone 17"
 ```
 
-After that first repin run, subsequent Bazel reruns can drop `CARGO_BAZEL_REPIN=true`.
-
-When the repin command fails, use this recovery flow instead of switching between unrelated commands:
-
-1. Fix the first concrete compile, test, or lint failure reported by Bazel.
-2. If Bazel reports `ktlint` failures, read the referenced `test.log` files to get the exact file and line numbers before editing.
-3. Rerun the same full Bazel command until it is green.
-4. Only after the canonical repin command passes should you move on to broader follow-up or branch cleanup.
+If `make repin` fails, fix the first Cargo resolution or Bazel pinning error and rerun it
+before building or testing.
 
 ## Build System
 

@@ -180,7 +180,7 @@ fn profiles_real_threads_with_reused_scratch_and_one_time_origin() {
   }
   assert!(stage_total <= round_work);
   assert!(json["bitdrift"]["imagePreparationNs"].as_u64().unwrap() > 0);
-  assert!(!profile.images.is_empty());
+  assert_ne!(profile.images.len(), 0);
   assert!(
     json["threads"]
       .as_array()

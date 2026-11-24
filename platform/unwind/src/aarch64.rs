@@ -172,6 +172,8 @@ pub fn walk_frame_pointers(
 /// instruction on PAC-capable hardware when this crate is not built for arm64e. It neither
 /// authenticates the pointer nor verifies that the resulting address is executable.
 #[must_use]
+// The fallback is an identity function, but ARM64 inline assembly prevents a const API.
+#[cfg_attr(not(target_arch = "aarch64"), allow(clippy::missing_const_for_fn))]
 pub fn strip_instruction_pointer(address: u64) -> u64 {
   #[cfg(target_arch = "aarch64")]
   let address = {

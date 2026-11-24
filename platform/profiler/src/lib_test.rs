@@ -174,7 +174,7 @@ fn captures_native_worker_and_resumes_it() {
     .find(|thread| thread.name == "snapshot-worker")
     .unwrap();
   assert!(matches!(thread.status, ThreadStatus::Captured(_)));
-  assert!(!thread.frames.is_empty());
+  assert_ne!(thread.frames.len(), 0);
   assert!(thread.copied_stack_bytes > 0);
   assert!(
     snapshot
@@ -182,7 +182,7 @@ fn captures_native_worker_and_resumes_it() {
       .iter()
       .any(|thread| thread.status == ThreadStatus::CaptureThread)
   );
-  assert!(!snapshot.images.is_empty());
+  assert_ne!(snapshot.images.len(), 0);
   if let Ok(path) = std::env::var("BD_SNAPSHOT_TEST_OUTPUT") {
     write_json(
       &snapshot,

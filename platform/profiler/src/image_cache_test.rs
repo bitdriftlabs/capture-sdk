@@ -58,6 +58,6 @@ fn cancelled_session_releases_history_and_next_session_uses_cached_images() {
   drop(session);
   assert!(CACHE.lock().history.is_none());
   let history = ImageSession::start(4096).unwrap().finish();
-  assert!(!history.images.is_empty());
+  assert_ne!(history.images.len(), 0);
   assert!(CACHE.lock().history.is_none());
 }

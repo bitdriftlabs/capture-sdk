@@ -49,10 +49,10 @@ pub(super) fn capture(
   if frame_capacity == 0 {
     return Err(CaptureError::InvalidBufferSize);
   }
-  let mut collector = Collector::new(budget / 2)?;
+  let mut collector = Collector::new(budget / 2, threads.current)?;
   let mut snapshot = Snapshot {
     pid: unsafe { getpid() }.unsigned_abs(),
-    threads: Vec::new(),
+    threads: Vec::with_capacity(threads.ports().len()),
     images: Vec::new(),
     image_errors: BTreeMap::new(),
   };
@@ -81,7 +81,13 @@ pub(super) fn capture(
       suspension_ns: result.suspension_ns,
     });
   }
+  // Survey images after all target threads are resumed; retain only owned image metadata.
   survey_images(cancellation, |image| snapshot.record_image(image))?;
+  log::debug!(
+    "stack snapshot image survey: {} accepted, rejected by reason: {:?}",
+    snapshot.images.len(),
+    snapshot.image_errors
+  );
   snapshot.ensure_useful()?;
   Ok(snapshot)
 }
@@ -93,7 +99,10 @@ pub(super) fn profile(
 ) -> Result<Profile, CaptureError> {
   let scratch_budget = budget / 4;
   let frame_budget = budget / 2 - scratch_budget;
-  let mut collector = Collector::new(scratch_budget)?;
+  let mut collector = {
+    let threads = Threads::new()?;
+    Collector::new(scratch_budget, threads.current)?
+  };
   let mut frames = vec![Frame::default(); frame_budget / size_of::<Frame>()];
   let mut profile = Profile::new(
     config,
@@ -183,8 +192,8 @@ fn survey_images(
 // Collector
 //
 
-/// Reusable stack scratch is preflighted before capture. Callbacks and unwinding run only after
-/// resume; no reference to a target's live stack escapes its suspension.
+/// Owns preflighted scratch storage and the capture clock. Walking runs only after resume; no
+/// reference to a target's live stack escapes its suspension.
 struct Collector {
   scratch: Vec<u8>,
   timebase: Timebase,
@@ -193,16 +202,17 @@ struct Collector {
 }
 
 impl Collector {
-  fn new(stack_bytes: usize) -> Result<Self, CaptureError> {
+  fn new(stack_bytes: usize, current_thread: u32) -> Result<Self, CaptureError> {
     if stack_bytes == 0 {
       return Err(CaptureError::InvalidBufferSize);
     }
     let scratch = vec![0; stack_bytes];
+    // Resolve lazy Mach bindings while all target threads are running.
     let mut byte = [0];
     TaskMemory.read(scratch.as_ptr() as u64, &mut byte);
-    let threads = Threads::new()?;
-    let _ = registers(threads.current);
+    let _ = registers(current_thread);
     let _ = stack_region(scratch.as_ptr() as u64);
+    // An invalid port resolves the resume path without changing any thread's suspend count.
     unsafe {
       thread_resume(0);
     }
@@ -272,7 +282,7 @@ impl Collector {
     };
     let start = unsafe { mach_absolute_time() };
     // Only Mach calls and existing buffer writes occur until resume. Cancellation, walking,
-    // metadata, logging, allocation and callbacks all run with the target resumed.
+    // metadata, logging and allocation all run with the target resumed.
     let state = registers(port);
     let region = state.as_ref().and_then(|state| stack_region(state.sp));
     let copied = if let (Some(state), Some(region)) = (&state, region) {
@@ -296,7 +306,7 @@ impl Collector {
     match (state, region) {
       (Some(state), Some(region)) if copied != 0 => {
         result.stack_truncated = (copied as u64) < region.start() + region.size() - state.sp;
-        // Measure walking only after resume. No additional work enters the suspended section.
+        // Measure walking after resume, outside the suspended-thread section.
         let unwind_start = unsafe { mach_absolute_time() };
         let trace = walk_frame_pointers(
           &StackMemory {
