@@ -1,8 +1,2 @@
 /// Log levels matching the native Capture SDK.
-enum LogLevel {
-  trace,
-  debug,
-  info,
-  warning,
-  error,
-}
+enum LogLevel { trace, debug, info, warning, error }
