@@ -1,0 +1,52 @@
+{
+  "name": "expo-example",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "examples/expo/src",
+  "projectType": "application",
+  "tags": [],
+  "// targets": "to see all targets run: nx show project expo-example --web",
+  "targets": {
+    "run-android": {
+      "dependsOn": [{
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
+    },
+    "run-ios": {
+      "dependsOn": [{
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
+    },
+    "android": {
+      "dependsOn": [{
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
+    },
+    "ios": {
+      "dependsOn": [{
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
+    },
+    "prebuild": {
+      "dependsOn": [{
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
+    },
+    "start": {
+      "dependsOn": [{
+        "target": "prepare-release",
+        "projects": ["@bitdrift/react-native"],
+        "params": "ignore"
+      }]
+    }
+  }
+}

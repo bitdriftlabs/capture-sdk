@@ -36,7 +36,7 @@ final class StackSnapshotCommandTests: XCTestCase {
         guard case let .failure(error) = await task.value else {
             return XCTFail("expected cancellation")
         }
-        XCTAssertEqual(error.title, "cancelled")
+        XCTAssertEqual(error.message, "cancelled")
     }
 
     func testCancellationWhileWorkerRunsSignalsTheNativeBridge() async {
@@ -51,7 +51,7 @@ final class StackSnapshotCommandTests: XCTestCase {
                 XCTFail("expected cancelled native bridge")
                 return result
             }
-            XCTAssertEqual(error.title, "cancelled")
+            XCTAssertEqual(error.message, "cancelled")
             XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
             return result
         }, cancel: { nativeBridge.cancel() })
@@ -63,7 +63,7 @@ final class StackSnapshotCommandTests: XCTestCase {
         guard case let .failure(error) = await task.value else {
             return XCTFail("expected cancellation")
         }
-        XCTAssertEqual(error.title, "cancelled")
+        XCTAssertEqual(error.message, "cancelled")
     }
 
     func testConcurrentCommandInstancesRejectBeforeCreatingBridgeUntilCancelledWorkerFinishes() async {
@@ -74,7 +74,7 @@ final class StackSnapshotCommandTests: XCTestCase {
         let bridge = SnapshotBridgeStub(capture: { _, _ in
             started.fulfill()
             finish.wait()
-            return .failure(CommandError(title: "worker_finished"))
+            return .failure(CommandError(message: "worker_finished"))
         }, cancel: { cancelled.fulfill() })
         let first = StackSnapshotCommand(makeBridge: { bridge }).make()
         let rejected = StackSnapshotCommand(makeBridge: {
@@ -101,10 +101,10 @@ final class StackSnapshotCommandTests: XCTestCase {
         guard case let .failure(error) = await task.value else {
             return XCTFail("expected cancellation")
         }
-        XCTAssertEqual(error.title, "cancelled")
+        XCTAssertEqual(error.message, "cancelled")
 
         let nextBridge = SnapshotBridgeStub(capture: { _, _ in
-            .failure(CommandError(title: "capture_failed"))
+            .failure(CommandError(message: "capture_failed"))
         })
         let next = StackSnapshotCommand(makeBridge: { nextBridge }).make()
         // Both cancellation and ordinary failure must release the slot for the next request.
@@ -112,7 +112,7 @@ final class StackSnapshotCommandTests: XCTestCase {
             guard case let .failure(error) = await next.handler(arguments) else {
                 return XCTFail("expected fixture capture failure")
             }
-            XCTAssertEqual(error.title, "capture_failed")
+            XCTAssertEqual(error.message, "capture_failed")
         }
     }
 
@@ -129,7 +129,7 @@ final class StackSnapshotCommandTests: XCTestCase {
             finish.wait()
             do {
                 try Data("late result".utf8).write(to: url)
-            } catch { return .failure(CommandError(title: "fixture could not be written")) }
+            } catch { return .failure(CommandError(message: "fixture could not be written")) }
             return .success(StackSnapshotSummary(
                 capturedThreads: 1, failedThreads: 0, truncatedThreads: 0, skippedThreads: 1
             ))
@@ -142,7 +142,7 @@ final class StackSnapshotCommandTests: XCTestCase {
         guard case let .failure(error) = await task.value else {
             return XCTFail("expected cancellation")
         }
-        XCTAssertEqual(error.title, "cancelled")
+        XCTAssertEqual(error.message, "cancelled")
         XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
         XCTAssertEqual(fileManager.removals, 1)
     }
@@ -167,14 +167,14 @@ final class StackSnapshotCommandTests: XCTestCase {
 
     func testAcceptsPositiveBudgetsWithoutAnArbitraryRange() async {
         let bridge = SnapshotBridgeStub(capture: { size, _ in
-            .failure(CommandError(title: String(size)))
+            .failure(CommandError(message: String(size)))
         })
         let command = StackSnapshotCommand(makeBridge: { bridge }).make()
         for size: UInt64 in [1, 15, 16385, UInt64(UInt32.max)] {
             guard case let .failure(error) = await command.handler(["buffer_size_kb": .uint64(size)]) else {
                 return XCTFail("expected the bridge fixture to return the accepted size")
             }
-            XCTAssertEqual(error.title, String(size))
+            XCTAssertEqual(error.message, String(size))
         }
     }
 
@@ -185,7 +185,7 @@ final class StackSnapshotCommandTests: XCTestCase {
         guard case let .failure(error) = result else {
             return XCTFail("expected unsupported architecture")
         }
-        XCTAssertEqual(error.title, "unsupported")
+        XCTAssertEqual(error.message, "unsupported")
         return
         #else
         let result = try await command.handler(["buffer_size_kb": .uint64(256)]).get()

@@ -30,7 +30,7 @@ struct StackSnapshotCommand: Sendable {
                   let bufferSizeKb = bufferSize(arguments["buffer_size_kb"])
             else {
                 return .failure(.invalidArguments(
-                    description: "buffer_size_kb must be a positive integer representable as UInt32"
+                    message: "buffer_size_kb must be a positive integer representable as UInt32"
                 ))
             }
             guard !Task.isCancelled else {
@@ -58,7 +58,7 @@ struct StackSnapshotCommand: Sendable {
         }
     }
 
-    private static let cancelled = CommandError(title: "cancelled")
+    private static let cancelled = CommandError(message: "cancelled")
 
     private func capture(
         _ bufferSizeKb: UInt32,

@@ -26,9 +26,7 @@ bitdrift_mobile_swift_test(
     name = "run_benchmarks",
     srcs = ["RunLoggerBenchmarkTests.swift"],
     tags = [
-        # ensure no other tests running when benchmarking
-        "exclusive",
-        "macos_only",
+        "manual",
         "requires_test_host",
     ],
     use_test_host = True,

@@ -1,0 +1,77 @@
+{
+  "name": "hermes-sample",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "examples/HermesSample",
+  "projectType": "application",
+  "tags": [],
+  "// targets": "to see all targets run: nx show project hermes-sample --web",
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["examples/HermesSample/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo \"Tests disabled for Hermes sample (requires RN native runtime).\""
+      }
+    },
+    "run-android": {
+      "dependsOn": [
+        {
+          "target": "prepare-release",
+          "projects": ["@bitdrift/react-native"],
+          "params": "ignore"
+        }
+      ]
+    },
+    "run-ios": {
+      "dependsOn": [
+        {
+          "target": "prepare-release",
+          "projects": ["@bitdrift/react-native"],
+          "params": "ignore"
+        }
+      ]
+    },
+    "start": {
+      "dependsOn": [
+        {
+          "target": "prepare-release",
+          "projects": ["@bitdrift/react-native"],
+          "params": "ignore"
+        }
+      ]
+    },
+    "bundle": {
+      "dependsOn": [
+        {
+          "target": "prepare-release",
+          "projects": ["@bitdrift/react-native"],
+          "params": "ignore"
+        }
+      ]
+    },
+    "build-ios": {
+      "dependsOn": [
+        {
+          "target": "prepare-release",
+          "projects": ["@bitdrift/react-native"],
+          "params": "ignore"
+        }
+      ]
+    },
+    "build-android": {
+      "dependsOn": [
+        {
+          "target": "prepare-release",
+          "projects": ["@bitdrift/react-native"],
+          "params": "ignore"
+        }
+      ]
+    }
+  }
+}

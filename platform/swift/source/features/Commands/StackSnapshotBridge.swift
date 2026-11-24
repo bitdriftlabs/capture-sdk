@@ -62,21 +62,21 @@ final class StackSnapshotBridge: StackSnapshotBridging, @unchecked Sendable {
     private static func error(_ status: Int32) -> CommandError {
         switch status {
         case 1:
-            CommandError.invalidArguments(description: "invalid capture buffer")
+            CommandError.invalidArguments(message: "invalid capture buffer")
         case 2:
             CommandError.alreadyExecuting
         case 3:
-            CommandError(title: "unsupported", description: "stack snapshot requires ARM64")
+            CommandError(message: "unsupported", context: ["description": "stack snapshot requires ARM64"])
         case 4:
-            CommandError(title: "capture_failed")
+            CommandError(message: "capture_failed")
         case 6:
-            CommandError(title: "attachment_too_large", description: "snapshot JSON exceeds 5 MiB")
+            CommandError(message: "attachment_too_large", context: ["description": "snapshot JSON exceeds 5 MiB"])
         case 7:
-            CommandError(title: "cancelled")
+            CommandError(message: "cancelled")
         case 8:
-            CommandError(title: "no_useful_stacks")
+            CommandError(message: "no_useful_stacks")
         default:
-            CommandError(title: "attachment_write_failed")
+            CommandError(message: "attachment_write_failed")
         }
     }
 }

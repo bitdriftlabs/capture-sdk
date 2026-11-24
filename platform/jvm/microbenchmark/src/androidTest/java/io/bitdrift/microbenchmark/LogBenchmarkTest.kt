@@ -24,6 +24,7 @@ import io.bitdrift.capture.IResourceUtilizationTarget
 import io.bitdrift.capture.ISessionReplayTarget
 import io.bitdrift.capture.LogLevel
 import io.bitdrift.capture.LoggerImpl
+import io.bitdrift.capture.commands.CommandRegistry
 import io.bitdrift.capture.common.RuntimeConfig
 import io.bitdrift.capture.common.RuntimeFeature
 import io.bitdrift.capture.common.RuntimeStringConfig
@@ -250,9 +251,11 @@ class LogBenchmarkTest {
                 dateProvider = null,
                 configuration = Configuration(),
                 sessionStrategy = SessionStrategy.Fixed(),
+                commandRegistry = CommandRegistry(CaptureJniLibrary),
+                commandDispatcher = CommandRegistry.defaultDispatcher(),
             )
             runWithMeasurementDisabled {
-                CaptureJniLibrary.shutdown(logger.loggerId)
+                logger.shutdown()
                 CaptureJniLibrary.destroyLogger(logger.loggerId)
             }
         }
@@ -273,8 +276,8 @@ class LogBenchmarkTest {
     }
 
     private fun destroyCurrentLogger() {
-        (Capture.logger() as? IInternalLogger)?.let {
-            CaptureJniLibrary.shutdown((it as io.bitdrift.capture.LoggerImpl).loggerId)
+        (Capture.logger() as? io.bitdrift.capture.LoggerImpl)?.let {
+            it.shutdown()
             CaptureJniLibrary.destroyLogger(it.loggerId)
         }
     }

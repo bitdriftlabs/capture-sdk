@@ -1,7 +1,7 @@
 # Change Log
 
 ## [Unreleased]
-[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.26.0...HEAD
+[Unreleased]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.52.0...HEAD
 
 ### Both
 
@@ -45,6 +45,157 @@
 
 - Nothing yet!
 
+## [0.52.0]
+[0.52.0]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.52.0...HEAD
+
+### Both
+
+**Added**
+
+- Added built-in commands to read, update, remove and clear app settings (UserDefaults on iOS / SharedPreferences on iOS)
+- Added built-in commands to list, size, clear and delete files in the app cache.
+- Added optional deduplication of persistent log fields to reduce on-device buffer usage.
+
+**Changed**
+
+- Command attachments and Android crash profiles now support compressed, resumable uploads up to
+  256 MiB per file.
+- Command errors now use a single `message` parameter instead of `title` and `description`.
+- Improved workflow matching performance.
+
+**Fixed**
+
+- Applied data scrubbing before log filters and workflows, and to crash-report metadata on upload.
+- Fixed local command expiration being affected by system clock changes.
+
+### Android
+
+**Added**
+
+- Added the built-in `heap_profile_trace`, `system_trace` and `memory_dump` commands on Android 15+.
+- Added opt-in ANR (Android 16+) and Java OutOfMemoryError (Android 17+) profiles attached to fatal
+  issue reports, with automatic collection and manual import support.
+
+**Changed**
+
+- Screenshot commands now include visible app windows, dialogs and popups in one JPEG.
+
+**Fixed**
+
+- Fixed capture-plugin debug-file uploads with custom base domains and updated the bundled bd CLI
+  to 0.2.48.
+- Fixed excessive JVM heap usage when capture-plugin downloads the bundled bd CLI.
+- Screenshot commands now mask `FLAG_SECURE` windows with black rectangles.
+
+### iOS
+
+**Added**
+
+- Added the built-in `memory_dump` command to capture memory counters, virtual memory regions and
+  a heap inventory.
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.51.0]
+[0.51.0]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.51.0...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Restored the SDK license to PolyForm Shield 1.0.0.
+
+**Fixed**
+
+- Fixed a race condition that can cause a panic in metrics handling during concurrent updates.
+
+### Android
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Fixed app exit events being attributed to the wrong sessions after a device reboot.
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Nothing yet!
+
+## [0.50.0]
+[0.50.0]: https://github.com/bitdriftlabs/capture-sdk/compare/v0.50.0...HEAD
+
+### Both
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Changed the SDK license to PolyForm Strict 1.0.0.
+
+**Fixed**
+
+- Nothing yet!
+
+### Android
+
+**Added**
+
+- Built-in `stack_sampling_trace` remote command: records a Perfetto stack sampling trace of the
+  app's process through `ProfilingManager` (Android 15+) and uploads it as the command attachment.
+
+**Changed**
+
+- Updated OkHttp to 4.12.1 to block compromised CA certificates and mitigate CVE-2026-111943.
+
+**Fixed**
+
+- Fixed screenshot capture failing when another activity or dialog is displayed.
+- Fixed screenshot bitmap cleanup when capture fails.
+
+### iOS
+
+**Added**
+
+- Nothing yet!
+
+**Changed**
+
+- Nothing yet!
+
+**Fixed**
+
+- Fixed background URLSession upload tasks and proxy delegates leaking when automatic network
+  instrumentation is enabled.
+- Fixed a potential crash when the SDK cannot create network streams.
+
 ## [0.26.0]
 [0.26.0]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.26.0
 
@@ -59,9 +210,12 @@
 **Changed**
 
 - Web Vitals now use separate event names.
-- Raised WebView page view, navigation, lifecycle, long task, and non-poor Web Vital events from debug to info.
-- WebView error and promise-rejection events no longer include source-location details or stack traces.
-- Reduced native SDK size by disabling automatic internal error backtraces and using a lighter regex implementation.
+- Raised WebView page view, navigation, lifecycle, long task, and non-poor Web Vital events from
+  debug to info.
+- WebView error and promise-rejection events no longer include source-location details or stack
+  traces.
+- Reduced native SDK size by disabling automatic internal error backtraces and using a lighter regex
+  implementation.
 
 **Fixed**
 
@@ -75,7 +229,8 @@
 
 **Changed**
 
-- Reduced R8-minified consumer app size (~145 KB of DEX, ~52 KB compressed) by allowing r8/proguard to strip unused code from the tombstone protos used for native crash parsing.
+- Reduced R8-minified consumer app size (~145 KB of DEX, ~52 KB compressed) by allowing r8/proguard
+  to strip unused code from the tombstone protos used for native crash parsing.
 - Reduced native release size by compressing unwind metadata.
 
 **Fixed**
@@ -104,11 +259,13 @@
 **Added**
 
 - WebView events emitted during a Page View are now associated with that Page View span.
-- Workflow metrics can now use JSON paths to extract group-by tags and numeric values from fields containing JSON strings.
+- Workflow metrics can now use JSON paths to extract group-by tags and numeric values from fields
+  containing JSON strings.
 
 **Changed**
 
-- WebView error and promise-rejection events no longer report source-location details or stack traces.
+- WebView error and promise-rejection events no longer report source-location details or stack
+  traces.
 - Reduced native release size by disabling automatic internal error backtraces.
 
 **Fixed**
@@ -119,11 +276,13 @@
 
 **Added**
 
-- Resource utilization logs now include a `_thread_count` field with the number of threads in the app process.
+- Resource utilization logs now include a `_thread_count` field with the number of threads in the
+  app process.
 
 **Changed**
 
-- Reduced native release size by compressing unwind metadata on ARM64, x86, and x86_64. Native stack collectors must support GNU MiniDebugInfo; in-process unwinders may produce shorter traces.
+- Reduced native release size by compressing unwind metadata on ARM64, x86, and x86_64. Native stack
+  collectors must support GNU MiniDebugInfo; in-process unwinders may produce shorter traces.
 
 **Fixed**
 
@@ -150,13 +309,15 @@
 
 **Fixed**
 
-- Attached WebView network request spans and Web Vital spans to their originating page view spans, including telemetry reported after navigation and spans created by custom iOS loggers.
+- Attached WebView network request spans and Web Vital spans to their originating page view spans,
+  including telemetry reported after navigation and spans created by custom iOS loggers.
 
 ### Android
 
 **Fixed**
 
-- Logs emitted while `Capture.Logger.start()` is still running are now buffered in memory and replayed once startup completes.
+- Logs emitted while `Capture.Logger.start()` is still running are now buffered in memory and
+  replayed once startup completes.
 - Fixed ANR reports not being persisted on Android 11 and 12.
 
 ## [0.25.0]
@@ -166,7 +327,8 @@
 
 **Added**
 
-- Added a `critical` log level, one step above `error`, with `logCritical` convenience methods on iOS and Android. The WebView custom-log bridge accepts `"critical"` as a level.
+- Added a `critical` log level, one step above `error`, with `logCritical` convenience methods on
+  iOS and Android. The WebView custom-log bridge accepts `"critical"` as a level.
 - Added an `x-bitdrift-initiated-trace: true` header alongside injected trace propagation headers.
 
 ### Android
@@ -174,21 +336,30 @@
 **Added**
 
 - Added `WebViewCapture.instrument(webView)` for explicitly instrumenting selected WebViews.
-- Added the `webViewAutomaticInstrumentationScope` Gradle plugin property with `ALL` and `JS_ENABLED` scopes.
+- Added the `webViewAutomaticInstrumentationScope` Gradle plugin property with `ALL` and
+  `JS_ENABLED` scopes.
 
 **Changed**
 
 - The Timber integration now maps `Log.ASSERT` (`Log.wtf`) to `critical` instead of `debug`.
-- Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values now instrument only WebViews where JavaScript is already enabled; use `automaticWebViewInstrumentationMode = FULL` to preserve the previous behavior that enables JavaScript when needed.
-- Removed `WebViewConfiguration` and `Configuration.webViewConfiguration`. Instrumented WebViews now capture every WebView feature.
-- The WebView JavaScript bridge now uses `WebViewCompat.addWebMessageListener` instead of `addJavascriptInterface`, removing the reflection-based JS-to-native bridge surface.
+- Deprecated the `automaticWebViewInstrumentation` Gradle plugin property. Existing `true` values
+  now instrument only WebViews where JavaScript is already enabled; use
+  `automaticWebViewInstrumentationMode = FULL` to preserve the previous behavior that enables
+  JavaScript when needed.
+- Removed `WebViewConfiguration` and `Configuration.webViewConfiguration`. Instrumented WebViews now
+  capture every WebView feature.
+- The WebView JavaScript bridge now uses `WebViewCompat.addWebMessageListener` instead of
+  `addJavascriptInterface`, removing the reflection-based JS-to-native bridge surface.
 
 **Fixed**
 
-- SDK was erronously reporting `_jvm_used_percent` in Resource Utilization logs using the device Locale.
-- Fixed OkHttp logs including an invalid `_protocol` value when a request fails before receiving a response.
+- SDK was erronously reporting `_jvm_used_percent` in Resource Utilization logs using the device
+  Locale.
+- Fixed OkHttp logs including an invalid `_protocol` value when a request fails before receiving a
+  response.
 - Fixed a potential thread-safety issue in OkHttp request/response instrumentation.
-- Prevent automatic OkHttp instrumentation from wrapping an `OkHttpClient` with a duplicate Capture event listener when the client is copied via `newBuilder()`.
+- Prevent automatic OkHttp instrumentation from wrapping an `OkHttpClient` with a duplicate Capture
+  event listener when the client is copied via `newBuilder()`.
 - Fixed a potential crash when checking WebView features with older `androidx.webkit` versions.
 
 ### iOS
@@ -203,7 +374,8 @@
 
 **Fixed**
 
-- The Objective-C `logWarning` and `logError` entry points now log at warning and error level. They previously logged at info level.
+- The Objective-C `logWarning` and `logError` entry points now log at warning and error level. They
+  previously logged at info level.
 
 ## [0.24.2]
 [0.24.2]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.24.2
@@ -241,14 +413,14 @@
 
 - Reduced logging overhead when using the default system timestamp and no custom field providers.
 
-- Deprecated `FieldProvider`; use `initialFields` to seed global fields at SDK startup and `addField`
-  to update them.
+- Deprecated `FieldProvider`; use `initialFields` to seed global fields at SDK startup and
+  `addField` to update them.
 
 - Out-of-the-box foreground, locale, and network fields now keep their values in the native state
   store instead of being evaluated for every log.
 
-- Legacy fixed-session strategy generator callbacks have been removed. Use
-  `SessionConfiguration` to provide an initial session ID.
+- Legacy fixed-session strategy generator callbacks have been removed. Use `SessionConfiguration` to
+  provide an initial session ID.
 
 - `startNewSession` accepts an optional app-provided session ID; omitted IDs are generated by the
   SDK.
@@ -263,11 +435,13 @@
 
 **Added**
 
-- Added support for `BITDRIFT_API_KEY` in capture-plugin debug-file upload tasks. `API_KEY` remains supported for compatibility.
+- Added support for `BITDRIFT_API_KEY` in capture-plugin debug-file upload tasks. `API_KEY` remains
+  supported for compatibility.
 
 **Changed**
 
-- Updated the `bd` CLI bundled with capture-plugin from version `0.1.37` to `0.2.23`. The plugin refreshes a cached CLI when its pinned version changes.
+- Updated the `bd` CLI bundled with capture-plugin from version `0.1.37` to `0.2.23`. The plugin
+  refreshes a cached CLI when its pinned version changes.
 - Reduced overhead when logging multiple string fields by batching JNI local-reference cleanup.
 
 **Fixed**
@@ -281,7 +455,9 @@
 
 **Added**
 
-- Crash, hangs, and (new) OOM diagnostics are now read through the iOS 27 `MetricManager` API when running on iOS 27 and compiling with Xcode 27; earlier OS versions continue to use `MXMetricManager`.
+- Crash, hangs, and (new) OOM diagnostics are now read through the iOS 27 `MetricManager` API when
+  running on iOS 27 and compiling with Xcode 27; earlier OS versions continue to use
+  `MXMetricManager`.
 
 **Changed**
 
@@ -290,9 +466,10 @@
 
 **Fixed**
 
-- Invalid inactivity timeouts now disable activity-based session rotation instead of preventing
-  SDK initialization.
-- Fixed a link failure in apps that was caused by exceeding Apple's limit of personality routines for compact unwind.
+- Invalid inactivity timeouts now disable activity-based session rotation instead of preventing SDK
+  initialization.
+- Fixed a link failure in apps that was caused by exceeding Apple's limit of personality routines
+  for compact unwind.
 
 ## [0.23.12]
 [0.23.12]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.12
@@ -309,12 +486,14 @@
 
 **Added**
 
-- Flush the logger when the app's window loses focus to improve metrics reliability during forece quits.
+- Flush the logger when the app's window loses focus to improve metrics reliability during forece
+  quits.
 
 **Fixed**
 
 - Include pre-desugar AAR classes in published Android artifacts.
-- Start ingesting ANR reports that don't have a full stacktrace available (e.g. Having a null traceInputStream from ApplicationExitInfo)
+- Start ingesting ANR reports that don't have a full stacktrace available (e.g. Having a null
+  traceInputStream from ApplicationExitInfo)
 
 ## [0.23.11]
 [0.23.11]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.23.11
@@ -383,7 +562,8 @@
 
 **Added**
 
-- Added the device's region format (`region_format`) to app metrics to crash reports in [ISO_3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
+- Added the device's region format (`region_format`) to app metrics to crash reports in [ISO_3166-1
+  alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 - Added public `clearEntityId` / `clearEntityID` APIs to unset the current entity identifier
 
 **Fixed**
@@ -394,7 +574,8 @@
 
 **Added**
 
-- Added whether low power mode (`low_power_mode_enabled`) was enabled to app metrics in crash reports
+- Added whether low power mode (`low_power_mode_enabled`) was enabled to app metrics in crash
+  reports
 - Exposed `isTracingActive`
 
 ### Android
@@ -417,7 +598,8 @@
 
 **Fixed**
 
-- Ensure the Gradle plugin adds the OkHttp tracing interceptor last during automatic instrumentation.
+- Ensure the Gradle plugin adds the OkHttp tracing interceptor last during automatic
+  instrumentation.
 - Fix automatic WebView instrumentation for WebView subclasses.
 
 ## [0.23.4]
@@ -437,7 +619,8 @@
 
 **Fixed**
 
-- Session replay: fix a rare `ConcurrentModificationException` on API < 29 when windows change while screen capture is in progress.
+- Session replay: fix a rare `ConcurrentModificationException` on API < 29 when windows change while
+  screen capture is in progress.
 
 ## [0.23.2]
 
@@ -474,12 +657,16 @@
 
 **Added**
 
-- Add optional `startResult` callback to `start` method that reports success with the logger instance or failure with error details.
-- Add `getSdkStatus()` API that returns a point-in-time snapshot of the SDK's operational status, including initialization state (`NotStarted`, `Loaded`, `Running`, `Disabled`), last handshake time, and last config delivery time.
+- Add optional `startResult` callback to `start` method that reports success with the logger
+  instance or failure with error details.
+- Add `getSdkStatus()` API that returns a point-in-time snapshot of the SDK's operational status,
+  including initialization state (`NotStarted`, `Loaded`, `Running`, `Disabled`), last handshake
+  time, and last config delivery time.
 
 **Changed**
 
-- Renamed `registerOpaqueEntityId` (Android) / `registerOpaqueEntityID` (iOS) to `setEntityId` / `setEntityID`. This API is no longer experimental.
+- Renamed `registerOpaqueEntityId` (Android) / `registerOpaqueEntityID` (iOS) to `setEntityId` /
+  `setEntityID`. This API is no longer experimental.
 
 **Fixed**
 
@@ -489,7 +676,8 @@
 
 **Added**
 
-- Enabled OkHttp Happy Eyeballs (RFC 8305) fast fallback on the SDK's internal HTTP client for consumers using OkHttp 5.x pre-stable alphas (< 5.0.0) where it was not yet enabled by default.
+- Enabled OkHttp Happy Eyeballs (RFC 8305) fast fallback on the SDK's internal HTTP client for
+  consumers using OkHttp 5.x pre-stable alphas (< 5.0.0) where it was not yet enabled by default.
 
 **Fixed**
 
@@ -517,16 +705,25 @@
 
 **Fixed**
 
-- Hardened WebView bridge SDK against native crashes: added size limits to all strings crossing the native bridge (stack traces, error messages, console args, serialized JSON), bounded DOM traversal depth for user interaction detection, capped deduplication map sizes to prevent unbounded memory growth, and skipped `data:`/`blob:` URLs in network interception to avoid serializing large payloads.
-- Added an early exit in the event that injected JavaScript is present, but the native bridge is not properly set up (e.g. missing `window.bitdrift.sendMessage` function).
-- Ensured that any console.log calls made within the injected JavaScript use the pristine un-instrumented console methods to avoid the potential for infinite recursion when the console capture is active.
-- Added guards against potential `DataCloneError` exceptions when sending messages across the native bridge.
+- Hardened WebView bridge SDK against native crashes: added size limits to all strings crossing the
+  native bridge (stack traces, error messages, console args, serialized JSON), bounded DOM traversal
+  depth for user interaction detection, capped deduplication map sizes to prevent unbounded memory
+  growth, and skipped `data:`/`blob:` URLs in network interception to avoid serializing large
+  payloads.
+- Added an early exit in the event that injected JavaScript is present, but the native bridge is not
+  properly set up (e.g. missing `window.bitdrift.sendMessage` function).
+- Ensured that any console.log calls made within the injected JavaScript use the pristine
+  un-instrumented console methods to avoid the potential for infinite recursion when the console
+  capture is active.
+- Added guards against potential `DataCloneError` exceptions when sending messages across the native
+  bridge.
 
 ### iOS
 
 **Fixed**
 
-- Crash timestamps are now more precise, allowing them to be correctly ordered in the session timeline relative to other events.
+- Crash timestamps are now more precise, allowing them to be correctly ordered in the session
+  timeline relative to other events.
 
 ## [0.22.15]
 
@@ -536,7 +733,8 @@
 
 **Added**
 
-- `Capture.Logger.screenView` now captures an up-to-date wireframe for Session Replay at the time of the call.
+- `Capture.Logger.screenView` now captures an up-to-date wireframe for Session Replay at the time of
+  the call.
 
 ### Android
 
@@ -552,17 +750,20 @@
 
 **Added**
 
-- Added distributed tracing support for network instrumentation with W3C (`traceparent`), B3 Single (`b3`), and B3 Multi (`X-B3-*`) propagation formats.
+- Added distributed tracing support for network instrumentation with W3C (`traceparent`), B3 Single
+  (`b3`), and B3 Multi (`X-B3-*`) propagation formats.
 
 ### Android
 
 **Added**
 
-- Native crash reports are now generated on API level 30 when tombstone data is unavailable. These reports include signal information but no stack traces.
+- Native crash reports are now generated on API level 30 when tombstone data is unavailable. These
+  reports include signal information but no stack traces.
 
 **Fixed**
 
-- Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc artifacts. Also updated the style of `capture-timber` and `capture-apollo` javadocs to match.
+- Fixed an issue where 3rd-party dependencies like `androidx` were included in the released Javadoc
+  artifacts. Also updated the style of `capture-timber` and `capture-apollo` javadocs to match.
 
 ## [0.22.13]
 
@@ -572,7 +773,9 @@
 
 **Added**
 
-- Added experimental API to get detailed previous run information (`Capture.Logger.getPreviousRunInfo()` on Android, `Capture.Logger.previousRunInfo` on iOS/Swift, `previousRunInfo()` in Objective-C).
+- Added experimental API to get detailed previous run information
+  (`Capture.Logger.getPreviousRunInfo()` on Android, `Capture.Logger.previousRunInfo` on iOS/Swift,
+  `previousRunInfo()` in Objective-C).
 
 ### Android
 
@@ -588,7 +791,8 @@
 
 **Added**
 
-- Added experimental issue report callback support so apps can receive issue metadata before a report is sent (reportType, reason, details, sessionId, and fields)
+- Added experimental issue report callback support so apps can receive issue metadata before a
+  report is sent (reportType, reason, details, sessionId, and fields)
 
 ## [0.22.11]
 
@@ -598,7 +802,8 @@
 
 **Added**
 
-- Log internal sdk error if we fail to process and persist other issue reports (e.g. Native Crash, ANRs, etc)
+- Log internal sdk error if we fail to process and persist other issue reports (e.g. Native Crash,
+  ANRs, etc)
 
 ## [0.22.10]
 
@@ -625,7 +830,8 @@
 
 **Added**
 
-- Added the `_page_url` field to WebVital events sent from the WebView bridge to provide more context about the page associated with the metric.
+- Added the `_page_url` field to WebVital events sent from the WebView bridge to provide more
+  context about the page associated with the metric.
 
 **Changed**
 
@@ -639,7 +845,8 @@
 
 **Fixed**
 
-- Fix potential EXC_BAD_ACCESS crash in React Native apps during app teardown by pumping the run loop during blocking flush operations (related to facebook/react-native#53774)
+- Fix potential EXC_BAD_ACCESS crash in React Native apps during app teardown by pumping the run
+  loop during blocking flush operations (related to facebook/react-native#53774)
 
 ## [0.22.8]
 
@@ -654,13 +861,15 @@
 **Changed**
 
 - Bump `androidx.metrics:metrics-performance` dep to `1.0.0`
-- io.bitdrift.capture-plugin: `automaticOkHttpInstrumentation` now defaults to `PROXY` mode instead of `OVERWRITE`, preserving any custom `EventListener.Factory` on the `OkHttpClient`.
+- io.bitdrift.capture-plugin: `automaticOkHttpInstrumentation` now defaults to `PROXY` mode instead
+  of `OVERWRITE`, preserving any custom `EventListener.Factory` on the `OkHttpClient`.
 
 ### iOS
 
 **Fixed**
 
-- Emit `_is_memory_low` on iOS system memory pressure events (AppMemPressure from DispatchSource) when the threshold is configured; periodic resource utilization emission remains unchanged.
+- Emit `_is_memory_low` on iOS system memory pressure events (AppMemPressure from DispatchSource)
+  when the threshold is configured; periodic resource utilization emission remains unchanged.
 
 ## [0.22.7]
 
@@ -670,7 +879,8 @@
 
 **Fixed**
 
-- io.bitdrift.capture-plugin: Fix concurrent `bdUpload` task execution with certain CI scenarios causing `OverlappingFileLockException`.
+- io.bitdrift.capture-plugin: Fix concurrent `bdUpload` task execution with certain CI scenarios
+  causing `OverlappingFileLockException`.
 
 ## [0.22.6]
 
@@ -710,7 +920,8 @@
 
 **Changed**
 
-- Added support for honoring `data-redacted` attributes on elements included in WebView user interaction events.
+- Added support for honoring `data-redacted` attributes on elements included in WebView user
+  interaction events.
 
 **Fixed**
 
@@ -739,7 +950,8 @@
 
 **Changed**
 
-- Update `./gradlew bdUpload` from `io.bitdrift.capture-plugin` to handle automatically upload of sourcemap files.
+- Update `./gradlew bdUpload` from `io.bitdrift.capture-plugin` to handle automatically upload of
+  sourcemap files.
 
 ## [0.22.1]
 
@@ -769,22 +981,28 @@
 **Added**
 
 - Added support for workflow matching on feature flag state and transitions.
-- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will now noop.
+- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will
+  now noop.
 
 **Changed**
 
-- **BREAKING**: The `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS) is now required instead of optional.
-- Added method overloads to accept `Boolean` / `Bool` values for the `variant` parameter in `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS), in addition to the existing `String` parameter.
+- **BREAKING**: The `variant` parameter in `setFeatureFlagExposure` (Android) /
+  `addFeatureFlagExposure` (iOS) is now required instead of optional.
+- Added method overloads to accept `Boolean` / `Bool` values for the `variant` parameter in
+  `setFeatureFlagExposure` (Android) / `addFeatureFlagExposure` (iOS), in addition to the existing
+  `String` parameter.
 
 **Fixed**
 
-- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will now noop.
+- Fixed an issue where multiple Logger instances could come up and conflict. Subsequent loggers will
+  now noop.
 
 ### iOS
 
 **Fixed**
 
-- Fixed an issue with JavaScript error reporting in the React Native SDK that prevented stack trace de-minification.
+- Fixed an issue with JavaScript error reporting in the React Native SDK that prevented stack trace
+  de-minification.
 
 ## [0.21.1]
 [0.21.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.21.1
@@ -793,7 +1011,8 @@
 
 **Fixed**
 
-- Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the `Logger.log()` methods directly.
+- Made `HttpRequestInfo` and `HttpResponseInfo` properties public so they can be used with the
+  `Logger.log()` methods directly.
 - Fix NPE crash when using automatic OkHttp instrumentation via capture-plugin
 
 ## [0.21.0]
@@ -803,7 +1022,8 @@
 
 **Changed**
 
-- The experimental feature flag APIs have been redone and now only expose a single `setFeatureFlagExposure` function instead of generic setters.
+- The experimental feature flag APIs have been redone and now only expose a single
+  `setFeatureFlagExposure` function instead of generic setters.
 
 ### Android
 
@@ -814,7 +1034,8 @@
 **Fixed**
 
 - Improve accuracy of low memory detection in `MemoryMetricsProvider`.
-- Fix `NoSuchMethodError` runtime exception when consumers target newer versions of `androidx.compose.ui:ui`.
+- Fix `NoSuchMethodError` runtime exception when consumers target newer versions of
+  `androidx.compose.ui:ui`.
 
 ### iOS
 
@@ -834,17 +1055,21 @@
 
 **Fixed**
 
-- Fixed an issue where the session ID on AppExit logs would not match the previous process run session ID as expected.
+- Fixed an issue where the session ID on AppExit logs would not match the previous process run
+  session ID as expected.
 
 ### Android
 
 **Changed**
 
-- Removed `enableNativeCrashReporting` flag from `Configuration` object. From now on Native (NDK) crash reports will be included if `enableFatalIssueReporting` is set to true. Please note Native (NDK) crash detection still requires Android 12+ (API level 31 or higher)
+- Removed `enableNativeCrashReporting` flag from `Configuration` object. From now on Native (NDK)
+  crash reports will be included if `enableFatalIssueReporting` is set to true. Please note Native
+  (NDK) crash detection still requires Android 12+ (API level 31 or higher)
 
 **Fixed**
 
-- Fixed a jni LocalReference leak that could crash the app when very large field maps or feature flags were sent to the logger.
+- Fixed a jni LocalReference leak that could crash the app when very large field maps or feature
+  flags were sent to the logger.
 - Exclude `com.squareup.retrofit2:retrofit` dependency from the generated pom.
 
 ## [0.20.0]
@@ -854,12 +1079,15 @@
 
 **Added**
 
-- Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using Retrofit services.
+- Add `RetrofitUrlPathProvider` helper class to help extracting endpoint's url paths when using
+  Retrofit services.
 
 **Changed**
 
-- Simplify constructor of `CaptureOkHttpEventListenerFactory`. Remove usage of `(call: Call) -> EventListener)` in favor of `EventListener.Factory`.
-- Make `HttpField.PATH_TEMPLATE` constant public so consumers can override it using a custom `OkHttpRequestFieldProvider`.
+- Simplify constructor of `CaptureOkHttpEventListenerFactory`. Remove usage of `(call: Call) ->
+EventListener)` in favor of `EventListener.Factory`.
+- Make `HttpField.PATH_TEMPLATE` constant public so consumers can override it using a custom
+  `OkHttpRequestFieldProvider`.
 
 **Fixed**
 
@@ -869,7 +1097,8 @@
 
 **Added**
 
-- Add `rootFileURL` parameter to `Configuration` to allow customizing the storage location for SDK internal files.
+- Add `rootFileURL` parameter to `Configuration` to allow customizing the storage location for SDK
+  internal files.
 
 ## [0.19.1]
 [0.19.1]: https://github.com/bitdriftlabs/capture-sdk/releases/tag/v0.19.1
@@ -931,4 +1160,5 @@
 
 **Fixed**
 
-- Improve performance of Uptime clock computations which should improve the performance all across the SDK.
+- Improve performance of Uptime clock computations which should improve the performance all across
+  the SDK.

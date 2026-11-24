@@ -1,0 +1,17 @@
+diff --git rs/extensions.bzl rs/extensions.bzl
+--- rs/extensions.bzl
++++ rs/extensions.bzl
+@@ -36,7 +36,12 @@
+     return remote.replace("/", "_").replace(":", "_").replace("@", "_")
+ 
+ def _external_repo_for_git_source(hub_name, remote, commit):
+-    return hub_name + "__" + _git_repo_remote_name(remote) + "_" + commit[:8]
++    name = hub_name + "__" + _git_repo_remote_name(remote)
++    if remote == "https://github.com/bitdriftlabs/shared-core.git":
++        # Keep action paths stable across bumps of the pinned revision.
++        # The extension rejects multiple commits that map to the same name.
++        return name
++    return name + "_" + commit[:8]
+ 
+ def _git_crate_purl(name, version, remote, commit):
+     return "pkg:cargo/%s@%s?vcs_url=git+%s@%s" % (name, version, remote, commit)

@@ -17,4 +17,10 @@ internal interface IOotbFieldProvider {
 
     /** Starts forwarding subsequent field updates. */
     fun start(logger: IInternalLogger)
+
+    /**
+     * Stops forwarding updates. Once this returns the provider no longer calls the logger, so the
+     * native logger can be shut down and destroyed.
+     */
+    fun stop()
 }

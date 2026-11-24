@@ -12,7 +12,7 @@ import SwiftUI
 final class CommandsViewModel: ObservableObject {
     let commands = [
         CommandDefinition(
-            key: "memory_dump",
+            key: "task_vm_info",
             description: "Returns TASK_VM_INFO metrics; use is_attachment for a JSON attachment.",
             isBuiltIn: false
         ),
@@ -20,6 +20,11 @@ final class CommandsViewModel: ObservableObject {
         CommandDefinition(
             key: "screenshot",
             description: "Takes a screenshot of the app.",
+            isBuiltIn: true
+        ),
+        CommandDefinition(
+            key: "memory_dump",
+            description: "Captures memory counters, VM regions and a heap census as a protobuf attachment.",
             isBuiltIn: true
         ),
     ]

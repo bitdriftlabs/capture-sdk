@@ -33,11 +33,13 @@ import io.bitdrift.capture.providers.Fields
 import io.bitdrift.capture.providers.session.SessionConfiguration
 import io.bitdrift.capture.providers.session.SessionStrategy
 import io.bitdrift.capture.reports.exitinfo.PreviousRunInfo
+import io.bitdrift.capture.reports.profiling.CrashProfileKind
 import io.bitdrift.capture.utils.BuildTypeChecker
 import io.bitdrift.capture.utils.DebugCustomerCallbackException
 import io.bitdrift.capture.utils.invokeCatchingOrThrowOnDebug
 import kotlinx.coroutines.CoroutineScope
 import okhttp3.HttpUrl
+import java.io.File
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
@@ -78,7 +80,11 @@ object Capture {
     internal const val LOG_TAG = "BitdriftCapture"
     private val default: AtomicReference<LoggerState> = AtomicReference(LoggerState.NotStarted)
 
-    internal val commandRegistry = CommandRegistry(CaptureJniLibrary)
+    // Shared by the registry, which runs command handlers on it, and the profiler, which reports
+    // results on it so they resume where the command runs.
+    private val commandDispatcher = CommandRegistry.defaultDispatcher()
+
+    internal val commandRegistry = CommandRegistry(CaptureJniLibrary, commandDispatcher)
 
     /**
      * Returns a handle to the underlying logger instance, if Capture has been started.
@@ -474,6 +480,41 @@ object Capture {
                 }
             } ?: run {
                 mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }
+            }
+        }
+
+        /**
+         * Imports a system-triggered crash profile without modifying, renaming, or deleting [file].
+         *
+         * Keep the original readable and unchanged until [completion], which runs on the main thread.
+         * Success means Capture has persisted an independent private copy, not that it matched a
+         * report or uploaded. Unmatched profiles are retried on the next startup. Other consumers
+         * may still need the original, so its owner coordinates deletion.
+         *
+         * Requires SDK initialization, crash profiling, fatal issue reporting, and the kind's runtime
+         * flag. Typically used with [io.bitdrift.capture.reports.profiling.CrashProfilingMode.MANUAL].
+         * This call does not configure Android triggers or register a result listener.
+         *
+         * @param file A completed, uncompressed Android profile.
+         * @param kind The trigger kind from the Android profiling result.
+         * @param completion Called after Capture stops reading the original, on success or failure.
+         */
+        @JvmStatic
+        @ExperimentalBitdriftApi
+        fun importCrashProfile(
+            file: File,
+            kind: CrashProfileKind,
+            completion: (CaptureResult<Unit>) -> Unit,
+        ) {
+            // Use the same callback thread for early failures and completed imports, without
+            // running caller code on the shared SDK executor that performs the import.
+            val logger = logger() as? LoggerImpl
+            if (logger == null) {
+                mainThreadHandler.run { completion(CaptureResult.Failure(SdkNotStartedError)) }
+            } else {
+                logger.importCrashProfile(file, kind) { result ->
+                    mainThreadHandler.run { completion(result) }
+                }
             }
         }
 
@@ -1002,6 +1043,7 @@ object Capture {
                         sessionStrategy = sessionStrategy,
                         bridge = bridge,
                         commandRegistry = commandRegistry,
+                        commandDispatcher = commandDispatcher,
                     )
                 }
 

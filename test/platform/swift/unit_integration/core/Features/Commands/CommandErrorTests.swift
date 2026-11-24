@@ -9,10 +9,10 @@
 import XCTest
 
 final class CommandErrorTests: XCTestCase {
-    func testPredefinedErrorsHaveStandardTitles() {
-        XCTAssertEqual(CommandError.notFound.title, "Command not found")
-        XCTAssertEqual(CommandError.alreadyExecuting.title, "Command is already executing")
-        XCTAssertEqual(CommandError.maximumConcurrency.title, "Maximum command concurrency reached")
+    func testPredefinedErrorsHaveStandardMessages() {
+        XCTAssertEqual(CommandError.notFound.message, "Command not found")
+        XCTAssertEqual(CommandError.alreadyExecuting.message, "Command is already executing")
+        XCTAssertEqual(CommandError.maximumConcurrency.message, "Maximum command concurrency reached")
     }
 
     func testPredefinedErrorsHaveTheirExpectedCodes() {
@@ -21,19 +21,19 @@ final class CommandErrorTests: XCTestCase {
         XCTAssertEqual(CommandError.maximumConcurrency.code, "max_command_concurrency")
     }
 
-    func testInvalidArgumentsRetainsItsDescription() {
-        let error = CommandError.invalidArguments(description: "Argument 'verbose' is missing a value.")
+    func testInvalidArgumentsUsesTheSuppliedMessageOrADefault() {
+        let error = CommandError.invalidArguments(message: "Argument 'verbose' is missing a value.")
 
-        XCTAssertEqual(error.title, "Invalid command arguments")
-        XCTAssertEqual(error.description, "Argument 'verbose' is missing a value.")
+        XCTAssertEqual(CommandError.invalidArguments().message, "Invalid command arguments")
+        XCTAssertEqual(error.message, "Argument 'verbose' is missing a value.")
         XCTAssertEqual(error.code, "invalid_arguments")
     }
 
     func testCustomErrorRetainsItsDetails() {
-        let error = CommandError(title: "Capture failed", context: ["operation": "capture"])
+        let error = CommandError(message: "Capture failed: Rate limited", context: ["error": "process limit"])
 
-        XCTAssertEqual(error.title, "Capture failed")
-        XCTAssertEqual(error.context, ["operation": "capture"])
+        XCTAssertEqual(error.message, "Capture failed: Rate limited")
+        XCTAssertEqual(error.context, ["error": "process limit"])
         XCTAssertEqual(error.code, "handler_failed")
     }
 }

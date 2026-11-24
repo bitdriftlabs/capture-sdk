@@ -10,15 +10,35 @@ plugins {
 }
 
 val enableAutoCaptureOkHttpInstrumentation =
-    providers.gradleProperty("enableAutoCaptureOkHttpInstrumentation")
+    providers
+        .gradleProperty("enableAutoCaptureOkHttpInstrumentation")
         .map(String::toBoolean)
         .orElse(true)
         .get()
 
 val autoCaptureOkHttpInstrumentationType =
-    providers.gradleProperty("autoCaptureOkHttpInstrumentationType")
+    providers
+        .gradleProperty("autoCaptureOkHttpInstrumentationType")
         .map(String::uppercase)
         .orElse("PROXY")
+        .get()
+
+// Used by the android-profiling-e2e skill: each test build needs its own version code so its R8
+// mapping can be uploaded without colliding with another build's.
+val e2eVersionCode =
+    providers
+        .gradleProperty("e2eVersionCode")
+        .map(String::toInt)
+        .orElse(68)
+        .get()
+
+// Used by the android-profiling-e2e skill: keep an adb-pullable copy of every profiling trace the
+// demo commands upload, so the test can compare it byte for byte with what the backend serves.
+val e2eTraceCopy =
+    providers
+        .gradleProperty("e2eTraceCopy")
+        .map(String::toBoolean)
+        .orElse(false)
         .get()
 
 require(autoCaptureOkHttpInstrumentationType in setOf("PROXY", "OVERWRITE")) {
@@ -96,6 +116,10 @@ dependencies {
     releaseImplementation("com.github.chuckerteam.chucker:library-no-op:4.2.0")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.robolectric)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     androidTestImplementation(project(":common"))
     androidTestImplementation("com.google.truth:truth:1.1.4")
@@ -115,6 +139,10 @@ android {
     compileSdk = 37
     buildToolsVersion = "37.0.0"
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     buildFeatures {
         compose = true
         viewBinding = true
@@ -125,9 +153,10 @@ android {
         applicationId = "io.bitdrift.gradletestapp"
         minSdk = 23
         targetSdk = 37
-        versionCode = 68
+        versionCode = e2eVersionCode
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("boolean", "E2E_TRACE_COPY", e2eTraceCopy.toString())
         buildConfigField(
             "boolean",
             "ENABLE_AUTO_CAPTURE_OKHTTP_INSTRUMENTATION",
@@ -230,6 +259,8 @@ listOf("debug", "release", "profileable").forEach { buildType ->
             commandLine(
                 "./bazelw",
                 "build",
+                // Linux CI builds remotely; download the outputs copied from bazel-bin below.
+                "--remote_download_toplevel",
                 if (packaged) {
                     "//$bazelNativePackage:gradletestapp_native.debug_info"
                 } else {
@@ -237,7 +268,7 @@ listOf("debug", "release", "profileable").forEach { buildType ->
                 },
             )
             if (buildType != "debug") {
-                args("--config=release-android", "--config=nocache")
+                args("--config=release-android")
             }
             if (packaged) {
                 // The default output is stripped; objcopy produces the matching full-symbol DIF.
@@ -260,7 +291,10 @@ listOf("debug", "release", "profileable").forEach { buildType ->
             }
             filePermissions { unix("rwxr-xr-x") }
         }
-    android.sourceSets.getByName(buildType).jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs/$buildType"))
+    android.sourceSets
+        .getByName(buildType)
+        .jniLibs
+        .srcDir(layout.buildDirectory.dir("generated/jniLibs/$buildType"))
     tasks.matching { it.name == "merge${variantName}JniLibFolders" }.configureEach {
         dependsOn(copyNative)
     }

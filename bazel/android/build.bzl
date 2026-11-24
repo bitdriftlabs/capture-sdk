@@ -7,11 +7,12 @@ load(
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 load("@rules_kotlin//kotlin:lint.bzl", "ktlint_fix", "ktlint_test")
 
-# Configures a kt_android_library with lint targets.
-def bitdrift_kt_android_library(name, srcs, require_javadocs = True, **args):
+# Configures a kt_android_library with lint targets. `generated_srcs` are compiled with `srcs` but
+# not linted.
+def bitdrift_kt_android_library(name, srcs, generated_srcs = [], require_javadocs = True, **args):
     kt_android_library(
         name = name,
-        srcs = srcs,
+        srcs = srcs + generated_srcs,
         **args
     )
 
