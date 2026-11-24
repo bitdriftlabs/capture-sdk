@@ -9,34 +9,60 @@
 
 package io.bitdrift.capture
 
-import io.github.classgraph.ClassGraph
 import junit.framework.JUnit4TestAdapter
 import junit.framework.TestSuite
+import org.junit.runner.Description
 import org.junit.runner.RunWith
+import org.junit.runner.manipulation.Filter
+import org.junit.runner.manipulation.NoTestsRemainException
 
+/**
+ * JUnit suite run by Bazel's test runner. [ForkingTestLauncher] forks one JVM per top-level test class
+ * and passes the classes to run through [TestDiscovery.CLASSES_PROPERTY]; without that property,
+ * every discovered test class runs in the current JVM.
+ *
+ * Bazel's `--test_filter` does not reach tests inside this JUnit 3 style suite, so the suite applies
+ * `TESTBRIDGE_TEST_ONLY` itself, matching the regex against `ClassName#methodName` as Bazel does.
+ */
 @RunWith(org.junit.runners.AllTests::class)
 object TestSuite {
-    private val junitTestAnnotation = org.junit.Test::class.java.name
-
     @JvmStatic
     fun suite(): TestSuite {
         val suite = TestSuite()
 
-        val scan =
-            ClassGraph()
-                .disableModuleScanning()
-                .enableAnnotationInfo()
-                .enableMethodInfo()
-                .ignoreClassVisibility()
-                .acceptPackages("io.bitdrift.capture")
-                .scan()
-        scan
-            .getClassesWithMethodAnnotation(junitTestAnnotation)
-            .asSequence()
-            .sortedByDescending { it.name }
-            .map { JUnit4TestAdapter(it.loadClass()) }
+        val classNames =
+            System
+                .getProperty(TestDiscovery.CLASSES_PROPERTY)
+                ?.split(',')
+                ?.filter { it.isNotEmpty() }
+                ?: TestDiscovery.discover().flatMap { it.classNames }
+
+        val filter = System.getenv("TESTBRIDGE_TEST_ONLY")?.takeIf { it.isNotEmpty() }?.let(::regexFilter)
+
+        classNames
+            .sortedDescending()
+            .map { JUnit4TestAdapter(Class.forName(it)) }
+            .filter { adapter -> filter == null || adapter.keepsAnyTest(filter) }
             .forEach(suite::addTest)
 
         return suite
+    }
+
+    private fun JUnit4TestAdapter.keepsAnyTest(filter: Filter): Boolean =
+        try {
+            filter(filter)
+            true
+        } catch (_: NoTestsRemainException) {
+            false
+        }
+
+    private fun regexFilter(regex: String): Filter {
+        val pattern = Regex(regex)
+        return object : Filter() {
+            override fun shouldRun(description: Description): Boolean =
+                description.isSuite || pattern.containsMatchIn("${description.className}#${description.methodName}")
+
+            override fun describe(): String = "tests matching $regex"
+        }
     }
 }
