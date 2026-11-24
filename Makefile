@@ -72,12 +72,12 @@ format:
 check-license:
 	./ci/check_license.sh
 
-# Use repin when you get Error: Digests do not match, or after changing Maven artifacts in
-# MODULE.bazel (Bazel then reports that a Maven lockfile must be regenerated).
+# Refresh lockfiles after changing Cargo dependencies or Maven artifacts.
 .PHONY: repin
 repin:
 	set -e
 	# rules_rs resolves crates from Cargo.lock and records its facts in MODULE.bazel.lock.
+	cargo update
 	./bazelw mod tidy
 	# Refresh the SDK and Android build tool lockfiles.
 	./bazelw run --repo_env=REPIN=1 @maven//:pin
@@ -143,5 +143,3 @@ install-ts-deps:
 .PHONY: swap-local
 swap-local:
 	./tools/swap_local.sh
-	cargo update
-	./bazelw mod tidy
