@@ -105,6 +105,7 @@ fn exports_root_to_leaf_stacks_without_losing_raw_pc_kinds_or_large_addresses() 
 fn skipped_threads_have_no_fabricated_samples() {
   let snapshot = Snapshot {
     pid: 1,
+    main_thread_id: None,
     images: vec![],
     image_errors: BTreeMap::new(),
     threads: vec![ThreadSnapshot {
@@ -197,6 +198,7 @@ fn captures_native_worker_and_resumes_it() {
 pub(crate) fn sample_snapshot() -> Snapshot {
   Snapshot {
     pid: 42,
+    main_thread_id: None,
     images: vec![],
     image_errors: BTreeMap::new(),
     threads: vec![ThreadSnapshot {
@@ -339,4 +341,39 @@ fn image_survey_preserves_valid_images_and_groups_rejection_reasons() {
     })
   );
   assert_eq!(value["bitdrift"]["images"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn snapshot_names_main_by_native_identity_not_thread_order_or_name() {
+  let mut snapshot = sample_snapshot();
+  let mut main = sample_snapshot().threads.remove(0);
+  main.native_id = 29;
+  snapshot.threads.push(main);
+  for main_thread_id in [None, Some(29)] {
+    snapshot.main_thread_id = main_thread_id;
+    let mut bytes = Vec::new();
+    write_json(
+      &snapshot,
+      &mut bytes,
+      usize::MAX,
+      &CancellationToken::default(),
+    )
+    .unwrap();
+    let json: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(json["threads"][0]["name"], snapshot.threads[0].name);
+    assert_eq!(json["threads"][0]["bitdrift"]["isMainThread"], false);
+    assert_eq!(
+      json["threads"][1]["bitdrift"]["isMainThread"],
+      main_thread_id.is_some()
+    );
+    assert_eq!(
+      json["threads"][1]["name"],
+      if main_thread_id.is_some() {
+        "Main Thread"
+      } else {
+        &snapshot.threads[1].name
+      }
+    );
+    assert_eq!(json["threads"][1]["bitdrift"]["nativeThreadId"], "29");
+  }
 }

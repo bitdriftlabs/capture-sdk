@@ -126,6 +126,7 @@ pub struct ThreadSnapshot {
 
 pub struct Snapshot {
   pub pid: u32,
+  pub main_thread_id: Option<u64>,
   pub threads: Vec<ThreadSnapshot>,
   pub images: Vec<ImageInfo>,
   /// Counts rejected images by parser error, surveyed after all target threads are resumed.

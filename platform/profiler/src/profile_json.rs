@@ -36,14 +36,18 @@ pub(super) fn write(profile: &Profile, output: &mut impl Write) -> io::Result<()
       profile.pid,
       thread_index + 1
     )?;
-    if name.is_empty() {
+    let is_main_thread = profile.main_thread_id == Some(*native_id);
+    if is_main_thread {
+      string(output, "Main Thread")?;
+    } else if name.is_empty() {
       string(output, &format!("Thread {native_id}"))?;
     } else {
       string(output, name)?;
     }
     write!(
       output,
-      r#", "bitdrift":{{"nativeThreadId":"{native_id}","observations":["#
+      r#", "bitdrift":{{"nativeThreadId":"{native_id}","isMainThread":{is_main_thread},
+      "observations":["#
     )?;
     let mut first = true;
     let mut observation_frame_offset = 0;

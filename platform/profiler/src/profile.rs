@@ -170,6 +170,7 @@ pub(crate) struct ProfileTiming {
 pub struct Profile {
   pub(crate) config: ProfileConfig,
   pub(crate) pid: u32,
+  pub main_thread_id: Option<u64>,
   pub(crate) samples: VecDeque<ProfileSample>,
   pub(crate) frames: VecDeque<Frame>,
   pub(crate) images: Vec<ImageInfo>,
@@ -200,6 +201,7 @@ impl Profile {
     Ok(Self {
       config,
       pid,
+      main_thread_id: None,
       samples: VecDeque::with_capacity(sample_capacity),
       frames: VecDeque::with_capacity(frame_capacity),
       // The image session allocates this budget and transfers its vector here after capture.

@@ -32,6 +32,10 @@ void *capture_stack_snapshot_bridge_create(void);
 void capture_stack_snapshot_bridge_cancel(const void *bridge);
 void capture_stack_snapshot_bridge_release(void *bridge);
 
+/* Registers the process main thread's native pthread ID. Zero means unknown. Snapshot/profile
+ * export reads this shared value after capture, including registrations made after bridge creation. */
+void capture_stack_set_main_thread_id(uint64_t main_thread_id);
+
 typedef struct {
     size_t captured_threads;
     size_t failed_threads;

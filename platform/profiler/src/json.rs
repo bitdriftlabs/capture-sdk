@@ -26,16 +26,20 @@ pub(super) fn write(snapshot: &Snapshot, output: &mut impl Write) -> io::Result<
       snapshot.pid,
       thread_index + 1
     )?;
-    if thread.name.is_empty() {
+    let is_main_thread = snapshot.main_thread_id == Some(thread.native_id);
+    if is_main_thread {
+      string(output, "Main Thread")?;
+    } else if thread.name.is_empty() {
       string(output, &format!("Thread {}", thread.native_id))?;
     } else {
       string(output, &thread.name)?;
     }
     write!(
       output,
-      r#", "bitdrift":{{"nativeThreadId":"{}","status":"{}",
+      r#", "bitdrift":{{"nativeThreadId":"{}","isMainThread":{},"status":"{}",
       "stackTruncated":{},"copiedStackBytes":{},"suspensionNs":{},"frames":["#,
       thread.native_id,
+      is_main_thread,
       status(thread.status),
       thread.stack_truncated,
       thread.copied_stack_bytes,

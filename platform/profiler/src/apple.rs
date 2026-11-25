@@ -62,6 +62,7 @@ pub(super) fn capture(
   let mut collector = Collector::new(budget / 2, threads.current)?;
   let mut snapshot = Snapshot {
     pid: unsafe { getpid() }.unsigned_abs(),
+    main_thread_id: None,
     threads: Vec::with_capacity(threads.ports().len()),
     images: Vec::new(),
     image_errors: BTreeMap::new(),

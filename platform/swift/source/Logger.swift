@@ -223,6 +223,7 @@ public final class Logger {
 
         self.underlyingLogger = CoreLogger(logger: logger)
 
+        StackCaptureBridge.prepareMainThreadID()
         let stackCommands = [StackSnapshotCommand().make(), StackProfileCommand().make()]
         let (uniqueCommands, duplicated) = (commands + stackCommands).removingDuplicates()
         let commandBridge = CommandRegistrationBridge(logger: self.underlyingLogger)

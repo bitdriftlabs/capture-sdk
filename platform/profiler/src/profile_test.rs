@@ -269,3 +269,37 @@ fn oversized_observation_does_not_evict_the_retained_window() {
   assert_eq!(profile.summary.retained_samples, 1);
   assert_eq!(profile.summary.dropped_samples, 1);
 }
+
+#[test]
+fn profile_names_main_by_native_identity_not_thread_order_or_name() {
+  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 1, 8192).unwrap();
+  record(&mut profile, 17, 1_000_000, 2);
+  record(&mut profile, 29, 2_000_000, 1);
+  for main_thread_id in [None, Some(29)] {
+    profile.main_thread_id = main_thread_id;
+    let mut bytes = Vec::new();
+    write_profile_json(
+      &profile,
+      &mut bytes,
+      usize::MAX,
+      &CancellationToken::default(),
+    )
+    .unwrap();
+    let json: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(json["threads"][0]["name"], "worker");
+    assert_eq!(json["threads"][0]["bitdrift"]["isMainThread"], false);
+    assert_eq!(
+      json["threads"][1]["bitdrift"]["isMainThread"],
+      main_thread_id.is_some()
+    );
+    assert_eq!(
+      json["threads"][1]["name"],
+      if main_thread_id.is_some() {
+        "Main Thread"
+      } else {
+        "worker"
+      }
+    );
+    assert_eq!(json["threads"][1]["bitdrift"]["nativeThreadId"], "29");
+  }
+}

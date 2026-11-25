@@ -88,6 +88,8 @@ fn timebase_converts_without_intermediate_overflow() {
 
 #[test]
 fn guard_drop_balances_only_its_own_suspension() {
+  // Other capture tests suspend every thread, which would change the counts asserted below.
+  let _capture = crate::tests::CAPTURE_TEST_LOCK.lock().unwrap();
   let running = Arc::new(AtomicBool::new(true));
   let worker_running = running.clone();
   let (sender, receiver) = mpsc::channel();

@@ -32,11 +32,28 @@ struct StackSnapshotSummary: Sendable {
     }
 }
 
-// Capture and cancellation retain this owner. The handle contains only an atomic cancellation
-// flag and a registered worker wakeup, which Rust can use concurrently. It is released only after
-// both operations finish.
+// Capture and cancellation retain this owner. The cancellation handle is released only after
+// both operations finish. Main-thread identity is shared across requests and read at export time.
 final class StackCaptureBridge: StackSnapshotBridging, StackProfileBridging, @unchecked Sendable {
     private let pointer = capture_stack_snapshot_bridge_create()
+
+    // Schedule registration at SDK startup without waiting for the main queue. Rust reads the
+    // shared identity after capture, so requests created before registration can still use it.
+    // If the main queue has not run yet, export leaves its identity unknown.
+    static func prepareMainThreadID() {
+        if Thread.isMainThread {
+            recordMainThreadID()
+        } else {
+            DispatchQueue.main.async { recordMainThreadID() }
+        }
+    }
+
+    private static func recordMainThreadID() {
+        var id: UInt64 = 0
+        if pthread_threadid_np(nil, &id) == 0 {
+            capture_stack_set_main_thread_id(id)
+        }
+    }
 
     func capture(bufferSizeKb: UInt32, to url: URL) -> Result<StackSnapshotSummary, CommandError> {
         var summary = capture_stack_snapshot_summary()

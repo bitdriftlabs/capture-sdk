@@ -7,10 +7,12 @@
 #![allow(clippy::unwrap_used)]
 
 use super::{
+  capture_stack_set_main_thread_id,
   capture_stack_snapshot,
   capture_stack_snapshot_bridge_cancel,
   capture_stack_snapshot_bridge_create,
   capture_stack_snapshot_bridge_release,
+  main_thread_id,
 };
 use crate::stack_profile::capture_stack_profile;
 use profiler::{CancellationToken, CaptureError, ProfileSummary, Profiler, Summary};
@@ -74,4 +76,19 @@ fn bridge_handles_share_the_request_slot_and_rejected_cancellation_keeps_it_busy
   ));
   drop(session);
   assert!(Profiler::new(256, &CancellationToken::default()).is_ok());
+}
+
+#[test]
+fn main_thread_registration_after_bridge_creation_is_visible_across_threads() {
+  capture_stack_set_main_thread_id(0);
+  let handle = capture_stack_snapshot_bridge_create();
+  assert_eq!(main_thread_id(), None);
+  std::thread::spawn(|| capture_stack_set_main_thread_id(u64::MAX))
+    .join()
+    .unwrap();
+  assert_eq!(main_thread_id(), Some(u64::MAX));
+  // SAFETY: the owned handle is live and no capture or cancellation call uses it.
+  unsafe { capture_stack_snapshot_bridge_release(handle) };
+  assert_eq!(main_thread_id(), Some(u64::MAX));
+  capture_stack_set_main_thread_id(0);
 }
