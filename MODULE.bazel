@@ -449,10 +449,12 @@ rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
 
 # The rules_rs facade provisions its own rules_rust repository. Patch that repository,
 # rather than protobuf's unrelated transitive module, to prevent duplicate custom stdlib
-# archive members in the iOS XCFramework.
+# archive members in the iOS XCFramework, and to give Cargo build scripts only the toolchain
+# files they use (remote executors download every declared input of each action).
 rules_rust.patch(
     patches = [
         "//bazel/third_party:rules_rust_allocator_library_dedup.patch",
+        "//bazel/third_party:rules_rust_build_script_inputs.patch",
         "//bazel/third_party:rules_rust_clippy_in_compile.patch",
         # Upstream only adds rust-objcopy to the bootstrap toolchain.
         "//bazel/third_party:rules_rust_objcopy_toolchain.patch",

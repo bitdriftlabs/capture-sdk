@@ -1,0 +1,56 @@
+--- a/cargo/private/cargo_build_script.bzl
++++ b/cargo/private/cargo_build_script.bzl
+@@ -33,7 +33,35 @@
+ 
+ # Keep this short: it is part of CARGO_MANIFEST_DIR on Windows.
+ _CARGO_MANIFEST_DIR = "m"
++
++# Crates whose presence among a build script's dependencies means the script may invoke the C/C++
++# toolchain. Unless `use_cc_toolchain` is set explicitly, other build scripts run without it.
++_CC_BUILD_SCRIPT_CRATES = ["bindgen", "cc", "cmake"]
++
++def _build_script_rust_inputs(toolchain):
++    """Returns the Rust toolchain files a build script needs to run `$RUSTC` for the target.
++
++    `toolchain.all_files` also carries clippy, rustdoc, rustfmt, llvm-tools and the linker, and the
++    cargo toolchain adds cargo. Build scripts rarely use them, and remote executors would otherwise
++    download them for every build script action.
++    """
++    direct = [toolchain.rustc]
++    if toolchain.sysroot_anchor:
++        direct.append(toolchain.sysroot_anchor)
++    transitive = [toolchain.rustc_lib]
++    if toolchain.rust_std:
++        transitive.append(toolchain.rust_std)
++    return depset(direct, transitive = transitive)
+ 
++def _build_script_uses_cc(ctx, script_target):
++    """Returns whether the build script may invoke the C/C++ toolchain."""
++    if ctx.attr.links:
++        return True
++    for crate in script_target[DepInfo].transitive_crates.to_list():
++        if crate.name in _CC_BUILD_SCRIPT_CRATES:
++            return True
++    return False
++
+ def _cargo_build_script_runfiles_impl(ctx):
+     exe = ctx.actions.declare_file(ctx.label.name)
+     ctx.actions.write(output = exe, content = "", is_executable = True)
+@@ -531,7 +559,7 @@
+     mismatch = cargo_version_mismatch(cargo.toolchain, toolchain)
+     if mismatch:
+         fail("{}: {}".format(ctx.label, mismatch))
+-    toolchain_tools = [toolchain.all_files, cargo.files]
++    toolchain_tools = [_build_script_rust_inputs(toolchain)]
+ 
+     env = {}
+ 
+@@ -580,6 +608,8 @@
+         ctx.attr.use_cc_toolchain,
+         ctx.attr._default_use_cc_toolchain,
+     )
++    if use_cc_toolchain and ctx.attr.use_cc_toolchain == -1:
++        use_cc_toolchain = _build_script_uses_cc(ctx, script_target)
+ 
+     # Pull in env vars which may be required for the cc_toolchain to work (e.g. on OSX, the SDK version).
+     # We hope that the linker env is sufficient for the whole cc_toolchain.
