@@ -42,10 +42,12 @@ bitdrift_kt_android_local_test(
     associates = [
         ":lib",
     ],
+    robolectric_sdks = [24],
+    # Three small test classes: one shard is enough.
+    shard_count = 1,
     deps = [
         artifact("junit:junit"),
         artifact("org.robolectric:robolectric"),
-        "@rules_robolectric//bazel:android-all",
         artifact("androidx.test:core"),
     ],
 )
