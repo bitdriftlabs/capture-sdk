@@ -18,6 +18,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import java.util.regex.PatternSyntaxException
 import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.transform.OutputKeys
@@ -37,6 +38,9 @@ data class TestGroup(
 object TestDiscovery {
     /** Comma-separated test classes that [TestSuite] runs instead of discovering them. */
     const val CLASSES_PROPERTY = "bitdrift.test.classes"
+
+    /** The `--test_filter` regex that [TestSuite] applies to the forked JVM's real test names. */
+    const val FILTER_PROPERTY = "bitdrift.test.filter"
 
     private const val TEST_PACKAGE = "io.bitdrift.capture"
     private val junitTestAnnotation = org.junit.Test::class.java.name
@@ -91,6 +95,11 @@ object ForkingTestLauncher {
     private const val DEFAULT_MAX_FORKS = 4
     private const val BANNER = "===================="
 
+    // Ways a filter can name a runtime suffix, removed in this order: `\[33\]`, `\[33]`, and an
+    // open-ended `\[` up to the end of its alternative.
+    private val SUFFIX_PATTERNS =
+        listOf(Regex("""\\\[.*?\\]"""), Regex("""\\\[.*?]"""), Regex("""\\\[[^|]*"""))
+
     // Variables that only the parent owns: children must neither shard nor signal premature exit.
     private val parentOnlyEnv =
         listOf(
@@ -99,6 +108,9 @@ object ForkingTestLauncher {
             "TEST_SHARD_STATUS_FILE",
             "TEST_PREMATURE_EXIT_FILE",
             "XML_OUTPUT_FILE",
+            // Bazel's runner in the child would also apply the filter, and fail when a class has no
+            // matching test; TestSuite applies it instead (FILTER_PROPERTY).
+            "TESTBRIDGE_TEST_ONLY",
         )
 
     // Debugger agents listen on a fixed port, so a child that inherits one fails to start.
@@ -129,6 +141,10 @@ object ForkingTestLauncher {
         prematureExit?.apply { parentFile?.mkdirs() }?.writeText("")
 
         val groups = selectGroups(TestDiscovery.discover())
+        if (groups == null) {
+            prematureExit?.delete()
+            exitProcess(1)
+        }
         val workDir = File(System.getenv("TEST_TMPDIR") ?: System.getProperty("java.io.tmpdir"), "forked-tests")
         workDir.mkdirs()
 
@@ -160,8 +176,13 @@ object ForkingTestLauncher {
         // A shard may legitimately receive no classes, but an unsharded run with nothing to run
         // means discovery or --test_filter matched no tests.
         val sharded = (System.getenv("TEST_TOTAL_SHARDS")?.toIntOrNull() ?: 1) > 1
-        val nothingRan = results.isEmpty() && !sharded
-        if (nothingRan) println("No test classes matched.")
+        // A forked JVM with no test matching the filter exits successfully without writing results
+        // (see TestSuite). If that happened to every class here, the filter only matched a declared
+        // name, not a real test name such as `method[33]`.
+        val filtered = !System.getenv("TESTBRIDGE_TEST_ONLY").isNullOrEmpty()
+        val filterMatchedNothing = filtered && results.isNotEmpty() && results.all { it.exitCode == 0 && !it.xml.isFile }
+        val nothingRan = (results.isEmpty() && !sharded) || filterMatchedNothing
+        if (nothingRan) println("No test matched.")
 
         prematureExit?.delete()
         exitProcess(if (failed.isEmpty() && !nothingRan) 0 else 1)
@@ -181,11 +202,36 @@ object ForkingTestLauncher {
 
     private fun defaultForks(): Int = Runtime.getRuntime().availableProcessors().coerceAtMost(DEFAULT_MAX_FORKS)
 
-    // Selection uses declared method names, so a filter on a Robolectric variant name such as
-    // `Foo#bar[33]` only matches if it also matches `Foo#bar`.
-    private fun selectGroups(all: List<TestGroup>): List<TestGroup> {
-        val filter = System.getenv("TESTBRIDGE_TEST_ONLY")?.takeIf { it.isNotEmpty() }?.let(Pattern::compile)
-        val matching = if (filter == null) all else all.filter { group -> group.testIds.any { filter.matcher(it).find() } }
+    // Returns null when --test_filter matches no tests at all.
+    private fun selectGroups(all: List<TestGroup>): List<TestGroup>? {
+        val regex = System.getenv("TESTBRIDGE_TEST_ONLY")?.takeIf { it.isNotEmpty() }
+        val matching =
+            when {
+                regex == null -> all
+                // Selection sees only declared method names, but Robolectric names a test that runs on
+                // several SDKs `method[33]`, and parameterized runners add index suffixes. Drop such
+                // suffixes (SUFFIX_PATTERNS) to choose the classes; each child applies the exact filter to its
+                // real test names (see TestSuite) and runs nothing if none match.
+                else -> {
+                    val declared = SUFFIX_PATTERNS.fold(regex) { filter, suffix -> filter.replace(suffix, "") }
+                    try {
+                        Pattern.compile(declared).let { filter ->
+                            all.filter { group -> group.testIds.any { filter.matcher(it).find() } }
+                        }
+                    } catch (_: PatternSyntaxException) {
+                        // Removing the suffix broke the regex; fork everything and let the children filter.
+                        all
+                    }
+                }
+            }
+
+        // Every shard computes the same global selection, so all of them fail on a filter that
+        // matches no declared test, while an individual shard may still legitimately receive no
+        // classes. (A filter whose only mismatch is a variant suffix still passes with no tests.)
+        if (regex != null && matching.isEmpty()) {
+            println("--test_filter=$regex matched no tests.")
+            return null
+        }
 
         val totalShards = System.getenv("TEST_TOTAL_SHARDS")?.toIntOrNull() ?: 1
         val shardIndex = System.getenv("TEST_SHARD_INDEX")?.toIntOrNull() ?: 0
@@ -203,6 +249,9 @@ object ForkingTestLauncher {
             } +
             listOf(
                 "-D${TestDiscovery.CLASSES_PROPERTY}=${group.classNames.joinToString(",")}",
+            ) +
+            listOfNotNull(System.getenv("TESTBRIDGE_TEST_ONLY")?.let { "-D${TestDiscovery.FILTER_PROPERTY}=$it" }) +
+            listOf(
                 "-Djava.io.tmpdir=${tmp.path}",
                 "-cp",
                 System.getProperty("java.class.path"),
