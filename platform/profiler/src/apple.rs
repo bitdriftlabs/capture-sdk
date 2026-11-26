@@ -7,12 +7,9 @@
 
 use crate::image_cache::ImageSession;
 use crate::mach::{
-  _dyld_get_image_header,
-  _dyld_image_count,
   Suspended,
   Threads,
   Timebase,
-  getpid,
   mach_absolute_time,
   mach_timebase_info,
   metadata,
@@ -39,7 +36,7 @@ use bd_unwind::aarch64::{
   walk_frame_pointers,
 };
 use bd_unwind::apple::TaskMemory;
-use bd_unwind::image::{ImageError, ImageInfo};
+use bd_unwind::image::ImageError;
 use bd_unwind::memory::{MemoryReader, StackMemory};
 use std::collections::BTreeMap;
 use std::mem::size_of;
@@ -61,7 +58,6 @@ pub(super) fn capture(
   }
   let mut collector = Collector::new(budget / 2, threads.current)?;
   let mut snapshot = Snapshot {
-    pid: unsafe { getpid() }.unsigned_abs(),
     main_thread_id: None,
     threads: Vec::with_capacity(threads.ports().len()),
     images: Vec::new(),
@@ -115,11 +111,7 @@ pub(super) fn profile(
     Collector::new(scratch_budget, threads.current)?
   };
   let mut frames = vec![Frame::default(); frame_budget / size_of::<Frame>()];
-  let mut profile = Profile::new(
-    config,
-    unsafe { getpid() }.unsigned_abs(),
-    budget - budget / 2,
-  )?;
+  let mut profile = Profile::new(config, budget - budget / 2)?;
   // Build/subscribe before starting the clock. Loader callbacks update an owned bounded history;
   // image enumeration, parsing and cache locks are absent from the periodic sampling loop.
   let image_start = unsafe { mach_absolute_time() };
@@ -189,13 +181,14 @@ pub(super) fn profile(
 
 fn survey_images(
   cancellation: &CancellationToken,
-  mut visit: impl FnMut(Result<ImageInfo, ImageError>),
+  mut visit: impl FnMut(Result<crate::Image, ImageError>),
 ) -> Result<(), CaptureError> {
-  for index in 0 .. unsafe { _dyld_image_count() } {
-    cancellation.check()?;
-    let address = unsafe { _dyld_get_image_header(index) } as u64;
-    visit(ImageInfo::read(&TaskMemory, address));
-  }
+  cancellation.check()?;
+  ImageSession::survey(|image| {
+    if !cancellation.is_cancelled() {
+      visit(image);
+    }
+  });
   cancellation.check()
 }
 
@@ -269,9 +262,7 @@ impl Collector {
         frames: &frames[.. result.frame_count],
         status: result.status,
         stack_truncated: result.stack_truncated,
-        copied_stack_bytes: result.copied_stack_bytes,
         timestamp_ns: result.timestamp_ns,
-        suspension_ns: result.suspension_ns,
       });
     }
     cancellation.check()

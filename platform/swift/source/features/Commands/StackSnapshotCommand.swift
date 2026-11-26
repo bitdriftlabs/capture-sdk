@@ -34,7 +34,7 @@ struct StackSnapshotCommand: Sendable {
                 return StackCaptureOperation(bridge: bridge) { url in
                     bridge.capture(bufferSizeKb: bufferSizeKb, to: url).map { summary in
                         CommandResult(
-                            attachment: .file(url: url, mimeType: "application/json"),
+                            attachment: .file(url: url, mimeType: "application/vnd.bitdrift.thread-snapshot"),
                             context: summary.context
                         )
                     }

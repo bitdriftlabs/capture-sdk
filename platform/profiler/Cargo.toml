@@ -6,9 +6,9 @@ publish      = false
 version      = "1.0.0"
 
 [dependencies]
+bd-proto.workspace    = true
 bd-unwind             = { path = "../unwind" }
+libc.workspace        = true
 log.workspace         = true
 parking_lot.workspace = true
-
-[dev-dependencies]
-serde_json.workspace = true
+protobuf.workspace    = true

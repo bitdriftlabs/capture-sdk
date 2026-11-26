@@ -9,16 +9,18 @@
 use super::{
   CancellationToken,
   CaptureError,
+  Image,
   Profiler,
   Snapshot,
   ThreadSnapshot,
   ThreadStatus,
-  write_json,
+  write_snapshot,
 };
+use bd_proto::protos::profiling::thread_snapshot::ThreadSnapshot as ProtoSnapshot;
 use bd_unwind::aarch64::{Frame, FrameKind, StopReason};
 use bd_unwind::image::{ImageError, ImageInfo};
 use bd_unwind::memory::AddressRange;
-use serde_json::Value;
+use protobuf::Message;
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 
@@ -44,10 +46,9 @@ fn only_one_profiler_can_run_and_dropping_it_releases_the_slot() {
   .unwrap();
   assert!(rejected);
   let mut output = Vec::new();
-  write_json(
+  write_snapshot(
     &sample_snapshot(),
     &mut output,
-    usize::MAX,
     &CancellationToken::default(),
   )
   .unwrap();
@@ -74,64 +75,28 @@ fn rejects_invalid_capture_budgets() {
 }
 
 #[test]
-fn exports_root_to_leaf_stacks_without_losing_raw_pc_kinds_or_large_addresses() {
+fn exports_original_leaf_to_root_stacks_and_large_addresses() {
   let snapshot = sample_snapshot();
   let mut bytes = Vec::new();
-  write_json(
-    &snapshot,
-    &mut bytes,
-    usize::MAX,
-    &CancellationToken::default(),
-  )
-  .unwrap();
-  let value: Value = serde_json::from_slice(&bytes).unwrap();
-  let thread = &value["threads"][0];
-  assert_eq!(thread["name"], snapshot.threads[0].name);
-  assert_eq!(thread["stringTable"][0], "0x1000");
-  assert_eq!(thread["stringTable"][1], "0xffffffffffffffff");
-  assert_eq!(
-    thread["stackTable"]["data"],
-    serde_json::json!([[null, 0], [0, 1]])
-  );
-  assert_eq!(
-    thread["samples"]["data"],
-    serde_json::json!([[1, 1.234_567]])
-  );
-  assert_eq!(thread["bitdrift"]["frames"][0]["kind"], "pc");
-  assert_eq!(thread["bitdrift"]["nativeThreadId"], u64::MAX.to_string());
+  write_snapshot(&snapshot, &mut bytes, &CancellationToken::default()).unwrap();
+  let decoded = ProtoSnapshot::parse_from_bytes(&bytes).unwrap();
+  let thread = &decoded.thread_details.as_ref().unwrap().threads[0];
+  assert_eq!(thread.name, snapshot.threads[0].name);
+  assert_eq!(thread.frames[0].frame_address, Some(u64::MAX));
+  assert_eq!(thread.frames[1].frame_address, Some(0x1000));
 }
 
 #[test]
 fn skipped_threads_have_no_fabricated_samples() {
-  let snapshot = Snapshot {
-    pid: 1,
-    main_thread_id: None,
-    images: vec![],
-    image_errors: BTreeMap::new(),
-    threads: vec![ThreadSnapshot {
-      native_id: 1,
-      name: String::new(),
-      status: ThreadStatus::CaptureThread,
-      frames: vec![],
-      stack_truncated: false,
-      copied_stack_bytes: 0,
-      timestamp_ns: 0,
-      suspension_ns: 0,
-    }],
-  };
+  let mut snapshot = sample_snapshot();
+  snapshot.threads[0].status = ThreadStatus::CaptureThread;
+  snapshot.threads[0].frames.clear();
   let mut bytes = Vec::new();
-  write_json(
-    &snapshot,
-    &mut bytes,
-    usize::MAX,
-    &CancellationToken::default(),
-  )
-  .unwrap();
-  let value: Value = serde_json::from_slice(&bytes).unwrap();
-  assert_eq!(
-    value["threads"][0]["samples"]["data"],
-    serde_json::json!([])
-  );
+  write_snapshot(&snapshot, &mut bytes, &CancellationToken::default()).unwrap();
+  let decoded = ProtoSnapshot::parse_from_bytes(&bytes).unwrap();
+  let details = decoded.thread_details.as_ref().unwrap();
+  assert_eq!(details.total_threads, 1);
+  assert_eq!(details.threads.len(), 0);
 }
 
 #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
@@ -185,10 +150,9 @@ fn captures_native_worker_and_resumes_it() {
   );
   assert_ne!(snapshot.images.len(), 0);
   if let Ok(path) = std::env::var("BD_SNAPSHOT_TEST_OUTPUT") {
-    write_json(
+    write_snapshot(
       &snapshot,
       &mut std::fs::File::create(path).unwrap(),
-      usize::MAX,
       &CancellationToken::default(),
     )
     .unwrap();
@@ -197,7 +161,6 @@ fn captures_native_worker_and_resumes_it() {
 
 pub(crate) fn sample_snapshot() -> Snapshot {
   Snapshot {
-    pid: 42,
     main_thread_id: None,
     images: vec![],
     image_errors: BTreeMap::new(),
@@ -258,27 +221,19 @@ fn summary_keeps_partial_stacks_and_distinguishes_failed_and_skipped_threads() {
 }
 
 #[test]
-fn snapshot_exports_absent_user_context_without_a_stack_sample() {
+fn snapshot_exports_absent_user_context_without_fabricating_frames() {
   let mut snapshot = sample_snapshot();
   snapshot.threads[0].status = ThreadStatus::NoUserContext;
   snapshot.threads[0].frames.clear();
-  let mut output = Vec::new();
-  write_json(
-    &snapshot,
-    &mut output,
-    usize::MAX,
-    &CancellationToken::default(),
-  )
-  .unwrap();
-  let json: Value = serde_json::from_slice(&output).unwrap();
-  assert_eq!(json["bitdrift"]["noUserContextThreads"], 1);
-  assert_eq!(json["bitdrift"]["failedThreads"], 0);
-  assert_eq!(json["threads"][0]["bitdrift"]["status"], "no_user_context");
+  let mut bytes = Vec::new();
+  write_snapshot(&snapshot, &mut bytes, &CancellationToken::default()).unwrap();
+  let decoded = ProtoSnapshot::parse_from_bytes(&bytes).unwrap();
   assert_eq!(
-    json["threads"][0]["bitdrift"]["frames"],
-    serde_json::json!([])
+    decoded.thread_details.as_ref().unwrap().threads[0]
+      .frames
+      .len(),
+    0
   );
-  assert_eq!(json["threads"][0]["samples"]["data"], serde_json::json!([]));
   assert_eq!(snapshot.ensure_useful(), Err(CaptureError::NoUsefulStacks));
 }
 
@@ -292,11 +247,14 @@ fn capture(
 #[test]
 fn image_survey_preserves_valid_images_and_groups_rejection_reasons() {
   let mut snapshot = sample_snapshot();
-  let image = ImageInfo {
-    uuid: Some([7; 16]),
-    text: AddressRange::new(0x1000, 0x1000).unwrap(),
+  let image = Image {
+    info: ImageInfo {
+      uuid: Some([7; 16]),
+      text: AddressRange::new(0x1000, 0x1000).unwrap(),
+    },
+    name: "test-image".into(),
   };
-  snapshot.record_image(Ok(image));
+  snapshot.record_image(Ok(image.clone()));
   let errors = [
     ImageError::UnreadableMemory,
     ImageError::InvalidHeader,
@@ -318,29 +276,13 @@ fn image_survey_preserves_valid_images_and_groups_rejection_reasons() {
     snapshot.record_image(Err(error));
   }
   assert_eq!(snapshot.images, [image]);
-  let mut bytes = Vec::new();
-  write_json(
-    &snapshot,
-    &mut bytes,
-    usize::MAX,
-    &CancellationToken::default(),
-  )
-  .unwrap();
-  let value: Value = serde_json::from_slice(&bytes).unwrap();
-  let survey = &value["bitdrift"]["imageSurvey"];
+  assert_eq!(snapshot.image_errors.values().sum::<usize>(), 9);
   assert_eq!(
-    survey,
-    &serde_json::json!({
-      "enumerated": 10, "accepted": 1, "rejected": 9,
-      "errors": {
-        "unreadable_memory": 1, "invalid_header": 1, "unsupported_architecture": 1,
-        "invalid_load_command": 1, "nonzero_text_file_offset": 1,
-        "nonzero_text_file_offset_in_shared_cache": 2,
-        "missing_text_segment": 1, "address_overflow": 1
-      }
-    })
+    snapshot.image_errors[&ImageError::NonzeroTextFileOffset {
+      in_shared_cache: true
+    }],
+    2
   );
-  assert_eq!(value["bitdrift"]["images"].as_array().unwrap().len(), 1);
 }
 
 #[test]
@@ -352,28 +294,17 @@ fn snapshot_names_main_by_native_identity_not_thread_order_or_name() {
   for main_thread_id in [None, Some(29)] {
     snapshot.main_thread_id = main_thread_id;
     let mut bytes = Vec::new();
-    write_json(
-      &snapshot,
-      &mut bytes,
-      usize::MAX,
-      &CancellationToken::default(),
-    )
-    .unwrap();
-    let json: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(json["threads"][0]["name"], snapshot.threads[0].name);
-    assert_eq!(json["threads"][0]["bitdrift"]["isMainThread"], false);
+    write_snapshot(&snapshot, &mut bytes, &CancellationToken::default()).unwrap();
+    let decoded = ProtoSnapshot::parse_from_bytes(&bytes).unwrap();
+    let threads = &decoded.thread_details.as_ref().unwrap().threads;
+    assert_eq!(threads[0].name, snapshot.threads[0].name);
     assert_eq!(
-      json["threads"][1]["bitdrift"]["isMainThread"],
-      main_thread_id.is_some()
-    );
-    assert_eq!(
-      json["threads"][1]["name"],
+      threads[1].name,
       if main_thread_id.is_some() {
         "Main Thread"
       } else {
         &snapshot.threads[1].name
       }
     );
-    assert_eq!(json["threads"][1]["bitdrift"]["nativeThreadId"], "29");
   }
 }

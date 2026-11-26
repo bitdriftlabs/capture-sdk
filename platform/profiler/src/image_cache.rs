@@ -9,9 +9,8 @@
 #[path = "./image_cache_test.rs"]
 mod tests;
 
-use crate::CaptureError;
-use bd_unwind::apple::TaskMemory;
-use bd_unwind::image::{ImageError, ImageInfo};
+use crate::{CaptureError, Image};
+use bd_unwind::image::ImageError;
 use parking_lot::Mutex;
 use std::collections::BTreeMap;
 use std::sync::{LazyLock, Once};
@@ -26,9 +25,10 @@ unsafe extern "C" {
 }
 
 // dyld keeps the image mapped during its callback. Parse once at load time and retain only owned
-// metadata. Neither callback calls dyld, logs, or touches a target thread's suspension state.
+// metadata. Name resolution happens before locking CACHE; neither callback suspends threads or
+// logs.
 extern "C" fn added(header: *const u8, _: isize) {
-  let image = ImageInfo::read(&TaskMemory, header as u64);
+  let image = Image::read(header);
   CACHE.lock().add(header as u64, image);
 }
 
@@ -43,7 +43,7 @@ extern "C" fn removed(header: *const u8, _: isize) {
 /// A request owns copies even after unload or address reuse. Capacity is the profile's existing
 /// image budget; overflow counts omitted identities without growing this history.
 pub(super) struct ImageHistory {
-  pub(super) images: Vec<ImageInfo>,
+  pub(super) images: Vec<Image>,
   pub(super) dropped: u64,
   pub(super) errors: u64,
   capacity: usize,
@@ -59,7 +59,7 @@ impl ImageHistory {
     }
   }
 
-  fn record(&mut self, image: Result<ImageInfo, ImageError>) {
+  fn record(&mut self, image: Result<Image, ImageError>) {
     match image {
       Ok(image) if self.images.contains(&image) => {},
       Ok(image) if self.images.len() < self.capacity => self.images.push(image),
@@ -75,13 +75,13 @@ impl ImageHistory {
 
 #[derive(Default)]
 struct ImageCache {
-  active: BTreeMap<u64, Result<ImageInfo, ImageError>>,
+  active: BTreeMap<u64, Result<Image, ImageError>>,
   history: Option<ImageHistory>,
 }
 
 impl ImageCache {
-  fn add(&mut self, header: u64, image: Result<ImageInfo, ImageError>) {
-    self.active.insert(header, image);
+  fn add(&mut self, header: u64, image: Result<Image, ImageError>) {
+    self.active.insert(header, image.clone());
     if let Some(history) = &mut self.history {
       history.record(image);
     }
@@ -93,7 +93,7 @@ impl ImageCache {
     }
     let mut history = ImageHistory::new(capacity);
     for image in self.active.values() {
-      history.record(*image);
+      history.record(image.clone());
     }
     self.history = Some(history);
     Ok(())
@@ -113,13 +113,25 @@ pub(super) struct ImageSession {
 }
 
 impl ImageSession {
-  pub(super) fn start(capacity: usize) -> Result<Self, CaptureError> {
+  fn register() {
     REGISTER.call_once(|| unsafe {
       // Do not hold CACHE while registering: registration calls added synchronously, and dyld
       // callbacks acquire CACHE. No cache-locked path calls back into the loader.
       _dyld_register_func_for_remove_image(removed);
       _dyld_register_func_for_add_image(added);
     });
+  }
+
+  pub(super) fn survey(mut visit: impl FnMut(Result<Image, ImageError>)) {
+    Self::register();
+    let images: Vec<_> = CACHE.lock().active.values().cloned().collect();
+    for image in images {
+      visit(image);
+    }
+  }
+
+  pub(super) fn start(capacity: usize) -> Result<Self, CaptureError> {
+    Self::register();
     CACHE.lock().begin(capacity)?;
     Ok(Self { active: true })
   }

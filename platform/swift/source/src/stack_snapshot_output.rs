@@ -4,7 +4,7 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-use profiler::{CancellationToken, Profile, Snapshot, write_json, write_profile_json};
+use profiler::{CancellationToken, Profile, Snapshot, write_profile, write_snapshot};
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufWriter};
 use std::path::Path;
@@ -20,20 +20,18 @@ mod tests;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ExportError {
   Cancelled,
-  TooLarge,
   Io,
 }
 
 /// Creates a new, exclusively owned attachment. Any failed or cancelled export removes its partial
-/// file. Existing paths are never overwritten or deleted. The byte limit covers the encoded JSON.
+/// file. Existing paths are never overwritten or deleted.
 pub fn write_attachment(
   snapshot: &Snapshot,
   path: &Path,
-  max_bytes: usize,
   cancellation: &CancellationToken,
 ) -> Result<(), ExportError> {
   write_file(path, cancellation, |output| {
-    write_json(snapshot, output, max_bytes, cancellation)
+    write_snapshot(snapshot, output, cancellation)
   })
 }
 
@@ -59,10 +57,7 @@ fn write_file(
     if cancellation.is_cancelled() {
       return Err(ExportError::Cancelled);
     }
-    return Err(match result.err().map(|error| error.kind()) {
-      Some(io::ErrorKind::FileTooLarge) => ExportError::TooLarge,
-      _ => ExportError::Io,
-    });
+    return Err(ExportError::Io);
   }
   Ok(())
 }
@@ -70,10 +65,9 @@ fn write_file(
 pub fn write_profile_attachment(
   profile: &Profile,
   path: &Path,
-  max_bytes: usize,
   cancellation: &CancellationToken,
 ) -> Result<(), ExportError> {
   write_file(path, cancellation, |output| {
-    write_profile_json(profile, output, max_bytes, cancellation)
+    write_profile(profile, output, cancellation)
   })
 }

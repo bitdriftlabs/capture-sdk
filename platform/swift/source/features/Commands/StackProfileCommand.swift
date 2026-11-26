@@ -41,7 +41,7 @@ struct StackProfileCommand: Sendable {
                     )
                     .map { summary in
                         CommandResult(
-                            attachment: .file(url: url, mimeType: "application/json"),
+                            attachment: .file(url: url, mimeType: "application/vnd.bitdrift.stack-profile"),
                             context: summary.context
                         )
                     }

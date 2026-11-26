@@ -7,9 +7,10 @@
 
 #![allow(clippy::unwrap_used)]
 use super::{Profile, ProfileConfig, ProfileSample};
-use crate::{CancellationToken, CaptureError, Observation, ThreadStatus, write_profile_json};
+use crate::{CancellationToken, CaptureError, Observation, ThreadStatus, write_profile};
+use bd_proto::protos::profiling::stack_profile::StackProfile;
 use bd_unwind::aarch64::{Frame, FrameKind, StopReason};
-use serde_json::Value;
+use protobuf::Message;
 use std::time::{Duration, Instant};
 
 fn record(profile: &mut Profile, tid: u64, time: u64, count: usize) {
@@ -29,9 +30,7 @@ fn record(profile: &mut Profile, tid: u64, time: u64, count: usize) {
     frames: &frames,
     status: ThreadStatus::Captured(StopReason::EndOfStack),
     stack_truncated: false,
-    copied_stack_bytes: 32,
     timestamp_ns: time,
-    suspension_ns: 1,
   };
   profile.record(ProfileSample::new(&observation), &frames);
 }
@@ -59,7 +58,7 @@ fn slow_captures_skip_expired_ticks_and_do_not_drift() {
 
 #[test]
 fn storage_evicts_whole_old_samples_and_stays_within_capacity() {
-  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 1, 4096).unwrap();
+  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 4096).unwrap();
   for i in 0 .. 100 {
     record(&mut profile, 7, i, 3);
   }
@@ -78,54 +77,31 @@ fn storage_evicts_whole_old_samples_and_stays_within_capacity() {
 
 #[test]
 fn export_preserves_thread_identity_sample_times_and_independent_stacks() {
-  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 1, 8192).unwrap();
+  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 8192).unwrap();
   record(&mut profile, 17, 1_000_000, 2);
   record(&mut profile, 29, 2_000_000, 1);
   record(&mut profile, 17, 11_000_000, 3);
   let mut bytes = Vec::new();
-  write_profile_json(
-    &profile,
-    &mut bytes,
-    usize::MAX,
-    &CancellationToken::default(),
-  )
-  .unwrap();
-  let value: Value = serde_json::from_slice(&bytes).unwrap();
-  let thread = &value["threads"][0];
-  assert_eq!(thread["bitdrift"]["nativeThreadId"], "17");
+  write_profile(&profile, &mut bytes, &CancellationToken::default()).unwrap();
+  let decoded = StackProfile::parse_from_bytes(&bytes).unwrap();
+  assert_eq!(decoded.interval_ns, 10_000_000);
+  let first = decoded.threads[0].samples.as_ref().unwrap();
+  assert_eq!(first.timestamp_ns, [1_000_000, 11_000_000]);
   assert_eq!(
-    thread["samples"]["data"],
-    serde_json::json!([[1, 1.0], [4, 11.0]])
+    decoded.stacks[first.stack_indices[0] as usize]
+      .frame_indices
+      .len(),
+    2
   );
   assert_eq!(
-    thread["stackTable"]["data"][2],
-    serde_json::json!([null, 2])
+    decoded.stacks[first.stack_indices[1] as usize]
+      .frame_indices
+      .len(),
+    3
   );
   assert_eq!(
-    value["threads"][1]["samples"]["data"],
-    serde_json::json!([[0, 2.0]])
-  );
-  assert_eq!(value["bitdrift"]["capture"], "profile");
-  assert_eq!(
-    thread["bitdrift"]["observations"][0]["frames"][0]["kind"],
-    "pc"
-  );
-  let mut exact = Vec::new();
-  write_profile_json(
-    &profile,
-    &mut exact,
-    bytes.len(),
-    &CancellationToken::default(),
-  )
-  .unwrap();
-  assert!(
-    write_profile_json(
-      &profile,
-      &mut Vec::new(),
-      bytes.len() - 1,
-      &CancellationToken::default()
-    )
-    .is_err()
+    decoded.threads[1].samples.as_ref().unwrap().timestamp_ns,
+    [2_000_000]
   );
 }
 
@@ -145,7 +121,7 @@ fn cancellation_wakes_a_parked_worker_without_waiting_for_the_tick() {
 
 #[test]
 fn absent_user_context_is_retained_without_frames_and_counted_separately() {
-  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 1, 4096).unwrap();
+  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 4096).unwrap();
   record(&mut profile, 7, 1_000_000, 1);
   for (tid, status) in [
     (7, ThreadStatus::NoUserContext),
@@ -157,9 +133,7 @@ fn absent_user_context_is_retained_without_frames_and_counted_separately() {
       status,
       frames: &[],
       stack_truncated: false,
-      copied_stack_bytes: 0,
       timestamp_ns: 2_000_000,
-      suspension_ns: 1,
     };
     profile.record(ProfileSample::new(&observation), &[]);
   }
@@ -170,29 +144,17 @@ fn absent_user_context_is_retained_without_frames_and_counted_separately() {
   assert_eq!(profile.summary.retained_samples, 3);
   assert_eq!(profile.frames.len(), 1);
   let mut output = Vec::new();
-  write_profile_json(
-    &profile,
-    &mut output,
-    usize::MAX,
-    &CancellationToken::default(),
-  )
-  .unwrap();
-  let json: Value = serde_json::from_slice(&output).unwrap();
-  assert_eq!(json["bitdrift"]["noUserContextSamples"], 1);
-  assert_eq!(json["bitdrift"]["failedSamples"], 1);
+  write_profile(&profile, &mut output, &CancellationToken::default()).unwrap();
+  let decoded = StackProfile::parse_from_bytes(&output).unwrap();
+  assert_eq!(decoded.stacks[0].frame_indices.len(), 0);
   assert_eq!(
-    json["threads"][0]["bitdrift"]["observations"][1]["status"],
-    "no_user_context"
+    decoded.threads[0].samples.as_ref().unwrap().stack_indices,
+    [1, 0]
   );
   assert_eq!(
-    json["threads"][0]["bitdrift"]["observations"][1]["frames"],
-    serde_json::json!([])
+    decoded.threads[1].samples.as_ref().unwrap().stack_indices,
+    [0]
   );
-  assert_eq!(
-    json["threads"][0]["samples"]["data"],
-    serde_json::json!([[0, 1.0]])
-  );
-  assert_eq!(json["threads"][1]["samples"]["data"], serde_json::json!([]));
   // Evict zero-frame observations and regular stacks together without desynchronizing the rings.
   for i in 0 .. 100 {
     record(&mut profile, 7, i + 3_000_000, 1);
@@ -231,27 +193,23 @@ fn profiles_real_threads_with_reused_scratch_and_one_time_origin() {
     10
   );
   let mut output = Vec::new();
-  write_profile_json(&profile, &mut output, 5 * 1024 * 1024, &cancellation).unwrap();
-  let json: Value = serde_json::from_slice(&output).unwrap();
-  let timing = &json["bitdrift"]["timing"];
-  let round_work = timing["roundWork"]["totalNs"].as_u64().unwrap();
+  write_profile(&profile, &mut output, &cancellation).unwrap();
+  let decoded = StackProfile::parse_from_bytes(&output).unwrap();
+  let round_work = profile.timing.round_work.total_ns;
   assert!(round_work > 0);
   let mut stage_total = 0;
-  for stage in ["capture", "unwind"] {
-    let total = timing[stage]["totalNs"].as_u64().unwrap();
-    let max = timing[stage]["maxNs"].as_u64().unwrap();
-    assert!(total > 0 && max > 0 && max <= total);
-    stage_total += total;
+  for timing in [&profile.timing.capture, &profile.timing.unwind] {
+    assert!(timing.total_ns > 0 && timing.max_ns > 0 && timing.max_ns <= timing.total_ns);
+    stage_total += timing.total_ns;
   }
   assert!(stage_total <= round_work);
-  assert!(json["bitdrift"]["imagePreparationNs"].as_u64().unwrap() > 0);
+  assert!(profile.timing.image_preparation_ns > 0);
   assert_ne!(profile.images.len(), 0);
   assert!(
-    json["threads"]
-      .as_array()
-      .unwrap()
+    decoded
+      .threads
       .iter()
-      .any(|thread| thread["samples"]["data"].as_array().unwrap().len() > 1)
+      .any(|thread| thread.samples.as_ref().unwrap().timestamp_ns.len() > 1)
   );
   if let Some(path) = std::env::var_os("BD_PROFILE_TEST_OUTPUT") {
     std::fs::write(path, output).unwrap();
@@ -260,7 +218,7 @@ fn profiles_real_threads_with_reused_scratch_and_one_time_origin() {
 
 #[test]
 fn oversized_observation_does_not_evict_the_retained_window() {
-  let mut profile = Profile::new(ProfileConfig::new(10, 500).unwrap(), 1, 4096).unwrap();
+  let mut profile = Profile::new(ProfileConfig::new(10, 500).unwrap(), 4096).unwrap();
   record(&mut profile, 1, 10, 3);
   let capacity = profile.frame_capacity;
   record(&mut profile, 2, 20, capacity + 1);
@@ -272,34 +230,22 @@ fn oversized_observation_does_not_evict_the_retained_window() {
 
 #[test]
 fn profile_names_main_by_native_identity_not_thread_order_or_name() {
-  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 1, 8192).unwrap();
+  let mut profile = Profile::new(ProfileConfig::new(100, 100).unwrap(), 8192).unwrap();
   record(&mut profile, 17, 1_000_000, 2);
   record(&mut profile, 29, 2_000_000, 1);
   for main_thread_id in [None, Some(29)] {
     profile.main_thread_id = main_thread_id;
     let mut bytes = Vec::new();
-    write_profile_json(
-      &profile,
-      &mut bytes,
-      usize::MAX,
-      &CancellationToken::default(),
-    )
-    .unwrap();
-    let json: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(json["threads"][0]["name"], "worker");
-    assert_eq!(json["threads"][0]["bitdrift"]["isMainThread"], false);
+    write_profile(&profile, &mut bytes, &CancellationToken::default()).unwrap();
+    let decoded = StackProfile::parse_from_bytes(&bytes).unwrap();
+    assert_eq!(decoded.threads[0].thread.as_ref().unwrap().name, "worker");
     assert_eq!(
-      json["threads"][1]["bitdrift"]["isMainThread"],
-      main_thread_id.is_some()
-    );
-    assert_eq!(
-      json["threads"][1]["name"],
+      decoded.threads[1].thread.as_ref().unwrap().name,
       if main_thread_id.is_some() {
         "Main Thread"
       } else {
         "worker"
       }
     );
-    assert_eq!(json["threads"][1]["bitdrift"]["nativeThreadId"], "29");
   }
 }

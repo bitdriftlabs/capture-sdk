@@ -14,10 +14,6 @@ use std::ffi::{CStr, c_char, c_void};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-// This SDK ceiling bounds the encoded file, independently of the capture buffer. The core still
-// enforces its runtime-configured upload limit, including configurations below this ceiling.
-pub(crate) const MAX_STACK_CAPTURE_JSON_BYTES: usize = 5 * 1024 * 1024;
-
 // This process identity is independent of cancellation handles. Registration can arrive after a
 // request starts; read it once after capture so every thread in the export sees the same identity.
 static MAIN_THREAD_ID: AtomicU64 = AtomicU64::new(0);
@@ -58,7 +54,7 @@ pub unsafe extern "C" fn capture_stack_snapshot_bridge_release(bridge: *mut c_vo
   }
 }
 
-/// Captures stacks and creates a JSON attachment at an exclusively owned path.
+/// Captures stacks and creates a protobuf attachment at an exclusively owned path.
 ///
 /// # Safety
 /// `path` must be a NUL-terminated UTF-8 string. `bridge` must remain live for this call;
@@ -95,16 +91,10 @@ pub unsafe extern "C" fn capture_stack_snapshot(
     Err(error) => return capture_error(error),
   };
   snapshot.main_thread_id = main_thread_id();
-  if let Err(error) = write_attachment(
-    &snapshot,
-    Path::new(path),
-    MAX_STACK_CAPTURE_JSON_BYTES,
-    bridge,
-  ) {
+  if let Err(error) = write_attachment(&snapshot, Path::new(path), bridge) {
     return match error {
       ExportError::Io => 5,
-      ExportError::TooLarge => 6,
-      ExportError::Cancelled => 7,
+      ExportError::Cancelled => 6,
     };
   }
   // SAFETY: output storage remains exclusively owned by this synchronous invocation.
@@ -124,7 +114,7 @@ pub(crate) const fn capture_error(error: CaptureError) -> i32 {
     CaptureError::AlreadyCapturing => 2,
     CaptureError::UnsupportedArchitecture => 3,
     CaptureError::ThreadEnumerationFailed | CaptureError::ResumeFailed => 4,
-    CaptureError::Cancelled => 7,
-    CaptureError::NoUsefulStacks => 8,
+    CaptureError::Cancelled => 6,
+    CaptureError::NoUsefulStacks => 7,
   }
 }

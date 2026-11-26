@@ -6,8 +6,8 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 #![allow(clippy::unwrap_used)]
 
-use super::{ExportError, write_attachment, write_file, write_json};
-use profiler::{CancellationToken, Snapshot};
+use super::{ExportError, write_attachment, write_file, write_snapshot};
+use profiler::{CancellationToken, Snapshot, ThreadSnapshot, ThreadStatus};
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::{self, Write};
@@ -25,7 +25,7 @@ struct TestPath(PathBuf);
 impl TestPath {
   fn new() -> Self {
     Self(std::env::temp_dir().join(format!(
-      "bd-stack-output-{}-{}.json",
+      "bd-stack-output-{}-{}.pb",
       std::process::id(),
       NEXT_PATH.fetch_add(1, Ordering::Relaxed)
     )))
@@ -39,18 +39,21 @@ impl Drop for TestPath {
 }
 
 #[test]
-fn oversized_export_removes_its_partial_file() {
+fn exports_larger_than_five_mib_are_not_rejected_by_the_platform() {
   let path = TestPath::new();
-  assert_eq!(
-    write_attachment(
-      &sample_snapshot(),
-      &path.0,
-      200,
-      &CancellationToken::default()
-    ),
-    Err(ExportError::TooLarge)
-  );
-  assert!(!path.0.exists());
+  let mut snapshot = sample_snapshot();
+  snapshot.threads.push(ThreadSnapshot {
+    native_id: 1,
+    name: "x".repeat(5 * 1024 * 1024 + 1),
+    status: ThreadStatus::RegistersUnavailable,
+    frames: vec![],
+    stack_truncated: false,
+    copied_stack_bytes: 0,
+    timestamp_ns: 0,
+    suspension_ns: 0,
+  });
+  write_attachment(&snapshot, &path.0, &CancellationToken::default()).unwrap();
+  assert!(fs::metadata(&path.0).unwrap().len() > 5 * 1024 * 1024);
 }
 
 #[test]
@@ -58,12 +61,7 @@ fn existing_files_are_never_overwritten_or_removed() {
   let path = TestPath::new();
   fs::write(&path.0, b"existing file").unwrap();
   assert_eq!(
-    write_attachment(
-      &sample_snapshot(),
-      &path.0,
-      usize::MAX,
-      &CancellationToken::default()
-    ),
+    write_attachment(&sample_snapshot(), &path.0, &CancellationToken::default()),
     Err(ExportError::Io)
   );
   assert_eq!(fs::read(&path.0).unwrap(), b"existing file");
@@ -75,7 +73,7 @@ fn cancelled_export_creates_no_file() {
   let cancellation = CancellationToken::default();
   cancellation.cancel();
   assert_eq!(
-    write_attachment(&sample_snapshot(), &path.0, usize::MAX, &cancellation),
+    write_attachment(&sample_snapshot(), &path.0, &cancellation),
     Err(ExportError::Cancelled)
   );
   assert!(!path.0.exists());
@@ -86,7 +84,7 @@ fn cancellation_at_successful_completion_still_removes_the_owned_file() {
   let path = TestPath::new();
   let cancellation = CancellationToken::default();
   let result = write_file(&path.0, &cancellation, |output| {
-    write_json(&sample_snapshot(), output, usize::MAX, &cancellation)?;
+    write_snapshot(&sample_snapshot(), output, &cancellation)?;
     cancellation.cancel();
     Ok(())
   });
@@ -123,7 +121,7 @@ fn cancellation_while_serializing_stops_writing_and_removes_the_partial_file() {
       inner: output,
       cancellation: &cancellation,
     };
-    write_json(&sample_snapshot(), &mut output, usize::MAX, &cancellation)
+    write_snapshot(&sample_snapshot(), &mut output, &cancellation)
   });
   assert_eq!(result, Err(ExportError::Cancelled));
   assert!(!path.0.exists());
@@ -143,7 +141,6 @@ fn io_failure_removes_the_owned_partial_file() {
 
 fn sample_snapshot() -> Snapshot {
   Snapshot {
-    pid: 42,
     main_thread_id: None,
     threads: vec![],
     images: vec![],

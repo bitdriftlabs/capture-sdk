@@ -152,26 +152,14 @@ final class StackProfileCommandTests: XCTestCase {
         let attachment = try XCTUnwrap(result.attachment)
         defer { attachment.discardOwnedFile() }
         let url = try XCTUnwrap(attachment.fileURL)
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
-        let meta = try XCTUnwrap(json["bitdrift"] as? [String: Any])
-        XCTAssertEqual(meta["capture"] as? String, "profile")
-        let rounds = try XCTUnwrap(meta["captureRounds"] as? Int)
+        XCTAssertEqual(attachment.mimeType, "application/vnd.bitdrift.stack-profile")
+        XCTAssertEqual(url.pathExtension, "pb")
+        let bytes = try Data(contentsOf: url)
+        XCTAssertFalse(bytes.isEmpty)
+        XCTAssertThrowsError(try JSONSerialization.jsonObject(with: bytes))
+        let rounds = try XCTUnwrap(result.context["capture_rounds"].flatMap(Int.init))
         XCTAssertGreaterThan(rounds, 1)
-        XCTAssertEqual(result.context["capture_rounds"], String(rounds))
-        let noContext = try XCTUnwrap(meta["noUserContextSamples"] as? Int)
-        XCTAssertEqual(result.context["no_user_context_samples"], String(noContext))
-        let threads = try XCTUnwrap(json["threads"] as? [[String: Any]])
-        XCTAssertTrue(threads.contains { thread in
-            guard let samples = thread["samples"] as? [String: Any],
-                  let data = samples["data"] as? [[Any]] else { return false }
-            return data.count > 1
-        })
-        for thread in threads {
-            let samples = try XCTUnwrap(thread["samples"] as? [String: Any])
-            let data = try XCTUnwrap(samples["data"] as? [[NSNumber]])
-            let times = data.map { $0[1].doubleValue }
-            XCTAssertEqual(times, times.sorted())
-        }
+        XCTAssertNotNil(result.context["no_user_context_samples"])
         #endif
     }
 }

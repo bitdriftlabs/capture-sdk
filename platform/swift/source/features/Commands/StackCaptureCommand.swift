@@ -36,7 +36,7 @@ struct StackCaptureCommand: @unchecked Sendable {
         defer { Self.release() }
         let operation = makeOperation()
         let url = fileManager.temporaryDirectory
-            .appendingPathComponent("bitdrift-stack-\(UUID().uuidString).json")
+            .appendingPathComponent("bitdrift-stack-\(UUID().uuidString).pb")
         let result = await withTaskCancellationHandler {
             await Task.detached(priority: .utility) {
                 operation.capture(url)

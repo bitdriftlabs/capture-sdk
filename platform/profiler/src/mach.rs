@@ -52,9 +52,6 @@ unsafe extern "C" {
   ) -> i32;
   pub(super) fn mach_absolute_time() -> u64;
   pub(super) fn mach_timebase_info(info: *mut Timebase) -> i32;
-  pub(super) fn _dyld_image_count() -> u32;
-  pub(super) fn _dyld_get_image_header(index: u32) -> *const u8;
-  pub(super) fn getpid() -> i32;
 }
 
 //

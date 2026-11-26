@@ -21,7 +21,7 @@ use std::ffi::CString;
 #[test]
 fn bridge_handles_share_the_request_slot_and_rejected_cancellation_keeps_it_busy() {
   let directory = tempfile::tempdir().unwrap();
-  let path = directory.path().join("snapshot.json");
+  let path = directory.path().join("snapshot.pb");
   let native_path = CString::new(path.to_str().unwrap()).unwrap();
   let session = Profiler::new(256, &CancellationToken::default()).unwrap();
   std::thread::spawn(move || {
@@ -49,7 +49,7 @@ fn bridge_handles_share_the_request_slot_and_rejected_cancellation_keeps_it_busy
       capture_stack_snapshot_bridge_cancel(handle);
       assert_eq!(
         capture_stack_snapshot(256, native_path.as_ptr(), handle, &raw mut summary),
-        7
+        6
       );
       assert_eq!(
         capture_stack_profile(
@@ -60,7 +60,7 @@ fn bridge_handles_share_the_request_slot_and_rejected_cancellation_keeps_it_busy
           handle,
           &raw mut profile_summary
         ),
-        7
+        6
       );
       capture_stack_snapshot_bridge_release(handle);
     }
@@ -91,4 +91,10 @@ fn main_thread_registration_after_bridge_creation_is_visible_across_threads() {
   unsafe { capture_stack_snapshot_bridge_release(handle) };
   assert_eq!(main_thread_id(), Some(u64::MAX));
   capture_stack_set_main_thread_id(0);
+}
+
+#[test]
+fn cancellation_and_missing_stacks_use_consecutive_status_codes() {
+  assert_eq!(super::capture_error(CaptureError::Cancelled), 6);
+  assert_eq!(super::capture_error(CaptureError::NoUsefulStacks), 7);
 }
