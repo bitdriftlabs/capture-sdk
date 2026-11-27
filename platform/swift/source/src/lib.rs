@@ -28,3 +28,5 @@ pub mod memory_dump;
 pub mod resource_utilization;
 mod session;
 pub mod session_replay;
+mod stack_snapshot;
+mod stack_snapshot_output;

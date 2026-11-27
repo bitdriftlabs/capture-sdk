@@ -1,0 +1,13 @@
+[package]
+edition      = "2024"
+license-file = "LICENSE"
+name         = "profiler"
+publish      = false
+version      = "1.0.0"
+
+[dependencies]
+bd-unwind     = { path = "../unwind" }
+log.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
