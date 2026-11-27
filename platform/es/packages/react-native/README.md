@@ -8,6 +8,21 @@ bitdrift integration for React Native
 npm install @bitdrift/react-native
 ```
 
+### iOS distribution
+
+The npm package includes the Capture XCFramework and its license. React Native
+autolinking integrates this binary through `BdReactNative.podspec`; no separate
+`BitdriftCapture` pod or additional CocoaPods specs repository is required.
+iOS 15 or later is required (or the higher minimum required by React Native).
+
+Do not also add Capture through the `BitdriftCapture` pod or Swift Package Manager
+in the same app. The bundled SDK must be the single source of Capture's native binary.
+
+For repository development, `npm exec nx run @bitdrift/react-native:prepare-release`
+downloads the matching SDK archive, verifies its published SHA-256 checksum, and
+includes the XCFramework, license, and version metadata in `dist/react-native`.
+This download happens during package preparation, not during a customer's installation.
+
 ## Usage
 
 ### Expo
