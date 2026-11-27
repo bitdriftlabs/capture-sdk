@@ -42,6 +42,7 @@ extern "C" fn removed(header: *const u8, _: isize) {
 
 /// A request owns copies even after unload or address reuse. Capacity is the profile's existing
 /// image budget; overflow counts omitted identities without growing this history.
+#[derive(Default)]
 pub(super) struct ImageHistory {
   pub(super) images: Vec<Image>,
   pub(super) dropped: u64,
@@ -50,13 +51,17 @@ pub(super) struct ImageHistory {
 }
 
 impl ImageHistory {
-  fn new(capacity: usize) -> Self {
-    Self {
-      images: Vec::with_capacity(capacity),
+  fn new(capacity: usize) -> Result<Self, CaptureError> {
+    let mut images = Vec::new();
+    images
+      .try_reserve_exact(capacity)
+      .map_err(|_| CaptureError::AllocationFailed)?;
+    Ok(Self {
+      images,
       dropped: 0,
       errors: 0,
       capacity,
-    }
+    })
   }
 
   fn record(&mut self, image: Result<Image, ImageError>) {
@@ -91,7 +96,7 @@ impl ImageCache {
     if self.history.is_some() {
       return Err(CaptureError::AlreadyCapturing);
     }
-    let mut history = ImageHistory::new(capacity);
+    let mut history = ImageHistory::new(capacity)?;
     for image in self.active.values() {
       history.record(image.clone());
     }
@@ -141,7 +146,7 @@ impl ImageSession {
     // requests. Taking it stops recording before the attachment is exported.
     let history = CACHE.lock().history.take();
     self.active = false;
-    history.unwrap_or_else(|| ImageHistory::new(0))
+    history.unwrap_or_default()
   }
 }
 

@@ -113,7 +113,9 @@ pub(crate) const fn capture_error(error: CaptureError) -> i32 {
     CaptureError::InvalidBufferSize | CaptureError::InvalidProfileConfig => 1,
     CaptureError::AlreadyCapturing => 2,
     CaptureError::UnsupportedArchitecture => 3,
-    CaptureError::ThreadEnumerationFailed | CaptureError::ResumeFailed => 4,
+    CaptureError::AllocationFailed
+    | CaptureError::ThreadEnumerationFailed
+    | CaptureError::ResumeFailed => 4,
     CaptureError::Cancelled => 6,
     CaptureError::NoUsefulStacks => 7,
   }

@@ -91,6 +91,47 @@ fn unloaded_images_with_reused_addresses_are_not_misattributed() {
 }
 
 #[test]
+fn overlapping_history_ranges_preserve_unique_matches_and_reject_ambiguous_ones() {
+  let mut old = image(1, 0x1000);
+  old.info.text = AddressRange::new(0x1000, 0x4000).unwrap();
+  let newer = image(2, 0x3000);
+  for images in [vec![old.clone(), newer.clone()], vec![newer, old]] {
+    let mut captured = sample_snapshot();
+    captured.images = images;
+    captured.threads[0].frames = vec![
+      Frame {
+        address: 0x3500,
+        kind: FrameKind::ProgramCounter,
+      },
+      Frame {
+        address: 0x4500,
+        kind: FrameKind::ProgramCounter,
+      },
+      Frame {
+        address: 0x4000,
+        kind: FrameKind::ProgramCounter,
+      },
+      Frame {
+        address: 0x4000,
+        kind: FrameKind::ReturnAddress,
+      },
+    ];
+    let output = snapshot(&captured, &CancellationToken::default()).unwrap();
+    assert_eq!(output.binary_images.len(), 1);
+    assert_eq!(output.binary_images[0].load_address, 0x1000);
+    let frames = &output.thread_details.as_ref().unwrap().threads[0].frames;
+    assert!(frames[0].image_id.is_none());
+    assert_eq!(
+      frames[1].image_id.as_ref(),
+      Some(&output.binary_images[0].id)
+    );
+    assert_eq!(frames[2].image_id, frames[1].image_id);
+    assert!(frames[3].image_id.is_none());
+    assert_eq!(frames[3].frame_address, Some(0x4000));
+  }
+}
+
+#[test]
 fn profile_interns_stacks_across_threads_and_preserves_gaps_and_large_timestamps() {
   let mut captured = Profile::new(ProfileConfig::new(20, 1000).unwrap(), 16384).unwrap();
   captured.images = vec![image(1, 0x1000)];

@@ -9,9 +9,9 @@
 #[path = "./profile_test.rs"]
 mod tests;
 
+use crate::{CancellationToken, CaptureError, Image, Profiler};
 #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
-use crate::Observation;
-use crate::{CancellationToken, CaptureError, Image, Profiler, ThreadStatus};
+use crate::{Observation, ThreadStatus};
 use bd_unwind::aarch64::Frame;
 #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
 use bd_unwind::aarch64::StopReason;
@@ -27,6 +27,7 @@ use std::time::Duration;
 #[derive(Clone, Copy, Debug)]
 pub struct ProfileConfig {
   pub(crate) interval: Duration,
+  #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
   pub(crate) duration: Duration,
 }
 
@@ -37,6 +38,7 @@ impl ProfileConfig {
     }
     Ok(Self {
       interval: Duration::from_nanos(1_000_000_000 / u64::from(frequency_hz)),
+      #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
       duration: Duration::from_millis(u64::from(duration_ms)),
     })
   }
@@ -66,7 +68,9 @@ pub(crate) struct ProfileSample {
   pub native_id: u64,
   name: [u8; 64],
   name_len: usize,
+  #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
   pub status: ThreadStatus,
+  #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
   pub stack_truncated: bool,
   pub timestamp_ns: u64,
   pub frame_count: usize,
@@ -195,11 +199,19 @@ impl Profile {
     if sample_capacity == 0 || image_capacity == 0 || frame_capacity == 0 {
       return Err(CaptureError::InvalidBufferSize);
     }
+    let mut samples = VecDeque::new();
+    samples
+      .try_reserve_exact(sample_capacity)
+      .map_err(|_| CaptureError::AllocationFailed)?;
+    let mut frames = VecDeque::new();
+    frames
+      .try_reserve_exact(frame_capacity)
+      .map_err(|_| CaptureError::AllocationFailed)?;
     Ok(Self {
       config,
       main_thread_id: None,
-      samples: VecDeque::with_capacity(sample_capacity),
-      frames: VecDeque::with_capacity(frame_capacity),
+      samples,
+      frames,
       // The image session allocates this budget and transfers its vector here after capture.
       images: Vec::new(),
       summary: ProfileSummary::default(),

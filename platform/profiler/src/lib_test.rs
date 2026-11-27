@@ -63,7 +63,9 @@ fn only_one_profiler_can_run_and_dropping_it_releases_the_slot() {
     assert!(Profiler::new(size, &CancellationToken::default()).is_ok());
   }
   #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
-  captures_native_worker_and_resumes_it();
+  for budget in [256, u32::MAX] {
+    captures_native_worker_and_resumes_it(budget);
+  }
 }
 
 #[test]
@@ -100,7 +102,7 @@ fn skipped_threads_have_no_fabricated_samples() {
 }
 
 #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
-fn captures_native_worker_and_resumes_it() {
+fn captures_native_worker_and_resumes_it(buffer_size_kb: u32) {
   use std::sync::Arc;
   use std::sync::atomic::{AtomicBool, Ordering};
   use std::time::{Duration, Instant};
@@ -121,7 +123,7 @@ fn captures_native_worker_and_resumes_it() {
   while !progressed.load(Ordering::Acquire) {
     std::thread::yield_now();
   }
-  let result = capture(256, &CancellationToken::default());
+  let result = capture(buffer_size_kb, &CancellationToken::default());
   progressed.store(false, Ordering::Release);
   let deadline = Instant::now() + Duration::from_secs(2);
   while !progressed.load(Ordering::Acquire) && Instant::now() < deadline {

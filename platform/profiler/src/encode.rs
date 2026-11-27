@@ -180,11 +180,11 @@ impl<'a> Images<'a> {
       FrameKind::ProgramCounter => frame.address,
       FrameKind::ReturnAddress => frame.address.saturating_sub(1),
     };
+    // An older, larger image can still contain this address even if a later image starts closer
+    // to it. Inspect every candidate range retained in the history.
     let mut matches = self
       .by_address
       .range(..= address)
-      .next_back()
-      .into_iter()
       .flat_map(|(_, images)| images.iter().copied())
       .filter(|image| image.info.text.contains(address, 1));
     let image = matches.next();

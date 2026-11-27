@@ -13,6 +13,14 @@ use bd_unwind::aarch64::{Frame, FrameKind, StopReason};
 use protobuf::Message;
 use std::time::{Duration, Instant};
 
+#[test]
+fn impossible_retention_budget_returns_an_allocation_error() {
+  assert!(matches!(
+    Profile::new(ProfileConfig::new(100, 100).unwrap(), usize::MAX),
+    Err(CaptureError::AllocationFailed)
+  ));
+}
+
 fn record(profile: &mut Profile, tid: u64, time: u64, count: usize) {
   let mut frames = vec![
     Frame {
