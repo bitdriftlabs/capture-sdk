@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'platform/es/**'
+      - '.github/workflows/react-native-e2e.yml'
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -34,11 +35,22 @@ jobs:
         uses: ./.github/actions/javascript-setup
 
       - name: Prepare React Native package
-        run: npm exec nx run @bitdrift/react-native:prepare-release
+        run: |
+          npm exec nx run @bitdrift/react-native:prepare-release
+          npm pack ./dist/react-native --pack-destination "$RUNNER_TEMP" --json > "$RUNNER_TEMP/react-native-pack.json"
+          filename=$(node -p "require(process.env.RUNNER_TEMP + '/react-native-pack.json')[0].filename")
+          echo "RN_PACKAGE_TARBALL=$RUNNER_TEMP/$filename" >> "$GITHUB_ENV"
 
       - name: Install Hermes sample dependencies
         working-directory: platform/es/examples/HermesSample
-        run: npm install --no-package-lock
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.dependencies['@bitdrift/react-native'] = process.env.RN_PACKAGE_TARBALL;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          NODE
+          npm install --no-package-lock
 
       - name: Install CocoaPods
         working-directory: platform/es/examples/HermesSample/ios
@@ -47,6 +59,10 @@ jobs:
             USE_FRAMEWORKS=static pod install
           else
             pod install
+          fi
+          if grep -q BitdriftCapture Podfile.lock; then
+            echo 'The npm package must not resolve a separate BitdriftCapture pod.' >&2
+            exit 1
           fi
 
       - name: Build Hermes sample

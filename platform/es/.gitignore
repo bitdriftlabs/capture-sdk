@@ -82,6 +82,7 @@ yarn-error.log
 
 # Ruby / CocoaPods
 **/ios/Pods/
+packages/react-native/ios/vendor/
 **/vendor/bundle/
 
 # Temporary files created by Metro to check the health of the file watcher
