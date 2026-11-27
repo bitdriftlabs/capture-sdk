@@ -18,6 +18,7 @@ use super::{
   thread_suspend,
 };
 use crate::CancellationToken;
+use crate::tests::NATIVE_CAPTURE_LOCK;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
 
@@ -38,6 +39,7 @@ fn timebase_converts_without_intermediate_overflow() {
 
 #[test]
 fn guard_drop_balances_only_its_own_suspension() {
+  let _native_capture = NATIVE_CAPTURE_LOCK.lock().unwrap();
   let running = Arc::new(AtomicBool::new(true));
   let worker_running = running.clone();
   let (sender, receiver) = mpsc::channel();

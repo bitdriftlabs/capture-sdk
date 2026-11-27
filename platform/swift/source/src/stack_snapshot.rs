@@ -102,7 +102,9 @@ const fn capture_error(error: CaptureError) -> i32 {
     CaptureError::InvalidBufferSize => 1,
     CaptureError::AlreadyCapturing => 2,
     CaptureError::UnsupportedArchitecture => 3,
-    CaptureError::ThreadEnumerationFailed | CaptureError::ResumeFailed => 4,
+    CaptureError::AllocationFailed
+    | CaptureError::ThreadEnumerationFailed
+    | CaptureError::ResumeFailed => 4,
     CaptureError::Cancelled => 7,
     CaptureError::NoUsefulStacks => 8,
   }

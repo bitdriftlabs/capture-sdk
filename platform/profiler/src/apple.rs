@@ -27,20 +27,34 @@ use bd_unwind::memory::{MemoryReader, StackMemory};
 use std::collections::BTreeMap;
 use std::mem::size_of;
 
+#[cfg(test)]
+#[path = "./apple_test.rs"]
+mod tests;
+
+// These capture limits bound copy time and retained frame storage independently of the command's
+// budget. The scratch buffer is reused across threads; longer stacks retain their partial trace.
+const MAX_STACK_COPY_BYTES: usize = 64 * 1024;
+const MAX_FRAMES_PER_THREAD: usize = 256;
+
 pub(super) fn capture(
   budget: usize,
   cancellation: &CancellationToken,
 ) -> Result<Snapshot, CaptureError> {
   cancellation.check()?;
   let threads = Threads::new()?;
-  let frame_capacity = budget / 2 / size_of::<Frame>() / threads.ports().len().max(1);
+  let frame_capacity =
+    (budget / 2 / size_of::<Frame>() / threads.ports().len().max(1)).min(MAX_FRAMES_PER_THREAD);
   if frame_capacity == 0 {
     return Err(CaptureError::InvalidBufferSize);
   }
   let mut collector = Collector::new(budget / 2, threads.current)?;
+  let mut captured_threads = Vec::new();
+  captured_threads
+    .try_reserve_exact(threads.ports().len())
+    .map_err(|_| CaptureError::AllocationFailed)?;
   let mut snapshot = Snapshot {
     pid: unsafe { getpid() }.unsigned_abs(),
-    threads: Vec::with_capacity(threads.ports().len()),
+    threads: captured_threads,
     images: Vec::new(),
     image_errors: BTreeMap::new(),
   };
@@ -50,7 +64,7 @@ pub(super) fn capture(
     let mut frames = if *port == threads.current {
       Vec::new()
     } else {
-      vec![Frame::default(); frame_capacity]
+      filled_buffer(frame_capacity, Frame::default())?
     };
     let result = if *port == threads.current {
       ThreadCapture::skipped()
@@ -78,6 +92,15 @@ pub(super) fn capture(
   );
   snapshot.ensure_useful()?;
   Ok(snapshot)
+}
+
+fn filled_buffer<T: Clone>(length: usize, value: T) -> Result<Vec<T>, CaptureError> {
+  let mut buffer = Vec::new();
+  buffer
+    .try_reserve_exact(length)
+    .map_err(|_| CaptureError::AllocationFailed)?;
+  buffer.resize(length, value);
+  Ok(buffer)
 }
 
 fn survey_images(
@@ -109,7 +132,7 @@ impl Collector {
     if stack_bytes == 0 {
       return Err(CaptureError::InvalidBufferSize);
     }
-    let scratch = vec![0; stack_bytes];
+    let scratch = filled_buffer(stack_bytes.min(MAX_STACK_COPY_BYTES), 0)?;
     // Resolve lazy Mach bindings while all target threads are running.
     let mut byte = [0];
     TaskMemory.read(scratch.as_ptr() as u64, &mut byte);

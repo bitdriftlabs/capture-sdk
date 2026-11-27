@@ -35,6 +35,7 @@ pub enum CaptureError {
   UnsupportedArchitecture,
   AlreadyCapturing,
   InvalidBufferSize,
+  AllocationFailed,
   ThreadEnumerationFailed,
   ResumeFailed,
   Cancelled,
@@ -64,6 +65,7 @@ impl Profiler {
 
   /// Captures one sequential pass over threads, excluding the calling thread. The buffer bounds
   /// scratch space plus retained frames; metadata and encoded output are outside that budget.
+  /// Copies at most 64 KiB per thread and retains at most 256 frames per thread.
   /// No allocation or logging occurs while a target thread is suspended.
   pub fn capture(&mut self, cancellation: &CancellationToken) -> Result<Snapshot, CaptureError> {
     cancellation.check()?;
