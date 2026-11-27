@@ -6,9 +6,9 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 #![allow(clippy::unwrap_used)]
 
-use super::{Collector, ThreadCapture};
+use super::{Collector, MAX_STACK_COPY_BYTES, ThreadCapture, filled_buffer};
 use crate::mach::{Threads, mach_task_self_, registers};
-use crate::{CancellationToken, ThreadStatus};
+use crate::{CancellationToken, CaptureError, ThreadStatus};
 use bd_unwind::aarch64::{Frame, FrameKind, Registers};
 
 #[link(name = "System")]
@@ -89,4 +89,44 @@ fn missing_stack_classification_requires_both_pc_and_sp_to_be_zero() {
   result.set_unavailable(None, &mut [Frame::default(); 1]);
   assert_eq!(result.status, ThreadStatus::RegistersUnavailable);
   assert_eq!(result.frame_count, 0);
+}
+
+#[test]
+fn scratch_respects_small_budgets_and_caps_large_ones() {
+  for budget in [1024, MAX_STACK_COPY_BYTES, usize::MAX] {
+    let collector = Collector::new(budget, 0).unwrap();
+    assert_eq!(collector.scratch.len(), budget.min(MAX_STACK_COPY_BYTES));
+  }
+}
+
+#[test]
+fn impossible_buffer_reservation_returns_a_capture_error() {
+  assert_eq!(
+    filled_buffer(usize::MAX, 0_u64),
+    Err(CaptureError::AllocationFailed)
+  );
+}
+
+#[test]
+fn frame_scratch_can_be_smaller_than_the_thread_count() {
+  let _capture = crate::tests::CAPTURE_TEST_LOCK.lock().unwrap();
+  let mut port = 0;
+  // Use a stable thread owned by this fixture: unrelated harness threads may exit during capture.
+  assert_eq!(unsafe { thread_create(mach_task_self_, &raw mut port) }, 0);
+  let thread = UnstartedThread(port);
+  let threads = Threads::new().unwrap();
+  let ports = [threads.current, thread.0];
+  let mut collector = Collector::new(4096, threads.current).unwrap();
+  let mut frames = [Frame::default(); 1];
+  let mut observed = 0;
+  collector
+    .sample_threads(
+      &ports,
+      threads.current,
+      &CancellationToken::default(),
+      &mut frames,
+      |_| observed += 1,
+    )
+    .unwrap();
+  assert_eq!(observed, ports.len());
 }

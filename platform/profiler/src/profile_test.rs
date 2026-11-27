@@ -12,6 +12,14 @@ use bd_unwind::aarch64::{Frame, FrameKind, StopReason};
 use serde_json::Value;
 use std::time::{Duration, Instant};
 
+#[test]
+fn impossible_retention_budget_returns_an_allocation_error() {
+  assert!(matches!(
+    Profile::new(ProfileConfig::new(100, 100).unwrap(), 1, usize::MAX),
+    Err(CaptureError::AllocationFailed)
+  ));
+}
+
 fn record(profile: &mut Profile, tid: u64, time: u64, count: usize) {
   let mut frames = vec![
     Frame {

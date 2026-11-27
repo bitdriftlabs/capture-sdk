@@ -49,21 +49,31 @@ use std::time::{Duration, Instant};
 #[path = "./apple_test.rs"]
 mod tests;
 
+// These capture limits bound copy time and retained frame storage independently of the command's
+// budget. The scratch buffer is reused across threads; longer stacks retain their partial trace.
+const MAX_STACK_COPY_BYTES: usize = 64 * 1024;
+const MAX_FRAMES_PER_THREAD: usize = 256;
+
 pub(super) fn capture(
   budget: usize,
   cancellation: &CancellationToken,
 ) -> Result<Snapshot, CaptureError> {
   cancellation.check()?;
   let threads = Threads::new()?;
-  let frame_capacity = budget / 2 / size_of::<Frame>() / threads.ports().len().max(1);
+  let frame_capacity =
+    (budget / 2 / size_of::<Frame>() / threads.ports().len().max(1)).min(MAX_FRAMES_PER_THREAD);
   if frame_capacity == 0 {
     return Err(CaptureError::InvalidBufferSize);
   }
   let mut collector = Collector::new(budget / 2, threads.current)?;
+  let mut captured_threads = Vec::new();
+  captured_threads
+    .try_reserve_exact(threads.ports().len())
+    .map_err(|_| CaptureError::AllocationFailed)?;
   let mut snapshot = Snapshot {
     pid: unsafe { getpid() }.unsigned_abs(),
     main_thread_id: None,
-    threads: Vec::with_capacity(threads.ports().len()),
+    threads: captured_threads,
     images: Vec::new(),
     image_errors: BTreeMap::new(),
   };
@@ -73,7 +83,7 @@ pub(super) fn capture(
     let mut frames = if *port == threads.current {
       Vec::new()
     } else {
-      vec![Frame::default(); frame_capacity]
+      filled_buffer(frame_capacity, Frame::default())?
     };
     let result = if *port == threads.current {
       ThreadCapture::skipped()
@@ -114,7 +124,10 @@ pub(super) fn profile(
     let threads = Threads::new()?;
     Collector::new(scratch_budget, threads.current)?
   };
-  let mut frames = vec![Frame::default(); frame_budget / size_of::<Frame>()];
+  let mut frames = filled_buffer(
+    (frame_budget / size_of::<Frame>()).min(MAX_FRAMES_PER_THREAD),
+    Frame::default(),
+  )?;
   let mut profile = Profile::new(
     config,
     unsafe { getpid() }.unsigned_abs(),
@@ -187,6 +200,15 @@ pub(super) fn profile(
   Ok(profile)
 }
 
+fn filled_buffer<T: Clone>(length: usize, value: T) -> Result<Vec<T>, CaptureError> {
+  let mut buffer = Vec::new();
+  buffer
+    .try_reserve_exact(length)
+    .map_err(|_| CaptureError::AllocationFailed)?;
+  buffer.resize(length, value);
+  Ok(buffer)
+}
+
 fn survey_images(
   cancellation: &CancellationToken,
   mut visit: impl FnMut(Result<ImageInfo, ImageError>),
@@ -217,7 +239,7 @@ impl Collector {
     if stack_bytes == 0 {
       return Err(CaptureError::InvalidBufferSize);
     }
-    let scratch = vec![0; stack_bytes];
+    let scratch = filled_buffer(stack_bytes.min(MAX_STACK_COPY_BYTES), 0)?;
     // Resolve lazy Mach bindings while all target threads are running.
     let mut byte = [0];
     TaskMemory.read(scratch.as_ptr() as u64, &mut byte);
@@ -247,21 +269,39 @@ impl Collector {
     &mut self,
     cancellation: &CancellationToken,
     frames: &mut [Frame],
-    mut visit: impl FnMut(Observation<'_>),
+    visit: impl FnMut(Observation<'_>),
   ) -> Result<(), CaptureError> {
     cancellation.check()?;
     let threads = Threads::new()?;
-    let frame_capacity = frames.len() / threads.ports().len().max(1);
-    if frame_capacity == 0 {
+    self.sample_threads(
+      threads.ports(),
+      threads.current,
+      cancellation,
+      frames,
+      visit,
+    )
+  }
+
+  fn sample_threads(
+    &mut self,
+    ports: &[u32],
+    current: u32,
+    cancellation: &CancellationToken,
+    frames: &mut [Frame],
+    mut visit: impl FnMut(Observation<'_>),
+  ) -> Result<(), CaptureError> {
+    if frames.is_empty() {
       return Err(CaptureError::InvalidBufferSize);
     }
-    for port in threads.ports() {
+    for port in ports {
       cancellation.check()?;
       let (native_id, name) = metadata(*port);
-      let result = if *port == threads.current {
+      let result = if *port == current {
         ThreadCapture::skipped()
       } else {
-        self.capture_thread(*port, cancellation, &mut frames[.. frame_capacity])?
+        // The visitor copies this stack into the retained ring before the next capture, so every
+        // thread can use the whole frame buffer regardless of how many threads were enumerated.
+        self.capture_thread(*port, cancellation, frames)?
       };
       visit(Observation {
         native_id,

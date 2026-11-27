@@ -6,10 +6,18 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 #![allow(clippy::unwrap_used)]
 
-use super::{CACHE, ImageCache, ImageSession};
+use super::{CACHE, ImageCache, ImageHistory, ImageSession};
 use crate::CaptureError;
 use bd_unwind::image::{ImageError, ImageInfo};
 use bd_unwind::memory::AddressRange;
+
+#[test]
+fn impossible_image_history_reservation_returns_an_allocation_error() {
+  assert!(matches!(
+    ImageHistory::new(usize::MAX),
+    Err(CaptureError::AllocationFailed)
+  ));
+}
 
 fn image(uuid: u8) -> ImageInfo {
   ImageInfo {
