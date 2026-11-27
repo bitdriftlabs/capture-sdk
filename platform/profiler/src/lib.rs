@@ -4,15 +4,19 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-//! Command-driven ARM64 stack snapshots with Firefox Profiler JSON output.
+//! Command-driven ARM64 stack snapshots and periodic profiles with Firefox Profiler JSON output.
 
 #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 mod apple;
 mod cancellation;
+#[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
+mod image_cache;
 mod json;
 #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 mod mach;
 mod output;
+mod profile;
+mod profile_json;
 #[cfg(test)]
 #[path = "./lib_test.rs"]
 mod tests;
@@ -20,7 +24,10 @@ mod tests;
 use bd_unwind::aarch64::{Frame, StopReason};
 use bd_unwind::image::{ImageError, ImageInfo};
 pub use cancellation::CancellationToken;
-pub use output::write_json;
+pub use output::{write_json, write_profile_json};
+#[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
+use profile::ProfileSample;
+pub use profile::{Profile, ProfileConfig, ProfileSummary};
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -35,6 +42,7 @@ pub enum CaptureError {
   UnsupportedArchitecture,
   AlreadyCapturing,
   InvalidBufferSize,
+  InvalidProfileConfig,
   AllocationFailed,
   ThreadEnumerationFailed,
   ResumeFailed,
@@ -46,7 +54,7 @@ pub enum CaptureError {
 // Profiler
 //
 
-/// Owns the process-wide snapshot request slot. Keep it alive through attachment export.
+/// Owns the process-wide snapshot/profile request slot. Keep it alive through attachment export.
 pub struct Profiler {
   buffer_size_kb: u32,
 }
@@ -99,6 +107,8 @@ pub enum ThreadStatus {
   SuspendFailed,
   RegistersUnavailable,
   StackUnavailable,
+  /// The sampled PC and SP are both zero; there is no user stack to walk.
+  NoUserContext,
 }
 
 pub struct ThreadSnapshot {
@@ -118,6 +128,7 @@ pub struct ThreadSnapshot {
 
 pub struct Snapshot {
   pub pid: u32,
+  pub main_thread_id: Option<u64>,
   pub threads: Vec<ThreadSnapshot>,
   pub images: Vec<ImageInfo>,
   /// Counts rejected images by parser error, surveyed after all target threads are resumed.
@@ -139,6 +150,8 @@ impl Snapshot {
     for thread in &self.threads {
       if thread.status == ThreadStatus::CaptureThread {
         summary.skipped_threads += 1;
+      } else if thread.status == ThreadStatus::NoUserContext {
+        summary.no_user_context_threads += 1;
       } else if thread.frames.iter().any(|frame| frame.address != 0) {
         summary.captured_threads += 1;
         if thread.stack_truncated || thread.status != ThreadStatus::Captured(StopReason::EndOfStack)
@@ -165,8 +178,8 @@ impl Snapshot {
 // Summary
 //
 
-/// Counts partition threads into captured (including partial), failed and skipped. Truncated
-/// threads are a subset of captured threads whose stack copy or walk did not complete.
+/// Counts partition threads into captured (including partial), failed, skipped and no user context.
+/// Truncated threads are a subset of captured threads whose stack copy or walk did not complete.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Summary {
@@ -174,4 +187,21 @@ pub struct Summary {
   pub failed_threads: usize,
   pub truncated_threads: usize,
   pub skipped_threads: usize,
+  pub no_user_context_threads: usize,
+}
+
+//
+// Observation
+//
+
+#[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
+pub(crate) struct Observation<'a> {
+  pub native_id: u64,
+  pub name: &'a str,
+  pub status: ThreadStatus,
+  pub frames: &'a [Frame],
+  pub stack_truncated: bool,
+  pub copied_stack_bytes: usize,
+  pub timestamp_ns: u64,
+  pub suspension_ns: u64,
 }

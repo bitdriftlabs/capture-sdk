@@ -42,7 +42,7 @@ final class LoggerTests: XCTestCase {
 
         XCTAssertEqual(
             bridge.commandRegistrationEvents,
-            ["register:sample_command", "register:ios_stack_snapshot", "start"]
+            ["register:sample_command", "register:ios_stack_snapshot", "register:ios_stack_profile", "start"]
         )
         let result = await logger.executeCommand(key: "sample_command", arguments: [:])
         let commandResult = try result.get()
@@ -77,7 +77,7 @@ final class LoggerTests: XCTestCase {
             BuiltinCommandType.fileList.rawValue,
             BuiltinCommandType.fileSize.rawValue,
         ])
-        XCTAssertEqual(bridge.commandRegistrationEvents, ["register:app", "register:ios_stack_snapshot", "start"])
+        XCTAssertEqual(bridge.commandRegistrationEvents, ["register:app", "register:ios_stack_snapshot", "register:ios_stack_profile", "start"])
         XCTAssertEqual(
             bridge.startLog.load()?.0.first(where: { $0.key == "_failed_builtin_commands" })?.data as? String,
             BuiltinCommandType.takeScreenshot.key

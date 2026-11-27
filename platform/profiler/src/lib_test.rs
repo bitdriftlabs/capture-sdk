@@ -20,18 +20,15 @@ use bd_unwind::image::{ImageError, ImageInfo};
 use bd_unwind::memory::AddressRange;
 use serde_json::Value;
 use std::collections::BTreeMap;
-#[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 use std::sync::Mutex;
 
-// Serialize native tests before creating workers or suspending threads: a full capture otherwise
-// changes the suspend counts observed by the suspension-guard test.
-#[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
-pub(crate) static NATIVE_CAPTURE_LOCK: Mutex<()> = Mutex::new(());
+// Cargo nextest isolates tests in processes; Bazel also runs this binary in parallel threads.
+// Serialize only tests that intentionally acquire the process-wide capture slot.
+pub(crate) static CAPTURE_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn only_one_profiler_can_run_and_dropping_it_releases_the_slot() {
-  #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
-  let _native_capture = NATIVE_CAPTURE_LOCK.lock().unwrap();
+  let _capture = CAPTURE_TEST_LOCK.lock().unwrap();
   let guard = Profiler::new(256, &CancellationToken::default()).unwrap();
   assert!(matches!(
     Profiler::new(256, &CancellationToken::default()),
@@ -110,6 +107,7 @@ fn exports_root_to_leaf_stacks_without_losing_raw_pc_kinds_or_large_addresses() 
 fn skipped_threads_have_no_fabricated_samples() {
   let snapshot = Snapshot {
     pid: 1,
+    main_thread_id: None,
     images: vec![],
     image_errors: BTreeMap::new(),
     threads: vec![ThreadSnapshot {
@@ -202,6 +200,7 @@ fn captures_native_worker_and_resumes_it(buffer_size_kb: u32) {
 pub(crate) fn sample_snapshot() -> Snapshot {
   Snapshot {
     pid: 42,
+    main_thread_id: None,
     images: vec![],
     image_errors: BTreeMap::new(),
     threads: vec![ThreadSnapshot {
@@ -245,14 +244,43 @@ fn summary_keeps_partial_stacks_and_distinguishes_failed_and_skipped_threads() {
   let mut skipped = sample_snapshot().threads.remove(0);
   skipped.frames.clear();
   skipped.status = ThreadStatus::CaptureThread;
-  snapshot.threads.extend([failed, skipped]);
+  let mut no_context = sample_snapshot().threads.remove(0);
+  no_context.frames.clear();
+  no_context.status = ThreadStatus::NoUserContext;
+  snapshot.threads.extend([failed, skipped, no_context]);
   let summary = snapshot.summary();
   assert_eq!(summary.captured_threads, 1);
   assert_eq!(summary.truncated_threads, 1);
   assert_eq!(summary.failed_threads, 1);
   assert_eq!(summary.skipped_threads, 1);
+  assert_eq!(summary.no_user_context_threads, 1);
   assert!(snapshot.ensure_useful().is_ok());
   snapshot.threads.remove(0);
+  assert_eq!(snapshot.ensure_useful(), Err(CaptureError::NoUsefulStacks));
+}
+
+#[test]
+fn snapshot_exports_absent_user_context_without_a_stack_sample() {
+  let mut snapshot = sample_snapshot();
+  snapshot.threads[0].status = ThreadStatus::NoUserContext;
+  snapshot.threads[0].frames.clear();
+  let mut output = Vec::new();
+  write_json(
+    &snapshot,
+    &mut output,
+    usize::MAX,
+    &CancellationToken::default(),
+  )
+  .unwrap();
+  let json: Value = serde_json::from_slice(&output).unwrap();
+  assert_eq!(json["bitdrift"]["noUserContextThreads"], 1);
+  assert_eq!(json["bitdrift"]["failedThreads"], 0);
+  assert_eq!(json["threads"][0]["bitdrift"]["status"], "no_user_context");
+  assert_eq!(
+    json["threads"][0]["bitdrift"]["frames"],
+    serde_json::json!([])
+  );
+  assert_eq!(json["threads"][0]["samples"]["data"], serde_json::json!([]));
   assert_eq!(snapshot.ensure_useful(), Err(CaptureError::NoUsefulStacks));
 }
 
@@ -315,4 +343,39 @@ fn image_survey_preserves_valid_images_and_groups_rejection_reasons() {
     })
   );
   assert_eq!(value["bitdrift"]["images"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn snapshot_names_main_by_native_identity_not_thread_order_or_name() {
+  let mut snapshot = sample_snapshot();
+  let mut main = sample_snapshot().threads.remove(0);
+  main.native_id = 29;
+  snapshot.threads.push(main);
+  for main_thread_id in [None, Some(29)] {
+    snapshot.main_thread_id = main_thread_id;
+    let mut bytes = Vec::new();
+    write_json(
+      &snapshot,
+      &mut bytes,
+      usize::MAX,
+      &CancellationToken::default(),
+    )
+    .unwrap();
+    let json: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(json["threads"][0]["name"], snapshot.threads[0].name);
+    assert_eq!(json["threads"][0]["bitdrift"]["isMainThread"], false);
+    assert_eq!(
+      json["threads"][1]["bitdrift"]["isMainThread"],
+      main_thread_id.is_some()
+    );
+    assert_eq!(
+      json["threads"][1]["name"],
+      if main_thread_id.is_some() {
+        "Main Thread"
+      } else {
+        &snapshot.threads[1].name
+      }
+    );
+    assert_eq!(json["threads"][1]["bitdrift"]["nativeThreadId"], "29");
+  }
 }

@@ -4,7 +4,7 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-use profiler::{CancellationToken, Snapshot, write_json};
+use profiler::{CancellationToken, Profile, Snapshot, write_json, write_profile_json};
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufWriter};
 use std::path::Path;
@@ -65,4 +65,15 @@ fn write_file(
     });
   }
   Ok(())
+}
+
+pub fn write_profile_attachment(
+  profile: &Profile,
+  path: &Path,
+  max_bytes: usize,
+  cancellation: &CancellationToken,
+) -> Result<(), ExportError> {
+  write_file(path, cancellation, |output| {
+    write_profile_json(profile, output, max_bytes, cancellation)
+  })
 }

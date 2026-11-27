@@ -26,16 +26,20 @@ pub(super) fn write(snapshot: &Snapshot, output: &mut impl Write) -> io::Result<
       snapshot.pid,
       thread_index + 1
     )?;
-    if thread.name.is_empty() {
+    let is_main_thread = snapshot.main_thread_id == Some(thread.native_id);
+    if is_main_thread {
+      string(output, "Main Thread")?;
+    } else if thread.name.is_empty() {
       string(output, &format!("Thread {}", thread.native_id))?;
     } else {
       string(output, &thread.name)?;
     }
     write!(
       output,
-      r#", "bitdrift":{{"nativeThreadId":"{}","status":"{}",
+      r#", "bitdrift":{{"nativeThreadId":"{}","isMainThread":{},"status":"{}",
       "stackTruncated":{},"copiedStackBytes":{},"suspensionNs":{},"frames":["#,
       thread.native_id,
+      is_main_thread,
       status(thread.status),
       thread.stack_truncated,
       thread.copied_stack_bytes,
@@ -94,11 +98,13 @@ pub(super) fn write(snapshot: &Snapshot, output: &mut impl Write) -> io::Result<
   write!(
     output,
     r#"],"bitdrift":{{"version":1,"capture":"snapshot","capturedThreads":{},
-    "failedThreads":{},"truncatedThreads":{},"skippedThreads":{},"images":["#,
+    "failedThreads":{},"truncatedThreads":{},"skippedThreads":{},
+    "noUserContextThreads":{},"images":["#,
     summary.captured_threads,
     summary.failed_threads,
     summary.truncated_threads,
-    summary.skipped_threads
+    summary.skipped_threads,
+    summary.no_user_context_threads
   )?;
   for (index, image) in snapshot.images.iter().enumerate() {
     if index != 0 {
@@ -155,7 +161,7 @@ const fn image_error(error: ImageError) -> &'static str {
   }
 }
 
-fn string(output: &mut impl Write, value: &str) -> io::Result<()> {
+pub(crate) fn string(output: &mut impl Write, value: &str) -> io::Result<()> {
   output.write_all(b"\"")?;
   for character in value.chars() {
     match character {
@@ -171,12 +177,13 @@ fn string(output: &mut impl Write, value: &str) -> io::Result<()> {
   output.write_all(b"\"")
 }
 
-const fn status(status: ThreadStatus) -> &'static str {
+pub(crate) const fn status(status: ThreadStatus) -> &'static str {
   match status {
     ThreadStatus::CaptureThread => "capture_thread",
     ThreadStatus::SuspendFailed => "suspend_failed",
     ThreadStatus::RegistersUnavailable => "registers_unavailable",
     ThreadStatus::StackUnavailable => "stack_unavailable",
+    ThreadStatus::NoUserContext => "no_user_context",
     ThreadStatus::Captured(reason) => match reason {
       StopReason::EndOfStack => "end_of_stack",
       StopReason::OutputFull => "output_full",

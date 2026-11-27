@@ -5,6 +5,7 @@
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 
+use crate::image_cache::ImageSession;
 use crate::mach::{
   _dyld_get_image_header,
   _dyld_image_count,
@@ -19,13 +20,30 @@ use crate::mach::{
   stack_region,
   thread_resume,
 };
-use crate::{CancellationToken, CaptureError, Snapshot, ThreadSnapshot, ThreadStatus};
-use bd_unwind::aarch64::{Frame, FrameKind, strip_instruction_pointer, walk_frame_pointers};
+use crate::{
+  CancellationToken,
+  CaptureError,
+  Observation,
+  Profile,
+  ProfileConfig,
+  ProfileSample,
+  Snapshot,
+  ThreadSnapshot,
+  ThreadStatus,
+};
+use bd_unwind::aarch64::{
+  Frame,
+  FrameKind,
+  Registers,
+  strip_instruction_pointer,
+  walk_frame_pointers,
+};
 use bd_unwind::apple::TaskMemory;
 use bd_unwind::image::{ImageError, ImageInfo};
 use bd_unwind::memory::{MemoryReader, StackMemory};
 use std::collections::BTreeMap;
 use std::mem::size_of;
+use std::time::{Duration, Instant};
 
 #[cfg(test)]
 #[path = "./apple_test.rs"]
@@ -54,6 +72,7 @@ pub(super) fn capture(
     .map_err(|_| CaptureError::AllocationFailed)?;
   let mut snapshot = Snapshot {
     pid: unsafe { getpid() }.unsigned_abs(),
+    main_thread_id: None,
     threads: captured_threads,
     images: Vec::new(),
     image_errors: BTreeMap::new(),
@@ -94,6 +113,93 @@ pub(super) fn capture(
   Ok(snapshot)
 }
 
+pub(super) fn profile(
+  budget: usize,
+  config: ProfileConfig,
+  cancellation: &CancellationToken,
+) -> Result<Profile, CaptureError> {
+  let scratch_budget = budget / 4;
+  let frame_budget = budget / 2 - scratch_budget;
+  let mut collector = {
+    let threads = Threads::new()?;
+    Collector::new(scratch_budget, threads.current)?
+  };
+  let mut frames = filled_buffer(
+    (frame_budget / size_of::<Frame>()).min(MAX_FRAMES_PER_THREAD),
+    Frame::default(),
+  )?;
+  let mut profile = Profile::new(
+    config,
+    unsafe { getpid() }.unsigned_abs(),
+    budget - budget / 2,
+  )?;
+  // Build/subscribe before starting the clock. Loader callbacks update an owned bounded history;
+  // image enumeration, parsing and cache locks are absent from the periodic sampling loop.
+  let image_start = unsafe { mach_absolute_time() };
+  let images = ImageSession::start(profile.image_capacity)?;
+  profile.timing.image_preparation_ns = collector
+    .timebase
+    .nanos(unsafe { mach_absolute_time() } - image_start);
+  cancellation.check()?;
+  let start = Instant::now();
+  collector.origin = unsafe { mach_absolute_time() };
+  let mut tick = 0;
+  log::debug!(
+    "starting stack profile: {:?} interval, {:?} duration",
+    config.interval,
+    config.duration
+  );
+  while tick < config.tick_count() {
+    let elapsed = start.elapsed();
+    if elapsed >= config.duration {
+      break;
+    }
+    // Compute in u128: a long request can contain more than u32::MAX sampling ticks.
+    let scheduled = Duration::from_nanos(
+      u64::try_from(config.interval.as_nanos() * u128::from(tick)).unwrap_or(u64::MAX),
+    );
+    cancellation.wait(start + scheduled)?;
+    if start.elapsed() >= config.duration {
+      break;
+    }
+    let round_start = unsafe { mach_absolute_time() };
+    let unwind_start = collector.unwind_ns;
+    collector.sample(cancellation, &mut frames, |thread| {
+      profile.record(ProfileSample::new(&thread), thread.frames);
+    })?;
+    let sample_end = unsafe { mach_absolute_time() };
+    let unwind_ns = collector.unwind_ns - unwind_start;
+    profile.timing.unwind.record(unwind_ns);
+    profile.timing.capture.record(
+      collector
+        .timebase
+        .nanos(sample_end - round_start)
+        .saturating_sub(unwind_ns),
+    );
+    profile.summary.capture_rounds += 1;
+    let round_end = unsafe { mach_absolute_time() };
+    profile
+      .timing
+      .round_work
+      .record(collector.timebase.nanos(round_end - round_start));
+    tick = config.next_tick(start.elapsed());
+  }
+  cancellation.check()?;
+  let image_end = unsafe { mach_absolute_time() };
+  let images = images.finish();
+  profile.images = images.images;
+  profile.summary.failed_image_reads = images.errors;
+  profile.summary.dropped_images = images.dropped;
+  profile.timing.image_finalization_ns = collector
+    .timebase
+    .nanos(unsafe { mach_absolute_time() } - image_end);
+  profile.summary.missed_ticks = config
+    .tick_count()
+    .saturating_sub(profile.summary.capture_rounds);
+  profile.ensure_useful()?;
+  Ok(profile)
+}
+
 fn filled_buffer<T: Clone>(length: usize, value: T) -> Result<Vec<T>, CaptureError> {
   let mut buffer = Vec::new();
   buffer
@@ -125,6 +231,7 @@ struct Collector {
   scratch: Vec<u8>,
   timebase: Timebase,
   origin: u64,
+  unwind_ns: u64,
 }
 
 impl Collector {
@@ -154,7 +261,60 @@ impl Collector {
       scratch,
       timebase,
       origin: unsafe { mach_absolute_time() },
+      unwind_ns: 0,
     })
+  }
+
+  fn sample(
+    &mut self,
+    cancellation: &CancellationToken,
+    frames: &mut [Frame],
+    visit: impl FnMut(Observation<'_>),
+  ) -> Result<(), CaptureError> {
+    cancellation.check()?;
+    let threads = Threads::new()?;
+    self.sample_threads(
+      threads.ports(),
+      threads.current,
+      cancellation,
+      frames,
+      visit,
+    )
+  }
+
+  fn sample_threads(
+    &mut self,
+    ports: &[u32],
+    current: u32,
+    cancellation: &CancellationToken,
+    frames: &mut [Frame],
+    mut visit: impl FnMut(Observation<'_>),
+  ) -> Result<(), CaptureError> {
+    if frames.is_empty() {
+      return Err(CaptureError::InvalidBufferSize);
+    }
+    for port in ports {
+      cancellation.check()?;
+      let (native_id, name) = metadata(*port);
+      let result = if *port == current {
+        ThreadCapture::skipped()
+      } else {
+        // The visitor copies this stack into the retained ring before the next capture, so every
+        // thread can use the whole frame buffer regardless of how many threads were enumerated.
+        self.capture_thread(*port, cancellation, frames)?
+      };
+      visit(Observation {
+        native_id,
+        name: &name,
+        frames: &frames[.. result.frame_count],
+        status: result.status,
+        stack_truncated: result.stack_truncated,
+        copied_stack_bytes: result.copied_stack_bytes,
+        timestamp_ns: result.timestamp_ns,
+        suspension_ns: result.suspension_ns,
+      });
+    }
+    cancellation.check()
   }
 
   fn capture_thread(
@@ -197,6 +357,8 @@ impl Collector {
     match (state, region) {
       (Some(state), Some(region)) if copied != 0 => {
         result.stack_truncated = (copied as u64) < region.start() + region.size() - state.sp;
+        // Measure walking after resume, outside the suspended-thread section.
+        let unwind_start = unsafe { mach_absolute_time() };
         let trace = walk_frame_pointers(
           &StackMemory {
             address: state.sp,
@@ -206,20 +368,13 @@ impl Collector {
           region,
           frames,
         );
+        self.unwind_ns += self
+          .timebase
+          .nanos(unsafe { mach_absolute_time() } - unwind_start);
         result.frame_count = trace.frame_count;
         result.status = ThreadStatus::Captured(trace.stop_reason);
       },
-      (None, _) => {
-        result.status = ThreadStatus::RegistersUnavailable;
-      },
-      (Some(state), _) => {
-        result.status = ThreadStatus::StackUnavailable;
-        frames[0] = Frame {
-          address: strip_instruction_pointer(state.pc),
-          kind: FrameKind::ProgramCounter,
-        };
-        result.frame_count = 1;
-      },
+      (state, _) => result.set_unavailable(state.as_ref(), frames),
     }
     Ok(result)
   }
@@ -239,6 +394,30 @@ struct ThreadCapture {
 }
 
 impl ThreadCapture {
+  // Classify only the returned context, not the thread's scheduler state: blocked threads with
+  // valid registers still have useful stacks. This runs after resume, like the normal walk.
+  fn set_unavailable(&mut self, state: Option<&Registers>, frames: &mut [Frame]) {
+    self.status = match state {
+      None => ThreadStatus::RegistersUnavailable,
+      Some(state) => {
+        let pc = strip_instruction_pointer(state.pc);
+        if pc == 0 && state.sp == 0 {
+          ThreadStatus::NoUserContext
+        } else {
+          // Preserve a usable sampled PC even when its stack cannot be read. Zero is not a frame.
+          if pc != 0 {
+            frames[0] = Frame {
+              address: pc,
+              kind: FrameKind::ProgramCounter,
+            };
+            self.frame_count = 1;
+          }
+          ThreadStatus::StackUnavailable
+        }
+      },
+    };
+  }
+
   const fn skipped() -> Self {
     Self {
       status: ThreadStatus::CaptureThread,

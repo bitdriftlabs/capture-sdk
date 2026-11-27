@@ -12,10 +12,26 @@ use crate::stack_snapshot_output::{ExportError, write_attachment};
 use profiler::{CancellationToken, CaptureError, Profiler, Summary};
 use std::ffi::{CStr, c_char, c_void};
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 // This SDK ceiling bounds the encoded file, independently of the capture buffer. The core still
 // enforces its runtime-configured upload limit, including configurations below this ceiling.
-const MAX_SNAPSHOT_JSON_BYTES: usize = 5 * 1024 * 1024;
+pub(crate) const MAX_STACK_CAPTURE_JSON_BYTES: usize = 5 * 1024 * 1024;
+
+// This process identity is independent of cancellation handles. Registration can arrive after a
+// request starts; read it once after capture so every thread in the export sees the same identity.
+static MAIN_THREAD_ID: AtomicU64 = AtomicU64::new(0);
+
+#[unsafe(no_mangle)]
+pub extern "C" fn capture_stack_set_main_thread_id(main_thread_id: u64) {
+  MAIN_THREAD_ID.store(main_thread_id, Ordering::Relaxed);
+}
+
+pub(crate) fn main_thread_id() -> Option<u64> {
+  // This atomic publishes only the ID itself, not any other initialized state.
+  let id = MAIN_THREAD_ID.load(Ordering::Relaxed);
+  (id != 0).then_some(id)
+}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn capture_stack_snapshot_bridge_create() -> *mut c_void {
@@ -74,12 +90,17 @@ pub unsafe extern "C" fn capture_stack_snapshot(
     Ok(profiler) => profiler,
     Err(error) => return capture_error(error),
   };
-  let snapshot = match profiler.capture(bridge) {
+  let mut snapshot = match profiler.capture(bridge) {
     Ok(snapshot) => snapshot,
     Err(error) => return capture_error(error),
   };
-  if let Err(error) = write_attachment(&snapshot, Path::new(path), MAX_SNAPSHOT_JSON_BYTES, bridge)
-  {
+  snapshot.main_thread_id = main_thread_id();
+  if let Err(error) = write_attachment(
+    &snapshot,
+    Path::new(path),
+    MAX_STACK_CAPTURE_JSON_BYTES,
+    bridge,
+  ) {
     return match error {
       ExportError::Io => 5,
       ExportError::TooLarge => 6,
@@ -97,9 +118,9 @@ pub unsafe extern "C" fn capture_stack_snapshot(
   0
 }
 
-const fn capture_error(error: CaptureError) -> i32 {
+pub(crate) const fn capture_error(error: CaptureError) -> i32 {
   match error {
-    CaptureError::InvalidBufferSize => 1,
+    CaptureError::InvalidBufferSize | CaptureError::InvalidProfileConfig => 1,
     CaptureError::AlreadyCapturing => 2,
     CaptureError::UnsupportedArchitecture => 3,
     CaptureError::AllocationFailed

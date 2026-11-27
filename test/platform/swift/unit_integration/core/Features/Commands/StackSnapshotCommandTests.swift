@@ -13,12 +13,56 @@ import Foundation
 import XCTest
 
 final class StackSnapshotCommandTests: XCTestCase {
+    func testBridgeCreatedBeforeMainThreadRegistrationExportsItsLateIdentity() async throws {
+        // Reproduce background startup deterministically: construct the bridge while the shared
+        // identity is unknown, then register the main thread before using that same bridge.
+        capture_stack_set_main_thread_id(0)
+        let bridge = StackCaptureBridge()
+        let mainID = await MainActor.run {
+            StackCaptureBridge.prepareMainThreadID()
+            var id: UInt64 = 0
+            XCTAssertEqual(pthread_threadid_np(nil, &id), 0)
+            return id
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: url) }
+        try await Task.detached {
+            for profile in [false, true] {
+                if profile {
+                    _ = try bridge.profile(frequencyHz: 20, durationMs: 100, bufferSizeKb: 2048, to: url).get()
+                } else {
+                    _ = try bridge.capture(bufferSizeKb: 2048, to: url).get()
+                }
+                let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+                let threads = try XCTUnwrap(json["threads"] as? [[String: Any]])
+                let main = threads.filter { ($0["bitdrift"] as? [String: Any])?["isMainThread"] as? Bool == true }
+                XCTAssertEqual(main.count, 1)
+                XCTAssertEqual(main.first?["name"] as? String, "Main Thread")
+                let metadata = try XCTUnwrap(main.first?["bitdrift"] as? [String: Any])
+                XCTAssertEqual(metadata["nativeThreadId"] as? String, String(mainID))
+                try FileManager.default.removeItem(at: url)
+            }
+        }.value
+    }
+
+    func testSummarySeparatesMissingUserContextFromFailedThreads() {
+        let summary = StackSnapshotSummary(
+            capturedThreads: 1, failedThreads: 2, truncatedThreads: 0, skippedThreads: 1,
+            noUserContextThreads: 3
+        )
+        XCTAssertEqual(summary.context["failed_threads"], "2")
+        XCTAssertEqual(summary.context["no_user_context_threads"], "3")
+    }
+
     func testRegisteredByDefaultBeforeLoggerStarts() async throws {
         let bridge = MockLoggerBridging()
         let logger = try Logger.testLogger(
             loggerBridgingFactoryProvider: MockLoggerBridgingFactory(logger: bridge)
         )
-        XCTAssertEqual(bridge.commandRegistrationEvents, ["register:ios_stack_snapshot", "start"])
+        XCTAssertEqual(
+            bridge.commandRegistrationEvents,
+            ["register:ios_stack_snapshot", "register:ios_stack_profile", "start"]
+        )
         let result = await logger.executeCommand(key: "ios_stack_snapshot", arguments: [:])
         guard case let .failure(error) = result else {
             return XCTFail("expected invalid arguments")
@@ -42,7 +86,7 @@ final class StackSnapshotCommandTests: XCTestCase {
     func testCancellationWhileWorkerRunsSignalsTheNativeBridge() async {
         let started = expectation(description: "worker started")
         let finish = DispatchSemaphore(value: 0)
-        let nativeBridge = StackSnapshotBridge()
+        let nativeBridge = StackCaptureBridge()
         let bridge = SnapshotBridgeStub(capture: { size, url in
             started.fulfill()
             finish.wait()
@@ -131,7 +175,8 @@ final class StackSnapshotCommandTests: XCTestCase {
                 try Data("late result".utf8).write(to: url)
             } catch { return .failure(CommandError(message: "fixture could not be written")) }
             return .success(StackSnapshotSummary(
-                capturedThreads: 1, failedThreads: 0, truncatedThreads: 0, skippedThreads: 1
+                capturedThreads: 1, failedThreads: 0, truncatedThreads: 0, skippedThreads: 1,
+                noUserContextThreads: 0
             ))
         })
         let command = StackSnapshotCommand(fileManager: fileManager, makeBridge: { bridge }).make()
@@ -208,6 +253,8 @@ final class StackSnapshotCommandTests: XCTestCase {
         let captured = try XCTUnwrap(metadata["capturedThreads"] as? Int)
         XCTAssertGreaterThan(captured, 0)
         XCTAssertEqual(result.context["captured_threads"], String(captured))
+        let noContext = try XCTUnwrap(metadata["noUserContextThreads"] as? Int)
+        XCTAssertEqual(result.context["no_user_context_threads"], String(noContext))
         XCTAssertNotNil(result.context["failed_threads"])
         XCTAssertNotNil(result.context["truncated_threads"])
         XCTAssertNotNil(result.context["skipped_threads"])

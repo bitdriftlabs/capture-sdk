@@ -223,7 +223,9 @@ public final class Logger {
 
         self.underlyingLogger = CoreLogger(logger: logger)
 
-        let (uniqueCommands, duplicated) = (commands + [StackSnapshotCommand().make()]).removingDuplicates()
+        StackCaptureBridge.prepareMainThreadID()
+        let stackCommands = [StackSnapshotCommand().make(), StackProfileCommand().make()]
+        let (uniqueCommands, duplicated) = (commands + stackCommands).removingDuplicates()
         let commandBridge = CommandRegistrationBridge(logger: self.underlyingLogger)
         let builtins = BuiltinCommands.make(
             screenshot: self.sessionReplayController,

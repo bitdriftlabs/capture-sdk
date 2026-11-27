@@ -9,111 +9,37 @@ import Foundation
 
 struct StackSnapshotCommand: Sendable {
     static let key = "ios_stack_snapshot"
-    // Shared across instances; both accesses to isCapturing are protected by requestLock.
-    nonisolated(unsafe) private static let requestLock = Lock()
-    nonisolated(unsafe) private static var isCapturing = false
-
     private let makeBridge: @Sendable () -> any StackSnapshotBridging
-    private let files: StackSnapshotFiles
+    private let execution: StackCaptureCommand
 
     init(
         fileManager: FileManager = .default,
-        makeBridge: @escaping @Sendable () -> any StackSnapshotBridging = { StackSnapshotBridge() }
+        makeBridge: @escaping @Sendable () -> any StackSnapshotBridging = { StackCaptureBridge() }
     ) {
         self.makeBridge = makeBridge
-        self.files = StackSnapshotFiles(fileManager: fileManager)
+        self.execution = StackCaptureCommand(fileManager: fileManager)
     }
 
     func make() -> Command {
         Command(key: Self.key) { arguments in
             guard arguments.count == 1,
-                  let bufferSizeKb = bufferSize(arguments["buffer_size_kb"])
+                  let bufferSizeKb = StackCaptureCommand.positiveUInt32(arguments["buffer_size_kb"])
             else {
                 return .failure(.invalidArguments(
                     message: "buffer_size_kb must be a positive integer representable as UInt32"
                 ))
             }
-            guard !Task.isCancelled else {
-                return .failure(Self.cancelled)
+            return await execution.run {
+                let bridge = makeBridge()
+                return StackCaptureOperation(bridge: bridge) { url in
+                    bridge.capture(bufferSizeKb: bufferSizeKb, to: url).map { summary in
+                        CommandResult(
+                            attachment: .file(url: url, mimeType: "application/json"),
+                            context: summary.context
+                        )
+                    }
+                }
             }
-            guard Self.acquire() else {
-                return .failure(.alreadyExecuting)
-            }
-            // Keep the slot through worker completion and late-attachment cleanup. Cancellation
-            // only signals the bridge; it cannot release the slot while the worker is still active.
-            defer { Self.release() }
-            let bridge = makeBridge()
-            let result = await withTaskCancellationHandler {
-                await Task.detached(priority: .utility) {
-                    capture(bufferSizeKb, using: bridge)
-                }.value
-            } onCancel: {
-                bridge.cancel()
-            }
-            if Task.isCancelled {
-                if case let .success(result) = result { files.discard(result.attachment) }
-                return .failure(Self.cancelled)
-            }
-            return result
         }
-    }
-
-    private static let cancelled = CommandError(message: "cancelled")
-
-    private func capture(
-        _ bufferSizeKb: UInt32,
-        using bridge: any StackSnapshotBridging
-    ) -> Result<CommandResult, CommandError> {
-        let url = files.makeURL()
-        return bridge.capture(bufferSizeKb: bufferSizeKb, to: url).map { summary in
-            CommandResult(
-                attachment: .file(url: url, mimeType: "application/json"),
-                context: summary.context
-            )
-        }
-    }
-
-    private func bufferSize(_ argument: CommandArgument?) -> UInt32? {
-        let value: UInt64
-        switch argument {
-        case let .uint64(unsigned):
-            value = unsigned
-        case let .int64(signed) where signed > 0:
-            value = UInt64(signed)
-        default:
-            return nil
-        }
-        guard value > 0 else {
-            return nil
-        }
-        return UInt32(exactly: value)
-    }
-
-    private static func acquire() -> Bool {
-        requestLock.withLock {
-            guard !isCapturing else {
-                return false
-            }
-            isCapturing = true
-            return true
-        }
-    }
-
-    private static func release() {
-        requestLock.withLock { isCapturing = false }
-    }
-}
-
-// FileManager supports concurrent file operations. This wrapper never changes its delegate or
-// configuration, and stores no mutable request state.
-private struct StackSnapshotFiles: @unchecked Sendable {
-    let fileManager: FileManager
-
-    func makeURL() -> URL {
-        fileManager.temporaryDirectory.appendingPathComponent("bitdrift-stack-\(UUID().uuidString).json")
-    }
-
-    func discard(_ attachment: CommandAttachment?) {
-        attachment?.discardOwnedFile(using: fileManager)
     }
 }

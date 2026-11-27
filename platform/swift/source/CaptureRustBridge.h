@@ -26,16 +26,22 @@ NS_ASSUME_NONNULL_BEGIN
 void capture_report_error(const char *message);
 
 /* The owner retains this handle until capture and all cancellation calls finish. Cancellation
- * only sets an atomic flag; it does not wait, take locks, or resume any thread. */
+ * sets an atomic flag and wakes a parked profiling worker; it never waits, takes locks,
+ * or resumes a target thread. */
 void *capture_stack_snapshot_bridge_create(void);
 void capture_stack_snapshot_bridge_cancel(const void *bridge);
 void capture_stack_snapshot_bridge_release(void *bridge);
+
+/* Registers the process main thread's native pthread ID. Zero means unknown. Snapshot/profile
+ * export reads this shared value after capture, including registrations made after bridge creation. */
+void capture_stack_set_main_thread_id(uint64_t main_thread_id);
 
 typedef struct {
     size_t captured_threads;
     size_t failed_threads;
     size_t truncated_threads;
     size_t skipped_threads;
+    size_t no_user_context_threads;
 } capture_stack_snapshot_summary;
 
 /* Writes a new snapshot file, capped at 5 MiB of encoded JSON. Returns 0 on success,
@@ -47,6 +53,32 @@ int32_t capture_stack_snapshot(
     const char *path,
     const void *bridge,
     capture_stack_snapshot_summary *summary
+);
+
+typedef struct {
+    uint64_t capture_rounds;
+    uint64_t captured_samples;
+    uint64_t failed_samples;
+    uint64_t truncated_samples;
+    uint64_t skipped_samples;
+    uint64_t retained_samples;
+    uint64_t dropped_samples;
+    uint64_t missed_ticks;
+    uint64_t dropped_images;
+    uint64_t failed_image_reads;
+    uint64_t no_user_context_samples;
+} capture_stack_profile_summary;
+
+/* Uses the same cancellation handle and status codes as capture_stack_snapshot.
+ * frequency_hz is positive and at most 1e9 (a representable nanosecond interval);
+ * duration_ms and buffer_size_kb are positive. Export is capped at 5 MiB. */
+int32_t capture_stack_profile(
+    uint32_t frequency_hz,
+    uint32_t duration_ms,
+    uint32_t buffer_size_kb,
+    const char *path,
+    const void *bridge,
+    capture_stack_profile_summary *summary
 );
 
 /*

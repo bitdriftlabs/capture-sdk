@@ -17,10 +17,59 @@ use super::{
   thread_info,
   thread_suspend,
 };
-use crate::CancellationToken;
-use crate::tests::NATIVE_CAPTURE_LOCK;
+use crate::{CancellationToken, Profiler, ThreadStatus};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
+use std::time::{Duration, Instant};
+
+const TH_STATE_WAITING: i32 = 3;
+
+#[test]
+fn a_waiting_thread_with_user_context_still_has_a_captured_stack() {
+  let _capture = crate::tests::CAPTURE_TEST_LOCK.lock().unwrap();
+  let (ready_tx, ready_rx) = mpsc::channel();
+  let (stop_tx, stop_rx) = mpsc::channel();
+  let worker = std::thread::Builder::new()
+    .name("waiting-stack-worker".into())
+    .spawn(move || {
+      // Transfer this additional send right to the test, then block until capture finishes.
+      ready_tx.send(unsafe { mach_thread_self() }).unwrap();
+      stop_rx.recv().unwrap();
+    })
+    .unwrap();
+  let port = ready_rx.recv().unwrap();
+  let deadline = Instant::now() + Duration::from_secs(5);
+  let mut waiting = false;
+  while Instant::now() < deadline {
+    if basic_info(port).is_some_and(|info| info[6] == TH_STATE_WAITING) {
+      waiting = true;
+      break;
+    }
+    std::thread::yield_now();
+  }
+  let result = waiting.then(|| {
+    let cancellation = CancellationToken::default();
+    Profiler::new(256, &cancellation).and_then(|mut p| p.capture(&cancellation))
+  });
+  // Release the worker and its send right before asserting capture results.
+  stop_tx.send(()).unwrap();
+  worker.join().unwrap();
+  unsafe {
+    mach_port_deallocate(mach_task_self_, port);
+  }
+  assert!(
+    waiting,
+    "worker must enter a Mach waiting state before capture"
+  );
+  let snapshot = result.unwrap().unwrap();
+  let captured = snapshot
+    .threads
+    .iter()
+    .find(|t| t.name == "waiting-stack-worker")
+    .unwrap();
+  assert!(matches!(captured.status, ThreadStatus::Captured(_)));
+  assert!(captured.frames.iter().any(|frame| frame.address != 0));
+}
 
 #[test]
 fn failed_suspend_does_not_create_a_resume_guard() {
@@ -39,7 +88,8 @@ fn timebase_converts_without_intermediate_overflow() {
 
 #[test]
 fn guard_drop_balances_only_its_own_suspension() {
-  let _native_capture = NATIVE_CAPTURE_LOCK.lock().unwrap();
+  // Other capture tests suspend every thread, which would change the counts asserted below.
+  let _capture = crate::tests::CAPTURE_TEST_LOCK.lock().unwrap();
   let running = Arc::new(AtomicBool::new(true));
   let worker_running = running.clone();
   let (sender, receiver) = mpsc::channel();
@@ -92,8 +142,12 @@ fn guard_drop_balances_only_its_own_suspension() {
 }
 
 fn suspend_count(port: u32) -> Option<i32> {
+  basic_info(port).map(|info| info[8])
+}
+
+fn basic_info(port: u32) -> Option<[i32; THREAD_BASIC_INFO_COUNT as usize]> {
   let mut info = [0_i32; THREAD_BASIC_INFO_COUNT as usize];
   let mut count = THREAD_BASIC_INFO_COUNT;
   let result = unsafe { thread_info(port, THREAD_BASIC_INFO, info.as_mut_ptr(), &raw mut count) };
-  (result == 0 && count == THREAD_BASIC_INFO_COUNT).then_some(info[8])
+  (result == 0 && count == THREAD_BASIC_INFO_COUNT).then_some(info)
 }

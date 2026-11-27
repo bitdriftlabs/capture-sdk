@@ -4,7 +4,7 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-use crate::{CancellationToken, Snapshot, json};
+use crate::{CancellationToken, Profile, Snapshot, json, profile_json};
 use std::io::{self, Write};
 
 #[cfg(test)]
@@ -58,4 +58,20 @@ impl<W: Write> Write for LimitedWriter<'_, W> {
     }
     self.output.flush()
   }
+}
+
+/// Exports a bounded profile through the same cancellation and byte-ceiling checks as snapshots.
+pub fn write_profile_json(
+  profile: &Profile,
+  output: &mut impl Write,
+  max_bytes: usize,
+  cancellation: &CancellationToken,
+) -> io::Result<()> {
+  let mut output = LimitedWriter {
+    output,
+    remaining: max_bytes,
+    cancellation,
+  };
+  profile_json::write(profile, &mut output)?;
+  output.flush()
 }

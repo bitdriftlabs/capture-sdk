@@ -144,6 +144,7 @@ fn io_failure_removes_the_owned_partial_file() {
 fn sample_snapshot() -> Snapshot {
   Snapshot {
     pid: 42,
+    main_thread_id: None,
     threads: vec![],
     images: vec![],
     image_errors: BTreeMap::new(),
