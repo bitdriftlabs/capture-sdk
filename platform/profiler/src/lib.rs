@@ -4,27 +4,29 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-//! Command-driven ARM64 stack snapshots and periodic profiles with Firefox Profiler JSON output.
+
+//! Command-driven ARM64 stack snapshots and periodic profiles.
 
 #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 mod apple;
 mod cancellation;
+mod encode;
+mod image;
 #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 mod image_cache;
-mod json;
 #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 mod mach;
 mod output;
 mod profile;
-mod profile_json;
 #[cfg(test)]
 #[path = "./lib_test.rs"]
 mod tests;
 
 use bd_unwind::aarch64::{Frame, StopReason};
-use bd_unwind::image::{ImageError, ImageInfo};
+use bd_unwind::image::ImageError;
 pub use cancellation::CancellationToken;
-pub use output::{write_json, write_profile_json};
+pub use image::Image;
+pub use output::{write_profile, write_snapshot};
 #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 use profile::ProfileSample;
 pub use profile::{Profile, ProfileConfig, ProfileSummary};
@@ -127,17 +129,16 @@ pub struct ThreadSnapshot {
 //
 
 pub struct Snapshot {
-  pub pid: u32,
   pub main_thread_id: Option<u64>,
   pub threads: Vec<ThreadSnapshot>,
-  pub images: Vec<ImageInfo>,
+  pub images: Vec<Image>,
   /// Counts rejected images by parser error, surveyed after all target threads are resumed.
   pub image_errors: BTreeMap<ImageError, usize>,
 }
 
 impl Snapshot {
   #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
-  pub(crate) fn record_image(&mut self, result: Result<ImageInfo, ImageError>) {
+  pub(crate) fn record_image(&mut self, result: Result<Image, ImageError>) {
     match result {
       Ok(image) => self.images.push(image),
       Err(error) => *self.image_errors.entry(error).or_default() += 1,
@@ -201,7 +202,5 @@ pub(crate) struct Observation<'a> {
   pub status: ThreadStatus,
   pub frames: &'a [Frame],
   pub stack_truncated: bool,
-  pub copied_stack_bytes: usize,
   pub timestamp_ns: u64,
-  pub suspension_ns: u64,
 }

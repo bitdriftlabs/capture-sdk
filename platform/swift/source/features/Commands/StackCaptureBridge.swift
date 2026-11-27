@@ -103,10 +103,8 @@ final class StackCaptureBridge: StackSnapshotBridging, StackProfileBridging, @un
         case 4:
             CommandError(message: "capture_failed")
         case 6:
-            CommandError(message: "attachment_too_large", context: ["description": "stack capture JSON exceeds 5 MiB"])
-        case 7:
             CommandError(message: "cancelled")
-        case 8:
+        case 7:
             CommandError(message: "no_useful_stacks")
         default:
             CommandError(message: "attachment_write_failed")

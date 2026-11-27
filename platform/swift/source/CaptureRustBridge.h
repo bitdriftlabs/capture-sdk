@@ -44,9 +44,9 @@ typedef struct {
     size_t no_user_context_threads;
 } capture_stack_snapshot_summary;
 
-/* Writes a new snapshot file, capped at 5 MiB of encoded JSON. Returns 0 on success,
+/* Writes a new snapshot protobuf file. Returns 0 on success,
  * 1 for invalid arguments, 2 when busy, 3 for unsupported architecture, 4 for capture failure,
- * 5 for file I/O failure, 6 for an oversized attachment, 7 for cancellation, or 8 when no useful
+ * 5 for file I/O failure, 6 for cancellation, or 7 when no useful
  * stacks were captured. Failed exports remove their owned partial files. */
 int32_t capture_stack_snapshot(
     uint32_t buffer_size_kb,
@@ -71,7 +71,7 @@ typedef struct {
 
 /* Uses the same cancellation handle and status codes as capture_stack_snapshot.
  * frequency_hz is positive and at most 1e9 (a representable nanosecond interval);
- * duration_ms and buffer_size_kb are positive. Export is capped at 5 MiB. */
+ * duration_ms and buffer_size_kb are positive. */
 int32_t capture_stack_profile(
     uint32_t frequency_hz,
     uint32_t duration_ms,

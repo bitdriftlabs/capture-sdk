@@ -7,7 +7,7 @@
 #![allow(clippy::unwrap_used)]
 
 use super::{CACHE, ImageCache, ImageHistory, ImageSession};
-use crate::CaptureError;
+use crate::{CaptureError, Image};
 use bd_unwind::image::{ImageError, ImageInfo};
 use bd_unwind::memory::AddressRange;
 
@@ -19,10 +19,13 @@ fn impossible_image_history_reservation_returns_an_allocation_error() {
   ));
 }
 
-fn image(uuid: u8) -> ImageInfo {
-  ImageInfo {
-    uuid: Some([uuid; 16]),
-    text: AddressRange::new(0x1000, 0x1000).unwrap(),
+fn image(uuid: u8) -> Image {
+  Image {
+    name: "test-image".into(),
+    info: ImageInfo {
+      uuid: Some([uuid; 16]),
+      text: AddressRange::new(0x1000, 0x1000).unwrap(),
+    },
   }
 }
 
@@ -67,5 +70,11 @@ fn cancelled_session_releases_history_and_next_session_uses_cached_images() {
   assert!(CACHE.lock().history.is_none());
   let history = ImageSession::start(4096).unwrap().finish();
   assert_ne!(history.images.len(), 0);
+  assert!(
+    history
+      .images
+      .iter()
+      .any(|image| !image.name.is_empty() && image.info.uuid.is_some())
+  );
   assert!(CACHE.lock().history.is_none());
 }

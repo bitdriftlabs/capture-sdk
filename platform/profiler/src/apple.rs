@@ -7,12 +7,9 @@
 
 use crate::image_cache::ImageSession;
 use crate::mach::{
-  _dyld_get_image_header,
-  _dyld_image_count,
   Suspended,
   Threads,
   Timebase,
-  getpid,
   mach_absolute_time,
   mach_timebase_info,
   metadata,
@@ -39,7 +36,7 @@ use bd_unwind::aarch64::{
   walk_frame_pointers,
 };
 use bd_unwind::apple::TaskMemory;
-use bd_unwind::image::{ImageError, ImageInfo};
+use bd_unwind::image::ImageError;
 use bd_unwind::memory::{MemoryReader, StackMemory};
 use std::collections::BTreeMap;
 use std::mem::size_of;
@@ -71,7 +68,6 @@ pub(super) fn capture(
     .try_reserve_exact(threads.ports().len())
     .map_err(|_| CaptureError::AllocationFailed)?;
   let mut snapshot = Snapshot {
-    pid: unsafe { getpid() }.unsigned_abs(),
     main_thread_id: None,
     threads: captured_threads,
     images: Vec::new(),
@@ -128,11 +124,7 @@ pub(super) fn profile(
     (frame_budget / size_of::<Frame>()).min(MAX_FRAMES_PER_THREAD),
     Frame::default(),
   )?;
-  let mut profile = Profile::new(
-    config,
-    unsafe { getpid() }.unsigned_abs(),
-    budget - budget / 2,
-  )?;
+  let mut profile = Profile::new(config, budget - budget / 2)?;
   // Build/subscribe before starting the clock. Loader callbacks update an owned bounded history;
   // image enumeration, parsing and cache locks are absent from the periodic sampling loop.
   let image_start = unsafe { mach_absolute_time() };
@@ -211,13 +203,14 @@ fn filled_buffer<T: Clone>(length: usize, value: T) -> Result<Vec<T>, CaptureErr
 
 fn survey_images(
   cancellation: &CancellationToken,
-  mut visit: impl FnMut(Result<ImageInfo, ImageError>),
+  mut visit: impl FnMut(Result<crate::Image, ImageError>),
 ) -> Result<(), CaptureError> {
-  for index in 0 .. unsafe { _dyld_image_count() } {
-    cancellation.check()?;
-    let address = unsafe { _dyld_get_image_header(index) } as u64;
-    visit(ImageInfo::read(&TaskMemory, address));
-  }
+  cancellation.check()?;
+  ImageSession::survey(|image| {
+    if !cancellation.is_cancelled() {
+      visit(image);
+    }
+  });
   cancellation.check()
 }
 
@@ -309,9 +302,7 @@ impl Collector {
         frames: &frames[.. result.frame_count],
         status: result.status,
         stack_truncated: result.stack_truncated,
-        copied_stack_bytes: result.copied_stack_bytes,
         timestamp_ns: result.timestamp_ns,
-        suspension_ns: result.suspension_ns,
       });
     }
     cancellation.check()

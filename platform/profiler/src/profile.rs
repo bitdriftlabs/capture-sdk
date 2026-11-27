@@ -9,13 +9,12 @@
 #[path = "./profile_test.rs"]
 mod tests;
 
+use crate::{CancellationToken, CaptureError, Image, Profiler};
 #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
-use crate::Observation;
-use crate::{CancellationToken, CaptureError, Profiler, ThreadStatus};
+use crate::{Observation, ThreadStatus};
 use bd_unwind::aarch64::Frame;
 #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
 use bd_unwind::aarch64::StopReason;
-use bd_unwind::image::ImageInfo;
 use std::collections::VecDeque;
 #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
 use std::mem::size_of;
@@ -28,6 +27,7 @@ use std::time::Duration;
 #[derive(Clone, Copy, Debug)]
 pub struct ProfileConfig {
   pub(crate) interval: Duration,
+  #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
   pub(crate) duration: Duration,
 }
 
@@ -38,6 +38,7 @@ impl ProfileConfig {
     }
     Ok(Self {
       interval: Duration::from_nanos(1_000_000_000 / u64::from(frequency_hz)),
+      #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
       duration: Duration::from_millis(u64::from(duration_ms)),
     })
   }
@@ -67,11 +68,11 @@ pub(crate) struct ProfileSample {
   pub native_id: u64,
   name: [u8; 64],
   name_len: usize,
+  #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
   pub status: ThreadStatus,
+  #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
   pub stack_truncated: bool,
-  pub copied_stack_bytes: usize,
   pub timestamp_ns: u64,
-  pub suspension_ns: u64,
   pub frame_count: usize,
 }
 
@@ -90,9 +91,7 @@ impl ProfileSample {
       name_len,
       status: thread.status,
       stack_truncated: thread.stack_truncated,
-      copied_stack_bytes: thread.copied_stack_bytes,
       timestamp_ns: thread.timestamp_ns,
-      suspension_ns: thread.suspension_ns,
       frame_count: thread.frames.len(),
     }
   }
@@ -130,12 +129,14 @@ pub struct ProfileSummary {
 // StageTiming
 //
 
+#[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 #[derive(Default)]
 pub(crate) struct StageTiming {
   pub(crate) total_ns: u64,
   pub(crate) max_ns: u64,
 }
 
+#[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 impl StageTiming {
   #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
   pub(crate) fn record(&mut self, nanos: u64) {
@@ -150,7 +151,8 @@ impl StageTiming {
 
 /// Wall-clock work across all completed rounds, including observations evicted from the ring.
 /// Capture includes thread enumeration/metadata, suspension/copy/resume and recording samples,
-/// excluding unwinding. Round work excludes scheduler waits, preparation and JSON export.
+/// excluding unwinding. Round work excludes scheduler waits, preparation and attachment export.
+#[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
 #[derive(Default)]
 pub(crate) struct ProfileTiming {
   pub(crate) capture: StageTiming,
@@ -169,12 +171,12 @@ pub(crate) struct ProfileTiming {
 
 pub struct Profile {
   pub(crate) config: ProfileConfig,
-  pub(crate) pid: u32,
   pub main_thread_id: Option<u64>,
   pub(crate) samples: VecDeque<ProfileSample>,
   pub(crate) frames: VecDeque<Frame>,
-  pub(crate) images: Vec<ImageInfo>,
+  pub(crate) images: Vec<Image>,
   pub(crate) summary: ProfileSummary,
+  #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
   pub(crate) timing: ProfileTiming,
   #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
   sample_capacity: usize,
@@ -186,15 +188,14 @@ pub struct Profile {
 
 impl Profile {
   #[cfg(any(test, all(target_vendor = "apple", target_arch = "aarch64")))]
-  pub(crate) fn new(config: ProfileConfig, pid: u32, budget: usize) -> Result<Self, CaptureError> {
+  pub(crate) fn new(config: ProfileConfig, budget: usize) -> Result<Self, CaptureError> {
     // The collector receives half the command buffer. This half bounds retained observations
     // (including names), frames and image identities, independently of duration and frequency.
     let sample_capacity = budget / 4 / size_of::<ProfileSample>();
-    let image_capacity = budget / 4 / size_of::<ImageInfo>();
-    let frame_capacity = (budget
-      - sample_capacity * size_of::<ProfileSample>()
-      - image_capacity * size_of::<ImageInfo>())
-      / size_of::<Frame>();
+    let image_capacity = budget / 4 / size_of::<Image>();
+    let frame_capacity =
+      (budget - sample_capacity * size_of::<ProfileSample>() - image_capacity * size_of::<Image>())
+        / size_of::<Frame>();
     if sample_capacity == 0 || image_capacity == 0 || frame_capacity == 0 {
       return Err(CaptureError::InvalidBufferSize);
     }
@@ -208,13 +209,13 @@ impl Profile {
       .map_err(|_| CaptureError::AllocationFailed)?;
     Ok(Self {
       config,
-      pid,
       main_thread_id: None,
       samples,
       frames,
       // The image session allocates this budget and transfers its vector here after capture.
       images: Vec::new(),
       summary: ProfileSummary::default(),
+      #[cfg(all(target_vendor = "apple", target_arch = "aarch64"))]
       timing: ProfileTiming::default(),
       sample_capacity,
       frame_capacity,

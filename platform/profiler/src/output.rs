@@ -4,74 +4,71 @@
 // Use of this source code is governed by a source available license that can be found in the
 // LICENSE file or at:
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
-use crate::{CancellationToken, Profile, Snapshot, json, profile_json};
+use crate::{CancellationToken, Profile, Snapshot, encode};
+use protobuf::Message;
 use std::io::{self, Write};
 
 #[cfg(test)]
 #[path = "./output_test.rs"]
 mod tests;
 
-/// Writes Firefox Profiler JSON with a byte ceiling and cooperative cancellation. Samples describe
-/// sequential thread observations; native IDs and capture outcomes accompany the imported samples.
-pub fn write_json(
+/// Writes a thread snapshot protobuf with cooperative cancellation.
+pub fn write_snapshot(
   snapshot: &Snapshot,
   output: &mut impl Write,
-  max_bytes: usize,
   cancellation: &CancellationToken,
 ) -> io::Result<()> {
-  let mut output = LimitedWriter {
+  write_message(
+    &encode::snapshot(snapshot, cancellation)?,
     output,
-    remaining: max_bytes,
+    cancellation,
+  )
+}
+
+/// Writes a periodic profile protobuf with cooperative cancellation.
+pub fn write_profile(
+  profile: &Profile,
+  output: &mut impl Write,
+  cancellation: &CancellationToken,
+) -> io::Result<()> {
+  write_message(
+    &encode::profile(profile, cancellation)?,
+    output,
+    cancellation,
+  )
+}
+
+fn write_message(
+  message: &impl Message,
+  output: &mut impl Write,
+  cancellation: &CancellationToken,
+) -> io::Result<()> {
+  let mut output = CancellableWriter {
+    output,
     cancellation,
   };
-  json::write(snapshot, &mut output)?;
+  message.write_to_writer(&mut output)?;
   output.flush()
 }
 
 //
-// LimitedWriter
+// CancellableWriter
 //
 
-struct LimitedWriter<'a, W> {
+struct CancellableWriter<'a, W> {
   output: &'a mut W,
-  remaining: usize,
   cancellation: &'a CancellationToken,
 }
 
-impl<W: Write> Write for LimitedWriter<'_, W> {
+impl<W: Write> Write for CancellableWriter<'_, W> {
   fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-    if self.cancellation.is_cancelled() {
-      // Interrupted would make write_all retry forever on cancellation.
-      return Err(io::ErrorKind::ConnectionAborted.into());
-    }
-    if bytes.len() > self.remaining {
-      return Err(io::ErrorKind::FileTooLarge.into());
-    }
-    let written = self.output.write(bytes)?;
-    self.remaining -= written;
-    Ok(written)
+    // ConnectionAborted avoids write_all retrying forever as it would for Interrupted.
+    encode::check(self.cancellation)?;
+    self.output.write(bytes)
   }
 
   fn flush(&mut self) -> io::Result<()> {
-    if self.cancellation.is_cancelled() {
-      return Err(io::ErrorKind::ConnectionAborted.into());
-    }
+    encode::check(self.cancellation)?;
     self.output.flush()
   }
-}
-
-/// Exports a bounded profile through the same cancellation and byte-ceiling checks as snapshots.
-pub fn write_profile_json(
-  profile: &Profile,
-  output: &mut impl Write,
-  max_bytes: usize,
-  cancellation: &CancellationToken,
-) -> io::Result<()> {
-  let mut output = LimitedWriter {
-    output,
-    remaining: max_bytes,
-    cancellation,
-  };
-  profile_json::write(profile, &mut output)?;
-  output.flush()
 }

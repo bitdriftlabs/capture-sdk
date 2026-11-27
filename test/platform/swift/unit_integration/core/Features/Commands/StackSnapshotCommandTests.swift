@@ -18,28 +18,22 @@ final class StackSnapshotCommandTests: XCTestCase {
         // identity is unknown, then register the main thread before using that same bridge.
         capture_stack_set_main_thread_id(0)
         let bridge = StackCaptureBridge()
-        let mainID = await MainActor.run {
+        await MainActor.run {
             StackCaptureBridge.prepareMainThreadID()
-            var id: UInt64 = 0
-            XCTAssertEqual(pthread_threadid_np(nil, &id), 0)
-            return id
         }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: url) }
         try await Task.detached {
             for profile in [false, true] {
                 if profile {
-                    _ = try bridge.profile(frequencyHz: 20, durationMs: 100, bufferSizeKb: 2048, to: url).get()
+                    _ = try bridge.profile(
+                        frequencyHz: 20, durationMs: 100, bufferSizeKb: 2048, to: url
+                    ).get()
                 } else {
                     _ = try bridge.capture(bufferSizeKb: 2048, to: url).get()
                 }
-                let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
-                let threads = try XCTUnwrap(json["threads"] as? [[String: Any]])
-                let main = threads.filter { ($0["bitdrift"] as? [String: Any])?["isMainThread"] as? Bool == true }
-                XCTAssertEqual(main.count, 1)
-                XCTAssertEqual(main.first?["name"] as? String, "Main Thread")
-                let metadata = try XCTUnwrap(main.first?["bitdrift"] as? [String: Any])
-                XCTAssertEqual(metadata["nativeThreadId"] as? String, String(mainID))
+                let bytes = try Data(contentsOf: url)
+                XCTAssertNotNil(bytes.range(of: Data("Main Thread".utf8)))
                 try FileManager.default.removeItem(at: url)
             }
         }.value
@@ -236,33 +230,18 @@ final class StackSnapshotCommandTests: XCTestCase {
         let result = try await command.handler(["buffer_size_kb": .uint64(256)]).get()
         let attachment = try XCTUnwrap(result.attachment)
         defer { attachment.discardOwnedFile() }
-        XCTAssertEqual(attachment.mimeType, "application/json")
+        XCTAssertEqual(attachment.mimeType, "application/vnd.bitdrift.thread-snapshot")
         let url = try XCTUnwrap(attachment.fileURL)
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
-        let threads = try XCTUnwrap(json["threads"] as? [[String: Any]])
-        XCTAssertFalse(threads.isEmpty)
-        let metadata = try XCTUnwrap(json["bitdrift"] as? [String: Any])
-        let imageSurvey = try XCTUnwrap(metadata["imageSurvey"] as? [String: Any])
-        let acceptedImages = try XCTUnwrap(imageSurvey["accepted"] as? Int)
-        let rejectedImages = try XCTUnwrap(imageSurvey["rejected"] as? Int)
-        let imageErrors = try XCTUnwrap(imageSurvey["errors"] as? [String: Int])
-        let images = try XCTUnwrap(metadata["images"] as? [[String: Any]])
-        XCTAssertEqual(acceptedImages, images.count)
-        XCTAssertEqual(imageSurvey["enumerated"] as? Int, acceptedImages + rejectedImages)
-        XCTAssertEqual(imageErrors.values.reduce(0, +), rejectedImages)
-        let captured = try XCTUnwrap(metadata["capturedThreads"] as? Int)
+        XCTAssertEqual(url.pathExtension, "pb")
+        let bytes = try Data(contentsOf: url)
+        XCTAssertFalse(bytes.isEmpty)
+        XCTAssertThrowsError(try JSONSerialization.jsonObject(with: bytes))
+        let captured = try XCTUnwrap(result.context["captured_threads"].flatMap(Int.init))
         XCTAssertGreaterThan(captured, 0)
-        XCTAssertEqual(result.context["captured_threads"], String(captured))
-        let noContext = try XCTUnwrap(metadata["noUserContextThreads"] as? Int)
-        XCTAssertEqual(result.context["no_user_context_threads"], String(noContext))
+        XCTAssertNotNil(result.context["no_user_context_threads"])
         XCTAssertNotNil(result.context["failed_threads"])
         XCTAssertNotNil(result.context["truncated_threads"])
         XCTAssertNotNil(result.context["skipped_threads"])
-        XCTAssertTrue(threads.contains { thread in
-            guard let samples = thread["samples"] as? [String: Any],
-                  let data = samples["data"] as? [[Any]] else { return false }
-            return !data.isEmpty
-        })
         #endif
     }
 }

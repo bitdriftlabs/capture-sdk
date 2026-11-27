@@ -6,22 +6,36 @@
 // https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt
 #![allow(clippy::unwrap_used)]
 
-use super::write_json;
+use super::write_snapshot;
 use crate::CancellationToken;
 use crate::tests::sample_snapshot;
-use std::io;
+use std::io::{self, Write};
+
+//
+// ShortWriter
+//
+
+struct ShortWriter(Vec<u8>);
+
+impl Write for ShortWriter {
+  fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+    let count = bytes.len().min(1);
+    self.0.extend_from_slice(&bytes[.. count]);
+    Ok(count)
+  }
+
+  fn flush(&mut self) -> io::Result<()> {
+    Ok(())
+  }
+}
 
 #[test]
-fn byte_limit_accepts_the_exact_encoded_size_and_rejects_one_byte_less() {
+fn serialization_preserves_all_bytes_when_the_writer_only_accepts_partial_writes() {
   let snapshot = sample_snapshot();
   let cancellation = CancellationToken::default();
   let mut expected = Vec::new();
-  write_json(&snapshot, &mut expected, usize::MAX, &cancellation).unwrap();
-  let mut output = Vec::new();
-  write_json(&snapshot, &mut output, expected.len(), &cancellation).unwrap();
-  assert_eq!(output, expected);
-  output.clear();
-  let error = write_json(&snapshot, &mut output, expected.len() - 1, &cancellation).unwrap_err();
-  assert_eq!(error.kind(), io::ErrorKind::FileTooLarge);
-  assert!(output.len() < expected.len());
+  write_snapshot(&snapshot, &mut expected, &cancellation).unwrap();
+  let mut output = ShortWriter(Vec::new());
+  write_snapshot(&snapshot, &mut output, &cancellation).unwrap();
+  assert_eq!(output.0, expected);
 }
